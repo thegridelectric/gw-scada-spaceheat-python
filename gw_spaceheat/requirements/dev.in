@@ -1,0 +1,5 @@
+pendulum
+pika==1.1.0
+paho-mqtt
+ipython==8.0.0
+pytz

@@ -1,0 +1,8 @@
+.DS_Store
+venv
+.vscode/
+**/__pycache__/
+*.pyc
+.ssotme
+
+gw_spaceheat/scratch.ipynb
