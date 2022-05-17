@@ -14,7 +14,7 @@
     {
       "ProjectSettingId": "d045fc02-4b26-413e-b1a2-9b9f116ea518",
       "Name": "amqps",
-      "Value": "amqps://smqPublic:smqPublic@effortlessapi-rmq.ssot.me/jmillar-gw-scada-spaceheat"
+      "Value": "amqps://smqPublic:smqPublic@effortlessapi-rmq.ssot.me/jmillar-scada"
     },
     {
       "ProjectSettingId": "a2f6d0b1-13da-4126-a8a5-f7f90336e109",
@@ -43,7 +43,7 @@
       "ProjectTranspilerId": "062a5e7b-d6e7-4a83-9296-1a4b64cb1a57",
       "Name": "AirtableToXml",
       "RelativePath": "/SSoT",
-      "CommandLine": "airtable/airtable-to-xml -p baseId=apphD1KcIwZ02ANPL -i Entities.json -w 120000"
+      "CommandLine": "airtable/airtable-to-xml -p baseId=appgibWM6WZW20bBx -i Entities.json -w 120000"
     },
     {
       "MatchedTranspiler": {
