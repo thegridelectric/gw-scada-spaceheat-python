@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import paho.mqtt.client as mqtt
+import configparser
 import threading
 from typing import List
 from data_classes.sh_node import ShNode
@@ -12,10 +13,15 @@ class ActorBase(ABC):
         self.mqttBroker = "localhost"
         #self.mqttBroker ="mqtt.eclipseprojects.io"
         self.publish_client = mqtt.Client(f"{node.alias}-pub")
+        config = configparser.ConfigParser()
+        config.read("config.ini")
+        self.publish_client.username_pw_set(config["default"]["username"], config["default"]["password"])
         self.publish_client.connect(self.mqttBroker)
         self.consume_client = mqtt.Client(f"{node.alias}")
+        self.consume_client.username_pw_set(config["default"]["username"], config["default"]["password"])
         self.consume_client.connect(self.mqttBroker)
         self.consume_thread = threading.Thread(target=self.consume)
+
 
     def consume(self):
         print('hi')
