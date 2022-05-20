@@ -9,7 +9,7 @@
     <xsl:variable name="odxml" select="/" />
     <xsl:variable name="squot">'</xsl:variable>
     <xsl:variable name="init-space">             </xsl:variable>
-    <xsl:include href="GwCommon.xslt"/>
+    <xsl:include href="ScadaCommon.xslt"/>
 
     <xsl:template match="@*|node()">
         <xsl:copy>
@@ -28,7 +28,7 @@
                         <xsl:call-template name="python-case"><xsl:with-param name="camel-case-text" select="Name"  /></xsl:call-template>
                     </xsl:variable>
                     <FileSetFile>
-                        <xsl:element name="RelativePath"><xsl:text>../../gw_spaceheat/new_data_classes/</xsl:text><xsl:value-of select="$python-odname"/><xsl:text>_base.py</xsl:text></xsl:element>
+                        <xsl:element name="RelativePath"><xsl:text>../....//gw_spaceheat/new_data_classes/</xsl:text><xsl:value-of select="$python-odname"/><xsl:text>_base.py</xsl:text></xsl:element>
                         <OverwriteMode>Always</OverwriteMode>
                         <xsl:element name="FileContents" ><xsl:text>""" </xsl:text><xsl:value-of select="$od/Name" /><xsl:text> Base Class Definition """
 import time

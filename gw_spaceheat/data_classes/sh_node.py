@@ -1,5 +1,5 @@
 """ ShNode Class Definition"""
-from typing import Optional
+from typing import Optional, List, Dict
 from data_classes.errors import DcError, DataClassLoadingError
 from data_classes.sh_node_base import ShNodeBase
 from data_classes.sh_node_role import ShNodeRole
@@ -8,24 +8,41 @@ from data_classes.component import Component
 from data_classes.electric_heater_component import ElectricHeaterComponent
 
 class ShNode(ShNodeBase):
+    by_alias: Dict[str, ShNodeBase] = {}
+
+    def __init__(self,
+                 sh_node_id: Optional[str] = None,
+                 alias: Optional[str] = None,
+                 sh_node_role_alias: Optional[str] = None,
+                 display_name: Optional[str] = None,
+                 primary_component_id: Optional[str] = None,
+                 python_actor_name: Optional[str] = None
+                 ):
+        super(ShNode, self).__init__(sh_node_id=sh_node_id,
+                alias=alias,
+                sh_node_role_alias=sh_node_role_alias,
+                display_name=display_name,
+                primary_component_id=primary_component_id,
+                python_actor_name=python_actor_name)
+        self.__class__.by_alias[self.alias] = self
 
     def __repr__(self):
         rs =  f'ShNode {self.display_name} => {self.sh_node_role.alias} {self.alias}, '
-        if self.has_python_actor:
+        if self.has_actor:
             rs += ' (has actor)'
         else:
             rs += ' (passive, no actor)'
         return rs
 
     @classmethod
-    def check_existence_of_certain_attributes(cls, attributes):
+    def check_existence_of_certain_attributes(cls, attributes: Dict):
         if not attributes.get('sh_node_id', None):
             raise DcError('sh_node_id must exist')
         if not attributes.get('alias', None):
             raise DcError('alias must exist')
         if not attributes.get('display_name', None):
             raise DcError('display_name must exist')
-    
+
     @classmethod
     def check_initialization_consistency(cls, attributes):
         ShNode.check_uniqueness_of_primary_key(attributes)
@@ -51,6 +68,8 @@ class ShNode(ShNodeBase):
                                                 f" {new_component.electric_heater_cac}")
 
 
+
+
     @property
     def sh_node_role(self) -> ShNodeRole:
         if not self.sh_node_role_alias in PlatformShNodeRole.keys():
@@ -66,25 +85,7 @@ class ShNode(ShNodeBase):
         return Component.by_id[self.primary_component_id]
 
     @property
-    def thermal_flow_from_node(self) -> Optional[ShNodeBase]:
-        if self.thermal_flow_from_node_alias:
-            if self.thermal_flow_from_node_alias not in ShNode.by_alias.keys():
-                raise DataClassLoadingError(f"{self.alias} thermal_flow_from_node {self.thermal_flow_from_node_alias} not loaded!")
-            return ShNode.by_alias[self.thermal_flow_from_node_alias]
-        else:
-            return None
-
-    @property
-    def thermal_flow_to_node(self) -> Optional[ShNodeBase]:
-        if self.thermal_flow_to_node_alias:
-            if self.thermal_flow_to_node_alias not in ShNode.by_alias.keys():
-                raise DataClassLoadingError(f"{self.alias} thermal_flow_to_node {self.thermal_flow_to_node_alias} not loaded!")
-            return ShNode.by_alias[self.thermal_flow_to_node_alias]
-        else:
-            return None
-
-    @property
-    def parent(self):  # TODO: add GNode as typing?
+    def parent(self) -> ShNodeBase:
         alias_list = self.alias.split(".")
         alias_list.pop()
         if len(alias_list) == 0:
@@ -92,9 +93,13 @@ class ShNode(ShNodeBase):
         else:
             parent_alias = ".".join(alias_list)
             return ShNode.by_alias[parent_alias]
+
+    @property
+    def descendants(self) -> List[ShNodeBase]:
+        return list(filter(lambda x: x.alias.startswith(self.alias), ShNode.by_alias.values()))
     
     @property
-    def has_python_actor(self) -> bool:
+    def has_actor(self) -> bool:
         if self.python_actor_name is None:
             return False
         return True

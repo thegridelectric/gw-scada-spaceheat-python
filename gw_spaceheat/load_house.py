@@ -1,8 +1,8 @@
 import json
 from utils import camel_to_snake
 
-from data_classes.actuator_cac import ActuatorCac
-from data_classes.actuator_component import ActuatorComponent
+from data_classes.boolean_actuator_cac import BooleanActuatorCac
+from data_classes.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.cac import Cac
 from data_classes.component import Component
 from data_classes.electric_heater_cac import ElectricHeaterCac
@@ -10,18 +10,15 @@ from data_classes.electric_heater_component import ElectricHeaterComponent
 from data_classes.sensor_cac import SensorCac
 from data_classes.sensor_component import SensorComponent
 from data_classes.sh_node import ShNode
+from data_classes.thermal_edge import ThermalEdge
+
+HOUSE_JSON_FILE = 'input_data/dev_house.json'
 
 
-REGISTRY_JSON_FILE = 'input_data/dev_house.json'
-
-
-with open(REGISTRY_JSON_FILE,"r") as read_file:
-    input_data = json.load(read_file)
-
-def load_cacs():
-    for camel in input_data['ActuatorCacs']:
+def load_cacs(input_data):
+    for camel in input_data['BooleanActuatorCacs']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = ActuatorCac(**snake_dict)
+        component = BooleanActuatorCac(**snake_dict)
     for camel in input_data['ElectricHeaterCacs']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         component = ElectricHeaterCac(**snake_dict)
@@ -33,10 +30,10 @@ def load_cacs():
         component = Cac(**snake_dict)      
 
 
-def load_components():
-    for camel in input_data['ActuatorComponents']:
+def load_components(input_data):
+    for camel in input_data['BooleanActuatorComponents']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = ActuatorComponent(**snake_dict)
+        component = BooleanActuatorComponent(**snake_dict)
     for camel in input_data['ElectricHeaterComponents']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         component = ElectricHeaterComponent(**snake_dict)
@@ -48,13 +45,21 @@ def load_components():
         component = Component(**snake_dict)
     
 
-def load_nodes():
+def load_nodes(input_data):
     for camel in input_data['ShNodes']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         node = ShNode(**snake_dict)
 
-def load_all():
-    load_cacs()
-    load_components()
-    load_nodes()
+def load_edges(input_data):
+    #Preethi TODO: want a list of thermal edges. Every time 
+    # a new thermal edge is made it goes into this list.
+    pass
+
+def load_all(house_json_file=HOUSE_JSON_FILE):
+    with open(house_json_file,"r") as read_file:
+        input_data = json.load(read_file)
+    load_cacs(input_data=input_data)
+    load_components(input_data=input_data)
+    load_nodes(input_data=input_data)
+    load_edges(input_data=input_data)
 

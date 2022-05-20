@@ -8,6 +8,7 @@ from messages.gt_telemetry_1_0_0 import \
 from messages.gs.gs_pwr_1_0_0 import Gs_Pwr_1_0_0, GsPwr100Payload
 from messages.gt_telemetry_1_0_0 import Gt_Telemetry_1_0_0, GtTelemetry100Payload
 from drivers.boolean_actuator.ncd__pr8_14_spst__boolean_actuator import Ncd__Pr8_14_Spst__BooleanActuator
+from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator import Gridworks__SimBool30AmpRelay__BooleanActuator
 
 class Primary_Scada(Primary_Scada_Base):
     def __init__(self, node: ShNode):
@@ -15,6 +16,8 @@ class Primary_Scada(Primary_Scada_Base):
         self.power = 0
         self.consume_thread.start()
         self.total_power_w = 0
+        house_nodes = list(self.node.parent.descendants)
+        self.actuator_nodes: List[ShNode] = list(filter(lambda x: x.sh_node_role.alias == 'Actuator', house_nodes))
         self.relay_actuator: BooleanActuator = None
         self.set_relay_actuator()
         
@@ -25,6 +28,8 @@ class Primary_Scada(Primary_Scada_Base):
         primary_component = relay.primary_component
         if primary_component.make_and_model == 'NCD__PR8-14-SPST':
             self.relay_actuator =  Ncd__Pr8_14_Spst__BooleanActuator(component=primary_component)
+        elif primary_component.make_and_model == 'GridWorks__SimBool30AmpRelay':
+            self.relay_actuator = Gridworks__SimBool30AmpRelay__BooleanActuator(component=primary_component)
         else:
             raise NotImplementedError(f"No driver yet for {primary_component.make_and_model}")
 

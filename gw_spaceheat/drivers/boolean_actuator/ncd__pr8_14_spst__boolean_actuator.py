@@ -1,5 +1,8 @@
-from drivers.mcp23008 import mcp23008
-import smbus
+from drivers.base.mcp23008 import mcp23008
+import platform
+
+import smbus2 as smbus
+
 
 from drivers.boolean_actuator.boolean_actuator_base import BooleanActuator
 from data_classes.actuator_component import ActuatorComponent

@@ -56,5 +56,6 @@ After loading the various drivers, I tried to run the simple-gpio-monitor script
 
 
 [Devine Lu Linvega](https://github.com/neauoire) of [100 rabbits](http://100r.co/site/about_us.html) points out [here](https://github.com/pimoroni/inky-phat/issues/28) that the pi interface needs to be activated, first by typing sudo raspi-config and then
-navigating to Interfacing Options, selecting i2c, and enabling it.
+navigating to Interfacing Options, selecting i2c, and enabling it. Alternatively,
+sudo nano /boot/config.txt and make sure it has the a line with dtparam=i2c_arm=on
 

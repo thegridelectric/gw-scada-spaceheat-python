@@ -1,6 +1,9 @@
-# This script works once you've gotten smbus set up on your pi. Read docs
-from drivers.mcp23008 import mcp23008
-import smbus
+# This script works once you've gotten smbus set up on your pi. 
+
+from drivers.base.mcp23008 import mcp23008
+import platform
+
+import smbus2 as smbus
 
 bus = smbus.SMBus(1)
 

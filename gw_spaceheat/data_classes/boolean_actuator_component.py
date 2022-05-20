@@ -1,10 +1,10 @@
 from typing import Optional
 
-from .component import Component
-from .actuator_cac import ActuatorCac 
+from data_classes.component import Component
+from data_classes.boolean_actuator_cac import BooleanActuatorCac
 from .errors import DcError, DataClassLoadingError
 
-class ActuatorComponent(Component):
+class BooleanActuatorComponent(Component):
     by_id = {}
     
     base_props = []
@@ -27,7 +27,7 @@ class ActuatorComponent(Component):
                  display_name: Optional[str] = None,
                  cac_id: Optional[str] = None,
                  gpio: Optional[int] = None):
-        super(ActuatorComponent, self).__init__(component_id=component_id,
+        super(BooleanActuatorComponent, self).__init__(component_id=component_id,
                             display_name=display_name,
                             cac_id=cac_id)
         self.gpio= gpio
@@ -51,17 +51,17 @@ class ActuatorComponent(Component):
 
     @classmethod
     def check_initialization_consistency(cls, attributes):
-        ActuatorComponent.check_uniqueness_of_primary_key(attributes)
-        ActuatorComponent.check_existence_of_certain_attributes(attributes)
+        BooleanActuatorComponent.check_uniqueness_of_primary_key(attributes)
+        BooleanActuatorComponent.check_existence_of_certain_attributes(attributes)
 
     @property
-    def cac(self) -> ActuatorCac:
-        if self.cac_id not in ActuatorCac.by_id.keys():
-            raise DataClassLoadingError(f"ActuatorCacId {self.cac_id} not loaded yet")
-        return ActuatorCac.by_id[self.cac_id]
+    def cac(self) -> BooleanActuatorCac:
+        if self.cac_id not in BooleanActuatorCac.by_id.keys():
+            raise DataClassLoadingError(f"BooleanActuatorCacId {self.cac_id} not loaded yet")
+        return BooleanActuatorCac.by_id[self.cac_id]
 
     @property
     def make_and_model(self) -> str:
-        if self.cac_id not in ActuatorCac.by_id.keys():
-            raise DataClassLoadingError(f"ActuatorCacId {self.cac_id} not loaded yet")
-        return f'{ActuatorCac.by_id[self.cac_id].make}__{ActuatorCac.by_id[self.cac_id].model}'
+        if self.cac_id not in BooleanActuatorCac.by_id.keys():
+            raise DataClassLoadingError(f"BooleanActuatorCacId {self.cac_id} not loaded yet")
+        return f'{BooleanActuatorCac.by_id[self.cac_id].make}__{BooleanActuatorCac.by_id[self.cac_id].model}'

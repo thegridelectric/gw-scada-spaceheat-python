@@ -1,17 +1,13 @@
 """ ActuatorCac Class Definition """
 from typing import Optional
-from abc import ABC
-from .errors import DcError
-from .cac import Cac
-from .actuator_type import ActuatorType
-from .actuator_type_static import PlatformActuatorType
+from data_classes.errors import DcError
+from data_classes.cac import Cac
 
-class ActuatorCac(Cac):
+class BooleanActuatorCac(Cac):
     by_id = {}
 
     base_props = []
     base_props.append('cac_id')
-    base_props.append('actuator_type_value')
     base_props.append('make')
     base_props.append('model')
 

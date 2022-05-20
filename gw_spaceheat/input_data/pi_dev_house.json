@@ -35,7 +35,7 @@
             "ShNodeRoleAlias": "Actuator",
             "DisplayName": "30A Relay for first boost element",
             "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
-            "PrimaryComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb"
+            "PrimaryComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca"
         },
         {
             "Alias": "a.tank",
@@ -87,7 +87,7 @@
             "PrimaryComponentId": "7b1e4102-7fb5-4048-93ae-312a12d47ba8"
         },
         {
-            "Alias": "a.outdoors",
+            "Alias": "a.tank.out.pump.allradiators.garage.outdoors",
             "ShNodeRoleAlias": "Outdoors",
             "DisplayName": "43 Avon St Microclimate",
             "ShNodeId": "4dec0102-41b6-4255-ade6-c5b55dc16f01"
@@ -186,9 +186,9 @@
         }],
     "BooleanActuatorComponents": [
         {
-            "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
+            "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
             "DisplayName": "relay for first elt in tank",
-            "CacId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
+            "CacId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
             "Gpio": 0
         },
         {
@@ -272,12 +272,12 @@
             "ElectricHeaterTypeValue": "WaterHeaterBoost"
         }
     ],
-    "BooleanActuatorCacs":[
+    "ActuatorCacs":[
         {
-            "CacId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
+            "CacId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
             "ActuatorTypeValue": "ElectricRelay",
-            "Make": "GridWorks",
-            "Model": "SimBool30AmpRelay"
+            "Make": "NCD",
+            "Model": "PR8-14-SPST"
         },
         {
             "CacId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90",

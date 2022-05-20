@@ -8,17 +8,12 @@ from data_classes.mixin import StreamlinedSerializerMixin
 
 class ShNodeBase(ABC, StreamlinedSerializerMixin):
     by_id = {}
-    by_alias = {}
     base_props = []
     base_props.append('sh_node_id')
     base_props.append('alias')
     base_props.append('sh_node_role_alias')
     base_props.append('display_name')
     base_props.append('primary_component_id')
-    base_props.append('thermal_flow_from_node_alias_list')
-    base_props.append('thermal_flow_from_node_alias')
-    base_props.append('thermal_flow_to_node_alias')
-    base_props.append('thermal_flow_to_node_alias_list')
     base_props.append('has_python_actor')
 
     def __new__(cls, sh_node_id, *args, **kwargs):
@@ -35,10 +30,6 @@ class ShNodeBase(ABC, StreamlinedSerializerMixin):
                  sh_node_role_alias: Optional[str] = None,
                  display_name: Optional[str] = None,
                  primary_component_id: Optional[str] = None,
-                 thermal_flow_from_node_alias: Optional[str] = None,
-                 thermal_flow_from_node_alias_list: Optional[List[str]] = None,
-                 thermal_flow_to_node_alias: Optional[str] = None,
-                 thermal_flow_to_node_alias_list: Optional[List[str]] = None,
                  python_actor_name: Optional[str] = None
                  ):
         self.sh_node_id = sh_node_id
@@ -46,12 +37,8 @@ class ShNodeBase(ABC, StreamlinedSerializerMixin):
         self.sh_node_role_alias = sh_node_role_alias
         self.display_name = display_name
         self.primary_component_id = primary_component_id
-        self.thermal_flow_from_node_alias = thermal_flow_from_node_alias
-        self.thermal_flow_from_node_alias_list = thermal_flow_from_node_alias_list
-        self.thermal_flow_to_node_alias = thermal_flow_to_node_alias
-        self.thermal_flow_to_node_alias_list = thermal_flow_to_node_alias_list
         self.python_actor_name = python_actor_name
-        self.__class__.by_alias[self.alias] = self
+
             
     def __repr__(self):
         rs =  f'HouseNode {self.display_name} => Alias: {self.alias}'

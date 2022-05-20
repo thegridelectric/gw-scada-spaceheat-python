@@ -1,0 +1,60 @@
+{
+  "ShowHidden": false,
+  "ShowAllFiles": false,
+  "CurrentPath": "",
+  "SaveDisabled": false,
+  "SSoTmeProjectId": "f1f9ed5e-fb1b-4997-ab23-d50f499ccab8",
+  "Name": "gwscadaspaceheat",
+  "ProjectSettings": [
+    {
+      "ProjectSettingId": "71d50f85-6159-4c21-9c38-3218efaa058a",
+      "Name": "project-name",
+      "Value": "gwscadaspaceheat"
+    },
+    {
+      "ProjectSettingId": "d045fc02-4b26-413e-b1a2-9b9f116ea518",
+      "Name": "amqps",
+      "Value": "amqps://smqPublic:smqPublic@effortlessapi-rmq.ssot.me/jmillar-scada"
+    },
+    {
+      "ProjectSettingId": "a2f6d0b1-13da-4126-a8a5-f7f90336e109",
+      "Name": "dataclasses-namespace",
+      "Value": "gwscadaspaceheat.Lib.DataClasses"
+    }
+  ],
+  "ProjectTranspilers": [
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "ddeef526-5399-4be1-a676-8c64961e549d",
+        "Name": "SSoT",
+        "Description": "SSoT"
+      },
+      "ProjectTranspilerId": "590c469f-c55e-479a-9165-11191de6e23d",
+      "Name": "SSoT",
+      "RelativePath": "",
+      "CommandLine": "effortless/ssot"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "19d8142a-2f4d-46ac-9de6-77441f233192",
+        "Name": "AirtableToXml",
+        "Description": "Extracts the contents of an airtable base as a single Xml file."
+      },
+      "ProjectTranspilerId": "062a5e7b-d6e7-4a83-9296-1a4b64cb1a57",
+      "Name": "AirtableToXml",
+      "RelativePath": "/SSoT",
+      "CommandLine": "airtable/airtable-to-xml -p baseId=appgibWM6WZW20bBx -i Entities.json -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "ff4127a5-e029-4122-9d2d-a5f8b3d684f8",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/DataClasses",
+      "CommandLine": "codee42/xml-xslt-transform -p exclude-collections=true -p relationship-suffix=_id -p legacy=false -i ../ODXML/DataSchema.odxml -i DerivePythonDataClasses.xslt -i ../ScadaCommon.xslt -i ../SSoT/Airtable.xml -w 120000"
+    }
+  ]
+}
