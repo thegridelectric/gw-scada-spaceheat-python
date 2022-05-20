@@ -22,5 +22,5 @@ pytzdata==2020.1
     # via pendulum
 six==1.16.0
     # via python-dateutil
-smbus-cffi==0.5.1
+smbus-cffi @ git+https://github.com/bivab/smbus-cffi.git
     # via -r requirements/drivers.in
