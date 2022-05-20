@@ -11,6 +11,7 @@ class ActuatorComponent(Component):
     base_props.append('component_id')
     base_props.append('display_name')
     base_props.append('cac_id')
+    base_props.append('gpio')
 
     def __new__(cls, component_id, *args, **kwargs):
         if component_id in Component.by_id.keys():
@@ -24,10 +25,12 @@ class ActuatorComponent(Component):
     def __init__(self,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
-                 cac_id: Optional[str] = None):
+                 cac_id: Optional[str] = None,
+                 gpio: Optional[int] = None):
         super(ActuatorComponent, self).__init__(component_id=component_id,
                             display_name=display_name,
                             cac_id=cac_id)
+        self.gpio= gpio
 
     def __repr__(self):
         return f'Component {self.display_name} => Cac {self.cac.display_name}'
@@ -56,3 +59,9 @@ class ActuatorComponent(Component):
         if self.cac_id not in ActuatorCac.by_id.keys():
             raise DataClassLoadingError(f"ActuatorCacId {self.cac_id} not loaded yet")
         return ActuatorCac.by_id[self.cac_id]
+
+    @property
+    def make_and_model(self) -> str:
+        if self.cac_id not in ActuatorCac.by_id.keys():
+            raise DataClassLoadingError(f"ActuatorCacId {self.cac_id} not loaded yet")
+        return f'{ActuatorCac.by_id[self.cac_id].make}__{ActuatorCac.by_id[self.cac_id].model}'

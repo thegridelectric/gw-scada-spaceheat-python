@@ -11,6 +11,8 @@ class Cac(ABC, StreamlinedSerializerMixin):
 
     base_props = []
     base_props.append('cac_id')
+    base_props.append('make')
+    base_props.append('model')
 
     def __new__(cls, cac_id, *args, **kwargs):
         try:
@@ -21,12 +23,16 @@ class Cac(ABC, StreamlinedSerializerMixin):
             return instance
 
     def __init__(self,
-            cac_id: Optional[str] = None):
-        self.cac_id=cac_id
+            cac_id: Optional[str] = None,
+            make: Optional[str] = None,
+            model: Optional[str] = None):
+        self.cac_id = cac_id
+        self.make = make 
+        self.model = model
 
     @property
     def display_name(self) -> str:
-        return f'{self.cac_id} random co'
+        return f'{self.make}__{self.model} (id {self.cac_id})'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):

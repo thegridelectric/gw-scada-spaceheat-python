@@ -12,6 +12,9 @@ class ActuatorCac(Cac):
     base_props = []
     base_props.append('cac_id')
     base_props.append('actuator_type_value')
+    base_props.append('make')
+    base_props.append('model')
+
     
     def __new__(cls, cac_id, *args, **kwargs):
         if cac_id in Cac.by_id.keys():
@@ -24,8 +27,12 @@ class ActuatorCac(Cac):
 
     def __init__(self,
             cac_id: Optional[str] = None,
-            actuator_type_value: Optional[str] = None):
-        super(ActuatorCac, self).__init__(cac_id=cac_id)
+            actuator_type_value: Optional[str] = None,
+            make: Optional[str] = None,
+            model: Optional[str] = None):
+        super(ActuatorCac, self).__init__(cac_id=cac_id,
+                        make=make,
+                        model=model)
         self.actuator_type_value = actuator_type_value
     
     def __repr__(self):
@@ -33,7 +40,7 @@ class ActuatorCac(Cac):
 
     @property
     def display_name(self) -> str:
-        return f'{self.actuator_type_value} random co'
+        return f'{self.actuator_type_value} {self.make}__{self.model}'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):

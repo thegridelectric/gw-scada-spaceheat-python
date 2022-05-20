@@ -167,8 +167,9 @@
     "ActuatorComponents": [
         {
             "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
-            "DisplayName": "Relay for first boost elt in tank",
-            "CacId": "c6e736d8-8078-44f5-98bb-d72ca91dc773"
+            "DisplayName": "relay for first elt in tank",
+            "CacId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
+            "Gpio": 0
         },
         {
             "ComponentId": "a128bda4-3674-4d55-b2b4-61a39d5cf886",
@@ -254,7 +255,9 @@
     "ActuatorCacs":[
         {
             "CacId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
-            "ActuatorTypeValue": "ElectricRelay"
+            "ActuatorTypeValue": "ElectricRelay",
+            "Make": "NCD",
+            "Model": "PR8-14-SPST"
         },
         {
             "CacId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90",
