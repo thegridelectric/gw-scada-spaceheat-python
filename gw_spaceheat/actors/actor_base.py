@@ -10,11 +10,10 @@ class ActorBase(ABC):
 
     def __init__(self, node: ShNode):
         self.node = node
-        self.mqttBroker = "localhost"
-        #self.mqttBroker ="mqtt.eclipseprojects.io"
-        self.publish_client = mqtt.Client(f"{node.alias}-pub")
         config = configparser.ConfigParser()
         config.read("config.ini")
+        self.mqttBroker = config["default"]["broker_address"]
+        self.publish_client = mqtt.Client(f"{node.alias}-pub")
         self.publish_client.username_pw_set(config["default"]["username"], config["default"]["password"])
         self.publish_client.connect(self.mqttBroker)
         self.consume_client = mqtt.Client(f"{node.alias}")
