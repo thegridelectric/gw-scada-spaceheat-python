@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 import paho.mqtt.client as mqtt
 import configparser
@@ -11,7 +12,8 @@ class ActorBase(ABC):
     def __init__(self, node: ShNode):
         self.node = node
         config = configparser.ConfigParser()
-        config.read("config.ini")
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        config.read(os.path.join(current_dir, '..', "config.ini"))
         self.mqttBroker = config["default"]["broker_address"]
         self.publish_client = mqtt.Client(f"{node.alias}-pub")
         self.publish_client.username_pw_set(config["default"]["username"], config["default"]["password"])
