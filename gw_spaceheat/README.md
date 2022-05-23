@@ -11,4 +11,8 @@
   - `python -m pip install pip-tools`
   - If you want to add a new library used in all contexts, then add it to requirements/base.in and run
       - `pip-compile --output-file=requirements/dev.txt requirements/dev.in`
-    - ... and then make sure to re-compile all requirements.txt that reference that .in file (all of them,for base.in)
+      - ... and then make sure to re-compile all requirements.txt that reference that .in file (all of them,for base.in)
+
+**Install the mosquito server**
+1. `brew install mosquitto`
+2. `brew services restart mosquitto`
