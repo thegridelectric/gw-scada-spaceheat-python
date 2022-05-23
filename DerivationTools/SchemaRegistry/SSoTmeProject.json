@@ -1,0 +1,82 @@
+{
+  "ShowHidden": false,
+  "ShowAllFiles": false,
+  "CurrentPath": "",
+  "SaveDisabled": false,
+  "SSoTmeProjectId": "3c107f35-85eb-4847-8bbe-dcdc046b1f16",
+  "Name": "gwplatform",
+  "ProjectSettings": [
+    {
+      "ProjectSettingId": "1441ae39-6c22-45ea-8d33-e8d90956ad0b",
+      "Name": "project-name",
+      "Value": "gwplatform"
+    },
+    {
+      "ProjectSettingId": "9cd3f072-c32f-40b5-b69e-faadae5354e1",
+      "Name": "amqps",
+      "Value": "amqps://smqPublic:smqPublic@effortlessapi-rmq.ssot.me/jmillar-gw-platform"
+    },
+    {
+      "ProjectSettingId": "d1cfdca5-69b4-47bd-bd9b-977cc08a8aec",
+      "Name": "dataclasses-namespace",
+      "Value": "gwplatform.Lib.DataClasses"
+    }
+  ],
+  "ProjectTranspilers": [
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "ddeef526-5399-4be1-a676-8c64961e549d",
+        "Name": "SSoT",
+        "Description": "SSoT"
+      },
+      "ProjectTranspilerId": "590c469f-c55e-479a-9165-11191de6e23d",
+      "Name": "SSoT",
+      "RelativePath": "",
+      "CommandLine": "effortless/ssot"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "19d8142a-2f4d-46ac-9de6-77441f233192",
+        "Name": "AirtableToXml",
+        "Description": "Extracts the contents of an airtable base as a single Xml file."
+      },
+      "ProjectTranspilerId": "062a5e7b-d6e7-4a83-9296-1a4b64cb1a57",
+      "Name": "AirtableToXml",
+      "RelativePath": "/SSoT",
+      "CommandLine": "airtable/airtable-to-xml -p baseId=apphD1KcIwZ02ANPL -i Entities.json -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "56cc552d-e1d6-4c30-b74e-f80269449401",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/GnrSchema/GnrTypeMaker",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveGnrTypeMaker.xslt -i ../../GwSchemaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "ca07a4d4-0dbc-4382-bca3-d5314c4835f7",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/GnrSchema",
+      "CommandLine": "codee42/xml-xslt-transform -i ../SSoT/Airtable.xml -i DeriveGnrSchemas.xslt -i ../GwSchemaCommon.xslt -i ../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "0b4c9305-3a4a-44cc-beca-48e631bb0d06",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/GnrSchema/GnrSchemaBase",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveGnrSchemaBases.xslt -i ../../GwSchemaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    }
+  ]
+}
