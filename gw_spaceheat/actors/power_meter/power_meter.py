@@ -1,7 +1,7 @@
 
 from typing import List
 from actors.power_meter.power_meter_base import Power_Meter_Base
-from actors.primary_scada.primary_scada_base import Primary_Scada_Base
+from actors.primary_scada.primary_scada_base import PrimaryScadaBase
 from data_classes.sh_node import ShNode
 from messages.gt_telemetry_1_0_0 import \
     Gt_Telemetry_1_0_0, TelemetryName
