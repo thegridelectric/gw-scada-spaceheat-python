@@ -1,2 +1,4 @@
 -r base.in
+-r test.in
+-r drivers.in
 ipython==8.0.0
