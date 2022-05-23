@@ -51,17 +51,6 @@
         "Name": "XmlXsltTransform",
         "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
       },
-      "ProjectTranspilerId": "56cc552d-e1d6-4c30-b74e-f80269449401",
-      "Name": "XmlXsltTransform",
-      "RelativePath": "/GnrSchema/GnrTypeMaker",
-      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveGnrTypeMaker.xslt -i ../../GwSchemaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
-    },
-    {
-      "MatchedTranspiler": {
-        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
-        "Name": "XmlXsltTransform",
-        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
-      },
       "ProjectTranspilerId": "ca07a4d4-0dbc-4382-bca3-d5314c4835f7",
       "Name": "XmlXsltTransform",
       "RelativePath": "/GnrSchema",
@@ -77,6 +66,17 @@
       "Name": "XmlXsltTransform",
       "RelativePath": "/GnrSchema/GnrSchemaBase",
       "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveGnrSchemaBases.xslt -i ../../GwSchemaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "56cc552d-e1d6-4c30-b74e-f80269449401",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/GnrSchema/GnrTypeMaker",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveGnrTypeMaker.xslt -i ../../GwSchemaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
     }
   ]
 }

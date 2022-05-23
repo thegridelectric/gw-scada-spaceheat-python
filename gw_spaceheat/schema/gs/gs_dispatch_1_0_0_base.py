@@ -1,14 +1,14 @@
-"""Base for GridWorks serial message protocol GsPwr100 with MpAlias p"""
+"""Base for GridWorks schema gs.dispatch.100 with MpAlias d"""
 from typing import List, Dict, Tuple, Optional, NamedTuple
 import datetime
 import enum
 import struct
 
-import messages.property_format as property_format
+import schema.property_format as property_format
 
-class GsPwrPayload100Base(NamedTuple):   #
+class GsDispatch100Base(NamedTuple):   #
     Power: int     # 
-    MpAlias: str = 'p'
+    MpAlias: str = 'd'
 
     def asbinary(self) -> bytes:
         return struct.pack("<h", self.Power)
@@ -16,9 +16,9 @@ class GsPwrPayload100Base(NamedTuple):   #
     def passes_derived_validations(self) -> Tuple[bool, Optional[List[str]]]:
         is_valid = True
         errors = []
-        if self.MpAlias != 'p':
+        if self.MpAlias != 'd':
             is_valid = False
-            errors.append(f"Payload requires MpAlias of p, not {self.MpAlias}.")
+            errors.append(f"Payload requires MpAlias of d, not {self.MpAlias}.")
         if not isinstance(self.Power, int):
             is_valid = False
             errors.append(f"Name {self.Power} must have type int")

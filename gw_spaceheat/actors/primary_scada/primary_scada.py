@@ -1,12 +1,10 @@
 from typing import List
 from actors.primary_scada.primary_scada_base import Primary_Scada_Base
 from data_classes.sh_node import ShNode
-from data_classes.actuator_component import ActuatorComponent
+from data_classes.boolean_actuator_component import BooleanActuatorComponent 
 from drivers.boolean_actuator.boolean_actuator_base import BooleanActuator
-from messages.gt_telemetry_1_0_0 import \
-    Gt_Telemetry_1_0_0, TelemetryName
-from messages.gs.gs_pwr_1_0_0 import Gs_Pwr_1_0_0, GsPwr100Payload
-from messages.gt_telemetry_1_0_0 import Gt_Telemetry_1_0_0, GtTelemetry100Payload
+from schema.gt.gt_telemetry.gt_telemetry_1_0_0_maker import  GtTelemetry100_Maker, GtTelemetry100
+from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
 from drivers.boolean_actuator.ncd__pr8_14_spst__boolean_actuator import Ncd__Pr8_14_Spst__BooleanActuator
 from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator import Gridworks__SimBool30AmpRelay__BooleanActuator
 
@@ -24,7 +22,7 @@ class Primary_Scada(Primary_Scada_Base):
     def set_relay_actuator(self):
         relay: ShNode = None
         relay = ShNode.by_alias['a.elt1.relay']
-        primary_component: ActuatorComponent = None
+        primary_component: BooleanActuatorComponent = None
         primary_component = relay.primary_component
         if primary_component.make_and_model == 'NCD__PR8-14-SPST':
             self.relay_actuator =  Ncd__Pr8_14_Spst__BooleanActuator(component=primary_component)
@@ -34,15 +32,15 @@ class Primary_Scada(Primary_Scada_Base):
             raise NotImplementedError(f"No driver yet for {primary_component.make_and_model}")
 
     def publish(self):
-        payload = Gs_Pwr_1_0_0(power=self.total_power_w).payload
+        payload = GsPwr100_Maker(power=self.total_power_w).type
         self.publish_gs_pwr(payload=payload)
 
-    def gs_pwr_100_from_powermeter(self, payload: GsPwr100Payload):
+    def gs_pwr_100_from_powermeter(self, payload: GsPwr100):
         self.screen_print(f"Got {payload}")
         self.total_power_w = payload.Power
         self.publish()
     
-    def gt_telemetry_100_received(self, payload: GtTelemetry100Payload, from_node: ShNode):
+    def gt_telemetry_100_received(self, payload: GtTelemetry100, from_node: ShNode):
         self.screen_print(f"Got {payload} from {from_node.alias}")
 
     @property

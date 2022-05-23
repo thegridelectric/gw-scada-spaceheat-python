@@ -19,8 +19,8 @@
     <xsl:template match="/">
         <FileSet>
             <FileSetFiles>
-                <xsl:for-each select="$airtable//MpSchemas/MpSchema[(normalize-space(Alias) !='')  and (FromDataClass='true') and ((Alias = 'gt.component.1_1_0')  or (Alias = 'gt.component.attribute.class.1_1_0')) and ((Status = 'Active') or (Status = 'Supported') or (Status = 'Pending'))]">
-                    <xsl:variable name="mp-schema-alias" select="Alias" />  
+                <xsl:for-each select="$airtable//MpSchemas/MpSchema[(normalize-space(Alias) !='')  and (FromDataClass='true') and (ScadaUses = 'true') and ((Status = 'Active') or (Status = 'Supported') or (Status = 'Pending'))]">
+                    <xsl:variable name="mp-schema-alias" select="KafkaAlias" />  
                     <xsl:variable name="mp-schema-id" select="MpSchemaId" />
                     <xsl:variable name="class-name">
                         <xsl:call-template name="message-case">
@@ -51,14 +51,14 @@
                     </xsl:variable>
                     <FileSetFile>
                                 <xsl:element name="RelativePath"><xsl:text>../../../../gw_spaceheat/schema/gt/gnr/</xsl:text><xsl:value-of select="NtClass"/><xsl:text>/</xsl:text>
-                                <xsl:value-of select="translate(Alias,'.','_')"/><xsl:text>_schema_base.py</xsl:text></xsl:element>
+                                <xsl:value-of select="translate(Alias,'.','_')"/><xsl:text>_base.py</xsl:text></xsl:element>
                         
 
                         <OverwriteMode>Always</OverwriteMode>
                         <xsl:element name="FileContents">
 
    
-<xsl:text>"""SchemaBase for </xsl:text><xsl:value-of select="$mp-schema-alias"/><xsl:text>"""
+<xsl:text>"""Base for </xsl:text><xsl:value-of select="$mp-schema-alias"/><xsl:text>"""
 from typing import List, Tuple, Optional, NamedTuple
 import schema.property_format</xsl:text>
 
@@ -84,7 +84,8 @@ from schema.gt.</xsl:text><xsl:value-of select="NtClass"/><xsl:text>.</xsl:text>
 <xsl:text>
 
 
-class SchemaBase(NamedTuple):
+class </xsl:text>
+<xsl:value-of select="$nt-name"/><xsl:text>Base(NamedTuple):
     </xsl:text>
     <xsl:for-each select="$airtable//MpMessagePayloadProperties/MpMessagePayloadProperty[(MpSchema = $mp-schema-id) and normalize-space(InPreamble)='true' and (IsRequired = 'true')]">
         <xsl:value-of select="Value"/><xsl:text>: </xsl:text>
@@ -189,9 +190,9 @@ class SchemaBase(NamedTuple):
     def passes_derived_validations(self) -> Tuple[bool, Optional[List[str]]]:
         is_valid = True
         errors = []
-        if self.MpAlias != '</xsl:text><xsl:value-of select="Alias"/><xsl:text>':
+        if self.MpAlias != '</xsl:text><xsl:value-of select="$mp-schema-alias"/><xsl:text>':
             is_valid = False
-            errors.append(f"Payload requires MpAlias of </xsl:text><xsl:value-of select="Alias"/><xsl:text>, not {self.MpAlias}.")</xsl:text>
+            errors.append(f"Type requires MpAlias of </xsl:text><xsl:value-of select="$mp-schema-alias"/><xsl:text>, not {self.MpAlias}.")</xsl:text>
 <xsl:for-each select="$airtable//MpMessagePayloadProperties/MpMessagePayloadProperty[(MpSchema = $mp-schema-id) and normalize-space(InPreamble)='true' and normalize-space(IsRequired) = 'true']">
     <xsl:text>
         if not isinstance(self.</xsl:text><xsl:value-of select="Value"/><xsl:text>, </xsl:text>

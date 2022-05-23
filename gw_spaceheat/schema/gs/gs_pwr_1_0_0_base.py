@@ -1,12 +1,12 @@
-"""Base for GridWorks serial message protocol GsPwr100 with MpAlias p"""
+"""Base for GridWorks schema gs.pwr.100 with MpAlias p"""
 from typing import List, Dict, Tuple, Optional, NamedTuple
 import datetime
 import enum
 import struct
 
-import messages.property_format as property_format
+import schema.property_format as property_format
 
-class GsPwrPayload100Base(NamedTuple):   #
+class GsPwr100Base(NamedTuple):   #
     Power: int     # 
     MpAlias: str = 'p'
 

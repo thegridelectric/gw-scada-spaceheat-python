@@ -22,7 +22,7 @@ client.connect(mqttBroker)
 
 client.loop_start()
 
-client.subscribe("gt.telemetry.1_0_0")
+client.subscribe("gt.telemetry.100")
 client.on_message=on_message 
 
 time.sleep(15)

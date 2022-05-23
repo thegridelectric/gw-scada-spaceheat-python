@@ -139,7 +139,7 @@
     <ShNodeRole>
       <ShNodeRoleId>rectu1YOWghuEt4TB</ShNodeRoleId>
       <createdTime>2022-05-11T18:00:07Z</createdTime>
-      <MpSchema>gt.telemetry.1_0_0</MpSchema>
+      <MpSchema>gt.telemetry.100</MpSchema>
       <PublishedMessages>recjlxwKfbt02DSdx</PublishedMessages>
       <Alias>Sensor</Alias>
       <ShortAlias>sensor</ShortAlias>
@@ -468,7 +468,7 @@
       <Alias>TelemetryName</Alias>
       <MpSchema>recqVHqZ5DQVdVgby</MpSchema>
       <MpSchemaAttributes>recfMyBibCC1lqTy1</MpSchemaAttributes>
-      <MpSchemaAlias>gt.telemetry.1_0_0</MpSchemaAlias>
+      <MpSchemaAlias>gt.telemetry.100</MpSchemaAlias>
     </FiniteStringSet>
     <FiniteStringSet>
       <FiniteStringSetId>recC5j0qafDMZTMup</FiniteStringSetId>
@@ -546,7 +546,7 @@
       <MpSchemaAttributes>recKwPBxJr8R55KlB</MpSchemaAttributes>
       <MpSchemaAttributes>rec0yzwyCWxtaJQJF</MpSchemaAttributes>
       <MajorVersion>1</MajorVersion>
-      <Alias>gt.telemetry.1_0_0</Alias>
+      <Alias>gt.telemetry.100</Alias>
       <SemanticVersion>1.0.0</SemanticVersion>
     </MpSchema>
   </MpSchemas>

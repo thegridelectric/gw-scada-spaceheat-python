@@ -53,6 +53,16 @@ class Component(ABC, StreamlinedSerializerMixin):
         Component.check_uniqueness_of_primary_key(attributes)
         Component.check_existence_of_certain_attributes(attributes)
 
+
+    def check_immutability_for_existing_attributes(self, new_attributes):
+        if new_attributes['component_id'] != self.component_id:
+            raise DcError('component_id is Immutable')
+        if new_attributes['cac_id'] != self.cac_id:
+            raise DcError('cac_id is Immutable')
+
+    def check_update_consistency(self, new_attributes):
+        self.check_immutability_for_existing_attributes(new_attributes)
+
     @property
     def cac(self) -> Cac:
         if self.cac_id not in Cac.by_id.keys():

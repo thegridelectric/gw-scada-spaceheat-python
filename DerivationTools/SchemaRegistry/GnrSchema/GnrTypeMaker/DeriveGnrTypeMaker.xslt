@@ -19,8 +19,8 @@
     <xsl:template match="/">
         <FileSet>
             <FileSetFiles>
-                <xsl:for-each select="$airtable//MpSchemas/MpSchema[(normalize-space(Alias) !='') and (FromDataClass='true') and ((Alias = 'gt.component.1_1_0') or (Alias = 'gt.component.attribute.class.1_1_0')) and ((Status = 'Active') or (Status = 'Supported') or (Status = 'Pending'))]">
-                    <xsl:variable name="mp-schema-alias" select="Alias" />  
+                <xsl:for-each select="$airtable//MpSchemas/MpSchema[(normalize-space(Alias) !='') and (FromDataClass='true') and (ScadaUses = 'true') and ((Status = 'Active') or (Status = 'Supported') or (Status = 'Pending'))]">
+                    <xsl:variable name="mp-schema-alias" select="KafkaAlias" />  
                     <xsl:variable name="mp-schema-id" select="MpSchemaId" />
                     <xsl:variable name="class-name">
                         <xsl:call-template name="message-case">
@@ -59,11 +59,11 @@
                     </xsl:variable>
                     <FileSetFile>
                                 <xsl:element name="RelativePath"><xsl:text>../../../../gw_spaceheat/schema/gt/gnr/</xsl:text><xsl:value-of select="NtClass"/><xsl:text>/</xsl:text>
-                                <xsl:value-of select="translate(Alias,'.','_')"/><xsl:text>.py</xsl:text></xsl:element>
+                                <xsl:value-of select="translate(Alias,'.','_')"/><xsl:text>_maker.py</xsl:text></xsl:element>
                         <OverwriteMode>Always</OverwriteMode>
                         <xsl:element name="FileContents">
 
-<xsl:text>"""TypeMaker for </xsl:text><xsl:value-of select="$mp-schema-alias"/>
+<xsl:text>"""Makes </xsl:text><xsl:value-of select="$mp-schema-alias"/><xsl:text> type.</xsl:text>
 <xsl:if test="not (normalize-space(Description)='')">
 <xsl:text>.
 </xsl:text>
@@ -90,20 +90,15 @@ from data_classes.</xsl:text>             <xsl:call-template name="python-case">
   </xsl:call-template><xsl:text> import </xsl:text><xsl:value-of select="DataClassCamel"/>
 </xsl:for-each>
 
-<xsl:if test="IsNamedTuple='true'">
- <xsl:if test="FromDataClass='true'">
 <xsl:text>
 from schema.gt.gnr.</xsl:text><xsl:value-of select="NtClass"/>
 <xsl:text>.</xsl:text><xsl:value-of select="translate(Alias,'.','_')"/>
-<xsl:text>_schema import </xsl:text><xsl:value-of select="$nt-name"/>
-</xsl:if>
-<xsl:if test="not(FromDataClass='true')">
-<xsl:text>
-from schema.gt.</xsl:text><xsl:value-of select="NtClass"/>
-<xsl:text>.</xsl:text><xsl:value-of select="translate(Alias,'.','_')"/>
-<xsl:text>_schema import </xsl:text><xsl:value-of select="$nt-name"/>
-</xsl:if>
-</xsl:if>
+<xsl:text> import </xsl:text>
+<xsl:call-template name="nt-case">
+    <xsl:with-param name="mp-schema-text" select="KafkaAlias" />
+</xsl:call-template>
+
+
 
 
 <xsl:for-each select="$airtable//MpMessagePayloadProperties/MpMessagePayloadProperty[(MpSchema = $mp-schema-id) and (TypeIsNtClass='true')]">
@@ -113,13 +108,13 @@ from schema.gt.</xsl:text><xsl:value-of select="NtClass"/>
        </xsl:call-template>
 </xsl:variable>
         <xsl:text>
-from schema.gt.</xsl:text><xsl:value-of select="NtClass"/><xsl:text>.</xsl:text>
-<xsl:value-of select="translate(SubMessageFormatAlias,'.','_')"/><xsl:text> import \
+from schema.gt.gnr.</xsl:text><xsl:value-of select="NtClass"/><xsl:text>.</xsl:text>
+<xsl:value-of select="translate(SubMessageFormatAlias,'.','_')"/><xsl:text>_maker import \
 </xsl:text>
-<xsl:call-template name="message-case">
+<xsl:call-template name="nt-case">
     <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
 </xsl:call-template>
-    <xsl:text>, </xsl:text>
+    <xsl:text>_Maker, </xsl:text>
 <xsl:call-template name="nt-case">
     <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
 </xsl:call-template>
@@ -138,7 +133,7 @@ from enums.</xsl:text>
     <xsl:text>
     
     
-class </xsl:text><xsl:value-of select="$class-name"/><xsl:text>():
+class </xsl:text><xsl:value-of select="$nt-name"/><xsl:text>_Maker():
     mp_alias = '</xsl:text><xsl:value-of select="Alias"/><xsl:text>'
     mp_status = MpStatus.</xsl:text><xsl:value-of select="translate(Status,$lcletters, $ucletters)"/><xsl:text>.value
 
@@ -167,11 +162,10 @@ class </xsl:text><xsl:value-of select="$class-name"/><xsl:text>():
                 <xsl:text>
             Gt</xsl:text><xsl:value-of select="Value"/>
                 <xsl:text> = </xsl:text>
-                <xsl:call-template name="message-case">
+                <xsl:call-template name="nt-case">
     <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
 </xsl:call-template>
-
-                <xsl:text>.camel_dict_to_schema_type(d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"])</xsl:text>
+    <xsl:text>_Maker.camel_dict_to_schema_type(d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"])</xsl:text>
 
             </xsl:if>
             <xsl:if test= "(IsList='true')">
@@ -181,10 +175,10 @@ class </xsl:text><xsl:value-of select="$class-name"/><xsl:text>():
                 raise MpSchemaError('d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"] must be a list!!')
             for elt in d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"]:
                 Gt</xsl:text><xsl:value-of select="Value"/><xsl:text>.append(</xsl:text>
-                <xsl:call-template name="message-case">
-                    <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
-                </xsl:call-template>
-                <xsl:text>.camel_dict_to_schema_type(elt))</xsl:text>
+                <xsl:call-template name="nt-case">
+    <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
+</xsl:call-template>
+                <xsl:text>_Maker.camel_dict_to_schema_type(elt))</xsl:text>
             </xsl:if>
         </xsl:if>
         <xsl:if test="IsRequired = 'true'">
@@ -194,10 +188,10 @@ class </xsl:text><xsl:value-of select="$class-name"/><xsl:text>():
             <xsl:text>
         Gt</xsl:text><xsl:value-of select="Value"/>
             <xsl:text> = </xsl:text>
-            <xsl:call-template name="message-case">
+            <xsl:call-template name="nt-case">
     <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
 </xsl:call-template>
-            <xsl:text>.camel_dict_to_schema_type(d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"])</xsl:text>
+            <xsl:text>_Maker.camel_dict_to_schema_type(d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"])</xsl:text>
 
         </xsl:if>
         <xsl:if test= "(IsList='true')">
@@ -207,10 +201,10 @@ class </xsl:text><xsl:value-of select="$class-name"/><xsl:text>():
             raise MpSchemaError('d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"] must be a list!!')
         for elt in d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"]:
             Gt</xsl:text><xsl:value-of select="Value"/><xsl:text>.append(</xsl:text>
-            <xsl:call-template name="message-case">
+            <xsl:call-template name="nt-case">
                 <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
             </xsl:call-template>
-            <xsl:text>.camel_dict_to_schema_type(elt))</xsl:text>
+            <xsl:text>_Maker.camel_dict_to_schema_type(elt))</xsl:text>
         </xsl:if>
         </xsl:if>
         </xsl:for-each>
@@ -348,9 +342,9 @@ class </xsl:text><xsl:value-of select="$class-name"/><xsl:text>():
     </xsl:if><xsl:text>
 
     @classmethod
-    def type_is_valid(cls, payload_as_dict: Dict[str, Any]) -> Tuple[bool, Optional[List[str]]]:
+    def type_is_valid(cls, object_as_dict: Dict[str, Any]) -> Tuple[bool, Optional[List[str]]]:
         try:
-            p = cls.camel_dict_to_schema_type(payload_as_dict)
+            p = cls.camel_dict_to_schema_type(object_as_dict)
         except MpSchemaError as e:
             errors = [e]
             return False, errors
@@ -644,7 +638,7 @@ class </xsl:text><xsl:value-of select="$class-name"/><xsl:text>():
 
         t = </xsl:text>
         <xsl:value-of select="$nt-name"/>
-        <xsl:text>(MpAlias=</xsl:text><xsl:value-of select="$class-name"/><xsl:text>.mp_alias</xsl:text>
+        <xsl:text>(MpAlias=</xsl:text><xsl:value-of select="$nt-name"/><xsl:text>_maker.mp_alias</xsl:text>
         <xsl:if test="not (IsNamedTuple='true')"><xsl:text>,
                     WorldInstanceAlias=world_instance_alias</xsl:text>
         </xsl:if>
