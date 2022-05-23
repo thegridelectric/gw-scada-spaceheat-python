@@ -26,7 +26,7 @@ class BooleanActuatorCac(Cac):
             actuator_type_value: Optional[str] = None,
             make: Optional[str] = None,
             model: Optional[str] = None):
-        super(ActuatorCac, self).__init__(cac_id=cac_id,
+        super(BooleanActuatorCac, self).__init__(cac_id=cac_id,
                         make=make,
                         model=model)
         self.actuator_type_value = actuator_type_value
@@ -52,8 +52,8 @@ class BooleanActuatorCac(Cac):
 
     @classmethod
     def check_initialization_consistency(cls, attributes):
-       ActuatorCac.check_uniqueness_of_primary_key(attributes)
-       ActuatorCac.check_existence_of_certain_attributes(attributes)
+       BooleanActuatorCac.check_uniqueness_of_primary_key(attributes)
+       BooleanActuatorCac.check_existence_of_certain_attributes(attributes)
     
     def check_immutability_for_existing_attributes(self, new_attributes):
         if new_attributes['cac_id'] != self.cac_id:
@@ -61,9 +61,3 @@ class BooleanActuatorCac(Cac):
         if new_attributes['actuator_type_value'] != self.actuator_type_value:
             raise DcError(f"actuator_type_value is Immutable. Not changing {self.display_name}"
                                     f" from {self.actuator_type_value} to {new_attributes['actuator_type_value']}")
-    
-    @property
-    def actuator_type(self) -> ActuatorType:
-        if self.actuator_type_value not in PlatformActuatorType.keys():
-            raise TypeError('electric heater type must belong to static list')
-        return PlatformActuatorType[self.actuator_type_value]
