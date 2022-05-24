@@ -19,6 +19,7 @@ The pip-tools also allow for building layers of requirements on top of each othe
 
 ### Handling secrets and config variables
 
+SETTING UP SECRETS.
 Secrets use dotenv module in a gitignored gw-scada-spaceheat-python/.env file, through the helpers.get_secret function. Ask somebody on the team for the secrets.
 
 Convention: if you have a secret key,value pair where the value is None then add it to the .env file like this:
@@ -26,6 +27,8 @@ Convention: if you have a secret key,value pair where the value is None then add
 MQTT_PW = None
 
 and the helper function will turn that None into the python None.
+
+SETTING UP NON_SECRET CONFIGS. Copy gw-scada-spaceheat-python/gw_spaceheat/settings_template.py  to [same]/settings.py
 
 Settings use a gitignored settings.py file. There is a template settings_template.py.
 

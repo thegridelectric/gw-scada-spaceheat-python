@@ -42,6 +42,7 @@ sudo apt-get install build-essential libi2c-dev i2c-tools python-dev libffi-dev
 regular pip was going to /usr/bin/pip and failing. Did this:
  /usr/local/bin/pip3.8 install -r requirements/drivers.txt
 
+This installed dotenv in the wrong place though ...
 
 # Raspberry Pi i2c 
 
