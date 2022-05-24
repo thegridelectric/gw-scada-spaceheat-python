@@ -196,13 +196,13 @@
             "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
             "DisplayName": "relay for first elt in tank",
             "ComponentAttributeClassId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
-            "Gpio": 0
+            "Gpio": 2
         },
         {
             "ComponentId": "7de91fae-72ab-4226-8ebe-f66a9d85cea4",
             "DisplayName": "relay for main circulator pump",
             "ComponentAttributeClassId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
-            "Gpio": 1
+            "Gpio": 3
         }
     ],
     "SensorComponents": [
