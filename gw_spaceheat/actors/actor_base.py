@@ -1,11 +1,11 @@
-import os
 from abc import ABC, abstractmethod
 import paho.mqtt.client as mqtt
 import threading
 from typing import List
 from data_classes.sh_node import ShNode
-from actors.mqtt_utils import Subscription, QOS
+from actors.mqtt_utils import Subscription
 import settings
+import helpers
 
 class ActorBase(ABC):
 
@@ -13,10 +13,10 @@ class ActorBase(ABC):
         self.node = node
         self.mqttBroker = settings.MQTT_BROKER_ADDRESS
         self.publish_client = mqtt.Client(f"{node.alias}-pub")
-        self.publish_client.username_pw_set(username=settings.MQTT_USER_NAME, password=None)
+        self.publish_client.username_pw_set(username=settings.MQTT_USER_NAME, password=helpers.get_secret('MQTT_PW'))
         self.publish_client.connect(self.mqttBroker)
         self.consume_client = mqtt.Client(f"{node.alias}")
-        self.consume_client.username_pw_set(username=settings.MQTT_USER_NAME, password=None)
+        self.consume_client.username_pw_set(username=settings.MQTT_USER_NAME, password=helpers.get_secret('MQTT_PW'))
         self.consume_client.connect(self.mqttBroker)
         self.consume_thread = threading.Thread(target=self.consume)
 
