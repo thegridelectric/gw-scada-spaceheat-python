@@ -182,145 +182,145 @@
         {
             "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
             "DisplayName": "First 4.5 kW boost in tank",
-            "CacId": "cf1f2587-7462-4701-b962-d2b264744c1d"     
+            "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d"     
         }],
     "BooleanActuatorComponents": [
         {
             "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
             "DisplayName": "relay for first elt in tank",
-            "CacId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
+            "ComponentAttributeClassId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
             "Gpio": 0
         },
         {
             "ComponentId": "a128bda4-3674-4d55-b2b4-61a39d5cf886",
             "DisplayName": "Little Orange House Primary Scada",
-            "CacId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
+            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
         }
     ],
     "SensorComponents": [
         {
             "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",
             "DisplayName": "Outdoor Temperature Sensor",
-            "CacId": "cac0f096-b460-4dce-aabf-a81ccce23566"
+            "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566"
         },
         {
             "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
             "DisplayName": "Main Power meter for Little orange house garage space heat",
-            "CacId": "28897ac1-ea42-4633-96d3-196f63f5a951"
+            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951"
         },
         {
             "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
             "DisplayName": "Flow meter on pipe out of tank",
-            "CacId": "14e7105a-e797-485a-a304-328ecc85cd98"
+            "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98"
         },
         {
             "ComponentId": "a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e",
             "DisplayName": "Temp sensor on pipe out of tank",
-            "CacId": "d95af339-9f2b-45aa-9133-04f267ef0318"
+            "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
         },
         {
             "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
             "DisplayName": "Temp sensor on pipe into tank",
-            "CacId": "d95af339-9f2b-45aa-9133-04f267ef0318"
+            "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
         },
         {
             "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
             "DisplayName": "Top water temp sensor in tank",
-            "CacId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
+            "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
         },
         {
             "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
             "DisplayName": "Bottom water temp sensor in tank",
-            "CacId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
+            "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
         },
         {
             "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
             "DisplayName": "First garage temp sensor",
-            "CacId": "5450e92e-8c11-4383-b9b1-c8f412d83608"
+            "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608"
         }
     ],
     "OtherComponents": [
         {
             "ComponentId": "d4a27899-98a3-409f-8c6a-771d86d7937b",
             "DisplayName": "Little Orange house Axeman Tank",
-            "CacId": "683c193a-bf83-4491-a294-c0e32865a407"
+            "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407"
         },
         {
             "ComponentId": "1d62c7ce-b484-4610-a8b8-3979c8402588",
             "DisplayName": "Hydronic pipe out of tank",
-            "CacId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa"
+            "ComponentAttributeClassId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa"
         },
         {
             "ComponentId": "f4341350-973a-403a-98fe-dfd2a4acf038",
             "DisplayName": "Hydronic pipe into tank",
-            "CacId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa"
+            "ComponentAttributeClassId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa"
         },
         {
             "ComponentId": "1c207b38-d7bf-41cd-a9ad-6204bbab9922",
             "DisplayName": "Heat Distribution Pump",
-            "CacId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776"
+            "ComponentAttributeClassId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776"
         },
         {
             "ComponentId": "7b1e4102-7fb5-4048-93ae-312a12d47ba8",
             "DisplayName": "Little Orange House garage",
-            "CacId": "c884aafe-99e0-4468-8bff-ffa74f672f9d"
+            "ComponentAttributeClassId": "c884aafe-99e0-4468-8bff-ffa74f672f9d"
         }
     ],
     "ElectricHeaterCacs": [
         {
-            "CacId": "cf1f2587-7462-4701-b962-d2b264744c1d",
+            "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
             "ElectricHeaterTypeValue": "WaterHeaterBoost"
         }
     ],
     "ActuatorCacs":[
         {
-            "CacId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
+            "ComponentAttributeClassId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
             "ActuatorTypeValue": "ElectricRelay",
             "MakeModel": "NCD__PR8-14-SPST"
         },
         {
-            "CacId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90",
+            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90",
             "ActuatorTypeValue": "PrimaryScada"
         }
     ],
     "SensorCacs":[
         {
-            "CacId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
             "SensorTypeValue": "ElectricPowerMeter"
         },
         {
-            "CacId": "14e7105a-e797-485a-a304-328ecc85cd98",
+            "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
             "SensorTypeValue": "WaterFlowMeter"
         },
         {
-            "CacId": "d95af339-9f2b-45aa-9133-04f267ef0318",
+            "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
             "SensorTypeValue": "PipeClampWaterTempSensor"
         },
         {
-            "CacId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
+            "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
             "SensorTypeValue": "WaterStoreTempSensor"
         },
         {
-            "CacId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
+            "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
             "SensorTypeValue": "IndoorAirTempSensor"
         },
         {
-            "CacId": "cac0f096-b460-4dce-aabf-a81ccce23566",
+            "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
             "SensorTypeValue": "OutdoorAirTempSensor"
         }
     ],
     "OtherCacs": [
         {
-            "CacId": "683c193a-bf83-4491-a294-c0e32865a407"
+            "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407"
         },
         {
-            "CacId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa"
+            "ComponentAttributeClassId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa"
         },
         {
-            "CacId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776"
+            "ComponentAttributeClassId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776"
         },
         {
-            "CacId": "c884aafe-99e0-4468-8bff-ffa74f672f9d"
+            "ComponentAttributeClassId": "c884aafe-99e0-4468-8bff-ffa74f672f9d"
         }
     ]
 
