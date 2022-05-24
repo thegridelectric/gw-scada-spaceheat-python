@@ -125,7 +125,7 @@ class GtComponentAttributeClass200_Maker():
         except ValueError:
             pass # This will get caught in is_valid() check below
 
-        t = GtComponentAttributeClass200(MpAlias=GtComponentAttributeClass200_maker.mp_alias,
+        t = GtComponentAttributeClass200(MpAlias=GtComponentAttributeClass200_Maker.mp_alias,
                     RatedPowerWithdrawnVa=rated_power_withdrawn_va,
                     ComponentAttributeClassId=component_attribute_class_id,
                     SeriesReactanceOhms=series_reactance_ohms,

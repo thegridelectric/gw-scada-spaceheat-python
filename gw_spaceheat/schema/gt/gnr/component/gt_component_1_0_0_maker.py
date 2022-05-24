@@ -83,7 +83,7 @@ class GtComponent100_Maker():
                  component_attribute_class_id: str):
         self.errors = []
 
-        t = GtComponent100(MpAlias=GtComponent100_maker.mp_alias,
+        t = GtComponent100(MpAlias=GtComponent100_Maker.mp_alias,
                     DisplayName=display_name,
                     ComponentId=component_id,
                     ComponentAttributeClassId=component_attribute_class_id)

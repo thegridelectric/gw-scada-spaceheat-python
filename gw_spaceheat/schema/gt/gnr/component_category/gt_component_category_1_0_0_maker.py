@@ -79,7 +79,7 @@ class GtComponentCategory100_Maker():
                  description: str):
         self.errors = []
 
-        t = GtComponentCategory100(MpAlias=GtComponentCategory100_maker.mp_alias,
+        t = GtComponentCategory100(MpAlias=GtComponentCategory100_Maker.mp_alias,
                     Value=value,
                     Description=description)
 

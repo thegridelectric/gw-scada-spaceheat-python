@@ -85,7 +85,7 @@ class GtComponentSubCategory100_Maker():
                  component_category: ComponentCategory):
         self.errors = []
 
-        t = GtComponentSubCategory100(MpAlias=GtComponentSubCategory100_maker.mp_alias,
+        t = GtComponentSubCategory100(MpAlias=GtComponentSubCategory100_Maker.mp_alias,
                     Value=value,
                     ComponentCategory=Gt_Component_Category_1_0_0.payload_from_data_class(component_category))
 

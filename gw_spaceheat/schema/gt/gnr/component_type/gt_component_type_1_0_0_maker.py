@@ -107,7 +107,7 @@ class GtComponentType100_Maker():
                  expected_startup_seconds: Optional[int] = None ):
         self.errors = []
 
-        t = GtComponentType100(MpAlias=GtComponentType100_maker.mp_alias,
+        t = GtComponentType100(MpAlias=GtComponentType100_Maker.mp_alias,
                     IsResistiveLoad=is_resistive_load,
                     DisplayName=display_name,
                     ExpectedShutdownSeconds=expected_shutdown_seconds,

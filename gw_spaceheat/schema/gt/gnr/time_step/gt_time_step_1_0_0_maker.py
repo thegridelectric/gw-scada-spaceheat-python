@@ -101,7 +101,7 @@ class GtTimeStep100_Maker():
         except ValueError:
             pass # This will get caught in is_valid() check below
 
-        t = GtTimeStep100(MpAlias=GtTimeStep100_maker.mp_alias,
+        t = GtTimeStep100(MpAlias=GtTimeStep100_Maker.mp_alias,
                     TimeStepId=time_step_id,
                     IrlCreatedAtUtc=irl_created_at_utc,
                     PreviousTimeStepId=previous_time_step_id,

@@ -143,7 +143,7 @@ class GtWorldInstance200_Maker():
                  irl_end_time_unix_s: Optional[int] = None ):
         self.errors = []
 
-        t = GtWorldInstance200(MpAlias=GtWorldInstance200_maker.mp_alias,
+        t = GtWorldInstance200(MpAlias=GtWorldInstance200_Maker.mp_alias,
                     IrlStartTimeUnixS=irl_start_time_unix_s,
                     StartTimeUnixS=start_time_unix_s,
                     WorldCoordinatorSupervisorContainerId=world_coordinator_supervisor_container_id,
