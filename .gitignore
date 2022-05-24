@@ -8,4 +8,6 @@ venv
 gw_spaceheat/scratch.ipynb
 SassyMQ
 .idea
+.env
 settings.py
+
