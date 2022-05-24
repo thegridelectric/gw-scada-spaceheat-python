@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from data_classes.actuator_component import ActuatorComponent
-class BooleanActuator(ABC):
+from data_classes.boolean_actuator_component import BooleanActuatorComponent
 
-    def __init__(self, component: ActuatorComponent):
+
+class BooleanActuator(ABC):
+    def __init__(self, component: BooleanActuatorComponent):
         self.component = component
 
     @abstractmethod

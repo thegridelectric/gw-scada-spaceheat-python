@@ -1,9 +1,10 @@
+import os
 import json
-from utils import camel_to_snake
+from helpers import camel_to_snake
 
 from data_classes.boolean_actuator_cac import BooleanActuatorCac
 from data_classes.boolean_actuator_component import BooleanActuatorComponent
-from data_classes.cac import Cac
+from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.component import Component
 from data_classes.electric_heater_cac import ElectricHeaterCac
 from data_classes.electric_heater_component import ElectricHeaterComponent
@@ -27,7 +28,7 @@ def load_cacs(input_data):
         component = SensorCac(**snake_dict) 
     for camel in input_data['OtherCacs']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = Cac(**snake_dict)      
+        component = ComponentAttributeClass(**snake_dict)      
 
 
 def load_components(input_data):
@@ -56,7 +57,8 @@ def load_edges(input_data):
     pass
 
 def load_all(house_json_file=HOUSE_JSON_FILE):
-    with open(house_json_file,"r") as read_file:
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(current_dir, house_json_file), "r") as read_file:
         input_data = json.load(read_file)
     load_cacs(input_data=input_data)
     load_components(input_data=input_data)
