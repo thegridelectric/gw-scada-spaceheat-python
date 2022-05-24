@@ -4,7 +4,7 @@ from utils import camel_to_snake
 
 from data_classes.boolean_actuator_cac import BooleanActuatorCac
 from data_classes.boolean_actuator_component import BooleanActuatorComponent
-from data_classes.cac import Cac
+from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.component import Component
 from data_classes.electric_heater_cac import ElectricHeaterCac
 from data_classes.electric_heater_component import ElectricHeaterComponent
@@ -28,7 +28,7 @@ def load_cacs(input_data):
         component = SensorCac(**snake_dict) 
     for camel in input_data['OtherCacs']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = Cac(**snake_dict)      
+        component = ComponentAttributeClass(**snake_dict)      
 
 
 def load_components(input_data):
