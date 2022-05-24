@@ -276,8 +276,7 @@
         {
             "CacId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
             "ActuatorTypeValue": "ElectricRelay",
-            "Make": "NCD",
-            "Model": "PR8-14-SPST"
+            "MakeModel": "NCD__PR8-14-SPST"
         },
         {
             "CacId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90",

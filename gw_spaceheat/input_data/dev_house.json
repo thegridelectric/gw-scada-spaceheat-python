@@ -276,8 +276,7 @@
         {
             "CacId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
             "ActuatorTypeValue": "ElectricRelay",
-            "Make": "GridWorks",
-            "Model": "SimBool30AmpRelay"
+            "MakeModel": "GridWorks__SimBool30AmpRelay"
         },
         {
             "CacId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90",
