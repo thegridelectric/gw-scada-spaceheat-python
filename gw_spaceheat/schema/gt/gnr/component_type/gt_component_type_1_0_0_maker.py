@@ -12,7 +12,7 @@ GtComponentSubCategory100_Maker, GtComponentSubCategory100
     
     
 class GtComponentType100_Maker():
-    mp_alias = 'gt.component.type.1_0_0'
+    mp_alias = 'gt.component.type.100'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod

@@ -12,7 +12,7 @@ GtComponentType100_Maker, GtComponentType100
     
     
 class GtComponentAttributeClass200_Maker():
-    mp_alias = 'gt.component.attribute.class.2_0_0'
+    mp_alias = 'gt.component.attribute.class.200'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod

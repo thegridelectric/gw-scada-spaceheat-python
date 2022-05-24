@@ -9,7 +9,7 @@ from schema.gt.gnr.world_instance.gt_world_instance_2_0_0 import GtWorldInstance
     
     
 class GtWorldInstance200_Maker():
-    mp_alias = 'gt.world.instance.2_0_0'
+    mp_alias = 'gt.world.instance.200'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod

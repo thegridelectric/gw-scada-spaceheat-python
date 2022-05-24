@@ -9,7 +9,7 @@ from schema.gt.gnr.component_category.gt_component_category_1_0_0 import GtCompo
     
     
 class GtComponentCategory100_Maker():
-    mp_alias = 'gt.component.category.1_0_0'
+    mp_alias = 'gt.component.category.100'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod

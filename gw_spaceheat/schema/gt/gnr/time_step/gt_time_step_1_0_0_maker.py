@@ -9,7 +9,7 @@ from schema.gt.gnr.time_step.gt_time_step_1_0_0 import GtTimeStep100
     
     
 class GtTimeStep100_Maker():
-    mp_alias = 'gt.time.step.1_0_0'
+    mp_alias = 'gt.time.step.100'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod
