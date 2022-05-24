@@ -16,3 +16,8 @@
 **Install the mosquito server**
 1. `brew install mosquitto`
 2. `brew services restart mosquitto`
+3. if you want to the broker to start on mac startup: `ln -sfv /usr/local/opt/mosquitto/*.plist ~/Library/LaunchAgents`
+4. Test using commandline pub sub.
+   - In first terminal: `mosquitto_sub -t 'test'`
+   - In second terminal: `mosquitto_pub -t 'test' -m 'hi'`
+   - Success: the subscribing terminal outputs hi
