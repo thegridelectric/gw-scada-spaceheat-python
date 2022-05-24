@@ -12,10 +12,10 @@ class ActorBase(ABC):
         self.node = node
         self.mqttBroker = settings.MQTT_BROKER_ADDRESS
         self.publish_client = mqtt.Client(f"{node.alias}-pub")
-        self.publish_client.username_pw_set(settings.MQTT_USER_NAME, None)
+        self.publish_client.username_pw_set(username=settings.MQTT_USER_NAME, password=None)
         self.publish_client.connect(self.mqttBroker)
         self.consume_client = mqtt.Client(f"{node.alias}")
-        self.consume_client.username_pw_set(settings.MQTT_BROKER_ADDRESS, None)
+        self.consume_client.username_pw_set(username=settings.MQTT_USER_NAME, password=None)
         self.consume_client.connect(self.mqttBroker)
         self.consume_thread = threading.Thread(target=self.consume)
 
