@@ -1,12 +1,10 @@
 """ ActuatorCac Class Definition """
-from msilib.schema import Component
 from typing import Optional
 from data_classes.errors import DcError
 from data_classes.component_attribute_class import ComponentAttributeClass
 
 class BooleanActuatorCac(ComponentAttributeClass):
     by_id = {}
-
     base_props = []
     base_props.append('component_attribute_class_id')
     base_props.append('make_model')
