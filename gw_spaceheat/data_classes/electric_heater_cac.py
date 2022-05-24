@@ -1,48 +1,52 @@
 """ ElectricHeaterCac Class Definition """
 from typing import Optional
-from .errors import DcError
-from .cac import Cac
-from .electric_heater_type import ElectricHeaterType
-from .electric_heater_type_static import PlatformElectricHeaterType
+from data_classes.errors import DcError
+from data_classes.component_attribute_class import ComponentAttributeClass
+from data_classes.electric_heater_type import ElectricHeaterType
+from data_classes.electric_heater_type_static import PlatformElectricHeaterType
 
-class ElectricHeaterCac(Cac):
+class ElectricHeaterCac(ComponentAttributeClass):
     by_id = {}
 
     base_props = []
-    base_props.append('cac_id')
+    base_props.append('component_attribute_class_id')
+    base_props.append('make_model')
     base_props.append('electric_heater_type_value')
     
-    def __new__(cls, cac_id, *args, **kwargs):
-        if cac_id in Cac.by_id.keys():
-            if not isinstance(Cac.by_id[cac_id], cls):
+    def __new__(cls, component_attribute_class_id, *args, **kwargs):
+        if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
+            if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
                 raise Exception(f"Id already exists, not an Electric Heater!")
-            return Cac.by_id[cac_id]
-        instance = super().__new__(cls,cac_id=cac_id)
-        Cac.by_id[cac_id] = instance
+            return ComponentAttributeClass.by_id[component_attribute_class_id]
+        instance = super().__new__(cls,component_attribute_class_id=component_attribute_class_id)
+        ComponentAttributeClass.by_id[component_attribute_class_id] = instance
         return instance
 
     def __init__(self,
-            cac_id: Optional[str] = None,
-            electric_heater_type_value: Optional[str] = None):
-        super(ElectricHeaterCac, self).__init__(cac_id=cac_id)
+            component_attribute_class_id: Optional[str] = None,
+            electric_heater_type_value: Optional[str] = None, 
+            make_model: Optional[str] = None):
+        super(ElectricHeaterCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
+                        make_model=make_model,
+                        component_type_value=electric_heater_type_value)
         self.electric_heater_type_value=electric_heater_type_value
 
     def __repr__(self):
-        return f'ElectricHeaterCac ({self.display_name})) {self.cac_id}'
+        return f'ElectricHeaterCac ({self.display_name})) {self.component_attribute_class_id}'
 
     @property
     def display_name(self) -> str:
-        return f'{self.electric_heater_type_value} random co'
+        return f'{self.electric_heater_type_value} {self.make_model}'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
-        if attributes['cac_id'] in Cac.by_id.keys():
-            raise DcError(f"cac_id {attributes['cac_id']} already in use")
+        if attributes['component_attribute_class_id'] in ComponentAttributeClass.by_id.keys():
+            raise DcError(f"component_attribute_class_id {attributes['component_attribute_class_id']} already in use")
 
     @classmethod
     def check_existence_of_certain_attributes(cls, attributes):
-        if not attributes.get('cac_id', None):
-            raise DcError('cac_id must exist')
+        if not attributes.get('component_attribute_class_id', None):
+            raise DcError('component_attribute_class_id must exist')
         if not attributes.get('electric_heater_type_value', None):
             raise DcError('electric_heater_type_value')
 
@@ -52,8 +56,8 @@ class ElectricHeaterCac(Cac):
         ElectricHeaterCac.check_existence_of_certain_attributes(attributes)
     
     def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['cac_id'] != self.cac_id:
-            raise DcError('cac_id is Immutable')
+        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
+            raise DcError('component_attribute_class_id is Immutable')
         if new_attributes['electric_heater_type_value'] != self.electric_heater_type_value:
             raise DcError(f"electric_heater_type_value is Immutable. Not changing {self.display_name}"
                                     f" from {self.electric_heater_type_value} to {new_attributes['electric_heater_type_value']}")

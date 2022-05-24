@@ -12,7 +12,7 @@ class Component(ABC, StreamlinedSerializerMixin):
     base_props = []
     base_props.append('component_id')
     base_props.append('display_name')
-    base_props.append('cac_id')
+    base_props.append('component_attribute_class_id')
 
 
     def __new__(cls, component_id, *args, **kwargs):
@@ -26,10 +26,10 @@ class Component(ABC, StreamlinedSerializerMixin):
     def __init__(self,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
-                 cac_id: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None):
         self.component_id = component_id
         self.display_name = display_name
-        self.cac_id = cac_id
+        self.component_attribute_class_id = component_attribute_class_id
 
     def __repr__(self):
         return f'Component {self.display_name}'
@@ -43,8 +43,8 @@ class Component(ABC, StreamlinedSerializerMixin):
     def check_existence_of_certain_attributes(cls, attributes):
         if not 'component_id' in attributes.keys():
             raise DcError('component_id must exist')
-        if not 'electric_heater_cac_id' in attributes.keys():
-            raise DcError('electric_heater_cac_id must exist')
+        if not 'electric_heater_component_attribute_class_id' in attributes.keys():
+            raise DcError('electric_heater_component_attribute_class_id must exist')
         if not 'display_name' in attributes.keys():
             raise DcError('display_name must exist')
 
@@ -57,14 +57,14 @@ class Component(ABC, StreamlinedSerializerMixin):
     def check_immutability_for_existing_attributes(self, new_attributes):
         if new_attributes['component_id'] != self.component_id:
             raise DcError('component_id is Immutable')
-        if new_attributes['cac_id'] != self.cac_id:
-            raise DcError('cac_id is Immutable')
+        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
+            raise DcError('component_attribute_class_id is Immutable')
 
     def check_update_consistency(self, new_attributes):
         self.check_immutability_for_existing_attributes(new_attributes)
 
     @property
     def cac(self) -> Cac:
-        if self.cac_id not in Cac.by_id.keys():
-            raise DataClassLoadingError(f"ActuatorCacId {self.cac_id} not loaded yet")
-        return Cac.by_id[self.cac_id]
+        if self.component_attribute_class_id not in Cac.by_id.keys():
+            raise DataClassLoadingError(f"ActuatorCacId {self.component_attribute_class_id} not loaded yet")
+        return Cac.by_id[self.component_attribute_class_id]

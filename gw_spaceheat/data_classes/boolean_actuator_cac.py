@@ -1,52 +1,52 @@
 """ ActuatorCac Class Definition """
+from msilib.schema import Component
 from typing import Optional
 from data_classes.errors import DcError
-from data_classes.cac import Cac
+from data_classes.component_attribute_class import ComponentAttributeClass
 
-class BooleanActuatorCac(Cac):
+class BooleanActuatorCac(ComponentAttributeClass):
     by_id = {}
 
     base_props = []
-    base_props.append('cac_id')
-    base_props.append('make')
-    base_props.append('model')
+    base_props.append('component_attribute_class_id')
+    base_props.append('make_model')
+    base_props.append('component_type_value')
 
     
-    def __new__(cls, cac_id, *args, **kwargs):
-        if cac_id in Cac.by_id.keys():
-            if not isinstance(Cac.by_id[cac_id], cls):
+    def __new__(cls, component_attribute_class_id, *args, **kwargs):
+        if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
+            if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
                 raise Exception(f"Id already exists, not an actuator!")
-            return Cac.by_id[cac_id]
-        instance = super().__new__(cls,cac_id=cac_id)
-        Cac.by_id[cac_id] = instance
+            return ComponentAttributeClass.by_id[component_attribute_class_id]
+        instance = super().__new__(cls,component_attribute_class_id=component_attribute_class_id)
+        ComponentAttributeClass.by_id[component_attribute_class_id] = instance
         return instance
 
     def __init__(self,
-            cac_id: Optional[str] = None,
+            component_attribute_class_id: Optional[str] = None,
             actuator_type_value: Optional[str] = None,
-            make: Optional[str] = None,
-            model: Optional[str] = None):
-        super(BooleanActuatorCac, self).__init__(cac_id=cac_id,
-                        make=make,
-                        model=model)
+            make_model: Optional[str] = None):
+        super(BooleanActuatorCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
+                        make_model=make_model,
+                        component_type_value=actuator_type_value)
         self.actuator_type_value = actuator_type_value
     
     def __repr__(self):
-        return f'SensorCac ({self.display_name}) {self.cac_id}'
+        return f'SensorCac ({self.display_name}) {self.component_attribute_class_id}'
 
     @property
     def display_name(self) -> str:
-        return f'{self.actuator_type_value} {self.make}__{self.model}'
+        return f'{self.actuator_type_value} {self.make_model}'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
-        if attributes['cac_id'] in Cac.by_id.keys():
-            raise DcError(f"cac_id {attributes['cac_id']} already in use")
+        if attributes['component_attribute_class_id'] in ComponentAttributeClass.by_id.keys():
+            raise DcError(f"component_attribute_class_id {attributes['component_attribute_class_id']} already in use")
 
     @classmethod
     def check_existence_of_certain_attributes(cls, attributes):
-        if not attributes.get('cac_id', None):
-            raise DcError('cac_id must exist')
+        if not attributes.get('component_attribute_class_id', None):
+            raise DcError('component_attribute_class_id must exist')
         if not attributes.get('actuator_type_value', None):
             raise DcError('actuator_type_value')
 
@@ -56,8 +56,8 @@ class BooleanActuatorCac(Cac):
        BooleanActuatorCac.check_existence_of_certain_attributes(attributes)
     
     def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['cac_id'] != self.cac_id:
-            raise DcError('cac_id is Immutable')
+        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
+            raise DcError('component_attribute_class_id is Immutable')
         if new_attributes['actuator_type_value'] != self.actuator_type_value:
             raise DcError(f"actuator_type_value is Immutable. Not changing {self.display_name}"
                                     f" from {self.actuator_type_value} to {new_attributes['actuator_type_value']}")
