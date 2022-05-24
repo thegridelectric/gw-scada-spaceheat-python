@@ -66,5 +66,5 @@ class PrimaryScada(PrimaryScadaBase):
     def turn_on(self, ba: BooleanActuator):
         ba.turn_on()
 
-    def turn_relay_off(self, ba: BooleanActuator):
+    def turn_off(self, ba: BooleanActuator):
         ba.turn_off()
