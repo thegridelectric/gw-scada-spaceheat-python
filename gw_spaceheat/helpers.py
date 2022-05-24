@@ -13,4 +13,6 @@ def get_secret(key):
     value = os.getenv(key)
     if  value is None:
         raise Exception(f"Missing {key} value in gw-scada-spaceheat-python/.env file!")
+    elif value == 'None':
+        return None
     return value
