@@ -17,7 +17,7 @@ We use pip-tools to organize requirements. The `.in` files clarify the key modul
 
 The pip-tools also allow for building layers of requirements on top of each other. This allows us to have development tools that are not needed in production to show up for the first time in `dev.txt`, for example (like the pip-tool itself).
 
-## Handling secrets and config variables
+### Handling secrets and config variables
 
 Secrets use dotenv module in a gitignored gw-scada-spaceheat-python/.env file, through the helpers.get_secret function. Ask somebody on the team for the secrets.
 
@@ -28,3 +28,9 @@ MQTT_PW = None
 and the helper function will turn that None into the python None.
 
 Settings use a gitignored settings.py file. There is a template settings_template.py.
+
+## Step 2: input data and running the code
+
+Input data is in input_data folder. The `dev_house.json` is used for developing on a mac. The `pi_dev_house.json` is used for a pi that is connected to actual hardware and has its various drivers (like i2c) enabled.
+
+Run the code in main.py as a script. It creates the main code for the primary scada actor, loading its input data by checking if the OS belongs to a mac or not.
