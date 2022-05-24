@@ -277,10 +277,6 @@
             "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
             "ActuatorTypeValue": "ElectricRelay",
             "MakeModel": "GridWorks__SimBool30AmpRelay"
-        },
-        {
-            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90",
-            "ActuatorTypeValue": "PrimaryScada"
         }
     ],
     "SensorCacs":[
@@ -310,6 +306,9 @@
         }
     ],
     "OtherCacs": [
+        {
+            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
+        },
         {
             "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407"
         },
