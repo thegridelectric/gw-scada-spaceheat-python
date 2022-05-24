@@ -25,12 +25,12 @@ class PrimaryScada(PrimaryScadaBase):
         relay = ShNode.by_alias['a.elt1.relay']
         primary_component: BooleanActuatorComponent = None
         primary_component = relay.primary_component
-        if primary_component.make_and_model == 'NCD__PR8-14-SPST':
+        if primary_component.make_model == 'NCD__PR8-14-SPST':
             self.relay_actuator =  Ncd__Pr8_14_Spst__BooleanActuator(component=primary_component)
-        elif primary_component.make_and_model == 'GridWorks__SimBool30AmpRelay':
+        elif primary_component.make_model == 'GridWorks__SimBool30AmpRelay':
             self.relay_actuator = Gridworks__SimBool30AmpRelay__BooleanActuator(component=primary_component)
         else:
-            raise NotImplementedError(f"No driver yet for {primary_component.make_and_model}")
+            raise NotImplementedError(f"No driver yet for {primary_component.make_model}")
 
     def publish(self):
         payload = GsPwr100_Maker(power=self.total_power_w).type

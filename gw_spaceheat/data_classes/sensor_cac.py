@@ -1,49 +1,53 @@
 """ SensorCac Class Definition """
 from typing import Optional
 from abc import ABC
-from .errors import DcError
-from .cac import Cac
-from .sensor_type import SensorType
-from .sensor_type_static import PlatformSensorType
+from data_classes.errors import DcError
+from data_classes.component_attribute_class import ComponentAttributeClass
+from data_classes.sensor_type import SensorType
+from data_classes.sensor_type_static import PlatformSensorType
 
-class SensorCac(Cac):
+class SensorCac(ComponentAttributeClass):
     by_id = {}
 
     base_props = []
-    base_props.append('cac_id')
+    base_props.append('component_attribute_class_id')
+    base_props.append('make_model')
     base_props.append('sensor_type_value')
     
-    def __new__(cls, cac_id, *args, **kwargs):
-        if cac_id in Cac.by_id.keys():
-            if not isinstance(Cac.by_id[cac_id], cls):
+    def __new__(cls, component_attribute_class_id, *args, **kwargs):
+        if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
+            if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
                 raise Exception(f"Id already exists, not a sensor!")
-            return Cac.by_id[cac_id]
-        instance = super().__new__(cls,cac_id=cac_id)
-        Cac.by_id[cac_id] = instance
+            return ComponentAttributeClass.by_id[component_attribute_class_id]
+        instance = super().__new__(cls,component_attribute_class_id=component_attribute_class_id)
+        ComponentAttributeClass.by_id[component_attribute_class_id] = instance
         return instance
 
     def __init__(self,
-            cac_id: Optional[str] = None,
-            sensor_type_value: Optional[str] = None):
-        super(SensorCac, self).__init__(cac_id=cac_id)
+            component_attribute_class_id: Optional[str] = None,
+            sensor_type_value: Optional[str] = None,
+            make_model: Optional[str] = None):
+        super(SensorCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
+                        make_model=make_model,
+                        component_type_value=sensor_type_value)
         self.sensor_type_value = sensor_type_value
 
     def __repr__(self):
-        return f'SensorCac ({self.display_name})) {self.cac_id}'
+        return f'SensorCac ({self.display_name})) {self.component_attribute_class_id}'
     
     @property
     def display_name(self) -> str:
-        return f'{self.sensor_type_value} random co'
+        return f'{self.sensor_type_value} {self.make_model}'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
-        if attributes['cac_id'] in Cac.by_id.keys():
-            raise DcError(f"cac_id {attributes['cac_id']} already in use")
+        if attributes['component_attribute_class_id'] in ComponentAttributeClass.by_id.keys():
+            raise DcError(f"component_attribute_class_id {attributes['component_attribute_class_id']} already in use")
 
     @classmethod
     def check_existence_of_certain_attributes(cls, attributes):
-        if 'cac_id' not in attributes.keys():
-            raise DcError('cac_id must exist')
+        if 'component_attribute_class_id' not in attributes.keys():
+            raise DcError('component_attribute_class_id must exist')
         if 'sensor_type_value' not in attributes.keys():
             raise DcError('sensor_type_value')
 
@@ -53,8 +57,8 @@ class SensorCac(Cac):
         SensorCac.check_existence_of_certain_attributes(attributes)
     
     def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['cac_id'] != self.cac_id:
-            raise DcError('cac_id is Immutable')
+        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
+            raise DcError('component_attribute_class_id is Immutable')
         if new_attributes['sensor_type_value'] != self.sensor_type_value:
             raise DcError(f"sensor_type_value is Immutable. Not changing {self.display_name}"
                                     f" from {self.sensor_type_value} to {new_attributes['sensor_type_value']}")

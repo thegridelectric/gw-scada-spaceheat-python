@@ -10,7 +10,7 @@ class SensorComponent(Component):
     base_props = []
     base_props.append('component_id')
     base_props.append('display_name')
-    base_props.append('cac_id')
+    base_props.append('component_attribute_class_id')
 
     def __new__(cls, component_id, *args, **kwargs):
         if component_id in Component.by_id.keys():
@@ -24,10 +24,10 @@ class SensorComponent(Component):
     def __init__(self,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
-                 cac_id: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None):
         super(SensorComponent, self).__init__(component_id=component_id,
                             display_name=display_name,
-                            cac_id=cac_id)
+                            component_attribute_class_id=component_attribute_class_id)
 
     def __repr__(self):
         return f'Component {self.display_name} => Cac {self.cac.display_name}'
@@ -41,8 +41,8 @@ class SensorComponent(Component):
     def check_existence_of_certain_attributes(cls, attributes):
         if not attributes.get('component_id', None):
             raise DcError('component_id must exist')
-        if not attributes.get('cac_id', None):
-            raise DcError('cac_id must exist')
+        if not attributes.get('component_attribute_class_id', None):
+            raise DcError('component_attribute_class_id must exist')
         if not attributes.get('display_name', None):
             raise DcError('display_name must exist')
 
@@ -53,6 +53,6 @@ class SensorComponent(Component):
 
     @property
     def cac(self) -> SensorCac:
-        if self.cac_id not in SensorCac.by_id.keys():
-            raise DataClassLoadingError(f"SensorCacId {self.cac_id} not loaded yet")
-        return SensorCac.by_id[self.cac_id]
+        if self.component_attribute_class_id not in SensorCac.by_id.keys():
+            raise DataClassLoadingError(f"SensorCacId {self.component_attribute_class_id} not loaded yet")
+        return SensorCac.by_id[self.component_attribute_class_id]

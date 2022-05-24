@@ -1,12 +1,12 @@
 import pika
 from drivers.boolean_actuator.boolean_actuator_base import BooleanActuator
-from data_classes.actuator_component import ActuatorComponent
+from data_classes.boolean_actuator_component import BooleanActuatorComponent
 
 
 
 class Gridworks__SimBool30AmpRelay__BooleanActuator(BooleanActuator):
 
-    def __init__(self,  component: ActuatorComponent):
+    def __init__(self,  component: BooleanActuatorComponent):
         super(Gridworks__SimBool30AmpRelay__BooleanActuator,self).__init__(component=component)
 
     def turn_on(self):
