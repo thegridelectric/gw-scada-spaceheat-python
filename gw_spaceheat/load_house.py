@@ -1,6 +1,6 @@
 import os
 import json
-from utils import camel_to_snake
+from helpers import camel_to_snake
 
 from data_classes.boolean_actuator_cac import BooleanActuatorCac
 from data_classes.boolean_actuator_component import BooleanActuatorComponent
