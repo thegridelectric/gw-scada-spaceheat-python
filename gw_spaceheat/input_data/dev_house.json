@@ -68,8 +68,8 @@
         },
         {
             "Alias": "a.tank.out.pump",
-            "ShNodeRoleAlias": "HeatDistributionPump",
-            "DisplayName": "Heat Distribution Pump",
+            "ShNodeRoleAlias": "CirculatorPump",
+            "DisplayName": "Circulator Pump",
             "ShNodeId": "f3db8728-1751-4f30-a739-d56bbff9971e",
             "PrimaryComponentId": "1c207b38-d7bf-41cd-a9ad-6204bbab9922"
         },
@@ -270,7 +270,7 @@
         },
         {
             "ComponentId": "1c207b38-d7bf-41cd-a9ad-6204bbab9922",
-            "DisplayName": "Heat Distribution Pump",
+            "DisplayName": "Circulator Pump",
             "ComponentAttributeClassId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776"
         },
         {

@@ -18,13 +18,13 @@ DEDICATED_THERMAL_STORE = ShNodeRole(alias="DedicatedThermalStore",
 
 PlatformShNodeRole[DEDICATED_THERMAL_STORE.alias] = DEDICATED_THERMAL_STORE
 
-HEAT_DISTRIBUTION_PUMP = ShNodeRole(alias="HeatDistributionPump",
+CIRCULATOR_PUMP = ShNodeRole(alias="CirculatorPump",
         has_heat_flow=False,
         has_voltage=False,
         has_stored_thermal_energy=False,
         is_actuated=True)
 
-PlatformShNodeRole[HEAT_DISTRIBUTION_PUMP.alias] = HEAT_DISTRIBUTION_PUMP
+PlatformShNodeRole[CIRCULATOR_PUMP.alias] = CIRCULATOR_PUMP
 
 PASSIVE_ROOM_HEATER = ShNodeRole(alias="PassiveRoomHeater",
         has_heat_flow=True,
