@@ -1,10 +1,9 @@
 """ TimeStep Base Class Definition """
 import time
 import uuid
-from abc import ABC, abstractproperty
 from typing import Optional
-
-from data_classes.mixin import StreamlinedSerializerMixin
+from abc import ABC, abstractproperty
+from gw.mixin import StreamlinedSerializerMixin
 
 
 class TimeStepBase(ABC, StreamlinedSerializerMixin):

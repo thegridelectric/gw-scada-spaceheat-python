@@ -1,10 +1,9 @@
 """ WorldInstance Base Class Definition """
 import time
 import uuid
-from abc import ABC, abstractproperty
 from typing import Optional
-
-from data_classes.mixin import StreamlinedSerializerMixin
+from abc import ABC, abstractproperty
+from gw.mixin import StreamlinedSerializerMixin
 
 
 class WorldInstanceBase(ABC, StreamlinedSerializerMixin):
@@ -100,3 +99,14 @@ class WorldInstanceBase(ABC, StreamlinedSerializerMixin):
         first time in simulated time). None if IsSimulated is False. """
         raise NotImplementedError
 
+    @abstractproperty
+    def world_coordinator_supervisor_container(self):
+        """From Airtable Axioms:  """
+        raise NotImplementedError
+
+    @abstractproperty
+    def world_root_g_node(self):
+        """From Airtable Axioms: There is a commutative diagram here.  This GNode must be the GNode whose 
+        alias is WorldRootGNodeAlias at the IrlStartTime of the World Instance. 
+        It must also be the WorldCoordinatorSupervisorContainer.SupervisorGNode """
+        raise NotImplementedError

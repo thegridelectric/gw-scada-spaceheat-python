@@ -54,7 +54,8 @@
       "ProjectTranspilerId": "ff4127a5-e029-4122-9d2d-a5f8b3d684f8",
       "Name": "XmlXsltTransform",
       "RelativePath": "/DataClasses",
-      "CommandLine": "codee42/xml-xslt-transform -p exclude-collections=true -p relationship-suffix=_id -p legacy=false -i ../ODXML/DataSchema.odxml -i DerivePythonDataClasses.xslt -i ../ScadaCommon.xslt -i ../SSoT/Airtable.xml -w 120000"
+      "CommandLine": "codee42/xml-xslt-transform -p exclude-collections=true -p relationship-suffix=_id -p legacy=false -i ../ODXML/DataSchema.odxml -i DeriveDataClasses.xslt -i ../ScadaCommon.xslt -i ../SSoT/Airtable.xml -w 120000"
     }
+
   ]
 }
