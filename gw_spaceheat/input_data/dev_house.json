@@ -68,10 +68,17 @@
         },
         {
             "Alias": "a.tank.out.pump",
-            "ShNodeRoleAlias": "HeatDistributionPump",
-            "DisplayName": "Heat Distribution Pump",
+            "ShNodeRoleAlias": "CirculatorPump",
+            "DisplayName": "Circulator Pump",
             "ShNodeId": "f3db8728-1751-4f30-a739-d56bbff9971e",
             "PrimaryComponentId": "1c207b38-d7bf-41cd-a9ad-6204bbab9922"
+        },
+        {
+            "Alias": "a.tank.out.pump.relay",
+            "ShNodeRoleAlias": "Actuator",
+            "DisplayName": "Circulator Pump Boolean Actuator",
+            "ShNodeId": "357a45f0-1a57-4f3d-9be4-4ff77cf19ba2",
+            "PrimaryComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859"
         },
         {
             "Alias": "a.tank.out.pump.allradiators",
@@ -192,9 +199,10 @@
             "Gpio": 0
         },
         {
-            "ComponentId": "a128bda4-3674-4d55-b2b4-61a39d5cf886",
-            "DisplayName": "Little Orange House Primary Scada",
-            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
+            "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
+            "DisplayName": "relay for main circulator pump",
+            "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
+            "Gpio": 0
         }
     ],
     "SensorComponents": [
@@ -241,6 +249,11 @@
     ],
     "OtherComponents": [
         {
+            "ComponentId": "a128bda4-3674-4d55-b2b4-61a39d5cf886",
+            "DisplayName": "Little Orange House Primary Scada",
+            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
+        },
+        {
             "ComponentId": "d4a27899-98a3-409f-8c6a-771d86d7937b",
             "DisplayName": "Little Orange house Axeman Tank",
             "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407"
@@ -257,7 +270,7 @@
         },
         {
             "ComponentId": "1c207b38-d7bf-41cd-a9ad-6204bbab9922",
-            "DisplayName": "Heat Distribution Pump",
+            "DisplayName": "Circulator Pump",
             "ComponentAttributeClassId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776"
         },
         {

@@ -42,6 +42,7 @@ sudo apt-get install build-essential libi2c-dev i2c-tools python-dev libffi-dev
 regular pip was going to /usr/bin/pip and failing. Did this:
  /usr/local/bin/pip3.8 install -r requirements/drivers.txt
 
+This installed dotenv in the wrong place though ...
 
 # Raspberry Pi i2c 
 
@@ -58,4 +59,17 @@ After loading the various drivers, I tried to run the simple-gpio-monitor script
 [Devine Lu Linvega](https://github.com/neauoire) of [100 rabbits](http://100r.co/site/about_us.html) points out [here](https://github.com/pimoroni/inky-phat/issues/28) that the pi interface needs to be activated, first by typing sudo raspi-config and then
 navigating to Interfacing Options, selecting i2c, and enabling it. Alternatively,
 sudo nano /boot/config.txt and make sure it has the a line with dtparam=i2c_arm=on
+
+# MQTT
+
+installing MQTT command-line tool:
+sudo apt-get update
+sudo apt-get install mosquitto-clients
+sudo apt clean
+
+testing broker access (needs to be on the same LAN as moquitto broker)
+mosquitto_sub -v -u MQTT_USERNAME -P MQTT_PW -t 'test'
+mosquitto_pub -u MQTT_USERNAME -P MQTT_PW -t 'test' -m 'hi'
+
+(see settings.py for username and .env for password)
 

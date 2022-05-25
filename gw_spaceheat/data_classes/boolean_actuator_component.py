@@ -33,7 +33,7 @@ class BooleanActuatorComponent(Component):
         self.gpio= gpio
 
     def __repr__(self):
-        return f'Component {self.display_name} => Cac {self.cac.display_name}'
+        return f'Component {self.display_name} => Cac {self.cac.display_name}. GPIO: {self.gpio}'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):

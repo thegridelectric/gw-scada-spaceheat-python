@@ -24,4 +24,8 @@ class Ncd__Pr8_14_Spst__BooleanActuator(BooleanActuator):
     def turn_off(self):
         self.mcp23008_driver.turn_off_relay(self.component.gpio)
 
+    def is_on(self):
+        return self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
+    
+
 
