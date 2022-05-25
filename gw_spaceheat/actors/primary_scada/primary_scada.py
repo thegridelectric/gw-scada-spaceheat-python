@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from actors.primary_scada.primary_scada_base import PrimaryScadaBase
 from data_classes.sh_node import ShNode
 from data_classes.boolean_actuator_component import BooleanActuatorComponent 
@@ -15,35 +15,34 @@ class PrimaryScada(PrimaryScadaBase):
         self.power = 0
         self.consume_thread.start()
         self.total_power_w = 0
+        self.driver: Dict[ShNode, BooleanActuator] = {}
         self.set_actuator_components()
         
+        
     def set_actuator_components(self):
+        """
+        TODO: pick out the actuators programatically, starting with this. For now, hand-selecting 2 boolean actuators.
         house_nodes = list(self.node.parent.descendants)
         self.actuator_nodes: List[ShNode] = list(filter(lambda x: x.sh_node_role.alias == 'Actuator', house_nodes))
+        """
 
-        boost_actuator_node: ShNode = None
-        boost_actuator_node = ShNode.by_alias['a.elt1.relay']
 
-        primary_component: BooleanActuatorComponent = None
-        primary_component = boost_actuator_node.primary_component
-        if primary_component.make_model == 'NCD__PR8-14-SPST':
-            self.boost_actuator =  Ncd__Pr8_14_Spst__BooleanActuator(component=primary_component)
-        elif primary_component.make_model == 'GridWorks__SimBool30AmpRelay':
-            self.boost_actuator = Gridworks__SimBool30AmpRelay__BooleanActuator(component=primary_component)
+        self.boost_actuator = ShNode.by_alias['a.elt1.relay']
+        if self.boost_actuator.primary_component.make_model == 'NCD__PR8-14-SPST':
+            self.driver[self.boost_actuator] =  Ncd__Pr8_14_Spst__BooleanActuator(component=self.boost_actuator.primary_component)
+        elif self.boost_actuator.primary_component.make_model == 'GridWorks__SimBool30AmpRelay':
+            self.driver[self.boost_actuator] = Gridworks__SimBool30AmpRelay__BooleanActuator(component=self.boost_actuator.primary_component)
         else:
-            raise NotImplementedError(f"No driver yet for {primary_component.make_model}")
+            raise NotImplementedError(f"No driver yet for {self.boost_actuator.primary_component.make_model}")
 
-        pump_actuator_node: ShNode = None
-        pump_actuator_node = ShNode.by_alias['a.tank.out.pump.relay']
+        self.pump_actuator = ShNode.by_alias['a.tank.out.pump.relay']
 
-        primary_component: BooleanActuatorComponent
-        primary_component = pump_actuator_node.primary_component
-        if primary_component.make_model == 'NCD__PR8-14-SPST':
-            self.pump_actuator =  Ncd__Pr8_14_Spst__BooleanActuator(component=primary_component)
-        elif primary_component.make_model == 'GridWorks__SimBool30AmpRelay':
-            self.pump_actuator = Gridworks__SimBool30AmpRelay__BooleanActuator(component=primary_component)
+        if self.pump_actuator.primary_component.make_model == 'NCD__PR8-14-SPST':
+            self.driver[self.pump_actuator] =  Ncd__Pr8_14_Spst__BooleanActuator(component=self.pump_actuator.primary_component)
+        elif self.pump_actuator.primary_component.make_model == 'GridWorks__SimBool30AmpRelay':
+            self.driver[self.pump_actuator] = Gridworks__SimBool30AmpRelay__BooleanActuator(component=self.pump_actuator.primary_component)
         else:
-            raise NotImplementedError(f"No driver yet for {primary_component.make_model}")
+            raise NotImplementedError(f"No driver yet for {self.pump_actuator.primary_component.make_model}")
         
 
     def publish(self):
@@ -63,8 +62,18 @@ class PrimaryScada(PrimaryScadaBase):
         alias = self.node.alias.split('.')[0] + '.m'
         return ShNode.by_alias[alias]
     
-    def turn_on(self, ba: BooleanActuator):
-        ba.turn_on()
+    def turn_on(self, ba: ShNode):
+        if not isinstance(ba.primary_component, BooleanActuatorComponent):
+            raise Exception(f"{ba} must be a BooleanActuator!")
+        if ba.has_actor:
+            raise NotImplementedError('No actor for boolean actuator yet')
+        else:
+            self.driver[ba].turn_on()
 
-    def turn_off(self, ba: BooleanActuator):
-        ba.turn_off()
+    def turn_off(self, ba: ShNode):
+        if not isinstance(ba.primary_component, BooleanActuatorComponent):
+            raise Exception(f"{ba} must be a BooleanActuator!")
+        if ba.has_actor:
+            raise NotImplementedError('No actor for boolean actuator yet')
+        else:
+            self.driver[ba].turn_off()

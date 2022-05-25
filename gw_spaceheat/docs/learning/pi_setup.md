@@ -60,3 +60,16 @@ After loading the various drivers, I tried to run the simple-gpio-monitor script
 navigating to Interfacing Options, selecting i2c, and enabling it. Alternatively,
 sudo nano /boot/config.txt and make sure it has the a line with dtparam=i2c_arm=on
 
+# MQTT
+
+installing MQTT command-line tool:
+sudo apt-get update
+sudo apt-get install mosquitto-clients
+sudo apt clean
+
+testing broker access (needs to be on the same LAN as moquitto broker)
+mosquitto_sub -v -u MQTT_USERNAME -P MQTT_PW -t 'test'
+mosquitto_pub -u MQTT_USERNAME -P MQTT_PW -t 'test' -m 'hi'
+
+(see settings.py for username and .env for password)
+
