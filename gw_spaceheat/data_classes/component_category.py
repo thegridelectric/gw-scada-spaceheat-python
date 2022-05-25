@@ -1,10 +1,12 @@
 """ SCADA Component Category Class defintion """
 
-from typing import Optional
 from abc import ABC
+from typing import Optional
 
+from data_classes.errors import DataClassLoadingError, DcError
 from data_classes.mixin import StreamlinedSerializerMixin
-from data_classes.errors import DcError, DataClassLoadingError
+
+
 class ComponentCategory(ABC, StreamlinedSerializerMixin):
     by_value = {}
     

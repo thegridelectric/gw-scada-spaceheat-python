@@ -1,4 +1,5 @@
 from typing import Dict
+
 from .electric_heater_type import ElectricHeaterType
 
 PlatformElectricHeaterType: Dict[str,ElectricHeaterType] = {}

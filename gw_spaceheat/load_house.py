@@ -1,17 +1,19 @@
-import os
 import json
-from helpers import camel_to_snake
+import os
 
-from data_classes.boolean_actuator_cac import BooleanActuatorCac
-from data_classes.boolean_actuator_component import BooleanActuatorComponent
+from data_classes.cacs.boolean_actuator_cac import BooleanActuatorCac
 from data_classes.component_attribute_class import ComponentAttributeClass
+from data_classes.cacs.electric_heater_cac import ElectricHeaterCac
+from data_classes.cacs.sensor_cac import SensorCac
+from data_classes.components.boolean_actuator_component import \
+    BooleanActuatorComponent
 from data_classes.component import Component
-from data_classes.electric_heater_cac import ElectricHeaterCac
-from data_classes.electric_heater_component import ElectricHeaterComponent
-from data_classes.sensor_cac import SensorCac
-from data_classes.sensor_component import SensorComponent
+from data_classes.components.electric_heater_component import \
+    ElectricHeaterComponent
+from data_classes.components.sensor_component import SensorComponent
 from data_classes.sh_node import ShNode
 from data_classes.thermal_edge import ThermalEdge
+from helpers import camel_to_snake
 
 HOUSE_JSON_FILE = 'input_data/dev_house.json'
 

@@ -1,11 +1,13 @@
 """ SCADA Component Class Definition """
 
-from typing import Optional
 from abc import ABC
+from typing import Optional
 
+from data_classes.component_attribute_class import ComponentAttributeClass
+from data_classes.errors import DataClassLoadingError, DcError
 from data_classes.mixin import StreamlinedSerializerMixin
-from data_classes.errors import DcError, DataClassLoadingError
-from data_classes.cac import Cac
+
+
 class Component(ABC, StreamlinedSerializerMixin):
     by_id = {}
     
@@ -64,7 +66,7 @@ class Component(ABC, StreamlinedSerializerMixin):
         self.check_immutability_for_existing_attributes(new_attributes)
 
     @property
-    def cac(self) -> Cac:
-        if self.component_attribute_class_id not in Cac.by_id.keys():
+    def cac(self) -> ComponentAttributeClass:
+        if self.component_attribute_class_id not in ComponentAttributeClass.by_id.keys():
             raise DataClassLoadingError(f"ActuatorCacId {self.component_attribute_class_id} not loaded yet")
-        return Cac.by_id[self.component_attribute_class_id]
+        return ComponentAttributeClass.by_id[self.component_attribute_class_id]

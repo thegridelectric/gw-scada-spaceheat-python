@@ -1,10 +1,11 @@
 from typing import Optional
 
+from data_classes.cacs.sensor_cac import SensorCac
 from data_classes.component import Component
-from data_classes.electric_heater_cac import ElectricHeaterCac
 from data_classes.errors import DataClassLoadingError, DcError
 
-class ElectricHeaterComponent(Component):
+
+class SensorComponent(Component):
     by_id = {}
     
     base_props = []
@@ -25,7 +26,7 @@ class ElectricHeaterComponent(Component):
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
                  component_attribute_class_id: Optional[str] = None):
-        super(ElectricHeaterComponent, self).__init__(component_id=component_id,
+        super(SensorComponent, self).__init__(component_id=component_id,
                             display_name=display_name,
                             component_attribute_class_id=component_attribute_class_id)
 
@@ -48,11 +49,11 @@ class ElectricHeaterComponent(Component):
 
     @classmethod
     def check_initialization_consistency(cls, attributes):
-        ElectricHeaterComponent.check_uniqueness_of_primary_key(attributes)
-        ElectricHeaterComponent.check_existence_of_certain_attributes(attributes)
+        SensorComponent.check_uniqueness_of_primary_key(attributes)
+        SensorComponent.check_existence_of_certain_attributes(attributes)
 
     @property
-    def cac(self) -> ElectricHeaterCac:
-        if self.component_attribute_class_id not in ElectricHeaterCac.by_id.keys():
-            raise DataClassLoadingError(f"ElectricHeaterCacId {self.component_attribute_class_id} not loaded yet")
-        return ElectricHeaterCac.by_id[self.component_attribute_class_id]
+    def cac(self) -> SensorCac:
+        if self.component_attribute_class_id not in SensorCac.by_id.keys():
+            raise DataClassLoadingError(f"SensorCacId {self.component_attribute_class_id} not loaded yet")
+        return SensorCac.by_id[self.component_attribute_class_id]

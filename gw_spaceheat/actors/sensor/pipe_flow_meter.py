@@ -5,8 +5,8 @@ import time
 
 from actors.sensor.sensor_base import SensorBase
 
-from data_classes.sensor_component import SensorComponent
-from data_classes.sensor_cac import SensorCac
+from data_classes.components.sensor_component import SensorComponent
+from data_classes.cacs.sensor_cac import SensorCac
 from data_classes.sh_node import ShNode
 from data_classes.sensor_type_static import WATER_FLOW_METER
 from data_classes.sh_node_role_static import SENSOR

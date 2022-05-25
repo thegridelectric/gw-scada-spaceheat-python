@@ -1,12 +1,16 @@
 """ TimeStep Class Definition """
 import time
 import uuid
-from typing import Optional, Dict
-from data_classes.errors import DcError,DataClassLoadingError 
-from .time_step_base import TimeStepBase
-from data_classes.world_instance import WorldInstance
-from data_classes.era import Era
+from typing import Dict, Optional
+
 import pendulum
+
+from data_classes.era import Era
+from data_classes.errors import DataClassLoadingError, DcError
+from data_classes.world_instance import WorldInstance
+
+from .time_step_base import TimeStepBase
+
 
 class TimeStep(TimeStepBase):
     by_idx: Dict[int, TimeStepBase] = {}
