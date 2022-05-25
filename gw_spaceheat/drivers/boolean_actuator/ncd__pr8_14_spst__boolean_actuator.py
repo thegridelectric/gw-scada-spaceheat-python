@@ -1,11 +1,8 @@
-from drivers.base.mcp23008 import mcp23008
-import platform
-
 import smbus2 as smbus
-
-
+from data_classes.components.boolean_actuator_component import \
+    BooleanActuatorComponent
+from drivers.base.mcp23008 import mcp23008
 from drivers.boolean_actuator.boolean_actuator_base import BooleanActuator
-from data_classes.boolean_actuator_component import BooleanActuatorComponent
 
 COMPONENT_ADDRESS = 0x20
 

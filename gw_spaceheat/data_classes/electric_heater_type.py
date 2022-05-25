@@ -1,8 +1,9 @@
 """ ElectricHeatertType Class Definition """
 
-from typing import Optional
 from abc import ABC
-from .mixin import StreamlinedSerializerMixin
+from typing import Optional
+
+from data_classes.mixin import StreamlinedSerializerMixin
 
 
 class ElectricHeaterType(ABC, StreamlinedSerializerMixin):

@@ -1,5 +1,7 @@
 from typing import Dict
+
 from .sh_node_role import ShNodeRole
+
 PlatformShNodeRole: Dict[str, ShNodeRole] = {}
 
 ELECTRIC_HEATER = ShNodeRole(alias="ElectricHeater",

@@ -1,7 +1,6 @@
-import pika
+from data_classes.components.boolean_actuator_component import \
+    BooleanActuatorComponent
 from drivers.boolean_actuator.boolean_actuator_base import BooleanActuator
-from data_classes.boolean_actuator_component import BooleanActuatorComponent
-
 
 
 class Gridworks__SimBool30AmpRelay__BooleanActuator(BooleanActuator):

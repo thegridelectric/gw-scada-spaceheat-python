@@ -1,11 +1,15 @@
 """ ShNode Class Definition"""
-from typing import Optional, List, Dict
-from data_classes.errors import DcError, DataClassLoadingError
+from typing import Dict, List, Optional
+
+from data_classes.component import Component
+from data_classes.components.electric_heater_component import \
+    ElectricHeaterComponent
+from data_classes.errors import DataClassLoadingError, DcError
 from data_classes.sh_node_base import ShNodeBase
 from data_classes.sh_node_role import ShNodeRole
-from data_classes.sh_node_role_static import PlatformShNodeRole, ELECTRIC_HEATER
-from data_classes.component import Component
-from data_classes.electric_heater_component import ElectricHeaterComponent
+from data_classes.sh_node_role_static import (ELECTRIC_HEATER,
+                                              PlatformShNodeRole)
+
 
 class ShNode(ShNodeBase):
     by_alias: Dict[str, ShNodeBase] = {}

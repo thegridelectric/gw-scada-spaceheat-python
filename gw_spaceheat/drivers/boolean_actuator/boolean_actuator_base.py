@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
-from data_classes.boolean_actuator_component import BooleanActuatorComponent
+
+from data_classes.components.boolean_actuator_component import \
+    BooleanActuatorComponent
 
 
 class BooleanActuator(ABC):

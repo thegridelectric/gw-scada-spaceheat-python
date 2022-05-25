@@ -1,10 +1,11 @@
 """ WorldInstanceEra Class Definition """
-from typing import Optional
 import time
 import uuid
+from typing import Optional
+
 from data_classes.era_base import EraBase
 from data_classes.errors import DcError
-from data_classes.world_instance import WorldInstance  #
+from data_classes.world_instance import WorldInstance
 
 
 class Era(EraBase):

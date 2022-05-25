@@ -1,8 +1,8 @@
 """ SCADA  ComponentAttributeClass Definition  (DERIVED FROM GNR gt.gnr.component.attributelcass.200) """
 from typing import Optional
 from abc import ABC
-from .errors import DcError
-from .mixin import StreamlinedSerializerMixin
+from data_classes.errors import DcError
+from data_classes.mixin import StreamlinedSerializerMixin
 
 class ComponentAttributeClass(ABC, StreamlinedSerializerMixin):
     by_id = {}

@@ -1,22 +1,22 @@
-""" ElectricHeaterCac Class Definition """
+""" ActuatorCac Class Definition """
 from typing import Optional
-from data_classes.errors import DcError
+
 from data_classes.component_attribute_class import ComponentAttributeClass
-from data_classes.electric_heater_type import ElectricHeaterType
-from data_classes.electric_heater_type_static import PlatformElectricHeaterType
+from data_classes.errors import DcError
 
-class ElectricHeaterCac(ComponentAttributeClass):
+
+class BooleanActuatorCac(ComponentAttributeClass):
     by_id = {}
-
     base_props = []
     base_props.append('component_attribute_class_id')
     base_props.append('make_model')
-    base_props.append('electric_heater_type_value')
+    base_props.append('component_type_value')
+
     
     def __new__(cls, component_attribute_class_id, *args, **kwargs):
         if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
             if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
-                raise Exception(f"Id already exists, not an Electric Heater!")
+                raise Exception(f"Id already exists, not an actuator!")
             return ComponentAttributeClass.by_id[component_attribute_class_id]
         instance = super().__new__(cls,component_attribute_class_id=component_attribute_class_id)
         ComponentAttributeClass.by_id[component_attribute_class_id] = instance
@@ -24,19 +24,19 @@ class ElectricHeaterCac(ComponentAttributeClass):
 
     def __init__(self,
             component_attribute_class_id: Optional[str] = None,
-            electric_heater_type_value: Optional[str] = None, 
+            actuator_type_value: Optional[str] = None,
             make_model: Optional[str] = None):
-        super(ElectricHeaterCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
+        super(BooleanActuatorCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
                         make_model=make_model,
-                        component_type_value=electric_heater_type_value)
-        self.electric_heater_type_value=electric_heater_type_value
-
+                        component_type_value=actuator_type_value)
+        self.actuator_type_value = actuator_type_value
+    
     def __repr__(self):
-        return f'ElectricHeaterCac ({self.display_name})) {self.component_attribute_class_id}'
+        return f'SensorCac ({self.display_name}) {self.component_attribute_class_id}'
 
     @property
     def display_name(self) -> str:
-        return f'{self.electric_heater_type_value} {self.make_model}'
+        return f'{self.actuator_type_value} {self.make_model}'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
@@ -47,23 +47,17 @@ class ElectricHeaterCac(ComponentAttributeClass):
     def check_existence_of_certain_attributes(cls, attributes):
         if not attributes.get('component_attribute_class_id', None):
             raise DcError('component_attribute_class_id must exist')
-        if not attributes.get('electric_heater_type_value', None):
-            raise DcError('electric_heater_type_value')
+        if not attributes.get('actuator_type_value', None):
+            raise DcError('actuator_type_value')
 
     @classmethod
     def check_initialization_consistency(cls, attributes):
-        ElectricHeaterCac.check_uniqueness_of_primary_key(attributes)
-        ElectricHeaterCac.check_existence_of_certain_attributes(attributes)
+       BooleanActuatorCac.check_uniqueness_of_primary_key(attributes)
+       BooleanActuatorCac.check_existence_of_certain_attributes(attributes)
     
     def check_immutability_for_existing_attributes(self, new_attributes):
         if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
             raise DcError('component_attribute_class_id is Immutable')
-        if new_attributes['electric_heater_type_value'] != self.electric_heater_type_value:
-            raise DcError(f"electric_heater_type_value is Immutable. Not changing {self.display_name}"
-                                    f" from {self.electric_heater_type_value} to {new_attributes['electric_heater_type_value']}")
-    
-    @property
-    def electric_heater_type(self) -> ElectricHeaterType:
-        if self.electric_heater_type_value not in PlatformElectricHeaterType.keys():
-            raise TypeError('electric heater type must belong to static list')
-        return PlatformElectricHeaterType[self.electric_heater_type_value]
+        if new_attributes['actuator_type_value'] != self.actuator_type_value:
+            raise DcError(f"actuator_type_value is Immutable. Not changing {self.display_name}"
+                                    f" from {self.actuator_type_value} to {new_attributes['actuator_type_value']}")

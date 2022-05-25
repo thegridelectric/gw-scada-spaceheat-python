@@ -1,10 +1,11 @@
 """ SensorCac Class Definition """
 from typing import Optional
-from abc import ABC
-from data_classes.errors import DcError
+
 from data_classes.component_attribute_class import ComponentAttributeClass
+from data_classes.errors import DcError
 from data_classes.sensor_type import SensorType
 from data_classes.sensor_type_static import PlatformSensorType
+
 
 class SensorCac(ComponentAttributeClass):
     by_id = {}
