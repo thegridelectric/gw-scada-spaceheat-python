@@ -33,14 +33,11 @@
                     <xsl:variable name="read-only-properties" select="$od//PropertyDef[(normalize-space(IsReadonly) = 'true' or normalize-space(MatchingMetaData/IsReadonly) = 'true')]"/>
                     <xsl:variable name="basic-properties" select="$od//PropertyDef[normalize-space(IsCollection) != 'true' and normalize-space(MatchingMetaData/IsCollection) != 'true' and normalize-space(IsReadonly) != 'true' and normalize-space(MatchingMetaData/IsReadonly) != 'true' and IsPrimaryKey = 0 and count(Relationships)=0 and Name != 'Definition' and Name !='Description' ]"/>
                     <xsl:variable name="foreign-keys" select="$od//PropertyDef[normalize-space(MatchingMetaData/RelationshipType)='One' and normalize-space(IsCollection) != 'true' and count(Relationships)>0 and normalize-space(MatchingMetaData/IsCollection) != 'true']"/> 
-
-  
                     <FileSetFile>
                         <xsl:element name="RelativePath"><xsl:text>../../../gw_spaceheat/data_classes/</xsl:text><xsl:value-of select="$python-odname"   /><xsl:text>.py</xsl:text></xsl:element>
                         <OverwriteMode>Never</OverwriteMode>
                         <xsl:element name="FileContents"><xsl:text>""" </xsl:text><xsl:value-of select="$od/Name" /><xsl:text> Class Definition """
-import time
-import uuid
+
 from data_classes.</xsl:text><xsl:value-of select="$python-odname"/><xsl:text>_base import </xsl:text><xsl:value-of select="$od/Name" /><xsl:text>Base
 
 </xsl:text>
@@ -142,6 +139,7 @@ class </xsl:text><xsl:value-of select="$od/Name" /><xsl:text>(</xsl:text><xsl:va
 </xsl:for-each>
 </xsl:element>
                     </FileSetFile>
+
                 </xsl:for-each>
 
             </FileSetFiles>
@@ -153,12 +151,9 @@ class </xsl:text><xsl:value-of select="$od/Name" /><xsl:text>(</xsl:text><xsl:va
         <xsl:choose>
             <xsl:when test="$uc-type = 'NTEXT' or $uc-type = 'TEXT' or $uc-type = 'STRING'"><xsl:text>Optional[str] = None</xsl:text>
             </xsl:when>
-            <xsl:when test="$uc-type = 'INT16' or $uc-type = 'INT32' or $uc-type = 'INT64' or $uc-type = 'INT'"><xsl:text>Optional[int] = None</xsl:text></xsl:when>
+            <xsl:when test="$uc-type = 'INT16' or $uc-type = 'INT32' or $uc-type = 'INT64' or $uc-type = 'INT' or $uc-type = 'DATE' or $uc-type = 'DATETIME'"><xsl:text>Optional[int] = None</xsl:text></xsl:when>
             <xsl:when test="$uc-type = 'BOOLEAN' or $uc-type = 'BOOL'"><xsl:text>Optional[bool] = None</xsl:text></xsl:when>
             <xsl:when test="$uc-type = 'DECIMAL' or $uc-type = 'FLOAT' or $uc-type = 'NUMBER'"><xsl:text>Optional[float] = None</xsl:text> </xsl:when>
-            <xsl:when test="$uc-type = 'DATE'"><xsl:text>time = time.time()</xsl:text> </xsl:when>
-            <xsl:when test="$uc-type = 'DATETIME'"><xsl:text>time = time.time()</xsl:text> </xsl:when>
-            <xsl:when test="$uc-type = 'GUID'"><xsl:text>uuid.uuid4() = uuid.uuid4()</xsl:text></xsl:when>
             <xsl:otherwise><xsl:text>None</xsl:text>
             </xsl:otherwise>
         </xsl:choose>

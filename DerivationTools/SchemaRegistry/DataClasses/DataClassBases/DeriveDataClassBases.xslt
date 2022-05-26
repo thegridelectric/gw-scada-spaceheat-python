@@ -39,11 +39,11 @@
                         <xsl:element name="RelativePath"><xsl:text>../../../../gw_spaceheat/data_classes/</xsl:text><xsl:value-of select="$python-odname"/><xsl:text>_base.py</xsl:text></xsl:element>
                         <OverwriteMode>Always</OverwriteMode>
                         <xsl:element name="FileContents" ><xsl:text>""" </xsl:text><xsl:value-of select="$od/Name" /><xsl:text> Base Class Definition """
-import time
-import uuid
-from typing import Optional
+
 from abc import ABC, abstractproperty
-from gw.mixin import StreamlinedSerializerMixin
+from typing import Optional
+
+from data_classes.mixin import StreamlinedSerializerMixin
 
 
 class </xsl:text><xsl:value-of select="$od/Name" /><xsl:text>Base(ABC, StreamlinedSerializerMixin):
@@ -191,6 +191,7 @@ class </xsl:text><xsl:value-of select="$od/Name" /><xsl:text>Base(ABC, Streamlin
         <xsl:if test="$entity/HasAliasDict ='true'">
     <xsl:text>
         self.__class__.by_alias[self.alias] = self
+
             </xsl:text>
         </xsl:if>
 
@@ -198,15 +199,14 @@ class </xsl:text><xsl:value-of select="$od/Name" /><xsl:text>Base(ABC, Streamlin
 
 <xsl:if test="$entity/AllObjectsStaticBool = 0">
 <xsl:text>
-
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
         if attributes['</xsl:text><xsl:value-of select="$python-odname"/><xsl:text>_id'] in cls.by_id.keys():
             raise Exception(f"</xsl:text><xsl:value-of select="$python-odname"/><xsl:text>_id {attributes['</xsl:text><xsl:value-of select="$python-odname"/><xsl:text>_id']} already in use")
-
 </xsl:text>
 </xsl:if>
 <xsl:text>
+
     """ Derived attributes """
 </xsl:text>
 <xsl:for-each select="$read-only-properties">
@@ -237,13 +237,11 @@ class </xsl:text><xsl:value-of select="$od/Name" /><xsl:text>Base(ABC, Streamlin
         <xsl:param name="propertyDef" />
         <xsl:variable name="uc-type" select="translate($propertyDef/DataType, $lcletters, $ucletters)" />
         <xsl:choose>
-            <xsl:when test="$uc-type = 'NTEXT' or $uc-type = 'TEXT' or $uc-type = 'STRING'"><xsl:text>Optional[str] = None</xsl:text>
+            <xsl:when test="$uc-type = 'NTEXT' or $uc-type = 'TEXT' or $uc-type = 'STRING' or $uc-type = 'DATE' or $uc-type = 'DATETIME'"><xsl:text>Optional[str] = None</xsl:text>
             </xsl:when>
             <xsl:when test="$uc-type = 'INT16' or $uc-type = 'INT32' or $uc-type = 'INT64' or $uc-type = 'INT'"><xsl:text>Optional[int] = None</xsl:text></xsl:when>
             <xsl:when test="$uc-type = 'BOOLEAN' or $uc-type = 'BOOL'"><xsl:text>Optional[bool] = None</xsl:text></xsl:when>
             <xsl:when test="$uc-type = 'DECIMAL' or $uc-type = 'FLOAT' or $uc-type = 'NUMBER'"><xsl:text>Optional[float] = None</xsl:text> </xsl:when>
-            <xsl:when test="$uc-type = 'DATE'"><xsl:text>time = time.time()</xsl:text> </xsl:when>
-            <xsl:when test="$uc-type = 'DATETIME'"><xsl:text>time = time.time()</xsl:text> </xsl:when>
             <xsl:when test="$uc-type = 'GUID'"><xsl:text>uuid.uuid4() = uuid.uuid4()</xsl:text></xsl:when>
             <xsl:otherwise><xsl:text>None</xsl:text>
             </xsl:otherwise>

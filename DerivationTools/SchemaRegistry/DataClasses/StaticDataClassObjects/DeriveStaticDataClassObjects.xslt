@@ -44,7 +44,9 @@
                     </RelativePath>
                     <xsl:element name="FileContents">
                         <xsl:text>from typing import Dict
+
 from data_classes.</xsl:text><xsl:value-of select="PythonName"/><xsl:text> import </xsl:text><xsl:value-of select="Name"/><xsl:text>
+
 Platform</xsl:text><xsl:value-of select="$entity/Name"/><xsl:text>: Dict[str,</xsl:text><xsl:value-of select="Name"/> <xsl:text>] = {}</xsl:text>  
 
  
