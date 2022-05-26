@@ -1,5 +1,7 @@
 from typing import Dict
+
 from data_classes.component_category import ComponentCategory
+
 PlatformComponentCategory: Dict[str,ComponentCategory] = {}
 
 

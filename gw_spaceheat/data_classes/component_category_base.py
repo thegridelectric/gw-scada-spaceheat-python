@@ -1,9 +1,9 @@
 """ ComponentCategory Base Class Definition """
-import time
-import uuid
-from typing import Optional
+
 from abc import ABC, abstractproperty
-from gw.mixin import StreamlinedSerializerMixin
+from typing import Optional
+
+from data_classes.mixin import StreamlinedSerializerMixin
 
 
 class ComponentCategoryBase(ABC, StreamlinedSerializerMixin):
@@ -26,4 +26,5 @@ class ComponentCategoryBase(ABC, StreamlinedSerializerMixin):
                  color_hex: Optional[str] = None):
         self.value = value
         self.color_hex = color_hex
+
     """ Derived attributes """

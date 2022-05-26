@@ -1,9 +1,9 @@
 """ TimeStep Base Class Definition """
-import time
-import uuid
-from typing import Optional
+
 from abc import ABC, abstractproperty
-from gw.mixin import StreamlinedSerializerMixin
+from typing import Optional
+
+from data_classes.mixin import StreamlinedSerializerMixin
 
 
 class TimeStepBase(ABC, StreamlinedSerializerMixin):
@@ -27,7 +27,7 @@ class TimeStepBase(ABC, StreamlinedSerializerMixin):
 
     def __init__(self,
                  time_step_id: Optional[str] = None,
-                 irl_created_at_utc: time = time.time(),
+                 irl_created_at_utc: Optional[str] = None,
                  previous_time_step_id: Optional[str] = None,
                  era_index: Optional[int] = None,
                  ts_index: Optional[int] = None,
@@ -38,7 +38,6 @@ class TimeStepBase(ABC, StreamlinedSerializerMixin):
         self.era_index = era_index
         self.ts_index = ts_index
         self.era_id = era_id
-
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
         if attributes['time_step_id'] in cls.by_id.keys():

@@ -1,9 +1,9 @@
 """ WorldInstance Base Class Definition """
-import time
-import uuid
-from typing import Optional
+
 from abc import ABC, abstractproperty
-from gw.mixin import StreamlinedSerializerMixin
+from typing import Optional
+
+from data_classes.mixin import StreamlinedSerializerMixin
 
 
 class WorldInstanceBase(ABC, StreamlinedSerializerMixin):
@@ -66,8 +66,8 @@ class WorldInstanceBase(ABC, StreamlinedSerializerMixin):
         self.is_sub_second_sim = is_sub_second_sim
         self.end_time_unix_s = end_time_unix_s
         self.__class__.by_alias[self.alias] = self
-            
 
+            
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
         if attributes['world_instance_id'] in cls.by_id.keys():

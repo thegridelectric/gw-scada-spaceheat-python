@@ -1,9 +1,9 @@
 """ ComponentType Base Class Definition """
-import time
-import uuid
-from typing import Optional
+
 from abc import ABC, abstractproperty
-from gw.mixin import StreamlinedSerializerMixin
+from typing import Optional
+
+from data_classes.mixin import StreamlinedSerializerMixin
 
 
 class ComponentTypeBase(ABC, StreamlinedSerializerMixin):
@@ -44,6 +44,7 @@ class ComponentTypeBase(ABC, StreamlinedSerializerMixin):
         self.is_resistive_load = is_resistive_load
         self.display_name = display_name
         self.component_sub_category_value = component_sub_category_value
+
     """ Derived attributes """
 
     @abstractproperty

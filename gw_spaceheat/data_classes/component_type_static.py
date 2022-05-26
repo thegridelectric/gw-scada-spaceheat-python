@@ -1,5 +1,7 @@
 from typing import Dict
+
 from data_classes.component_type import ComponentType
+
 PlatformComponentType: Dict[str,ComponentType] = {}
 
 
