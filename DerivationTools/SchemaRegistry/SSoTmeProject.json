@@ -77,6 +77,39 @@
       "Name": "XmlXsltTransform",
       "RelativePath": "/GnrSchema/GnrTypeMaker",
       "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveGnrTypeMaker.xslt -i ../../GwSchemaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "ff4127a5-e029-4122-9d2d-a5f8b3d684f8",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/DataClasses",
+      "CommandLine": "codee42/xml-xslt-transform -p exclude-collections=true -p relationship-suffix=_id -p legacy=false -i ../ODXML/DataSchema.odxml -i DeriveDataClasses.xslt -i ../GwSchemaCommon.xslt -i ../SSoT/Airtable.xml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "c80a035a-b3f5-4e54-aaa2-e1f946fd70d3",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/DataClasses/DataClassBases",
+      "CommandLine": "codee42/xml-xslt-transform -p exclude-collections=true -p relationship-suffix=_id -p legacy=false -i ../../ODXML/DataSchema.odxml -i DeriveDataClassBases.xslt -i ../../GwSchemaCommon.xslt -i ../../SSoT/Airtable.xml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "60818059-2d5d-48e2-a7b1-4aabad3e9ef9",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/DataClasses/StaticDataClassObjects",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveStaticDataClassObjects.xslt  -i ../../GwSchemaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
     }
   ]
 }
