@@ -14,9 +14,9 @@ from schema.gt.gt_telemetry.gt_telemetry_1_0_0_base import TelemetryName
 from schema.gt.gt_telemetry.gt_telemetry_1_0_0_maker import GtTelemetry100, GtTelemetry100_Maker
 
 
-class Pipe_Flow_Meter(SensorBase):
+class PipeFlowMeter(SensorBase):
     def __init__(self, node: ShNode):
-        super(Pipe_Flow_Meter, self).__init__(node=node)   
+        super(PipeFlowMeter, self).__init__(node=node)   
         self.water_flow_gpm = 0
         self.screen_print('hi')
         self.consume_thread.start()

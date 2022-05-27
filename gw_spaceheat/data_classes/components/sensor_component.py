@@ -1,8 +1,7 @@
 from typing import Optional
 
-from data_classes.cacs.sensor_cac import SensorCac
 from data_classes.component import Component
-from data_classes.errors import DataClassLoadingError, DcError
+from data_classes.errors import DcError
 
 
 class SensorComponent(Component):
@@ -57,9 +56,3 @@ class SensorComponent(Component):
     def check_initialization_consistency(cls, attributes):
         SensorComponent.check_uniqueness_of_primary_key(attributes)
         SensorComponent.check_existence_of_certain_attributes(attributes)
-
-    @property
-    def cac(self) -> SensorCac:
-        if self.component_attribute_class_id not in SensorCac.by_id.keys():
-            raise DataClassLoadingError(f"SensorCacId {self.component_attribute_class_id} not loaded yet")
-        return SensorCac.by_id[self.component_attribute_class_id]

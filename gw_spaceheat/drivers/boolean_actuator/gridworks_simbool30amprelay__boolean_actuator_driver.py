@@ -1,12 +1,12 @@
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
-from drivers.boolean_actuator.boolean_actuator_base import BooleanActuator
+from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
 
 
-class Gridworks__SimBool30AmpRelay__BooleanActuator(BooleanActuator):
+class GridworksSimBool30AmpRelay_BooleanActuatorDriver(BooleanActuatorDriver):
 
     def __init__(self,  component: BooleanActuatorComponent):
-        super(Gridworks__SimBool30AmpRelay__BooleanActuator,self).__init__(component=component)
+        super(GridworksSimBool30AmpRelay_BooleanActuatorDriver,self).__init__(component=component)
 
     def turn_on(self):
         raise NotImplementedError(f"Need to send TURN ON rabbit msg to simulated element via gpio {self.component.gpio} ")

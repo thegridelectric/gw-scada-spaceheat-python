@@ -3,8 +3,7 @@
 from abc import ABC
 from typing import Optional
 
-from data_classes.component_attribute_class import ComponentAttributeClass
-from data_classes.errors import DataClassLoadingError, DcError
+from data_classes.errors import DcError
 from data_classes.mixin import StreamlinedSerializerMixin
 
 

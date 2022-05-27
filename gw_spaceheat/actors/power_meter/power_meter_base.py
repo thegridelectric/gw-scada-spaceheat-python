@@ -9,9 +9,9 @@ from schema.gt.gt_telemetry.gt_telemetry_1_0_0_maker import  GtTelemetry100_Make
 from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
 
 
-class Power_Meter_Base(ActorBase):
+class PowerMeterBase(ActorBase):
     def __init__(self, node: ShNode):
-        super(Power_Meter_Base, self).__init__(node=node)
+        super(PowerMeterBase, self).__init__(node=node)
 
     def subscriptions(self) -> List[Subscription]:
         return []
