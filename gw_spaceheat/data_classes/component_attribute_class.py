@@ -41,11 +41,3 @@ class ComponentAttributeClass(ABC, StreamlinedSerializerMixin):
     @classmethod
     def check_initialization_consistency(cls, attributes):
         ComponentAttributeClass.check_uniqueness_of_primary_key(attributes)
-    
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
-            raise DcError('component_attribute_class_id is Immutable')
-        if new_attributes['make_model'] != self.make_model:
-            raise DcError('make_model is Immutable')  
-        if new_attributes['component_type_value'] != self.component_type_value:
-            raise DcError(f"component_type_value is Immutable! Cannot change from {self.component_type_value} to {new_attributes['component_type_value']}")

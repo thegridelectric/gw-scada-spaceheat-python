@@ -54,10 +54,3 @@ class BooleanActuatorCac(ComponentAttributeClass):
     def check_initialization_consistency(cls, attributes):
        BooleanActuatorCac.check_uniqueness_of_primary_key(attributes)
        BooleanActuatorCac.check_existence_of_certain_attributes(attributes)
-    
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
-            raise DcError('component_attribute_class_id is Immutable')
-        if new_attributes['actuator_type_value'] != self.actuator_type_value:
-            raise DcError(f"actuator_type_value is Immutable. Not changing {self.display_name}"
-                                    f" from {self.actuator_type_value} to {new_attributes['actuator_type_value']}")

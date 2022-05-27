@@ -57,13 +57,6 @@ class ElectricHeaterCac(ComponentAttributeClass):
         ElectricHeaterCac.check_uniqueness_of_primary_key(attributes)
         ElectricHeaterCac.check_existence_of_certain_attributes(attributes)
     
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
-            raise DcError('component_attribute_class_id is Immutable')
-        if new_attributes['electric_heater_type_value'] != self.electric_heater_type_value:
-            raise DcError(f"electric_heater_type_value is Immutable. Not changing {self.display_name}"
-                                    f" from {self.electric_heater_type_value} to {new_attributes['electric_heater_type_value']}")
-    
     @property
     def electric_heater_type(self) -> ElectricHeaterType:
         if self.electric_heater_type_value not in PlatformElectricHeaterType.keys():

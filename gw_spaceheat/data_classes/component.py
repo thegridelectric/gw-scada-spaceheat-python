@@ -55,18 +55,4 @@ class Component(ABC, StreamlinedSerializerMixin):
         Component.check_uniqueness_of_primary_key(attributes)
         Component.check_existence_of_certain_attributes(attributes)
 
-
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_id'] != self.component_id:
-            raise DcError('component_id is Immutable')
-        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
-            raise DcError('component_attribute_class_id is Immutable')
-
-    def check_update_consistency(self, new_attributes):
-        self.check_immutability_for_existing_attributes(new_attributes)
-
-    @property
-    def cac(self) -> ComponentAttributeClass:
-        if self.component_attribute_class_id not in ComponentAttributeClass.by_id.keys():
-            raise DataClassLoadingError(f"ActuatorCacId {self.component_attribute_class_id} not loaded yet")
-        return ComponentAttributeClass.by_id[self.component_attribute_class_id]
+    

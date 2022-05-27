@@ -49,20 +49,17 @@ class SensorCac(ComponentAttributeClass):
     def check_existence_of_certain_attributes(cls, attributes):
         if 'component_attribute_class_id' not in attributes.keys():
             raise DcError('component_attribute_class_id must exist')
+        """if 'make_model' not in attributes.keys():
+            raise DcError(f'make_model must exist for {attributes}')"""
         if 'sensor_type_value' not in attributes.keys():
-            raise DcError('sensor_type_value')
+            raise DcError(f'sensor_type_value must exist for {attributes}')
+        """if 'comms_method' not in attributes.keys():
+            raise DcError(f"comms_method must exist for {attributes}")"""
 
     @classmethod
     def check_initialization_consistency(cls, attributes):
         SensorCac.check_uniqueness_of_primary_key(attributes)
         SensorCac.check_existence_of_certain_attributes(attributes)
-    
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
-            raise DcError('component_attribute_class_id is Immutable')
-        if new_attributes['sensor_type_value'] != self.sensor_type_value:
-            raise DcError(f"sensor_type_value is Immutable. Not changing {self.display_name}"
-                                    f" from {self.sensor_type_value} to {new_attributes['sensor_type_value']}")
     
     @property
     def sensor_type(self) -> SensorType:
