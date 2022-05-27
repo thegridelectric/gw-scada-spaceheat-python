@@ -14,7 +14,8 @@ class PrimaryScadaBase(ActorBase):
 
     def subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{self.my_meter.alias}/{GsPwr100_Maker.mp_alias}',Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry100_Maker.mp_alias}',Qos=QOS.AtLeastOnce)]
+                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry100_Maker.mp_alias}',Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp0/{GtTelemetry100_Maker.mp_alias}',Qos=QOS.AtLeastOnce)]
 
     def on_message(self, client, userdata, message):
         try:
