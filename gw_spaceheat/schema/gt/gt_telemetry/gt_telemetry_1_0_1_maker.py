@@ -1,19 +1,19 @@
-"""Makes gt.telemetry.100 type"""
+"""Makes gt.telemetry.101 type"""
 
 from typing import List, Dict, Tuple, Optional, Any
 
 from schema.errors import MpSchemaError
-from schema.gt.gt_telemetry.gt_telemetry_1_0_0 import GtTelemetry100
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1 import GtTelemetry101
 
 
-class GtTelemetry100_Maker():
-    mp_alias = 'gt.telemetry.100'
+class GtTelemetry101_Maker():
+    mp_alias = 'gt.telemetry.101'
     
     @classmethod
-    def camel_dict_to_type(cls, d:dict) -> GtTelemetry100:
+    def camel_dict_to_type(cls, d:dict) -> GtTelemetry101:
         if 'MpAlias' not in d.keys():
-            d['MpAlias'] = 'gt.telemetry.100'
-        p = GtTelemetry100(Name=d["Name"],
+            d['MpAlias'] = 'gt.telemetry.101'
+        p = GtTelemetry101(Name=d["Name"],
                         Value=d["Value"],
                         ScadaReadTimeUnixMs=d["ScadaReadTimeUnixMs"])
         is_valid, errors = p.is_valid()
@@ -34,7 +34,7 @@ class GtTelemetry100_Maker():
                 value,
                 scada_read_time_unix_ms):
 
-        t = GtTelemetry100(Name=name,
+        t = GtTelemetry101(Name=name,
                     Value=value,
                     ScadaReadTimeUnixMs=scada_read_time_unix_ms)
 
