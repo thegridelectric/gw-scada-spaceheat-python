@@ -15,6 +15,7 @@ class Component(ABC, StreamlinedSerializerMixin):
     base_props.append('component_id')
     base_props.append('display_name')
     base_props.append('component_attribute_class_id')
+    base_props.append('hw_uid')
 
 
     def __new__(cls, component_id, *args, **kwargs):
@@ -28,10 +29,12 @@ class Component(ABC, StreamlinedSerializerMixin):
     def __init__(self,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
-                 component_attribute_class_id: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None,
+                 hw_uid: Optional[str] = None):
         self.component_id = component_id
         self.display_name = display_name
         self.component_attribute_class_id = component_attribute_class_id
+        self.hw_uid = hw_uid
 
     def __repr__(self):
         return f'Component {self.display_name}'

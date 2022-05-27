@@ -11,6 +11,7 @@ class ComponentAttributeClass(ABC, StreamlinedSerializerMixin):
     base_props.append('component_attribute_class_id')
     base_props.append('make_model')
     base_props.append('component_type_value')
+    base_props.append('display_name')
 
 
     def __new__(cls, component_attribute_class_id, *args, **kwargs):
@@ -24,14 +25,15 @@ class ComponentAttributeClass(ABC, StreamlinedSerializerMixin):
     def __init__(self,
             component_attribute_class_id: Optional[str] = None,
             make_model: Optional[str] = None,
-            component_type_value: Optional[str] = None):
+            component_type_value: Optional[str] = None,
+            display_name: Optional[str] = None):
         self.component_attribute_class_id = component_attribute_class_id
         self.make_model = make_model
         self.component_type_value = component_type_value
+        self.display_name = display_name
 
-    @property
-    def display_name(self) -> str:
-        return f'{self.make_model} (id {self.component_attribute_class_id})'
+    def __repr__(self):
+        return f'MakeModel {self.make_model}: {self.display_name}'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):

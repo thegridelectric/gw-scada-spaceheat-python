@@ -12,6 +12,7 @@ class SensorComponent(Component):
     base_props.append('component_id')
     base_props.append('display_name')
     base_props.append('component_attribute_class_id')
+    base_props.append('hw_uid')
 
     def __new__(cls, component_id, *args, **kwargs):
         if component_id in Component.by_id.keys():
@@ -25,14 +26,19 @@ class SensorComponent(Component):
     def __init__(self,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
-                 component_attribute_class_id: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None,
+                 hw_uid: Optional[str] = None):
         super(SensorComponent, self).__init__(component_id=component_id,
                             display_name=display_name,
-                            component_attribute_class_id=component_attribute_class_id)
+                            component_attribute_class_id=component_attribute_class_id,
+                            hw_uid=hw_uid)
 
     def __repr__(self):
-        return f'Component {self.display_name} => Cac {self.cac.display_name}'
-
+        val = f'Component {self.display_name} => Cac {self.cac.display_name}'
+        if self.hw_uid:
+            val += f' Hardware serial number: {self.hw_uid}'
+        return val 
+        
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
         if attributes['component_id'] in cls.by_id.keys():

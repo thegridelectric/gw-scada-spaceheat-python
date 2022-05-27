@@ -13,7 +13,10 @@ class SensorCac(ComponentAttributeClass):
     base_props = []
     base_props.append('component_attribute_class_id')
     base_props.append('make_model')
+    base_props.append('display_name')
     base_props.append('sensor_type_value')
+    base_props.append('comms_method') 
+        
     
     def __new__(cls, component_attribute_class_id, *args, **kwargs):
         if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
@@ -26,20 +29,23 @@ class SensorCac(ComponentAttributeClass):
 
     def __init__(self,
             component_attribute_class_id: Optional[str] = None,
+            display_name: Optional[str] = None,
             sensor_type_value: Optional[str] = None,
-            make_model: Optional[str] = None):
+            make_model: Optional[str] = None,
+            comms_method: Optional[str] = None):
         super(SensorCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
                         make_model=make_model,
+                        display_name=display_name,
                         component_type_value=sensor_type_value)
         self.sensor_type_value = sensor_type_value
+        self.comms_method = comms_method
 
     def __repr__(self):
-        return f'SensorCac ({self.display_name})) {self.component_attribute_class_id}'
+        val = f'SensorCac {self.make_model}: {self.display_name}'
+        if self.comms_method:
+            val += f' Comms method: {self.comms_method}'
+        return val
     
-    @property
-    def display_name(self) -> str:
-        return f'{self.sensor_type_value} {self.make_model}'
-
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
         if attributes['component_attribute_class_id'] in ComponentAttributeClass.by_id.keys():

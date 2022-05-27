@@ -13,6 +13,7 @@ class BooleanActuatorComponent(Component):
     base_props.append('display_name')
     base_props.append('component_attribute_class_id')
     base_props.append('gpio')
+    base_props.append('hw_uid')
 
     def __new__(cls, component_id, *args, **kwargs):
         if component_id in Component.by_id.keys():
@@ -27,10 +28,12 @@ class BooleanActuatorComponent(Component):
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
                  component_attribute_class_id: Optional[str] = None,
-                 gpio: Optional[int] = None):
+                 gpio: Optional[int] = None,
+                 hw_uid: Optional[str] = None):
         super(BooleanActuatorComponent, self).__init__(component_id=component_id,
                             display_name=display_name,
-                            component_attribute_class_id=component_attribute_class_id)
+                            component_attribute_class_id=component_attribute_class_id,
+                            hw_uid=hw_uid)
         self.gpio= gpio
 
     def __repr__(self):
