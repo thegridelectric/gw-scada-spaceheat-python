@@ -126,7 +126,8 @@
             "ShNodeRoleAlias": "Sensor",
             "DisplayName": "Top Water Temp sensor in tank",
             "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
-            "PrimaryComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce"
+            "PrimaryComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
+            "PythonActorName": "TankWaterTempSensor"
         },
         {
             "Alias": "a.tank.temp1",
@@ -202,49 +203,53 @@
             "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
             "DisplayName": "relay for main circulator pump",
             "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
-            "Gpio": 0
+            "Gpio": 1
         }
     ],
-    "SensorComponents": [
-        {
-            "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",
-            "DisplayName": "Outdoor Temperature Sensor",
-            "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566"
-        },
+    "TempSensorComponents": [{
+        "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",
+        "DisplayName": "Outdoor Temperature Sensor",
+        "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566"
+    },
+    {
+        "ComponentId": "a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e",
+        "DisplayName": "Temp sensor on pipe out of tank",
+        "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
+    },
+    {
+        "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
+        "DisplayName": "Temp sensor on pipe into tank",
+        "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
+    },
+    {
+        "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
+        "DisplayName": "Top water temp sensor in tank",
+        "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
+        "HwUid": "1023abcd"
+    },
+    {
+        "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
+        "DisplayName": "Bottom water temp sensor in tank",
+        "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83"
+    },
+    {
+        "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
+        "DisplayName": "First garage temp sensor",
+        "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608"
+    }
+    ],
+    "ElectricMeterComponents": [
         {
             "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
             "DisplayName": "Main Power meter for Little orange house garage space heat",
             "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951"
-        },
+        }
+    ],
+    "PipeFlowSensorComponents": [
         {
             "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
             "DisplayName": "Flow meter on pipe out of tank",
             "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98"
-        },
-        {
-            "ComponentId": "a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e",
-            "DisplayName": "Temp sensor on pipe out of tank",
-            "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
-        },
-        {
-            "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
-            "DisplayName": "Temp sensor on pipe into tank",
-            "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
-        },
-        {
-            "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
-            "DisplayName": "Top water temp sensor in tank",
-            "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
-        },
-        {
-            "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
-            "DisplayName": "Bottom water temp sensor in tank",
-            "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
-        },
-        {
-            "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
-            "DisplayName": "First garage temp sensor",
-            "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608"
         }
     ],
     "OtherComponents": [
@@ -292,22 +297,31 @@
             "MakeModel": "GridWorks__SimBool30AmpRelay"
         }
     ],
-    "SensorCacs":[
-        {
-            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-            "SensorTypeValue": "ElectricPowerMeter"
-        },
+    "PipeFlowSensorCacs":[
         {
             "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
             "SensorTypeValue": "WaterFlowMeter"
+        }
+    ],
+    "ElectricMeterCacs": [
+        {
+            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+            "SensorTypeValue": "ElectricPowerMeter"
+        }
+    ],
+    "TempSensorCacs": [
+        {
+            "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
+            "MakeModel": "GridWorks__WaterTempHighPrecision",
+            "DisplayName": "Simulated GridWorks high precision water temp sensor",
+            "SensorTypeValue": "WaterStoreTempSensor",
+            "CommsMethod": "SassyMQ",
+            "PrecisionExponent": 3,
+            "TempUnit": "F"
         },
         {
             "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
             "SensorTypeValue": "PipeClampWaterTempSensor"
-        },
-        {
-            "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
-            "SensorTypeValue": "WaterStoreTempSensor"
         },
         {
             "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
