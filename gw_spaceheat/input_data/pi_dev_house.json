@@ -126,6 +126,7 @@
             "ShNodeRoleAlias": "Sensor",
             "DisplayName": "Top Water Temp sensor in tank",
             "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
+            "PrimaryComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
             "PythonActorName": "TankWaterTempSensor"
         },
         {
