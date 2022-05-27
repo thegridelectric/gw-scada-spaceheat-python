@@ -73,3 +73,16 @@ mosquitto_pub -u MQTT_USERNAME -P MQTT_PW -t 'test' -m 'hi'
 
 (see settings.py for username and .env for password)
 
+# 1-wire
+Followed these instructions (https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing?view=all)
+
+sudo raspi-config, 5) Interface Options P7) 1-Wire, Select yes
+sudo reboot
+
+lsmod | grep -i w1_
+
+look for 
+w1_therm   
+w1_gpio
+wire
+
