@@ -28,7 +28,7 @@ class Adafruit642_TempSensorDriver(TempSensorDriver):
         candidate_driver_data_folders = list(filter(lambda x: x.endswith(self.component.hw_uid), all_driver_data_folders))
         if len(candidate_driver_data_folders) != 1:
             raise Exception(f"looking for unique folder ending in {self.component.hw_uid}. Found {candidate_driver_data_folders}")
-        device_folder = candidate_driver_data_folders[0]
+        device_folder = BASE_DIR + candidate_driver_data_folders[0]
         device_file = device_folder + '/w1_slave'
         f = open(device_file, 'r')
         lines = f.readlines()
