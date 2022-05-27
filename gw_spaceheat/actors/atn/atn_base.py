@@ -8,7 +8,7 @@ from actors.actor_base import ActorBase
 from actors.mqtt_utils import Subscription, QOS
 
 
-from schema.gt.gt_telemetry.gt_telemetry_1_0_0_maker import  GtTelemetry100_Maker, GtTelemetry100
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import  GtTelemetry101_Maker, GtTelemetry101
 from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
 
 
@@ -18,14 +18,14 @@ class Atn_Base(ActorBase):
     
     def subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{self.my_scada.alias}/{GsPwr100_Maker.mp_alias}',Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'{self.my_scada.alias}/{GtTelemetry100_Maker.mp_alias}',Qos=QOS.AtLeastOnce)]
+                Subscription(Topic=f'{self.my_scada.alias}/{GtTelemetry101_Maker.mp_alias}',Qos=QOS.AtLeastOnce)]
 
     def on_message(self, client, userdata, message):
         if message.topic == f'{self.my_scada.alias}/{GsPwr100_Maker.mp_alias}':
             payload = GsPwr100_Maker.binary_to_type(message.payload)
             self.gs_pwr_100_from_primaryscada(payload)
         # Not implemented
-        # elif message.topic == f'{self.my_scada.alias}/{GtTelemetry100_Maker.mp_alias}':
+        # elif message.topic == f'{self.my_scada.alias}/{GtTelemetry101_Maker.mp_alias}':
             # self.gt_telemetry_100_from_primaryscada(payload)
         else:
             self.screen_print(f"{message.topic} subscription not implemented!")
@@ -35,7 +35,7 @@ class Atn_Base(ActorBase):
         raise NotImplementedError
      
     @abstractmethod
-    def gt_telemetry_100_from_primaryscada(self, payload: GtTelemetry100):
+    def gt_telemetry_100_from_primaryscada(self, payload: GtTelemetry101):
         raise NotImplementedError
     
     @abstractproperty

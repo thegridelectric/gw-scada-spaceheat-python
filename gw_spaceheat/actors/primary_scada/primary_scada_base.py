@@ -4,7 +4,7 @@ from typing import List
 from actors.actor_base import ActorBase
 from data_classes.sh_node import ShNode
 from actors.mqtt_utils import Subscription, QOS
-from schema.gt.gt_telemetry.gt_telemetry_1_0_0_maker import  GtTelemetry100_Maker, GtTelemetry100
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import  GtTelemetry101_Maker, GtTelemetry101
 from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
 
 
@@ -14,8 +14,8 @@ class PrimaryScadaBase(ActorBase):
 
     def subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{self.my_meter.alias}/{GsPwr100_Maker.mp_alias}',Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry100_Maker.mp_alias}',Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp0/{GtTelemetry100_Maker.mp_alias}',Qos=QOS.AtLeastOnce)]
+                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry101_Maker.mp_alias}',Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp0/{GtTelemetry101_Maker.mp_alias}',Qos=QOS.AtLeastOnce)]
 
     def on_message(self, client, userdata, message):
         try:
@@ -28,8 +28,8 @@ class PrimaryScadaBase(ActorBase):
             # self.raw_payload = message.payload
             payload = GsPwr100_Maker.binary_to_type(message.payload)
             self.gs_pwr_100_from_powermeter(payload)
-        elif mp_alias == GtTelemetry100_Maker.mp_alias:
-            payload = GtTelemetry100_Maker.create_payload_from_camel_dict(json.loads(message.payload))
+        elif mp_alias == GtTelemetry101_Maker.mp_alias:
+            payload = GtTelemetry101_Maker.camel_dict_to_type(json.loads(message.payload))
             from_node = ShNode.by_alias[from_alias]
             self.gt_telemetry_100_received(payload=payload, from_node=from_node)
         else:
@@ -40,7 +40,7 @@ class PrimaryScadaBase(ActorBase):
         raise NotImplementedError
 
     @abstractmethod
-    def gt_telemetry_100_received(self, payload: GtTelemetry100, from_node: ShNode):
+    def gt_telemetry_100_received(self, payload: GtTelemetry101, from_node: ShNode):
         raise NotImplementedError
 
     def publish_gs_pwr(self, payload: GsPwr100):

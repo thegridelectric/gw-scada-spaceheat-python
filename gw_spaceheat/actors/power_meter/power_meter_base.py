@@ -1,11 +1,7 @@
-from abc import abstractmethod
-import paho.mqtt.client as mqtt
-
 from typing import List
 from actors.actor_base import ActorBase
 from data_classes.sh_node import ShNode
 from actors.mqtt_utils import Subscription, QOS
-from schema.gt.gt_telemetry.gt_telemetry_1_0_0_maker import  GtTelemetry100_Maker, GtTelemetry100
 from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
 
 

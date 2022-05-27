@@ -8,8 +8,8 @@ from data_classes.components.sensor_component import SensorComponent
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
 from data_classes.sh_node_role_static import SENSOR
-from schema.gt.gt_telemetry.gt_telemetry_1_0_0_base import TelemetryName
-from schema.gt.gt_telemetry.gt_telemetry_1_0_0_maker import GtTelemetry100, GtTelemetry100_Maker
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_base import TelemetryName
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101_Maker
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
 from drivers.temp_sensor.adafruit_642__temp_sensor_driver import Adafruit642_TempSensorDriver
 from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import GridworksWaterTempSensorHighPrecision_TempSensorDriver
@@ -44,10 +44,10 @@ class TankWaterTempSensor(SensorBase):
             raise Exception(f"TelemetryName for {self.cac.temp_unit} and precision exponent of {self.cac.precision_exponent} not set yet!")
 
     def publish(self):
-        payload = GtTelemetry100_Maker(name=self.telemetry_name.value,
+        payload = GtTelemetry101_Maker(name=self.telemetry_name.value,
                         value=int(self.temp),
                         scada_read_time_unix_ms=int(time.time()*1000)).type
-        self.publish_gt_telemetry_1_0_0(payload)
+        self.publish_gt_telemetry_1_0_1(payload)
         
     def consume(self):
         pass
