@@ -3,7 +3,7 @@ from actors.primary_scada.primary_scada_base import PrimaryScadaBase
 from data_classes.sh_node import ShNode
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent 
 from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101, TelemetryName
 from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
 from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import NcdPr814Spst_BooleanActuatorDriver
 from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import GridworksSimBool30AmpRelay_BooleanActuatorDriver
@@ -17,6 +17,7 @@ class PrimaryScada(PrimaryScadaBase):
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.set_actuator_components()
+        self.temp_readings: List = []
         
         
     def set_actuator_components(self):
@@ -56,6 +57,8 @@ class PrimaryScada(PrimaryScadaBase):
     
     def gt_telemetry_100_received(self, payload: GtTelemetry101, from_node: ShNode):
         self.screen_print(f"Got {payload} from {from_node.alias}")
+        self.payload = payload
+
 
     @property
     def my_meter(self) ->ShNode:

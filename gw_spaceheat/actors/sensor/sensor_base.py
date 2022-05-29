@@ -25,7 +25,7 @@ class SensorBase(ActorBase):
                             payload=json.dumps(payload.asdict()),
                             qos = QOS.AtLeastOnce.value,
                             retain=True)
-        self.screen_print(f"Just published {payload} to topic {topic}")
+        #self.screen_print(f"Just published {payload} to topic {topic}")
 
     
         

@@ -55,5 +55,5 @@ class TankWaterTempSensor(SensorBase):
     def main(self):
         while True:
             self.temp = self.driver.read_temp()
-            self.screen_print(f"Just read temp {self.temp/(10**self.cac.precision_exponent)} {self.cac.temp_unit}")
+            #self.screen_print(f"Just read temp {self.temp/(10**self.cac.precision_exponent)} {self.cac.temp_unit}")
             self.publish()
