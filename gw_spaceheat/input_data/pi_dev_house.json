@@ -134,7 +134,8 @@
             "ShNodeRoleAlias": "Sensor",
             "DisplayName": "Tank temp sensor #1 (second from top)",
             "ShNodeId": "0df93059-f155-4c4f-a43c-0265a28f21fb",
-            "PrimaryComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e" 
+            "PrimaryComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
+            "PythonActorName": "TankWaterTempSensor"
         },
         {
             "Alias": "a.tank.out.allradiators.garage.temp1",
