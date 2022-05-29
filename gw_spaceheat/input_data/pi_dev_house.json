@@ -124,7 +124,7 @@
         {
             "Alias": "a.tank.temp0",
             "ShNodeRoleAlias": "Sensor",
-            "DisplayName": "Top Water Temp sensor in tank",
+            "DisplayName": "Tank temp sensor #0 (on top)",
             "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
             "PrimaryComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
             "PythonActorName": "TankWaterTempSensor"
@@ -132,7 +132,7 @@
         {
             "Alias": "a.tank.temp1",
             "ShNodeRoleAlias": "Sensor",
-            "DisplayName": "Bottom Water Temp sensor in tank",
+            "DisplayName": "Tank temp sensor #1 (second from top)",
             "ShNodeId": "0df93059-f155-4c4f-a43c-0265a28f21fb",
             "PrimaryComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e" 
         },
@@ -223,14 +223,15 @@
     },
     {
         "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
-        "DisplayName": "Top water temp sensor in tank",
+        "DisplayName": "Tank temp sensor component #0 (on top)",
         "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
         "HwUid": "0003debb"
     },
     {
         "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
-        "DisplayName": "Bottom water temp sensor in tank",
-        "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
+        "DisplayName": "Tank temp sensor component #1 (second from top)",
+        "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
+        "HwUid": "0003c2c4"
     },
     {
         "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
