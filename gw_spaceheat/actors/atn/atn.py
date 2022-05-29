@@ -1,14 +1,9 @@
 
-from curses.ascii import GS
-import paho.mqtt.client as mqtt
-import time
-import json
-from typing import List
 from actors.atn.atn_base import Atn_Base
 from data_classes.sh_node import ShNode
 
-from schema.gt.gt_telemetry.gt_telemetry_1_0_0_maker import  GtTelemetry100_Maker, GtTelemetry100
-from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import  GtTelemetry101
+from schema.gs.gs_pwr_1_0_0_maker import GsPwr100
 
 class Atn(Atn_Base):
     def __init__(self, node: ShNode):
@@ -25,7 +20,7 @@ class Atn(Atn_Base):
         self.power = payload.Power
         self.screen_print(f"Power is {self.power}")
 
-    def gt_telemetry_100_from_primaryscada(self, payload: GtTelemetry100):
+    def gt_telemetry_100_from_primaryscada(self, payload: GtTelemetry101):
         self.screen_print(f"Got {payload}")
 
     @property

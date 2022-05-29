@@ -2,14 +2,14 @@ import smbus2 as smbus
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from drivers.base.mcp23008 import mcp23008
-from drivers.boolean_actuator.boolean_actuator_base import BooleanActuator
+from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
 
 COMPONENT_ADDRESS = 0x20
 
-class Ncd__Pr8_14_Spst__BooleanActuator(BooleanActuator):
+class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
 
     def __init__(self,  component: BooleanActuatorComponent):
-        super(Ncd__Pr8_14_Spst__BooleanActuator,self).__init__(component=component)
+        super( NcdPr814Spst_BooleanActuatorDriver,self).__init__(component=component)
         bus = smbus.SMBus(1)
         gpio_output_map =  {0,1,2,3}
         kwargs = {'address': COMPONENT_ADDRESS, 'gpio_output_map': gpio_output_map}

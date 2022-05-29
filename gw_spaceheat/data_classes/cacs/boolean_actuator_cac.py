@@ -10,6 +10,7 @@ class BooleanActuatorCac(ComponentAttributeClass):
     base_props = []
     base_props.append('component_attribute_class_id')
     base_props.append('make_model')
+    base_props.append('display_name')
     base_props.append('component_type_value')
 
     
@@ -25,18 +26,17 @@ class BooleanActuatorCac(ComponentAttributeClass):
     def __init__(self,
             component_attribute_class_id: Optional[str] = None,
             actuator_type_value: Optional[str] = None,
+            display_name: Optional[str] = None,
             make_model: Optional[str] = None):
         super(BooleanActuatorCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
                         make_model=make_model,
+                        display_name=display_name,
                         component_type_value=actuator_type_value)
         self.actuator_type_value = actuator_type_value
     
     def __repr__(self):
-        return f'SensorCac ({self.display_name}) {self.component_attribute_class_id}'
-
-    @property
-    def display_name(self) -> str:
-        return f'{self.actuator_type_value} {self.make_model}'
+        val = f'PipeFlowSensorCac {self.make_model}: {self.display_name}'
+        return val
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
@@ -54,10 +54,3 @@ class BooleanActuatorCac(ComponentAttributeClass):
     def check_initialization_consistency(cls, attributes):
        BooleanActuatorCac.check_uniqueness_of_primary_key(attributes)
        BooleanActuatorCac.check_existence_of_certain_attributes(attributes)
-    
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
-            raise DcError('component_attribute_class_id is Immutable')
-        if new_attributes['actuator_type_value'] != self.actuator_type_value:
-            raise DcError(f"actuator_type_value is Immutable. Not changing {self.display_name}"
-                                    f" from {self.actuator_type_value} to {new_attributes['actuator_type_value']}")

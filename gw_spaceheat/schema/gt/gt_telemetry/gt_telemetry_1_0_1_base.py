@@ -1,4 +1,4 @@
-"""Base for gt.telemetry.100"""
+"""Base for gt.telemetry.101"""
 from typing import List, Tuple, Optional, NamedTuple
 import enum
 
@@ -7,13 +7,14 @@ from schema.property_format import is_reasonable_unix_time_ms
 
 class TelemetryName(enum.Enum):
     WATER_FLOW_GPM_TIMES_100 = "WaterFlowGpmTimes100"
+    WATER_TEMP_F_TIMES_1000 = "WaterTempFTimes1000"
+    WATER_TEMP_C_TIMES_1000 = "WaterTempCTimes1000"
 
-
-class GtTelemetry100Base(NamedTuple):
+class GtTelemetry101Base(NamedTuple):
     Name: str     #
     Value: int     #
     ScadaReadTimeUnixMs: int     #
-    MpAlias: str = 'gt.telemetry.100'
+    MpAlias: str = 'gt.telemetry.101'
 
     def asdict(self):
         d = self._asdict()
@@ -29,9 +30,9 @@ class GtTelemetry100Base(NamedTuple):
     def passes_derived_validations(self) -> Tuple[bool, Optional[List[str]]]:
         is_valid = True
         errors = []
-        if self.MpAlias != 'gt.telemetry.100':
+        if self.MpAlias != 'gt.telemetry.101':
             is_valid = False
-            errors.append(f"Payload requires MpAlias of gt.telemetry.100, not {self.MpAlias}.")
+            errors.append(f"Payload requires MpAlias of gt.telemetry.101, not {self.MpAlias}.")
         if not isinstance(self.Name, str):
             is_valid = False
             errors.append(f"Name {self.Name} must have type str.")

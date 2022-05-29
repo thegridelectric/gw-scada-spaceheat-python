@@ -4,7 +4,7 @@ from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 
 
-class BooleanActuator(ABC):
+class BooleanActuatorDriver(ABC):
     def __init__(self, component: BooleanActuatorComponent):
         self.component = component
 

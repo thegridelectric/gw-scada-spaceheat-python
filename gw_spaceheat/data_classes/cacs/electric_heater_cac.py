@@ -13,6 +13,7 @@ class ElectricHeaterCac(ComponentAttributeClass):
     base_props = []
     base_props.append('component_attribute_class_id')
     base_props.append('make_model')
+    base_props.append('display_name')
     base_props.append('electric_heater_type_value')
     
     def __new__(cls, component_attribute_class_id, *args, **kwargs):
@@ -27,18 +28,17 @@ class ElectricHeaterCac(ComponentAttributeClass):
     def __init__(self,
             component_attribute_class_id: Optional[str] = None,
             electric_heater_type_value: Optional[str] = None, 
-            make_model: Optional[str] = None):
+            make_model: Optional[str] = None,
+            display_name: Optional[str] = None):
         super(ElectricHeaterCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
                         make_model=make_model,
+                        display_name=display_name,
                         component_type_value=electric_heater_type_value)
         self.electric_heater_type_value=electric_heater_type_value
 
     def __repr__(self):
         return f'ElectricHeaterCac ({self.display_name})) {self.component_attribute_class_id}'
 
-    @property
-    def display_name(self) -> str:
-        return f'{self.electric_heater_type_value} {self.make_model}'
 
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
@@ -56,13 +56,6 @@ class ElectricHeaterCac(ComponentAttributeClass):
     def check_initialization_consistency(cls, attributes):
         ElectricHeaterCac.check_uniqueness_of_primary_key(attributes)
         ElectricHeaterCac.check_existence_of_certain_attributes(attributes)
-    
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
-            raise DcError('component_attribute_class_id is Immutable')
-        if new_attributes['electric_heater_type_value'] != self.electric_heater_type_value:
-            raise DcError(f"electric_heater_type_value is Immutable. Not changing {self.display_name}"
-                                    f" from {self.electric_heater_type_value} to {new_attributes['electric_heater_type_value']}")
     
     @property
     def electric_heater_type(self) -> ElectricHeaterType:

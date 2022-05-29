@@ -3,8 +3,7 @@
 from abc import ABC
 from typing import Optional
 
-from data_classes.component_attribute_class import ComponentAttributeClass
-from data_classes.errors import DataClassLoadingError, DcError
+from data_classes.errors import DcError
 from data_classes.mixin import StreamlinedSerializerMixin
 
 
@@ -15,6 +14,7 @@ class Component(ABC, StreamlinedSerializerMixin):
     base_props.append('component_id')
     base_props.append('display_name')
     base_props.append('component_attribute_class_id')
+    base_props.append('hw_uid')
 
 
     def __new__(cls, component_id, *args, **kwargs):
@@ -28,10 +28,12 @@ class Component(ABC, StreamlinedSerializerMixin):
     def __init__(self,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
-                 component_attribute_class_id: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None,
+                 hw_uid: Optional[str] = None):
         self.component_id = component_id
         self.display_name = display_name
         self.component_attribute_class_id = component_attribute_class_id
+        self.hw_uid = hw_uid
 
     def __repr__(self):
         return f'Component {self.display_name}'
@@ -55,18 +57,4 @@ class Component(ABC, StreamlinedSerializerMixin):
         Component.check_uniqueness_of_primary_key(attributes)
         Component.check_existence_of_certain_attributes(attributes)
 
-
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_id'] != self.component_id:
-            raise DcError('component_id is Immutable')
-        if new_attributes['component_attribute_class_id'] != self.component_attribute_class_id:
-            raise DcError('component_attribute_class_id is Immutable')
-
-    def check_update_consistency(self, new_attributes):
-        self.check_immutability_for_existing_attributes(new_attributes)
-
-    @property
-    def cac(self) -> ComponentAttributeClass:
-        if self.component_attribute_class_id not in ComponentAttributeClass.by_id.keys():
-            raise DataClassLoadingError(f"ActuatorCacId {self.component_attribute_class_id} not loaded yet")
-        return ComponentAttributeClass.by_id[self.component_attribute_class_id]
+    
