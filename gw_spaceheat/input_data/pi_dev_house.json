@@ -124,7 +124,7 @@
         {
             "Alias": "a.tank.temp0",
             "ShNodeRoleAlias": "Sensor",
-            "DisplayName": "Tank temp sensor #0 (on top)",
+            "DisplayName": "Tank temp sensor temp0 (on top)",
             "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
             "PrimaryComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
             "PythonActorName": "TankWaterTempSensor"
@@ -132,7 +132,7 @@
         {
             "Alias": "a.tank.temp1",
             "ShNodeRoleAlias": "Sensor",
-            "DisplayName": "Tank temp sensor #1 (second from top)",
+            "DisplayName": "Tank temp sensor temp1 (second from top)",
             "ShNodeId": "0df93059-f155-4c4f-a43c-0265a28f21fb",
             "PrimaryComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
             "PythonActorName": "TankWaterTempSensor"
@@ -140,7 +140,7 @@
         {
             "Alias": "a.tank.temp2",
             "ShNodeRoleAlias": "Sensor",
-            "DisplayName": "Tank temp sensor #2 (third from top)",
+            "DisplayName": "Tank temp sensor temp2 (third from top)",
             "ShNodeId": "17f84be9-6237-4331-91f8-17452eba0345",
             "PrimaryComponentId": "fef75047-6416-46d1-bd08-1c10beefa69d",
             "PythonActorName": "TankWaterTempSensor"
@@ -148,7 +148,7 @@
         {
             "Alias": "a.tank.temp3",
             "ShNodeRoleAlias": "Sensor",
-            "DisplayName": "Tank temp sensor #3 (fourth from top)",
+            "DisplayName": "Tank temp sensor temp3 (fourth from top)",
             "ShNodeId": "296c9002-5771-4e11-969c-48a6db905b83",
             "PrimaryComponentId": "14330fc6-c26e-4b74-9000-87e10da65828",
             "PythonActorName": "TankWaterTempSensor"
@@ -156,7 +156,7 @@
         {
             "Alias": "a.tank.temp4",
             "ShNodeRoleAlias": "Sensor",
-            "DisplayName": "Tank temp sensor #4 (fifth from top)",
+            "DisplayName": "Tank temp sensor temp4 (fifth from top)",
             "ShNodeId": "0680a809-d56f-42d8-8d98-e7c23e94d311",
             "PrimaryComponentId": "2ca9e65a-5e85-4eaa-811b-901e940f8d09",
             "PythonActorName": "TankWaterTempSensor"
@@ -272,7 +272,7 @@
     },
     {
         "ComponentId": "2ca9e65a-5e85-4eaa-811b-901e940f8d09",
-        "DisplayName": "Component for a.tank.temp4 (fourth from top)",
+        "DisplayName": "Component for a.tank.temp4 (fifth from top)",
         "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
         "HwUid": "00033ffe"
     },
