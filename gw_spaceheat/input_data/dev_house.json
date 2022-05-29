@@ -256,7 +256,7 @@
         "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
         "DisplayName": "Component for a.tank.temp1 (second from top)",
         "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-        "HWUid": "10032fff"
+        "HwUid": "10032fff"
     },
     {
         "ComponentId": "5453b43b-7940-463c-ae6e-5cfe86ecbd3d",
