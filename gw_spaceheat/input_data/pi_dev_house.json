@@ -297,11 +297,6 @@
     ],
     "OtherComponents": [
         {
-            "ComponentId": "a128bda4-3674-4d55-b2b4-61a39d5cf886",
-            "DisplayName": "Little Orange House Primary Scada",
-            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
-        },
-        {
             "ComponentId": "d4a27899-98a3-409f-8c6a-771d86d7937b",
             "DisplayName": "Little Orange house Axeman Tank",
             "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407"
@@ -377,9 +372,6 @@
         }
     ],
     "OtherCacs": [
-        {
-            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
-        },
         {
             "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407"
         },
