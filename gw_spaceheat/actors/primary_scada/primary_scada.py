@@ -3,7 +3,7 @@ from actors.primary_scada.primary_scada_base import PrimaryScadaBase
 from data_classes.sh_node import ShNode
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent 
 from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101, TelemetryName
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101
 from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
 from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import NcdPr814Spst_BooleanActuatorDriver
 from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import GridworksSimBool30AmpRelay_BooleanActuatorDriver
