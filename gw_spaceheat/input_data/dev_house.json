@@ -20,7 +20,6 @@
             "ShNodeRoleAlias": "PrimaryScada",
             "DisplayName": "Little Orange House Main Scada",
             "ShNodeId": "259f9431-c6a1-4170-8766-04cbf65cff4a",
-            "PrimaryComponentId": "a128bda4-3674-4d55-b2b4-61a39d5cf886",
             "PythonActorName": "PrimaryScada"
         },
         {
@@ -256,7 +255,7 @@
         "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
         "DisplayName": "Component for a.tank.temp1 (second from top)",
         "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-        "HWUid": "10032fff"
+        "HwUid": "10032fff"
     },
     {
         "ComponentId": "5453b43b-7940-463c-ae6e-5cfe86ecbd3d",
@@ -298,11 +297,6 @@
         }
     ],
     "OtherComponents": [
-        {
-            "ComponentId": "a128bda4-3674-4d55-b2b4-61a39d5cf886",
-            "DisplayName": "Little Orange House Primary Scada",
-            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
-        },
         {
             "ComponentId": "d4a27899-98a3-409f-8c6a-771d86d7937b",
             "DisplayName": "Little Orange house Axeman Tank",
@@ -378,9 +372,6 @@
         }
     ],
     "OtherCacs": [
-        {
-            "ComponentAttributeClassId": "2d83cf4a-cb4f-46e6-a0ce-a13659694c90"
-        },
         {
             "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407"
         },
