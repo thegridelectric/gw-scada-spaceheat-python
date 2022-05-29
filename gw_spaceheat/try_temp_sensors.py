@@ -12,17 +12,7 @@ else:
 
 nodes_w_components = list(filter(lambda x: x.primary_component_id is not None, ShNode.by_alias.values()))
 actor_nodes_w_components = list(filter(lambda x: x.python_actor_name is not None, nodes_w_components))
-
-temp_sensor_nodes = []
-for node in actor_nodes_w_components:
-    cac = None
-    try:
-        cac = node.primary_component.cac
-    except AttributeError:
-        pass
-    if cac:
-        if isinstance(cac, TempSensorCac):
-            temp_sensor_nodes.append(node)
+temp_sensor_nodes = list(filter(lambda x: isinstance(x.primary_component.cac, TempSensorCac), actor_nodes_w_components))
 
 for node in temp_sensor_nodes:
     (actor_function, keys) = strategy_switcher(node.python_actor_name)
