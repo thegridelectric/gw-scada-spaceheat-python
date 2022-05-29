@@ -6,7 +6,6 @@ from data_classes.sh_node import ShNode
 from actors.mqtt_utils import Subscription
 import settings
 import helpers
-import time
 
 class ActorBase(ABC):
 
@@ -26,11 +25,8 @@ class ActorBase(ABC):
         print('hi')
         self.consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
         self.consume_client.on_message = self.on_message
-        #self.consume_client.loop_forever()
-        self.consume_client.loop_start()
-        time.sleep(10)
-        self.consume_client.loop_stop()
-            
+        self.consume_client.loop_forever()
+
 
     @abstractmethod
     def subscriptions(self) -> List[Subscription]:
