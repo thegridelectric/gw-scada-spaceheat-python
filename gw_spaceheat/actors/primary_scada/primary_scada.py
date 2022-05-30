@@ -20,16 +20,7 @@ class PrimaryScada(PrimaryScadaBase):
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.set_actuator_components()
-        self.temp_readings: List = []
-        for i in range(5):
-            time.sleep(60)
-            self.screen_print('Done with minute {i}')
-        out = 'tmp.csv'
-        self.screen_print("writing output")
-        with open(out, 'w') as outfile:
-            write = csv.writer(outfile, delimiter=',')
-            for row in self.temp_readings:
-                write.writerow(row)
+        
                     
         
     def set_actuator_components(self):
@@ -68,15 +59,8 @@ class PrimaryScada(PrimaryScadaBase):
         self.publish()
     
     def gt_telemetry_100_received(self, payload: GtTelemetry101, from_node: ShNode):
-        self.screen_print(f"Got {payload} from {from_node.alias}")
-        self.payload = payload
-        t_unix_s = int(payload.ScadaReadTimeUnixMs/1000)
-        t = pendulum.from_timestamp(t_unix_s)
-        ms = payload.ScadaReadTimeUnixMs % 1000
-        self.temp_readings.append([t.strftime("%Y-%m-%d %H:%M:%S"),t_unix_s, ms, from_node.alias, payload.Value])
-        
-
-
+        self.screen_print(f"{payload.Value} from {from_node.alias}")
+       
     @property
     def my_meter(self) ->ShNode:
         alias = self.node.alias.split('.')[0] + '.m'
