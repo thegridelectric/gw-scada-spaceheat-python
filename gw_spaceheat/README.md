@@ -1,11 +1,16 @@
-## Step 1: Set up python environment for development
+# GridWorks Spaceheat SCADA
+
+
+## Step 1: Dev environment for macos or Pi
+
+
  - Use python 3.8.6
 - .gitignore includes gw_platform_django/venv for virtualenv so from gw_platform_django directory:
   - `python -m venv venv`  
   - `source venv/bin/activate`
   - `pip install -r requirements/dev.txt` 
 
-
+There are some scratch notes on Pi-related setup (like enabling interfaces) in docs/pi_setup.md
 ### Adding libraries 
 - If you are going to add libraries, install pip-tools to your venv:
   - `python -m pip install pip-tools`
@@ -31,6 +36,13 @@ and the helper function will turn that None into the python None.
 SETTING UP NON_SECRET CONFIGS. Copy gw-scada-spaceheat-python/gw_spaceheat/settings_template.py  to [same]/settings.py
 
 Settings use a gitignored settings.py file. There is a template settings_template.py.
+
+
+### Setting up MQTT
+The SCADA uses two mqtt brokers - a local broker on Pi itself for internal mqtt messages, and a broker outside the LAN for communicating with its AtomicTNode. 
+
+TODO: ADD GOOD INSTRUCTIONS FOR SETTING UP AND CONFIGURING LOCAL MOSQUITTO BROKER. Right now
+we are using a mosquitto broker that came configured already on an emonPi[https://shop.openenergymonitor.com/emonpi/].
 
 ## Step 2: input data and running the code
 

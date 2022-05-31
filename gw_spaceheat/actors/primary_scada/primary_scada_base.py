@@ -29,10 +29,10 @@ class PrimaryScadaBase(ActorBase):
         if not from_alias in ShNode.by_alias.keys():
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
         if mp_alias == GsPwr100_Maker.mp_alias:
-            # self.raw_payload = message.payload
             payload = GsPwr100_Maker.binary_to_type(message.payload)
             self.gs_pwr_100_from_powermeter(payload)
         elif mp_alias == GtTelemetry101_Maker.mp_alias:
+            self.screen_print(f"Topic {message.topic}")
             payload = GtTelemetry101_Maker.camel_dict_to_type(json.loads(message.payload))
             from_node = ShNode.by_alias[from_alias]
             self.gt_telemetry_100_received(payload=payload, from_node=from_node)
