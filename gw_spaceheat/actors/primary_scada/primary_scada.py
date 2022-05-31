@@ -2,6 +2,7 @@ from typing import List, Dict
 import pendulum
 import csv
 import time
+import threading
 from actors.primary_scada.primary_scada_base import PrimaryScadaBase
 from data_classes.sh_node import ShNode
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent 
@@ -27,6 +28,11 @@ class PrimaryScada(PrimaryScadaBase):
             write = csv.writer(outfile, delimiter=',')
             write.writerow(['TimeUtc', 't_unix_s', 'ms', 'alias', 'WaterTempCTimes1000'])
         self.screen_print(f"Started PrimaryScada {self.node}")
+        self.calibrate_thread = threading.Thread(target=self.consume)
+        self.calibrate_thread.start()
+        
+
+    def calibrate(self):
         while True:
             time.sleep(60)
             out = 'tmp.csv'
