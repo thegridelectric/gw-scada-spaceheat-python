@@ -27,7 +27,7 @@ class TankWaterTempSensor(SensorBase):
         self.telemetry_name: TelemetryName = None
         self.set_telemetry_name()
         self.temp_readings: List = []
-        self.out_file = f'tmp_{node.alias}.csv'
+        self.out_file = f'tmp_{node.alias}_60s.csv'
         self.screen_print("writing output header")
         with open(self.out_file, 'w') as outfile:
             write = csv.writer(outfile, delimiter=',')
@@ -78,5 +78,6 @@ class TankWaterTempSensor(SensorBase):
             t_unix_s = int(t_unix_float)
             ms = int(t_unix_float*1000) % 1000
             t = pendulum.from_timestamp(t_unix_s)
-            self.temp_readings.append([t.strftime("%Y-%m-%d %H:%M:%S"),t_unix_s, ms, self.node.alias, self.temp])
+            if t_unix_s % 60 == 0:
+                self.temp_readings.append([t.strftime("%Y-%m-%d %H:%M:%S"),t_unix_s, ms, self.node.alias, self.temp])
             self.publish()
