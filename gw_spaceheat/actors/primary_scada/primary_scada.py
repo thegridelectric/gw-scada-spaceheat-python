@@ -20,8 +20,7 @@ class PrimaryScada(PrimaryScadaBase):
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.set_actuator_components()
-        
-                    
+        self.screen_print(f"Started PrimaryScada {self.node}")
         
     def set_actuator_components(self):
         """
