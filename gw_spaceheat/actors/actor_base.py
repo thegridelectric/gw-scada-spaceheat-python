@@ -22,7 +22,7 @@ class ActorBase(ABC):
 
 
     def consume(self):
-        print('hi')
+        self.screen_print('Start consuming')
         self.consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
         self.consume_client.on_message = self.on_message
         self.consume_client.loop_forever()
