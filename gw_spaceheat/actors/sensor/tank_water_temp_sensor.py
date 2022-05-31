@@ -27,7 +27,7 @@ class TankWaterTempSensor(SensorBase):
         self.telemetry_name: TelemetryName = None
         self.set_telemetry_name()
         self.temp_readings: List = []
-        self.out_file = f'tmp_{node.alias}_60s.csv'
+        self.out_file = f'tmp_{node.alias}_60s2.csv'
         self.screen_print("writing output header")
         with open(self.out_file, 'w') as outfile:
             write = csv.writer(outfile, delimiter=',')
