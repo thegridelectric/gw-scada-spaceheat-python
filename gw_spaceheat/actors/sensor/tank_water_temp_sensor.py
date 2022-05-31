@@ -1,7 +1,8 @@
-from calendar import c
 import time
 import threading
-from typing import Dict
+import csv
+import pendulum
+from typing import List
 from actors.sensor.sensor_base import SensorBase
 
 from data_classes.components.sensor_component import SensorComponent
@@ -25,9 +26,27 @@ class TankWaterTempSensor(SensorBase):
         self.set_driver()
         self.telemetry_name: TelemetryName = None
         self.set_telemetry_name()
+        self.temp_readings: List = []
+        self.out_file = f'tmp_{node.alias}.csv'
+        self.screen_print("writing output header")
+        with open(self.out_file, 'w') as outfile:
+            write = csv.writer(outfile, delimiter=',')
+            write.writerow(['TimeUtc', 't_unix_s', 'ms', 'alias', 'WaterTempCTimes1000'])
         self.consume_thread.start()
         self.sensing_thread = threading.Thread(target=self.main)
         self.sensing_thread.start()
+        self.local_log_thread = threading.Thread(target=self.log_temp)
+        self.local_log_thread.start()
+         
+    def log_temp(self):
+        while True:
+            time.sleep(60)
+            self.screen_print("appending output")
+            with open(self.out_file, 'a') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                for row in self.temp_readings:
+                    write.writerow(row)
+            self.temp_readings = []
 
     def set_driver(self):
         if self.node.primary_component.cac.make_model == 'Adafruit__642':
@@ -55,5 +74,9 @@ class TankWaterTempSensor(SensorBase):
     def main(self):
         while True:
             self.temp = self.driver.read_temp()
-            #self.screen_print(f"Just read temp {self.temp/(10**self.cac.precision_exponent)} {self.cac.temp_unit}")
+            t_unix_float = int(time.time())
+            t_unix_s = int(t_unix_float)
+            ms = int(t_unix_float*1000) % 1000
+            t = pendulum.from_timestamp(t_unix_s)
+            self.temp_readings.append([t.strftime("%Y-%m-%d %H:%M:%S"),t_unix_s, ms, self.node.alias, self.temp])
             self.publish()
