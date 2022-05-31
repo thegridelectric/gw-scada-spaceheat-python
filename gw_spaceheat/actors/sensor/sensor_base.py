@@ -24,7 +24,7 @@ class SensorBase(ActorBase):
         self.publish_client.publish(topic=topic, 
                             payload=json.dumps(payload.asdict()),
                             qos = QOS.AtLeastOnce.value,
-                            retain=True)
+                            retain=False)
         self.screen_print(f"Just published {payload} to topic {topic}")
 
     
