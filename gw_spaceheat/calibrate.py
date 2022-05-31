@@ -20,7 +20,7 @@ while True:
     cmd = ['python', 'try_multiple_temp_sensors.py']
     sensor_process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     print("sensors restarted")
-    time.sleep(20)
+    time.sleep(30)
     kill_sensors()
     print("sensors killed)")
-    time.sleep(1)
+    time.sleep(10)
