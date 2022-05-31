@@ -19,8 +19,23 @@ class PrimaryScada(PrimaryScadaBase):
         self.consume_thread.start()
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
-        #self.set_actuator_components()
+        self.set_actuator_components()
+        self.temp_readings: List = []
+        out = 'tmp.csv'
+        self.screen_print("writing output header")
+        with open(out, 'w') as outfile:
+            write = csv.writer(outfile, delimiter=',')
+            write.writerow(['TimeUtc', 't_unix_s', 'ms', 'alias', 'WaterTempCTimes1000'])
         self.screen_print(f"Started PrimaryScada {self.node}")
+        while True:
+            time.sleep(60)
+            out = 'tmp.csv'
+            self.screen_print("appending output")
+            with open(out, 'a') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                for row in self.temp_readings:
+                    write.writerow(row)
+            self.temp_readings = []
         
     def set_actuator_components(self):
         """
@@ -59,6 +74,10 @@ class PrimaryScada(PrimaryScadaBase):
     
     def gt_telemetry_100_received(self, payload: GtTelemetry101, from_node: ShNode):
         self.screen_print(f"{payload.Value} from {from_node.alias}")
+        t_unix_s = int(payload.ScadaReadTimeUnixMs/1000)
+        t = pendulum.from_timestamp(t_unix_s)
+        ms = payload.ScadaReadTimeUnixMs % 1000
+        self.temp_readings.append([t.strftime("%Y-%m-%d %H:%M:%S"),t_unix_s, ms, from_node.alias, payload.Value])
        
     @property
     def my_meter(self) ->ShNode:
