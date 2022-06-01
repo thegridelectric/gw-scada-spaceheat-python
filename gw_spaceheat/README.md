@@ -39,10 +39,8 @@ Settings use a gitignored settings.py file. There is a template settings_templat
 
 
 ### Setting up MQTT
-The SCADA uses two mqtt brokers - a local broker on Pi itself for internal mqtt messages, and a broker outside the LAN for communicating with its AtomicTNode. 
-
-TODO: ADD GOOD INSTRUCTIONS FOR SETTING UP AND CONFIGURING LOCAL MOSQUITTO BROKER. Right now
-we are using a mosquitto broker that came configured already on an emonPi[https://shop.openenergymonitor.com/emonpi/].
+For development purposes, you can set up .env to include MQTT_PW = None and use the default value in settings_template.py (one of the 
+many free cloud brokers))
 
 ## Step 2: input data and running the code
 
