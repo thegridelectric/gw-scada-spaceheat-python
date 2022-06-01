@@ -21,7 +21,7 @@ def on_connect(client,userdata,flags,rc):
     else:
         print("connection failed")
 
-client= paho.Client("client-0012") 
+client= paho.Client("a.tank.temp0-pub") 
 client.on_log=on_log
 client.username_pw_set(user,pswd)
 client.on_connect=on_connect
