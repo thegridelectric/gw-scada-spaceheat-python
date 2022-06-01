@@ -17,7 +17,7 @@ class PowerMeterBase(ActorBase):
 
     def publish_gs_pwr(self, payload: GsPwr100):
         topic = f'{self.node.alias}/{GsPwr100_Maker.mp_alias}'
-        self.screen_print("Trying to publish")
+        self.screen_print(f"Trying to publish {payload} to topic {topic}")
         self.publish_client.publish(topic=topic, 
                             payload=payload.asbinary(),
                             qos = QOS.AtMostOnce.value,

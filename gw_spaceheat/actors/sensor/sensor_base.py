@@ -20,8 +20,8 @@ class SensorBase(ActorBase):
         self.screen_print(f"{message.topic} subscription not implemented!")
     
     def publish_gt_telemetry_1_0_1(self, payload: GtTelemetry101):
-        self.screen_print(f"Trying to publish")
         topic = f'{self.node.alias}/{GtTelemetry101_Maker.mp_alias}'
+        self.screen_print(f"Trying to publish {payload} to topic {topic}")
         self.publish_client.publish(topic=topic, 
                             payload=json.dumps(payload.asdict()),
                             qos = QOS.AtLeastOnce.value,
