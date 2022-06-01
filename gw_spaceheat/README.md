@@ -39,11 +39,10 @@ Settings use a gitignored settings.py file. There is a template settings_templat
 
 
 ### Setting up MQTT
-The SCADA uses two mqtt brokers - a local broker on Pi itself for internal mqtt messages, and a broker outside the LAN for communicating with its AtomicTNode. 
+For development purposes, you can set up .env to include MQTT_PW = None and use the default value in settings_template.py (one of the 
+many free cloud brokers))
 
-TODO: ADD GOOD INSTRUCTIONS FOR SETTING UP AND CONFIGURING LOCAL MOSQUITTO BROKER. Right now
-we are using a mosquitto broker that came configured already on an emonPi[https://shop.openenergymonitor.com/emonpi/].
-
+KNOWN ISSUE: some brokers restrict client_id to 23 characters. Our pattern right now is to use the node alias plus '-pub' for the publish client. We'll need to change that pattern since some of our aliases will be longer than 23 characters.
 ## Step 2: input data and running the code
 
 Input data is in input_data folder. The `dev_house.json` is used for developing on a mac. The `pi_dev_house.json` is used for a pi that is connected to actual hardware and has its various drivers (like i2c) enabled.
