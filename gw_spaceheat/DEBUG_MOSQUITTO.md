@@ -12,6 +12,8 @@ The priary scada gets the messages for some period of time, but usually in under
 
 So it looks like the sensor _thinks_ it is publishing its messages to the topic, but it is not.
 
+Note that `publish.py` sends a message of the same format and seems to work fine.
+
 
 The primary mqtt in the code is in `actors/actor_base.py`. The publishing happens in `actors/sensor_base.py` with these lines:
 
