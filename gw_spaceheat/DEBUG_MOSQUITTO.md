@@ -1,6 +1,8 @@
 #Debug mosquitto
 
-Publish is failing after a sending 20 messages. This is independent of the broker used.
+Publish is failing after a sending 20 messages. This is independent of the broker used. 
+
+Issue solved: the self.publish_client required a loop_start. Interesting that it managed to send any messages at all ....
 
 Here is how to replicate the failure.
 Follow directions in this folder README.md to set up the development environment using the free mqtt broker mqtt.eclipseprojects.io
