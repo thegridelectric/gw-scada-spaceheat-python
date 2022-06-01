@@ -49,12 +49,13 @@ class PrimaryScadaBase(ActorBase):
 
     def publish_gs_pwr(self, payload: GsPwr100):
         topic = f'{self.node.alias}/{GsPwr100_Maker.mp_alias}'
+        self.screen_print(f"Trying to publish")
         self.publish_client.publish(
             topic=topic,
             payload=payload.asbinary(),
             qos = QOS.AtMostOnce.value,
             retain=False)
-        self.screen_print(f"Just published {payload} to topic {topic}")
+
 
     @abstractproperty
     def my_meter(self) ->ShNode:
