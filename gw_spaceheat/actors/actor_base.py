@@ -16,6 +16,7 @@ class ActorBase(ABC):
         self.publish_client = mqtt.Client(f"{node.alias}-pub")
         self.publish_client.username_pw_set(username=settings.MQTT_USER_NAME, password=helpers.get_secret('MQTT_PW'))
         self.publish_client.connect(self.mqttBroker)
+        self.publish_client.loop_start()
         if LOGGING_ON:
             self.publish_client.on_log = self.on_log
         self.consume_client = mqtt.Client(f"{node.alias}")
