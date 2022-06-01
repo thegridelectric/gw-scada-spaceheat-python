@@ -12,7 +12,7 @@ class ActorBase(ABC):
     def __init__(self, node: ShNode):
         self.node = node
         self.mqttBroker = settings.MQTT_BROKER_ADDRESS
-        self.publish_client = mqtt.Client(f"{node.alias}-pub")
+        self.publish_client = mqtt.Client(client_id=f"{node.alias}-pub")
         self.publish_client.username_pw_set(username=settings.MQTT_USER_NAME, password=helpers.get_secret('MQTT_PW'))
         self.publish_client.connect(self.mqttBroker)
         self.consume_client = mqtt.Client(f"{node.alias}")
