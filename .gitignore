@@ -10,4 +10,4 @@ SassyMQ
 .idea
 .env
 settings.py
-
+tmp.csv
