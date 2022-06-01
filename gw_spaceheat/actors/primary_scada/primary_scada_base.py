@@ -54,7 +54,6 @@ class PrimaryScadaBase(ActorBase):
             payload=payload.asbinary(),
             qos = QOS.AtMostOnce.value,
             retain=False)
-        self.screen_print(f"Just published {payload} to topic {topic}")
 
     @abstractproperty
     def my_meter(self) ->ShNode:

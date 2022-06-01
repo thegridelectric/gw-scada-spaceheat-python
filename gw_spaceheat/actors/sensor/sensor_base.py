@@ -21,11 +21,12 @@ class SensorBase(ActorBase):
     
     def publish_gt_telemetry_1_0_1(self, payload: GtTelemetry101):
         topic = f'{self.node.alias}/{GtTelemetry101_Maker.mp_alias}'
+        self.screen_print("Trying to publish")
         self.publish_client.publish(topic=topic, 
                             payload=json.dumps(payload.asdict()),
                             qos = QOS.AtLeastOnce.value,
                             retain=False)
-        self.screen_print(f"Just published {payload} to topic {topic}")
+
 
     
         

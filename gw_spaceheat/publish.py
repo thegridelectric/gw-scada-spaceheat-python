@@ -34,5 +34,6 @@ while connected != True:
 while (True):
     a = a+1
     d = {"Name": "WaterTempFTimes1000", "Value": a, "ScadaReadTimeUnixMs": 1654100070777, "MpAlias": "gt.telemetry.101"}
+    print("Trying to publish")
     client.publish(topic,json.dumps(d))
     time.sleep(1)
