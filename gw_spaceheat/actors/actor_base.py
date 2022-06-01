@@ -7,7 +7,7 @@ from actors.mqtt_utils import Subscription
 import settings
 import helpers
 
-LOGGING_ON = True
+LOGGING_ON = False
 class ActorBase(ABC):
 
     def __init__(self, node: ShNode):
