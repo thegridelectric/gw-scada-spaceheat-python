@@ -1,6 +1,13 @@
 import pendulum
 import struct
+import string
 
+def check_is_64_bit_hex(candidate):
+    if len(candidate) != 8:
+        raise Exception(f"Wrong number of bits for 64 bit hex! {candidate}")
+    if not all(c in string.hexdigits for c in candidate):
+        raise Exception(f"All digits must be hex! {candidate}")
+    return True
 
 def is_recognized_component_manufacturer(candidate):
     #TODO: add

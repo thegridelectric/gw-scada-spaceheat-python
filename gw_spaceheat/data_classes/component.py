@@ -1,19 +1,20 @@
 """ SCADA Component Class Definition """
 
-from typing import Optional
 from abc import ABC
+from typing import Optional
 
+from data_classes.errors import DcError
 from data_classes.mixin import StreamlinedSerializerMixin
-from data_classes.errors import DcError, DataClassLoadingError
-from data_classes.cac import Cac
+
+
 class Component(ABC, StreamlinedSerializerMixin):
     by_id = {}
     
     base_props = []
     base_props.append('component_id')
     base_props.append('display_name')
-    base_props.append('cac_id')
-
+    base_props.append('component_attribute_class_id')
+    base_props.append('hw_uid')
 
     def __new__(cls, component_id, *args, **kwargs):
         try:
@@ -26,10 +27,12 @@ class Component(ABC, StreamlinedSerializerMixin):
     def __init__(self,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
-                 cac_id: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None,
+                 hw_uid: Optional[str] = None):
         self.component_id = component_id
         self.display_name = display_name
-        self.cac_id = cac_id
+        self.component_attribute_class_id = component_attribute_class_id
+        self.hw_uid = hw_uid
 
     def __repr__(self):
         return f'Component {self.display_name}'
@@ -41,11 +44,11 @@ class Component(ABC, StreamlinedSerializerMixin):
 
     @classmethod
     def check_existence_of_certain_attributes(cls, attributes):
-        if not 'component_id' in attributes.keys():
+        if 'component_id' not in attributes.keys():
             raise DcError('component_id must exist')
-        if not 'electric_heater_cac_id' in attributes.keys():
-            raise DcError('electric_heater_cac_id must exist')
-        if not 'display_name' in attributes.keys():
+        if 'electric_heater_component_attribute_class_id' not in attributes.keys():
+            raise DcError('electric_heater_component_attribute_class_id must exist')
+        if 'display_name' not in attributes.keys():
             raise DcError('display_name must exist')
 
     @classmethod
@@ -53,18 +56,4 @@ class Component(ABC, StreamlinedSerializerMixin):
         Component.check_uniqueness_of_primary_key(attributes)
         Component.check_existence_of_certain_attributes(attributes)
 
-
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if new_attributes['component_id'] != self.component_id:
-            raise DcError('component_id is Immutable')
-        if new_attributes['cac_id'] != self.cac_id:
-            raise DcError('cac_id is Immutable')
-
-    def check_update_consistency(self, new_attributes):
-        self.check_immutability_for_existing_attributes(new_attributes)
-
-    @property
-    def cac(self) -> Cac:
-        if self.cac_id not in Cac.by_id.keys():
-            raise DataClassLoadingError(f"ActuatorCacId {self.cac_id} not loaded yet")
-        return Cac.by_id[self.cac_id]
+    

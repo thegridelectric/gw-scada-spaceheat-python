@@ -12,6 +12,8 @@ pika==1.1.0
     # via -r requirements/base.in
 python-dateutil==2.8.2
     # via pendulum
+python-dotenv==0.20.0
+    # via -r requirements/base.in
 pytz==2022.1
     # via -r requirements/base.in
 pytzdata==2020.1

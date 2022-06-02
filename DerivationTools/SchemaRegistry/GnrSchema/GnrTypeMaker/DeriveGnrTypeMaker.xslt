@@ -134,7 +134,7 @@ from enums.</xsl:text>
     
     
 class </xsl:text><xsl:value-of select="$nt-name"/><xsl:text>_Maker():
-    mp_alias = '</xsl:text><xsl:value-of select="Alias"/><xsl:text>'
+    mp_alias = '</xsl:text><xsl:value-of select="$mp-schema-alias"/><xsl:text>'
     mp_status = MpStatus.</xsl:text><xsl:value-of select="translate(Status,$lcletters, $ucletters)"/><xsl:text>.value
 
     @classmethod
@@ -638,7 +638,7 @@ class </xsl:text><xsl:value-of select="$nt-name"/><xsl:text>_Maker():
 
         t = </xsl:text>
         <xsl:value-of select="$nt-name"/>
-        <xsl:text>(MpAlias=</xsl:text><xsl:value-of select="$nt-name"/><xsl:text>_maker.mp_alias</xsl:text>
+        <xsl:text>(MpAlias=</xsl:text><xsl:value-of select="$nt-name"/><xsl:text>_Maker.mp_alias</xsl:text>
         <xsl:if test="not (IsNamedTuple='true')"><xsl:text>,
                     WorldInstanceAlias=world_instance_alias</xsl:text>
         </xsl:if>

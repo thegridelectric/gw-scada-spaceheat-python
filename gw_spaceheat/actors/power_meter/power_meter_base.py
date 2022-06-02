@@ -1,16 +1,14 @@
-from abc import abstractmethod
-import paho.mqtt.client as mqtt
-
 from typing import List
+
 from actors.actor_base import ActorBase
+from actors.mqtt_utils import QOS, Subscription
 from data_classes.sh_node import ShNode
-from actors.mqtt_utils import Subscription, QOS
+from schema.gs.gs_pwr_1_0_0_maker import GsPwr100, GsPwr100_Maker
 
-from messages.gs.gs_pwr_1_0_0 import Gs_Pwr_1_0_0, GsPwr100Payload
 
-class Power_Meter_Base(ActorBase):
+class PowerMeterBase(ActorBase):
     def __init__(self, node: ShNode):
-        super(Power_Meter_Base, self).__init__(node=node)
+        super(PowerMeterBase, self).__init__(node=node)
 
     def subscriptions(self) -> List[Subscription]:
         return []
@@ -18,10 +16,10 @@ class Power_Meter_Base(ActorBase):
     def on_message(self, client, userdata, message):
         self.screen_print(f"{message.topic} subscription not implemented!")
 
-    def publish_gs_pwr(self, payload: GsPwr100Payload):
-        topic = f'{self.node.alias}/{Gs_Pwr_1_0_0.mp_alias}'
+    def publish_gs_pwr(self, payload: GsPwr100):
+        topic = f'{self.node.alias}/{GsPwr100_Maker.mp_alias}'
+        self.screen_print(f"Trying to publish {payload} to topic {topic}")
         self.publish_client.publish(topic=topic, 
-                            payload=payload.asbinary(),
-                            qos = QOS.AtMostOnce.value,
-                            retain=False)
-        self.screen_print(f"Just published {payload} to topic {topic}")
+                                    payload=payload.asbinary(),
+                                    qos=QOS.AtMostOnce.value,
+                                    retain=False)

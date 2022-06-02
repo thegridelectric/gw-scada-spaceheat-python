@@ -9,7 +9,7 @@ from schema.gt.gnr.time_step.gt_time_step_1_0_0 import GtTimeStep100
     
     
 class GtTimeStep100_Maker():
-    mp_alias = 'gt.time.step.1_0_0'
+    mp_alias = 'gt.time.step.100'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod
@@ -101,7 +101,7 @@ class GtTimeStep100_Maker():
         except ValueError:
             pass # This will get caught in is_valid() check below
 
-        t = GtTimeStep100(MpAlias=GtTimeStep100_maker.mp_alias,
+        t = GtTimeStep100(MpAlias=GtTimeStep100_Maker.mp_alias,
                     TimeStepId=time_step_id,
                     IrlCreatedAtUtc=irl_created_at_utc,
                     PreviousTimeStepId=previous_time_step_id,

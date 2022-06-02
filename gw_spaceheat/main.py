@@ -1,30 +1,16 @@
+import platform
 
-import paho.mqtt.client as mqtt
-import time
-import json
-from typing import List
-from messages.gt_telemetry_1_0_0 import \
-    Gt_Telemetry_1_0_0, TelemetryName
+from data_classes.sh_node import ShNode
+from actors.strategy_switcher import main as strategy_switcher
+import load_house
 
-delta_ms = []
-payloads = []
-def on_message(client, userdata, message):
-    payload_dict = json.loads((str(message.payload.decode("utf-8"))))
-    payload = Gt_Telemetry_1_0_0.create_payload_from_camel_dict(payload_dict)
-    time_delta_ms = int(time.time()*1000) - payload.ScadaReadTimeUnixMs
-    payloads.append(payload)
-    delta_ms.append(time_delta_ms)
+if platform.system() == 'Darwin':
+    house_json_file = 'input_data/dev_house.json'
+else:
+    house_json_file = 'input_data/pi_dev_house.json'
 
-mqttBroker ="mqtt.eclipseprojects.io"
+load_house.load_all(house_json_file=house_json_file)
+node = ShNode.by_alias["a.s"]
 
-client = mqtt.Client("HeatScada")
-client.connect(mqttBroker) 
-
-client.loop_start()
-
-client.subscribe("gt.telemetry.100")
-client.on_message=on_message 
-
-time.sleep(15)
-client.loop_stop()
-print("Average delta_ms", round(sum(delta_ms)/len(delta_ms)) )
+(actor_function, keys) = strategy_switcher(node.python_actor_name)
+scada = actor_function(node)

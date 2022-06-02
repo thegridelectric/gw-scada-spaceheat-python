@@ -1,17 +1,18 @@
 """ SCADA Component Category Class defintion """
 
-from typing import Optional
 from abc import ABC
+from typing import Optional
 
+from data_classes.errors import DcError
 from data_classes.mixin import StreamlinedSerializerMixin
-from data_classes.errors import DcError, DataClassLoadingError
+
+
 class ComponentCategory(ABC, StreamlinedSerializerMixin):
     by_value = {}
     
     base_props = []
     base_props.append('value')
     base_props.append('description')
-
 
     def __new__(cls, value, *args, **kwargs):
         try:
@@ -37,13 +38,12 @@ class ComponentCategory(ABC, StreamlinedSerializerMixin):
 
     @classmethod
     def check_existence_of_certain_attributes(cls, attributes):
-        if not 'value' in attributes.keys():
+        if 'value' not in attributes.keys():
             raise DcError('value must exist')
 
     @classmethod
     def check_initialization_consistency(cls, attributes):
         pass
-
 
     def check_immutability_for_existing_attributes(self, new_attributes):
         pass
