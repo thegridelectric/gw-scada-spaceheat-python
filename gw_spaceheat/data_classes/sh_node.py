@@ -23,15 +23,15 @@ class ShNode(ShNodeBase):
                  python_actor_name: Optional[str] = None
                  ):
         super(ShNode, self).__init__(sh_node_id=sh_node_id,
-                 alias=alias,
-                 sh_node_role_alias=sh_node_role_alias,
-                 display_name=display_name,
-                 primary_component_id=primary_component_id,
-                 python_actor_name=python_actor_name)
+                                     alias=alias,
+                                     sh_node_role_alias=sh_node_role_alias,
+                                     display_name=display_name,
+                                     primary_component_id=primary_component_id,
+                                     python_actor_name=python_actor_name)
         self.__class__.by_alias[self.alias] = self
 
     def __repr__(self):
-        rs =  f'ShNode {self.display_name} => {self.sh_node_role.alias} {self.alias}, '
+        rs = f'ShNode {self.display_name} => {self.sh_node_role.alias} {self.alias}, '
         if self.has_actor:
             rs += ' (has actor)'
         else:
@@ -68,16 +68,15 @@ class ShNode(ShNodeBase):
                                                     f"the ComponentAttributeClass remains the same ")
                     if self.primary_component.electric_heater_cac != new_component.electric_heater_cac:
                         raise DcError(f"component attribute class for {self.alias} cannot change! Attempt to change "
-                                             f"from class {self.primary_component.electric_heater_cac} to"
-                                             f" {new_component.electric_heater_cac}")
-
+                                      f"from class {self.primary_component.electric_heater_cac} to"
+                                      f" {new_component.electric_heater_cac}")
 
     @property
     def sh_node_role(self) -> ShNodeRole:
         if self.sh_node_role_alias not in PlatformShNodeRole.keys():
             raise TypeError(f'ShNodeRole {self.sh_node_role_alias} for {self.alias} must belong to static list')
         return PlatformShNodeRole[self.sh_node_role_alias]
-        
+
     @property
     def primary_component(self) -> Optional[Component]:
         if self.primary_component_id is None:

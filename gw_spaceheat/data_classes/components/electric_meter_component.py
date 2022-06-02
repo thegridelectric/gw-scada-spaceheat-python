@@ -30,9 +30,9 @@ class ElectricMeterComponent(SensorComponent):
                  component_attribute_class_id: Optional[str] = None,
                  hw_uid: Optional[str] = None):
         super(ElectricMeterComponent, self).__init__(component_id=component_id,
-                             display_name=display_name,
-                             component_attribute_class_id=component_attribute_class_id,
-                             hw_uid=hw_uid)
+                                                     display_name=display_name,
+                                                     component_attribute_class_id=component_attribute_class_id,
+                                                     hw_uid=hw_uid)
 
     @classmethod
     def check_initialization_consistency(cls, attributes):

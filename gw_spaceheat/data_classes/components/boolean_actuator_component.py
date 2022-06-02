@@ -31,9 +31,9 @@ class BooleanActuatorComponent(Component):
                  gpio: Optional[int] = None,
                  hw_uid: Optional[str] = None):
         super(BooleanActuatorComponent, self).__init__(component_id=component_id,
-                             display_name=display_name,
-                             component_attribute_class_id=component_attribute_class_id,
-                             hw_uid=hw_uid)
+                                                       display_name=display_name,
+                                                       component_attribute_class_id=component_attribute_class_id,
+                                                       hw_uid=hw_uid)
         self.gpio = gpio
 
     def __repr__(self):

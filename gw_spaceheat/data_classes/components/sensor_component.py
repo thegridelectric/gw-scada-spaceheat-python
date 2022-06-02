@@ -28,16 +28,16 @@ class SensorComponent(Component):
                  component_attribute_class_id: Optional[str] = None,
                  hw_uid: Optional[str] = None):
         super(SensorComponent, self).__init__(component_id=component_id,
-                             display_name=display_name,
-                             component_attribute_class_id=component_attribute_class_id,
-                             hw_uid=hw_uid)
+                                              display_name=display_name,
+                                              component_attribute_class_id=component_attribute_class_id,
+                                              hw_uid=hw_uid)
 
     def __repr__(self):
         val = f'Component {self.display_name} => Cac {self.cac.display_name}'
         if self.hw_uid:
             val += f' Hardware serial number: {self.hw_uid}'
-        return val 
-        
+        return val
+
     @classmethod
     def check_uniqueness_of_primary_key(cls, attributes):
         if attributes['component_id'] in cls.by_id.keys():

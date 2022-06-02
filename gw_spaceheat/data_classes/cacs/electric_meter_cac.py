@@ -20,27 +20,26 @@ class ElectricMeterCac(SensorCac):
         if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
             if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
                 raise Exception(f"Id already exists for {ComponentAttributeClass.by_id[component_attribute_class_id]}"
-                           "not a temp sensor!")
+                                "not a temp sensor!")
             return ComponentAttributeClass.by_id[component_attribute_class_id]
-        instance = super().__new__(cls,component_attribute_class_id=component_attribute_class_id)
+        instance = super().__new__(cls, component_attribute_class_id=component_attribute_class_id)
         ComponentAttributeClass.by_id[component_attribute_class_id] = instance
         return instance
 
     def __init__(self,
-             component_attribute_class_id: Optional[str] = None,
-             sensor_type_value: Optional[str] = None,
-             display_name: Optional[str] = None,
-             make_model: Optional[str] = None,
-             comms_method: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None,
+                 sensor_type_value: Optional[str] = None,
+                 display_name: Optional[str] = None,
+                 make_model: Optional[str] = None,
+                 comms_method: Optional[str] = None):
         super(ElectricMeterCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                         make_model=make_model,
-                         display_name=display_name,
-                         sensor_type_value=sensor_type_value,
-                         comms_method = comms_method)
+                                               make_model=make_model,
+                                               display_name=display_name,
+                                               sensor_type_value=sensor_type_value,
+                                               comms_method=comms_method)
 
     def __repr__(self):
         val = f'SensorCac {self.make_model}: {self.display_name}'
         if self.comms_method:
             val += f' Comms method: {self.comms_method}'
         return val
-    

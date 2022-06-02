@@ -29,18 +29,18 @@ class TempSensorCac(SensorCac):
         return instance
 
     def __init__(self,
-             component_attribute_class_id: Optional[str] = None,
-             sensor_type_value: Optional[str] = None,
-             make_model: Optional[str] = None,
-             display_name: Optional[str] = None,
-             comms_method: Optional[str] = None,
-             precision_exponent: Optional[int] = None,
-             temp_unit: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None,
+                 sensor_type_value: Optional[str] = None,
+                 make_model: Optional[str] = None,
+                 display_name: Optional[str] = None,
+                 comms_method: Optional[str] = None,
+                 precision_exponent: Optional[int] = None,
+                 temp_unit: Optional[str] = None):
         super(TempSensorCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                         make_model=make_model,
-                         display_name=display_name,
-                         sensor_type_value=sensor_type_value,
-                         comms_method = comms_method)
+                                            make_model=make_model,
+                                            display_name=display_name,
+                                            sensor_type_value=sensor_type_value,
+                                            comms_method=comms_method)
         self.precision_exponent = precision_exponent
         self.temp_unit = temp_unit
 

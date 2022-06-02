@@ -24,10 +24,10 @@ class ComponentAttributeClass(ABC, StreamlinedSerializerMixin):
             return instance
 
     def __init__(self,
-              component_attribute_class_id: Optional[str] = None,
-              make_model: Optional[str] = None,
-              component_type_value: Optional[str] = None,
-              display_name: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None,
+                 make_model: Optional[str] = None,
+                 component_type_value: Optional[str] = None,
+                 display_name: Optional[str] = None):
         self.component_attribute_class_id = component_attribute_class_id
         self.make_model = make_model
         self.component_type_value = component_type_value

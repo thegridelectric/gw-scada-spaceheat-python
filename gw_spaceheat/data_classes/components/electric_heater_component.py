@@ -27,8 +27,8 @@ class ElectricHeaterComponent(Component):
                  display_name: Optional[str] = None,
                  component_attribute_class_id: Optional[str] = None):
         super(ElectricHeaterComponent, self).__init__(component_id=component_id,
-                              display_name=display_name,
-                              component_attribute_class_id=component_attribute_class_id)
+                                                      display_name=display_name,
+                                                      component_attribute_class_id=component_attribute_class_id)
 
     def __repr__(self):
         return f'Component {self.display_name} => Cac {self.cac.display_name}'
