@@ -16,7 +16,6 @@ class Component(ABC, StreamlinedSerializerMixin):
     base_props.append('component_attribute_class_id')
     base_props.append('hw_uid')
 
-
     def __new__(cls, component_id, *args, **kwargs):
         try:
             return cls.by_id[component_id]
@@ -45,11 +44,11 @@ class Component(ABC, StreamlinedSerializerMixin):
 
     @classmethod
     def check_existence_of_certain_attributes(cls, attributes):
-        if not 'component_id' in attributes.keys():
+        if 'component_id' not in attributes.keys():
             raise DcError('component_id must exist')
-        if not 'electric_heater_component_attribute_class_id' in attributes.keys():
+        if 'electric_heater_component_attribute_class_id' not in attributes.keys():
             raise DcError('electric_heater_component_attribute_class_id must exist')
-        if not 'display_name' in attributes.keys():
+        if 'display_name' not in attributes.keys():
             raise DcError('display_name must exist')
 
     @classmethod

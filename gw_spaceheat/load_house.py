@@ -71,10 +71,10 @@ def load_nodes(input_data):
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         node = ShNode(**snake_dict)
 
+
 def load_edges(input_data):
-    #Preethi TODO: want a list of thermal edges. Every time 
-    # a new thermal edge is made it goes into this list.
     pass
+
 
 def load_all(house_json_file=HOUSE_JSON_FILE):
     current_dir = os.path.dirname(os.path.realpath(__file__))

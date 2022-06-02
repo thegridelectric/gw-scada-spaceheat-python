@@ -1,6 +1,4 @@
 """ Era Base Class Definition """
-import time
-import uuid
 from typing import Optional
 from abc import ABC, abstractproperty
 from data_classes.mixin import StreamlinedSerializerMixin
@@ -52,9 +50,6 @@ class EraBase(ABC, StreamlinedSerializerMixin):
     def check_uniqueness_of_primary_key(cls, attributes):
         if attributes['era_id'] in cls.by_id.keys():
             raise Exception(f"era_id {attributes['era_id']} already in use")
-
-
-    """ Derived attributes """
 
     @abstractproperty
     def name(self):

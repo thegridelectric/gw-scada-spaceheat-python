@@ -1,18 +1,17 @@
-from calendar import c
-import time
 import threading
-from typing import Dict
-from actors.sensor.sensor_base import SensorBase
+import time
 
-from data_classes.components.sensor_component import SensorComponent
+from actors.sensor.sensor_base import SensorBase
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
-from data_classes.sh_node_role_static import SENSOR
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_base import TelemetryName
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101_Maker
+from drivers.temp_sensor.adafruit_642__temp_sensor_driver import \
+    Adafruit642_TempSensorDriver
+from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import \
+    GridworksWaterTempSensorHighPrecision_TempSensorDriver
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
-from drivers.temp_sensor.adafruit_642__temp_sensor_driver import Adafruit642_TempSensorDriver
-from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import GridworksWaterTempSensorHighPrecision_TempSensorDriver
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_base import TelemetryName
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import \
+    GtTelemetry101_Maker
 
 
 class TankWaterTempSensor(SensorBase):
@@ -41,12 +40,13 @@ class TankWaterTempSensor(SensorBase):
         elif self.cac.temp_unit == 'C' and self.cac.precision_exponent == 3:
             self.telemetry_name = TelemetryName.WATER_TEMP_C_TIMES_1000
         else:
-            raise Exception(f"TelemetryName for {self.cac.temp_unit} and precision exponent of {self.cac.precision_exponent} not set yet!")
+            raise Exception(f"TelemetryName for {self.cac.temp_unit} and precision exponent of"
+                            f"{self.cac.precision_exponent} not set yet!")
 
     def publish(self):
         payload = GtTelemetry101_Maker(name=self.telemetry_name.value,
-                        value=int(self.temp),
-                        scada_read_time_unix_ms=int(time.time()*1000)).type
+                                       value=int(self.temp),
+                                       scada_read_time_unix_ms=int(time.time() * 1000)).type
         self.publish_gt_telemetry_1_0_1(payload)
         
     def consume(self):
@@ -55,5 +55,4 @@ class TankWaterTempSensor(SensorBase):
     def main(self):
         while True:
             self.temp = self.driver.read_temp()
-            #self.screen_print(f"Just read temp {self.temp/(10**self.cac.precision_exponent)} {self.cac.temp_unit}")
             self.publish()

@@ -18,9 +18,9 @@ class BooleanActuatorComponent(Component):
     def __new__(cls, component_id, *args, **kwargs):
         if component_id in Component.by_id.keys():
             if not isinstance(Component.by_id[component_id], cls):
-                raise Exception(f"Id already exists, not an actuator!")
+                raise Exception("Id already exists, not an actuator!")
             return Component.by_id[component_id]
-        instance = super().__new__(cls,component_id=component_id)
+        instance = super().__new__(cls, component_id=component_id)
         Component.by_id[component_id] = instance
         return instance
 
@@ -31,10 +31,10 @@ class BooleanActuatorComponent(Component):
                  gpio: Optional[int] = None,
                  hw_uid: Optional[str] = None):
         super(BooleanActuatorComponent, self).__init__(component_id=component_id,
-                            display_name=display_name,
-                            component_attribute_class_id=component_attribute_class_id,
-                            hw_uid=hw_uid)
-        self.gpio= gpio
+                                                       display_name=display_name,
+                                                       component_attribute_class_id=component_attribute_class_id,
+                                                       hw_uid=hw_uid)
+        self.gpio = gpio
 
     def __repr__(self):
         return f'Component {self.display_name} => Cac {self.cac.display_name}. GPIO: {self.gpio}'

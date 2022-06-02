@@ -13,25 +13,24 @@ class BooleanActuatorCac(ComponentAttributeClass):
     base_props.append('display_name')
     base_props.append('component_type_value')
 
-    
     def __new__(cls, component_attribute_class_id, *args, **kwargs):
         if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
             if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
-                raise Exception(f"Id already exists, not an actuator!")
+                raise Exception("Id already exists, not an actuator!")
             return ComponentAttributeClass.by_id[component_attribute_class_id]
-        instance = super().__new__(cls,component_attribute_class_id=component_attribute_class_id)
+        instance = super().__new__(cls, component_attribute_class_id=component_attribute_class_id)
         ComponentAttributeClass.by_id[component_attribute_class_id] = instance
         return instance
 
     def __init__(self,
-            component_attribute_class_id: Optional[str] = None,
-            actuator_type_value: Optional[str] = None,
-            display_name: Optional[str] = None,
-            make_model: Optional[str] = None):
+                 component_attribute_class_id: Optional[str] = None,
+                 actuator_type_value: Optional[str] = None,
+                 display_name: Optional[str] = None,
+                 make_model: Optional[str] = None):
         super(BooleanActuatorCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                        make_model=make_model,
-                        display_name=display_name,
-                        component_type_value=actuator_type_value)
+                                                 make_model=make_model,
+                                                 display_name=display_name,
+                                                 component_type_value=actuator_type_value)
         self.actuator_type_value = actuator_type_value
     
     def __repr__(self):
@@ -52,5 +51,5 @@ class BooleanActuatorCac(ComponentAttributeClass):
 
     @classmethod
     def check_initialization_consistency(cls, attributes):
-       BooleanActuatorCac.check_uniqueness_of_primary_key(attributes)
-       BooleanActuatorCac.check_existence_of_certain_attributes(attributes)
+        BooleanActuatorCac.check_uniqueness_of_primary_key(attributes)
+        BooleanActuatorCac.check_existence_of_certain_attributes(attributes)

@@ -1,20 +1,15 @@
 """ ComponentType Class Definition """
 
+from data_classes.component_sub_category_static import \
+    PlatformComponentSubCategory
 from data_classes.component_type_base import ComponentTypeBase
 
-from data_classes.component_sub_category import ComponentSubCategory #
-from data_classes.component_sub_category_static import PlatformComponentSubCategory #
 
 class ComponentType(ComponentTypeBase):
 
-
-    """ Derived attributes """  
     @property
     def component_category(self) -> str:
         raise NotImplementedError
-
-
-    """Static foreign objects referenced by their keys """
 
     @property
     def component_sub_category(self):
