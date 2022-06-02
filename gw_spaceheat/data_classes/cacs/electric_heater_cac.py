@@ -19,7 +19,7 @@ class ElectricHeaterCac(ComponentAttributeClass):
     def __new__(cls, component_attribute_class_id, *args, **kwargs):
         if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
             if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
-                raise Exception(f"Id already exists, not an Electric Heater!")
+                raise Exception("Id already exists, not an Electric Heater!")
             return ComponentAttributeClass.by_id[component_attribute_class_id]
         instance = super().__new__(cls, component_attribute_class_id=component_attribute_class_id)
         ComponentAttributeClass.by_id[component_attribute_class_id] = instance

@@ -1,9 +1,9 @@
 from typing import Optional
 
+from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
 from data_classes.component import Component
 from data_classes.components.sensor_component import SensorComponent
 from data_classes.errors import DataClassLoadingError
-from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
 
 
 class PipeFlowSensorComponent(SensorComponent):
@@ -18,9 +18,9 @@ class PipeFlowSensorComponent(SensorComponent):
     def __new__(cls, component_id, *args, **kwargs):
         if component_id in Component.by_id.keys():
             if not isinstance(Component.by_id[component_id], cls):
-                raise Exception(f"Id already exists, not a temp sensor!")
+                raise Exception("Id already exists, not a temp sensor!")
             return Component.by_id[component_id]
-        instance = super().__new__(cls,component_id=component_id)
+        instance = super().__new__(cls, component_id=component_id)
         Component.by_id[component_id] = instance
         return instance
 

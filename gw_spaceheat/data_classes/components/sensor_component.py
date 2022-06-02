@@ -16,9 +16,9 @@ class SensorComponent(Component):
     def __new__(cls, component_id, *args, **kwargs):
         if component_id in Component.by_id.keys():
             if not isinstance(Component.by_id[component_id], cls):
-                raise Exception(f"Id already exists, not a sensor!")
+                raise Exception("Id already exists, not a sensor!")
             return Component.by_id[component_id]
-        instance = super().__new__(cls,component_id=component_id)
+        instance = super().__new__(cls, component_id=component_id)
         Component.by_id[component_id] = instance
         return instance
 
@@ -28,9 +28,9 @@ class SensorComponent(Component):
                  component_attribute_class_id: Optional[str] = None,
                  hw_uid: Optional[str] = None):
         super(SensorComponent, self).__init__(component_id=component_id,
-                            display_name=display_name,
-                            component_attribute_class_id=component_attribute_class_id,
-                            hw_uid=hw_uid)
+                             display_name=display_name,
+                             component_attribute_class_id=component_attribute_class_id,
+                             hw_uid=hw_uid)
 
     def __repr__(self):
         val = f'Component {self.display_name} => Cac {self.cac.display_name}'

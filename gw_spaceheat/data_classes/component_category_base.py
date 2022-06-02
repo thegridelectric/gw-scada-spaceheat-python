@@ -1,6 +1,6 @@
 """ ComponentCategory Base Class Definition """
 
-from abc import ABC, abstractproperty
+from abc import ABC
 from typing import Optional
 
 from data_classes.mixin import StreamlinedSerializerMixin
