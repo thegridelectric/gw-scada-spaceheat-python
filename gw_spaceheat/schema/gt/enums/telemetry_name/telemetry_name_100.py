@@ -1,5 +1,5 @@
 
-   
+
 """ telemetry.name.100 Definition"""
 import enum
 from typing import Dict, List
@@ -19,7 +19,7 @@ class TelemetryName100GtEnum():
     gt_to_local: Dict[str, TelemetryName] = {
         "d70cce28-6b3d-47eb-8cc8-fd48204be1de": TelemetryName.WATER_FLOW_GPM_TIMES_100,
         "793505aa-9cf0-405c-bf46-712babbe55b2": TelemetryName.WATER_TEMP_F_TIMES_1000,
-        "c89d0ba1-9b77-4d6a-80ad-926d2ef0026b": TelemetryName.WATER_TEMP_C_TIMES_1000 
+        "c89d0ba1-9b77-4d6a-80ad-926d2ef0026b": TelemetryName.WATER_TEMP_C_TIMES_1000
     }
 
     local_to_gt: Dict[TelemetryName, str] = {
@@ -27,4 +27,3 @@ class TelemetryName100GtEnum():
         TelemetryName.WATER_TEMP_F_TIMES_1000: "793505aa-9cf0-405c-bf46-712babbe55b2",
         TelemetryName.WATER_TEMP_C_TIMES_1000: "c89d0ba1-9b77-4d6a-80ad-926d2ef0026b"
     }
-
