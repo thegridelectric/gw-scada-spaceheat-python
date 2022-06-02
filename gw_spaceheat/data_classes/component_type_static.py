@@ -49,12 +49,14 @@ PlatformComponentType[HYDRO.value] = HYDRO
 
 """SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST_WATER_HEAT_BATTERY
 """
-SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST_WATER_HEAT_BATTERY = ComponentType(value="SpaceHeatAirToWaterHeatPumpAndBoostWaterHeatBattery",
-                                                                               display_name="Air to Water HeatPump with boost element and water heat battery",
-                                                                               is_resistive_load=False,
-                                                                               component_sub_category_value="SpaceHeat")
+SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST_WATER_HEAT_BATTERY = ComponentType(
+        value="SpaceHeatAirToWaterHeatPumpAndBoostWaterHeatBattery",
+        display_name="Air to Water HeatPump with boost element and water heat battery",
+        is_resistive_load=False,
+        component_sub_category_value="SpaceHeat")
 
-PlatformComponentType[SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST_WATER_HEAT_BATTERY.value] = SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST_WATER_HEAT_BATTERY
+PlatformComponentType[SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST_WATER_HEAT_BATTERY.value] = \
+   SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST_WATER_HEAT_BATTERY
 
 
 """STORAGE_HEATER: An electric thermal storage heater. Ceramic bricks with resistive elements 
@@ -192,10 +194,11 @@ PlatformComponentType[TRANSPORT_CHILLER.value] = TRANSPORT_CHILLER
 
 """SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST
 """
-SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST = ComponentType(value="SpaceHeatAirToWaterHeatPumpAndBoost",
-                                                            display_name="Air to Water HeatPump with boost element and water heat battery",
-                                                            is_resistive_load=False,
-                                                            component_sub_category_value="SpaceHeat")
+SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST = ComponentType(
+        value="SpaceHeatAirToWaterHeatPumpAndBoost",
+        display_name="Air to Water HeatPump with boost element and water heat battery",
+                                                        is_resistive_load=False,
+                                                        component_sub_category_value="SpaceHeat")
 
 PlatformComponentType[SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST.value] = SPACE_HEAT_AIR_TO_WATER_HEAT_PUMP_AND_BOOST
 
