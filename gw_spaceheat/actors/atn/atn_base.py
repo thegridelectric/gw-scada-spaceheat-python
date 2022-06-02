@@ -26,15 +26,15 @@ class Atn_Base(ActorBase):
             # self.gt_telemetry_100_from_primaryscada(payload)
         else:
             self.screen_print(f"{message.topic} subscription not implemented!")
-       
+
     @abstractmethod
     def gs_pwr_100_from_primaryscada(self, payload: GsPwr100):
         raise NotImplementedError
-     
+
     @abstractmethod
     def gt_telemetry_100_from_primaryscada(self, payload: GtTelemetry101):
         raise NotImplementedError
-    
+
     @abstractproperty
     def my_scada(self) -> ShNode:
         return NotImplementedError

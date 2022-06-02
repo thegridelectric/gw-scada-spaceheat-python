@@ -25,7 +25,7 @@ class Adafruit642_TempSensorDriver(TempSensorDriver):
             raise Exception("Calling onewire from a mac! Check component ....")
         all_driver_data_folders = list(filter(lambda x: x.startswith(ONE_WIRE_FILE_START_ID),
                                               [x[1] for x in os.walk(BASE_DIR)][0]))
-        candidate_driver_data_folders = list(filter(lambda x: x.endswith(self.component.hw_uid), 
+        candidate_driver_data_folders = list(filter(lambda x: x.endswith(self.component.hw_uid),
                                                     all_driver_data_folders))
         if len(candidate_driver_data_folders) != 1:
             raise Exception(f"looking for unique folder ending in {self.component.hw_uid}."
