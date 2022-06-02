@@ -1,0 +1,13 @@
+linters:
+  flake8:
+    python: 3
+    ignore: 'W28'
+    max-line-length: 120
+    max-complexity: 10
+    fixer: true
+fixers:
+  enable: true
+files:
+  ignore:
+    - 'DerivationTools/*'
+    - 'gw_spaceheat/schema'
