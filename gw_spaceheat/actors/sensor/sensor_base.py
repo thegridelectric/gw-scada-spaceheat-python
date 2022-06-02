@@ -1,12 +1,11 @@
 import json
-import time
 from typing import List
+
 from actors.actor_base import ActorBase
+from actors.mqtt_utils import QOS, Subscription
 from data_classes.sh_node import ShNode
-from data_classes.sensor_type_static import WATER_FLOW_METER
-from data_classes.sh_node_role_static import SENSOR
-from actors.mqtt_utils import Subscription, QOS
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101, GtTelemetry101_Maker
+from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import (
+    GtTelemetry101, GtTelemetry101_Maker)
 
 
 class SensorBase(ActorBase):
@@ -23,10 +22,6 @@ class SensorBase(ActorBase):
         topic = f'{self.node.alias}/{GtTelemetry101_Maker.mp_alias}'
         self.screen_print(f"Trying to publish {payload} to topic {topic}")
         self.publish_client.publish(topic=topic, 
-                            payload=json.dumps(payload.asdict()),
-                            qos = QOS.AtLeastOnce.value,
-                            retain=False)
-
-
-    
-        
+                                    payload=json.dumps(payload.asdict()),
+                                    qos=QOS.AtLeastOnce.value,
+                                    retain=False)

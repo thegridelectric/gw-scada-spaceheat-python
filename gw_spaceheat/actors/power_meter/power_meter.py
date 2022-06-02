@@ -1,7 +1,7 @@
 
 from actors.power_meter.power_meter_base import PowerMeterBase
 from data_classes.sh_node import ShNode
-from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
+from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker
 
 
 class PowerMeter(PowerMeterBase):

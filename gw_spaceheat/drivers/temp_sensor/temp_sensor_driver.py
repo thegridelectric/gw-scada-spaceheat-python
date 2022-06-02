@@ -7,7 +7,7 @@ from data_classes.cacs.temp_sensor_cac import TempSensorCac
 
 class TempSensorDriver(ABC):
     def __init__(self, component: SensorComponent):
-        if not isinstance(component.cac,TempSensorCac):
+        if not isinstance(component.cac, TempSensorCac):
             raise Exception(f"component {component} is not a TempSensor!!")
         self.component = component
 
