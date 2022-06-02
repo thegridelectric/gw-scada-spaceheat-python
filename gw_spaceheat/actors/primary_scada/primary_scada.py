@@ -17,7 +17,6 @@ class PrimaryScada(PrimaryScadaBase):
     def __init__(self, node: ShNode):
         super(PrimaryScada, self).__init__(node=node)
         self.power = 0
-        self.consume_thread.start()
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.temp_readings: List = []
@@ -26,10 +25,10 @@ class PrimaryScada(PrimaryScadaBase):
         with open(out, 'w') as outfile:
             write = csv.writer(outfile, delimiter=',')
             write.writerow(['TimeUtc', 't_unix_s', 'ms', 'alias', 'WaterTempCTimes1000'])
-        self.screen_print(f"Started PrimaryScada {self.node}")
         self.calibrate_thread = threading.Thread(target=self.calibrate)
-        self.calibrate_thread.start()
         self.set_actuator_components()
+        self.calibrate_thread.start()
+        self.consume_thread.start()
         self.screen_print(f"Started PrimaryScada {self.node}")
 
     def calibrate(self):
