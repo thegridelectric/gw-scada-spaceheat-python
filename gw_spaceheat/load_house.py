@@ -42,7 +42,7 @@ def load_cacs(input_data):
     for d in input_data['TempSensorCacs']:
         GtTempSensorCac_Maker.dict_to_dc(d)
     for d in input_data['OtherCacs']:
-        cac = ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"])
+        ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"])
 
 
 def load_components(input_data):
@@ -58,7 +58,7 @@ def load_components(input_data):
         GtTempSensorComponent_Maker.dict_to_dc(d)
     for camel in input_data['OtherComponents']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = Component(**snake_dict)
+        Component(**snake_dict)
     
 
 def load_nodes(input_data):
