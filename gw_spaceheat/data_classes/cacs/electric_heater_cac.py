@@ -1,63 +1,24 @@
-""" ElectricHeaterCac Class Definition """
-from typing import Optional
+"""ElectricHeaterCac definition"""
+from typing import Dict, Optional
 
-from data_classes.component_attribute_class import ComponentAttributeClass
-from data_classes.electric_heater_type import ElectricHeaterType
-from data_classes.electric_heater_type_static import PlatformElectricHeaterType
-from data_classes.errors import DcError
+from data_classes.cacs.electric_heater_cac_base import ElectricHeaterCacBase
+from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac_100 import GtElectricHeaterCac100
 
 
-class ElectricHeaterCac(ComponentAttributeClass):
-    by_id = {}
+class ElectricHeaterCac(ElectricHeaterCacBase):
+    by_id: Dict[str, ElectricHeaterCacBase] = ElectricHeaterCacBase._by_id
 
-    base_props = []
-    base_props.append('component_attribute_class_id')
-    base_props.append('make_model')
-    base_props.append('display_name')
-    base_props.append('electric_heater_type_value')
+    def __init__(self, component_attribute_class_id: str,
+                 make_model_gt_enum_symbol: str,
+                 display_name: Optional[str] = None,
+                 ):
+        super(self.__class__, self).__init__(component_attribute_class_id=component_attribute_class_id,
+                                             display_name=display_name,
+                                             make_model_gt_enum_symbol=make_model_gt_enum_symbol,
+                                             )
 
-    def __new__(cls, component_attribute_class_id, *args, **kwargs):
-        if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
-            if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
-                raise Exception("Id already exists, not an Electric Heater!")
-            return ComponentAttributeClass.by_id[component_attribute_class_id]
-        instance = super().__new__(cls, component_attribute_class_id=component_attribute_class_id)
-        ComponentAttributeClass.by_id[component_attribute_class_id] = instance
-        return instance
-
-    def __init__(self,
-                 component_attribute_class_id: Optional[str] = None,
-                 electric_heater_type_value: Optional[str] = None,
-                 make_model: Optional[str] = None,
-                 display_name: Optional[str] = None):
-        super(ElectricHeaterCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                                                make_model=make_model,
-                                                display_name=display_name,
-                                                component_type_value=electric_heater_type_value)
-        self.electric_heater_type_value = electric_heater_type_value
+    def _check_update_axioms(self, type: GtElectricHeaterCac100):
+        pass
 
     def __repr__(self):
-        return f'ElectricHeaterCac ({self.display_name})) {self.component_attribute_class_id}'
-
-    @classmethod
-    def check_uniqueness_of_primary_key(cls, attributes):
-        if attributes['component_attribute_class_id'] in ComponentAttributeClass.by_id.keys():
-            raise DcError(f"component_attribute_class_id {attributes['component_attribute_class_id']} already in use")
-
-    @classmethod
-    def check_existence_of_certain_attributes(cls, attributes):
-        if not attributes.get('component_attribute_class_id', None):
-            raise DcError('component_attribute_class_id must exist')
-        if not attributes.get('electric_heater_type_value', None):
-            raise DcError('electric_heater_type_value')
-
-    @classmethod
-    def check_initialization_consistency(cls, attributes):
-        ElectricHeaterCac.check_uniqueness_of_primary_key(attributes)
-        ElectricHeaterCac.check_existence_of_certain_attributes(attributes)
-    
-    @property
-    def electric_heater_type(self) -> ElectricHeaterType:
-        if self.electric_heater_type_value not in PlatformElectricHeaterType.keys():
-            raise TypeError('electric heater type must belong to static list')
-        return PlatformElectricHeaterType[self.electric_heater_type_value]
+        return f"{self.make_model.value} {self.display_name}"

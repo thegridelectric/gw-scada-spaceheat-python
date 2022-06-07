@@ -1,51 +1,26 @@
-""" TempSensorCac Class Definition """
-
+"""PipeFlowSensorCac definition"""
 from typing import Dict, Optional
 
-from data_classes.cacs.sensor_cac import SensorCac
-from data_classes.component_attribute_class import ComponentAttributeClass
+from data_classes.cacs.pipe_flow_sensor_cac_base import PipeFlowSensorCacBase
+from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac_100 import GtPipeFlowSensorCac100
 
 
-class PipeFlowSensorCac(SensorCac):
-    by_id: Dict[str, SensorCac] = {}
+class PipeFlowSensorCac(PipeFlowSensorCacBase):
+    by_id: Dict[str, PipeFlowSensorCacBase] = PipeFlowSensorCacBase._by_id
 
-    base_props = []
-    base_props.append('component_attribute_class_id')
-    base_props.append('make_model')
-    base_props.append('display_name')
-    base_props.append('sensor_type_value')
-    base_props.append('comms_method')
-    base_props.append('precision_decimals_f')
-
-    def __new__(cls, component_attribute_class_id, *args, **kwargs):
-        if component_attribute_class_id in ComponentAttributeClass.by_id.keys():
-            if not isinstance(ComponentAttributeClass.by_id[component_attribute_class_id], cls):
-                raise Exception(f"Id already exists for {ComponentAttributeClass.by_id[component_attribute_class_id]}"
-                                ", not a temp sensor!")
-            return ComponentAttributeClass.by_id[component_attribute_class_id]
-        instance = super().__new__(cls, component_attribute_class_id=component_attribute_class_id)
-        ComponentAttributeClass.by_id[component_attribute_class_id] = instance
-        return instance
-
-    def __init__(self,
-                 component_attribute_class_id: Optional[str] = None,
-                 make_model: Optional[str] = None,
+    def __init__(self, component_attribute_class_id: str,
+                 make_model_gt_enum_symbol: str,
                  display_name: Optional[str] = None,
-                 sensor_type_value: Optional[str] = None,
                  comms_method: Optional[str] = None,
-                 precision_decimals_f: Optional[int] = None):
-        super(PipeFlowSensorCac, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                                                make_model=make_model,
-                                                display_name=display_name,
-                                                sensor_type_value=sensor_type_value,
-                                                comms_method=comms_method)
-        self.precision_decimals_f = precision_decimals_f
+                 ):
+        super(self.__class__, self).__init__(display_name=display_name,
+                                             component_attribute_class_id=component_attribute_class_id,
+                                             comms_method=comms_method,
+                                             make_model_gt_enum_symbol=make_model_gt_enum_symbol,
+                                             )
+
+    def _check_update_axioms(self, type: GtPipeFlowSensorCac100):
+        pass
 
     def __repr__(self):
-        val = f'PipeFlowSensorCac {self.make_model}: {self.display_name}'
-        if self.comms_method:
-            val += f' Comms method: {self.comms_method}'
-        if self.precision_decimals_f:
-            val += f' Precision decimals: {self.precision_decimals_f} F'
-        return val
-    
+        return f"{self.make_model.value} {self.display_name}"

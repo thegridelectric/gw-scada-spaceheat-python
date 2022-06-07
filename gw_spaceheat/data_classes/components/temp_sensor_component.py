@@ -1,46 +1,26 @@
-from typing import Optional
+"""TempSensorComponent definition"""
+from typing import Dict, Optional
 
-from data_classes.cacs.temp_sensor_cac import TempSensorCac
-from data_classes.component import Component
-from data_classes.components.sensor_component import SensorComponent
-from data_classes.errors import DataClassLoadingError
+from data_classes.components.temp_sensor_component_base import TempSensorComponentBase
+from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_100 import GtTempSensorComponent100
 
 
-class TempSensorComponent(SensorComponent):
-    by_id = {}
-    
-    base_props = []
-    base_props.append('component_id')
-    base_props.append('display_name')
-    base_props.append('component_attribute_class_id')
-    base_props.append('hw_uid')
+class TempSensorComponent(TempSensorComponentBase):
+    by_id: Dict[str, TempSensorComponentBase] =  TempSensorComponentBase._by_id
 
-    def __new__(cls, component_id, *args, **kwargs):
-        if component_id in Component.by_id.keys():
-            if not isinstance(Component.by_id[component_id], cls):
-                raise Exception("Id already exists, not a temp sensor!")
-            return Component.by_id[component_id]
-        instance = super().__new__(cls, component_id=component_id)
-        Component.by_id[component_id] = instance
-        return instance
-
-    def __init__(self,
-                 component_id: Optional[str] = None,
+    def __init__(self, component_id: str,
+                 component_attribute_class_id: str,
                  display_name: Optional[str] = None,
-                 component_attribute_class_id: Optional[str] = None,
-                 hw_uid: Optional[str] = None):
-        super(TempSensorComponent, self).__init__(component_id=component_id,
-                                                  display_name=display_name,
-                                                  component_attribute_class_id=component_attribute_class_id,
-                                                  hw_uid=hw_uid)
+                 hw_uid: Optional[str] = None,
+                 ):
+        super(self.__class__, self).__init__(display_name=display_name,
+                                             component_id=component_id,
+                                             hw_uid=hw_uid,
+                                             component_attribute_class_id=component_attribute_class_id,
+                                             )
 
-    @classmethod
-    def check_initialization_consistency(cls, attributes):
-        SensorComponent.check_uniqueness_of_primary_key(attributes)
-        SensorComponent.check_existence_of_certain_attributes(attributes)
+    def _check_update_axioms(self, type: GtTempSensorComponent100):
+        pass
 
-    @property
-    def cac(self) -> TempSensorCac:
-        if self.component_attribute_class_id not in TempSensorCac.by_id.keys():
-            raise DataClassLoadingError(f"TempSensorCacId {self.component_attribute_class_id} not loaded yet")
-        return TempSensorCac.by_id[self.component_attribute_class_id]
+    def __repr__(self):
+        return f"{self.display_name}  ({self.cac.make_model.value})"
