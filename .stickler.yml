@@ -10,4 +10,6 @@ fixers:
 files:
   ignore:
     - 'DerivationTools/*'
-    - 'gw_spaceheat/schema'
+    - 'gw_spaceheat/schema/*'
+    - 'gw_spaceheat/data_classes/components/*'
+    - 'gw_spaceheat/data_classes/cacs/*'

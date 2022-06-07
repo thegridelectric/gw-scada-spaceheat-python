@@ -13,6 +13,8 @@ from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import Ncd
 from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import \
     GridworksSimBool30AmpRelay_BooleanActuatorDriver
 
+from schema.enums.make_model.make_model_map import MakeModel
+
 
 class PrimaryScada(PrimaryScadaBase):
     def __init__(self, node: ShNode):
@@ -42,13 +44,13 @@ class PrimaryScada(PrimaryScadaBase):
                 for row in self.temp_readings:
                     write.writerow(row)
             self.temp_readings = []
-        
+
     def set_actuator_components(self):
         self.boost_actuator = ShNode.by_alias['a.elt1.relay']
-        if self.boost_actuator.primary_component.make_model == 'NCD__PR8-14-SPST':
+        if self.boost_actuator.primary_component.make_model == MakeModel.NCD__PR814SPST:
             self.driver[self.boost_actuator] = NcdPr814Spst_BooleanActuatorDriver(
                 component=self.boost_actuator.primary_component)
-        elif self.boost_actuator.primary_component.make_model == 'GridWorks__SimBool30AmpRelay':
+        elif self.boost_actuator.primary_component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             self.driver[self.boost_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
                 component=self.boost_actuator.primary_component)
         else:
@@ -56,10 +58,10 @@ class PrimaryScada(PrimaryScadaBase):
 
         self.pump_actuator = ShNode.by_alias['a.tank.out.pump.relay']
 
-        if self.pump_actuator.primary_component.make_model == 'NCD__PR8-14-SPST':
+        if self.pump_actuator.primary_component.make_model == MakeModel.NCD__PR814SPST:
             self.driver[self.pump_actuator] = NcdPr814Spst_BooleanActuatorDriver(
                 component=self.pump_actuator.primary_component)
-        elif self.pump_actuator.primary_component.make_model == 'GridWorks__SimBool30AmpRelay':
+        elif self.pump_actuator.primary_component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             self.driver[self.pump_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
                 component=self.pump_actuator.primary_component)
         else:

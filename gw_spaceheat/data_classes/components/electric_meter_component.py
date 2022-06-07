@@ -1,47 +1,26 @@
-from typing import Optional
+"""ElectricMeterComponent definition"""
+from typing import Dict, Optional
 
-from data_classes.cacs.electric_meter_cac import ElectricMeterCac
-from data_classes.component import Component
-from data_classes.components.sensor_component import SensorComponent
-from data_classes.errors import DataClassLoadingError
+from data_classes.components.electric_meter_component_base import ElectricMeterComponentBase
+from schema.gt.gt_electric_meter_component.gt_electric_meter_component_100 import GtElectricMeterComponent100
 
 
-class ElectricMeterComponent(SensorComponent):
-    by_id = {}
-    
-    base_props = []
-    base_props.append('component_id')
-    base_props.append('display_name')
-    base_props.append('component_attribute_class_id')
-    base_props.append('hw_uid')
+class ElectricMeterComponent(ElectricMeterComponentBase):
+    by_id: Dict[str, ElectricMeterComponentBase] =  ElectricMeterComponentBase._by_id
 
-    def __new__(cls, component_id, *args, **kwargs):
-        if component_id in Component.by_id.keys():
-            if not isinstance(Component.by_id[component_id], cls):
-                raise Exception("Id already exists, not a temp sensor!")
-            return Component.by_id[component_id]
-        instance = super().__new__(cls, component_id=component_id)
-        Component.by_id[component_id] = instance
-        return instance
-
-    def __init__(self,
-                 component_id: Optional[str] = None,
+    def __init__(self, component_id: str,
+                 component_attribute_class_id: str,
                  display_name: Optional[str] = None,
-                 component_attribute_class_id: Optional[str] = None,
-                 hw_uid: Optional[str] = None):
-        super(ElectricMeterComponent, self).__init__(component_id=component_id,
-                                                     display_name=display_name,
-                                                     component_attribute_class_id=component_attribute_class_id,
-                                                     hw_uid=hw_uid)
+                 hw_uid: Optional[str] = None,
+                 ):
+        super(self.__class__, self).__init__(display_name=display_name,
+                                             component_id=component_id,
+                                             hw_uid=hw_uid,
+                                             component_attribute_class_id=component_attribute_class_id,
+                                             )
 
-    @classmethod
-    def check_initialization_consistency(cls, attributes):
-        SensorComponent.check_uniqueness_of_primary_key(attributes)
-        SensorComponent.check_existence_of_certain_attributes(attributes)
+    def _check_update_axioms(self, type: GtElectricMeterComponent100):
+        pass
 
-    @property
-    def cac(self) -> ElectricMeterCac:
-        if self.component_attribute_class_id not in ElectricMeterCac.by_id.keys():
-            raise DataClassLoadingError(f"ElectricMeterCacId {self.component_attribute_class_id} not loaded yet")
-        return ElectricMeterCac.by_id[self.component_attribute_class_id]
-    
+    def __repr__(self):
+        return f"{self.display_name}  ({self.cac.make_model.value})"

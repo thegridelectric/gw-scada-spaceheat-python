@@ -1,34 +1,24 @@
 <Airtable>
   <Entities>
     <Entity>
-      <Name>Component</Name>
-      <PluralName>Components</PluralName>
-      <AirtableName>Components</AirtableName>
-    </Entity>
-    <Entity>
       <Name>ShNodeRole</Name>
       <PluralName>ShNodeRoles</PluralName>
       <AirtableName>ShNodeRoles</AirtableName>
     </Entity>
     <Entity>
-      <Name>GwEntity</Name>
-      <PluralName>GwEntities</PluralName>
-      <AirtableName>GwEntities</AirtableName>
+      <Name>GtEnum</Name>
+      <PluralName>GtEnums</PluralName>
+      <AirtableName>GtEnums</AirtableName>
     </Entity>
     <Entity>
-      <Name>ComponentAttributeClasse</Name>
-      <PluralName>ComponentAttributeClasses</PluralName>
-      <AirtableName>ComponentAttributeClasses</AirtableName>
+      <Name>EnumSymbol</Name>
+      <PluralName>EnumSymbols</PluralName>
+      <AirtableName>EnumSymbols</AirtableName>
     </Entity>
     <Entity>
-      <Name>PublishedMessage</Name>
-      <PluralName>PublishedMessages</PluralName>
-      <AirtableName>PublishedMessages</AirtableName>
-    </Entity>
-    <Entity>
-      <Name>MpSchemaAttribute</Name>
-      <PluralName>MpSchemaAttributes</PluralName>
-      <AirtableName>MpSchemaAttributes</AirtableName>
+      <Name>SchemaAttribute</Name>
+      <PluralName>SchemaAttributes</PluralName>
+      <AirtableName>SchemaAttributes</AirtableName>
     </Entity>
     <Entity>
       <Name>PropertyFormat</Name>
@@ -36,9 +26,9 @@
       <AirtableName>PropertyFormats</AirtableName>
     </Entity>
     <Entity>
-      <Name>FiniteStringSetMember</Name>
-      <PluralName>FiniteStringSetMembers</PluralName>
-      <AirtableName>FiniteStringSetMembers</AirtableName>
+      <Name>Schema</Name>
+      <PluralName>Schemas</PluralName>
+      <AirtableName>Schemas</AirtableName>
     </Entity>
     <Entity>
       <Name>ShNode</Name>
@@ -46,50 +36,18 @@
       <AirtableName>ShNodes</AirtableName>
     </Entity>
     <Entity>
-      <Name>FiniteStringSet</Name>
-      <PluralName>FiniteStringSets</PluralName>
-      <AirtableName>FiniteStringSets</AirtableName>
-    </Entity>
-    <Entity>
       <Name>AppUser</Name>
       <PluralName>AppUsers</PluralName>
       <AirtableName>AppUsers</AirtableName>
     </Entity>
-    <Entity>
-      <Name>MpSchema</Name>
-      <PluralName>MpSchemas</PluralName>
-      <AirtableName>MpSchemas</AirtableName>
-    </Entity>
-    <Entity>
-      <Name>ConsumedMessage</Name>
-      <PluralName>ConsumedMessages</PluralName>
-      <AirtableName>ConsumedMessages</AirtableName>
-    </Entity>
   </Entities>
-  <Components>
-    <Component>
-      <ComponentId>rec2s1uWEOJ37euSS</ComponentId>
-      <createdTime>2022-05-11T18:13:42Z</createdTime>
-      <fields />
-    </Component>
-    <Component>
-      <ComponentId>recP27i7ccXDEIgrl</ComponentId>
-      <createdTime>2022-05-11T18:13:42Z</createdTime>
-      <fields />
-    </Component>
-    <Component>
-      <ComponentId>recQ3Nz1KXLeqr7Ca</ComponentId>
-      <createdTime>2022-05-11T18:13:42Z</createdTime>
-      <fields />
-    </Component>
-  </Components>
   <ShNodeRoles>
     <ShNodeRole>
       <ShNodeRoleId>rec5lH86izkoUwm5v</ShNodeRoleId>
       <createdTime>2022-05-11T18:00:23Z</createdTime>
       <Alias>HydronicPipe</Alias>
-      <ShortAlias>pipe</ShortAlias>
       <HasHeatFlow>true</HasHeatFlow>
+      <ShortAlias>pipe</ShortAlias>
     </ShNodeRole>
     <ShNodeRole>
       <ShNodeRoleId>recDr9qpY9UbMEKBg</ShNodeRoleId>
@@ -100,21 +58,21 @@
     <ShNodeRole>
       <ShNodeRoleId>recDyzT3tw0zHNEVE</ShNodeRoleId>
       <createdTime>2022-05-11T18:04:52Z</createdTime>
-      <MpSchema>p</MpSchema>
-      <ConsumedMessages>recNYmQJO2G9sOI7C</ConsumedMessages>
-      <PublishedMessages>recEO7YGIkUrmkxYQ</PublishedMessages>
       <Alias>PrimaryScada</Alias>
-      <ShortAlias>primaryscada</ShortAlias>
       <IsActuated>true</IsActuated>
+      <MpSchema>p</MpSchema>
+      <PublishedMessages>PrimaryScada publishes Unnamed record</PublishedMessages>
+      <ConsumedMessages>TODO</ConsumedMessages>
+      <ShortAlias>primaryscada</ShortAlias>
     </ShNodeRole>
     <ShNodeRole>
       <ShNodeRoleId>recKldJm2n9yobnoZ</ShNodeRoleId>
       <createdTime>2022-05-11T17:58:12Z</createdTime>
       <Alias>ElectricHeater</Alias>
-      <ShortAlias>electricheater</ShortAlias>
-      <IsActuated>true</IsActuated>
       <HasHeatFlow>true</HasHeatFlow>
       <HasVoltage>true</HasVoltage>
+      <IsActuated>true</IsActuated>
+      <ShortAlias>electricheater</ShortAlias>
     </ShNodeRole>
     <ShNodeRole>
       <ShNodeRoleId>recayQ2l658VObFaQ</ShNodeRoleId>
@@ -125,324 +83,1216 @@
     <ShNodeRole>
       <ShNodeRoleId>reclkjPwB5o0GI1tI</ShNodeRoleId>
       <createdTime>2022-05-11T17:58:12Z</createdTime>
-      <Alias>HeatDistributionPump</Alias>
-      <ShortAlias>heatdistpump</ShortAlias>
+      <Alias>CirculatorPump</Alias>
       <IsActuated>true</IsActuated>
+      <ShortAlias>heatdistpump</ShortAlias>
     </ShNodeRole>
     <ShNodeRole>
       <ShNodeRoleId>recmuLd8GNx6dT4iI</ShNodeRoleId>
       <createdTime>2022-05-11T17:59:59Z</createdTime>
       <Alias>HeatedSpace</Alias>
-      <ShortAlias>room</ShortAlias>
       <HasStoredThermalEnergy>true</HasStoredThermalEnergy>
+      <ShortAlias>room</ShortAlias>
     </ShNodeRole>
     <ShNodeRole>
       <ShNodeRoleId>rectu1YOWghuEt4TB</ShNodeRoleId>
       <createdTime>2022-05-11T18:00:07Z</createdTime>
-      <MpSchema>gt.telemetry.100</MpSchema>
-      <PublishedMessages>recjlxwKfbt02DSdx</PublishedMessages>
       <Alias>Sensor</Alias>
+      <MpSchema>gt.telemetry.1_0_0</MpSchema>
+      <PublishedMessages>Sensor publishes Unnamed record</PublishedMessages>
       <ShortAlias>sensor</ShortAlias>
     </ShNodeRole>
     <ShNodeRole>
       <ShNodeRoleId>recvycbh2DmuY9VBZ</ShNodeRoleId>
       <createdTime>2022-05-11T18:01:35Z</createdTime>
-      <ConsumedMessages>recyqkzMNEacz4Hxz</ConsumedMessages>
       <Alias>AtomicTNode</Alias>
+      <ConsumedMessages>TODO</ConsumedMessages>
       <ShortAlias>atn</ShortAlias>
     </ShNodeRole>
     <ShNodeRole>
       <ShNodeRoleId>recxTCRWVYIL5yCDJ</ShNodeRoleId>
       <createdTime>2022-05-11T17:58:12Z</createdTime>
       <Alias>DedicatedThermalStore</Alias>
-      <ShortAlias>store</ShortAlias>
       <HasStoredThermalEnergy>true</HasStoredThermalEnergy>
+      <ShortAlias>store</ShortAlias>
     </ShNodeRole>
     <ShNodeRole>
       <ShNodeRoleId>reczWRVQoCQEfcZRz</ShNodeRoleId>
       <createdTime>2022-05-11T18:00:34Z</createdTime>
       <Alias>Outdoors</Alias>
-      <ShortAlias>outside</ShortAlias>
       <HasStoredThermalEnergy>true</HasStoredThermalEnergy>
+      <ShortAlias>outside</ShortAlias>
     </ShNodeRole>
   </ShNodeRoles>
-  <GwEntities>
-    <GwEntity>
-      <GwEntityId>rec65Wdj3Os2YQoZ9</GwEntityId>
-      <createdTime>2022-05-16T13:45:37Z</createdTime>
-      <Name>FiniteStringSet</Name>
-      <IsNotDataClass>true</IsNotDataClass>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recCUf79uWXzLqedy</GwEntityId>
-      <createdTime>2022-05-16T13:41:44Z</createdTime>
-      <Name>ConsumedMessage</Name>
-      <IsNotDataClass>true</IsNotDataClass>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recGXSm3jpfujPTJQ</GwEntityId>
-      <createdTime>2022-05-16T13:41:44Z</createdTime>
-      <Name>Component</Name>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recI6t4KOZxW8lb7y</GwEntityId>
-      <createdTime>2022-05-16T13:46:02Z</createdTime>
-      <Name>MpSchema</Name>
-      <IsNotDataClass>true</IsNotDataClass>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recJO3IUHBou9swmL</GwEntityId>
-      <createdTime>2022-05-16T13:46:25Z</createdTime>
-      <Name>ShNodeRole</Name>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recJbg1J3DtFRXijY</GwEntityId>
-      <createdTime>2022-05-16T13:45:31Z</createdTime>
-      <Name>FiniteStringSetMember</Name>
-      <IsNotDataClass>true</IsNotDataClass>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recQ2gYzcTAWr3EzV</GwEntityId>
-      <createdTime>2022-05-16T13:46:09Z</createdTime>
-      <Name>PropertyFormat</Name>
-      <IsNotDataClass>true</IsNotDataClass>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recSYCpcwrLjnmgEq</GwEntityId>
-      <createdTime>2022-05-16T13:46:18Z</createdTime>
-      <Name>ShNode</Name>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>reckcCaZ6pxxlVUAp</GwEntityId>
-      <createdTime>2022-05-16T13:45:52Z</createdTime>
-      <Name>MpSchemaAttribute</Name>
-      <IsNotDataClass>true</IsNotDataClass>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recqXpRQhrp67X71j</GwEntityId>
-      <createdTime>2022-05-16T13:46:10Z</createdTime>
-      <Name>PublishedMessage</Name>
-      <IsNotDataClass>true</IsNotDataClass>
-    </GwEntity>
-    <GwEntity>
-      <GwEntityId>recs0oQQ5qFcBAkzK</GwEntityId>
-      <createdTime>2022-05-16T13:41:44Z</createdTime>
-      <Name>Cac</Name>
-    </GwEntity>
-  </GwEntities>
-  <ComponentAttributeClasses>
-    <ComponentAttributeClasse>
-      <ComponentAttributeClasseId>recADbGIJdk5NhKc7</ComponentAttributeClasseId>
-      <createdTime>2022-05-11T18:13:47Z</createdTime>
-      <DisplayName>TODO</DisplayName>
-    </ComponentAttributeClasse>
-    <ComponentAttributeClasse>
-      <ComponentAttributeClasseId>recNhG0CE9s4quriZ</ComponentAttributeClasseId>
-      <createdTime>2022-05-11T18:13:47Z</createdTime>
-      <DisplayName>TODO</DisplayName>
-    </ComponentAttributeClasse>
-    <ComponentAttributeClasse>
-      <ComponentAttributeClasseId>recd3BnYIysZGE9us</ComponentAttributeClasseId>
-      <createdTime>2022-05-11T18:13:47Z</createdTime>
-      <DisplayName>TODO</DisplayName>
-    </ComponentAttributeClasse>
-  </ComponentAttributeClasses>
-  <PublishedMessages>
-    <PublishedMessage>
-      <PublishedMessageId>recEO7YGIkUrmkxYQ</PublishedMessageId>
-      <createdTime>2022-05-11T18:51:57Z</createdTime>
-      <Qos>AtMostOnce</Qos>
-      <PublisherRole>recDyzT3tw0zHNEVE</PublisherRole>
-      <MpSchema>recc5qGcZNQPmktbe</MpSchema>
-      <ConsumedMessages>recyqkzMNEacz4Hxz</ConsumedMessages>
-      <DisplayName>PrimaryScada publishes p</DisplayName>
-      <PublisherShorthand>primaryscada</PublisherShorthand>
-    </PublishedMessage>
-    <PublishedMessage>
-      <PublishedMessageId>recem575RxydVHESY</PublishedMessageId>
-      <createdTime>2022-05-11T18:51:57Z</createdTime>
-      <DisplayName> publishes </DisplayName>
-    </PublishedMessage>
-    <PublishedMessage>
-      <PublishedMessageId>recjlxwKfbt02DSdx</PublishedMessageId>
-      <createdTime>2022-05-11T18:51:57Z</createdTime>
-      <Qos>AtMostOnce</Qos>
-      <PublisherRole>rectu1YOWghuEt4TB</PublisherRole>
-      <MpSchema>recc5qGcZNQPmktbe</MpSchema>
-      <DisplayName>Sensor publishes p</DisplayName>
-      <PublisherShorthand>sensor</PublisherShorthand>
-    </PublishedMessage>
-  </PublishedMessages>
-  <MpSchemaAttributes>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>rec0yzwyCWxtaJQJF</MpSchemaAttributeId>
+  <GtEnums>
+    <GtEnum>
+      <GtEnumId>rec2HyLffy6QK9QId</GtEnumId>
+      <createdTime>2022-05-11T18:30:57Z</createdTime>
+      <FiniteStringSetMembers>recOAkkrDxlp0hZYR</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recAu5abxRBSG7Csu</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recPOwKTDIww8SLUy</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recT4WgGgNHq8EM8c</FiniteStringSetMembers>
+      <MpSchema>recqVHqZ5DQVdVgby</MpSchema>
+      <SchemaAttributes>recfMyBibCC1lqTy1</SchemaAttributes>
+      <AliasRoot>spaceheat.telemetry.name</AliasRoot>
+      <SemanticEnd>100</SemanticEnd>
+      <LocalName>telemetry.name</LocalName>
+      <Alias>spaceheat.telemetry.name.100</Alias>
+      <MpSchemaAlias>gt.telemetry.100</MpSchemaAlias>
+    </GtEnum>
+    <GtEnum>
+      <GtEnumId>recGY8tA8qaJlpJXP</GtEnumId>
+      <createdTime>2022-06-03T21:51:52Z</createdTime>
+      <FiniteStringSetMembers>recob3YuE614ND3hl</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recBsLU3Sz3l2g9UF</FiniteStringSetMembers>
+      <FiniteStringSetMembers>rectuuZ31wlxmkduh</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recq3XELpgNTZptBh</FiniteStringSetMembers>
+      <FiniteStringSetMembers>rec90WWRRGoXVDSFG</FiniteStringSetMembers>
+      <FiniteStringSetMembers>rec2jUtFQpNHrTK7d</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recqLabDaSMQ5uIPL</FiniteStringSetMembers>
+      <FiniteStringSetMembers>rec7DAQOMxfbTg2ar</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recBUljA6RHgKD5H9</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recOEbA071k9xzfv3</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recriuBbhyDgwz6U3</FiniteStringSetMembers>
+      <AliasRoot>sh.node.role</AliasRoot>
+      <SemanticEnd>100</SemanticEnd>
+      <LocalName>role</LocalName>
+      <Alias>sh.node.role.100</Alias>
+    </GtEnum>
+    <GtEnum>
+      <GtEnumId>recLQWqTvGwSz2GcN</GtEnumId>
+      <createdTime>2022-06-03T18:20:52Z</createdTime>
+      <FiniteStringSetMembers>recqfo3DV2CZigvn5</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recgLuWiIpBnWvI8T</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recljcVVnRh9ne2dH</FiniteStringSetMembers>
+      <FiniteStringSetMembers>rec9n5zRdlLVYTfp1</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recqfsKuobhERLH1d</FiniteStringSetMembers>
+      <SchemaAttributes>rec9E6HTIAJLoh9wW</SchemaAttributes>
+      <SchemaAttributes>recbnmzJKD2TRpfWS</SchemaAttributes>
+      <SchemaAttributes>recrX6PgQEW9ggu8q</SchemaAttributes>
+      <SchemaAttributes>recjhc0WrYG4hVbwm</SchemaAttributes>
+      <SchemaAttributes>recRTTglTWqlyAaQW</SchemaAttributes>
+      <AliasRoot>spaceheat.make.model</AliasRoot>
+      <SemanticEnd>100</SemanticEnd>
+      <LocalName>make.model</LocalName>
+      <Alias>spaceheat.make.model.100</Alias>
+    </GtEnum>
+  </GtEnums>
+  <EnumSymbols>
+    <EnumSymbol>
+      <EnumSymbolId>rec2jUtFQpNHrTK7d</EnumSymbolId>
+      <createdTime>2022-06-03T22:00:34Z</createdTime>
+      <LocalValue>HeatedSpace</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>f652d87f</Symbol>
+      <DisplayName>sh.node.role.100__HeatedSpace</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>rec7DAQOMxfbTg2ar</EnumSymbolId>
+      <createdTime>2022-06-03T22:00:41Z</createdTime>
+      <LocalValue>Outdoors</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>6eb05344</Symbol>
+      <DisplayName>sh.node.role.100__Outdoors</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>rec90WWRRGoXVDSFG</EnumSymbolId>
+      <createdTime>2022-06-03T22:00:30Z</createdTime>
+      <LocalValue>ElectricHeater</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>eb1eb8b3</Symbol>
+      <DisplayName>sh.node.role.100__ElectricHeater</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>rec9n5zRdlLVYTfp1</EnumSymbolId>
+      <createdTime>2022-06-03T18:27:44Z</createdTime>
+      <LocalValue>GridWorks__WaterTempHighPrecision</LocalValue>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <Symbol>f8b497e8</Symbol>
+      <DisplayName>spaceheat.make.model.100__GridWorks__WaterTempHighPrecision</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recAu5abxRBSG7Csu</EnumSymbolId>
+      <createdTime>2022-05-11T18:31:54Z</createdTime>
+      <LocalValue>WaterTempFTimes1000</LocalValue>
+      <Enum>rec2HyLffy6QK9QId</Enum>
+      <Symbol>793505aa</Symbol>
+      <DisplayName>spaceheat.telemetry.name.100__WaterTempFTimes1000</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recBUljA6RHgKD5H9</EnumSymbolId>
+      <createdTime>2022-06-03T22:00:44Z</createdTime>
+      <LocalValue>PowerMeter</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>f6a567c9</Symbol>
+      <DisplayName>sh.node.role.100__PowerMeter</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recBsLU3Sz3l2g9UF</EnumSymbolId>
+      <createdTime>2022-06-03T22:00:05Z</createdTime>
+      <LocalValue>AtomicTNode</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>cfab7629</Symbol>
+      <DisplayName>sh.node.role.100__AtomicTNode</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recOAkkrDxlp0hZYR</EnumSymbolId>
+      <createdTime>2022-05-11T18:31:54Z</createdTime>
+      <LocalValue>WaterFlowGpmTimes100</LocalValue>
+      <Enum>rec2HyLffy6QK9QId</Enum>
+      <Symbol>d70cce28</Symbol>
+      <DisplayName>spaceheat.telemetry.name.100__WaterFlowGpmTimes100</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recOEbA071k9xzfv3</EnumSymbolId>
+      <createdTime>2022-06-03T22:01:10Z</createdTime>
+      <LocalValue>PrimaryScada</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>e7a8d05a</Symbol>
+      <DisplayName>sh.node.role.100__PrimaryScada</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recPOwKTDIww8SLUy</EnumSymbolId>
+      <createdTime>2022-05-11T18:31:54Z</createdTime>
+      <LocalValue>WaterTempCTimes1000</LocalValue>
+      <Enum>rec2HyLffy6QK9QId</Enum>
+      <Symbol>c89d0ba1</Symbol>
+      <DisplayName>spaceheat.telemetry.name.100__WaterTempCTimes1000</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recT4WgGgNHq8EM8c</EnumSymbolId>
+      <createdTime>2022-06-06T18:00:38Z</createdTime>
+      <LocalValue>RelayState</LocalValue>
+      <Enum>rec2HyLffy6QK9QId</Enum>
+      <Symbol>5a71d4b3</Symbol>
+      <DisplayName>spaceheat.telemetry.name.100__RelayState</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recgLuWiIpBnWvI8T</EnumSymbolId>
+      <createdTime>2022-06-03T18:27:35Z</createdTime>
+      <LocalValue>GridWorks__SimBool30AmpRelay</LocalValue>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <Symbol>e81d74a8</Symbol>
+      <DisplayName>spaceheat.make.model.100__GridWorks__SimBool30AmpRelay</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recljcVVnRh9ne2dH</EnumSymbolId>
+      <createdTime>2022-06-03T18:27:38Z</createdTime>
+      <LocalValue>Adafruit__642</LocalValue>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <Symbol>acd93fb3</Symbol>
+      <DisplayName>spaceheat.make.model.100__Adafruit__642</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recob3YuE614ND3hl</EnumSymbolId>
+      <createdTime>2022-06-03T21:55:39Z</createdTime>
+      <LocalValue>Actuator</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>9f13e13e</Symbol>
+      <DisplayName>sh.node.role.100__Actuator</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recq3XELpgNTZptBh</EnumSymbolId>
+      <createdTime>2022-06-03T22:00:28Z</createdTime>
+      <LocalValue>DedicatedThermalStore</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>0ed56a13</Symbol>
+      <DisplayName>sh.node.role.100__DedicatedThermalStore</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recqLabDaSMQ5uIPL</EnumSymbolId>
+      <createdTime>2022-06-03T22:00:36Z</createdTime>
+      <LocalValue>HydronicPipe</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>d9d8f7e1</Symbol>
+      <DisplayName>sh.node.role.100__HydronicPipe</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recqfo3DV2CZigvn5</EnumSymbolId>
+      <createdTime>2022-06-03T18:27:23Z</createdTime>
+      <LocalValue>NCD__PR8-14-SPST</LocalValue>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <Symbol>fabfa505</Symbol>
+      <DisplayName>spaceheat.make.model.100__NCD__PR8-14-SPST</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recqfsKuobhERLH1d</EnumSymbolId>
+      <createdTime>2022-06-03T18:27:48Z</createdTime>
+      <LocalValue>UnknownMake__UnknownModel</LocalValue>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <Symbol>b6a32d9b</Symbol>
+      <DisplayName>spaceheat.make.model.100__UnknownMake__UnknownModel</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recriuBbhyDgwz6U3</EnumSymbolId>
+      <createdTime>2022-06-03T22:01:12Z</createdTime>
+      <LocalValue>Sensor</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>aec254fd</Symbol>
+      <DisplayName>sh.node.role.100__Sensor</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>rectuuZ31wlxmkduh</EnumSymbolId>
+      <createdTime>2022-06-03T22:00:17Z</createdTime>
+      <LocalValue>CirculatorPump</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <Symbol>5247fc8e</Symbol>
+      <DisplayName>sh.node.role.100__CirculatorPump</DisplayName>
+    </EnumSymbol>
+  </EnumSymbols>
+  <SchemaAttributes>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec0bzseFq3amPk5L</SchemaAttributeId>
+      <createdTime>2022-06-07T09:32:26Z</createdTime>
+      <Value>ComponentAttributeClass</Value>
+      <GtSchema>recsMoh2JkG2YPR8u</GtSchema>
+      <SubTypeFormat>reccc96DDf5Ue9FmA</SubTypeFormat>
+      <ImmutableInDc>true</ImmutableInDc>
+      <SubMessageFormatAlias>gt.electric.meter.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec0yzwyCWxtaJQJF</SchemaAttributeId>
       <createdTime>2022-05-11T18:50:00Z</createdTime>
-      <IsRequired>true</IsRequired>
-      <IsPrimitive>true</IsPrimitive>
-      <PrimitiveType>Integer</PrimitiveType>
       <Value>ScadaReadTimeUnixMs</Value>
-      <MpSchema>recqVHqZ5DQVdVgby</MpSchema>
-      <PrimitiveFormat>recqSXVzLo8RtEjlH</PrimitiveFormat>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>rec1lT7lfuqohFuY2</MpSchemaAttributeId>
+      <GtSchema>recqVHqZ5DQVdVgby</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec1lT7lfuqohFuY2</SchemaAttributeId>
       <createdTime>2022-05-12T01:45:00Z</createdTime>
-      <IsRequired>true</IsRequired>
-      <IsList>true</IsList>
-      <IsPrimitive>true</IsPrimitive>
-      <PrimitiveType>Integer</PrimitiveType>
       <Value>PowerWList</Value>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recKwPBxJr8R55KlB</MpSchemaAttributeId>
+      <GtSchema>rechZ9OTpGxuT8xWl</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <IsList>true</IsList>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec1tjyG2fxEVpUYW</SchemaAttributeId>
+      <createdTime>2022-06-06T18:45:39Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recdbl99ZoQqyOhS7</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec2k6vwhh6cSgwse</SchemaAttributeId>
+      <createdTime>2022-06-04T19:11:07Z</createdTime>
+      <Value>ComponentAttributeClassId</Value>
+      <GtSchema>recjwzTYeT77Cq7NZ</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec83s8fct15feQXU</SchemaAttributeId>
+      <createdTime>2022-06-04T19:22:05Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec9E6HTIAJLoh9wW</SchemaAttributeId>
+      <createdTime>2022-06-03T21:41:59Z</createdTime>
+      <Value>MakeModel</Value>
+      <GtSchema>recy2lAURQitTqKTR</GtSchema>
+      <IsRequired>true</IsRequired>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>make.model</EnumLocalName>
+      <EnumRoot>spaceheat.make.model</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recBvZfLA3CxARt9t</SchemaAttributeId>
+      <createdTime>2022-06-07T09:32:21Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recsMoh2JkG2YPR8u</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recD4VpikwJAaTf0c</SchemaAttributeId>
+      <createdTime>2022-06-03T21:41:06Z</createdTime>
+      <Value>ComponentAttributeClassId</Value>
+      <GtSchema>recy2lAURQitTqKTR</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recEXU8tEG6X0jUnU</SchemaAttributeId>
+      <createdTime>2022-06-06T18:45:50Z</createdTime>
+      <Value>ComponentAttributeClass</Value>
+      <GtSchema>recdbl99ZoQqyOhS7</GtSchema>
+      <SubTypeFormat>recy2lAURQitTqKTR</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <PrimitiveType>String</PrimitiveType>
+      <ImmutableInDc>true</ImmutableInDc>
+      <SubMessageFormatAlias>gt.boolean.actuator.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recEnxacHBN9FC6GG</SchemaAttributeId>
+      <createdTime>2022-06-07T09:32:04Z</createdTime>
+      <Value>ComponentId</Value>
+      <GtSchema>recsMoh2JkG2YPR8u</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recGXMXqUz6rHqVzg</SchemaAttributeId>
+      <createdTime>2022-06-07T10:23:56Z</createdTime>
+      <Value>HwUid</Value>
+      <GtSchema>recT6312S7LckLHZ9</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recH7ddbJqijWO0lA</SchemaAttributeId>
+      <createdTime>2022-06-04T19:20:22Z</createdTime>
+      <Value>ComponentAttributeClassId</Value>
+      <GtSchema>reccc96DDf5Ue9FmA</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recIJFbNuY4X6wfQG</SchemaAttributeId>
+      <createdTime>2022-06-07T09:30:40Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recT6312S7LckLHZ9</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recIoMtP3BgfOzQ9C</SchemaAttributeId>
+      <createdTime>2022-06-07T09:37:08Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recHrNVLHcDTTqaCq</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recIu6hGiK3PDyJrn</SchemaAttributeId>
+      <createdTime>2022-06-07T09:36:52Z</createdTime>
+      <Value>ComponentId</Value>
+      <GtSchema>recHrNVLHcDTTqaCq</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recJJ7HIE1Ow738vc</SchemaAttributeId>
+      <createdTime>2022-06-04T19:17:44Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recKVkCs5ktwXS3Bu</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recKwPBxJr8R55KlB</SchemaAttributeId>
       <createdTime>2022-05-11T18:23:36Z</createdTime>
-      <IsRequired>true</IsRequired>
-      <IsPrimitive>true</IsPrimitive>
-      <PrimitiveType>Integer</PrimitiveType>
       <Value>Value</Value>
-      <MpSchema>recqVHqZ5DQVdVgby</MpSchema>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recSUuF57hzqwp3RB</MpSchemaAttributeId>
+      <GtSchema>recqVHqZ5DQVdVgby</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recL9BeJniQtSOgyV</SchemaAttributeId>
+      <createdTime>2022-06-04T19:23:07Z</createdTime>
+      <Value>TempUnit</Value>
+      <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recLeFRJhQzSaEqF9</SchemaAttributeId>
+      <createdTime>2022-06-07T09:32:30Z</createdTime>
+      <Value>HwUid</Value>
+      <GtSchema>recsMoh2JkG2YPR8u</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recMirwvdQxO5qyAY</SchemaAttributeId>
+      <createdTime>2022-06-04T19:20:28Z</createdTime>
+      <Value>CommsMethod</Value>
+      <GtSchema>reccc96DDf5Ue9FmA</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recNiGLIdTxOhujx3</SchemaAttributeId>
+      <createdTime>2022-06-06T18:45:34Z</createdTime>
+      <Value>ComponentId</Value>
+      <GtSchema>recdbl99ZoQqyOhS7</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recPuhtbcBHZR6Qai</SchemaAttributeId>
+      <createdTime>2022-06-06T18:45:55Z</createdTime>
+      <Value>Gpio</Value>
+      <GtSchema>recdbl99ZoQqyOhS7</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recRTTglTWqlyAaQW</SchemaAttributeId>
+      <createdTime>2022-06-04T19:22:03Z</createdTime>
+      <Value>MakeModel</Value>
+      <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsRequired>true</IsRequired>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>make.model</EnumLocalName>
+      <EnumRoot>spaceheat.make.model</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recRZgdQmFjV6kIrY</SchemaAttributeId>
+      <createdTime>2022-06-04T19:17:40Z</createdTime>
+      <Value>ComponentAttributeClassId</Value>
+      <GtSchema>recKVkCs5ktwXS3Bu</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recSUuF57hzqwp3RB</SchemaAttributeId>
       <createdTime>2022-05-12T01:42:26Z</createdTime>
-      <IsRequired>true</IsRequired>
-      <IsPrimitive>true</IsPrimitive>
-      <PrimitiveType>Integer</PrimitiveType>
       <Value>SlotStartUnixS</Value>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recVdAiysaXLvmg8u</MpSchemaAttributeId>
-      <createdTime>2022-05-12T01:42:43Z</createdTime>
+      <GtSchema>rechZ9OTpGxuT8xWl</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recUgsnOcEMiKpYMF</SchemaAttributeId>
+      <createdTime>2022-06-04T19:22:01Z</createdTime>
+      <Value>ComponentAttributeClassId</Value>
+      <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recVdAiysaXLvmg8u</SchemaAttributeId>
+      <createdTime>2022-05-12T01:42:43Z</createdTime>
       <Value>SlotDurationS</Value>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recbVc2FnRaPtSZBS</MpSchemaAttributeId>
+      <GtSchema>rechZ9OTpGxuT8xWl</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recVs9H70Rxs6FuHL</SchemaAttributeId>
+      <createdTime>2022-06-07T09:34:52Z</createdTime>
+      <Value>ComponentId</Value>
+      <GtSchema>rec4u5c6FO198haBK</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recW0pfyJkVdjaRTY</SchemaAttributeId>
+      <createdTime>2022-06-04T19:22:47Z</createdTime>
+      <Value>PrecisionExponent</Value>
+      <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recXsEwhOA9OvUCK6</SchemaAttributeId>
+      <createdTime>2022-06-04T19:22:06Z</createdTime>
+      <Value>CommsMethod</Value>
+      <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recbVc2FnRaPtSZBS</SchemaAttributeId>
       <createdTime>2022-05-12T01:48:51Z</createdTime>
+      <Value>WithdrawalPositive</Value>
+      <GtSchema>rechZ9OTpGxuT8xWl</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Boolean</PrimitiveType>
-      <Value>WithdrawalPositive</Value>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>reccTfzFazDviUeXp</MpSchemaAttributeId>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recbnmzJKD2TRpfWS</SchemaAttributeId>
+      <createdTime>2022-06-04T19:11:09Z</createdTime>
+      <Value>MakeModel</Value>
+      <GtSchema>recjwzTYeT77Cq7NZ</GtSchema>
+      <IsRequired>true</IsRequired>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>make.model</EnumLocalName>
+      <EnumRoot>spaceheat.make.model</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reccTfzFazDviUeXp</SchemaAttributeId>
       <createdTime>2022-05-12T01:49:05Z</createdTime>
-      <IsRequired>true</IsRequired>
-      <IsPrimitive>true</IsPrimitive>
-      <PrimitiveType>String</PrimitiveType>
       <Value>AccuracyCategory</Value>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-      <FiniteString>recC5j0qafDMZTMup</FiniteString>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recfMyBibCC1lqTy1</MpSchemaAttributeId>
-      <createdTime>2022-05-11T18:23:36Z</createdTime>
+      <GtSchema>rechZ9OTpGxuT8xWl</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recdFwlVqkCgZfGIS</SchemaAttributeId>
+      <createdTime>2022-06-07T09:35:25Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>rec4u5c6FO198haBK</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rece76qbENBm5shvn</SchemaAttributeId>
+      <createdTime>2022-06-07T09:37:12Z</createdTime>
+      <Value>ComponentAttributeClass</Value>
+      <GtSchema>recHrNVLHcDTTqaCq</GtSchema>
+      <SubTypeFormat>recrNYtQoRa7YhqI4</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <ImmutableInDc>true</ImmutableInDc>
+      <SubMessageFormatAlias>gt.temp.sensor.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>receNfY7ETGxGwNrO</SchemaAttributeId>
+      <createdTime>2022-06-07T09:37:11Z</createdTime>
+      <TypeCheck>0</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recfMyBibCC1lqTy1</SchemaAttributeId>
+      <createdTime>2022-05-11T18:23:36Z</createdTime>
       <Value>Name</Value>
-      <MpSchema>recqVHqZ5DQVdVgby</MpSchema>
-      <FiniteString>rec2HyLffy6QK9QId</FiniteString>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recgGXDzQHPSfoIYU</MpSchemaAttributeId>
+      <GtSchema>recqVHqZ5DQVdVgby</GtSchema>
+      <IsRequired>true</IsRequired>
+      <PrimitiveType>String</PrimitiveType>
+      <Enum>rec2HyLffy6QK9QId</Enum>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>telemetry.name</EnumLocalName>
+      <EnumRoot>spaceheat.telemetry.name</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recgGXDzQHPSfoIYU</SchemaAttributeId>
       <createdTime>2022-05-12T01:48:57Z</createdTime>
-      <IsRequired>true</IsRequired>
-      <IsPrimitive>true</IsPrimitive>
-      <PrimitiveType>Integer</PrimitiveType>
       <Value>WExponent</Value>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recicAZCWCo8hSu2t</MpSchemaAttributeId>
-      <createdTime>2022-05-12T01:48:37Z</createdTime>
+      <GtSchema>rechZ9OTpGxuT8xWl</GtSchema>
       <IsRequired>true</IsRequired>
-      <IsList>true</IsList>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reci7Ga0o0Ubtlk5g</SchemaAttributeId>
+      <createdTime>2022-06-06T18:45:58Z</createdTime>
+      <Value>HwUid</Value>
+      <GtSchema>recdbl99ZoQqyOhS7</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reciCl45E5pQe7ans</SchemaAttributeId>
+      <createdTime>2022-06-03T21:42:20Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recy2lAURQitTqKTR</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recibIy1C38bRpg0P</SchemaAttributeId>
+      <createdTime>2022-06-07T09:35:30Z</createdTime>
+      <Value>ComponentAttributeClass</Value>
+      <GtSchema>rec4u5c6FO198haBK</GtSchema>
+      <SubTypeFormat>recKVkCs5ktwXS3Bu</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <ImmutableInDc>true</ImmutableInDc>
+      <SubMessageFormatAlias>gt.pipe.flow.sensor.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recicAZCWCo8hSu2t</SchemaAttributeId>
+      <createdTime>2022-05-12T01:48:37Z</createdTime>
       <Value>ScadaReadTimeUnixMsList</Value>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-      <PrimitiveFormat>recqSXVzLo8RtEjlH</PrimitiveFormat>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recn2CJw74mLLQ8tr</MpSchemaAttributeId>
-      <createdTime>2022-05-12T01:51:10Z</createdTime>
+      <GtSchema>rechZ9OTpGxuT8xWl</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <IsList>true</IsList>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reciqkS6Se3Cal1Tf</SchemaAttributeId>
+      <createdTime>2022-06-07T09:35:34Z</createdTime>
+      <Value>HwUid</Value>
+      <GtSchema>rec4u5c6FO198haBK</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recjhc0WrYG4hVbwm</SchemaAttributeId>
+      <createdTime>2022-06-04T19:20:24Z</createdTime>
+      <Value>MakeModel</Value>
+      <GtSchema>reccc96DDf5Ue9FmA</GtSchema>
+      <IsRequired>true</IsRequired>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>make.model</EnumLocalName>
+      <EnumRoot>spaceheat.make.model</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reck9BEiMHH9yeWew</SchemaAttributeId>
+      <createdTime>2022-06-07T09:30:23Z</createdTime>
+      <Value>ComponentId</Value>
+      <GtSchema>recT6312S7LckLHZ9</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recn2CJw74mLLQ8tr</SchemaAttributeId>
+      <createdTime>2022-05-12T01:51:10Z</createdTime>
       <Value>ValidationUid</Value>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-      <PrimitiveFormat>rec24qjC90m0f4Kvl</PrimitiveFormat>
-    </MpSchemaAttribute>
-    <MpSchemaAttribute>
-      <MpSchemaAttributeId>recw4w4kyKb5qsTUd</MpSchemaAttributeId>
+      <GtSchema>rechZ9OTpGxuT8xWl</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recnKO5YoqP045XqY</SchemaAttributeId>
+      <createdTime>2022-06-07T09:34:51Z</createdTime>
+      <TypeCheck>0</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recnTa5fM2QEZCRft</SchemaAttributeId>
+      <createdTime>2022-06-04T19:20:26Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>reccc96DDf5Ue9FmA</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reco2D59kEGzC9zN3</SchemaAttributeId>
+      <createdTime>2022-06-04T19:18:34Z</createdTime>
+      <Value>CommsMethod</Value>
+      <GtSchema>recKVkCs5ktwXS3Bu</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recojCBLEKvcVMiLq</SchemaAttributeId>
+      <createdTime>2022-06-07T09:37:16Z</createdTime>
+      <Value>HwUid</Value>
+      <GtSchema>recHrNVLHcDTTqaCq</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recqIhKpky5FrUJul</SchemaAttributeId>
+      <createdTime>2022-06-07T09:30:45Z</createdTime>
+      <Value>ComponentAttributeClass</Value>
+      <GtSchema>recT6312S7LckLHZ9</GtSchema>
+      <SubTypeFormat>recjwzTYeT77Cq7NZ</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <ImmutableInDc>true</ImmutableInDc>
+      <SubMessageFormatAlias>gt.electric.heater.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recrX6PgQEW9ggu8q</SchemaAttributeId>
+      <createdTime>2022-06-04T19:17:42Z</createdTime>
+      <Value>MakeModel</Value>
+      <GtSchema>recKVkCs5ktwXS3Bu</GtSchema>
+      <IsRequired>true</IsRequired>
+      <Enum>recLQWqTvGwSz2GcN</Enum>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>make.model</EnumLocalName>
+      <EnumRoot>spaceheat.make.model</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recrpGZFYeoLlFiGW</SchemaAttributeId>
+      <createdTime>2022-06-04T19:11:12Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recjwzTYeT77Cq7NZ</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recw4w4kyKb5qsTUd</SchemaAttributeId>
       <createdTime>2022-05-11T18:23:36Z</createdTime>
+      <Value>Power</Value>
+      <GtSchema>recc5qGcZNQPmktbe</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
-      <Value>Power</Value>
-      <MpSchema>recc5qGcZNQPmktbe</MpSchema>
-      <PrimitiveFormat>recx8kL4InkksReIF</PrimitiveFormat>
-    </MpSchemaAttribute>
-  </MpSchemaAttributes>
+      <PrimitiveFormatId>recx8kL4InkksReIF</PrimitiveFormatId>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ShortInteger</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+  </SchemaAttributes>
   <PropertyFormats>
     <PropertyFormat>
       <PropertyFormatId>rec24qjC90m0f4Kvl</PropertyFormatId>
       <createdTime>2022-05-12T01:55:33Z</createdTime>
-      <MpSchemaAttributes>recn2CJw74mLLQ8tr</MpSchemaAttributes>
       <Name>UuidCanonicalTextual</Name>
+      <MpSchemaAttributes>recn2CJw74mLLQ8tr</MpSchemaAttributes>
+      <MpSchemaAttributes>recD4VpikwJAaTf0c</MpSchemaAttributes>
+      <MpSchemaAttributes>rec2k6vwhh6cSgwse</MpSchemaAttributes>
+      <MpSchemaAttributes>recRZgdQmFjV6kIrY</MpSchemaAttributes>
+      <MpSchemaAttributes>recH7ddbJqijWO0lA</MpSchemaAttributes>
+      <MpSchemaAttributes>recUgsnOcEMiKpYMF</MpSchemaAttributes>
+      <MpSchemaAttributes>recNiGLIdTxOhujx3</MpSchemaAttributes>
+      <MpSchemaAttributes>reck9BEiMHH9yeWew</MpSchemaAttributes>
+      <MpSchemaAttributes>recEnxacHBN9FC6GG</MpSchemaAttributes>
+      <MpSchemaAttributes>recVs9H70Rxs6FuHL</MpSchemaAttributes>
+      <MpSchemaAttributes>recIu6hGiK3PDyJrn</MpSchemaAttributes>
     </PropertyFormat>
     <PropertyFormat>
       <PropertyFormatId>recc5MBUv09sg8D4i</PropertyFormatId>
       <createdTime>2022-05-11T18:29:33Z</createdTime>
-      <Description>Integer X, 0&lt;= X &lt;= 65535</Description>
       <Name>UnsignedShort</Name>
+      <Description>Integer X, 0&lt;= X &lt;= 65535</Description>
     </PropertyFormat>
     <PropertyFormat>
       <PropertyFormatId>recqSXVzLo8RtEjlH</PropertyFormatId>
       <createdTime>2022-05-11T18:29:33Z</createdTime>
+      <Name>ReasonableUnixTimeMs</Name>
       <Description>An integer reflecting unix time in ms between midnight Jan 1 2000 and midnight Jan 1 3000 UTC</Description>
       <MpSchemaAttributes>rec0yzwyCWxtaJQJF</MpSchemaAttributes>
       <MpSchemaAttributes>recicAZCWCo8hSu2t</MpSchemaAttributes>
-      <Name>ReasonableUnixTimeMs</Name>
     </PropertyFormat>
     <PropertyFormat>
       <PropertyFormatId>recx8kL4InkksReIF</PropertyFormatId>
       <createdTime>2022-05-11T18:29:33Z</createdTime>
+      <Name>ShortInteger</Name>
       <Description>short format requires (-32767 -1) &lt;= number &lt;= 32767</Description>
       <MpSchemaAttributes>recw4w4kyKb5qsTUd</MpSchemaAttributes>
-      <Name>ShortInteger</Name>
     </PropertyFormat>
   </PropertyFormats>
-  <FiniteStringSetMembers>
-    <FiniteStringSetMember>
-      <FiniteStringSetMemberId>recAu5abxRBSG7Csu</FiniteStringSetMemberId>
-      <createdTime>2022-05-11T18:31:54Z</createdTime>
-      <Value>Ansi12.20__0.5</Value>
-      <FiniteStringSet>recC5j0qafDMZTMup</FiniteStringSet>
-      <DisplayName>AccuracyCategory__Ansi12.20__0.5</DisplayName>
-    </FiniteStringSetMember>
-    <FiniteStringSetMember>
-      <FiniteStringSetMemberId>recOAkkrDxlp0hZYR</FiniteStringSetMemberId>
-      <createdTime>2022-05-11T18:31:54Z</createdTime>
-      <Value>WaterFlowGpmTimes100</Value>
-      <FiniteStringSet>rec2HyLffy6QK9QId</FiniteStringSet>
-      <DisplayName>TelemetryName__WaterFlowGpmTimes100</DisplayName>
-    </FiniteStringSetMember>
-    <FiniteStringSetMember>
-      <FiniteStringSetMemberId>recPOwKTDIww8SLUy</FiniteStringSetMemberId>
-      <createdTime>2022-05-11T18:31:54Z</createdTime>
-      <Value>Probably__1.5</Value>
-      <FiniteStringSet>recC5j0qafDMZTMup</FiniteStringSet>
-      <DisplayName>AccuracyCategory__Probably__1.5</DisplayName>
-    </FiniteStringSetMember>
-  </FiniteStringSetMembers>
+  <Schemas>
+    <Schema>
+      <SchemaId>rec4u5c6FO198haBK</SchemaId>
+      <createdTime>2022-06-07T09:29:22Z</createdTime>
+      <AliasRoot>gt.pipe.flow.sensor.component</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recVs9H70Rxs6FuHL</SchemaAttributes>
+      <SchemaAttributes>recdFwlVqkCgZfGIS</SchemaAttributes>
+      <SchemaAttributes>recibIy1C38bRpg0P</SchemaAttributes>
+      <SchemaAttributes>reciqkS6Se3Cal1Tf</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>PipeFlowSensorComponent</DataClass>
+      <IsComponent>true</IsComponent>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.pipe.flow.sensor.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recHrNVLHcDTTqaCq</SchemaId>
+      <createdTime>2022-06-07T09:29:41Z</createdTime>
+      <AliasRoot>gt.temp.sensor.component</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recIu6hGiK3PDyJrn</SchemaAttributes>
+      <SchemaAttributes>recIoMtP3BgfOzQ9C</SchemaAttributes>
+      <SchemaAttributes>rece76qbENBm5shvn</SchemaAttributes>
+      <SchemaAttributes>recojCBLEKvcVMiLq</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>TempSensorComponent</DataClass>
+      <IsComponent>true</IsComponent>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.temp.sensor.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recKVkCs5ktwXS3Bu</SchemaId>
+      <createdTime>2022-06-04T19:17:25Z</createdTime>
+      <AliasRoot>gt.pipe.flow.sensor.cac</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recRZgdQmFjV6kIrY</SchemaAttributes>
+      <SchemaAttributes>recrX6PgQEW9ggu8q</SchemaAttributes>
+      <SchemaAttributes>recJJ7HIE1Ow738vc</SchemaAttributes>
+      <SchemaAttributes>reco2D59kEGzC9zN3</SchemaAttributes>
+      <UsedAsSubMessagein>recibIy1C38bRpg0P</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>PipeFlowSensorCac</DataClass>
+      <IsCac>true</IsCac>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.pipe.flow.sensor.cac.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recT6312S7LckLHZ9</SchemaId>
+      <createdTime>2022-06-07T09:28:38Z</createdTime>
+      <AliasRoot>gt.electric.heater.component</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>reck9BEiMHH9yeWew</SchemaAttributes>
+      <SchemaAttributes>recIJFbNuY4X6wfQG</SchemaAttributes>
+      <SchemaAttributes>recqIhKpky5FrUJul</SchemaAttributes>
+      <SchemaAttributes>recGXMXqUz6rHqVzg</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>ElectricHeaterComponent</DataClass>
+      <IsComponent>true</IsComponent>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.electric.heater.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recc5qGcZNQPmktbe</SchemaId>
+      <createdTime>2022-05-11T18:08:26Z</createdTime>
+      <AliasRoot>gs.pwr</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>GridworksSerial</ProtocolType>
+      <SchemaAttributes>recw4w4kyKb5qsTUd</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <SendAlias>p</SendAlias>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gs.pwr.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>reccc96DDf5Ue9FmA</SchemaId>
+      <createdTime>2022-06-04T19:20:11Z</createdTime>
+      <AliasRoot>gt.electric.meter.cac</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recH7ddbJqijWO0lA</SchemaAttributes>
+      <SchemaAttributes>recjhc0WrYG4hVbwm</SchemaAttributes>
+      <SchemaAttributes>recnTa5fM2QEZCRft</SchemaAttributes>
+      <SchemaAttributes>recMirwvdQxO5qyAY</SchemaAttributes>
+      <UsedAsSubMessagein>rec0bzseFq3amPk5L</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>ElectricMeterCac</DataClass>
+      <IsCac>true</IsCac>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.electric.meter.cac.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recdbl99ZoQqyOhS7</SchemaId>
+      <createdTime>2022-06-06T18:44:52Z</createdTime>
+      <AliasRoot>gt.boolean.actuator.component</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recNiGLIdTxOhujx3</SchemaAttributes>
+      <SchemaAttributes>rec1tjyG2fxEVpUYW</SchemaAttributes>
+      <SchemaAttributes>recEXU8tEG6X0jUnU</SchemaAttributes>
+      <SchemaAttributes>recPuhtbcBHZR6Qai</SchemaAttributes>
+      <SchemaAttributes>reci7Ga0o0Ubtlk5g</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>BooleanActuatorComponent</DataClass>
+      <IsComponent>true</IsComponent>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.boolean.actuator.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>rechZ9OTpGxuT8xWl</SchemaId>
+      <createdTime>2022-05-11T18:08:26Z</createdTime>
+      <AliasRoot>gt.power.sync</AliasRoot>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recSUuF57hzqwp3RB</SchemaAttributes>
+      <SchemaAttributes>recVdAiysaXLvmg8u</SchemaAttributes>
+      <SchemaAttributes>rec1lT7lfuqohFuY2</SchemaAttributes>
+      <SchemaAttributes>recicAZCWCo8hSu2t</SchemaAttributes>
+      <SchemaAttributes>recbVc2FnRaPtSZBS</SchemaAttributes>
+      <SchemaAttributes>recgGXDzQHPSfoIYU</SchemaAttributes>
+      <SchemaAttributes>reccTfzFazDviUeXp</SchemaAttributes>
+      <SchemaAttributes>recn2CJw74mLLQ8tr</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.power.sync.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recjwzTYeT77Cq7NZ</SchemaId>
+      <createdTime>2022-06-04T19:10:47Z</createdTime>
+      <AliasRoot>gt.electric.heater.cac</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>rec2k6vwhh6cSgwse</SchemaAttributes>
+      <SchemaAttributes>recbnmzJKD2TRpfWS</SchemaAttributes>
+      <SchemaAttributes>recrpGZFYeoLlFiGW</SchemaAttributes>
+      <UsedAsSubMessagein>recqIhKpky5FrUJul</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>ElectricHeaterCac</DataClass>
+      <IsCac>true</IsCac>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.electric.heater.cac.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recqVHqZ5DQVdVgby</SchemaId>
+      <createdTime>2022-05-11T18:08:26Z</createdTime>
+      <AliasRoot>gt.telemetry</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recfMyBibCC1lqTy1</SchemaAttributes>
+      <SchemaAttributes>recKwPBxJr8R55KlB</SchemaAttributes>
+      <SchemaAttributes>rec0yzwyCWxtaJQJF</SchemaAttributes>
+      <Enums>rec2HyLffy6QK9QId</Enums>
+      <SemanticEnd>100</SemanticEnd>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.telemetry.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recrNYtQoRa7YhqI4</SchemaId>
+      <createdTime>2022-06-04T19:21:25Z</createdTime>
+      <AliasRoot>gt.temp.sensor.cac</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recUgsnOcEMiKpYMF</SchemaAttributes>
+      <SchemaAttributes>recRTTglTWqlyAaQW</SchemaAttributes>
+      <SchemaAttributes>rec83s8fct15feQXU</SchemaAttributes>
+      <SchemaAttributes>recXsEwhOA9OvUCK6</SchemaAttributes>
+      <SchemaAttributes>recW0pfyJkVdjaRTY</SchemaAttributes>
+      <SchemaAttributes>recL9BeJniQtSOgyV</SchemaAttributes>
+      <UsedAsSubMessagein>rece76qbENBm5shvn</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>TempSensorCac</DataClass>
+      <IsCac>true</IsCac>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.temp.sensor.cac.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recsMoh2JkG2YPR8u</SchemaId>
+      <createdTime>2022-06-07T09:29:06Z</createdTime>
+      <AliasRoot>gt.electric.meter.component</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recEnxacHBN9FC6GG</SchemaAttributes>
+      <SchemaAttributes>recBvZfLA3CxARt9t</SchemaAttributes>
+      <SchemaAttributes>rec0bzseFq3amPk5L</SchemaAttributes>
+      <SchemaAttributes>recLeFRJhQzSaEqF9</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>ElectricMeterComponent</DataClass>
+      <IsComponent>true</IsComponent>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.electric.meter.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recy2lAURQitTqKTR</SchemaId>
+      <createdTime>2022-06-03T18:20:11Z</createdTime>
+      <AliasRoot>gt.boolean.actuator.cac</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recD4VpikwJAaTf0c</SchemaAttributes>
+      <SchemaAttributes>rec9E6HTIAJLoh9wW</SchemaAttributes>
+      <SchemaAttributes>reciCl45E5pQe7ans</SchemaAttributes>
+      <UsedAsSubMessagein>recEXU8tEG6X0jUnU</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>BooleanActuatorCac</DataClass>
+      <IsCac>true</IsCac>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.boolean.actuator.cac.100</Alias>
+    </Schema>
+  </Schemas>
   <ShNodes>
     <ShNode>
       <ShNodeId>rec5irQQ3Qbvn0bMk</ShNodeId>
@@ -460,27 +1310,6 @@
       <fields />
     </ShNode>
   </ShNodes>
-  <FiniteStringSets>
-    <FiniteStringSet>
-      <FiniteStringSetId>rec2HyLffy6QK9QId</FiniteStringSetId>
-      <createdTime>2022-05-11T18:30:57Z</createdTime>
-      <FiniteStringSetMembers>recOAkkrDxlp0hZYR</FiniteStringSetMembers>
-      <Alias>TelemetryName</Alias>
-      <MpSchema>recqVHqZ5DQVdVgby</MpSchema>
-      <MpSchemaAttributes>recfMyBibCC1lqTy1</MpSchemaAttributes>
-      <MpSchemaAlias>gt.telemetry.100</MpSchemaAlias>
-    </FiniteStringSet>
-    <FiniteStringSet>
-      <FiniteStringSetId>recC5j0qafDMZTMup</FiniteStringSetId>
-      <createdTime>2022-05-11T18:30:57Z</createdTime>
-      <FiniteStringSetMembers>recAu5abxRBSG7Csu</FiniteStringSetMembers>
-      <FiniteStringSetMembers>recPOwKTDIww8SLUy</FiniteStringSetMembers>
-      <Alias>AccuracyCategory</Alias>
-      <MpSchema>rechZ9OTpGxuT8xWl</MpSchema>
-      <MpSchemaAttributes>reccTfzFazDviUeXp</MpSchemaAttributes>
-      <MpSchemaAlias>gt.power.sync.1_0_0</MpSchemaAlias>
-    </FiniteStringSet>
-  </FiniteStringSets>
   <AppUsers>
     <AppUser>
       <AppUserId>recAKQqf40s5G0Q7h</AppUserId>
@@ -498,80 +1327,4 @@
       <fields />
     </AppUser>
   </AppUsers>
-  <MpSchemas>
-    <MpSchema>
-      <MpSchemaId>recc5qGcZNQPmktbe</MpSchemaId>
-      <createdTime>2022-05-11T18:08:26Z</createdTime>
-      <ProtocolType>GridworksSerial</ProtocolType>
-      <PublishedMessages>recEO7YGIkUrmkxYQ</PublishedMessages>
-      <PublishedMessages>recjlxwKfbt02DSdx</PublishedMessages>
-      <Title>gs.pwr</Title>
-      <Patch>0</Patch>
-      <MinorVersion>0</MinorVersion>
-      <MpSchemaAttributes>recw4w4kyKb5qsTUd</MpSchemaAttributes>
-      <SentAlias>p</SentAlias>
-      <MajorVersion>1</MajorVersion>
-      <Alias>p</Alias>
-      <SemanticVersion>1.0.0</SemanticVersion>
-    </MpSchema>
-    <MpSchema>
-      <MpSchemaId>rechZ9OTpGxuT8xWl</MpSchemaId>
-      <createdTime>2022-05-11T18:08:26Z</createdTime>
-      <ProtocolType>Json</ProtocolType>
-      <FiniteStringSets>recC5j0qafDMZTMup</FiniteStringSets>
-      <Title>gt.power.sync</Title>
-      <Patch>0</Patch>
-      <MinorVersion>0</MinorVersion>
-      <MpSchemaAttributes>recSUuF57hzqwp3RB</MpSchemaAttributes>
-      <MpSchemaAttributes>recVdAiysaXLvmg8u</MpSchemaAttributes>
-      <MpSchemaAttributes>rec1lT7lfuqohFuY2</MpSchemaAttributes>
-      <MpSchemaAttributes>recicAZCWCo8hSu2t</MpSchemaAttributes>
-      <MpSchemaAttributes>recbVc2FnRaPtSZBS</MpSchemaAttributes>
-      <MpSchemaAttributes>recgGXDzQHPSfoIYU</MpSchemaAttributes>
-      <MpSchemaAttributes>reccTfzFazDviUeXp</MpSchemaAttributes>
-      <MpSchemaAttributes>recn2CJw74mLLQ8tr</MpSchemaAttributes>
-      <MajorVersion>1</MajorVersion>
-      <Alias>gt.power.sync.1_0_0</Alias>
-      <SemanticVersion>1.0.0</SemanticVersion>
-    </MpSchema>
-    <MpSchema>
-      <MpSchemaId>recqVHqZ5DQVdVgby</MpSchemaId>
-      <createdTime>2022-05-11T18:08:26Z</createdTime>
-      <ProtocolType>Json</ProtocolType>
-      <FiniteStringSets>rec2HyLffy6QK9QId</FiniteStringSets>
-      <Title>gt.telemetry</Title>
-      <Patch>0</Patch>
-      <MinorVersion>0</MinorVersion>
-      <MpSchemaAttributes>recfMyBibCC1lqTy1</MpSchemaAttributes>
-      <MpSchemaAttributes>recKwPBxJr8R55KlB</MpSchemaAttributes>
-      <MpSchemaAttributes>rec0yzwyCWxtaJQJF</MpSchemaAttributes>
-      <MajorVersion>1</MajorVersion>
-      <Alias>gt.telemetry.100</Alias>
-      <SemanticVersion>1.0.0</SemanticVersion>
-    </MpSchema>
-  </MpSchemas>
-  <ConsumedMessages>
-    <ConsumedMessage>
-      <ConsumedMessageId>recNYmQJO2G9sOI7C</ConsumedMessageId>
-      <createdTime>2022-05-11T19:15:17Z</createdTime>
-      <ConsumerRole>recDyzT3tw0zHNEVE</ConsumerRole>
-      <DisplayName>TODO</DisplayName>
-      <ConsumerRoleAlias>PrimaryScada</ConsumerRoleAlias>
-    </ConsumedMessage>
-    <ConsumedMessage>
-      <ConsumedMessageId>recafcjv6deILzv4T</ConsumedMessageId>
-      <createdTime>2022-05-11T19:15:17Z</createdTime>
-      <DisplayName>TODO</DisplayName>
-    </ConsumedMessage>
-    <ConsumedMessage>
-      <ConsumedMessageId>recyqkzMNEacz4Hxz</ConsumedMessageId>
-      <createdTime>2022-05-11T19:15:17Z</createdTime>
-      <ConsumerRole>recvycbh2DmuY9VBZ</ConsumerRole>
-      <PublishedMessage>recEO7YGIkUrmkxYQ</PublishedMessage>
-      <DisplayName>TODO</DisplayName>
-      <ConsumerRoleAlias>AtomicTNode</ConsumerRoleAlias>
-      <PublisherRolefromPublishedMessage>recDyzT3tw0zHNEVE</PublisherRolefromPublishedMessage>
-      <MpSchema>recc5qGcZNQPmktbe</MpSchema>
-    </ConsumedMessage>
-  </ConsumedMessages>
 </Airtable>

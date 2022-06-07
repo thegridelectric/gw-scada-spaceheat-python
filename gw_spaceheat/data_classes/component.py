@@ -3,13 +3,12 @@
 from abc import ABC
 from typing import Optional
 
-from data_classes.errors import DcError
 from data_classes.mixin import StreamlinedSerializerMixin
+from data_classes.component_attribute_class import ComponentAttributeClass
 
 
 class Component(ABC, StreamlinedSerializerMixin):
     by_id = {}
-    
     base_props = []
     base_props.append('component_id')
     base_props.append('display_name')
@@ -25,35 +24,15 @@ class Component(ABC, StreamlinedSerializerMixin):
             return instance
 
     def __init__(self,
-                 component_id: Optional[str] = None,
+                 component_id: str,
+                 component_attribute_class_id: str,
                  display_name: Optional[str] = None,
-                 component_attribute_class_id: Optional[str] = None,
                  hw_uid: Optional[str] = None):
         self.component_id = component_id
         self.display_name = display_name
         self.component_attribute_class_id = component_attribute_class_id
         self.hw_uid = hw_uid
 
-    def __repr__(self):
-        return f'Component {self.display_name}'
-
-    @classmethod
-    def check_uniqueness_of_primary_key(cls, attributes):
-        if attributes['component_id'] in cls.by_id.keys():
-            raise DcError(f"component_id {attributes['component_id']} already in use")
-
-    @classmethod
-    def check_existence_of_certain_attributes(cls, attributes):
-        if 'component_id' not in attributes.keys():
-            raise DcError('component_id must exist')
-        if 'electric_heater_component_attribute_class_id' not in attributes.keys():
-            raise DcError('electric_heater_component_attribute_class_id must exist')
-        if 'display_name' not in attributes.keys():
-            raise DcError('display_name must exist')
-
-    @classmethod
-    def check_initialization_consistency(cls, attributes):
-        Component.check_uniqueness_of_primary_key(attributes)
-        Component.check_existence_of_certain_attributes(attributes)
-
-    
+    @property
+    def component_attribute_class(self) -> ComponentAttributeClass:
+        return ComponentAttributeClass.by_id[self.component_attribute_class_id]
