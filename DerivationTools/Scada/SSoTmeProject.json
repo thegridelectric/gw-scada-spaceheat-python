@@ -51,10 +51,98 @@
         "Name": "XmlXsltTransform",
         "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
       },
-      "ProjectTranspilerId": "ff4127a5-e029-4122-9d2d-a5f8b3d684f8",
+      "ProjectTranspilerId": "916a4b34-9ea8-4a5e-bd3b-3b57bc423b70",
       "Name": "XmlXsltTransform",
-      "RelativePath": "/DataClasses",
-      "CommandLine": "codee42/xml-xslt-transform -p exclude-collections=true -p relationship-suffix=_id -p legacy=false -i ../ODXML/DataSchema.odxml -i DerivePythonDataClasses.xslt -i ../ScadaCommon.xslt -i ../SSoT/Airtable.xml -w 120000"
+      "RelativePath": "/Schema",
+      "CommandLine": "codee42/xml-xslt-transform -i ../SSoT/Airtable.xml -i DeriveSchemas.xslt -i ../ScadaCommon.xslt -i ../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "ad455b89-0619-4631-a8e2-657d5aa0642b",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Schema/SchemaBase",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveSchemaBases.xslt -i ../../ScadaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "31e7a503-eb8a-47fe-85ef-70fdcc24c24a",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Schema/TypeMaker",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveTypeMakers.xslt -i ../../ScadaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "3106a993-4266-4edd-b479-382acaafaafd",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Schema/Enum",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveEnums.xslt -i ../../ScadaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "65be8826-8ae4-4f25-aa69-875f177bca09",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Schema/Enum/EnumMaker",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../../SSoT/Airtable.xml -i DeriveEnumMakers.xslt -i ../../../ScadaCommon.xslt -i ../../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "322d3489-5702-439b-a1d4-e6de080e0e7c",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/DataClass/Cac",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveCacs.xslt -i ../../ScadaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "e32caa1f-1c05-4482-9a54-050abb04dd7d",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/DataClass/Cac/CacBase",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../../SSoT/Airtable.xml -i DeriveCacBases.xslt -i ../../../ScadaCommon.xslt -i ../../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "def6d9c9-ffca-4f97-b9e0-ef76443acf1a",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/DataClass/Component",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveComponents.xslt -i ../../ScadaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "0ea61b7f-3603-4f09-bde4-ab9d9109c69b",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/DataClass/Component/ComponentBase",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../../SSoT/Airtable.xml -i DeriveComponentBases.xslt -i ../../../ScadaCommon.xslt -i ../../../ODXML/DataSchema.odxml -w 120000"
     }
   ]
 }
