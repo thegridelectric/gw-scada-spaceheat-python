@@ -3,7 +3,7 @@
 from typing import List, Dict, Tuple, Optional, Any
 from schema.errors import MpSchemaError
 from data_classes.errors import DcError, DataClassLoadingError
-from schema.gt.enum.mp_status import MpStatus
+from schema.enums.mp_status import MpStatus
 from data_classes.component import Component
 from schema.gt.gnr.component.gt_component_1_0_0 import GtComponent100
     

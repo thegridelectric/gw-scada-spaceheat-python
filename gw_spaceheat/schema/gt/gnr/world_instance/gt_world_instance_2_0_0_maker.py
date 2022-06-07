@@ -3,7 +3,7 @@
 from typing import List, Dict, Tuple, Optional, Any
 from schema.errors import MpSchemaError
 from data_classes.errors import DcError, DataClassLoadingError
-from schema.gt.enum.mp_status import MpStatus
+from schema.enums.mp_status import MpStatus
 from data_classes.world_instance import WorldInstance
 from schema.gt.gnr.world_instance.gt_world_instance_2_0_0 import GtWorldInstance200
     

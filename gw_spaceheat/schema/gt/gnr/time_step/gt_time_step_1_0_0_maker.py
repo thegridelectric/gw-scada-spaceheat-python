@@ -3,7 +3,7 @@
 from typing import List, Dict, Tuple, Optional, Any
 from schema.errors import MpSchemaError
 from data_classes.errors import DcError, DataClassLoadingError
-from schema.gt.enum.mp_status import MpStatus
+from schema.enums.mp_status import MpStatus
 from data_classes.time_step import TimeStep
 from schema.gt.gnr.time_step.gt_time_step_1_0_0 import GtTimeStep100
     
