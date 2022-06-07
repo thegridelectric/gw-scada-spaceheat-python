@@ -286,7 +286,8 @@
         {
             "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
             "DisplayName": "Main Power meter for Little orange house garage space heat",
-            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951"
+            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+            "CommsMethod": "Unknown"
         }
     ],
     "PipeFlowSensorComponents": [
@@ -326,63 +327,65 @@
     "ElectricHeaterCacs": [
         {
             "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-            "ElectricHeaterTypeValue": "WaterHeaterBoost"
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         }
     ],
     "BooleanActuatorCacs":[
         {
             "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
-            "ActuatorTypeValue": "ElectricRelay",
-            "MakeModel": "GridWorks__SimBool30AmpRelay"
+            "SpaceheatMakeModelGtEnumSymbol": "e81d74a8"
         }
     ],
     "PipeFlowSensorCacs":[
         {
             "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
-            "SensorTypeValue": "WaterFlowMeter"
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         }
     ],
     "ElectricMeterCacs": [
         {
             "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-            "SensorTypeValue": "ElectricPowerMeter"
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         }
     ],
     "TempSensorCacs": [
         {
             "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-            "MakeModel": "GridWorks__WaterTempHighPrecision",
+            "SpaceheatMakeModelGtEnumSymbol": "f8b497e8",
             "DisplayName": "Simulated GridWorks high precision water temp sensor",
-            "SensorTypeValue": "WaterStoreTempSensor",
             "CommsMethod": "SassyMQ",
             "PrecisionExponent": 3,
             "TempUnit": "F"
         },
         {
             "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
-            "SensorTypeValue": "PipeClampWaterTempSensor"
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         },
         {
             "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
-            "SensorTypeValue": "IndoorAirTempSensor"
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         },
         {
             "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
-            "SensorTypeValue": "OutdoorAirTempSensor"
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         }
     ],
     "OtherCacs": [
         {
-            "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407"
+            "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407",
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         },
         {
-            "ComponentAttributeClassId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa"
+            "ComponentAttributeClassId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa",
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         },
         {
-            "ComponentAttributeClassId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776"
+            "ComponentAttributeClassId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776",
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         },
         {
-            "ComponentAttributeClassId": "c884aafe-99e0-4468-8bff-ffa74f672f9d"
+            "ComponentAttributeClassId": "c884aafe-99e0-4468-8bff-ffa74f672f9d",
+            "SpaceheatMakeModelGtEnumSymbol": "b6a32d9b"
         }
     ]
 
