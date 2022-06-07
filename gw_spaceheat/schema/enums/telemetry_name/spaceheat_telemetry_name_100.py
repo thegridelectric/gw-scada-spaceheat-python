@@ -9,7 +9,7 @@ class TelemetryName(enum.Enum):
     WATERFLOWGPMTIMES100 = "WaterFlowGpmTimes100"
     WATERTEMPCTIMES1000 = "WaterTempCTimes1000"
     RELAYSTATE = "RelayState"
-
+    
 
 class SpaceheatTelemetryName100GtEnum(ABC):
     symbols: List[str] = ["793505aa",

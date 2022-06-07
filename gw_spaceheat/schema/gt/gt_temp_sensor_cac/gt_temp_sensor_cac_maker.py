@@ -19,12 +19,12 @@ class GtTempSensorCac_Maker():
                  comms_method: Optional[str]):
 
         t = GtTempSensorCac100(DisplayName=display_name,
-                               TempUnit=temp_unit,
-                               MakeModel=make_model,
-                               ComponentAttributeClassId=component_attribute_class_id,
-                               PrecisionExponent=precision_exponent,
-                               CommsMethod=comms_method,
-                               )
+                                          TempUnit=temp_unit,
+                                          MakeModel=make_model,
+                                          ComponentAttributeClassId=component_attribute_class_id,
+                                          PrecisionExponent=precision_exponent,
+                                          CommsMethod=comms_method,
+                                          )
         t.check_for_errors()
         self.type = t
 
@@ -45,12 +45,12 @@ class GtTempSensorCac_Maker():
             d["CommsMethod"] = None
 
         t = GtTempSensorCac100(DisplayName=d["DisplayName"],
-                               TempUnit=d["TempUnit"],
-                               ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                               PrecisionExponent=d["PrecisionExponent"],
-                               CommsMethod=d["CommsMethod"],
-                               MakeModel=d["MakeModel"],
-                               )
+                                          TempUnit=d["TempUnit"],
+                                          ComponentAttributeClassId=d["ComponentAttributeClassId"],
+                                          PrecisionExponent=d["PrecisionExponent"],
+                                          CommsMethod=d["CommsMethod"],
+                                          MakeModel=d["MakeModel"],
+                                          )
         t.check_for_errors()
         return t
 
@@ -62,7 +62,7 @@ class GtTempSensorCac_Maker():
             'component_attribute_class_id': t.ComponentAttributeClassId,
             'precision_exponent': t.PrecisionExponent,
             'comms_method': t.CommsMethod,
-            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel), }
+            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
         if s['component_attribute_class_id'] in TempSensorCac.by_id.keys():
             dc = TempSensorCac.by_id[s['component_attribute_class_id']]
         else:
@@ -74,12 +74,12 @@ class GtTempSensorCac_Maker():
         if dc is None:
             return None
         t = GtTempSensorCac100(DisplayName=dc.display_name,
-                               TempUnit=dc.temp_unit,
-                               MakeModel=dc.make_model,
-                               ComponentAttributeClassId=dc.component_attribute_class_id,
-                               PrecisionExponent=dc.precision_exponent,
-                               CommsMethod=dc.comms_method,
-                               )
+                                          TempUnit=dc.temp_unit,
+                                          MakeModel=dc.make_model,
+                                          ComponentAttributeClassId=dc.component_attribute_class_id,
+                                          PrecisionExponent=dc.precision_exponent,
+                                          CommsMethod=dc.comms_method,
+                                          )
         t.check_for_errors()
         return t
 
@@ -90,3 +90,4 @@ class GtTempSensorCac_Maker():
     @classmethod
     def dc_to_dict(cls, dc: TempSensorCac) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
+    

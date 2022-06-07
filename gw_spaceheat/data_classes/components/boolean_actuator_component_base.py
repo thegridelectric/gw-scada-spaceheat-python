@@ -27,9 +27,9 @@ class BooleanActuatorComponentBase(Component):
                  ):
 
         super(BooleanActuatorComponentBase, self).__init__(component_id=component_id,
-                                                           display_name=display_name,
-                                                           component_attribute_class_id=component_attribute_class_id,
-                                                           hw_uid=hw_uid)
+                                             display_name=display_name,
+                                             component_attribute_class_id=component_attribute_class_id,
+                                             hw_uid=hw_uid)
         self.gpio = gpio
         self.hw_uid = hw_uid
         self.component_attribute_class_id = component_attribute_class_id   #

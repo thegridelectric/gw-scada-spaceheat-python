@@ -44,5 +44,5 @@ class GtBooleanActuatorComponent100Base(NamedTuple):
                           " must have format UuidCanonicalTextual")
         if self.Alias != 'gt.boolean.actuator.component.100':
             errors.append(f"Type requires Alias of gt.boolean.actuator.component.100, not {self.Alias}.")
-
+        
         return errors

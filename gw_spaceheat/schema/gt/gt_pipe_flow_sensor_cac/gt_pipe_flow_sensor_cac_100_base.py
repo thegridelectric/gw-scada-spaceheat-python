@@ -38,5 +38,5 @@ class GtPipeFlowSensorCac100Base(NamedTuple):
             errors.append(f"MakeModel {self.MakeModel} must have type {MakeModel}.")
         if self.Alias != 'gt.pipe.flow.sensor.cac.100':
             errors.append(f"Type requires Alias of gt.pipe.flow.sensor.cac.100, not {self.Alias}.")
-
+        
         return errors

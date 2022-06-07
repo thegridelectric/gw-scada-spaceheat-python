@@ -6,7 +6,7 @@ from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_100 i
 
 
 class PipeFlowSensorComponent(PipeFlowSensorComponentBase):
-    by_id: Dict[str, PipeFlowSensorComponentBase] = PipeFlowSensorComponentBase._by_id
+    by_id: Dict[str, PipeFlowSensorComponentBase] =  PipeFlowSensorComponentBase._by_id
 
     def __init__(self, component_id: str,
                  component_attribute_class_id: str,

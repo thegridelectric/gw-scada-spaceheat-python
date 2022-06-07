@@ -38,5 +38,5 @@ class GtPipeFlowSensorComponent100Base(NamedTuple):
                           " must have format UuidCanonicalTextual")
         if self.Alias != 'gt.pipe.flow.sensor.component.100':
             errors.append(f"Type requires Alias of gt.pipe.flow.sensor.component.100, not {self.Alias}.")
-
+        
         return errors

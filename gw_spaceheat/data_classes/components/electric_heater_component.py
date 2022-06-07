@@ -6,7 +6,7 @@ from schema.gt.gt_electric_heater_component.gt_electric_heater_component_100 imp
 
 
 class ElectricHeaterComponent(ElectricHeaterComponentBase):
-    by_id: Dict[str, ElectricHeaterComponentBase] = ElectricHeaterComponentBase._by_id
+    by_id: Dict[str, ElectricHeaterComponentBase] =  ElectricHeaterComponentBase._by_id
 
     def __init__(self, component_id: str,
                  component_attribute_class_id: str,

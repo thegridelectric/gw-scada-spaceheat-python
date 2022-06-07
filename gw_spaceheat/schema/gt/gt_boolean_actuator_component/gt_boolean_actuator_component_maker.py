@@ -55,7 +55,7 @@ class GtBooleanActuatorComponent_Maker():
             'gpio': t.Gpio,
             'hw_uid': t.HwUid,
             'component_attribute_class_id': t.ComponentAttributeClassId,
-        }
+            }
         if s['component_id'] in BooleanActuatorComponent.by_id.keys():
             dc = BooleanActuatorComponent.by_id[s['component_id']]
         else:
@@ -82,3 +82,4 @@ class GtBooleanActuatorComponent_Maker():
     @classmethod
     def dc_to_dict(cls, dc: BooleanActuatorComponent) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
+    

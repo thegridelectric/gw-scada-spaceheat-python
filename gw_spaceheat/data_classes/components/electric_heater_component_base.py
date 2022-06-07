@@ -25,9 +25,9 @@ class ElectricHeaterComponentBase(Component):
                  ):
 
         super(ElectricHeaterComponentBase, self).__init__(component_id=component_id,
-                                                          display_name=display_name,
-                                                          component_attribute_class_id=component_attribute_class_id,
-                                                          hw_uid=hw_uid)
+                                             display_name=display_name,
+                                             component_attribute_class_id=component_attribute_class_id,
+                                             hw_uid=hw_uid)
         self.hw_uid = hw_uid
         self.component_attribute_class_id = component_attribute_class_id   #
         ElectricHeaterComponentBase._by_id[self.component_id] = self

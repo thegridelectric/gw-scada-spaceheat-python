@@ -10,7 +10,7 @@ class MakeModel(enum.Enum):
     ADAFRUIT__642 = "Adafruit__642"
     NCD__PR814SPST = "NCD__PR8-14-SPST"
     UNKNOWNMAKE__UNKNOWNMODEL = "UnknownMake__UnknownModel"
-
+    
 
 class SpaceheatMakeModel100GtEnum(ABC):
     symbols: List[str] = ["f8b497e8",

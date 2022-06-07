@@ -49,4 +49,4 @@ class RoleMap():
         Role.HYDRONICPIPE: "d9d8f7e1",
         Role.SENSOR: "aec254fd",
         Role.CIRCULATORPUMP: "5247fc8e",
-    }
+         }

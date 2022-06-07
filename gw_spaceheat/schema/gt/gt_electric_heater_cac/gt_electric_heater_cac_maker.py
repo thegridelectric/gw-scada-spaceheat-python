@@ -16,9 +16,9 @@ class GtElectricHeaterCac_Maker():
                  display_name: Optional[str]):
 
         t = GtElectricHeaterCac100(ComponentAttributeClassId=component_attribute_class_id,
-                                   MakeModel=make_model,
-                                   DisplayName=display_name,
-                                   )
+                                          MakeModel=make_model,
+                                          DisplayName=display_name,
+                                          )
         t.check_for_errors()
         self.type = t
 
@@ -33,9 +33,9 @@ class GtElectricHeaterCac_Maker():
             d["DisplayName"] = None
 
         t = GtElectricHeaterCac100(ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                   DisplayName=d["DisplayName"],
-                                   MakeModel=d["MakeModel"],
-                                   )
+                                          DisplayName=d["DisplayName"],
+                                          MakeModel=d["MakeModel"],
+                                          )
         t.check_for_errors()
         return t
 
@@ -44,7 +44,7 @@ class GtElectricHeaterCac_Maker():
         s = {
             'component_attribute_class_id': t.ComponentAttributeClassId,
             'display_name': t.DisplayName,
-            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel), }
+            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
         if s['component_attribute_class_id'] in ElectricHeaterCac.by_id.keys():
             dc = ElectricHeaterCac.by_id[s['component_attribute_class_id']]
         else:
@@ -56,9 +56,9 @@ class GtElectricHeaterCac_Maker():
         if dc is None:
             return None
         t = GtElectricHeaterCac100(ComponentAttributeClassId=dc.component_attribute_class_id,
-                                   MakeModel=dc.make_model,
-                                   DisplayName=dc.display_name,
-                                   )
+                                          MakeModel=dc.make_model,
+                                          DisplayName=dc.display_name,
+                                          )
         t.check_for_errors()
         return t
 
@@ -69,3 +69,4 @@ class GtElectricHeaterCac_Maker():
     @classmethod
     def dc_to_dict(cls, dc: ElectricHeaterCac) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
+    
