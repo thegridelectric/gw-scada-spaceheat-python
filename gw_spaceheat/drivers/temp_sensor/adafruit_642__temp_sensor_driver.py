@@ -7,6 +7,7 @@ import time
 import schema.property_format as property_format
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
+from schema.enums.make_model.make_model_map import MakeModel
 
 BASE_DIR = '/sys/bus/w1/devices/'
 ONE_WIRE_FILE_START_ID = '28'
@@ -16,7 +17,7 @@ class Adafruit642_TempSensorDriver(TempSensorDriver):
 
     def __init__(self, component: TempSensorComponent):
         super(Adafruit642_TempSensorDriver, self).__init__(component=component)
-        if component.cac.make_model != 'Adafruit__642':
+        if component.cac.make_model != MakeModel.ADAFRUIT__642: 
             raise Exception(f"Expected Adafruit__642, got {component.cac}")
         property_format.check_is_64_bit_hex(component.hw_uid)
 

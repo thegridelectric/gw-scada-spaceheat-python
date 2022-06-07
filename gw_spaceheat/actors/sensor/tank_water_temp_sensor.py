@@ -12,6 +12,7 @@ from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
 from schema.gt.gt_telemetry.gt_telemetry_1_0_1_base import TelemetryName
 from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import \
     GtTelemetry101_Maker
+from schema.enums.make_model.make_model_map import MakeModel
 
 
 class TankWaterTempSensor(SensorBase):
@@ -29,9 +30,9 @@ class TankWaterTempSensor(SensorBase):
         self.sensing_thread.start()
 
     def set_driver(self):
-        if self.node.primary_component.cac.make_model == 'Adafruit__642':
+        if self.node.primary_component.make_model == MakeModel.ADAFRUIT__642: 
             self.driver = Adafruit642_TempSensorDriver(component=self.node.primary_component)
-        elif self.node.primary_component.cac.make_model == 'GridWorks__WaterTempHighPrecision':
+        elif self.node.primary_component.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             self.driver = GridworksWaterTempSensorHighPrecision_TempSensorDriver(component=self.node.primary_component)
 
     def set_telemetry_name(self):
