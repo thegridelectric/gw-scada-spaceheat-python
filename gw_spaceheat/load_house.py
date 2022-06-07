@@ -1,11 +1,17 @@
 import json
 import os
 
-from data_classes.cacs.boolean_actuator_cac import BooleanActuatorCac
-from data_classes.cacs.electric_heater_cac import ElectricHeaterCac
-from data_classes.cacs.electric_meter_cac import ElectricMeterCac
-from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
-from data_classes.cacs.temp_sensor_cac import TempSensorCac
+from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac_maker import GtBooleanActuatorCac_Maker
+from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac_maker import GtElectricHeaterCac_Maker
+from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
+from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac_maker import GtPipeFlowSensorCac_Maker
+from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac_maker import GtTempSensorCac_Maker
+from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component_maker import GtBooleanActuatorComponent_Maker
+from schema.gt.gt_electric_heater_component.gt_electric_heater_component_maker import GtElectricHeaterComponent_Maker
+from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker import GtElectricMeterComponent_Maker
+from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_maker import GtPipeFlowSensorComponent_Maker
+from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_maker import GtTempSensorComponent_Maker
+
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.components.boolean_actuator_component import \
@@ -25,42 +31,31 @@ HOUSE_JSON_FILE = 'input_data/dev_house.json'
 
 
 def load_cacs(input_data):
-    for camel in input_data['BooleanActuatorCacs']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = BooleanActuatorCac(**snake_dict)
-    for camel in input_data['ElectricHeaterCacs']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = ElectricHeaterCac(**snake_dict)
-    for camel in input_data['ElectricMeterCacs']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = ElectricMeterCac(**snake_dict)
-    for camel in input_data['TempSensorCacs']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = TempSensorCac(**snake_dict) 
-    for camel in input_data['PipeFlowSensorCacs']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = PipeFlowSensorCac(**snake_dict) 
-    for camel in input_data['OtherCacs']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = ComponentAttributeClass(**snake_dict)      
+    for d in input_data['BooleanActuatorCacs']:
+        GtBooleanActuatorCac_Maker.dict_to_dc(d)
+    for d in input_data['ElectricHeaterCacs']:
+        GtElectricHeaterCac_Maker.dict_to_dc(d)
+    for d in input_data['ElectricMeterCacs']:
+        GtElectricMeterCac_Maker.dict_to_dc(d)
+    for d in input_data['PipeFlowSensorCacs']:
+        GtPipeFlowSensorCac_Maker.dict_to_dc(d)
+    for d in input_data['TempSensorCacs']:
+        GtTempSensorCac_Maker.dict_to_dc(d)
+    for d in input_data['OtherCacs']:
+        cac = ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"]    )
 
 
 def load_components(input_data):
-    for camel in input_data['BooleanActuatorComponents']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = BooleanActuatorComponent(**snake_dict)
-    for camel in input_data['ElectricHeaterComponents']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = ElectricHeaterComponent(**snake_dict)
-    for camel in input_data['ElectricMeterComponents']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = ElectricMeterComponent(**snake_dict)
-    for camel in input_data['TempSensorComponents']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = TempSensorComponent(**snake_dict)
-    for camel in input_data['PipeFlowSensorComponents']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        component = PipeFlowSensorComponent(**snake_dict)
+    for d in input_data['BooleanActuatorComponents']:
+        GtBooleanActuatorComponent_Maker.dict_to_dc(d)
+    for d in input_data['ElectricHeaterComponents']:
+        GtElectricHeaterComponent_Maker.dict_to_dc(d)
+    for d in input_data['ElectricMeterComponents']:
+        GtElectricMeterComponent_Maker.dict_to_dc(d)
+    for d in input_data['PipeFlowSensorComponents']:
+        GtPipeFlowSensorComponent_Maker.dict_to_dc(d)
+    for d in input_data['TempSensorComponents']:
+        GtTempSensorComponent_Maker.dict_to_dc(d)
     for camel in input_data['OtherComponents']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         component = Component(**snake_dict)
