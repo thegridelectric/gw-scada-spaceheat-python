@@ -6,7 +6,7 @@ from schema.gt.gt_electric_meter_component.gt_electric_meter_component_100 impor
 
 
 class ElectricMeterComponent(ElectricMeterComponentBase):
-    by_id: Dict[str, ElectricMeterComponentBase] =  ElectricMeterComponentBase._by_id
+    by_id: Dict[str, ElectricMeterComponentBase] = ElectricMeterComponentBase._by_id
 
     def __init__(self, component_id: str,
                  component_attribute_class_id: str,

@@ -12,7 +12,7 @@ from schema.enums.make_model.make_model_map import MakeModelMap
 class ElectricMeterCacBase(ComponentAttributeClass):
     _by_id: Dict = {}
     base_props = []
-    
+
     base_props.append("component_attribute_class_id")
     base_props.append("comms_method")
     base_props.append("make_model")
@@ -25,7 +25,7 @@ class ElectricMeterCacBase(ComponentAttributeClass):
                  ):
 
         super(ElectricMeterCacBase, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                                             display_name=display_name)
+                                                   display_name=display_name)
         self.comms_method = comms_method
         self.make_model = MakeModelMap.gt_to_local(make_model_gt_enum_symbol)   #
         ElectricMeterCacBase._by_id[self.component_attribute_class_id] = self

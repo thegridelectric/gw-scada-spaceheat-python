@@ -6,7 +6,7 @@ from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component_100 i
 
 
 class BooleanActuatorComponent(BooleanActuatorComponentBase):
-    by_id: Dict[str, BooleanActuatorComponentBase] =  BooleanActuatorComponentBase._by_id
+    by_id: Dict[str, BooleanActuatorComponentBase] = BooleanActuatorComponentBase._by_id
 
     def __init__(self, component_id: str,
                  component_attribute_class_id: str,

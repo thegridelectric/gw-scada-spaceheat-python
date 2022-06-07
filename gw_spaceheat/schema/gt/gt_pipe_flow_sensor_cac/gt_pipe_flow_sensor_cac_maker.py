@@ -17,10 +17,10 @@ class GtPipeFlowSensorCac_Maker():
                  comms_method: Optional[str]):
 
         t = GtPipeFlowSensorCac100(DisplayName=display_name,
-                                          ComponentAttributeClassId=component_attribute_class_id,
-                                          CommsMethod=comms_method,
-                                          MakeModel=make_model,
-                                          )
+                                   ComponentAttributeClassId=component_attribute_class_id,
+                                   CommsMethod=comms_method,
+                                   MakeModel=make_model,
+                                   )
         t.check_for_errors()
         self.type = t
 
@@ -37,10 +37,10 @@ class GtPipeFlowSensorCac_Maker():
             d["CommsMethod"] = None
 
         t = GtPipeFlowSensorCac100(DisplayName=d["DisplayName"],
-                                          ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          CommsMethod=d["CommsMethod"],
-                                          MakeModel=d["MakeModel"],
-                                          )
+                                   ComponentAttributeClassId=d["ComponentAttributeClassId"],
+                                   CommsMethod=d["CommsMethod"],
+                                   MakeModel=d["MakeModel"],
+                                   )
         t.check_for_errors()
         return t
 
@@ -50,7 +50,7 @@ class GtPipeFlowSensorCac_Maker():
             'display_name': t.DisplayName,
             'component_attribute_class_id': t.ComponentAttributeClassId,
             'comms_method': t.CommsMethod,
-            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
+            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel), }
         if s['component_attribute_class_id'] in PipeFlowSensorCac.by_id.keys():
             dc = PipeFlowSensorCac.by_id[s['component_attribute_class_id']]
         else:
@@ -62,10 +62,10 @@ class GtPipeFlowSensorCac_Maker():
         if dc is None:
             return None
         t = GtPipeFlowSensorCac100(DisplayName=dc.display_name,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          CommsMethod=dc.comms_method,
-                                          MakeModel=dc.make_model,
-                                          )
+                                   ComponentAttributeClassId=dc.component_attribute_class_id,
+                                   CommsMethod=dc.comms_method,
+                                   MakeModel=dc.make_model,
+                                   )
         t.check_for_errors()
         return t
 
@@ -76,4 +76,3 @@ class GtPipeFlowSensorCac_Maker():
     @classmethod
     def dc_to_dict(cls, dc: PipeFlowSensorCac) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
-    

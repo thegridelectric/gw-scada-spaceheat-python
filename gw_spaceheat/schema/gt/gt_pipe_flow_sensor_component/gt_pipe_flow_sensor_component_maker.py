@@ -16,10 +16,10 @@ class GtPipeFlowSensorComponent_Maker():
                  hw_uid: Optional[str]):
 
         t = GtPipeFlowSensorComponent100(ComponentId=component_id,
-                                          DisplayName=display_name,
-                                          HwUid=hw_uid,
-                                          ComponentAttributeClassId=component_attribute_class_id,
-                                          )
+                                         DisplayName=display_name,
+                                         HwUid=hw_uid,
+                                         ComponentAttributeClassId=component_attribute_class_id,
+                                         )
         t.check_for_errors()
         self.type = t
 
@@ -35,10 +35,10 @@ class GtPipeFlowSensorComponent_Maker():
             d["HwUid"] = None
 
         t = GtPipeFlowSensorComponent100(ComponentId=d["ComponentId"],
-                                          DisplayName=d["DisplayName"],
-                                          HwUid=d["HwUid"],
-                                          ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          )
+                                         DisplayName=d["DisplayName"],
+                                         HwUid=d["HwUid"],
+                                         ComponentAttributeClassId=d["ComponentAttributeClassId"],
+                                         )
         t.check_for_errors()
         return t
 
@@ -49,7 +49,7 @@ class GtPipeFlowSensorComponent_Maker():
             'display_name': t.DisplayName,
             'hw_uid': t.HwUid,
             'component_attribute_class_id': t.ComponentAttributeClassId,
-            }
+        }
         if s['component_id'] in PipeFlowSensorComponent.by_id.keys():
             dc = PipeFlowSensorComponent.by_id[s['component_id']]
         else:
@@ -61,10 +61,10 @@ class GtPipeFlowSensorComponent_Maker():
         if dc is None:
             return None
         t = GtPipeFlowSensorComponent100(ComponentId=dc.component_id,
-                                          DisplayName=dc.display_name,
-                                          HwUid=dc.hw_uid,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          )
+                                         DisplayName=dc.display_name,
+                                         HwUid=dc.hw_uid,
+                                         ComponentAttributeClassId=dc.component_attribute_class_id,
+                                         )
         t.check_for_errors()
         return t
 
@@ -75,4 +75,3 @@ class GtPipeFlowSensorComponent_Maker():
     @classmethod
     def dc_to_dict(cls, dc: PipeFlowSensorComponent) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
-    

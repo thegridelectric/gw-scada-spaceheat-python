@@ -44,13 +44,13 @@ class PrimaryScada(PrimaryScadaBase):
                 for row in self.temp_readings:
                     write.writerow(row)
             self.temp_readings = []
-        
+
     def set_actuator_components(self):
         self.boost_actuator = ShNode.by_alias['a.elt1.relay']
-        if self.boost_actuator.primary_component.make_model == MakeModel.NCD__PR814SPST: 
+        if self.boost_actuator.primary_component.make_model == MakeModel.NCD__PR814SPST:
             self.driver[self.boost_actuator] = NcdPr814Spst_BooleanActuatorDriver(
                 component=self.boost_actuator.primary_component)
-        elif self.boost_actuator.primary_component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY: 
+        elif self.boost_actuator.primary_component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             self.driver[self.boost_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
                 component=self.boost_actuator.primary_component)
         else:

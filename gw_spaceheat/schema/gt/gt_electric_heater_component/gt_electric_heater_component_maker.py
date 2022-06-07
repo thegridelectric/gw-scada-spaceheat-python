@@ -16,10 +16,10 @@ class GtElectricHeaterComponent_Maker():
                  display_name: Optional[str]):
 
         t = GtElectricHeaterComponent100(HwUid=hw_uid,
-                                          DisplayName=display_name,
-                                          ComponentId=component_id,
-                                          ComponentAttributeClassId=component_attribute_class_id,
-                                          )
+                                         DisplayName=display_name,
+                                         ComponentId=component_id,
+                                         ComponentAttributeClassId=component_attribute_class_id,
+                                         )
         t.check_for_errors()
         self.type = t
 
@@ -35,10 +35,10 @@ class GtElectricHeaterComponent_Maker():
             d["DisplayName"] = None
 
         t = GtElectricHeaterComponent100(HwUid=d["HwUid"],
-                                          DisplayName=d["DisplayName"],
-                                          ComponentId=d["ComponentId"],
-                                          ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          )
+                                         DisplayName=d["DisplayName"],
+                                         ComponentId=d["ComponentId"],
+                                         ComponentAttributeClassId=d["ComponentAttributeClassId"],
+                                         )
         t.check_for_errors()
         return t
 
@@ -49,7 +49,7 @@ class GtElectricHeaterComponent_Maker():
             'display_name': t.DisplayName,
             'component_id': t.ComponentId,
             'component_attribute_class_id': t.ComponentAttributeClassId,
-            }
+        }
         if s['component_id'] in ElectricHeaterComponent.by_id.keys():
             dc = ElectricHeaterComponent.by_id[s['component_id']]
         else:
@@ -61,10 +61,10 @@ class GtElectricHeaterComponent_Maker():
         if dc is None:
             return None
         t = GtElectricHeaterComponent100(HwUid=dc.hw_uid,
-                                          DisplayName=dc.display_name,
-                                          ComponentId=dc.component_id,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          )
+                                         DisplayName=dc.display_name,
+                                         ComponentId=dc.component_id,
+                                         ComponentAttributeClassId=dc.component_attribute_class_id,
+                                         )
         t.check_for_errors()
         return t
 
@@ -75,4 +75,3 @@ class GtElectricHeaterComponent_Maker():
     @classmethod
     def dc_to_dict(cls, dc: ElectricHeaterComponent) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
-    

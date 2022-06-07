@@ -16,7 +16,7 @@ class Role(enum.Enum):
     HYDRONICPIPE = "HydronicPipe"
     SENSOR = "Sensor"
     CIRCULATORPUMP = "CirculatorPump"
-    
+
 
 class ShNodeRole100GtEnum(ABC):
     symbols: List[str] = ["f652d87f",

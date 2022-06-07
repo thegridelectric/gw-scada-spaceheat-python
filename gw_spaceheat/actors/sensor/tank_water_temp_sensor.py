@@ -30,7 +30,7 @@ class TankWaterTempSensor(SensorBase):
         self.sensing_thread.start()
 
     def set_driver(self):
-        if self.node.primary_component.make_model == MakeModel.ADAFRUIT__642: 
+        if self.node.primary_component.make_model == MakeModel.ADAFRUIT__642:
             self.driver = Adafruit642_TempSensorDriver(component=self.node.primary_component)
         elif self.node.primary_component.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             self.driver = GridworksWaterTempSensorHighPrecision_TempSensorDriver(component=self.node.primary_component)

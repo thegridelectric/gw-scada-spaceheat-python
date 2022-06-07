@@ -16,9 +16,9 @@ class GtBooleanActuatorCac_Maker():
                  display_name: Optional[str]):
 
         t = GtBooleanActuatorCac100(MakeModel=make_model,
-                                          ComponentAttributeClassId=component_attribute_class_id,
-                                          DisplayName=display_name,
-                                          )
+                                    ComponentAttributeClassId=component_attribute_class_id,
+                                    DisplayName=display_name,
+                                    )
         t.check_for_errors()
         self.type = t
 
@@ -33,9 +33,9 @@ class GtBooleanActuatorCac_Maker():
             d["DisplayName"] = None
 
         t = GtBooleanActuatorCac100(ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          DisplayName=d["DisplayName"],
-                                          MakeModel=d["MakeModel"],
-                                          )
+                                    DisplayName=d["DisplayName"],
+                                    MakeModel=d["MakeModel"],
+                                    )
         t.check_for_errors()
         return t
 
@@ -44,7 +44,7 @@ class GtBooleanActuatorCac_Maker():
         s = {
             'component_attribute_class_id': t.ComponentAttributeClassId,
             'display_name': t.DisplayName,
-            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
+            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel), }
         if s['component_attribute_class_id'] in BooleanActuatorCac.by_id.keys():
             dc = BooleanActuatorCac.by_id[s['component_attribute_class_id']]
         else:
@@ -56,9 +56,9 @@ class GtBooleanActuatorCac_Maker():
         if dc is None:
             return None
         t = GtBooleanActuatorCac100(MakeModel=dc.make_model,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          DisplayName=dc.display_name,
-                                          )
+                                    ComponentAttributeClassId=dc.component_attribute_class_id,
+                                    DisplayName=dc.display_name,
+                                    )
         t.check_for_errors()
         return t
 
@@ -69,4 +69,3 @@ class GtBooleanActuatorCac_Maker():
     @classmethod
     def dc_to_dict(cls, dc: BooleanActuatorCac) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
-    

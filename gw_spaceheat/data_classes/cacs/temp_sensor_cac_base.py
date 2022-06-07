@@ -12,7 +12,7 @@ from schema.enums.make_model.make_model_map import MakeModelMap
 class TempSensorCacBase(ComponentAttributeClass):
     _by_id: Dict = {}
     base_props = []
-    
+
     base_props.append("display_name")
     base_props.append("temp_unit")
     base_props.append("make_model")
@@ -29,7 +29,7 @@ class TempSensorCacBase(ComponentAttributeClass):
                  ):
 
         super(TempSensorCacBase, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                                             display_name=display_name)
+                                                display_name=display_name)
         self.temp_unit = temp_unit
         self.precision_exponent = precision_exponent
         self.comms_method = comms_method

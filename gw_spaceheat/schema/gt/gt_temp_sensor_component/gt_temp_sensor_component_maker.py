@@ -16,10 +16,10 @@ class GtTempSensorComponent_Maker():
                  hw_uid: Optional[str]):
 
         t = GtTempSensorComponent100(DisplayName=display_name,
-                                          ComponentId=component_id,
-                                          HwUid=hw_uid,
-                                          ComponentAttributeClassId=component_attribute_class_id,
-                                          )
+                                     ComponentId=component_id,
+                                     HwUid=hw_uid,
+                                     ComponentAttributeClassId=component_attribute_class_id,
+                                     )
         t.check_for_errors()
         self.type = t
 
@@ -35,10 +35,10 @@ class GtTempSensorComponent_Maker():
             d["HwUid"] = None
 
         t = GtTempSensorComponent100(DisplayName=d["DisplayName"],
-                                          ComponentId=d["ComponentId"],
-                                          HwUid=d["HwUid"],
-                                          ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          )
+                                     ComponentId=d["ComponentId"],
+                                     HwUid=d["HwUid"],
+                                     ComponentAttributeClassId=d["ComponentAttributeClassId"],
+                                     )
         t.check_for_errors()
         return t
 
@@ -49,7 +49,7 @@ class GtTempSensorComponent_Maker():
             'component_id': t.ComponentId,
             'hw_uid': t.HwUid,
             'component_attribute_class_id': t.ComponentAttributeClassId,
-            }
+        }
         if s['component_id'] in TempSensorComponent.by_id.keys():
             dc = TempSensorComponent.by_id[s['component_id']]
         else:
@@ -61,10 +61,10 @@ class GtTempSensorComponent_Maker():
         if dc is None:
             return None
         t = GtTempSensorComponent100(DisplayName=dc.display_name,
-                                          ComponentId=dc.component_id,
-                                          HwUid=dc.hw_uid,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          )
+                                     ComponentId=dc.component_id,
+                                     HwUid=dc.hw_uid,
+                                     ComponentAttributeClassId=dc.component_attribute_class_id,
+                                     )
         t.check_for_errors()
         return t
 
@@ -75,4 +75,3 @@ class GtTempSensorComponent_Maker():
     @classmethod
     def dc_to_dict(cls, dc: TempSensorComponent) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
-    

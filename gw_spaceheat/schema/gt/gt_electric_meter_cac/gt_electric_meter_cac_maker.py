@@ -17,10 +17,10 @@ class GtElectricMeterCac_Maker():
                  display_name: Optional[str]):
 
         t = GtElectricMeterCac100(ComponentAttributeClassId=component_attribute_class_id,
-                                          CommsMethod=comms_method,
-                                          MakeModel=make_model,
-                                          DisplayName=display_name,
-                                          )
+                                  CommsMethod=comms_method,
+                                  MakeModel=make_model,
+                                  DisplayName=display_name,
+                                  )
         t.check_for_errors()
         self.type = t
 
@@ -37,10 +37,10 @@ class GtElectricMeterCac_Maker():
             d["DisplayName"] = None
 
         t = GtElectricMeterCac100(ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          CommsMethod=d["CommsMethod"],
-                                          DisplayName=d["DisplayName"],
-                                          MakeModel=d["MakeModel"],
-                                          )
+                                  CommsMethod=d["CommsMethod"],
+                                  DisplayName=d["DisplayName"],
+                                  MakeModel=d["MakeModel"],
+                                  )
         t.check_for_errors()
         return t
 
@@ -50,7 +50,7 @@ class GtElectricMeterCac_Maker():
             'component_attribute_class_id': t.ComponentAttributeClassId,
             'comms_method': t.CommsMethod,
             'display_name': t.DisplayName,
-            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
+            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel), }
         if s['component_attribute_class_id'] in ElectricMeterCac.by_id.keys():
             dc = ElectricMeterCac.by_id[s['component_attribute_class_id']]
         else:
@@ -62,10 +62,10 @@ class GtElectricMeterCac_Maker():
         if dc is None:
             return None
         t = GtElectricMeterCac100(ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          CommsMethod=dc.comms_method,
-                                          MakeModel=dc.make_model,
-                                          DisplayName=dc.display_name,
-                                          )
+                                  CommsMethod=dc.comms_method,
+                                  MakeModel=dc.make_model,
+                                  DisplayName=dc.display_name,
+                                  )
         t.check_for_errors()
         return t
 
@@ -76,4 +76,3 @@ class GtElectricMeterCac_Maker():
     @classmethod
     def dc_to_dict(cls, dc: ElectricMeterCac) -> Dict:
         return cls.dc_to_tuple(dc).asdict()
-    

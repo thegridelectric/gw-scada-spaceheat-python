@@ -38,5 +38,5 @@ class GtTempSensorComponent100Base(NamedTuple):
                           " must have format UuidCanonicalTextual")
         if self.Alias != 'gt.temp.sensor.component.100':
             errors.append(f"Type requires Alias of gt.temp.sensor.component.100, not {self.Alias}.")
-        
+
         return errors

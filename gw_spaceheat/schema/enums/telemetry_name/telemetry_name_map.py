@@ -35,4 +35,4 @@ class TelemetryNameMap():
         TelemetryName.WATERFLOWGPMTIMES100: "d70cce28",
         TelemetryName.WATERTEMPCTIMES1000: "c89d0ba1",
         TelemetryName.RELAYSTATE: "5a71d4b3",
-         }
+    }

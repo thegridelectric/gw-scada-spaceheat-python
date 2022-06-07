@@ -40,5 +40,5 @@ class GtElectricMeterComponent100Base(NamedTuple):
                           " must have format UuidCanonicalTextual")
         if self.Alias != 'gt.electric.meter.component.100':
             errors.append(f"Type requires Alias of gt.electric.meter.component.100, not {self.Alias}.")
-        
+
         return errors

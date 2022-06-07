@@ -42,7 +42,7 @@ def load_cacs(input_data):
     for d in input_data['TempSensorCacs']:
         GtTempSensorCac_Maker.dict_to_dc(d)
     for d in input_data['OtherCacs']:
-        cac = ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"]    )
+        cac = ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"])
 
 
 def load_components(input_data):
