@@ -3,7 +3,7 @@
 from typing import List, Dict, Tuple, Optional, Any
 from schema.errors import MpSchemaError
 from data_classes.errors import DcError, DataClassLoadingError
-from schema.gt.enum.mp_status import MpStatus
+from schema.enums.mp_status import MpStatus
 from data_classes.component_sub_category import ComponentSubCategory
 from data_classes.component_category import ComponentCategory
 from schema.gt.gnr.component_sub_category.gt_component_sub_category_1_0_0 import GtComponentSubCategory100
@@ -12,7 +12,7 @@ GtComponentCategory100_Maker, GtComponentCategory100
     
     
 class GtComponentSubCategory100_Maker():
-    mp_alias = 'gt.component.sub.category.1_0_0'
+    mp_alias = 'gt.component.sub.category.100'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod
@@ -85,7 +85,7 @@ class GtComponentSubCategory100_Maker():
                  component_category: ComponentCategory):
         self.errors = []
 
-        t = GtComponentSubCategory100(MpAlias=GtComponentSubCategory100_maker.mp_alias,
+        t = GtComponentSubCategory100(MpAlias=GtComponentSubCategory100_Maker.mp_alias,
                     Value=value,
                     ComponentCategory=Gt_Component_Category_1_0_0.payload_from_data_class(component_category))
 

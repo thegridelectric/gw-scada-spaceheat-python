@@ -3,13 +3,13 @@
 from typing import List, Dict, Tuple, Optional, Any
 from schema.errors import MpSchemaError
 from data_classes.errors import DcError, DataClassLoadingError
-from schema.gt.enum.mp_status import MpStatus
+from schema.enums.mp_status import MpStatus
 from data_classes.world_instance import WorldInstance
 from schema.gt.gnr.world_instance.gt_world_instance_2_0_0 import GtWorldInstance200
     
     
 class GtWorldInstance200_Maker():
-    mp_alias = 'gt.world.instance.2_0_0'
+    mp_alias = 'gt.world.instance.200'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod
@@ -143,7 +143,7 @@ class GtWorldInstance200_Maker():
                  irl_end_time_unix_s: Optional[int] = None ):
         self.errors = []
 
-        t = GtWorldInstance200(MpAlias=GtWorldInstance200_maker.mp_alias,
+        t = GtWorldInstance200(MpAlias=GtWorldInstance200_Maker.mp_alias,
                     IrlStartTimeUnixS=irl_start_time_unix_s,
                     StartTimeUnixS=start_time_unix_s,
                     WorldCoordinatorSupervisorContainerId=world_coordinator_supervisor_container_id,

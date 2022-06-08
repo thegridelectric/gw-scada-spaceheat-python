@@ -3,13 +3,13 @@
 from typing import List, Dict, Tuple, Optional, Any
 from schema.errors import MpSchemaError
 from data_classes.errors import DcError, DataClassLoadingError
-from schema.gt.enum.mp_status import MpStatus
+from schema.enums.mp_status import MpStatus
 from data_classes.component import Component
 from schema.gt.gnr.component.gt_component_1_0_0 import GtComponent100
     
     
 class GtComponent100_Maker():
-    mp_alias = 'gt.component.1_0_0'
+    mp_alias = 'gt.component.100'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod
@@ -83,7 +83,7 @@ class GtComponent100_Maker():
                  component_attribute_class_id: str):
         self.errors = []
 
-        t = GtComponent100(MpAlias=GtComponent100_maker.mp_alias,
+        t = GtComponent100(MpAlias=GtComponent100_Maker.mp_alias,
                     DisplayName=display_name,
                     ComponentId=component_id,
                     ComponentAttributeClassId=component_attribute_class_id)

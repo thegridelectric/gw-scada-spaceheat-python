@@ -1,0 +1,29 @@
+import smbus2 as smbus
+from data_classes.components.boolean_actuator_component import \
+    BooleanActuatorComponent
+from drivers.base.mcp23008 import mcp23008
+from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
+
+COMPONENT_ADDRESS = 0x20
+
+
+class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
+
+    def __init__(self, component: BooleanActuatorComponent):
+        super(NcdPr814Spst_BooleanActuatorDriver, self).__init__(component=component)
+        bus = smbus.SMBus(1)
+        gpio_output_map = {0, 1, 2, 3}
+        kwargs = {'address': COMPONENT_ADDRESS, 'gpio_output_map': gpio_output_map}
+        self.mcp23008_driver = mcp23008(bus, kwargs)
+
+    def turn_on(self):
+        self.mcp23008_driver.turn_on_relay(self.component.gpio)
+
+    def turn_off(self):
+        self.mcp23008_driver.turn_off_relay(self.component.gpio)
+
+    def is_on(self):
+        return self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
+    
+
+

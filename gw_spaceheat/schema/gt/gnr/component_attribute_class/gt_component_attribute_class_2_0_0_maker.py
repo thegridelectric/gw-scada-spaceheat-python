@@ -3,7 +3,7 @@
 from typing import List, Dict, Tuple, Optional, Any
 from schema.errors import MpSchemaError
 from data_classes.errors import DcError, DataClassLoadingError
-from schema.gt.enum.mp_status import MpStatus
+from schema.enums.mp_status import MpStatus
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.component_type import ComponentType
 from schema.gt.gnr.component_attribute_class.gt_component_attribute_class_2_0_0 import GtComponentAttributeClass200
@@ -12,7 +12,7 @@ GtComponentType100_Maker, GtComponentType100
     
     
 class GtComponentAttributeClass200_Maker():
-    mp_alias = 'gt.component.attribute.class.2_0_0'
+    mp_alias = 'gt.component.attribute.class.200'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod
@@ -125,7 +125,7 @@ class GtComponentAttributeClass200_Maker():
         except ValueError:
             pass # This will get caught in is_valid() check below
 
-        t = GtComponentAttributeClass200(MpAlias=GtComponentAttributeClass200_maker.mp_alias,
+        t = GtComponentAttributeClass200(MpAlias=GtComponentAttributeClass200_Maker.mp_alias,
                     RatedPowerWithdrawnVa=rated_power_withdrawn_va,
                     ComponentAttributeClassId=component_attribute_class_id,
                     SeriesReactanceOhms=series_reactance_ohms,

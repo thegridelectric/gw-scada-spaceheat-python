@@ -3,7 +3,7 @@
 from typing import List, Dict, Tuple, Optional, Any
 from schema.errors import MpSchemaError
 from data_classes.errors import DcError, DataClassLoadingError
-from schema.gt.enum.mp_status import MpStatus
+from schema.enums.mp_status import MpStatus
 from data_classes.component_type import ComponentType
 from data_classes.component_sub_category import ComponentSubCategory
 from schema.gt.gnr.component_type.gt_component_type_1_0_0 import GtComponentType100
@@ -12,7 +12,7 @@ GtComponentSubCategory100_Maker, GtComponentSubCategory100
     
     
 class GtComponentType100_Maker():
-    mp_alias = 'gt.component.type.1_0_0'
+    mp_alias = 'gt.component.type.100'
     mp_status = MpStatus.ACTIVE.value
 
     @classmethod
@@ -107,7 +107,7 @@ class GtComponentType100_Maker():
                  expected_startup_seconds: Optional[int] = None ):
         self.errors = []
 
-        t = GtComponentType100(MpAlias=GtComponentType100_maker.mp_alias,
+        t = GtComponentType100(MpAlias=GtComponentType100_Maker.mp_alias,
                     IsResistiveLoad=is_resistive_load,
                     DisplayName=display_name,
                     ExpectedShutdownSeconds=expected_shutdown_seconds,

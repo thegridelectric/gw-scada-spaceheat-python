@@ -1,0 +1,30 @@
+"""TempSensorCac definition"""
+from typing import Dict, Optional
+
+from data_classes.cacs.temp_sensor_cac_base import TempSensorCacBase
+from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac_100 import GtTempSensorCac100
+
+
+class TempSensorCac(TempSensorCacBase):
+    by_id: Dict[str, TempSensorCacBase] = TempSensorCacBase._by_id
+
+    def __init__(self, component_attribute_class_id: str,
+                 make_model_gt_enum_symbol: str,
+                 display_name: Optional[str] = None,
+                 temp_unit: Optional[str] = None,
+                 precision_exponent: Optional[int] = None,
+                 comms_method: Optional[str] = None,
+                 ):
+        super(self.__class__, self).__init__(display_name=display_name,
+                                             temp_unit=temp_unit,
+                                             component_attribute_class_id=component_attribute_class_id,
+                                             precision_exponent=precision_exponent,
+                                             comms_method=comms_method,
+                                             make_model_gt_enum_symbol=make_model_gt_enum_symbol,
+                                             )
+
+    def _check_update_axioms(self, type: GtTempSensorCac100):
+        pass
+
+    def __repr__(self):
+        return f"{self.make_model.value} {self.display_name}"
