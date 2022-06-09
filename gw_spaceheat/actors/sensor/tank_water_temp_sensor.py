@@ -46,11 +46,11 @@ class TankWaterTempSensor(SensorBase):
 
     def publish(self):
         payload = GtTelemetry_Maker(name=self.telemetry_name,
-                                       value=int(self.temp),
-                                       exponent=0,
-                                       scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+                                    value=int(self.temp),
+                                    exponent=0,
+                                    scada_read_time_unix_ms=int(time.time() * 1000)).tuple
         self.publish_gt_telemetry(payload)
-        
+
     def consume(self):
         pass
 
