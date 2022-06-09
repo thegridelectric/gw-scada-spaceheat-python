@@ -9,9 +9,9 @@ from drivers.temp_sensor.adafruit_642__temp_sensor_driver import \
 from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import \
     GridworksWaterTempSensorHighPrecision_TempSensorDriver
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_base import TelemetryName
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import \
-    GtTelemetry101_Maker
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
+from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
+
 from schema.enums.make_model.make_model_map import MakeModel
 
 
@@ -37,18 +37,19 @@ class TankWaterTempSensor(SensorBase):
 
     def set_telemetry_name(self):
         if self.cac.temp_unit == 'F' and self.cac.precision_exponent == 3:
-            self.telemetry_name = TelemetryName.WATER_TEMP_F_TIMES_1000
+            self.telemetry_name = TelemetryName.WATER_TEMP_F_TIMES1000
         elif self.cac.temp_unit == 'C' and self.cac.precision_exponent == 3:
-            self.telemetry_name = TelemetryName.WATER_TEMP_C_TIMES_1000
+            self.telemetry_name = TelemetryName.WATER_TEMP_C_TIMES1000
         else:
             raise Exception(f"TelemetryName for {self.cac.temp_unit} and precision exponent of"
                             f"{self.cac.precision_exponent} not set yet!")
 
     def publish(self):
-        payload = GtTelemetry101_Maker(name=self.telemetry_name.value,
+        payload = GtTelemetry_Maker(name=self.telemetry_name,
                                        value=int(self.temp),
-                                       scada_read_time_unix_ms=int(time.time() * 1000)).type
-        self.publish_gt_telemetry_1_0_1(payload)
+                                       exponent=0,
+                                       scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+        self.publish_gt_telemetry(payload)
         
     def consume(self):
         pass

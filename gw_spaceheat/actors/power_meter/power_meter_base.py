@@ -3,7 +3,7 @@ from typing import List
 from actors.actor_base import ActorBase
 from actors.mqtt_utils import QOS, Subscription
 from data_classes.sh_node import ShNode
-from schema.gs.gs_pwr_1_0_0_maker import GsPwr100, GsPwr100_Maker
+from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 
 
 class PowerMeterBase(ActorBase):
@@ -16,10 +16,10 @@ class PowerMeterBase(ActorBase):
     def on_message(self, client, userdata, message):
         self.screen_print(f"{message.topic} subscription not implemented!")
 
-    def publish_gs_pwr(self, payload: GsPwr100):
-        topic = f'{self.node.alias}/{GsPwr100_Maker.mp_alias}'
-        self.screen_print(f"Trying to publish {payload} to topic {topic}")
+    def publish_gs_pwr(self, payload: GsPwr):
+        topic = f'{self.node.alias}/{GsPwr_Maker.type_alias}'
+        self.screen_print(f"Trying to publish {payload.as_type()} to topic {topic}")
         self.publish_client.publish(topic=topic, 
-                                    payload=payload.asbinary(),
+                                    payload=payload.as_type(),
                                     qos=QOS.AtMostOnce.value,
                                     retain=False)

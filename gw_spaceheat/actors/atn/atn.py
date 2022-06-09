@@ -1,8 +1,8 @@
 
 from actors.atn.atn_base import Atn_Base
 from data_classes.sh_node import ShNode
-from schema.gs.gs_pwr_1_0_0_maker import GsPwr100
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101
+from schema.gs.gs_pwr import GsPwr
+from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 
 
 class Atn(Atn_Base):
@@ -15,11 +15,12 @@ class Atn(Atn_Base):
     def publish(self):
         pass
 
-    def gs_pwr_100_received(self, payload: GsPwr100, from_node: ShNode):
-        raise NotImplementedError
+    def gs_pwr_received(self, payload: GsPwr, from_g_node_alias: str):
+        self.screen_print(f"Got {payload} from {from_g_node_alias}")
+        self.power = payload.Power
      
-    def gt_telemetry_100_received(self, payload: GtTelemetry101, from_node: ShNode):
-        raise NotImplementedError
+    def gt_telemetry_received(self, payload: GtTelemetry, from_g_node_alias: str):
+        self.screen_print(f"Got {payload} from {from_g_node_alias}")
 
 
     @property

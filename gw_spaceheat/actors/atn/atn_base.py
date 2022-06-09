@@ -9,9 +9,8 @@ import threading
 from data_classes.sh_node import ShNode
 from actors.actor_base import ActorBase
 from actors.mqtt_utils import Subscription, QOS
-
-from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import  GtTelemetry101_Maker, GtTelemetry101
-from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker, GsPwr100
+from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
+from schema.gs.gs_pwr_maker import GsPwr_Maker, GsPwr
 
 
 MY_G_NODE_ALIAS = 'dw1.isone.nh.orange.1'
@@ -51,26 +50,22 @@ class Atn_Base(ABC):
 
     def on_gw_message(self, client, userdata, message):
         try:
-            (from_alias, mp_alias) = message.topic.split('/')
+            (from_alias, type_alias) = message.topic.split('/')
         except:
             raise Exception(f"topic must be of format A/B")
         if not from_alias == MY_SCADA_G_NODE_ALIAS:
             raise Exception(f"alias {from_alias} not my AtomicTNode!")
-        if mp_alias == GsPwr100_Maker.mp_alias:
-            payload = GsPwr100_Maker.binary_to_type(message.payload)
-            self.gs_pwr_100_received(payload=payload)
-        elif mp_alias == GtTelemetry101_Maker.mp_alias:
-            payload = GtTelemetry101_Maker.camel_dict_to_type(json.loads(message.payload))
-            self.gt_telemetry_100_received(payload=payload)
+        if type_alias == GsPwr_Maker.type_alias:
+            payload = GsPwr_Maker.type_to_tuple(message.payload)
+            self.gs_pwr_received(payload=payload,from_g_node_alias=MY_SCADA_G_NODE_ALIAS)
+        elif type_alias == GtTelemetry_Maker.type_alias:
+            payload = GtTelemetry_Maker.type_to_tuple(message.payload)
+            self.gt_telemetry_received(payload=payload,from_g_node_alias=MY_SCADA_G_NODE_ALIAS)
         else:
             self.screen_print(f"{message.topic} subscription not implemented!")
        
     @abstractmethod
-    def gs_pwr_100_received(self, payload: GsPwr100, from_node: ShNode):
-        raise NotImplementedError
-     
-    @abstractmethod
-    def gt_telemetry_100_received(self, payload: GtTelemetry101, from_node: ShNode):
+    def gs_pwr_received(self, payload: GsPwr, from_node: ShNode):
         raise NotImplementedError
 
     def screen_print(self, note):
