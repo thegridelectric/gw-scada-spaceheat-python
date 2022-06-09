@@ -19,14 +19,14 @@ class ActorBase(ABC):
         self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
         self.publish_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
         self.publish_client = mqtt.Client(self.publish_client_id)
-        self.publish_client.username_pw_set(username=settings.LOCAL_MQTT_USER_NAME , password=helpers.get_secret('LOCAL_MQTT_PW'))
+        self.publish_client.username_pw_set(username=settings.LOCAL_MQTT_USER_NAME, password=helpers.get_secret('LOCAL_MQTT_PW'))
         self.publish_client.connect(self.mqttBroker)
         self.publish_client.loop_start()
         if self.logging_on:
             self.publish_client.on_log = self.on_log
         self.consume_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
         self.consume_client = mqtt.Client(self.consume_client_id)
-        self.consume_client.username_pw_set(username=settings.LOCAL_MQTT_USER_NAME , password=helpers.get_secret('LOCAL_MQTT_PW'))
+        self.consume_client.username_pw_set(username=settings.LOCAL_MQTT_USER_NAME, password=helpers.get_secret('LOCAL_MQTT_PW'))
         self.consume_client.connect(self.mqttBroker)
         if self.logging_on:
             self.consume_client.on_log = self.on_log
