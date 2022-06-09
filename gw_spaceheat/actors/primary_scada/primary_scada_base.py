@@ -106,9 +106,6 @@ class PrimaryScadaBase(ActorBase):
             qos = QOS.AtMostOnce.value,
             retain=False)
 
-    @abstractproperty
-    def my_meter(self) ->ShNode:
-        raise NotImplementedError
 
 
 

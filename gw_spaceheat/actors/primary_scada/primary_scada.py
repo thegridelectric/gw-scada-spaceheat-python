@@ -83,11 +83,6 @@ class PrimaryScada(PrimaryScadaBase):
     def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
         raise NotImplementedError
     
-    @property
-    def my_meter(self) -> ShNode:
-        alias = self.node.alias.split('.')[0] + '.m'
-        return ShNode.by_alias[alias]
-    
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.primary_component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")

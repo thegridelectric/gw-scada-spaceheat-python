@@ -40,8 +40,7 @@ class Atn_Base(ABC):
         self.screen_print(f"log: {buf}")
     
     def gw_subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'{self.my_scada.alias}/{GsPwr100_Maker.mp_alias}',Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'{self.my_scada.alias}/{GtTelemetry101_Maker.mp_alias}',Qos=QOS.AtLeastOnce)]
+        return [Subscription(Topic=f'{MY_SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}',Qos=QOS.AtMostOnce)]
 
     def gw_consume(self):
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
