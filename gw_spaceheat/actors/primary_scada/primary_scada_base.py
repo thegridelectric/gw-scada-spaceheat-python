@@ -23,27 +23,29 @@ class PrimaryScadaBase(ActorBase):
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
         self.gw_publish_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
         self.gw_publish_client = mqtt.Client(self.gw_publish_client_id)
-        self.gw_publish_client.username_pw_set(username=settings.GW_MQTT_USER_NAME , password=helpers.get_secret('GW_MQTT_PW'))
+        self.gw_publish_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
+                                               password=helpers.get_secret('GW_MQTT_PW'))
         self.gw_publish_client.connect(self.gwMqttBroker)
         self.gw_publish_client.loop_start()
         if self.logging_on:
             self.gw_publish_client.on_log = self.on_log
         self.gw_consume_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
         self.gw_consume_client = mqtt.Client(self.gw_consume_client_id)
-        self.gw_consume_client.username_pw_set(username=settings.GW_MQTT_USER_NAME , password=helpers.get_secret('GW_MQTT_PW'))
+        self.gw_consume_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
+                                               password=helpers.get_secret('GW_MQTT_PW'))
         self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
         self.gw_consume_thread = threading.Thread(target=self.gw_consume)
 
     def subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}',Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry_Maker.type_alias}',Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp0/{GtTelemetry_Maker.type_alias}',Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp1/{GtTelemetry_Maker.type_alias}',Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp2/{GtTelemetry_Maker.type_alias}',Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp3/{GtTelemetry_Maker.type_alias}',Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp4/{GtTelemetry_Maker.type_alias}',Qos=QOS.AtLeastOnce )]
+        return [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
+                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp0/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp1/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp2/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp3/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp4/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce)]
 
     def on_message(self, client, userdata, message):
         try:
@@ -55,7 +57,7 @@ class PrimaryScadaBase(ActorBase):
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
         if type_alias == GsPwr_Maker.type_alias:
             payload = GsPwr_Maker.type_to_tuple(message.payload)
-            self.gs_pwr_received(payload=payload, from_node=from_node )
+            self.gs_pwr_received(payload=payload, from_node=from_node)
         elif type_alias == GtTelemetry_Maker.type_alias:
             self.screen_print(f"Topic {message.topic}")
             payload = GtTelemetry_Maker.type_to_tuple(message.payload)
@@ -72,7 +74,7 @@ class PrimaryScadaBase(ActorBase):
         raise NotImplementedError
 
     def gw_subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'{MY_ATN_G_NODE_ALIAS}/{GsDispatch_Maker.type_alias}',Qos=QOS.AtMostOnce)]
+        return [Subscription(Topic=f'{MY_ATN_G_NODE_ALIAS}/{GsDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
 
     def on_gw_message(self, client, userdata, message):
         try:
@@ -103,10 +105,5 @@ class PrimaryScadaBase(ActorBase):
         self.gw_publish_client.publish(
             topic=topic,
             payload=payload.as_type(),
-            qos = QOS.AtMostOnce.value,
+            qos=QOS.AtMostOnce.value,
             retain=False)
-
-
-
-
-    

@@ -1,4 +1,4 @@
-#MQTT related
+# MQTT related
 LOCAL_MQTT_BROKER_ADDRESS = 'localhost'
 LOCAL_MQTT_USER_NAME = None
 

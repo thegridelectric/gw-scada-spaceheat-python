@@ -2,13 +2,13 @@
 import time
 from actors.sensor.sensor_base import SensorBase
 from data_classes.sh_node import ShNode
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName 
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
 
 class PipeFlowMeter(SensorBase):
     def __init__(self, node: ShNode):
-        super(PipeFlowMeter, self).__init__(node=node)   
+        super(PipeFlowMeter, self).__init__(node=node)
         self.water_flow_gpm = 0
         self.screen_print('hi')
         self.consume_thread.start()
