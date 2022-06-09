@@ -1,17 +1,18 @@
-from abc import abstractmethod, abstractproperty
-import paho.mqtt.client as mqtt
-import json
-import uuid
-from typing import List
-import settings
-import helpers
 import threading
+import uuid
+from abc import abstractmethod
+from typing import List
+
+import helpers
+import paho.mqtt.client as mqtt
+import settings
 from actors.actor_base import ActorBase
+from actors.mqtt_utils import QOS, Subscription
 from data_classes.sh_node import ShNode
-from actors.mqtt_utils import Subscription, QOS
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
+from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
+from schema.gt.gt_telemetry.gt_telemetry_maker import (GtTelemetry,
+                                                       GtTelemetry_Maker)
 
 MY_G_NODE_ALIAS = 'dw1.isone.nh.orange.1.ta.scada'
 MY_ATN_G_NODE_ALIAS = 'dw1.isone.nh.orange.1'
@@ -48,10 +49,10 @@ class PrimaryScadaBase(ActorBase):
     def on_message(self, client, userdata, message):
         try:
             (from_alias, type_alias) = message.topic.split('/')
-        except:
-            raise Exception(f"topic must be of format A/B")
+        except IndexError:
+            raise Exception("topic must be of format A/B")
         from_node = ShNode.by_alias[from_alias]
-        if not from_alias in ShNode.by_alias.keys():
+        if from_alias not in ShNode.by_alias.keys():
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
         if type_alias == GsPwr_Maker.type_alias:
             payload = GsPwr_Maker.type_to_tuple(message.payload)
@@ -77,8 +78,8 @@ class PrimaryScadaBase(ActorBase):
     def on_gw_message(self, client, userdata, message):
         try:
             (from_alias, type_alias) = message.topic.split('/')
-        except:
-            raise Exception(f"topic must be of format A/B")
+        except IndexError:
+            raise Exception("topic must be of format A/B")
         if not from_alias == MY_ATN_G_NODE_ALIAS:
             raise Exception(f"alias {from_alias} not my AtomicTNode!")
         from_node = ShNode.by_alias[from_alias]
