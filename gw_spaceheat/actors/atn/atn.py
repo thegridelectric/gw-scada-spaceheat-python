@@ -8,19 +8,19 @@ from schema.gt.gt_telemetry.gt_telemetry_1_0_1_maker import GtTelemetry101
 class Atn(Atn_Base):
     def __init__(self, node: ShNode):
         super(Atn, self).__init__(node=node)
-        self.consume_thread.start() 
+        self.gw_consume_thread.start() 
         self.payloads = []
         self.power = 0
 
     def publish(self):
         pass
 
-    def gs_pwr_100_from_primaryscada(self, payload: GsPwr100):
-        self.power = payload.Power
-        self.screen_print(f"Power is {self.power}")
+    def gs_pwr_100_received(self, payload: GsPwr100, from_node: ShNode):
+        raise NotImplementedError
+     
+    def gt_telemetry_100_received(self, payload: GtTelemetry101, from_node: ShNode):
+        raise NotImplementedError
 
-    def gt_telemetry_100_from_primaryscada(self, payload: GtTelemetry101):
-        self.screen_print(f"Got {payload}")
 
     @property
     def my_scada(self) -> ShNode:
