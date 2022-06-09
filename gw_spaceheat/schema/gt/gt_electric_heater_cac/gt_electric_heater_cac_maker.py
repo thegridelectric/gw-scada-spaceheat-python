@@ -1,21 +1,22 @@
-"""Makes gt.electric.heater.cac.100 type"""
-# length of GtBooleanActuatorComponent100: 22
+"""Makes gt.electric.heater.cac type"""
+
 from typing import Dict, Optional
 from data_classes.cacs.electric_heater_cac import ElectricHeaterCac
 
-from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac_100 import GtElectricHeaterCac100
+from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac import GtElectricHeaterCac
 from schema.errors import MpSchemaError
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 
 class GtElectricHeaterCac_Maker():
+    type_alias = 'gt.electric.heater.cac.100'
 
     def __init__(self,
                  component_attribute_class_id: str,
                  make_model: MakeModel,
                  display_name: Optional[str]):
 
-        t = GtElectricHeaterCac100(ComponentAttributeClassId=component_attribute_class_id,
+        t = GtElectricHeaterCac(ComponentAttributeClassId=component_attribute_class_id,
                                           MakeModel=make_model,
                                           DisplayName=display_name,
                                           )
@@ -23,7 +24,7 @@ class GtElectricHeaterCac_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtElectricHeaterCac100:
+    def dict_to_tuple(cls, d: Dict) -> GtElectricHeaterCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
         if "SpaceheatMakeModelGtEnumSymbol" not in d.keys():
@@ -32,7 +33,7 @@ class GtElectricHeaterCac_Maker():
         if "DisplayName" not in d.keys():
             d["DisplayName"] = None
 
-        t = GtElectricHeaterCac100(ComponentAttributeClassId=d["ComponentAttributeClassId"],
+        t = GtElectricHeaterCac(ComponentAttributeClassId=d["ComponentAttributeClassId"],
                                           DisplayName=d["DisplayName"],
                                           MakeModel=d["MakeModel"],
                                           )
@@ -40,7 +41,7 @@ class GtElectricHeaterCac_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtElectricHeaterCac100) -> ElectricHeaterCac:
+    def tuple_to_dc(cls, t: GtElectricHeaterCac) -> ElectricHeaterCac:
         s = {
             'component_attribute_class_id': t.ComponentAttributeClassId,
             'display_name': t.DisplayName,
@@ -52,10 +53,10 @@ class GtElectricHeaterCac_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: ElectricHeaterCac) -> GtElectricHeaterCac100:
+    def dc_to_tuple(cls, dc: ElectricHeaterCac) -> GtElectricHeaterCac:
         if dc is None:
             return None
-        t = GtElectricHeaterCac100(ComponentAttributeClassId=dc.component_attribute_class_id,
+        t = GtElectricHeaterCac(ComponentAttributeClassId=dc.component_attribute_class_id,
                                           MakeModel=dc.make_model,
                                           DisplayName=dc.display_name,
                                           )

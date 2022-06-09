@@ -1,13 +1,14 @@
-"""Makes gt.electric.meter.component.100 type"""
-# length of GtBooleanActuatorComponent100: 27
+"""Makes gt.electric.meter.component type"""
+
 from typing import Dict, Optional
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component_100 import GtElectricMeterComponent100
+from schema.gt.gt_electric_meter_component.gt_electric_meter_component import GtElectricMeterComponent
 from schema.errors import MpSchemaError
 
 
 class GtElectricMeterComponent_Maker():
+    type_alias = 'gt.electric.meter.component.100'
 
     def __init__(self,
                  component_id: str,
@@ -15,7 +16,7 @@ class GtElectricMeterComponent_Maker():
                  display_name: Optional[str],
                  hw_uid: Optional[str]):
 
-        t = GtElectricMeterComponent100(DisplayName=display_name,
+        t = GtElectricMeterComponent(DisplayName=display_name,
                                           ComponentId=component_id,
                                           HwUid=hw_uid,
                                           ComponentAttributeClassId=component_attribute_class_id,
@@ -24,7 +25,7 @@ class GtElectricMeterComponent_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtElectricMeterComponent100:
+    def dict_to_tuple(cls, d: Dict) -> GtElectricMeterComponent:
         if "ComponentId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentId")
         if "ComponentAttributeClassId" not in d.keys():
@@ -34,7 +35,7 @@ class GtElectricMeterComponent_Maker():
         if "HwUid" not in d.keys():
             d["HwUid"] = None
 
-        t = GtElectricMeterComponent100(DisplayName=d["DisplayName"],
+        t = GtElectricMeterComponent(DisplayName=d["DisplayName"],
                                           ComponentId=d["ComponentId"],
                                           HwUid=d["HwUid"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
@@ -43,7 +44,7 @@ class GtElectricMeterComponent_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtElectricMeterComponent100) -> ElectricMeterComponent:
+    def tuple_to_dc(cls, t: GtElectricMeterComponent) -> ElectricMeterComponent:
         s = {
             'display_name': t.DisplayName,
             'component_id': t.ComponentId,
@@ -57,10 +58,10 @@ class GtElectricMeterComponent_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: ElectricMeterComponent) -> GtElectricMeterComponent100:
+    def dc_to_tuple(cls, dc: ElectricMeterComponent) -> GtElectricMeterComponent:
         if dc is None:
             return None
-        t = GtElectricMeterComponent100(DisplayName=dc.display_name,
+        t = GtElectricMeterComponent(DisplayName=dc.display_name,
                                           ComponentId=dc.component_id,
                                           HwUid=dc.hw_uid,
                                           ComponentAttributeClassId=dc.component_attribute_class_id,

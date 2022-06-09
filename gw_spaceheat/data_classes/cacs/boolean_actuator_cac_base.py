@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from typing import Optional, Dict
 
-from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac_100 import GtBooleanActuatorCac100
+from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac import GtBooleanActuatorCac
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.errors import DcError
 from schema.enums.make_model.make_model_map import MakeModelMap
@@ -28,10 +28,10 @@ class BooleanActuatorCacBase(ComponentAttributeClass):
         BooleanActuatorCacBase._by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
 
-    def update(self, type: GtBooleanActuatorCac100):
+    def update(self, type: GtBooleanActuatorCac):
         self._check_immutability_constraints(type=type)
 
-    def _check_immutability_constraints(self, type: GtBooleanActuatorCac100):
+    def _check_immutability_constraints(self, type: GtBooleanActuatorCac):
         if self.make_model != type.MakeModel:
             raise DcError(f'make_model must be immutable for {self}. '
                           f'Got {type.MakeModel}')
@@ -40,7 +40,7 @@ class BooleanActuatorCacBase(ComponentAttributeClass):
                           f'Got {type.ComponentAttributeClassId}')
 
     @abstractmethod
-    def _check_update_axioms(self, type: GtBooleanActuatorCac100):
+    def _check_update_axioms(self, type: GtBooleanActuatorCac):
         raise NotImplementedError
 
     @abstractmethod

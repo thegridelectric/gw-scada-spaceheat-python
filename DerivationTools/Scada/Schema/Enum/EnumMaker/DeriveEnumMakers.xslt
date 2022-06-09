@@ -20,7 +20,8 @@
         <FileSet>
             <FileSetFiles>
                 <xsl:for-each select="$airtable//GtEnums/GtEnum[(normalize-space(Alias) !='')]">
-                    <xsl:variable name="enum-alias" select="Alias" />  
+                    <xsl:variable name="enum-alias" select="Alias" /> 
+                    <xsl:variable name="enum-name-style" select="PythonEnumNameStyle" />  
                     <xsl:variable name="class-name">
                         <xsl:call-template name="nt-case">
                             <xsl:with-param name="mp-schema-text" select="Alias" />
@@ -83,7 +84,15 @@ class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>Map():
         <xsl:text>
         "</xsl:text><xsl:value-of select="Symbol"/><xsl:text>": </xsl:text>
         <xsl:value-of select="$local-class-name"/><xsl:text>.</xsl:text>
-        <xsl:value-of select="translate(translate(LocalValue,'-',''),$lcletters, $ucletters)"/><xsl:text>,</xsl:text>
+        <xsl:if test="$enum-name-style = 'Upper'">
+            <xsl:value-of select="translate(translate(LocalValue,'-',''),$lcletters, $ucletters)"/>
+        </xsl:if>
+        <xsl:if test="$enum-name-style ='UpperPython'">
+        <xsl:call-template name="upper-python-case">
+            <xsl:with-param name="camel-case-text" select="translate(LocalValue,'-','')" />
+        </xsl:call-template>
+        </xsl:if>
+    <xsl:text>,</xsl:text>
     </xsl:for-each>
     <xsl:text> }
 
@@ -91,7 +100,15 @@ class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>Map():
         </xsl:text>
     <xsl:for-each select="$airtable//EnumSymbols/EnumSymbol[(Enum = $enum-id)]">
     <xsl:value-of select="$local-class-name"/><xsl:text>.</xsl:text>
-    <xsl:value-of select="translate(translate(LocalValue,'-',''),$lcletters, $ucletters)"/><xsl:text>: "</xsl:text>
+    <xsl:if test="$enum-name-style = 'Upper'">
+        <xsl:value-of select="translate(translate(LocalValue,'-',''),$lcletters, $ucletters)"/>
+    </xsl:if>
+    <xsl:if test="$enum-name-style ='UpperPython'">
+    <xsl:call-template name="upper-python-case">
+        <xsl:with-param name="camel-case-text" select="translate(LocalValue,'-','')" />
+    </xsl:call-template>
+    </xsl:if>
+    <xsl:text>: "</xsl:text>
     <xsl:value-of select="Symbol"/><xsl:text>",
         </xsl:text>
     </xsl:for-each>

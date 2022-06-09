@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.components.electric_heater_component_base import ElectricHeaterComponentBase
-from schema.gt.gt_electric_heater_component.gt_electric_heater_component_100 import GtElectricHeaterComponent100
+from schema.gt.gt_electric_heater_component.gt_electric_heater_component import GtElectricHeaterComponent
 
 
 class ElectricHeaterComponent(ElectricHeaterComponentBase):
@@ -19,7 +19,7 @@ class ElectricHeaterComponent(ElectricHeaterComponentBase):
                                              component_attribute_class_id=component_attribute_class_id,
                                              )
 
-    def _check_update_axioms(self, type: GtElectricHeaterComponent100):
+    def _check_update_axioms(self, type: GtElectricHeaterComponent):
         pass
 
     def __repr__(self):

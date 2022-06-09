@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.components.boolean_actuator_component_base import BooleanActuatorComponentBase
-from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component_100 import GtBooleanActuatorComponent100
+from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component import GtBooleanActuatorComponent
 
 
 class BooleanActuatorComponent(BooleanActuatorComponentBase):
@@ -21,7 +21,7 @@ class BooleanActuatorComponent(BooleanActuatorComponentBase):
                                              component_attribute_class_id=component_attribute_class_id,
                                              )
 
-    def _check_update_axioms(self, type: GtBooleanActuatorComponent100):
+    def _check_update_axioms(self, type: GtBooleanActuatorComponent):
         pass
 
     def __repr__(self):

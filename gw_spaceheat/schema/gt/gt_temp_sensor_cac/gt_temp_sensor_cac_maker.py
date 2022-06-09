@@ -1,14 +1,15 @@
-"""Makes gt.temp.sensor.cac.100 type"""
-# length of GtBooleanActuatorComponent100: 18
+"""Makes gt.temp.sensor.cac type"""
+
 from typing import Dict, Optional
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 
-from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac_100 import GtTempSensorCac100
+from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac import GtTempSensorCac
 from schema.errors import MpSchemaError
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 
 class GtTempSensorCac_Maker():
+    type_alias = 'gt.temp.sensor.cac.100'
 
     def __init__(self,
                  component_attribute_class_id: str,
@@ -18,7 +19,7 @@ class GtTempSensorCac_Maker():
                  precision_exponent: Optional[int],
                  comms_method: Optional[str]):
 
-        t = GtTempSensorCac100(DisplayName=display_name,
+        t = GtTempSensorCac(DisplayName=display_name,
                                           TempUnit=temp_unit,
                                           MakeModel=make_model,
                                           ComponentAttributeClassId=component_attribute_class_id,
@@ -29,7 +30,7 @@ class GtTempSensorCac_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtTempSensorCac100:
+    def dict_to_tuple(cls, d: Dict) -> GtTempSensorCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
         if "SpaceheatMakeModelGtEnumSymbol" not in d.keys():
@@ -44,7 +45,7 @@ class GtTempSensorCac_Maker():
         if "CommsMethod" not in d.keys():
             d["CommsMethod"] = None
 
-        t = GtTempSensorCac100(DisplayName=d["DisplayName"],
+        t = GtTempSensorCac(DisplayName=d["DisplayName"],
                                           TempUnit=d["TempUnit"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
                                           PrecisionExponent=d["PrecisionExponent"],
@@ -55,7 +56,7 @@ class GtTempSensorCac_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtTempSensorCac100) -> TempSensorCac:
+    def tuple_to_dc(cls, t: GtTempSensorCac) -> TempSensorCac:
         s = {
             'display_name': t.DisplayName,
             'temp_unit': t.TempUnit,
@@ -70,10 +71,10 @@ class GtTempSensorCac_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: TempSensorCac) -> GtTempSensorCac100:
+    def dc_to_tuple(cls, dc: TempSensorCac) -> GtTempSensorCac:
         if dc is None:
             return None
-        t = GtTempSensorCac100(DisplayName=dc.display_name,
+        t = GtTempSensorCac(DisplayName=dc.display_name,
                                           TempUnit=dc.temp_unit,
                                           MakeModel=dc.make_model,
                                           ComponentAttributeClassId=dc.component_attribute_class_id,

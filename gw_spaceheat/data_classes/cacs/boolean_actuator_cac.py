@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.cacs.boolean_actuator_cac_base import BooleanActuatorCacBase
-from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac_100 import GtBooleanActuatorCac100
+from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac import GtBooleanActuatorCac
 
 
 class BooleanActuatorCac(BooleanActuatorCacBase):
@@ -17,7 +17,7 @@ class BooleanActuatorCac(BooleanActuatorCacBase):
                                              make_model_gt_enum_symbol=make_model_gt_enum_symbol,
                                              )
 
-    def _check_update_axioms(self, type: GtBooleanActuatorCac100):
+    def _check_update_axioms(self, type: GtBooleanActuatorCac):
         pass
 
     def __repr__(self):

@@ -20,11 +20,10 @@
         <FileSet>
             <FileSetFiles>
                 <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and (MakeDataClass='true')  and (IsComponent='true') and (Status = 'Active')]">
-                    <xsl:variable name="schema-alias" select="Alias" />  
                     <xsl:variable name="schema-id" select="SchemaId" />  
                     <xsl:variable name="class-name">
                         <xsl:call-template name="nt-case">
-                            <xsl:with-param name="mp-schema-text" select="Alias" />
+                            <xsl:with-param name="mp-schema-text" select="AliasRoot" />
                         </xsl:call-template>
                     </xsl:variable>
                     <xsl:variable name="cac">
@@ -52,7 +51,7 @@ from typing import Optional, Dict
 
 from schema.enums.make_model.make_model_map import MakeModel
 from schema.gt.</xsl:text> <xsl:value-of select="translate(AliasRoot,'.','_')"/>
-<xsl:text>.</xsl:text><xsl:value-of select="translate(Alias,'.','_')"/>
+<xsl:text>.</xsl:text><xsl:value-of select="translate(AliasRoot,'.','_')"/>
 <xsl:text> import </xsl:text><xsl:value-of select="$class-name"/><xsl:text>
 from data_classes.component import Component
 from data_classes.errors import DcError

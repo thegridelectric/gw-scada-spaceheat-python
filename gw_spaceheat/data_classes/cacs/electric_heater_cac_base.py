@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from typing import Optional, Dict
 
-from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac_100 import GtElectricHeaterCac100
+from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac import GtElectricHeaterCac
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.errors import DcError
 from schema.enums.make_model.make_model_map import MakeModelMap
@@ -28,10 +28,10 @@ class ElectricHeaterCacBase(ComponentAttributeClass):
         ElectricHeaterCacBase._by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
 
-    def update(self, type: GtElectricHeaterCac100):
+    def update(self, type: GtElectricHeaterCac):
         self._check_immutability_constraints(type=type)
 
-    def _check_immutability_constraints(self, type: GtElectricHeaterCac100):
+    def _check_immutability_constraints(self, type: GtElectricHeaterCac):
         if self.component_attribute_class_id != type.ComponentAttributeClassId:
             raise DcError(f'component_attribute_class_id must be immutable for {self}. '
                           f'Got {type.ComponentAttributeClassId}')
@@ -40,7 +40,7 @@ class ElectricHeaterCacBase(ComponentAttributeClass):
                           f'Got {type.MakeModel}')
 
     @abstractmethod
-    def _check_update_axioms(self, type: GtElectricHeaterCac100):
+    def _check_update_axioms(self, type: GtElectricHeaterCac):
         raise NotImplementedError
 
     @abstractmethod

@@ -1,4 +1,4 @@
-"""Base for GridWorks schema gs.pwr.100 with MpAlias p"""
+"""Base for GridWorks schema gs.pwr.100 with TypeAlias p"""
 from typing import List, Dict, Tuple, Optional, NamedTuple
 import datetime
 import enum
@@ -6,24 +6,20 @@ import struct
 
 import schema.property_format as property_format
 
-class GsPwr100Base(NamedTuple):   #
+class GsPwrBase(NamedTuple):   #
     Power: int     # 
-    MpAlias: str = 'p'
+    TypeAlias: str = 'p'
 
-    def asbinary(self) -> bytes:
+    def as_type(self) -> bytes:
         return struct.pack("<h", self.Power)
 
-    def passes_derived_validations(self) -> Tuple[bool, Optional[List[str]]]:
-        is_valid = True
+    def derived_errors(self) -> Tuple[bool, Optional[List[str]]]:
         errors = []
-        if self.MpAlias != 'p':
-            is_valid = False
-            errors.append(f"Payload requires MpAlias of p, not {self.MpAlias}.")
+        if self.TypeAlias != 'p':
+            errors.append(f"Payload requires MpAlias of p, not {self.TypeAlias}.")
         if not isinstance(self.Power, int):
-            is_valid = False
             errors.append(f"Name {self.Power} must have type int")
         if not property_format.is_short_integer(self.Power):
-            is_valid = False
             errors.append(f"Power {self.Power} does not work. Short format requires (-32767 -1) <= number <= 32767")
-        return is_valid, errors
+        return errors
 

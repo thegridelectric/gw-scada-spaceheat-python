@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Optional, Dict
 
 from schema.enums.make_model.make_model_map import MakeModel
-from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_100 import GtPipeFlowSensorComponent100
+from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component import GtPipeFlowSensorComponent
 from data_classes.component import Component
 from data_classes.errors import DcError
 from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
@@ -33,10 +33,10 @@ class PipeFlowSensorComponentBase(Component):
         PipeFlowSensorComponentBase._by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
 
-    def update(self, type: GtPipeFlowSensorComponent100):
+    def update(self, type: GtPipeFlowSensorComponent):
         self._check_immutability_constraints(type=type)
 
-    def _check_immutability_constraints(self, type: GtPipeFlowSensorComponent100):
+    def _check_immutability_constraints(self, type: GtPipeFlowSensorComponent):
         if self.component_id != type.ComponentId:
             raise DcError(f'component_id must be immutable for {self}. '
                           f'Got {type.ComponentId}')
@@ -57,7 +57,7 @@ class PipeFlowSensorComponentBase(Component):
         return self.cac.make_model
 
     @abstractmethod
-    def _check_update_axioms(self, type: GtPipeFlowSensorComponent100):
+    def _check_update_axioms(self, type: GtPipeFlowSensorComponent):
         raise NotImplementedError
 
     @abstractmethod

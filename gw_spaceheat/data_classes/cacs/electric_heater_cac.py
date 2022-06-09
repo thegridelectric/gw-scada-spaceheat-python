@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.cacs.electric_heater_cac_base import ElectricHeaterCacBase
-from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac_100 import GtElectricHeaterCac100
+from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac import GtElectricHeaterCac
 
 
 class ElectricHeaterCac(ElectricHeaterCacBase):
@@ -17,7 +17,7 @@ class ElectricHeaterCac(ElectricHeaterCacBase):
                                              make_model_gt_enum_symbol=make_model_gt_enum_symbol,
                                              )
 
-    def _check_update_axioms(self, type: GtElectricHeaterCac100):
+    def _check_update_axioms(self, type: GtElectricHeaterCac):
         pass
 
     def __repr__(self):

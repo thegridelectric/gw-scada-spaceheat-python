@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Optional, Dict
 
 from schema.enums.make_model.make_model_map import MakeModel
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component_100 import GtElectricMeterComponent100
+from schema.gt.gt_electric_meter_component.gt_electric_meter_component import GtElectricMeterComponent
 from data_classes.component import Component
 from data_classes.errors import DcError
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
@@ -33,10 +33,10 @@ class ElectricMeterComponentBase(Component):
         ElectricMeterComponentBase._by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
 
-    def update(self, type: GtElectricMeterComponent100):
+    def update(self, type: GtElectricMeterComponent):
         self._check_immutability_constraints(type=type)
 
-    def _check_immutability_constraints(self, type: GtElectricMeterComponent100):
+    def _check_immutability_constraints(self, type: GtElectricMeterComponent):
         if self.component_id != type.ComponentId:
             raise DcError(f'component_id must be immutable for {self}. '
                           f'Got {type.ComponentId}')
@@ -61,7 +61,7 @@ class ElectricMeterComponentBase(Component):
         return self.cac.make_model
 
     @abstractmethod
-    def _check_update_axioms(self, type: GtElectricMeterComponent100):
+    def _check_update_axioms(self, type: GtElectricMeterComponent):
         raise NotImplementedError
 
     @abstractmethod

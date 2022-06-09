@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.components.temp_sensor_component_base import TempSensorComponentBase
-from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_100 import GtTempSensorComponent100
+from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component import GtTempSensorComponent
 
 
 class TempSensorComponent(TempSensorComponentBase):
@@ -19,7 +19,7 @@ class TempSensorComponent(TempSensorComponentBase):
                                              component_attribute_class_id=component_attribute_class_id,
                                              )
 
-    def _check_update_axioms(self, type: GtTempSensorComponent100):
+    def _check_update_axioms(self, type: GtTempSensorComponent):
         pass
 
     def __repr__(self):

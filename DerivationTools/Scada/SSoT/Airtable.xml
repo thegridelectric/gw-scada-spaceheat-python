@@ -139,6 +139,7 @@
       <LocalName>telemetry.name</LocalName>
       <Alias>spaceheat.telemetry.name.100</Alias>
       <MpSchemaAlias>gt.telemetry.100</MpSchemaAlias>
+      <PythonEnumNameStyle>UpperPython</PythonEnumNameStyle>
     </GtEnum>
     <GtEnum>
       <GtEnumId>recGY8tA8qaJlpJXP</GtEnumId>
@@ -158,6 +159,7 @@
       <SemanticEnd>100</SemanticEnd>
       <LocalName>role</LocalName>
       <Alias>sh.node.role.100</Alias>
+      <PythonEnumNameStyle>UpperPython</PythonEnumNameStyle>
     </GtEnum>
     <GtEnum>
       <GtEnumId>recLQWqTvGwSz2GcN</GtEnumId>
@@ -176,6 +178,7 @@
       <SemanticEnd>100</SemanticEnd>
       <LocalName>make.model</LocalName>
       <Alias>spaceheat.make.model.100</Alias>
+      <PythonEnumNameStyle>Upper</PythonEnumNameStyle>
     </GtEnum>
   </GtEnums>
   <EnumSymbols>
@@ -357,7 +360,7 @@
       <SchemaAttributeId>rec0yzwyCWxtaJQJF</SchemaAttributeId>
       <createdTime>2022-05-11T18:50:00Z</createdTime>
       <Value>ScadaReadTimeUnixMs</Value>
-      <GtSchema>recqVHqZ5DQVdVgby</GtSchema>
+      <GtSchema>recx4EL5mDebUhtzp</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
@@ -565,7 +568,7 @@
       <SchemaAttributeId>recKwPBxJr8R55KlB</SchemaAttributeId>
       <createdTime>2022-05-11T18:23:36Z</createdTime>
       <Value>Value</Value>
-      <GtSchema>recqVHqZ5DQVdVgby</GtSchema>
+      <GtSchema>recx4EL5mDebUhtzp</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
@@ -811,7 +814,7 @@
       <SchemaAttributeId>recfMyBibCC1lqTy1</SchemaAttributeId>
       <createdTime>2022-05-11T18:23:36Z</createdTime>
       <Value>Name</Value>
-      <GtSchema>recqVHqZ5DQVdVgby</GtSchema>
+      <GtSchema>recx4EL5mDebUhtzp</GtSchema>
       <IsRequired>true</IsRequired>
       <PrimitiveType>String</PrimitiveType>
       <Enum>rec2HyLffy6QK9QId</Enum>
@@ -1032,6 +1035,18 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recyNip0u0FiM066j</SchemaAttributeId>
+      <createdTime>2022-06-09T15:19:26Z</createdTime>
+      <Value>Exponent</Value>
+      <GtSchema>recx4EL5mDebUhtzp</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
   </SchemaAttributes>
   <PropertyFormats>
     <PropertyFormat>
@@ -1228,11 +1243,8 @@
       <SchemaId>recqVHqZ5DQVdVgby</SchemaId>
       <createdTime>2022-05-11T18:08:26Z</createdTime>
       <AliasRoot>gt.telemetry</AliasRoot>
-      <Status>Active</Status>
+      <Status>Deprecated</Status>
       <ProtocolType>Json</ProtocolType>
-      <SchemaAttributes>recfMyBibCC1lqTy1</SchemaAttributes>
-      <SchemaAttributes>recKwPBxJr8R55KlB</SchemaAttributes>
-      <SchemaAttributes>rec0yzwyCWxtaJQJF</SchemaAttributes>
       <Enums>rec2HyLffy6QK9QId</Enums>
       <SemanticEnd>100</SemanticEnd>
       <ConsistencyCheck>1</ConsistencyCheck>
@@ -1274,6 +1286,20 @@
       <IsComponent>true</IsComponent>
       <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.meter.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recx4EL5mDebUhtzp</SchemaId>
+      <createdTime>2022-06-09T15:17:43Z</createdTime>
+      <AliasRoot>gt.telemetry</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recyNip0u0FiM066j</SchemaAttributes>
+      <SchemaAttributes>rec0yzwyCWxtaJQJF</SchemaAttributes>
+      <SchemaAttributes>recKwPBxJr8R55KlB</SchemaAttributes>
+      <SchemaAttributes>recfMyBibCC1lqTy1</SchemaAttributes>
+      <SemanticEnd>110</SemanticEnd>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.telemetry.110</Alias>
     </Schema>
     <Schema>
       <SchemaId>recy2lAURQitTqKTR</SchemaId>

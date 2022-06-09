@@ -1,7 +1,7 @@
 
 from actors.power_meter.power_meter_base import PowerMeterBase
 from data_classes.sh_node import ShNode
-from schema.gs.gs_pwr_1_0_0_maker import GsPwr100_Maker
+from schema.gs.gs_pwr_maker import GsPwr_Maker
 
 
 class PowerMeter(PowerMeterBase):
@@ -11,7 +11,7 @@ class PowerMeter(PowerMeterBase):
         self.total_power_w = 4230
 
     def publish(self):
-        payload = GsPwr100_Maker(power=self.total_power_w).type
+        payload = GsPwr_Maker(power=self.total_power_w).tuple
         self.publish_gs_pwr(payload=payload)
 
 

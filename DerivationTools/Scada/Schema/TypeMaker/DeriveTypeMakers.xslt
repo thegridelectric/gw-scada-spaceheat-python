@@ -19,12 +19,12 @@
     <xsl:template match="/">
         <FileSet>
             <FileSetFiles>
-                <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and (MakeDataClass='true')  and (Status = 'Active')]">
-                <xsl:variable name="schema-alias" select="Alias" />
+                <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and (MakeDataClass='true')  and (Status = 'Active') and (ProtocolType = 'Json')]">
+                <xsl:variable name="local-alias" select="AliasRoot" />
                 <xsl:variable name="schema-id" select="SchemaId" />  
                 <xsl:variable name="class-name">
                     <xsl:call-template name="nt-case">
-                        <xsl:with-param name="mp-schema-text" select="Alias" />
+                        <xsl:with-param name="mp-schema-text" select="$local-alias" />
                     </xsl:call-template>
                 </xsl:variable>
                 <xsl:variable name="python-data-class">
@@ -46,15 +46,14 @@
                 </xsl:variable>
                 <FileSetFile>
                             <xsl:element name="RelativePath"><xsl:text>../../../../gw_spaceheat/schema/gt/</xsl:text>
-                            <xsl:value-of select="translate(AliasRoot,'.','_')"/><xsl:text>/</xsl:text>
-                            <xsl:value-of select="translate(AliasRoot,'.','_')"/><xsl:text>_maker.py</xsl:text></xsl:element>
+                            <xsl:value-of select="translate($local-alias,'.','_')"/><xsl:text>/</xsl:text>
+                            <xsl:value-of select="translate($local-alias,'.','_')"/><xsl:text>_maker.py</xsl:text></xsl:element>
 
                     <OverwriteMode>Always</OverwriteMode>
                     <xsl:element name="FileContents">
 
-<xsl:text>"""Makes </xsl:text><xsl:value-of select="$schema-alias"/><xsl:text> type"""
-# length of GtBooleanActuatorComponent100: </xsl:text><xsl:value-of select="string-length($class-name)"/>
-<xsl:text>
+<xsl:text>"""Makes </xsl:text><xsl:value-of select="$local-alias"/><xsl:text> type"""
+
 from typing import Dict, Optional</xsl:text>
 
 <xsl:if test="IsCac = 'true'">
@@ -77,8 +76,8 @@ from data_classes.</xsl:text>
 </xsl:if>
 <xsl:text>
 
-from schema.gt.</xsl:text> <xsl:value-of select="translate(AliasRoot,'.','_')"/>
-<xsl:text>.</xsl:text><xsl:value-of select="translate(Alias,'.','_')"/>
+from schema.gt.</xsl:text> <xsl:value-of select="translate($local-alias,'.','_')"/>
+<xsl:text>.</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
 <xsl:text> import </xsl:text><xsl:value-of select="$class-name"/><xsl:text>
 from schema.errors import MpSchemaError</xsl:text>
 
@@ -105,11 +104,9 @@ from schema.enums.</xsl:text>
 <xsl:text>
 
 
-class </xsl:text>
-<xsl:call-template name="nt-case">
-                        <xsl:with-param name="mp-schema-text" select="AliasRoot" />
-                    </xsl:call-template>
+class </xsl:text><xsl:value-of select="$class-name"/>
 <xsl:text>_Maker():
+    type_alias = '</xsl:text><xsl:value-of select="Alias"/><xsl:text>'
 
     def __init__(self</xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsRequired = 'true')]">

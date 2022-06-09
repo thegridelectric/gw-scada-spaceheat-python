@@ -5,10 +5,10 @@ from typing import List
 
 
 class TelemetryName(enum.Enum):
-    WATERTEMPFTIMES1000 = "WaterTempFTimes1000"
-    WATERFLOWGPMTIMES100 = "WaterFlowGpmTimes100"
-    WATERTEMPCTIMES1000 = "WaterTempCTimes1000"
-    RELAYSTATE = "RelayState"
+    WATER_TEMP_F_TIMES1000 = "WaterTempFTimes1000"
+    WATER_FLOW_GPM_TIMES100 = "WaterFlowGpmTimes100"
+    WATER_TEMP_C_TIMES1000 = "WaterTempCTimes1000"
+    RELAY_STATE = "RelayState"
     
 
 class SpaceheatTelemetryName100GtEnum(ABC):

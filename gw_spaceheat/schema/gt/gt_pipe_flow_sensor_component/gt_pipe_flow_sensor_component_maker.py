@@ -1,13 +1,14 @@
-"""Makes gt.pipe.flow.sensor.component.100 type"""
-# length of GtBooleanActuatorComponent100: 28
+"""Makes gt.pipe.flow.sensor.component type"""
+
 from typing import Dict, Optional
 from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
 
-from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_100 import GtPipeFlowSensorComponent100
+from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component import GtPipeFlowSensorComponent
 from schema.errors import MpSchemaError
 
 
 class GtPipeFlowSensorComponent_Maker():
+    type_alias = 'gt.pipe.flow.sensor.component.100'
 
     def __init__(self,
                  component_id: str,
@@ -15,7 +16,7 @@ class GtPipeFlowSensorComponent_Maker():
                  display_name: Optional[str],
                  hw_uid: Optional[str]):
 
-        t = GtPipeFlowSensorComponent100(ComponentId=component_id,
+        t = GtPipeFlowSensorComponent(ComponentId=component_id,
                                           DisplayName=display_name,
                                           HwUid=hw_uid,
                                           ComponentAttributeClassId=component_attribute_class_id,
@@ -24,7 +25,7 @@ class GtPipeFlowSensorComponent_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtPipeFlowSensorComponent100:
+    def dict_to_tuple(cls, d: Dict) -> GtPipeFlowSensorComponent:
         if "ComponentId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentId")
         if "ComponentAttributeClassId" not in d.keys():
@@ -34,7 +35,7 @@ class GtPipeFlowSensorComponent_Maker():
         if "HwUid" not in d.keys():
             d["HwUid"] = None
 
-        t = GtPipeFlowSensorComponent100(ComponentId=d["ComponentId"],
+        t = GtPipeFlowSensorComponent(ComponentId=d["ComponentId"],
                                           DisplayName=d["DisplayName"],
                                           HwUid=d["HwUid"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
@@ -43,7 +44,7 @@ class GtPipeFlowSensorComponent_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtPipeFlowSensorComponent100) -> PipeFlowSensorComponent:
+    def tuple_to_dc(cls, t: GtPipeFlowSensorComponent) -> PipeFlowSensorComponent:
         s = {
             'component_id': t.ComponentId,
             'display_name': t.DisplayName,
@@ -57,10 +58,10 @@ class GtPipeFlowSensorComponent_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: PipeFlowSensorComponent) -> GtPipeFlowSensorComponent100:
+    def dc_to_tuple(cls, dc: PipeFlowSensorComponent) -> GtPipeFlowSensorComponent:
         if dc is None:
             return None
-        t = GtPipeFlowSensorComponent100(ComponentId=dc.component_id,
+        t = GtPipeFlowSensorComponent(ComponentId=dc.component_id,
                                           DisplayName=dc.display_name,
                                           HwUid=dc.hw_uid,
                                           ComponentAttributeClassId=dc.component_attribute_class_id,

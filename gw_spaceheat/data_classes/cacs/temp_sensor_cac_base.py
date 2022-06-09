@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from typing import Optional, Dict
 
-from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac_100 import GtTempSensorCac100
+from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac import GtTempSensorCac
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.errors import DcError
 from schema.enums.make_model.make_model_map import MakeModelMap
@@ -37,10 +37,10 @@ class TempSensorCacBase(ComponentAttributeClass):
         TempSensorCacBase._by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
 
-    def update(self, type: GtTempSensorCac100):
+    def update(self, type: GtTempSensorCac):
         self._check_immutability_constraints(type=type)
 
-    def _check_immutability_constraints(self, type: GtTempSensorCac100):
+    def _check_immutability_constraints(self, type: GtTempSensorCac):
         if self.make_model != type.MakeModel:
             raise DcError(f'make_model must be immutable for {self}. '
                           f'Got {type.MakeModel}')
@@ -49,7 +49,7 @@ class TempSensorCacBase(ComponentAttributeClass):
                           f'Got {type.ComponentAttributeClassId}')
 
     @abstractmethod
-    def _check_update_axioms(self, type: GtTempSensorCac100):
+    def _check_update_axioms(self, type: GtTempSensorCac):
         raise NotImplementedError
 
     @abstractmethod

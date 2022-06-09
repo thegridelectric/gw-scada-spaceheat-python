@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.components.electric_meter_component_base import ElectricMeterComponentBase
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component_100 import GtElectricMeterComponent100
+from schema.gt.gt_electric_meter_component.gt_electric_meter_component import GtElectricMeterComponent
 
 
 class ElectricMeterComponent(ElectricMeterComponentBase):
@@ -19,7 +19,7 @@ class ElectricMeterComponent(ElectricMeterComponentBase):
                                              component_attribute_class_id=component_attribute_class_id,
                                              )
 
-    def _check_update_axioms(self, type: GtElectricMeterComponent100):
+    def _check_update_axioms(self, type: GtElectricMeterComponent):
         pass
 
     def __repr__(self):

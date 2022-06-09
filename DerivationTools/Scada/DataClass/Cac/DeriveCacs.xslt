@@ -19,12 +19,11 @@
     <xsl:template match="/">
         <FileSet>
             <FileSetFiles>
-                <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and (MakeDataClass='true')  and (IsCac='true') and (Status = 'Active')]">
-                    <xsl:variable name="schema-alias" select="Alias" />  
+                <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and (MakeDataClass='true')  and (IsCac='true') and (Status = 'Active')]"> 
                     <xsl:variable name="schema-id" select="SchemaId" />  
                     <xsl:variable name="class-name">
                         <xsl:call-template name="nt-case">
-                            <xsl:with-param name="mp-schema-text" select="Alias" />
+                            <xsl:with-param name="mp-schema-text" select="AliasRoot" />
                         </xsl:call-template>
                     </xsl:variable>
                     <FileSetFile>
@@ -46,7 +45,7 @@ from data_classes.cacs.</xsl:text>
 </xsl:call-template><xsl:text>_base import </xsl:text>
 <xsl:value-of select="DataClass"/><xsl:text>Base
 from schema.gt.</xsl:text> <xsl:value-of select="translate(AliasRoot,'.','_')"/>
-<xsl:text>.</xsl:text><xsl:value-of select="translate(Alias,'.','_')"/>
+<xsl:text>.</xsl:text><xsl:value-of select="translate(AliasRoot,'.','_')"/>
 <xsl:text> import </xsl:text><xsl:value-of select="$class-name"/><xsl:text>
 
 

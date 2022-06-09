@@ -1,13 +1,14 @@
-"""Makes gt.boolean.actuator.component.100 type"""
-# length of GtBooleanActuatorComponent100: 29
+"""Makes gt.boolean.actuator.component type"""
+
 from typing import Dict, Optional
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 
-from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component_100 import GtBooleanActuatorComponent100
+from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component import GtBooleanActuatorComponent
 from schema.errors import MpSchemaError
 
 
 class GtBooleanActuatorComponent_Maker():
+    type_alias = 'gt.boolean.actuator.component.100'
 
     def __init__(self,
                  component_id: str,
@@ -16,7 +17,7 @@ class GtBooleanActuatorComponent_Maker():
                  gpio: Optional[int],
                  hw_uid: Optional[str]):
 
-        t = GtBooleanActuatorComponent100(DisplayName=display_name,
+        t = GtBooleanActuatorComponent(DisplayName=display_name,
                                           ComponentId=component_id,
                                           Gpio=gpio,
                                           HwUid=hw_uid,
@@ -26,7 +27,7 @@ class GtBooleanActuatorComponent_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtBooleanActuatorComponent100:
+    def dict_to_tuple(cls, d: Dict) -> GtBooleanActuatorComponent:
         if "ComponentId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentId")
         if "ComponentAttributeClassId" not in d.keys():
@@ -38,7 +39,7 @@ class GtBooleanActuatorComponent_Maker():
         if "HwUid" not in d.keys():
             d["HwUid"] = None
 
-        t = GtBooleanActuatorComponent100(DisplayName=d["DisplayName"],
+        t = GtBooleanActuatorComponent(DisplayName=d["DisplayName"],
                                           ComponentId=d["ComponentId"],
                                           Gpio=d["Gpio"],
                                           HwUid=d["HwUid"],
@@ -48,7 +49,7 @@ class GtBooleanActuatorComponent_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtBooleanActuatorComponent100) -> BooleanActuatorComponent:
+    def tuple_to_dc(cls, t: GtBooleanActuatorComponent) -> BooleanActuatorComponent:
         s = {
             'display_name': t.DisplayName,
             'component_id': t.ComponentId,
@@ -63,10 +64,10 @@ class GtBooleanActuatorComponent_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: BooleanActuatorComponent) -> GtBooleanActuatorComponent100:
+    def dc_to_tuple(cls, dc: BooleanActuatorComponent) -> GtBooleanActuatorComponent:
         if dc is None:
             return None
-        t = GtBooleanActuatorComponent100(DisplayName=dc.display_name,
+        t = GtBooleanActuatorComponent(DisplayName=dc.display_name,
                                           ComponentId=dc.component_id,
                                           Gpio=dc.gpio,
                                           HwUid=dc.hw_uid,

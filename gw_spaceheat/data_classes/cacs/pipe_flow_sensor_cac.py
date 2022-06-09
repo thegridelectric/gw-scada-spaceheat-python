@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.cacs.pipe_flow_sensor_cac_base import PipeFlowSensorCacBase
-from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac_100 import GtPipeFlowSensorCac100
+from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac import GtPipeFlowSensorCac
 
 
 class PipeFlowSensorCac(PipeFlowSensorCacBase):
@@ -19,7 +19,7 @@ class PipeFlowSensorCac(PipeFlowSensorCacBase):
                                              make_model_gt_enum_symbol=make_model_gt_enum_symbol,
                                              )
 
-    def _check_update_axioms(self, type: GtPipeFlowSensorCac100):
+    def _check_update_axioms(self, type: GtPipeFlowSensorCac):
         pass
 
     def __repr__(self):
