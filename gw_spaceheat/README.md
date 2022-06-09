@@ -16,6 +16,9 @@ There are some scratch notes on Pi-related setup (like enabling interfaces) in d
   - `python -m pip install pip-tools`
   - If you want to add a new library used in all contexts, then add it to requirements/base.in and run
       - `pip-compile --output-file=requirements/dev.txt requirements/dev.in`
+      - ... and then make sure to re-compile all requirements.txt that reference that .in file (all of them,for base.in)
+
+
     - ... and then make sure to re-compile all requirements.txt that reference that .in file (all of them,for base.in)
 
 We use pip-tools to organize requirements. The `.in` files clarify the key modules (including which ones are important to pin and which ones can be set to the latest release) and then the corresponding `.txt` files are generated via pip-tools. This means we always run on pinned requirements (from the .txt files) and can typically upgrade to the latest release, except for cases where the code requires a pinned older version.
@@ -42,8 +45,19 @@ Settings use a gitignored settings.py file. There is a template settings_templat
 For development purposes, you can set up .env to include MQTT_PW = None and use the default value in settings_template.py (one of the 
 many free cloud brokers))
 
+To use a local mosquitto broker:
+**Install the mosquito server**
+1. `brew install mosquitto`
+2. `brew services restart mosquitto`
+3. if you want to the broker to start on mac startup: `ln -sfv /usr/local/opt/mosquitto/*.plist ~/Library/LaunchAgents`
+4. Test using commandline pub sub.
+   - In first terminal: `mosquitto_sub -t 'test'`
+   - In second terminal: `mosquitto_pub -t 'test' -m 'hi'`
+   - Success: the subscribing terminal outputs hi
+
 ## Step 2: input data and running the code
 
 Input data is in input_data folder. The `dev_house.json` is used for developing on a mac. The `pi_dev_house.json` is used for a pi that is connected to actual hardware and has its various drivers (like i2c) enabled.
 
 Run the code in main.py as a script. It creates the main code for the primary scada actor, loading its input data by checking if the OS belongs to a mac or not.
+
