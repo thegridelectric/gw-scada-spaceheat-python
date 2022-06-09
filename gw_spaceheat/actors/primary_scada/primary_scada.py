@@ -1,20 +1,23 @@
-from typing import List, Dict
-import pendulum
 import csv
-import time
 import threading
+import time
+from typing import Dict, List
+
+import pendulum
 from actors.primary_scada.primary_scada_base import PrimaryScadaBase
+from data_classes.components.boolean_actuator_component import \
+    BooleanActuatorComponent
 from data_classes.sh_node import ShNode
-from data_classes.components.boolean_actuator_component import BooleanActuatorComponent 
-from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
-from schema.gs.gs_dispatch import GsDispatch
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import NcdPr814Spst_BooleanActuatorDriver
+from drivers.boolean_actuator.boolean_actuator_driver import \
+    BooleanActuatorDriver
 from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import \
     GridworksSimBool30AmpRelay_BooleanActuatorDriver
-
+from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import \
+    NcdPr814Spst_BooleanActuatorDriver
 from schema.enums.make_model.make_model_map import MakeModel
+from schema.gs.gs_dispatch import GsDispatch
+from schema.gs.gs_pwr_maker import GsPwr
+from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
 
 
 class PrimaryScada(PrimaryScadaBase):
