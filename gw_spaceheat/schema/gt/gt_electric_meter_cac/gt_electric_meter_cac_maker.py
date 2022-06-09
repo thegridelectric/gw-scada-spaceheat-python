@@ -1,14 +1,15 @@
-"""Makes gt.electric.meter.cac.100 type"""
-# length of GtBooleanActuatorComponent100: 21
+"""Makes gt.electric.meter.cac type"""
+
 from typing import Dict, Optional
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 
-from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_100 import GtElectricMeterCac100
+from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac import GtElectricMeterCac
 from schema.errors import MpSchemaError
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 
 class GtElectricMeterCac_Maker():
+    type_alias = 'gt.electric.meter.cac.100'
 
     def __init__(self,
                  component_attribute_class_id: str,
@@ -16,7 +17,7 @@ class GtElectricMeterCac_Maker():
                  comms_method: Optional[str],
                  display_name: Optional[str]):
 
-        t = GtElectricMeterCac100(ComponentAttributeClassId=component_attribute_class_id,
+        t = GtElectricMeterCac(ComponentAttributeClassId=component_attribute_class_id,
                                           CommsMethod=comms_method,
                                           MakeModel=make_model,
                                           DisplayName=display_name,
@@ -25,7 +26,7 @@ class GtElectricMeterCac_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtElectricMeterCac100:
+    def dict_to_tuple(cls, d: Dict) -> GtElectricMeterCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
         if "SpaceheatMakeModelGtEnumSymbol" not in d.keys():
@@ -36,7 +37,7 @@ class GtElectricMeterCac_Maker():
         if "DisplayName" not in d.keys():
             d["DisplayName"] = None
 
-        t = GtElectricMeterCac100(ComponentAttributeClassId=d["ComponentAttributeClassId"],
+        t = GtElectricMeterCac(ComponentAttributeClassId=d["ComponentAttributeClassId"],
                                           CommsMethod=d["CommsMethod"],
                                           DisplayName=d["DisplayName"],
                                           MakeModel=d["MakeModel"],
@@ -45,7 +46,7 @@ class GtElectricMeterCac_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtElectricMeterCac100) -> ElectricMeterCac:
+    def tuple_to_dc(cls, t: GtElectricMeterCac) -> ElectricMeterCac:
         s = {
             'component_attribute_class_id': t.ComponentAttributeClassId,
             'comms_method': t.CommsMethod,
@@ -58,10 +59,10 @@ class GtElectricMeterCac_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: ElectricMeterCac) -> GtElectricMeterCac100:
+    def dc_to_tuple(cls, dc: ElectricMeterCac) -> GtElectricMeterCac:
         if dc is None:
             return None
-        t = GtElectricMeterCac100(ComponentAttributeClassId=dc.component_attribute_class_id,
+        t = GtElectricMeterCac(ComponentAttributeClassId=dc.component_attribute_class_id,
                                           CommsMethod=dc.comms_method,
                                           MakeModel=dc.make_model,
                                           DisplayName=dc.display_name,

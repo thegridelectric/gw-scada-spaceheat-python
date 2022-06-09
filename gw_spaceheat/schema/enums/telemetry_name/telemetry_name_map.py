@@ -25,14 +25,14 @@ class TelemetryNameMap():
         return cls.local_to_gt_dict[telemetry_name]
 
     gt_to_local_dict: Dict[str, TelemetryName] = {
-        "793505aa": TelemetryName.WATERTEMPFTIMES1000,
-        "d70cce28": TelemetryName.WATERFLOWGPMTIMES100,
-        "c89d0ba1": TelemetryName.WATERTEMPCTIMES1000,
-        "5a71d4b3": TelemetryName.RELAYSTATE, }
+        "793505aa": TelemetryName.WATER_TEMP_F_TIMES1000,
+        "d70cce28": TelemetryName.WATER_FLOW_GPM_TIMES100,
+        "c89d0ba1": TelemetryName.WATER_TEMP_C_TIMES1000,
+        "5a71d4b3": TelemetryName.RELAY_STATE, }
 
     local_to_gt_dict: Dict[TelemetryName, str] = {
-        TelemetryName.WATERTEMPFTIMES1000: "793505aa",
-        TelemetryName.WATERFLOWGPMTIMES100: "d70cce28",
-        TelemetryName.WATERTEMPCTIMES1000: "c89d0ba1",
-        TelemetryName.RELAYSTATE: "5a71d4b3",
+        TelemetryName.WATER_TEMP_F_TIMES1000: "793505aa",
+        TelemetryName.WATER_FLOW_GPM_TIMES100: "d70cce28",
+        TelemetryName.WATER_TEMP_C_TIMES1000: "c89d0ba1",
+        TelemetryName.RELAY_STATE: "5a71d4b3",
          }

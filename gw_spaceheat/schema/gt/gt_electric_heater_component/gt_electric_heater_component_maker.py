@@ -1,13 +1,14 @@
-"""Makes gt.electric.heater.component.100 type"""
-# length of GtBooleanActuatorComponent100: 28
+"""Makes gt.electric.heater.component type"""
+
 from typing import Dict, Optional
 from data_classes.components.electric_heater_component import ElectricHeaterComponent
 
-from schema.gt.gt_electric_heater_component.gt_electric_heater_component_100 import GtElectricHeaterComponent100
+from schema.gt.gt_electric_heater_component.gt_electric_heater_component import GtElectricHeaterComponent
 from schema.errors import MpSchemaError
 
 
 class GtElectricHeaterComponent_Maker():
+    type_alias = 'gt.electric.heater.component.100'
 
     def __init__(self,
                  component_id: str,
@@ -15,7 +16,7 @@ class GtElectricHeaterComponent_Maker():
                  hw_uid: Optional[str],
                  display_name: Optional[str]):
 
-        t = GtElectricHeaterComponent100(HwUid=hw_uid,
+        t = GtElectricHeaterComponent(HwUid=hw_uid,
                                           DisplayName=display_name,
                                           ComponentId=component_id,
                                           ComponentAttributeClassId=component_attribute_class_id,
@@ -24,7 +25,7 @@ class GtElectricHeaterComponent_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtElectricHeaterComponent100:
+    def dict_to_tuple(cls, d: Dict) -> GtElectricHeaterComponent:
         if "ComponentId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentId")
         if "ComponentAttributeClassId" not in d.keys():
@@ -34,7 +35,7 @@ class GtElectricHeaterComponent_Maker():
         if "DisplayName" not in d.keys():
             d["DisplayName"] = None
 
-        t = GtElectricHeaterComponent100(HwUid=d["HwUid"],
+        t = GtElectricHeaterComponent(HwUid=d["HwUid"],
                                           DisplayName=d["DisplayName"],
                                           ComponentId=d["ComponentId"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
@@ -43,7 +44,7 @@ class GtElectricHeaterComponent_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtElectricHeaterComponent100) -> ElectricHeaterComponent:
+    def tuple_to_dc(cls, t: GtElectricHeaterComponent) -> ElectricHeaterComponent:
         s = {
             'hw_uid': t.HwUid,
             'display_name': t.DisplayName,
@@ -57,10 +58,10 @@ class GtElectricHeaterComponent_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: ElectricHeaterComponent) -> GtElectricHeaterComponent100:
+    def dc_to_tuple(cls, dc: ElectricHeaterComponent) -> GtElectricHeaterComponent:
         if dc is None:
             return None
-        t = GtElectricHeaterComponent100(HwUid=dc.hw_uid,
+        t = GtElectricHeaterComponent(HwUid=dc.hw_uid,
                                           DisplayName=dc.display_name,
                                           ComponentId=dc.component_id,
                                           ComponentAttributeClassId=dc.component_attribute_class_id,

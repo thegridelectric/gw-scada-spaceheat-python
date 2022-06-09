@@ -5,17 +5,17 @@ from typing import List
 
 
 class Role(enum.Enum):
-    HEATEDSPACE = "HeatedSpace"
+    HEATED_SPACE = "HeatedSpace"
     OUTDOORS = "Outdoors"
-    ELECTRICHEATER = "ElectricHeater"
-    POWERMETER = "PowerMeter"
-    ATOMICTNODE = "AtomicTNode"
-    PRIMARYSCADA = "PrimaryScada"
+    ELECTRIC_HEATER = "ElectricHeater"
+    POWER_METER = "PowerMeter"
+    ATOMIC_T_NODE = "AtomicTNode"
+    PRIMARY_SCADA = "PrimaryScada"
     ACTUATOR = "Actuator"
-    DEDICATEDTHERMALSTORE = "DedicatedThermalStore"
-    HYDRONICPIPE = "HydronicPipe"
+    DEDICATED_THERMAL_STORE = "DedicatedThermalStore"
+    HYDRONIC_PIPE = "HydronicPipe"
     SENSOR = "Sensor"
-    CIRCULATORPUMP = "CirculatorPump"
+    CIRCULATOR_PUMP = "CirculatorPump"
     
 
 class ShNodeRole100GtEnum(ABC):

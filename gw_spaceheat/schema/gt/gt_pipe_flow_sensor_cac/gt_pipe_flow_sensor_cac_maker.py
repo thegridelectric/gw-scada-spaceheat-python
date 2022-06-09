@@ -1,14 +1,15 @@
-"""Makes gt.pipe.flow.sensor.cac.100 type"""
-# length of GtBooleanActuatorComponent100: 22
+"""Makes gt.pipe.flow.sensor.cac type"""
+
 from typing import Dict, Optional
 from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
 
-from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac_100 import GtPipeFlowSensorCac100
+from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac import GtPipeFlowSensorCac
 from schema.errors import MpSchemaError
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 
 class GtPipeFlowSensorCac_Maker():
+    type_alias = 'gt.pipe.flow.sensor.cac.100'
 
     def __init__(self,
                  component_attribute_class_id: str,
@@ -16,7 +17,7 @@ class GtPipeFlowSensorCac_Maker():
                  display_name: Optional[str],
                  comms_method: Optional[str]):
 
-        t = GtPipeFlowSensorCac100(DisplayName=display_name,
+        t = GtPipeFlowSensorCac(DisplayName=display_name,
                                           ComponentAttributeClassId=component_attribute_class_id,
                                           CommsMethod=comms_method,
                                           MakeModel=make_model,
@@ -25,7 +26,7 @@ class GtPipeFlowSensorCac_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtPipeFlowSensorCac100:
+    def dict_to_tuple(cls, d: Dict) -> GtPipeFlowSensorCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
         if "SpaceheatMakeModelGtEnumSymbol" not in d.keys():
@@ -36,7 +37,7 @@ class GtPipeFlowSensorCac_Maker():
         if "CommsMethod" not in d.keys():
             d["CommsMethod"] = None
 
-        t = GtPipeFlowSensorCac100(DisplayName=d["DisplayName"],
+        t = GtPipeFlowSensorCac(DisplayName=d["DisplayName"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
                                           CommsMethod=d["CommsMethod"],
                                           MakeModel=d["MakeModel"],
@@ -45,7 +46,7 @@ class GtPipeFlowSensorCac_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtPipeFlowSensorCac100) -> PipeFlowSensorCac:
+    def tuple_to_dc(cls, t: GtPipeFlowSensorCac) -> PipeFlowSensorCac:
         s = {
             'display_name': t.DisplayName,
             'component_attribute_class_id': t.ComponentAttributeClassId,
@@ -58,10 +59,10 @@ class GtPipeFlowSensorCac_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: PipeFlowSensorCac) -> GtPipeFlowSensorCac100:
+    def dc_to_tuple(cls, dc: PipeFlowSensorCac) -> GtPipeFlowSensorCac:
         if dc is None:
             return None
-        t = GtPipeFlowSensorCac100(DisplayName=dc.display_name,
+        t = GtPipeFlowSensorCac(DisplayName=dc.display_name,
                                           ComponentAttributeClassId=dc.component_attribute_class_id,
                                           CommsMethod=dc.comms_method,
                                           MakeModel=dc.make_model,

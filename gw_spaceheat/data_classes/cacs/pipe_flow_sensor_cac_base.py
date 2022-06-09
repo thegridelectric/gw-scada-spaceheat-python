@@ -3,7 +3,7 @@
 from abc import abstractmethod
 from typing import Optional, Dict
 
-from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac_100 import GtPipeFlowSensorCac100
+from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac import GtPipeFlowSensorCac
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.errors import DcError
 from schema.enums.make_model.make_model_map import MakeModelMap
@@ -31,10 +31,10 @@ class PipeFlowSensorCacBase(ComponentAttributeClass):
         PipeFlowSensorCacBase._by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
 
-    def update(self, type: GtPipeFlowSensorCac100):
+    def update(self, type: GtPipeFlowSensorCac):
         self._check_immutability_constraints(type=type)
 
-    def _check_immutability_constraints(self, type: GtPipeFlowSensorCac100):
+    def _check_immutability_constraints(self, type: GtPipeFlowSensorCac):
         if self.component_attribute_class_id != type.ComponentAttributeClassId:
             raise DcError(f'component_attribute_class_id must be immutable for {self}. '
                           f'Got {type.ComponentAttributeClassId}')
@@ -43,7 +43,7 @@ class PipeFlowSensorCacBase(ComponentAttributeClass):
                           f'Got {type.MakeModel}')
 
     @abstractmethod
-    def _check_update_axioms(self, type: GtPipeFlowSensorCac100):
+    def _check_update_axioms(self, type: GtPipeFlowSensorCac):
         raise NotImplementedError
 
     @abstractmethod

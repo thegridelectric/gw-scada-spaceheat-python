@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.cacs.electric_meter_cac_base import ElectricMeterCacBase
-from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_100 import GtElectricMeterCac100
+from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac import GtElectricMeterCac
 
 
 class ElectricMeterCac(ElectricMeterCacBase):
@@ -19,7 +19,7 @@ class ElectricMeterCac(ElectricMeterCacBase):
                                              make_model_gt_enum_symbol=make_model_gt_enum_symbol,
                                              )
 
-    def _check_update_axioms(self, type: GtElectricMeterCac100):
+    def _check_update_axioms(self, type: GtElectricMeterCac):
         pass
 
     def __repr__(self):

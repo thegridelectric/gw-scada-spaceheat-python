@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.cacs.temp_sensor_cac_base import TempSensorCacBase
-from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac_100 import GtTempSensorCac100
+from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac import GtTempSensorCac
 
 
 class TempSensorCac(TempSensorCacBase):
@@ -23,7 +23,7 @@ class TempSensorCac(TempSensorCacBase):
                                              make_model_gt_enum_symbol=make_model_gt_enum_symbol,
                                              )
 
-    def _check_update_axioms(self, type: GtTempSensorCac100):
+    def _check_update_axioms(self, type: GtTempSensorCac):
         pass
 
     def __repr__(self):

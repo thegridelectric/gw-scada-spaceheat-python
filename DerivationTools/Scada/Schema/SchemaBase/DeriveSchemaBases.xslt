@@ -19,24 +19,24 @@
     <xsl:template match="/">
     <FileSet>
         <FileSetFiles>
-            <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and (MakeDataClass='true')  and (Status = 'Active')]">
-                <xsl:variable name="schema-alias" select="Alias" />  
+            <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and (Status = 'Active') and (ProtocolType = 'Json') ]">
+                <xsl:variable name="local-alias" select="AliasRoot" />  
                 <xsl:variable name="schema-id" select="SchemaId" />
                 <xsl:variable name="class-name">
                     <xsl:call-template name="nt-case">
-                        <xsl:with-param name="mp-schema-text" select="Alias" />
+                        <xsl:with-param name="mp-schema-text" select="$local-alias" />
                     </xsl:call-template>
                 </xsl:variable>
                     <FileSetFile>
-                                <xsl:element name="RelativePath"><xsl:text>../../../../gw_spaceheat/schema/gt/</xsl:text><xsl:value-of select="translate(AliasRoot,'.','_')"/><xsl:text>/</xsl:text>
-                                <xsl:value-of select="translate(Alias,'.','_')"/><xsl:text>_base.py</xsl:text></xsl:element>
+                                <xsl:element name="RelativePath"><xsl:text>../../../../gw_spaceheat/schema/gt/</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/><xsl:text>/</xsl:text>
+                                <xsl:value-of select="translate($local-alias,'.','_')"/><xsl:text>_base.py</xsl:text></xsl:element>
                         
 
                         <OverwriteMode>Always</OverwriteMode>
                         <xsl:element name="FileContents">
 
    
-<xsl:text>"""Base for </xsl:text><xsl:value-of select="$schema-alias"/><xsl:text>"""
+<xsl:text>"""Base for </xsl:text><xsl:value-of select="$local-alias"/><xsl:text>"""
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format</xsl:text>
 
@@ -44,14 +44,21 @@ import schema.property_format as property_format</xsl:text>
 <xsl:text>
 from schema.enums.</xsl:text>
 <xsl:call-template name="python-case">
-    <xsl:with-param name="camel-case-text" select="translate(Value,'.','_')"  />
+    <xsl:with-param name="camel-case-text" select="translate(EnumLocalName,'.','_')"  />
 </xsl:call-template>
 <xsl:text>.</xsl:text>
 <xsl:call-template name="python-case">
-    <xsl:with-param name="camel-case-text" select="translate(Value,'.','_')"  />
+    <xsl:with-param name="camel-case-text" select="translate(EnumLocalName,'.','_')"  />
 </xsl:call-template>
-<xsl:text>_map import </xsl:text><xsl:value-of select="Value"/><xsl:text>, </xsl:text>
-<xsl:value-of select="Value"/><xsl:text>Map</xsl:text>
+<xsl:text>_map import </xsl:text>
+<xsl:call-template name="nt-case">
+    <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
+</xsl:call-template>
+<xsl:text>, </xsl:text>
+<xsl:call-template name="nt-case">
+    <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
+</xsl:call-template>
+<xsl:text>Map</xsl:text>
 </xsl:for-each>
 <xsl:text>
 
@@ -87,7 +94,7 @@ class </xsl:text>
 <xsl:text>] = None
     </xsl:text>
     </xsl:for-each>
-    <xsl:text>Alias: str = '</xsl:text><xsl:value-of select="$schema-alias"/><xsl:text>'
+    <xsl:text>TypeAlias: str = '</xsl:text><xsl:value-of select="Alias"/><xsl:text>'
 
     def asdict(self):
         d = self._asdict()</xsl:text>
@@ -105,13 +112,13 @@ class </xsl:text>
             </xsl:call-template>
       </xsl:variable>
       <xsl:text>
-        del(d["</xsl:text><xsl:value-of select="$local-enum-name"/><xsl:text>"])
+        del(d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"])
         d["</xsl:text>
         <xsl:call-template name="nt-case">
                         <xsl:with-param name="mp-schema-text" select="EnumRoot" />
         </xsl:call-template>
         <xsl:text>GtEnumSymbol"] = </xsl:text><xsl:value-of select="$local-enum-name"/>
-        <xsl:text>Map.local_to_gt(self.</xsl:text><xsl:value-of select="$local-enum-name"/><xsl:text>)</xsl:text>
+        <xsl:text>Map.local_to_gt(self.</xsl:text><xsl:value-of select="Value"/><xsl:text>)</xsl:text>
     </xsl:for-each>
     <xsl:text>
         return d
@@ -193,8 +200,8 @@ class </xsl:text>
 
         </xsl:for-each>
         <xsl:text>
-        if self.Alias != '</xsl:text><xsl:value-of select="$schema-alias"/><xsl:text>':
-            errors.append(f"Type requires Alias of </xsl:text><xsl:value-of select="$schema-alias"/><xsl:text>, not {self.Alias}.")
+        if self.TypeAlias != '</xsl:text><xsl:value-of select="Alias"/><xsl:text>':
+            errors.append(f"Type requires TypeAlias of </xsl:text><xsl:value-of select="Alias"/><xsl:text>, not {self.Alias}.")
         
         return errors
 </xsl:text>

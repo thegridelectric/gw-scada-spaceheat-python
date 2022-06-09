@@ -1,13 +1,14 @@
-"""Makes gt.temp.sensor.component.100 type"""
-# length of GtBooleanActuatorComponent100: 24
+"""Makes gt.temp.sensor.component type"""
+
 from typing import Dict, Optional
 from data_classes.components.temp_sensor_component import TempSensorComponent
 
-from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_100 import GtTempSensorComponent100
+from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component import GtTempSensorComponent
 from schema.errors import MpSchemaError
 
 
 class GtTempSensorComponent_Maker():
+    type_alias = 'gt.temp.sensor.component.100'
 
     def __init__(self,
                  component_id: str,
@@ -15,7 +16,7 @@ class GtTempSensorComponent_Maker():
                  display_name: Optional[str],
                  hw_uid: Optional[str]):
 
-        t = GtTempSensorComponent100(DisplayName=display_name,
+        t = GtTempSensorComponent(DisplayName=display_name,
                                           ComponentId=component_id,
                                           HwUid=hw_uid,
                                           ComponentAttributeClassId=component_attribute_class_id,
@@ -24,7 +25,7 @@ class GtTempSensorComponent_Maker():
         self.type = t
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtTempSensorComponent100:
+    def dict_to_tuple(cls, d: Dict) -> GtTempSensorComponent:
         if "ComponentId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentId")
         if "ComponentAttributeClassId" not in d.keys():
@@ -34,7 +35,7 @@ class GtTempSensorComponent_Maker():
         if "HwUid" not in d.keys():
             d["HwUid"] = None
 
-        t = GtTempSensorComponent100(DisplayName=d["DisplayName"],
+        t = GtTempSensorComponent(DisplayName=d["DisplayName"],
                                           ComponentId=d["ComponentId"],
                                           HwUid=d["HwUid"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
@@ -43,7 +44,7 @@ class GtTempSensorComponent_Maker():
         return t
 
     @classmethod
-    def tuple_to_dc(cls, t: GtTempSensorComponent100) -> TempSensorComponent:
+    def tuple_to_dc(cls, t: GtTempSensorComponent) -> TempSensorComponent:
         s = {
             'display_name': t.DisplayName,
             'component_id': t.ComponentId,
@@ -57,10 +58,10 @@ class GtTempSensorComponent_Maker():
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: TempSensorComponent) -> GtTempSensorComponent100:
+    def dc_to_tuple(cls, dc: TempSensorComponent) -> GtTempSensorComponent:
         if dc is None:
             return None
-        t = GtTempSensorComponent100(DisplayName=dc.display_name,
+        t = GtTempSensorComponent(DisplayName=dc.display_name,
                                           ComponentId=dc.component_id,
                                           HwUid=dc.hw_uid,
                                           ComponentAttributeClassId=dc.component_attribute_class_id,

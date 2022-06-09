@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.components.pipe_flow_sensor_component_base import PipeFlowSensorComponentBase
-from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_100 import GtPipeFlowSensorComponent100
+from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component import GtPipeFlowSensorComponent
 
 
 class PipeFlowSensorComponent(PipeFlowSensorComponentBase):
@@ -19,7 +19,7 @@ class PipeFlowSensorComponent(PipeFlowSensorComponentBase):
                                              component_attribute_class_id=component_attribute_class_id,
                                              )
 
-    def _check_update_axioms(self, type: GtPipeFlowSensorComponent100):
+    def _check_update_axioms(self, type: GtPipeFlowSensorComponent):
         pass
 
     def __repr__(self):
