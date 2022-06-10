@@ -16,5 +16,6 @@ def main(python_actor_name):
                         lambda x: f"No python implementation for strategy {python_actor_name}")
     return func, switcher.keys()
 
+
 def stickler():
     return None

@@ -80,5 +80,6 @@ def load_all(house_json_file=HOUSE_JSON_FILE):
     load_nodes(input_data=input_data)
     load_edges(input_data=input_data)
 
+
 def stickler():
     return
