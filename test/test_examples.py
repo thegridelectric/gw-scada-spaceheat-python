@@ -3,10 +3,6 @@
 
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
-from data_classes.components.electric_meter_component import ElectricMeterComponent
-
-from data_classes.cacs.temp_sensor_cac import TempSensorCac
-from actors.strategy_switcher import main as strategy_switcher
 import load_house
 
 # noinspection PyUnresolvedReferences
@@ -15,6 +11,8 @@ def test_imports():
     # note: disable warnings about local imports
     import actors.strategy_switcher
     import load_house
+    load_house.stickler()
+    actors.strategy_switcher.stickler()
 
 
 def test_load_house():
