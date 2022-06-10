@@ -32,30 +32,30 @@ HOUSE_JSON_FILE = 'input_data/dev_house.json'
 
 def load_cacs(input_data):
     for d in input_data['BooleanActuatorCacs']:
-        GtBooleanActuatorCac_Maker.dict_to_dc(d)
+        GtBooleanActuatorCac_Maker.dict_to_tuple(d)
     for d in input_data['ElectricHeaterCacs']:
-        GtElectricHeaterCac_Maker.dict_to_dc(d)
+        GtElectricHeaterCac_Maker.dict_to_tuple(d)
     for d in input_data['ElectricMeterCacs']:
-        GtElectricMeterCac_Maker.dict_to_dc(d)
+        GtElectricMeterCac_Maker.dict_to_tuple(d)
     for d in input_data['PipeFlowSensorCacs']:
-        GtPipeFlowSensorCac_Maker.dict_to_dc(d)
+        GtPipeFlowSensorCac_Maker.dict_to_tuple(d)
     for d in input_data['TempSensorCacs']:
-        GtTempSensorCac_Maker.dict_to_dc(d)
+        GtTempSensorCac_Maker.dict_to_tuple(d)
     for d in input_data['OtherCacs']:
         ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"])
 
 
 def load_components(input_data):
     for d in input_data['BooleanActuatorComponents']:
-        GtBooleanActuatorComponent_Maker.dict_to_dc(d)
+        GtBooleanActuatorComponent_Maker.dict_to_tuple(d)
     for d in input_data['ElectricHeaterComponents']:
-        GtElectricHeaterComponent_Maker.dict_to_dc(d)
+        GtElectricHeaterComponent_Maker.dict_to_tuple(d)
     for d in input_data['ElectricMeterComponents']:
-        GtElectricMeterComponent_Maker.dict_to_dc(d)
+        GtElectricMeterComponent_Maker.dict_to_tuple(d)
     for d in input_data['PipeFlowSensorComponents']:
-        GtPipeFlowSensorComponent_Maker.dict_to_dc(d)
+        GtPipeFlowSensorComponent_Maker.dict_to_tuple(d)
     for d in input_data['TempSensorComponents']:
-        GtTempSensorComponent_Maker.dict_to_dc(d)
+        GtTempSensorComponent_Maker.dict_to_tuple(d)
     for camel in input_data['OtherComponents']:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         Component(**snake_dict)
