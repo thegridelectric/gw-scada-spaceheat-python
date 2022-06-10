@@ -11,7 +11,6 @@ class Atn(Atn_Base):
         self.gw_consume_thread.start()
         self.power = 0
 
-
     def publish(self):
         pass
 

@@ -6,6 +6,8 @@ from data_classes.sh_node import ShNode
 import load_house
 
 # noinspection PyUnresolvedReferences
+
+
 def test_imports():
     """Verify modules can be imported"""
     # note: disable warnings about local imports
@@ -24,5 +26,6 @@ def test_load_house():
     assert len(nodes_w_components) == 19
     actor_nodes_w_components = list(filter(lambda x: x.python_actor_name is not None, nodes_w_components))
     assert len(actor_nodes_w_components) == 7
-    temp_sensor_nodes = list(filter(lambda x: isinstance(x.primary_component.cac, TempSensorCac), actor_nodes_w_components))
+    temp_sensor_nodes = list(filter(lambda x: isinstance(
+        x.primary_component.cac, TempSensorCac), actor_nodes_w_components))
     assert len(temp_sensor_nodes) == 5
