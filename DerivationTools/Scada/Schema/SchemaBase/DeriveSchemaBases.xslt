@@ -205,7 +205,7 @@ class </xsl:text>
         </xsl:for-each>
         <xsl:text>
         if self.TypeAlias != '</xsl:text><xsl:value-of select="Alias"/><xsl:text>':
-            errors.append(f"Type requires TypeAlias of </xsl:text><xsl:value-of select="Alias"/><xsl:text>, not {self.Alias}.")
+            errors.append(f"Type requires TypeAlias of </xsl:text><xsl:value-of select="Alias"/><xsl:text>, not {self.TypeAlias}.")
         
         return errors
 </xsl:text>

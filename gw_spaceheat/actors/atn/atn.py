@@ -9,7 +9,6 @@ class Atn(Atn_Base):
     def __init__(self, node: ShNode):
         super(Atn, self).__init__(node=node)
         self.gw_consume_thread.start()
-        self.payloads = []
         self.power = 0
 
     def publish(self):

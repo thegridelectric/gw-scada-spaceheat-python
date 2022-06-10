@@ -43,6 +43,6 @@ class GtElectricMeterComponentBase(NamedTuple):
             errors.append(f"ComponentAttributeClassId {self.ComponentAttributeClassId}"
                           " must have format UuidCanonicalTextual")
         if self.TypeAlias != 'gt.electric.meter.component.100':
-            errors.append(f"Type requires TypeAlias of gt.electric.meter.component.100, not {self.Alias}.")
+            errors.append(f"Type requires TypeAlias of gt.electric.meter.component.100, not {self.TypeAlias}.")
         
         return errors

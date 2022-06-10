@@ -21,15 +21,16 @@ from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
 
 
 class PrimaryScada(PrimaryScadaBase):
+    CALIBRATION_FILE = "out.txt"
+
     def __init__(self, node: ShNode):
         super(PrimaryScada, self).__init__(node=node)
         self.power = 0
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.temp_readings: List = []
-        out = 'tmp.csv'
         self.screen_print("writing output header")
-        with open(out, 'w') as outfile:
+        with open(self.CALIBRATION_FILE, 'w') as outfile:
             write = csv.writer(outfile, delimiter=',')
             write.writerow(['TimeUtc', 't_unix_s', 'ms', 'alias', 'WaterTempCTimes1000'])
         self.calibrate_thread = threading.Thread(target=self.calibrate)
@@ -41,9 +42,8 @@ class PrimaryScada(PrimaryScadaBase):
     def calibrate(self):
         while True:
             time.sleep(60)
-            out = 'tmp.csv'
             self.screen_print("appending output")
-            with open(out, 'a') as outfile:
+            with open(self.CALIBRATION_FILE, 'a') as outfile:
                 write = csv.writer(outfile, delimiter=',')
                 for row in self.temp_readings:
                     write.writerow(row)
