@@ -26,7 +26,7 @@ We use pip-tools to organize requirements. The `.in` files clarify the key modul
 The pip-tools also allow for building layers of requirements on top of each other. This allows us to have development tools that are not needed in production to show up for the first time in `dev.txt`, for example (like the pip-tool itself).
 
 ### Handling secrets and config variables
-
+    
 SETTING UP SECRETS.
 Secrets use dotenv module in a gitignored gw-scada-spaceheat-python/.env file, through the helpers.get_secret function. Ask somebody on the team for the secrets.
 
