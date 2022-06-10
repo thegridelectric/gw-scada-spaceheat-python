@@ -35,6 +35,6 @@ class GtTelemetryBase(NamedTuple):
         if not isinstance(self.Name, TelemetryName):
             errors.append(f"Name {self.Name} must have type {TelemetryName}.")
         if self.TypeAlias != 'gt.telemetry.110':
-            errors.append(f"Type requires TypeAlias of gt.telemetry.110, not {self.Alias}.")
+            errors.append(f"Type requires TypeAlias of gt.telemetry.110, not {self.TypeAlias}.")
         
         return errors

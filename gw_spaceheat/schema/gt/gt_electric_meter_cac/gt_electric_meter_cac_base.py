@@ -41,6 +41,6 @@ class GtElectricMeterCacBase(NamedTuple):
         if not isinstance(self.MakeModel, MakeModel):
             errors.append(f"MakeModel {self.MakeModel} must have type {MakeModel}.")
         if self.TypeAlias != 'gt.electric.meter.cac.100':
-            errors.append(f"Type requires TypeAlias of gt.electric.meter.cac.100, not {self.Alias}.")
+            errors.append(f"Type requires TypeAlias of gt.electric.meter.cac.100, not {self.TypeAlias}.")
         
         return errors

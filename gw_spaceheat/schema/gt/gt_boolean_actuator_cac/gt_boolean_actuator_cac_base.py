@@ -35,6 +35,6 @@ class GtBooleanActuatorCacBase(NamedTuple):
         if not isinstance(self.MakeModel, MakeModel):
             errors.append(f"MakeModel {self.MakeModel} must have type {MakeModel}.")
         if self.TypeAlias != 'gt.boolean.actuator.cac.100':
-            errors.append(f"Type requires TypeAlias of gt.boolean.actuator.cac.100, not {self.Alias}.")
+            errors.append(f"Type requires TypeAlias of gt.boolean.actuator.cac.100, not {self.TypeAlias}.")
         
         return errors
