@@ -1,5 +1,6 @@
 """Makes gt.boolean.actuator.cac type"""
 
+import json
 from typing import Dict, Optional
 from data_classes.cacs.boolean_actuator_cac import BooleanActuatorCac
 
@@ -16,15 +17,30 @@ class GtBooleanActuatorCac_Maker():
                  make_model: MakeModel,
                  display_name: Optional[str]):
 
-        t = GtBooleanActuatorCac(MakeModel=make_model,
+        tuple = GtBooleanActuatorCac(MakeModel=make_model,
                                           ComponentAttributeClassId=component_attribute_class_id,
                                           DisplayName=display_name,
                                           )
-        t.check_for_errors()
-        self.type = t
+        tuple.check_for_errors()
+        self.tuple = tuple
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtBooleanActuatorCac:
+    def tuple_to_type(cls, tuple: GtBooleanActuatorCac) -> str:
+        tuple.check_for_errors()
+        return tuple.as_type()
+
+    @classmethod
+    def type_to_tuple(cls, t: str) -> GtBooleanActuatorCac:
+        try:
+            d = json.loads(t)
+        except TypeError:
+            raise MpSchemaError(f'Type must be string or bytes!')
+        if not isinstance(d, dict):
+            raise MpSchemaError(f"Deserializing {t} must result in dict!")
+        return cls.dict_to_tuple(d)
+
+    @classmethod
+    def dict_to_tuple(cls, d: dict) ->  GtBooleanActuatorCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
         if "SpaceheatMakeModelGtEnumSymbol" not in d.keys():
@@ -33,12 +49,12 @@ class GtBooleanActuatorCac_Maker():
         if "DisplayName" not in d.keys():
             d["DisplayName"] = None
 
-        t = GtBooleanActuatorCac(ComponentAttributeClassId=d["ComponentAttributeClassId"],
+        tuple = GtBooleanActuatorCac(MakeModel=d["MakeModel"],
+                                          ComponentAttributeClassId=d["ComponentAttributeClassId"],
                                           DisplayName=d["DisplayName"],
-                                          MakeModel=d["MakeModel"],
                                           )
-        t.check_for_errors()
-        return t
+        tuple.check_for_errors()
+        return tuple
 
     @classmethod
     def tuple_to_dc(cls, t: GtBooleanActuatorCac) -> BooleanActuatorCac:
@@ -57,17 +73,20 @@ class GtBooleanActuatorCac_Maker():
         if dc is None:
             return None
         t = GtBooleanActuatorCac(MakeModel=dc.make_model,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          DisplayName=dc.display_name,
-                                          )
+                                            ComponentAttributeClassId=dc.component_attribute_class_id,
+                                            DisplayName=dc.display_name,
+                                            )
         t.check_for_errors()
         return t
 
     @classmethod
-    def dict_to_dc(cls, d: Dict) -> BooleanActuatorCac:
-        return cls.tuple_to_dc(cls.dict_to_tuple(d))
+    def type_to_dc(cls, t: str) -> BooleanActuatorCac:
+        return cls.tuple_to_dc(cls.type_to_tuple(t))
 
     @classmethod
-    def dc_to_dict(cls, dc: BooleanActuatorCac) -> Dict:
-        return cls.dc_to_tuple(dc).asdict()
-    
+    def dc_to_type(cls, dc: BooleanActuatorCac) -> str:
+        return cls.dc_to_tuple(dc).as_type()
+
+    @classmethod
+    def dict_to_dc(cls, d: dict) -> BooleanActuatorCac:
+        return cls.tuple_to_dc(cls.dict_to_tuple(d))

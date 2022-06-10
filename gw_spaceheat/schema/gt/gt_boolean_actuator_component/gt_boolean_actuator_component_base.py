@@ -1,4 +1,5 @@
 """Base for gt.boolean.actuator.component"""
+import json
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format
 
@@ -10,6 +11,9 @@ class GtBooleanActuatorComponentBase(NamedTuple):
     Gpio: Optional[int] = None
     HwUid: Optional[str] = None
     TypeAlias: str = 'gt.boolean.actuator.component.100'
+
+    def as_type(self):
+        return json.dumps(self.asdict())
 
     def asdict(self):
         d = self._asdict()

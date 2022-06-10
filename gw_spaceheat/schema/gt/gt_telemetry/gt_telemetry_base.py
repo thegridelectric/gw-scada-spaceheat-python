@@ -14,7 +14,7 @@ class GtTelemetryBase(NamedTuple):
 
     def as_type(self):
         return json.dumps(self.asdict())
-    
+
     def asdict(self):
         d = self._asdict()
         del(d["Name"])

@@ -1,4 +1,5 @@
 """Base for gt.boolean.actuator.cac"""
+import json
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
@@ -9,6 +10,9 @@ class GtBooleanActuatorCacBase(NamedTuple):
     MakeModel: MakeModel     #
     DisplayName: Optional[str] = None
     TypeAlias: str = 'gt.boolean.actuator.cac.100'
+
+    def as_type(self):
+        return json.dumps(self.asdict())
 
     def asdict(self):
         d = self._asdict()

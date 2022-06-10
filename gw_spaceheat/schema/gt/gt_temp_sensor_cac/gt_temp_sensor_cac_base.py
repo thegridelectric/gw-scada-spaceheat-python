@@ -1,4 +1,5 @@
 """Base for gt.temp.sensor.cac"""
+import json
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
@@ -12,6 +13,9 @@ class GtTempSensorCacBase(NamedTuple):
     PrecisionExponent: Optional[int] = None
     CommsMethod: Optional[str] = None
     TypeAlias: str = 'gt.temp.sensor.cac.100'
+
+    def as_type(self):
+        return json.dumps(self.asdict())
 
     def asdict(self):
         d = self._asdict()

@@ -1,5 +1,6 @@
 """Makes gt.boolean.actuator.component type"""
 
+import json
 from typing import Dict, Optional
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 
@@ -17,17 +18,32 @@ class GtBooleanActuatorComponent_Maker():
                  gpio: Optional[int],
                  hw_uid: Optional[str]):
 
-        t = GtBooleanActuatorComponent(DisplayName=display_name,
+        tuple = GtBooleanActuatorComponent(DisplayName=display_name,
                                           ComponentId=component_id,
                                           Gpio=gpio,
                                           HwUid=hw_uid,
                                           ComponentAttributeClassId=component_attribute_class_id,
                                           )
-        t.check_for_errors()
-        self.type = t
+        tuple.check_for_errors()
+        self.tuple = tuple
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtBooleanActuatorComponent:
+    def tuple_to_type(cls, tuple: GtBooleanActuatorComponent) -> str:
+        tuple.check_for_errors()
+        return tuple.as_type()
+
+    @classmethod
+    def type_to_tuple(cls, t: str) -> GtBooleanActuatorComponent:
+        try:
+            d = json.loads(t)
+        except TypeError:
+            raise MpSchemaError(f'Type must be string or bytes!')
+        if not isinstance(d, dict):
+            raise MpSchemaError(f"Deserializing {t} must result in dict!")
+        return cls.dict_to_tuple(d)
+
+    @classmethod
+    def dict_to_tuple(cls, d: dict) ->  GtBooleanActuatorComponent:
         if "ComponentId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentId")
         if "ComponentAttributeClassId" not in d.keys():
@@ -39,14 +55,14 @@ class GtBooleanActuatorComponent_Maker():
         if "HwUid" not in d.keys():
             d["HwUid"] = None
 
-        t = GtBooleanActuatorComponent(DisplayName=d["DisplayName"],
+        tuple = GtBooleanActuatorComponent(DisplayName=d["DisplayName"],
                                           ComponentId=d["ComponentId"],
                                           Gpio=d["Gpio"],
                                           HwUid=d["HwUid"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
                                           )
-        t.check_for_errors()
-        return t
+        tuple.check_for_errors()
+        return tuple
 
     @classmethod
     def tuple_to_dc(cls, t: GtBooleanActuatorComponent) -> BooleanActuatorComponent:
@@ -68,19 +84,22 @@ class GtBooleanActuatorComponent_Maker():
         if dc is None:
             return None
         t = GtBooleanActuatorComponent(DisplayName=dc.display_name,
-                                          ComponentId=dc.component_id,
-                                          Gpio=dc.gpio,
-                                          HwUid=dc.hw_uid,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          )
+                                            ComponentId=dc.component_id,
+                                            Gpio=dc.gpio,
+                                            HwUid=dc.hw_uid,
+                                            ComponentAttributeClassId=dc.component_attribute_class_id,
+                                            )
         t.check_for_errors()
         return t
 
     @classmethod
-    def dict_to_dc(cls, d: Dict) -> BooleanActuatorComponent:
-        return cls.tuple_to_dc(cls.dict_to_tuple(d))
+    def type_to_dc(cls, t: str) -> BooleanActuatorComponent:
+        return cls.tuple_to_dc(cls.type_to_tuple(t))
 
     @classmethod
-    def dc_to_dict(cls, dc: BooleanActuatorComponent) -> Dict:
-        return cls.dc_to_tuple(dc).asdict()
-    
+    def dc_to_type(cls, dc: BooleanActuatorComponent) -> str:
+        return cls.dc_to_tuple(dc).as_type()
+
+    @classmethod
+    def dict_to_dc(cls, d: dict) -> BooleanActuatorComponent:
+        return cls.tuple_to_dc(cls.dict_to_tuple(d))
