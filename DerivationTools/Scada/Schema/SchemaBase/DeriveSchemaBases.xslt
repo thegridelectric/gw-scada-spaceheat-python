@@ -37,6 +37,7 @@
 
    
 <xsl:text>"""Base for </xsl:text><xsl:value-of select="$local-alias"/><xsl:text>"""
+import json
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format</xsl:text>
 
@@ -95,6 +96,9 @@ class </xsl:text>
     </xsl:text>
     </xsl:for-each>
     <xsl:text>TypeAlias: str = '</xsl:text><xsl:value-of select="Alias"/><xsl:text>'
+
+    def as_type(self):
+        return json.dumps(self.asdict())
 
     def asdict(self):
         d = self._asdict()</xsl:text>

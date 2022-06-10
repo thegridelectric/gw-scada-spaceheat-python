@@ -1,5 +1,6 @@
 """Makes gt.temp.sensor.cac type"""
 
+import json
 from typing import Dict, Optional
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 
@@ -19,18 +20,33 @@ class GtTempSensorCac_Maker():
                  precision_exponent: Optional[int],
                  comms_method: Optional[str]):
 
-        t = GtTempSensorCac(DisplayName=display_name,
+        tuple = GtTempSensorCac(DisplayName=display_name,
                                           TempUnit=temp_unit,
                                           MakeModel=make_model,
                                           ComponentAttributeClassId=component_attribute_class_id,
                                           PrecisionExponent=precision_exponent,
                                           CommsMethod=comms_method,
                                           )
-        t.check_for_errors()
-        self.type = t
+        tuple.check_for_errors()
+        self.tuple = tuple
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtTempSensorCac:
+    def tuple_to_type(cls, tuple: GtTempSensorCac) -> str:
+        tuple.check_for_errors()
+        return tuple.as_type()
+
+    @classmethod
+    def type_to_tuple(cls, t: str) -> GtTempSensorCac:
+        try:
+            d = json.loads(t)
+        except TypeError:
+            raise MpSchemaError(f'Type must be string or bytes!')
+        if not isinstance(d, dict):
+            raise MpSchemaError(f"Deserializing {t} must result in dict!")
+        return cls.dict_to_tuple(d)
+
+    @classmethod
+    def dict_to_tuple(cls, d: dict) ->  GtTempSensorCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
         if "SpaceheatMakeModelGtEnumSymbol" not in d.keys():
@@ -45,15 +61,15 @@ class GtTempSensorCac_Maker():
         if "CommsMethod" not in d.keys():
             d["CommsMethod"] = None
 
-        t = GtTempSensorCac(DisplayName=d["DisplayName"],
+        tuple = GtTempSensorCac(DisplayName=d["DisplayName"],
                                           TempUnit=d["TempUnit"],
+                                          MakeModel=d["MakeModel"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
                                           PrecisionExponent=d["PrecisionExponent"],
                                           CommsMethod=d["CommsMethod"],
-                                          MakeModel=d["MakeModel"],
                                           )
-        t.check_for_errors()
-        return t
+        tuple.check_for_errors()
+        return tuple
 
     @classmethod
     def tuple_to_dc(cls, t: GtTempSensorCac) -> TempSensorCac:
@@ -75,20 +91,23 @@ class GtTempSensorCac_Maker():
         if dc is None:
             return None
         t = GtTempSensorCac(DisplayName=dc.display_name,
-                                          TempUnit=dc.temp_unit,
-                                          MakeModel=dc.make_model,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          PrecisionExponent=dc.precision_exponent,
-                                          CommsMethod=dc.comms_method,
-                                          )
+                                            TempUnit=dc.temp_unit,
+                                            MakeModel=dc.make_model,
+                                            ComponentAttributeClassId=dc.component_attribute_class_id,
+                                            PrecisionExponent=dc.precision_exponent,
+                                            CommsMethod=dc.comms_method,
+                                            )
         t.check_for_errors()
         return t
 
     @classmethod
-    def dict_to_dc(cls, d: Dict) -> TempSensorCac:
-        return cls.tuple_to_dc(cls.dict_to_tuple(d))
+    def type_to_dc(cls, t: str) -> TempSensorCac:
+        return cls.tuple_to_dc(cls.type_to_tuple(t))
 
     @classmethod
-    def dc_to_dict(cls, dc: TempSensorCac) -> Dict:
-        return cls.dc_to_tuple(dc).asdict()
-    
+    def dc_to_type(cls, dc: TempSensorCac) -> str:
+        return cls.dc_to_tuple(dc).as_type()
+
+    @classmethod
+    def dict_to_dc(cls, d: dict) -> TempSensorCac:
+        return cls.tuple_to_dc(cls.dict_to_tuple(d))

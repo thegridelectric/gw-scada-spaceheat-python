@@ -54,6 +54,7 @@
 
 <xsl:text>"""Makes </xsl:text><xsl:value-of select="$local-alias"/><xsl:text> type"""
 
+import json
 from typing import Dict, Optional</xsl:text>
 
 <xsl:if test="IsCac = 'true'">
@@ -148,7 +149,7 @@ class </xsl:text><xsl:value-of select="$class-name"/>
             </xsl:for-each>
     <xsl:text>):
 
-        t = </xsl:text><xsl:value-of select="$class-name"/>
+        tuple = </xsl:text><xsl:value-of select="$class-name"/>
         <xsl:text>(</xsl:text>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and ((IsPrimitive = 'true') or (IsEnum = 'true'))]">
         <xsl:value-of select="Value"/><xsl:text>=</xsl:text>
@@ -166,12 +167,29 @@ class </xsl:text><xsl:value-of select="$class-name"/>
                                           </xsl:text>
     </xsl:for-each>
     <xsl:text>)
-        t.check_for_errors()
-        self.type = t
+        tuple.check_for_errors()
+        self.tuple = tuple
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> </xsl:text><xsl:value-of select="$class-name"/>
-    <xsl:text>:</xsl:text>
+    def tuple_to_type(cls, tuple: </xsl:text><xsl:value-of select="$class-name"/>
+    <xsl:text>) -> str:
+        tuple.check_for_errors()
+        return tuple.as_type()
+
+    @classmethod
+    def type_to_tuple(cls, t: str) -> </xsl:text><xsl:value-of select="$class-name"/>
+<xsl:text>:
+        try:
+            d = json.loads(t)
+        except TypeError:
+            raise MpSchemaError(f'Type must be string or bytes!')
+        if not isinstance(d, dict):
+            raise MpSchemaError(f"Deserializing {t} must result in dict!")
+        return cls.dict_to_tuple(d)
+
+    @classmethod
+    def dict_to_tuple(cls, d: dict) ->  </xsl:text><xsl:value-of select="$class-name"/>
+<xsl:text>:</xsl:text>
 <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsRequired = 'true')]">
 <xsl:text>
         if "</xsl:text><xsl:value-of select="Value"/><xsl:text>" not in d.keys():
@@ -198,7 +216,7 @@ class </xsl:text><xsl:value-of select="$class-name"/>
         </xsl:call-template>
             <xsl:text>GtEnumSymbol")
         d["</xsl:text> <xsl:call-template name="nt-case">
-            <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
+            <xsl:with-param name="mp-schema-text" select="Value" />
         </xsl:call-template><xsl:text>"] = </xsl:text>
         <xsl:call-template name="nt-case">
             <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
@@ -217,8 +235,8 @@ class </xsl:text><xsl:value-of select="$class-name"/>
 </xsl:for-each>
 <xsl:text>
 
-        t = </xsl:text><xsl:value-of select="$class-name"/><xsl:text>(</xsl:text>
-        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true')]">
+        tuple = </xsl:text><xsl:value-of select="$class-name"/><xsl:text>(</xsl:text>
+        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and ((IsPrimitive = 'true') or (IsEnum = 'true'))]">
         <xsl:value-of select="Value"/><xsl:text>=d["</xsl:text>
         <xsl:value-of select="Value"/><xsl:text>"],
                                           </xsl:text>
@@ -228,20 +246,9 @@ class </xsl:text><xsl:value-of select="$class-name"/>
         <xsl:value-of select="Value"/><xsl:text>Id"],
                                           </xsl:text>
         </xsl:for-each>
-        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsEnum = 'true')]">
-        <xsl:call-template name="nt-case">
-            <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
-        </xsl:call-template>
-            <xsl:text>=d["</xsl:text>
-            <xsl:call-template name="nt-case">
-                <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
-            </xsl:call-template>
-                <xsl:text>"],
-                                          </xsl:text>
-        </xsl:for-each>
         <xsl:text>)
-        t.check_for_errors()
-        return t
+        tuple.check_for_errors()
+        return tuple
 
     @classmethod
     def tuple_to_dc(cls, t: </xsl:text><xsl:value-of select="$class-name"/>
@@ -270,13 +277,13 @@ class </xsl:text><xsl:value-of select="$class-name"/>
                 <xsl:with-param name="camel-case-text" select="Value"  />
             </xsl:call-template><xsl:text>_gt_enum_symbol': </xsl:text>
             <xsl:call-template name="nt-case">
-                <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
+                <xsl:with-param name="mp-schema-text" select="Value" />
             </xsl:call-template>
             <xsl:text>Map.local_to_gt(t.</xsl:text>
             <xsl:call-template name="nt-case">
                 <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
             </xsl:call-template><xsl:text>),</xsl:text>
-     </xsl:for-each>
+    </xsl:for-each>
             <xsl:text>}
         if s['</xsl:text><xsl:value-of select="$data-class-id"/><xsl:text>'] in </xsl:text>
         <xsl:value-of select="DataClass"/><xsl:text>.by_id.keys():
@@ -297,27 +304,30 @@ class </xsl:text><xsl:value-of select="$class-name"/>
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template>
         <xsl:text>,
-                                          </xsl:text>
+                                            </xsl:text>
     </xsl:for-each>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsType = 'true')]">
         <xsl:value-of select="Value"/><xsl:text>Id=dc.</xsl:text>
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template><xsl:text>_id,
-                                          </xsl:text>
+                                            </xsl:text>
     </xsl:for-each>
-       <xsl:text>)
+        <xsl:text>)
         t.check_for_errors()
         return t
 
     @classmethod
-    def dict_to_dc(cls, d: Dict) -> </xsl:text><xsl:value-of select="DataClass"/><xsl:text>:
-        return cls.tuple_to_dc(cls.dict_to_tuple(d))
+    def type_to_dc(cls, t: str) -> </xsl:text><xsl:value-of select="DataClass"/><xsl:text>:
+        return cls.tuple_to_dc(cls.type_to_tuple(t))
 
     @classmethod
-    def dc_to_dict(cls, dc: </xsl:text><xsl:value-of select="DataClass"/><xsl:text>) -> Dict:
-        return cls.dc_to_tuple(dc).asdict()
-    
+    def dc_to_type(cls, dc: </xsl:text><xsl:value-of select="DataClass"/><xsl:text>) -> str:
+        return cls.dc_to_tuple(dc).as_type()
+
+    @classmethod
+    def dict_to_dc(cls, d: dict) -> </xsl:text><xsl:value-of select="DataClass"/><xsl:text>:
+        return cls.tuple_to_dc(cls.dict_to_tuple(d))
 </xsl:text>
 
 

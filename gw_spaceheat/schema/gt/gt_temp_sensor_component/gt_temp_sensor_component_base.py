@@ -1,4 +1,5 @@
 """Base for gt.temp.sensor.component"""
+import json
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format
 
@@ -9,6 +10,9 @@ class GtTempSensorComponentBase(NamedTuple):
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
     TypeAlias: str = 'gt.temp.sensor.component.100'
+
+    def as_type(self):
+        return json.dumps(self.asdict())
 
     def asdict(self):
         d = self._asdict()

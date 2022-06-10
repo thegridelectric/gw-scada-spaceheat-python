@@ -1,5 +1,6 @@
 """Makes gt.pipe.flow.sensor.component type"""
 
+import json
 from typing import Dict, Optional
 from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
 
@@ -16,16 +17,31 @@ class GtPipeFlowSensorComponent_Maker():
                  display_name: Optional[str],
                  hw_uid: Optional[str]):
 
-        t = GtPipeFlowSensorComponent(ComponentId=component_id,
+        tuple = GtPipeFlowSensorComponent(ComponentId=component_id,
                                           DisplayName=display_name,
                                           HwUid=hw_uid,
                                           ComponentAttributeClassId=component_attribute_class_id,
                                           )
-        t.check_for_errors()
-        self.type = t
+        tuple.check_for_errors()
+        self.tuple = tuple
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> GtPipeFlowSensorComponent:
+    def tuple_to_type(cls, tuple: GtPipeFlowSensorComponent) -> str:
+        tuple.check_for_errors()
+        return tuple.as_type()
+
+    @classmethod
+    def type_to_tuple(cls, t: str) -> GtPipeFlowSensorComponent:
+        try:
+            d = json.loads(t)
+        except TypeError:
+            raise MpSchemaError(f'Type must be string or bytes!')
+        if not isinstance(d, dict):
+            raise MpSchemaError(f"Deserializing {t} must result in dict!")
+        return cls.dict_to_tuple(d)
+
+    @classmethod
+    def dict_to_tuple(cls, d: dict) ->  GtPipeFlowSensorComponent:
         if "ComponentId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentId")
         if "ComponentAttributeClassId" not in d.keys():
@@ -35,13 +51,13 @@ class GtPipeFlowSensorComponent_Maker():
         if "HwUid" not in d.keys():
             d["HwUid"] = None
 
-        t = GtPipeFlowSensorComponent(ComponentId=d["ComponentId"],
+        tuple = GtPipeFlowSensorComponent(ComponentId=d["ComponentId"],
                                           DisplayName=d["DisplayName"],
                                           HwUid=d["HwUid"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
                                           )
-        t.check_for_errors()
-        return t
+        tuple.check_for_errors()
+        return tuple
 
     @classmethod
     def tuple_to_dc(cls, t: GtPipeFlowSensorComponent) -> PipeFlowSensorComponent:
@@ -62,18 +78,21 @@ class GtPipeFlowSensorComponent_Maker():
         if dc is None:
             return None
         t = GtPipeFlowSensorComponent(ComponentId=dc.component_id,
-                                          DisplayName=dc.display_name,
-                                          HwUid=dc.hw_uid,
-                                          ComponentAttributeClassId=dc.component_attribute_class_id,
-                                          )
+                                            DisplayName=dc.display_name,
+                                            HwUid=dc.hw_uid,
+                                            ComponentAttributeClassId=dc.component_attribute_class_id,
+                                            )
         t.check_for_errors()
         return t
 
     @classmethod
-    def dict_to_dc(cls, d: Dict) -> PipeFlowSensorComponent:
-        return cls.tuple_to_dc(cls.dict_to_tuple(d))
+    def type_to_dc(cls, t: str) -> PipeFlowSensorComponent:
+        return cls.tuple_to_dc(cls.type_to_tuple(t))
 
     @classmethod
-    def dc_to_dict(cls, dc: PipeFlowSensorComponent) -> Dict:
-        return cls.dc_to_tuple(dc).asdict()
-    
+    def dc_to_type(cls, dc: PipeFlowSensorComponent) -> str:
+        return cls.dc_to_tuple(dc).as_type()
+
+    @classmethod
+    def dict_to_dc(cls, d: dict) -> PipeFlowSensorComponent:
+        return cls.tuple_to_dc(cls.dict_to_tuple(d))

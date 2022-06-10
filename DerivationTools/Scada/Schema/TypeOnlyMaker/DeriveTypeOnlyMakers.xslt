@@ -38,6 +38,7 @@
 
 <xsl:text>"""Makes </xsl:text><xsl:value-of select="$local-alias"/><xsl:text> type"""
 
+import json
 from typing import Dict, Optional
 
 
@@ -77,7 +78,7 @@ class </xsl:text>
     def __init__(self</xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsRequired = 'true')]">
                 <xsl:text>,
-                 </xsl:text>
+                    </xsl:text>
                 <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template><xsl:text>: </xsl:text>
@@ -87,7 +88,7 @@ class </xsl:text>
     </xsl:for-each>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsEnum = 'true')]">
                 <xsl:text>,
-                 </xsl:text>
+                    </xsl:text>
                 <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template><xsl:text>: </xsl:text>
@@ -97,14 +98,14 @@ class </xsl:text>
     </xsl:for-each>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsType = 'true')]">
                 <xsl:text>,
-                 </xsl:text>
+                    </xsl:text>
                 <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template><xsl:text>_id: str</xsl:text>
     </xsl:for-each>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and not (IsRequired = 'true')]">
                 <xsl:text>,
-                 </xsl:text>
+                    </xsl:text>
                 <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
             </xsl:call-template><xsl:text>: Optional[</xsl:text>
@@ -114,14 +115,14 @@ class </xsl:text>
             </xsl:for-each>
     <xsl:text>):
 
-        t = </xsl:text><xsl:value-of select="$class-name"/>
+        tuple = </xsl:text><xsl:value-of select="$class-name"/>
         <xsl:text>(</xsl:text>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and ((IsPrimitive = 'true') or (IsEnum = 'true'))]">
         <xsl:value-of select="Value"/><xsl:text>=</xsl:text>
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template><xsl:text>,
-                                          </xsl:text>
+                                            </xsl:text>
         </xsl:for-each>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsType = 'true')]">
         <xsl:value-of select="Value"/><xsl:text>Id=</xsl:text>
@@ -129,15 +130,32 @@ class </xsl:text>
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template>
 <xsl:text>_id,
-                                          </xsl:text>
+                                            </xsl:text>
     </xsl:for-each>
     <xsl:text>)
-        t.check_for_errors()
-        self.type = t
+        tuple.check_for_errors()
+        self.tuple = tuple
 
     @classmethod
-    def dict_to_tuple(cls, d: Dict) -> </xsl:text><xsl:value-of select="$class-name"/>
-    <xsl:text>:</xsl:text>
+    def tuple_to_type(cls, tuple: </xsl:text><xsl:value-of select="$class-name"/>
+    <xsl:text>) -> str:
+        tuple.check_for_errors()
+        return tuple.as_type()
+
+    @classmethod
+    def type_to_tuple(cls, t: str) -> </xsl:text><xsl:value-of select="$class-name"/>
+<xsl:text>:
+        try:
+            d = json.loads(t)
+        except TypeError:
+            raise MpSchemaError(f'Type must be string or bytes!')
+        if not isinstance(d, dict):
+            raise MpSchemaError(f"Deserializing {t} must result in dict!")
+        return cls.dict_to_tuple(d)
+
+    @classmethod
+    def dict_to_tuple(cls, d: dict) ->  </xsl:text><xsl:value-of select="$class-name"/>
+<xsl:text>:</xsl:text>
 <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsRequired = 'true')]">
 <xsl:text>
         if "</xsl:text><xsl:value-of select="Value"/><xsl:text>" not in d.keys():
@@ -164,7 +182,7 @@ class </xsl:text>
         </xsl:call-template>
             <xsl:text>GtEnumSymbol")
         d["</xsl:text> <xsl:call-template name="nt-case">
-            <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
+            <xsl:with-param name="mp-schema-text" select="Value" />
         </xsl:call-template><xsl:text>"] = </xsl:text>
         <xsl:call-template name="nt-case">
             <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
@@ -183,33 +201,20 @@ class </xsl:text>
 </xsl:for-each>
 <xsl:text>
 
-        t = </xsl:text><xsl:value-of select="$class-name"/><xsl:text>(</xsl:text>
-        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true')]">
+        tuple = </xsl:text><xsl:value-of select="$class-name"/><xsl:text>(</xsl:text>
+        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and ((IsPrimitive = 'true') or (IsEnum = 'true'))]">
         <xsl:value-of select="Value"/><xsl:text>=d["</xsl:text>
         <xsl:value-of select="Value"/><xsl:text>"],
-                                          </xsl:text>
+                                            </xsl:text>
         </xsl:for-each>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsType = 'true')]">
         <xsl:value-of select="Value"/><xsl:text>Id=d["</xsl:text>
         <xsl:value-of select="Value"/><xsl:text>Id"],
-                                          </xsl:text>
-        </xsl:for-each>
-        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsEnum = 'true')]">
-        <xsl:call-template name="nt-case">
-            <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
-        </xsl:call-template>
-            <xsl:text>=d["</xsl:text>
-            <xsl:call-template name="nt-case">
-                <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
-            </xsl:call-template>
-                <xsl:text>"],
-                                          </xsl:text>
+                                            </xsl:text>
         </xsl:for-each>
         <xsl:text>)
-        t.check_for_errors()
-        return t
-
-    
+        tuple.check_for_errors()
+        return tuple
 </xsl:text>
 
 
