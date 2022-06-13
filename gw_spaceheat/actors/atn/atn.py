@@ -28,4 +28,3 @@ class Atn(Atn_Base):
         while self._scheduler_running is True:
             # track time and send status every x minutes (likely 5)
             time.sleep(1)
-

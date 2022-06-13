@@ -79,4 +79,3 @@ def test_async_power_metering_dag():
     meter.publish(payload=payload)
     time.sleep(LOCAL_MQTT_MESSAGE_DELTA_S + GW_MQTT_MESSAGE_DELTA)
     assert atn.total_power_w == 2100
-
