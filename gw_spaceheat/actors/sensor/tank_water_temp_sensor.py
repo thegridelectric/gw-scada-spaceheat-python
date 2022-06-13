@@ -44,13 +44,6 @@ class TankWaterTempSensor(SensorBase):
             raise Exception(f"TelemetryName for {self.cac.temp_unit} and precision exponent of"
                             f"{self.cac.precision_exponent} not set yet!")
 
-    def publish(self):
-        payload = GtTelemetry_Maker(name=self.telemetry_name,
-                                    value=int(self.temp),
-                                    exponent=0,
-                                    scada_read_time_unix_ms=int(time.time() * 1000)).tuple
-        self.publish_gt_telemetry(payload)
-
     def consume(self):
         pass
 
@@ -59,6 +52,10 @@ class TankWaterTempSensor(SensorBase):
 
     def main(self):
         self._sensing = True
-        while self._sensing == True:
+        while self._sensing is True:
             self.temp = self.driver.read_temp()
-            self.publish()
+            payload = GtTelemetry_Maker(name=self.telemetry_name,
+                                        value=int(self.temp),
+                                        exponent=0,
+                                        scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+            self.publish(payload=payload)

@@ -12,9 +12,6 @@ class Atn(Atn_Base):
         self.gw_consume()
         self.screen_print(f'Started {self.__class__}')
 
-    def publish(self):
-        pass
-
     def gs_pwr_received(self, payload: GsPwr, from_g_node_alias: str):
         self.screen_print(f"Got {payload} from {from_g_node_alias}")
         self.total_power_w = payload.Power

@@ -1,33 +1,35 @@
-from ast import Sub
 from typing import List
+
 import paho.mqtt.client as mqtt
-import settings
+
 import helpers
-from data_classes.sh_node import ShNode
+import settings
 from actors.mqtt_utils import QOS, Subscription
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
+from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
+from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
 from schema.schema_switcher import SchemaSwitcher
 
+
 class UniversalTestEar():
-    
+
     def __init__(self):
         self.alias = 'universal.test.ear'
         self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
         self.client = mqtt.Client(self.alias)
         self.client.username_pw_set(username=settings.LOCAL_MQTT_USER_NAME,
-                                            password=helpers.get_secret('LOCAL_MQTT_PW'))
+                                    password=helpers.get_secret('LOCAL_MQTT_PW'))
         self.client.connect(self.mqttBroker)
         self.client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
         self.client.on_message = self.on_message
-        # self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
-        # self.gw_client = mqtt.Client(f'gw.{self.alias}')
-        # self.gw_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
-        #                                        password=helpers.get_secret('GW_MQTT_PW'))
-        # self.gw_client.connect(self.gwMqttBroker)
-        # self.gw_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
-        # self.gw_client.on_message = self.on_gw_message
+        self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
+        self.gw_client = mqtt.Client(f'gw.{self.alias}')
+        self.gw_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
+                                       password=helpers.get_secret('GW_MQTT_PW'))
+        self.gw_client.connect(self.gwMqttBroker)
+        self.gw_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
+        self.gw_client.on_message = self.on_gw_message
         self.latest_from_node: ShNode = None
         self.latest_payload: GtTelemetry = None
 
@@ -38,11 +40,10 @@ class UniversalTestEar():
             subscriptions.append(Subscription(Topic=f'{alias}/#', Qos=QOS.AtLeastOnce))
         subscriptions.append(Subscription(Topic='a.tank.temp0/gt.telemetry.110', Qos=QOS.AtLeastOnce))
         return subscriptions
-    
+
     def gw_subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{settings.SCADA_G_NODE_ALIAS}/#', Qos=QOS.AtLeastOnce),
                 Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/#', Qos=QOS.AtLeastOnce)]
-
 
     def on_message(self, client, userdata, message):
         print(f"Got message {message.payload} with topic {message.topic}")

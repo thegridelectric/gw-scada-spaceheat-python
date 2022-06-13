@@ -58,9 +58,11 @@ class PrimaryScada(PrimaryScadaBase):
             raise NotImplementedError(f"No driver yet for {self.pump_actuator.primary_component.make_model}")
 
     def gs_pwr_received(self, payload: GsPwr, from_node: ShNode):
+        if from_node != ShNode.by_alias['a.m']:
+            raise Exception("Need to track all metering and make sure we have the sum")
         self.screen_print(f"Got {payload}")
         self.total_power_w = payload.Power
-        self.publish_gs_pwr(payload=payload)
+        self.publish(payload=payload)
     
     def gt_telemetry_received(self, payload: GtTelemetry, from_node: ShNode):
         self.screen_print(f"{payload.Value} from {from_node.alias}")
@@ -93,6 +95,6 @@ class PrimaryScada(PrimaryScadaBase):
 
     def main(self):
         self._scheduler_running = True
-        while self._scheduler_running == True:
+        while self._scheduler_running is True:
             # track time and send status every x minutes (likely 5)
             time.sleep(1)

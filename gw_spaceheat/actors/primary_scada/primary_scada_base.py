@@ -35,7 +35,7 @@ class PrimaryScadaBase(ActorBase):
             self.gw_consume_client.on_log = self.on_log
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
         self.gw_consume_client.on_message = self.on_gw_message
-        
+
     def gw_consume(self):
         self.gw_consume_client.loop_start()
 

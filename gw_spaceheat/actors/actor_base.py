@@ -1,19 +1,17 @@
-import threading
 import uuid
 from abc import ABC, abstractmethod
-from actors.mqtt_utils import QOS
 from typing import List
-import paho.mqtt.client as mqtt
 
 import helpers
+import paho.mqtt.client as mqtt
 import settings
 from data_classes.sh_node import ShNode
-
-from actors.mqtt_utils import Subscription
-
-from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
-from schema.gs.gs_pwr import GsPwr
 from schema.gs.gs_dispatch import GsDispatch
+from schema.gs.gs_pwr import GsPwr
+from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
+
+from actors.mqtt_utils import QOS, Subscription
+
 
 class ActorBase(ABC):
 
@@ -53,18 +51,17 @@ class ActorBase(ABC):
     def on_message(self, client, userdata, message):
         raise NotImplementedError
 
-    def publish(self, node: ShNode, payload_tuple: GtTelemetry):
-        if type(payload_tuple) in [GsPwr, GsDispatch]:
+    def publish(self, payload: GtTelemetry):
+        if type(payload) in [GsPwr, GsDispatch]:
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
         self.publish_client.publish(
-            topic=f'{node.alias}/{payload_tuple.TypeAlias}',
-            payload=payload_tuple.as_type(),
-            qos=qos,
+            topic=f'{self.node.alias}/{payload.TypeAlias}',
+            payload=payload.as_type(),
+            qos=qos.value,
             retain=False)
 
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
-
