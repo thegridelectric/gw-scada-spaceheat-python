@@ -19,15 +19,15 @@ class TankWaterTempSensor(SensorBase):
     def __init__(self, node: ShNode):
         super(TankWaterTempSensor, self).__init__(node=node)   
         self.temp = 67123
-        self.screen_print('hi')
         self.driver: TempSensorDriver = None
         self.cac: TempSensorCac = self.node.primary_component.cac
         self.set_driver()
         self.telemetry_name: TelemetryName = None
         self.set_telemetry_name()
-        self.consume_thread.start()
         self.sensing_thread = threading.Thread(target=self.main)
         self.sensing_thread.start()
+        self.consume()
+        self.screen_print(f'Started {self.__class__}')
 
     def set_driver(self):
         if self.node.primary_component.make_model == MakeModel.ADAFRUIT__642:
@@ -44,17 +44,18 @@ class TankWaterTempSensor(SensorBase):
             raise Exception(f"TelemetryName for {self.cac.temp_unit} and precision exponent of"
                             f"{self.cac.precision_exponent} not set yet!")
 
-    def publish(self):
-        payload = GtTelemetry_Maker(name=self.telemetry_name,
-                                    value=int(self.temp),
-                                    exponent=0,
-                                    scada_read_time_unix_ms=int(time.time() * 1000)).tuple
-        self.publish_gt_telemetry(payload)
-
     def consume(self):
         pass
 
+    def terminate_sensing(self):
+        self._sensing = False
+
     def main(self):
-        while True:
+        self._sensing = True
+        while self._sensing is True:
             self.temp = self.driver.read_temp()
-            self.publish()
+            payload = GtTelemetry_Maker(name=self.telemetry_name,
+                                        value=int(self.temp),
+                                        exponent=0,
+                                        scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+            self.publish(payload=payload)

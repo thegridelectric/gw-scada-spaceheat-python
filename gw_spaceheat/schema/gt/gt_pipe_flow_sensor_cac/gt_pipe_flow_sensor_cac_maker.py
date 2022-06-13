@@ -45,9 +45,9 @@ class GtPipeFlowSensorCac_Maker():
     def dict_to_tuple(cls, d: dict) ->  GtPipeFlowSensorCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
-        if "SpaceheatMakeModelGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing SpaceheatMakeModelGtEnumSymbol")
-        d["MakeModel"] = MakeModelMap.gt_to_local(d["SpaceheatMakeModelGtEnumSymbol"])
+        if "MakeModelGtEnumSymbol" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing MakeModelGtEnumSymbol")
+        d["MakeModel"] = MakeModelMap.gt_to_local(d["MakeModelGtEnumSymbol"])
         if "DisplayName" not in d.keys():
             d["DisplayName"] = None
         if "CommsMethod" not in d.keys():

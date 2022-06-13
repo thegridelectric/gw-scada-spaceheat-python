@@ -1,81 +1,42 @@
-""" ShNode Class Definition"""
+"""ShNode definition"""
 from typing import Dict, List, Optional
 
 from data_classes.component import Component
-from data_classes.components.electric_heater_component import \
-    ElectricHeaterComponent
-from data_classes.errors import DataClassLoadingError, DcError
+from data_classes.errors import DataClassLoadingError
 from data_classes.sh_node_base import ShNodeBase
-from data_classes.sh_node_role import ShNodeRole
-from data_classes.sh_node_role_static import (ELECTRIC_HEATER,
-                                              PlatformShNodeRole)
+from schema.gt.gt_sh_node.gt_sh_node import GtShNode
 
 
 class ShNode(ShNodeBase):
+    by_id: Dict[str, ShNodeBase] = ShNodeBase._by_id
     by_alias: Dict[str, ShNodeBase] = {}
 
-    def __init__(self,
-                 sh_node_id: Optional[str] = None,
-                 alias: Optional[str] = None,
-                 sh_node_role_alias: Optional[str] = None,
-                 display_name: Optional[str] = None,
+    def __init__(self, sh_node_id: str,
+                 alias: str,
+                 python_actor_name: str,
+                 role_gt_enum_symbol: str,
                  primary_component_id: Optional[str] = None,
-                 python_actor_name: Optional[str] = None
+                 display_name: Optional[str] = None,
                  ):
-        super(ShNode, self).__init__(sh_node_id=sh_node_id,
-                                     alias=alias,
-                                     sh_node_role_alias=sh_node_role_alias,
-                                     display_name=display_name,
-                                     primary_component_id=primary_component_id,
-                                     python_actor_name=python_actor_name)
-        self.__class__.by_alias[self.alias] = self
+        super(self.__class__, self).__init__(sh_node_id=sh_node_id,
+                                             alias=alias,
+                                             primary_component_id=primary_component_id,
+                                             display_name=display_name,
+                                             python_actor_name=python_actor_name,
+                                             role_gt_enum_symbol=role_gt_enum_symbol,
+                                             )
+        ShNode.by_alias[self.alias] = self
+
+    def _check_update_axioms(self, type: GtShNode):
+        pass
 
     def __repr__(self):
-        rs = f'ShNode {self.display_name} => {self.sh_node_role.alias} {self.alias}, '
+        rs = f'ShNode {self.display_name} => {self.role.value} {self.alias}, '
         if self.has_actor:
             rs += ' (has actor)'
         else:
             rs += ' (passive, no actor)'
         return rs
-
-    @classmethod
-    def check_existence_of_certain_attributes(cls, attributes: Dict):
-        if not attributes.get('sh_node_id', None):
-            raise DcError('sh_node_id must exist')
-        if not attributes.get('alias', None):
-            raise DcError('alias must exist')
-        if not attributes.get('display_name', None):
-            raise DcError('display_name must exist')
-
-    @classmethod
-    def check_initialization_consistency(cls, attributes):
-        ShNode.check_uniqueness_of_primary_key(attributes)
-        ShNode.check_existence_of_certain_attributes(attributes)
-
-    def check_immutability_for_existing_attributes(self, new_attributes):
-        if self.sh_node_id:
-            if new_attributes['sh_node_id'] != self.sh_node_id:
-                raise DcError('sh_node_id is Immutable')
-            if self.primary_component_id and 'primary_component_id' in new_attributes.keys():
-                if self.sh_node_role == ELECTRIC_HEATER:
-                    try:
-                        new_component = ElectricHeaterComponent.by_id[new_attributes['primary_component_id']]
-                        self.primary_component
-                    except (KeyError, DataClassLoadingError):
-                        raise DataClassLoadingError(f"Component for GNode {self.alias} is changing! Component with "
-                                                    f"id {new_attributes['primary_component_id']} must"
-                                                    f"be loaded before this action is done, in order to validate that "
-                                                    f"the ComponentAttributeClass remains the same ")
-                    if self.primary_component.electric_heater_cac != new_component.electric_heater_cac:
-                        raise DcError(f"component attribute class for {self.alias} cannot change! Attempt to change "
-                                      f"from class {self.primary_component.electric_heater_cac} to"
-                                      f" {new_component.electric_heater_cac}")
-
-    @property
-    def sh_node_role(self) -> ShNodeRole:
-        if self.sh_node_role_alias not in PlatformShNodeRole.keys():
-            raise TypeError(f'ShNodeRole {self.sh_node_role_alias} for {self.alias} must belong to static list')
-        return PlatformShNodeRole[self.sh_node_role_alias]
 
     @property
     def primary_component(self) -> Optional[Component]:

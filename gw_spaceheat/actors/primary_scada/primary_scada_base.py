@@ -14,10 +14,6 @@ from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import (GtTelemetry,
                                                        GtTelemetry_Maker)
 
-MY_G_NODE_ALIAS = 'dw1.isone.nh.orange.1.ta.scada'
-MY_ATN_G_NODE_ALIAS = 'dw1.isone.nh.orange.1'
-
-
 class PrimaryScadaBase(ActorBase):
     def __init__(self, node: ShNode):
         super(PrimaryScadaBase, self).__init__(node=node)
@@ -37,7 +33,11 @@ class PrimaryScadaBase(ActorBase):
         self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
-        self.gw_consume_thread = threading.Thread(target=self.gw_consume)
+        self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
+        self.gw_consume_client.on_message = self.on_gw_message
+
+    def gw_consume(self):
+        self.gw_consume_client.loop_start()
 
     def subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
@@ -53,9 +53,9 @@ class PrimaryScadaBase(ActorBase):
             (from_alias, type_alias) = message.topic.split('/')
         except IndexError:
             raise Exception("topic must be of format A/B")
-        from_node = ShNode.by_alias[from_alias]
         if from_alias not in ShNode.by_alias.keys():
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
+        from_node = ShNode.by_alias[from_alias]
         if type_alias == GsPwr_Maker.type_alias:
             payload = GsPwr_Maker.type_to_tuple(message.payload)
             self.gs_pwr_received(payload=payload, from_node=from_node)
@@ -75,16 +75,16 @@ class PrimaryScadaBase(ActorBase):
         raise NotImplementedError
 
     def gw_subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'{MY_ATN_G_NODE_ALIAS}/{GsDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
+        return [Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/{GsDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
 
     def on_gw_message(self, client, userdata, message):
         try:
             (from_alias, type_alias) = message.topic.split('/')
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if not from_alias == MY_ATN_G_NODE_ALIAS:
+        if not from_alias == settings.ATN_G_NODE_ALIAS:
             raise Exception(f"alias {from_alias} not my AtomicTNode!")
-        from_node = ShNode.by_alias[from_alias]
+        from_node = ShNode.by_alias['a']
         if type_alias == GsDispatch_Maker.type_alias:
             payload = GsDispatch_Maker.type_to_tuple(message.payload)
             self.gs_dispatch_received(payload=payload, from_node=from_node)
@@ -95,13 +95,8 @@ class PrimaryScadaBase(ActorBase):
     def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
         raise NotImplementedError
 
-    def gw_consume(self):
-        self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
-        self.gw_consume_client.on_message = self.on_gw_message
-        self.gw_consume_client.loop_forever()
-
     def publish_gs_pwr(self, payload: GsPwr):
-        topic = f'{MY_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}'
+        topic = f'{settings.SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}'
         self.screen_print(f"Trying to publish {payload.as_type()} to topic {topic} on gw broker")
         self.gw_publish_client.publish(
             topic=topic,

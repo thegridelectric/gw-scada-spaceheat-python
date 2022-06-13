@@ -21,7 +21,6 @@ from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
 
 
 class PrimaryScada(PrimaryScadaBase):
-    CALIBRATION_FILE = "out.txt"
 
     def __init__(self, node: ShNode):
         super(PrimaryScada, self).__init__(node=node)
@@ -29,25 +28,12 @@ class PrimaryScada(PrimaryScadaBase):
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.temp_readings: List = []
-        self.screen_print("writing output header")
-        with open(self.CALIBRATION_FILE, 'w') as outfile:
-            write = csv.writer(outfile, delimiter=',')
-            write.writerow(['TimeUtc', 't_unix_s', 'ms', 'alias', 'WaterTempCTimes1000'])
-        self.calibrate_thread = threading.Thread(target=self.calibrate)
         self.set_actuator_components()
-        self.calibrate_thread.start()
-        self.consume_thread.start()
-        self.screen_print(f"Started PrimaryScada {self.node}")
-
-    def calibrate(self):
-        while True:
-            time.sleep(60)
-            self.screen_print("appending output")
-            with open(self.CALIBRATION_FILE, 'a') as outfile:
-                write = csv.writer(outfile, delimiter=',')
-                for row in self.temp_readings:
-                    write.writerow(row)
-            self.temp_readings = []
+        self.consume()
+        self.gw_consume()
+        self.schedule_thread = threading.Thread(target=self.main)
+        self.schedule_thread.start()
+        self.screen_print(f'Started {self.__class__}')
 
     def set_actuator_components(self):
         self.boost_actuator = ShNode.by_alias['a.elt1.relay']
@@ -72,9 +58,11 @@ class PrimaryScada(PrimaryScadaBase):
             raise NotImplementedError(f"No driver yet for {self.pump_actuator.primary_component.make_model}")
 
     def gs_pwr_received(self, payload: GsPwr, from_node: ShNode):
+        if from_node != ShNode.by_alias['a.m']:
+            raise Exception("Need to track all metering and make sure we have the sum")
         self.screen_print(f"Got {payload}")
         self.total_power_w = payload.Power
-        self.publish_gs_pwr(payload=payload)
+        self.publish(payload=payload)
     
     def gt_telemetry_received(self, payload: GtTelemetry, from_node: ShNode):
         self.screen_print(f"{payload.Value} from {from_node.alias}")
@@ -101,3 +89,12 @@ class PrimaryScada(PrimaryScadaBase):
             raise NotImplementedError('No actor for boolean actuator yet')
         else:
             self.driver[ba].turn_off()
+
+    def terminate_scheduling(self):
+        self._scheduler_running = False
+
+    def main(self):
+        self._scheduler_running = True
+        while self._scheduler_running is True:
+            # track time and send status every x minutes (likely 5)
+            time.sleep(1)

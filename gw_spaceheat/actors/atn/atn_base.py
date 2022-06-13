@@ -11,9 +11,6 @@ from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
-MY_G_NODE_ALIAS = 'dw1.isone.nh.orange.1'
-MY_SCADA_G_NODE_ALIAS = 'dw1.isone.nh.orange.1.ta.scada'
-
 
 class Atn_Base(ABC):
     def __init__(self, node: ShNode):
@@ -35,32 +32,29 @@ class Atn_Base(ABC):
         self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
-        self.gw_consume_thread = threading.Thread(target=self.gw_consume)
+        self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
+        self.gw_consume_client.on_message = self.on_gw_message
+        self.gw_consume_client.loop_start()
+
+    def gw_consume(self):
+        self.gw_consume_client.loop_start()
 
     def on_log(self, client, userdata, level, buf):
         self.screen_print(f"log: {buf}")
 
     def gw_subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'{MY_SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce)]
-
-    def gw_consume(self):
-        self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
-        self.gw_consume_client.on_message = self.on_gw_message
-        self.gw_consume_client.loop_forever()
+        return [Subscription(Topic=f'{settings.SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce)]
 
     def on_gw_message(self, client, userdata, message):
         try:
             (from_alias, type_alias) = message.topic.split('/')
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if not from_alias == MY_SCADA_G_NODE_ALIAS:
+        if not from_alias == settings.SCADA_G_NODE_ALIAS:
             raise Exception(f"alias {from_alias} not my AtomicTNode!")
         if type_alias == GsPwr_Maker.type_alias:
             payload = GsPwr_Maker.type_to_tuple(message.payload)
-            self.gs_pwr_received(payload=payload, from_g_node_alias=MY_SCADA_G_NODE_ALIAS)
-        elif type_alias == GtTelemetry_Maker.type_alias:
-            payload = GtTelemetry_Maker.type_to_tuple(message.payload)
-            self.gt_telemetry_received(payload=payload, from_g_node_alias=MY_SCADA_G_NODE_ALIAS)
+            self.gs_pwr_received(payload=payload, from_g_node_alias=settings.SCADA_G_NODE_ALIAS)
         else:
             self.screen_print(f"{message.topic} subscription not implemented!")
 
@@ -71,7 +65,3 @@ class Atn_Base(ABC):
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
-
-    @abstractproperty
-    def my_scada(self) -> ShNode:
-        return NotImplementedError

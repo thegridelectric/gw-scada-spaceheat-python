@@ -10,17 +10,17 @@ class PipeFlowMeter(SensorBase):
     def __init__(self, node: ShNode):
         super(PipeFlowMeter, self).__init__(node=node)
         self.water_flow_gpm = 0
-        self.screen_print('hi')
-        self.consume_thread.start()
+        self.consume()
+        self.screen_print(f'Started {self.__class__}')
 
-    def publish(self):
+    def test_publish(self):
         self.water_flow_gpm += 100
         self.water_flow_gpm = self.water_flow_gpm % 3000
         payload = GtTelemetry_Maker(name=TelemetryName.WATER_FLOW_GPM_TIMES100,
                                     value=int(self.water_flow_gpm * 100),
                                     exponent=0,
                                     scada_read_time_unix_ms=int(time.time() * 1000)).tuple
-        self.publish_gt_telemetry(payload)
+        self.publish(payload=payload)
         
     def consume(self):
         pass
