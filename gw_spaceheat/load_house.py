@@ -12,6 +12,7 @@ from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker imp
 from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_maker import GtPipeFlowSensorComponent_Maker
 from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_maker import GtTempSensorComponent_Maker
 
+from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.components.boolean_actuator_component import \
@@ -62,10 +63,8 @@ def load_components(input_data):
     
 
 def load_nodes(input_data):
-    for camel in input_data['ShNodes']:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        node = ShNode(**snake_dict)
-
+    for d in input_data['ShNodes']:
+        GtShNode_Maker.dict_to_dc(d)
 
 def load_edges(input_data):
     pass

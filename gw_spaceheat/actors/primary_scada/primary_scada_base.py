@@ -49,9 +49,9 @@ class PrimaryScadaBase(ActorBase):
             (from_alias, type_alias) = message.topic.split('/')
         except IndexError:
             raise Exception("topic must be of format A/B")
-        from_node = ShNode.by_alias[from_alias]
         if from_alias not in ShNode.by_alias.keys():
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
+        from_node = ShNode.by_alias[from_alias]
         if type_alias == GsPwr_Maker.type_alias:
             payload = GsPwr_Maker.type_to_tuple(message.payload)
             self.gs_pwr_received(payload=payload, from_node=from_node)

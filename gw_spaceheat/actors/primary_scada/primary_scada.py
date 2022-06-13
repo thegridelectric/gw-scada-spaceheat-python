@@ -21,7 +21,6 @@ from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
 
 
 class PrimaryScada(PrimaryScadaBase):
-    CALIBRATION_FILE = "out.txt"
 
     def __init__(self, node: ShNode):
         super(PrimaryScada, self).__init__(node=node)
@@ -29,11 +28,6 @@ class PrimaryScada(PrimaryScadaBase):
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.temp_readings: List = []
-        self.screen_print("writing output header")
-        with open(self.CALIBRATION_FILE, 'w') as outfile:
-            write = csv.writer(outfile, delimiter=',')
-            write.writerow(['TimeUtc', 't_unix_s', 'ms', 'alias', 'WaterTempCTimes1000'])
-        self.calibrate_thread = threading.Thread(target=self.calibrate)
         self.set_actuator_components()
         self.calibrate_thread.start()
         self.consume_thread.start()
