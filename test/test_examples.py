@@ -1,6 +1,9 @@
 # This should be an absolute import from package base: "gw_spaceheat...."
 # That requires changes *all* imports to use absolute import, so we don't do this in this demo.
 import time
+import typing
+from collections import defaultdict
+
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
 import load_house
@@ -8,10 +11,29 @@ from actors.power_meter import PowerMeter
 from actors.primary_scada import PrimaryScada
 from actors.atn import Atn
 from actors.tank_water_temp_sensor import TankWaterTempSensor
+from schema.gs.gs_dispatch import GsDispatch
 from universal_test_ear import UniversalTestEar
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 from schema.gs.gs_pwr_maker import GsPwr_Maker
-# noinspection PyUnresolvedReferences
+
+class ScadaRecorder(PrimaryScada):
+    """Record data about a PrimaryScada execution during test"""
+
+    num_received: int
+    num_received_by_topic: typing.Dict[str, int]
+
+    def __init__(self, node: ShNode):
+        self.num_received = 0
+        self.num_received_by_topic = defaultdict(int)
+        super().__init__(node)
+
+    def on_mqtt_message(self, client, userdata, message):
+        self.num_received += 1
+        self.num_received_by_topic[message.topic] += 1
+        super().on_mqtt_message(client, userdata, message)
+
+    def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
+        raise NotImplementedError
 
 
 def test_imports():
@@ -75,3 +97,17 @@ def test_async_power_metering_dag():
     meter.publish(payload=payload)
     time.sleep(.3)
 #     assert atn.total_power_w == 2100
+
+def test_collect_temp_data():
+    """Verify Scada receives publication from TankWaterTempSensor"""
+    load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
+    scada = ScadaRecorder(node=typing.cast(ShNode, ShNode.by_alias["a.s"]))
+    thermo = TankWaterTempSensor(node=typing.cast(ShNode, ShNode.by_alias["a.tank.temp0"]))
+    time.sleep(1)
+    thermo.terminate_sensing()
+    thermo.sensing_thread.join()
+    scada.terminate_scheduling()
+    scada.schedule_thread.join()
+    assert scada.num_received > 0
+    assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] == scada.num_received
+
