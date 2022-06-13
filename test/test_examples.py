@@ -1,10 +1,16 @@
 # This should be an absolute import from package base: "gw_spaceheat...."
 # That requires changes *all* imports to use absolute import, so we don't do this in this demo.
-
+import time
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
 import load_house
-
+from actors.power_meter.power_meter import PowerMeter
+from actors.primary_scada.primary_scada import PrimaryScada
+from actors.atn.atn import Atn
+from actors.sensor.tank_water_temp_sensor import TankWaterTempSensor
+from actors.strategy_switcher import main as strategy_switcher
+from universal_test_ear import UniversalTestEar
+from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
 # noinspection PyUnresolvedReferences
 
 
@@ -21,6 +27,7 @@ def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
     load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
+    print(ShNode.by_alias['a.s'])
     assert len(ShNode.by_alias) == 24
     nodes_w_components = list(filter(lambda x: x.primary_component_id is not None, ShNode.by_alias.values()))
     assert len(nodes_w_components) == 19
@@ -29,3 +36,37 @@ def test_load_house():
     temp_sensor_nodes = list(filter(lambda x: isinstance(
         x.primary_component.cac, TempSensorCac), actor_nodes_w_components))
     assert len(temp_sensor_nodes) == 5
+
+
+def test_temp_sensor_sends():
+    load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
+
+    t0_node = ShNode.by_alias["a.tank.temp0"]
+    t0 = TankWaterTempSensor(node=t0_node)
+    t0.terminate_sensing()
+    t0.sensing_thread.join()
+    ear = UniversalTestEar()
+    ear.client.loop_start()
+    t0.publish()
+    time.sleep(.4)
+    assert isinstance(ear.latest_payload, GtTelemetry)
+    assert ear.latest_from_node == t0_node
+
+    
+# def test_async_power_metering_dag():
+#     load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
+#     meter_node = ShNode.by_alias["a.m"]
+#     scada_node = ShNode.by_alias["a.s"]
+#     atn_node = ShNode.by_alias["a"]
+#     meter = PowerMeter(node=meter_node)
+#     meter.terminate_sensing()
+#     meter.sensing_thread.join()
+#     scada = PrimaryScada(node=scada_node)
+#     scada.terminate_scheduling()
+#     scada.schedule_thread.join()
+#     atn = Atn(node=atn_node)
+#     assert atn.total_power_w == 0
+#     meter.total_power_w = 2100
+#     meter.publish()
+#     time.sleep(.3)
+#     assert atn.total_power_w == 2100
