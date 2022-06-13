@@ -9,8 +9,8 @@ from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr import GsPwr
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
-
-from actors.mqtt_utils import QOS, Subscription
+from schema.schema_switcher import SchemaMakerByAliasDict
+from actors.utils import QOS, Subscription
 
 
 class ActorBase(ABC):
@@ -35,7 +35,7 @@ class ActorBase(ABC):
         if self.logging_on:
             self.consume_client.on_log = self.on_log
         self.consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
-        self.consume_client.on_message = self.on_message
+        self.consume_client.on_message = self.on_mqtt_message
 
     def on_log(self, client, userdata, level, buf):
         self.screen_print(f"log: {buf}")
@@ -47,8 +47,21 @@ class ActorBase(ABC):
     def subscriptions(self) -> List[Subscription]:
         raise NotImplementedError
 
+    def on_mqtt_message(self, client, userdata, message):
+        try:
+            (from_alias, type_alias) = message.topic.split('/')
+        except IndexError:
+            raise Exception("topic must be of format A/B")
+        if from_alias not in ShNode.by_alias.keys():
+            raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
+        from_node = ShNode.by_alias[from_alias]
+        if type_alias not in SchemaMakerByAliasDict.keys():
+            raise Exception(f"Type {type_alias} not recognized. Should be in SchemaByAliasDict keys!")
+        payload_as_tuple = SchemaMakerByAliasDict[type_alias].type_to_tuple(message.payload)
+        self.on_message(from_node=from_node, payload=payload_as_tuple)
+
     @abstractmethod
-    def on_message(self, client, userdata, message):
+    def on_message(self, from_node:ShNode, payload: GtTelemetry):
         raise NotImplementedError
 
     def publish(self, payload: GtTelemetry):
