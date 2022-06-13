@@ -48,9 +48,9 @@ def test_temp_sensor_sends():
     ear = UniversalTestEar()
     ear.client.loop_start()
     payload = GtTelemetry_Maker(name=t0.telemetry_name,
-                                        value=int(t0.temp),
-                                        exponent=0,
-                                        scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+                                value=int(t0.temp),
+                                exponent=0,
+                                scada_read_time_unix_ms=int(time.time() * 1000)).tuple
     t0.publish(payload=payload)
     time.sleep(.4)
     assert isinstance(ear.latest_payload, GtTelemetry)

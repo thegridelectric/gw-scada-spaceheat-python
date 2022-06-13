@@ -26,7 +26,7 @@ class UniversalTestEar():
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
         self.gw_client = mqtt.Client(f'gw.{self.alias}')
         self.gw_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
-                                               password=helpers.get_secret('GW_MQTT_PW'))
+                                       password=helpers.get_secret('GW_MQTT_PW'))
         self.gw_client.connect(self.gwMqttBroker)
         self.gw_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
         self.gw_client.on_message = self.on_gw_message
