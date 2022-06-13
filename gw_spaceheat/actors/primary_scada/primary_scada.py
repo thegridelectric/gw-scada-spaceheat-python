@@ -29,19 +29,11 @@ class PrimaryScada(PrimaryScadaBase):
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.temp_readings: List = []
         self.set_actuator_components()
-        self.calibrate_thread.start()
-        self.consume_thread.start()
-        self.screen_print(f"Started PrimaryScada {self.node}")
-
-    def calibrate(self):
-        while True:
-            time.sleep(60)
-            self.screen_print("appending output")
-            with open(self.CALIBRATION_FILE, 'a') as outfile:
-                write = csv.writer(outfile, delimiter=',')
-                for row in self.temp_readings:
-                    write.writerow(row)
-            self.temp_readings = []
+        self.consume()
+        self.gw_consume()
+        self.schedule_thread = threading.Thread(target=self.main)
+        self.schedule_thread.start()
+        self.screen_print(f'Started {self.__class__}')
 
     def set_actuator_components(self):
         self.boost_actuator = ShNode.by_alias['a.elt1.relay']
@@ -95,3 +87,12 @@ class PrimaryScada(PrimaryScadaBase):
             raise NotImplementedError('No actor for boolean actuator yet')
         else:
             self.driver[ba].turn_off()
+
+    def terminate_scheduling(self):
+        self._scheduler_running = False
+
+    def main(self):
+        self._scheduler_running = True
+        while self._scheduler_running == True:
+            # track time and send status every x minutes (likely 5)
+            time.sleep(1)

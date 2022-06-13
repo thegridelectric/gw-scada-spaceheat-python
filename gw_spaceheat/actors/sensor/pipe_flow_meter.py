@@ -10,8 +10,8 @@ class PipeFlowMeter(SensorBase):
     def __init__(self, node: ShNode):
         super(PipeFlowMeter, self).__init__(node=node)
         self.water_flow_gpm = 0
-        self.screen_print('hi')
-        self.consume_thread.start()
+        self.consume()
+        self.screen_print(f'Started {self.__class__}')
 
     def publish(self):
         self.water_flow_gpm += 100

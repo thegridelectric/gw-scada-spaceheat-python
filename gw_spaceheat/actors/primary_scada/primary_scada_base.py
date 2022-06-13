@@ -33,7 +33,11 @@ class PrimaryScadaBase(ActorBase):
         self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
-        self.gw_consume_thread = threading.Thread(target=self.gw_consume)
+        self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
+        self.gw_consume_client.on_message = self.on_gw_message
+        
+    def gw_consume(self):
+        self.gw_consume_client.loop_start()
 
     def subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
@@ -90,11 +94,6 @@ class PrimaryScadaBase(ActorBase):
     @abstractmethod
     def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
         raise NotImplementedError
-
-    def gw_consume(self):
-        self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
-        self.gw_consume_client.on_message = self.on_gw_message
-        self.gw_consume_client.loop_forever()
 
     def publish_gs_pwr(self, payload: GsPwr):
         topic = f'{settings.SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}'

@@ -1,6 +1,7 @@
 import threading
 import uuid
 from abc import ABC, abstractmethod
+from actors.mqtt_utils import QOS
 from typing import List
 import paho.mqtt.client as mqtt
 
@@ -10,6 +11,9 @@ from data_classes.sh_node import ShNode
 
 from actors.mqtt_utils import Subscription
 
+from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
+from schema.gs.gs_pwr import GsPwr
+from schema.gs.gs_dispatch import GsDispatch
 
 class ActorBase(ABC):
 
@@ -32,15 +36,14 @@ class ActorBase(ABC):
         self.consume_client.connect(self.mqttBroker)
         if self.logging_on:
             self.consume_client.on_log = self.on_log
-        self.consume_thread = threading.Thread(target=self.consume)
+        self.consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
+        self.consume_client.on_message = self.on_message
 
     def on_log(self, client, userdata, level, buf):
         self.screen_print(f"log: {buf}")
 
     def consume(self):
-        self.consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
-        self.consume_client.on_message = self.on_message
-        self.consume_client.loop_forever()
+        self.consume_client.loop_start()
 
     @abstractmethod
     def subscriptions(self) -> List[Subscription]:
@@ -50,6 +53,18 @@ class ActorBase(ABC):
     def on_message(self, client, userdata, message):
         raise NotImplementedError
 
+    def publish(self, node: ShNode, payload_tuple: GtTelemetry):
+        if type(payload_tuple) in [GsPwr, GsDispatch]:
+            qos = QOS.AtMostOnce
+        else:
+            qos = QOS.AtLeastOnce
+        self.publish_client.publish(
+            topic=f'{node.alias}/{payload_tuple.TypeAlias}',
+            payload=payload_tuple.as_type(),
+            qos=qos,
+            retain=False)
+
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
+

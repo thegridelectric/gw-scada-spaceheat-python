@@ -19,15 +19,15 @@ class TankWaterTempSensor(SensorBase):
     def __init__(self, node: ShNode):
         super(TankWaterTempSensor, self).__init__(node=node)   
         self.temp = 67123
-        self.screen_print('hi')
         self.driver: TempSensorDriver = None
         self.cac: TempSensorCac = self.node.primary_component.cac
         self.set_driver()
         self.telemetry_name: TelemetryName = None
         self.set_telemetry_name()
-        self.consume_thread.start()
         self.sensing_thread = threading.Thread(target=self.main)
         self.sensing_thread.start()
+        self.consume()
+        self.screen_print(f'Started {self.__class__}')
 
     def set_driver(self):
         if self.node.primary_component.make_model == MakeModel.ADAFRUIT__642:
@@ -54,7 +54,11 @@ class TankWaterTempSensor(SensorBase):
     def consume(self):
         pass
 
+    def terminate_sensing(self):
+        self._sensing = False
+
     def main(self):
-        while True:
+        self._sensing = True
+        while self._sensing == True:
             self.temp = self.driver.read_temp()
             self.publish()

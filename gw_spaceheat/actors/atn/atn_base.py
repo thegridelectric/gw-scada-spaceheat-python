@@ -65,7 +65,3 @@ class Atn_Base(ABC):
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
-
-    @abstractproperty
-    def my_scada(self) -> ShNode:
-        return NotImplementedError

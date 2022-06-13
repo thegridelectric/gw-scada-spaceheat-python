@@ -8,20 +8,14 @@ from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 class Atn(Atn_Base):
     def __init__(self, node: ShNode):
         super(Atn, self).__init__(node=node)
-        self.gw_consume_thread.start()
-        self.power = 0
+        self.total_power_w = 0
+        self.gw_consume()
+        self.screen_print(f'Started {self.__class__}')
 
     def publish(self):
         pass
 
     def gs_pwr_received(self, payload: GsPwr, from_g_node_alias: str):
         self.screen_print(f"Got {payload} from {from_g_node_alias}")
-        self.power = payload.Power
+        self.total_power_w = payload.Power
 
-    def gt_telemetry_received(self, payload: GtTelemetry, from_g_node_alias: str):
-        self.screen_print(f"Got {payload} from {from_g_node_alias}")
-
-    @property
-    def my_scada(self) -> ShNode:
-        alias = self.node.alias + '.s'
-        return ShNode.by_alias[alias]
