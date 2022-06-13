@@ -62,7 +62,7 @@ class PrimaryScada(PrimaryScadaBase):
             raise Exception("Need to track all metering and make sure we have the sum")
         self.screen_print(f"Got {payload}")
         self.total_power_w = payload.Power
-        self.publish(payload=payload)
+        self.gw_publish(payload=payload)
     
     def gt_telemetry_received(self, payload: GtTelemetry, from_node: ShNode):
         self.screen_print(f"{payload.Value} from {from_node.alias}")

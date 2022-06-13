@@ -9,7 +9,7 @@ import settings
 from actors.mqtt_utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
+from schema.gs.gs_dispatch_maker import GsDispatch
 
 
 class Atn_Base(ABC):
@@ -34,7 +34,6 @@ class Atn_Base(ABC):
             self.gw_consume_client.on_log = self.on_log
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
         self.gw_consume_client.on_message = self.on_gw_message
-        self.gw_consume_client.loop_start()
 
     def gw_consume(self):
         self.gw_consume_client.loop_start()
@@ -65,3 +64,14 @@ class Atn_Base(ABC):
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
+
+    def gw_publish(self, payload: GsDispatch):
+        if type(payload) in [GsPwr, GsDispatch]:
+            qos = QOS.AtMostOnce
+        else:
+            qos = QOS.AtLeastOnce
+        self.gw_publish_client.publish(
+            topic=f'{settings.ATN_G_NODE_ALIAS}/{payload.TypeAlias}',
+            payload=payload.as_type(),
+            qos=qos.value,
+            retain=False)

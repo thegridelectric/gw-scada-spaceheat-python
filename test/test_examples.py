@@ -13,6 +13,8 @@ from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_M
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 # noinspection PyUnresolvedReferences
 
+LOCAL_MQTT_MESSAGE_DELTA_S = 0.05
+GW_MQTT_MESSAGE_DELTA = 0.05
 
 def test_imports():
     """Verify modules can be imported"""
@@ -52,7 +54,7 @@ def test_temp_sensor_sends():
                                 exponent=0,
                                 scada_read_time_unix_ms=int(time.time() * 1000)).tuple
     t0.publish(payload=payload)
-    time.sleep(.4)
+    time.sleep(LOCAL_MQTT_MESSAGE_DELTA_S)
     assert isinstance(ear.latest_payload, GtTelemetry)
     assert ear.latest_from_node == t0_node
 
@@ -69,9 +71,12 @@ def test_async_power_metering_dag():
     scada.terminate_scheduling()
     scada.schedule_thread.join()
     atn = Atn(node=atn_node)
+    atn.terminate_scheduling()
+    atn.schedule_thread.join()
     assert atn.total_power_w == 0
     meter.total_power_w = 2100
     payload = GsPwr_Maker(power=meter.total_power_w).tuple
     meter.publish(payload=payload)
-    time.sleep(.3)
-#     assert atn.total_power_w == 2100
+    time.sleep(LOCAL_MQTT_MESSAGE_DELTA_S + GW_MQTT_MESSAGE_DELTA)
+    assert atn.total_power_w == 2100
+

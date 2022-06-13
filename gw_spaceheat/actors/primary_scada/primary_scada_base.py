@@ -95,11 +95,14 @@ class PrimaryScadaBase(ActorBase):
     def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
         raise NotImplementedError
 
-    def publish_gs_pwr(self, payload: GsPwr):
-        topic = f'{settings.SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}'
-        self.screen_print(f"Trying to publish {payload.as_type()} to topic {topic} on gw broker")
+    def gw_publish(self, payload: GtTelemetry):
+        if type(payload) in [GsPwr, GsDispatch]:
+            qos = QOS.AtMostOnce
+        else:
+            qos = QOS.AtLeastOnce
         self.gw_publish_client.publish(
-            topic=topic,
+            topic=f'{settings.SCADA_G_NODE_ALIAS}/{payload.TypeAlias}',
             payload=payload.as_type(),
-            qos=QOS.AtMostOnce.value,
+            qos=qos.value,
             retain=False)
+
