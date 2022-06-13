@@ -15,16 +15,6 @@ from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_maker import Gt
 from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
-from data_classes.components.boolean_actuator_component import \
-    BooleanActuatorComponent
-from data_classes.components.electric_heater_component import \
-    ElectricHeaterComponent
-from data_classes.components.electric_meter_component import \
-    ElectricMeterComponent
-from data_classes.components.pipe_flow_sensor_component import \
-    PipeFlowSensorComponent
-from data_classes.components.temp_sensor_component import TempSensorComponent
-from data_classes.sh_node import ShNode
 
 from helpers import camel_to_snake
 

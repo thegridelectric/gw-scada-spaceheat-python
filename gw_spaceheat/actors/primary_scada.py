@@ -4,7 +4,7 @@ import time
 from typing import Dict, List
 
 import pendulum
-from actors.primary_scada.primary_scada_base import PrimaryScadaBase
+from actors.primary_scada_base import PrimaryScadaBase
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode

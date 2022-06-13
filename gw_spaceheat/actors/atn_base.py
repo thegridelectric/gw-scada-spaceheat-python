@@ -1,6 +1,5 @@
-import threading
 import uuid
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from typing import List
 
 import helpers
@@ -9,7 +8,6 @@ import settings
 from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
 
 class Atn_Base(ABC):

@@ -1,4 +1,3 @@
-import threading
 import uuid
 from abc import abstractmethod
 from typing import List
@@ -10,9 +9,7 @@ from actors.actor_base import ActorBase
 from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_telemetry.gt_telemetry_maker import (GtTelemetry,
-                                                       GtTelemetry_Maker)
+
 
 class PrimaryScadaBase(ActorBase):
     def __init__(self, node: ShNode):
