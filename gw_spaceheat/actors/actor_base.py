@@ -53,15 +53,15 @@ class ActorBase(ABC):
     def on_message(self, client, userdata, message):
         raise NotImplementedError
 
-    def publish(self, node: ShNode, payload_tuple: GtTelemetry):
-        if type(payload_tuple) in [GsPwr, GsDispatch]:
+    def publish(self, payload: GtTelemetry):
+        if type(payload) in [GsPwr, GsDispatch]:
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
         self.publish_client.publish(
-            topic=f'{node.alias}/{payload_tuple.TypeAlias}',
-            payload=payload_tuple.as_type(),
-            qos=qos,
+            topic=f'{self.node.alias}/{payload.TypeAlias}',
+            payload=payload.as_type(),
+            qos=qos.value,
             retain=False)
 
     def screen_print(self, note):

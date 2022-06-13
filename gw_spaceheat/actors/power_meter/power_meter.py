@@ -15,10 +15,6 @@ class PowerMeter(PowerMeterBase):
         self.sensing_thread.start()
         self.screen_print(f'Started {self.__class__}')
 
-    def publish(self):
-        payload = GsPwr_Maker(power=self.total_power_w).tuple
-        self.publish_gs_pwr(payload=payload)
-
     def terminate_sensing(self):
         self._sensing = False
 
@@ -26,7 +22,8 @@ class PowerMeter(PowerMeterBase):
         self._sensing = True
         while self._sensing == True:
             self.total_power_w += 250 - int(500 * random.random())
-            self.publish()
+            payload = GsPwr_Maker(power=self.total_power_w).tuple
+            self.publish(payload=payload)
             time.sleep(1)
 
     
