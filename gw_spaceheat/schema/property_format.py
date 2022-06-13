@@ -2,20 +2,37 @@ import pendulum
 import struct
 import string
 
-def check_is_64_bit_hex(candidate):
+
+def is_64_bit_hex(candidate):
     if len(candidate) != 8:
         raise Exception(f"Wrong number of bits for 64 bit hex! {candidate}")
     if not all(c in string.hexdigits for c in candidate):
         raise Exception(f"All digits must be hex! {candidate}")
     return True
 
+
+def is_lrd_alias_format(candidate: str):
+    """AlphanumericStrings separated by periods, with most
+    significant word to the left.  I.e. `dw1.ne` is the child of `dw1`. """
+    try:
+        x = candidate.split('.')
+    except AttributeError:
+        return False
+    for word in x:
+        if not word.isalnum():
+            return False
+    return True
+
+    
 def is_recognized_component_manufacturer(candidate):
     #TODO: add
     return True
 
+
 def is_recognized_component_type(candidate):
     #TODO: add
     return True
+
 
 def is_reasonable_unix_time_ms(candidate):
     if pendulum.parse("2000-01-01T00:00:00Z").int_timestamp*1000 > candidate:
@@ -23,6 +40,7 @@ def is_reasonable_unix_time_ms(candidate):
     if pendulum.parse("3000-01-01T00:00:00Z").int_timestamp*1000 < candidate:
         return False
     return True
+
 
 def is_unsigned_short(candidate):
     try:
@@ -32,6 +50,7 @@ def is_unsigned_short(candidate):
         return False
     return True
 
+
 def is_short_integer(candidate):
     try:
         struct.pack("h",candidate)
@@ -39,6 +58,7 @@ def is_short_integer(candidate):
         print("short format requires (-32767 -1) <= number <= 32767")
         return False
     return True
+
 
 def is_uuid_canonical_textual(candidate):
     try:
@@ -63,5 +83,3 @@ def is_uuid_canonical_textual(candidate):
     if len(x[4]) != 12:
         return False
     return True
-
-
