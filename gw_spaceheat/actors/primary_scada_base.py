@@ -68,4 +68,3 @@ class PrimaryScadaBase(ActorBase):
             payload=payload.as_type(),
             qos=qos.value,
             retain=False)
-
