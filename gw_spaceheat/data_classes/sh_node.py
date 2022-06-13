@@ -10,6 +10,7 @@ from schema.gt.gt_sh_node.gt_sh_node import GtShNode
 class ShNode(ShNodeBase):
     by_id: Dict[str, ShNodeBase] = ShNodeBase._by_id
     by_alias: Dict[str, ShNodeBase] = {}
+
     def __init__(self, sh_node_id: str,
                  alias: str,
                  python_actor_name: str,

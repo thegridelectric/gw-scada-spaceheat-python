@@ -55,7 +55,7 @@ class TankWaterTempSensor(SensorBase):
         while self._sensing == True:
             self.temp = self.driver.read_temp()
             payload = GtTelemetry_Maker(name=self.telemetry_name,
-                                    value=int(self.temp),
-                                    exponent=0,
-                                    scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+                                        value=int(self.temp),
+                                        exponent=0,
+                                        scada_read_time_unix_ms=int(time.time() * 1000)).tuple
             self.publish(payload=payload)

@@ -52,7 +52,7 @@ def test_temp_sensor_sends():
     assert isinstance(ear.latest_payload, GtTelemetry)
     assert ear.latest_from_node == t0_node
 
-    
+
 # def test_async_power_metering_dag():
 #     load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
 #     meter_node = ShNode.by_alias["a.m"]

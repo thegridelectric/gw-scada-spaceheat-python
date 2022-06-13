@@ -10,14 +10,15 @@ from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.schema_switcher import SchemaSwitcher
 
+
 class UniversalTestEar():
-    
+
     def __init__(self):
         self.alias = 'universal.test.ear'
         self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
         self.client = mqtt.Client(self.alias)
         self.client.username_pw_set(username=settings.LOCAL_MQTT_USER_NAME,
-                                            password=helpers.get_secret('LOCAL_MQTT_PW'))
+                                    password=helpers.get_secret('LOCAL_MQTT_PW'))
         self.client.connect(self.mqttBroker)
         self.client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
         self.client.on_message = self.on_message
@@ -38,11 +39,10 @@ class UniversalTestEar():
             subscriptions.append(Subscription(Topic=f'{alias}/#', Qos=QOS.AtLeastOnce))
         subscriptions.append(Subscription(Topic='a.tank.temp0/gt.telemetry.110', Qos=QOS.AtLeastOnce))
         return subscriptions
-    
+
     def gw_subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{settings.SCADA_G_NODE_ALIAS}/#', Qos=QOS.AtLeastOnce),
                 Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/#', Qos=QOS.AtLeastOnce)]
-
 
     def on_message(self, client, userdata, message):
         print(f"Got message {message.payload} with topic {message.topic}")

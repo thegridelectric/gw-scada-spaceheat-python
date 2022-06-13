@@ -67,4 +67,3 @@ class ActorBase(ABC):
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
-

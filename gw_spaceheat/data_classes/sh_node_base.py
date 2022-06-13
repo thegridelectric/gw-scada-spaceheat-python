@@ -18,7 +18,7 @@ class ShNodeBase(ABC):
     base_props.append("python_actor_name")
     base_props.append("role_gt_enum_symbol")
 
-    def __init__(self, 
+    def __init__(self,
                  sh_node_id: str,
                  alias: str,
                  role_gt_enum_symbol: str,
