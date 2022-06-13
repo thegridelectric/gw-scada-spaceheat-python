@@ -1,4 +1,3 @@
-import threading
 import uuid
 from abc import abstractmethod
 from typing import List
@@ -7,12 +6,10 @@ import helpers
 import paho.mqtt.client as mqtt
 import settings
 from actors.actor_base import ActorBase
-from actors.mqtt_utils import QOS, Subscription
+from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_telemetry.gt_telemetry_maker import (GtTelemetry,
-                                                       GtTelemetry_Maker)
+
 
 class PrimaryScadaBase(ActorBase):
     def __init__(self, node: ShNode):
@@ -39,41 +36,6 @@ class PrimaryScadaBase(ActorBase):
     def gw_consume(self):
         self.gw_consume_client.loop_start()
 
-    def subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp0/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp1/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp2/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp3/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp4/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce)]
-
-    def on_message(self, client, userdata, message):
-        try:
-            (from_alias, type_alias) = message.topic.split('/')
-        except IndexError:
-            raise Exception("topic must be of format A/B")
-        if from_alias not in ShNode.by_alias.keys():
-            raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
-        from_node = ShNode.by_alias[from_alias]
-        if type_alias == GsPwr_Maker.type_alias:
-            payload = GsPwr_Maker.type_to_tuple(message.payload)
-            self.gs_pwr_received(payload=payload, from_node=from_node)
-        elif type_alias == GtTelemetry_Maker.type_alias:
-            self.screen_print(f"Topic {message.topic}")
-            payload = GtTelemetry_Maker.type_to_tuple(message.payload)
-            self.gt_telemetry_received(payload=payload, from_node=from_node)
-        else:
-            self.screen_print(f"{message.topic} subscription not implemented!")
-
-    @abstractmethod
-    def gs_pwr_received(self, payload: GsPwr):
-        raise NotImplementedError
-
-    @abstractmethod
-    def gt_telemetry_received(self, payload: GtTelemetry, from_node: ShNode):
-        raise NotImplementedError
-
     def gw_subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/{GsDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
 
@@ -94,12 +56,3 @@ class PrimaryScadaBase(ActorBase):
     @abstractmethod
     def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
         raise NotImplementedError
-
-    def publish_gs_pwr(self, payload: GsPwr):
-        topic = f'{settings.SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}'
-        self.screen_print(f"Trying to publish {payload.as_type()} to topic {topic} on gw broker")
-        self.gw_publish_client.publish(
-            topic=topic,
-            payload=payload.as_type(),
-            qos=QOS.AtMostOnce.value,
-            retain=False)

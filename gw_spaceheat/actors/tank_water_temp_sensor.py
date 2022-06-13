@@ -1,7 +1,9 @@
 import threading
 import time
+from typing import List
 
-from actors.sensor.sensor_base import SensorBase
+from actors.actor_base import ActorBase
+from actors.utils import Subscription
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
 from drivers.temp_sensor.adafruit_642__temp_sensor_driver import \
@@ -15,7 +17,7 @@ from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 from schema.enums.make_model.make_model_map import MakeModel
 
 
-class TankWaterTempSensor(SensorBase):
+class TankWaterTempSensor(ActorBase):
     def __init__(self, node: ShNode):
         super(TankWaterTempSensor, self).__init__(node=node)   
         self.temp = 67123
@@ -45,6 +47,12 @@ class TankWaterTempSensor(SensorBase):
                             f"{self.cac.precision_exponent} not set yet!")
 
     def consume(self):
+        pass
+
+    def subscriptions(self) -> List[Subscription]:
+        return []
+
+    def on_message(self, from_node: ShNode, payload):
         pass
 
     def terminate_sensing(self):

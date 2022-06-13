@@ -4,10 +4,10 @@ import time
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
 import load_house
-from actors.power_meter.power_meter import PowerMeter
-from actors.primary_scada.primary_scada import PrimaryScada
-from actors.atn.atn import Atn
-from actors.sensor.tank_water_temp_sensor import TankWaterTempSensor
+from actors.power_meter import PowerMeter
+from actors.primary_scada import PrimaryScada
+from actors.atn import Atn
+from actors.tank_water_temp_sensor import TankWaterTempSensor
 from universal_test_ear import UniversalTestEar
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 from schema.gs.gs_pwr_maker import GsPwr_Maker
