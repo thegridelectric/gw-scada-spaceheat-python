@@ -61,7 +61,7 @@ class ActorBase(ABC):
         self.on_message(from_node=from_node, payload=payload_as_tuple)
 
     @abstractmethod
-    def on_message(self, from_node:ShNode, payload: GtTelemetry):
+    def on_message(self, from_node: ShNode, payload: GtTelemetry):
         raise NotImplementedError
 
     def publish(self, payload: GtTelemetry):
