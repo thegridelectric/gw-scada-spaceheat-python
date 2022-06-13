@@ -1,7 +1,7 @@
 
 import threading
 import time
-from actors.atn.atn_base import Atn_Base
+from actors.atn_base import Atn_Base
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr import GsPwr
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry

@@ -4,7 +4,7 @@ import time
 from typing import Dict, List
 
 import pendulum
-from actors.primary_scada.primary_scada_base import PrimaryScadaBase
+from actors.primary_scada_base import PrimaryScadaBase
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
@@ -16,9 +16,9 @@ from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import \
     NcdPr814Spst_BooleanActuatorDriver
 from schema.enums.make_model.make_model_map import MakeModel
 from schema.gs.gs_dispatch import GsDispatch
-from schema.gs.gs_pwr_maker import GsPwr
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
-
+from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
+from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
+from actors.utils import QOS, Subscription
 
 class PrimaryScada(PrimaryScadaBase):
 
@@ -57,6 +57,29 @@ class PrimaryScada(PrimaryScadaBase):
         else:
             raise NotImplementedError(f"No driver yet for {self.pump_actuator.primary_component.make_model}")
 
+    ################################################
+    # Receiving messages
+    ###############################################
+
+    def subscriptions(self) -> List[Subscription]:
+        return [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
+                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp0/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp1/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp2/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp3/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
+                Subscription(Topic=f'a.tank.temp4/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce)]
+
+    def on_message(self, from_node: ShNode, payload):
+        if isinstance(payload, GsPwr):
+            self.gs_pwr_received(payload, from_node)
+        elif isinstance(payload, GsDispatch):
+            self.gs_dispatch_received(payload, from_node)
+        elif isinstance(payload, GtTelemetry):
+            self.gt_telemetry_received(payload, from_node)
+        else:
+            self.screen_print(f"{payload} subscription not implemented!")
+
     def gs_pwr_received(self, payload: GsPwr, from_node: ShNode):
         if from_node != ShNode.by_alias['a.m']:
             raise Exception("Need to track all metering and make sure we have the sum")
@@ -66,13 +89,13 @@ class PrimaryScada(PrimaryScadaBase):
     
     def gt_telemetry_received(self, payload: GtTelemetry, from_node: ShNode):
         self.screen_print(f"{payload.Value} from {from_node.alias}")
-        t_unix_s = int(payload.ScadaReadTimeUnixMs / 1000)
-        t = pendulum.from_timestamp(t_unix_s)
-        ms = payload.ScadaReadTimeUnixMs % 1000
-        self.temp_readings.append([t.strftime("%Y-%m-%d %H:%M:%S"), t_unix_s, ms, from_node.alias, payload.Value])
 
     def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
         raise NotImplementedError
+
+    ################################################
+    # Primary functions
+    ###############################################
     
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.primary_component, BooleanActuatorComponent):
