@@ -59,7 +59,7 @@ class PrimaryScada(PrimaryScadaBase):
 
     def gs_pwr_received(self, payload: GsPwr, from_node: ShNode):
         if from_node != ShNode.by_alias['a.m']:
-            raise Exception(f"Need to track all metering and make sure we have the sum")
+            raise Exception("Need to track all metering and make sure we have the sum")
         self.screen_print(f"Got {payload}")
         self.total_power_w = payload.Power
         self.publish(payload=payload)
@@ -95,6 +95,6 @@ class PrimaryScada(PrimaryScadaBase):
 
     def main(self):
         self._scheduler_running = True
-        while self._scheduler_running == True:
+        while self._scheduler_running is True:
             # track time and send status every x minutes (likely 5)
             time.sleep(1)

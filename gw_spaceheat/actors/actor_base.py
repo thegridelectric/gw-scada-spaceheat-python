@@ -1,19 +1,17 @@
-import threading
 import uuid
 from abc import ABC, abstractmethod
-from actors.mqtt_utils import QOS
 from typing import List
-import paho.mqtt.client as mqtt
 
 import helpers
+import paho.mqtt.client as mqtt
 import settings
 from data_classes.sh_node import ShNode
-
-from actors.mqtt_utils import Subscription
-
-from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
-from schema.gs.gs_pwr import GsPwr
 from schema.gs.gs_dispatch import GsDispatch
+from schema.gs.gs_pwr import GsPwr
+from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
+
+from actors.mqtt_utils import QOS, Subscription
+
 
 class ActorBase(ABC):
 

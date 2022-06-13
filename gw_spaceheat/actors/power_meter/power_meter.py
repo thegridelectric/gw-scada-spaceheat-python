@@ -20,7 +20,7 @@ class PowerMeter(PowerMeterBase):
 
     def main(self):
         self._sensing = True
-        while self._sensing == True:
+        while self._sensing is True:
             self.total_power_w += 250 - int(500 * random.random())
             payload = GsPwr_Maker(power=self.total_power_w).tuple
             self.publish(payload=payload)

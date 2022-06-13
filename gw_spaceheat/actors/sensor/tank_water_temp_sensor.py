@@ -52,7 +52,7 @@ class TankWaterTempSensor(SensorBase):
 
     def main(self):
         self._sensing = True
-        while self._sensing == True:
+        while self._sensing is True:
             self.temp = self.driver.read_temp()
             payload = GtTelemetry_Maker(name=self.telemetry_name,
                                         value=int(self.temp),
