@@ -16,6 +16,7 @@ from universal_test_ear import UniversalTestEar
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 
+
 class ScadaRecorder(PrimaryScada):
     """Record data about a PrimaryScada execution during test"""
 
@@ -98,6 +99,7 @@ def test_async_power_metering_dag():
     time.sleep(.3)
 #     assert atn.total_power_w == 2100
 
+
 def test_collect_temp_data():
     """Verify Scada receives publication from TankWaterTempSensor"""
     load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
@@ -110,4 +112,3 @@ def test_collect_temp_data():
     scada.schedule_thread.join()
     assert scada.num_received > 0
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] == scada.num_received
-
