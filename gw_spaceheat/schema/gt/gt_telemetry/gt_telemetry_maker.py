@@ -49,9 +49,9 @@ class GtTelemetry_Maker():
             raise MpSchemaError(f"dict {d} missing Value")
         if "Exponent" not in d.keys():
             raise MpSchemaError(f"dict {d} missing Exponent")
-        if "SpaceheatTelemetryNameGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing SpaceheatTelemetryNameGtEnumSymbol")
-        d["Name"] = TelemetryNameMap.gt_to_local(d["SpaceheatTelemetryNameGtEnumSymbol"])
+        if "NameGtEnumSymbol" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing NameGtEnumSymbol")
+        d["Name"] = TelemetryNameMap.gt_to_local(d["NameGtEnumSymbol"])
 
         tuple = GtTelemetry(ScadaReadTimeUnixMs=d["ScadaReadTimeUnixMs"],
                                             Value=d["Value"],

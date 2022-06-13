@@ -10,6 +10,7 @@ class Role(enum.Enum):
     ELECTRIC_HEATER = "ElectricHeater"
     POWER_METER = "PowerMeter"
     ATOMIC_T_NODE = "AtomicTNode"
+    BASEBOARD_RADIATOR = "BaseboardRadiator"
     PRIMARY_SCADA = "PrimaryScada"
     ACTUATOR = "Actuator"
     DEDICATED_THERMAL_STORE = "DedicatedThermalStore"
@@ -24,6 +25,7 @@ class ShNodeRole100GtEnum(ABC):
                           "eb1eb8b3",
                           "f6a567c9",
                           "cfab7629",
+                          "64044e41",
                           "e7a8d05a",
                           "9f13e13e",
                           "0ed56a13",

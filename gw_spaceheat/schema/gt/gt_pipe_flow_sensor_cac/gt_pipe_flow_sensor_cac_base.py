@@ -22,7 +22,7 @@ class GtPipeFlowSensorCacBase(NamedTuple):
         if d["CommsMethod"] is None:
             del d["CommsMethod"]
         del(d["MakeModel"])
-        d["SpaceheatMakeModelGtEnumSymbol"] = MakeModelMap.local_to_gt(self.MakeModel)
+        d["MakeModelGtEnumSymbol"] = MakeModelMap.local_to_gt(self.MakeModel)
         return d
 
     def derived_errors(self) -> List[str]:

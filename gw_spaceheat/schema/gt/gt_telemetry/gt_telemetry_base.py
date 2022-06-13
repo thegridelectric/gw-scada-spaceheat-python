@@ -18,7 +18,7 @@ class GtTelemetryBase(NamedTuple):
     def asdict(self):
         d = self._asdict()
         del(d["Name"])
-        d["SpaceheatTelemetryNameGtEnumSymbol"] = TelemetryNameMap.local_to_gt(self.Name)
+        d["NameGtEnumSymbol"] = TelemetryNameMap.local_to_gt(self.Name)
         return d
 
     def derived_errors(self) -> List[str]:

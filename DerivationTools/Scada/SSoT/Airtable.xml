@@ -244,10 +244,10 @@
     <EnumSymbol>
       <EnumSymbolId>recGLghuUh9gPboZY</EnumSymbolId>
       <createdTime>2022-06-11T13:09:24Z</createdTime>
-      <DisplayName>sh.node.role.100__BaseboardRadiator</DisplayName>
-      <Enum>recGY8tA8qaJlpJXP</Enum>
       <LocalValue>BaseboardRadiator</LocalValue>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
       <Symbol>64044e41</Symbol>
+      <DisplayName>sh.node.role.100__BaseboardRadiator</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
       <EnumSymbolId>recOAkkrDxlp0hZYR</EnumSymbolId>
@@ -1255,8 +1255,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>PipeFlowSensorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.pipe.flow.sensor.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recAMM4MM8wzs10u8</SchemaId>
@@ -1272,8 +1272,8 @@
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ShNode</DataClass>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.node.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recHrNVLHcDTTqaCq</SchemaId>
@@ -1289,8 +1289,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>TempSensorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.temp.sensor.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recKVkCs5ktwXS3Bu</SchemaId>
@@ -1307,8 +1307,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>PipeFlowSensorCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.pipe.flow.sensor.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recT6312S7LckLHZ9</SchemaId>
@@ -1324,8 +1324,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricHeaterComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.heater.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recc5qGcZNQPmktbe</SchemaId>
@@ -1336,8 +1336,8 @@
       <SchemaAttributes>recw4w4kyKb5qsTUd</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <SendAlias>p</SendAlias>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gs.pwr.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>reccc96DDf5Ue9FmA</SchemaId>
@@ -1354,8 +1354,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricMeterCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.meter.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recdbl99ZoQqyOhS7</SchemaId>
@@ -1372,14 +1372,14 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>BooleanActuatorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.boolean.actuator.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>rece1suo3h3SqfW4M</SchemaId>
       <createdTime>2022-06-09T21:31:30Z</createdTime>
       <AliasRoot>gt.sensor.reporting.config</AliasRoot>
-      <Status>Active</Status>
+      <Status>Pending</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>recAy1MJ6WTkJC2Bt</SchemaAttributes>
       <SchemaAttributes>recmVpjjvpSG6SioS</SchemaAttributes>
@@ -1387,8 +1387,8 @@
       <SchemaAttributes>recG11eY47BNnI8gt</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <DataClass>SensorReportingConfig</DataClass>
-      <ConsistencyCheck>0</ConsistencyCheck>
       <Alias>gt.sensor.reporting.config.100</Alias>
+      <ConsistencyCheck>0</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>rechZ9OTpGxuT8xWl</SchemaId>
@@ -1404,8 +1404,8 @@
       <SchemaAttributes>reccTfzFazDviUeXp</SchemaAttributes>
       <SchemaAttributes>recn2CJw74mLLQ8tr</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.power.sync.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recjwzTYeT77Cq7NZ</SchemaId>
@@ -1421,8 +1421,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricHeaterCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.heater.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recqVHqZ5DQVdVgby</SchemaId>
@@ -1432,8 +1432,8 @@
       <ProtocolType>Json</ProtocolType>
       <Enums>rec2HyLffy6QK9QId</Enums>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.telemetry.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recrNYtQoRa7YhqI4</SchemaId>
@@ -1452,8 +1452,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>TempSensorCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.temp.sensor.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recsMoh2JkG2YPR8u</SchemaId>
@@ -1469,8 +1469,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricMeterComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.meter.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recx4EL5mDebUhtzp</SchemaId>
@@ -1483,8 +1483,8 @@
       <SchemaAttributes>recKwPBxJr8R55KlB</SchemaAttributes>
       <SchemaAttributes>recfMyBibCC1lqTy1</SchemaAttributes>
       <SemanticEnd>110</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.telemetry.110</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recy2lAURQitTqKTR</SchemaId>
@@ -1500,8 +1500,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>BooleanActuatorCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.boolean.actuator.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
   </Schemas>
   <ShNodes>
