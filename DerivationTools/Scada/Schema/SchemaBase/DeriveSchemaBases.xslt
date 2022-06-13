@@ -67,6 +67,10 @@ from schema.enums.</xsl:text>
 class </xsl:text>
 <xsl:value-of select="$class-name"/><xsl:text>Base(NamedTuple):
     </xsl:text>
+    <xsl:if test="(MakeDataClass = 'true') and not(IsCac='true') and not(IsComponent='true')">
+    <xsl:value-of select="DataClass"/><xsl:text>Id: str 
+    </xsl:text>
+    </xsl:if>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsRequired = 'true')]">
         <xsl:value-of select="Value"/><xsl:text>: </xsl:text>
         <xsl:call-template name="python-type">
@@ -119,7 +123,7 @@ class </xsl:text>
         del(d["</xsl:text><xsl:value-of select="Value"/><xsl:text>"])
         d["</xsl:text>
         <xsl:call-template name="nt-case">
-                        <xsl:with-param name="mp-schema-text" select="EnumRoot" />
+                        <xsl:with-param name="mp-schema-text" select="Value" />
         </xsl:call-template>
         <xsl:text>GtEnumSymbol"] = </xsl:text><xsl:value-of select="$local-enum-name"/>
         <xsl:text>Map.local_to_gt(self.</xsl:text><xsl:value-of select="Value"/><xsl:text>)</xsl:text>

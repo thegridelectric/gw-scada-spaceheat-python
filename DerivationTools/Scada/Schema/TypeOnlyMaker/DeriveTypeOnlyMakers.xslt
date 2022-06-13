@@ -174,11 +174,11 @@ class </xsl:text>
 <xsl:text>
         if "</xsl:text>
         <xsl:call-template name="nt-case">
-            <xsl:with-param name="mp-schema-text" select="EnumRoot" />
+            <xsl:with-param name="mp-schema-text" select="Value" />
         </xsl:call-template><xsl:text>GtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing </xsl:text>
             <xsl:call-template name="nt-case">
-            <xsl:with-param name="mp-schema-text" select="EnumRoot" />
+            <xsl:with-param name="mp-schema-text" select="Value" />
         </xsl:call-template>
             <xsl:text>GtEnumSymbol")
         d["</xsl:text> <xsl:call-template name="nt-case">
@@ -189,7 +189,7 @@ class </xsl:text>
         </xsl:call-template>
         <xsl:text>Map.gt_to_local(d["</xsl:text>
         <xsl:call-template name="nt-case">
-            <xsl:with-param name="mp-schema-text" select="EnumRoot" />
+            <xsl:with-param name="mp-schema-text" select="Value" />
         </xsl:call-template><xsl:text>GtEnumSymbol"])</xsl:text>
 </xsl:for-each>
 <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and not(IsRequired = 'true')]">
