@@ -1,0 +1,3 @@
+#MQTT secrets
+LOCAL_MQTT_PW = None
+GW_MQTT_PW = None

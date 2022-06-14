@@ -21,5 +21,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r gw_spaceheat/requirements/base.txt
           pip install -r gw_spaceheat/requirements/test.txt
+      - name: copy test_settings
+        uses: canastro/copy-file-action@master
+        with:
+          source: "test/test_settings.py"
+          target: "gw_spaceheat/settings.py"
+      - name: copy test_dotenv
+        uses: canastro/copy-file-action@master
+        with:
+          source: "test/test_dotenv"
+          target: ".env"
       - name: Run tests with pytest
         run: pytest

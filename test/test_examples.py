@@ -7,14 +7,11 @@ import load_house
 from actors.power_meter import PowerMeter
 from actors.primary_scada import PrimaryScada
 from actors.atn import Atn
-from actors.tank_water_temp_sensor import TankWaterTempSensor
-from universal_test_ear import UniversalTestEar
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 from schema.gs.gs_pwr_maker import GsPwr_Maker
-# noinspection PyUnresolvedReferences
+import settings
 
-LOCAL_MQTT_MESSAGE_DELTA_S = 0.05
-GW_MQTT_MESSAGE_DELTA = 0.05
+LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
+GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
 
 def test_imports():
     """Verify modules can be imported"""
@@ -38,25 +35,6 @@ def test_load_house():
     temp_sensor_nodes = list(filter(lambda x: isinstance(
         x.primary_component.cac, TempSensorCac), actor_nodes_w_components))
     assert len(temp_sensor_nodes) == 5
-
-
-def test_temp_sensor_sends():
-    load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
-
-    t0_node = ShNode.by_alias["a.tank.temp0"]
-    t0 = TankWaterTempSensor(node=t0_node)
-    t0.terminate_sensing()
-    t0.sensing_thread.join()
-    ear = UniversalTestEar()
-    ear.client.loop_start()
-    payload = GtTelemetry_Maker(name=t0.telemetry_name,
-                                value=int(t0.temp),
-                                exponent=0,
-                                scada_read_time_unix_ms=int(time.time() * 1000)).tuple
-    t0.publish(payload=payload)
-    time.sleep(LOCAL_MQTT_MESSAGE_DELTA_S)
-    assert isinstance(ear.latest_payload, GtTelemetry)
-    assert ear.latest_from_node == t0_node
 
 
 def test_async_power_metering_dag():
