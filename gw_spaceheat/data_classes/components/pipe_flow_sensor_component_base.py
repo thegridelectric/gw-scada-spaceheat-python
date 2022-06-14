@@ -11,7 +11,6 @@ from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
 
 
 class PipeFlowSensorComponentBase(Component):
-    _by_id: Dict = {}
     base_props = []
     base_props.append("component_id")
     base_props.append("display_name")
@@ -29,10 +28,7 @@ class PipeFlowSensorComponentBase(Component):
                                              component_attribute_class_id=component_attribute_class_id,
                                              hw_uid=hw_uid)
         self.hw_uid = hw_uid
-        self.component_attribute_class_id = component_attribute_class_id   #
-        PipeFlowSensorComponentBase._by_id[self.component_id] = self
-        Component.by_id[self.component_id] = self
-
+        self.component_attribute_class_id = component_attribute_class_id
     def update(self, type: GtPipeFlowSensorComponent):
         self._check_immutability_constraints(type=type)
 

@@ -8,8 +8,8 @@ from schema.gt.gt_sh_node.gt_sh_node import GtShNode
 
 
 class ShNode(ShNodeBase):
-    by_id: Dict[str, ShNodeBase] = ShNodeBase._by_id
-    by_alias: Dict[str, ShNodeBase] = {}
+    by_id: Dict[str, "ShNode"] = {}
+    by_alias: Dict[str, "ShNode"] = {}
 
     def __init__(self, sh_node_id: str,
                  alias: str,
@@ -26,6 +26,7 @@ class ShNode(ShNodeBase):
                                              role_gt_enum_symbol=role_gt_enum_symbol,
                                              )
         ShNode.by_alias[self.alias] = self
+        ShNode.by_id[self.sh_node_id] = self
 
     def _check_update_axioms(self, type: GtShNode):
         pass

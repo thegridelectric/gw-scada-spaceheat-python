@@ -11,7 +11,6 @@ from data_classes.cacs.temp_sensor_cac import TempSensorCac
 
 
 class TempSensorComponentBase(Component):
-    _by_id: Dict = {}
     base_props = []
     base_props.append("display_name")
     base_props.append("component_id")
@@ -29,10 +28,7 @@ class TempSensorComponentBase(Component):
                                              component_attribute_class_id=component_attribute_class_id,
                                              hw_uid=hw_uid)
         self.hw_uid = hw_uid
-        self.component_attribute_class_id = component_attribute_class_id   #
-        TempSensorComponentBase._by_id[self.component_id] = self
-        Component.by_id[self.component_id] = self
-
+        self.component_attribute_class_id = component_attribute_class_id
     def update(self, type: GtTempSensorComponent):
         self._check_immutability_constraints(type=type)
 

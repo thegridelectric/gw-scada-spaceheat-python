@@ -10,7 +10,6 @@ from schema.enums.make_model.make_model_map import MakeModelMap
 
 
 class BooleanActuatorCacBase(ComponentAttributeClass):
-    _by_id: Dict = {}
     base_props = []
     
     base_props.append("make_model")
@@ -24,9 +23,7 @@ class BooleanActuatorCacBase(ComponentAttributeClass):
 
         super(BooleanActuatorCacBase, self).__init__(component_attribute_class_id=component_attribute_class_id,
                                              display_name=display_name)
-        self.make_model = MakeModelMap.gt_to_local(make_model_gt_enum_symbol)   #
-        BooleanActuatorCacBase._by_id[self.component_attribute_class_id] = self
-        ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
+        self.make_model = MakeModelMap.gt_to_local(make_model_gt_enum_symbol)
 
     def update(self, type: GtBooleanActuatorCac):
         self._check_immutability_constraints(type=type)

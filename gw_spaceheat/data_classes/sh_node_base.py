@@ -9,7 +9,6 @@ from schema.enums.role.role_map import RoleMap
 
 
 class ShNodeBase(ABC):
-    _by_id: Dict = {}
     base_props = []
     base_props.append("sh_node_id")
     base_props.append("alias")
@@ -18,7 +17,7 @@ class ShNodeBase(ABC):
     base_props.append("python_actor_name")
     base_props.append("role_gt_enum_symbol")
 
-    def __init__(self,
+    def __init__(self, 
                  sh_node_id: str,
                  alias: str,
                  role_gt_enum_symbol: str,
@@ -31,8 +30,7 @@ class ShNodeBase(ABC):
         self.primary_component_id = primary_component_id
         self.display_name = display_name
         self.python_actor_name = python_actor_name
-        self.role = RoleMap.gt_to_local(role_gt_enum_symbol)   #
-        ShNodeBase._by_id[self.sh_node_id] = self
+        self.role = RoleMap.gt_to_local(role_gt_enum_symbol)
 
     def update(self, type: GtShNode):
         self._check_immutability_constraints(type=type)

@@ -80,7 +80,6 @@ from schema.enums.</xsl:text>
 
 
 class </xsl:text><xsl:value-of select="DataClass"/><xsl:text>Base(Component):
-    _by_id: Dict = {}
     base_props = []</xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and ((IsPrimitive = 'true') or (IsEnum = 'true')) ]">
     <xsl:text>
@@ -170,10 +169,7 @@ class </xsl:text><xsl:value-of select="DataClass"/><xsl:text>Base(Component):
                 <xsl:value-of select="translate(EnumLocalName,'.','_')"/>
                 <xsl:text>_gt_enum_symbol)</xsl:text>
         </xsl:for-each>                                    
-    <xsl:text>   #
-        </xsl:text><xsl:value-of select="DataClass"/><xsl:text>Base._by_id[self.component_id] = self
-        Component.by_id[self.component_id] = self
-
+    <xsl:text>
     def update(self, type: </xsl:text><xsl:value-of select="$class-name"/><xsl:text>):
         self._check_immutability_constraints(type=type)
 
