@@ -4,7 +4,7 @@ import time
 from typing import Dict, List
 
 import pendulum
-from actors.primary_scada_base import PrimaryScadaBase
+from actors.scada_base import ScadaBase
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
@@ -20,10 +20,10 @@ from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 from actors.utils import QOS, Subscription
 
-class PrimaryScada(PrimaryScadaBase):
+class Scada(ScadaBase):
 
     def __init__(self, node: ShNode):
-        super(PrimaryScada, self).__init__(node=node)
+        super(Scada, self).__init__(node=node)
         self.power = 0
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}

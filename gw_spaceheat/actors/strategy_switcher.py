@@ -1,4 +1,4 @@
-from actors.primary_scada import PrimaryScada
+from actors.scada import PrimaryScada
 from actors.pipe_flow_meter import PipeFlowMeter
 from actors.tank_water_temp_sensor import TankWaterTempSensor
 from actors.power_meter import PowerMeter

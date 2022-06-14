@@ -12,9 +12,9 @@ from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.gs.gs_pwr import GsPwr
 
-class PrimaryScadaBase(ActorBase):
+class ScadaBase(ActorBase):
     def __init__(self, node: ShNode):
-        super(PrimaryScadaBase, self).__init__(node=node)
+        super(ScadaBase, self).__init__(node=node)
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
         self.gw_publish_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
         self.gw_publish_client = mqtt.Client(self.gw_publish_client_id)
