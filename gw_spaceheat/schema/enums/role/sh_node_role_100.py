@@ -20,16 +20,16 @@ class Role(enum.Enum):
     
 
 class ShNodeRole100GtEnum(ABC):
-    symbols: List[str] = ["65725f44",
-                          "dd975b31",
-                          "99c5f326",
-                          "9ac68b6e",
-                          "6ddff83b",
-                          "05fdd645",
-                          "d0afb424",
-                          "57b788ee",
-                          "3ecfe9b8",
-                          "fe3cbdd5",
+    symbols: List[str] = ["f652d87f",
+                          "6eb05344",
+                          "eb1eb8b3",
+                          "f6a567c9",
+                          "cfab7629",
+                          "64044e41",
+                          "e7a8d05a",
+                          "9f13e13e",
+                          "0ed56a13",
+                          "d9d8f7e1",
                           "aec254fd",
-                          "b0eaf2ba",
+                          "5247fc8e",
                           ]
