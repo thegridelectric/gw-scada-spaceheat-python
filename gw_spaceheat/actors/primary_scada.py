@@ -86,7 +86,7 @@ class PrimaryScada(PrimaryScadaBase):
         self.screen_print(f"Got {payload}")
         self.total_power_w = payload.Power
         self.gw_publish(payload=payload)
-    
+
     def gt_telemetry_received(self, from_node: ShNode, payload: GtTelemetry):
         self.screen_print(f"{payload.Value} from {from_node.alias}")
 

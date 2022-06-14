@@ -53,7 +53,7 @@ class PrimaryScadaBase(ActorBase):
             raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
         self.on_gw_message(from_node=from_node, payload=payload_as_tuple)
-    
+
     @abstractmethod
     def on_gw_message(self, from_node: ShNode, payload: GtTelemetry):
         raise NotImplementedError
