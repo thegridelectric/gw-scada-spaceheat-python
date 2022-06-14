@@ -56,8 +56,7 @@ from schema.gt.</xsl:text> <xsl:value-of select="translate(AliasRoot,'.','_')"/>
 
 class </xsl:text><xsl:value-of select="DataClass"/><xsl:text>(</xsl:text>
 <xsl:value-of select="DataClass"/><xsl:text>Base):
-    by_id: Dict[str, </xsl:text><xsl:value-of select="DataClass"/><xsl:text>Base] = </xsl:text>
-    <xsl:value-of select="DataClass"/><xsl:text>Base._by_id
+    by_id: Dict[str, "</xsl:text><xsl:value-of select="DataClass"/><xsl:text>"] = {}
 
     def __init__(self, </xsl:text>
         <xsl:value-of select="$data-class-id"/><xsl:text>: str,
@@ -111,6 +110,7 @@ class </xsl:text><xsl:value-of select="DataClass"/><xsl:text>(</xsl:text>
                                              </xsl:text>
         </xsl:for-each>
         <xsl:text>)
+        </xsl:text><xsl:value-of select="DataClass"/><xsl:text>.by_id[self.</xsl:text><xsl:value-of select="$data-class-id"/><xsl:text>] = self
 
     def _check_update_axioms(self, type: </xsl:text><xsl:value-of select="$class-name"/><xsl:text>):
         pass

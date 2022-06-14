@@ -11,7 +11,6 @@ from data_classes.cacs.boolean_actuator_cac import BooleanActuatorCac
 
 
 class BooleanActuatorComponentBase(Component):
-    _by_id: Dict = {}
     base_props = []
     base_props.append("display_name")
     base_props.append("component_id")
@@ -32,10 +31,7 @@ class BooleanActuatorComponentBase(Component):
                                              hw_uid=hw_uid)
         self.gpio = gpio
         self.hw_uid = hw_uid
-        self.component_attribute_class_id = component_attribute_class_id   #
-        BooleanActuatorComponentBase._by_id[self.component_id] = self
-        Component.by_id[self.component_id] = self
-
+        self.component_attribute_class_id = component_attribute_class_id
     def update(self, type: GtBooleanActuatorComponent):
         self._check_immutability_constraints(type=type)
 

@@ -72,25 +72,33 @@ class Scada(ScadaBase):
 
     def on_message(self, from_node: ShNode, payload):
         if isinstance(payload, GsPwr):
-            self.gs_pwr_received(payload, from_node)
+            self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GsDispatch):
-            self.gs_dispatch_received(payload, from_node)
+            self.gs_dispatch_received(from_node, payload)
         elif isinstance(payload, GtTelemetry):
-            self.gt_telemetry_received(payload, from_node)
+            self.gt_telemetry_received(from_node, payload)
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
-    def gs_pwr_received(self, payload: GsPwr, from_node: ShNode):
+    def gs_pwr_received(self, from_node: ShNode, payload: GsPwr):
         if from_node != ShNode.by_alias['a.m']:
             raise Exception("Need to track all metering and make sure we have the sum")
         self.screen_print(f"Got {payload}")
         self.total_power_w = payload.Power
         self.gw_publish(payload=payload)
-    
-    def gt_telemetry_received(self, payload: GtTelemetry, from_node: ShNode):
+
+    def gt_telemetry_received(self, from_node: ShNode, payload: GtTelemetry):
         self.screen_print(f"{payload.Value} from {from_node.alias}")
 
-    def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
+    def on_gw_message(self, from_node: ShNode, payload: GtTelemetry):
+        if from_node != ShNode.by_alias['a']:
+            raise Exception("gw messages must come from the remote AtomicTNode!")
+        if isinstance(payload, GsDispatch):
+            self.gs_dispatch_received(from_node, payload)
+        else:
+            self.screen_print(f"{payload} subscription not implemented!")
+
+    def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
         raise NotImplementedError
 
     ################################################

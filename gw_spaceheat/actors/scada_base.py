@@ -11,6 +11,7 @@ from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.gs.gs_pwr import GsPwr
+from schema.schema_switcher import TypeMakerByAliasDict
 
 class ScadaBase(ActorBase):
     def __init__(self, node: ShNode):
@@ -32,7 +33,7 @@ class ScadaBase(ActorBase):
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
-        self.gw_consume_client.on_message = self.on_gw_message
+        self.gw_consume_client.on_message = self.on_gw_mqtt_message
 
     def gw_consume(self):
         self.gw_consume_client.loop_start()
@@ -40,22 +41,21 @@ class ScadaBase(ActorBase):
     def gw_subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/{GsDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
 
-    def on_gw_message(self, client, userdata, message):
+    def on_gw_mqtt_message(self, client, userdata, message):
         try:
             (from_alias, type_alias) = message.topic.split('/')
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if not from_alias == settings.ATN_G_NODE_ALIAS:
+        if from_alias != settings.ATN_G_NODE_ALIAS:
             raise Exception(f"alias {from_alias} not my AtomicTNode!")
         from_node = ShNode.by_alias['a']
-        if type_alias == GsDispatch_Maker.type_alias:
-            payload = GsDispatch_Maker.type_to_tuple(message.payload)
-            self.gs_dispatch_received(payload=payload, from_node=from_node)
-        else:
-            self.screen_print(f"{message.topic} subscription not implemented!")
+        if type_alias not in TypeMakerByAliasDict.keys():
+            raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
+        payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
+        self.on_gw_message(from_node=from_node, payload=payload_as_tuple)
 
     @abstractmethod
-    def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
+    def on_gw_message(self, from_node: ShNode, payload: GtTelemetry):
         raise NotImplementedError
 
     def gw_publish(self, payload: GtTelemetry):

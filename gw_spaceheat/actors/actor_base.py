@@ -9,7 +9,7 @@ from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr import GsPwr
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
-from schema.schema_switcher import SchemaMakerByAliasDict
+from schema.schema_switcher import TypeMakerByAliasDict
 from actors.utils import QOS, Subscription
 
 
@@ -55,9 +55,9 @@ class ActorBase(ABC):
         if from_alias not in ShNode.by_alias.keys():
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
         from_node = ShNode.by_alias[from_alias]
-        if type_alias not in SchemaMakerByAliasDict.keys():
-            raise Exception(f"Type {type_alias} not recognized. Should be in SchemaByAliasDict keys!")
-        payload_as_tuple = SchemaMakerByAliasDict[type_alias].type_to_tuple(message.payload)
+        if type_alias not in TypeMakerByAliasDict.keys():
+            raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
+        payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
         self.on_message(from_node=from_node, payload=payload_as_tuple)
 
     @abstractmethod

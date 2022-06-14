@@ -39,6 +39,7 @@
 <xsl:text>"""</xsl:text><xsl:value-of select="DataClass"/><xsl:text> definition"""
 from typing import Dict, Optional
 
+from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.cacs.</xsl:text>
 <xsl:call-template name="python-case">
     <xsl:with-param name="camel-case-text" select="DataClass"  />
@@ -51,8 +52,7 @@ from schema.gt.</xsl:text> <xsl:value-of select="translate(AliasRoot,'.','_')"/>
 
 class </xsl:text><xsl:value-of select="DataClass"/><xsl:text>(</xsl:text>
 <xsl:value-of select="DataClass"/><xsl:text>Base):
-    by_id: Dict[str, </xsl:text><xsl:value-of select="DataClass"/><xsl:text>Base] = </xsl:text>
-    <xsl:value-of select="DataClass"/><xsl:text>Base._by_id
+    by_id: Dict[str, "</xsl:text><xsl:value-of select="DataClass"/><xsl:text>"] = {}
 
     def __init__(self, </xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsRequired = 'true')]">
@@ -102,6 +102,8 @@ class </xsl:text><xsl:value-of select="DataClass"/><xsl:text>(</xsl:text>
                                              </xsl:text>
         </xsl:for-each>
         <xsl:text>)
+        </xsl:text><xsl:value-of select="DataClass"/><xsl:text>.by_id[self.component_attribute_class_id] = self
+        ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
 
     def _check_update_axioms(self, type: </xsl:text><xsl:value-of select="$class-name"/><xsl:text>):
         pass

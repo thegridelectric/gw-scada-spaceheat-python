@@ -11,7 +11,6 @@ from data_classes.cacs.electric_heater_cac import ElectricHeaterCac
 
 
 class ElectricHeaterComponentBase(Component):
-    _by_id: Dict = {}
     base_props = []
     base_props.append("hw_uid")
     base_props.append("display_name")
@@ -29,10 +28,7 @@ class ElectricHeaterComponentBase(Component):
                                              component_attribute_class_id=component_attribute_class_id,
                                              hw_uid=hw_uid)
         self.hw_uid = hw_uid
-        self.component_attribute_class_id = component_attribute_class_id   #
-        ElectricHeaterComponentBase._by_id[self.component_id] = self
-        Component.by_id[self.component_id] = self
-
+        self.component_attribute_class_id = component_attribute_class_id
     def update(self, type: GtElectricHeaterComponent):
         self._check_immutability_constraints(type=type)
 
