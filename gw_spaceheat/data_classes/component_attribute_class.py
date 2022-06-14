@@ -1,13 +1,13 @@
 """ SCADA  ComponentAttributeClass Definition  (DERIVED FROM GNR gt.gnr.component.attributelcass.200) """
 from abc import ABC
-from typing import Optional
+from typing import Optional, Dict
 
 from data_classes.errors import DcError
 from data_classes.mixin import StreamlinedSerializerMixin
 
 
 class ComponentAttributeClass(ABC, StreamlinedSerializerMixin):
-    by_id = {}
+    by_id: Dict[str, "ComponentAttributeClass"] = {}
 
     base_props = []
     base_props.append('component_attribute_class_id')

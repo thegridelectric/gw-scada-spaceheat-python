@@ -1,14 +1,14 @@
 """ SCADA Component Class Definition """
 
 from abc import ABC
-from typing import Optional
+from typing import Optional, Dict
 
 from data_classes.mixin import StreamlinedSerializerMixin
 from data_classes.component_attribute_class import ComponentAttributeClass
 
 
 class Component(ABC, StreamlinedSerializerMixin):
-    by_id = {}
+    by_id: Dict[str, "Component"] = {}
     base_props = []
     base_props.append('component_id')
     base_props.append('display_name')

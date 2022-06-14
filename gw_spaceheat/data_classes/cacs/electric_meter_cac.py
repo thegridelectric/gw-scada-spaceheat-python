@@ -1,12 +1,13 @@
 """ElectricMeterCac definition"""
 from typing import Dict, Optional
 
+from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.cacs.electric_meter_cac_base import ElectricMeterCacBase
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac import GtElectricMeterCac
 
 
 class ElectricMeterCac(ElectricMeterCacBase):
-    by_id: Dict[str, ElectricMeterCacBase] = ElectricMeterCacBase._by_id
+    by_id: Dict[str, "ElectricMeterCac"] = {}
 
     def __init__(self, component_attribute_class_id: str,
                  make_model_gt_enum_symbol: str,
@@ -18,6 +19,8 @@ class ElectricMeterCac(ElectricMeterCacBase):
                                              display_name=display_name,
                                              make_model_gt_enum_symbol=make_model_gt_enum_symbol,
                                              )
+        ElectricMeterCac.by_id[self.component_attribute_class_id] = self
+        ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
 
     def _check_update_axioms(self, type: GtElectricMeterCac):
         pass
