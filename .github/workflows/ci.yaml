@@ -33,3 +33,5 @@ jobs:
           target: ".env"
       - name: Run tests with pytest
         run: pytest
+        env:
+          PYTHONPATH: gw_spaceheat:$PYTHONPATH
