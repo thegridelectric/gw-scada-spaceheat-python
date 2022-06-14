@@ -17,7 +17,7 @@ class Atn(Atn_Base):
 
     def on_gw_message(self, from_node: ShNode, payload: GsPwr):
         if from_node != ShNode.by_alias['a.s']:
-            raise Exception(f"gw messages must come from the Scada!")
+            raise Exception("gw messages must come from the Scada!")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(from_node, payload)
         else:

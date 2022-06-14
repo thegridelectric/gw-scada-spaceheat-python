@@ -92,7 +92,7 @@ class PrimaryScada(PrimaryScadaBase):
 
     def on_gw_message(self, from_node: ShNode, payload: GtTelemetry):
         if from_node != ShNode.by_alias['a']:
-            raise Exception(f"gw messages must come from the remote AtomicTNode!")
+            raise Exception("gw messages must come from the remote AtomicTNode!")
         if isinstance(payload, GsDispatch):
             self.gs_dispatch_received(from_node, payload)
         else:
