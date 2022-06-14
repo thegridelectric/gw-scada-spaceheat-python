@@ -31,10 +31,6 @@ class ScadaRecorder(PrimaryScada):
         self.num_received_by_topic[message.topic] += 1
         super().on_mqtt_message(client, userdata, message)
 
-    def gs_dispatch_received(self, payload: GsDispatch, from_node: ShNode):
-        raise NotImplementedError
-
-
 def test_imports():
     """Verify modules can be imported"""
     # note: disable warnings about local imports
