@@ -1,19 +1,19 @@
-# This should be an absolute import from package base: "gw_spaceheat...."
-# That requires changes *all* imports to use absolute import, so we don't do this in this demo.
 import time
 import typing
 from collections import defaultdict
 
-from data_classes.cacs.temp_sensor_cac import TempSensorCac
-from data_classes.sh_node import ShNode
 import load_house
+import settings
+from actors.atn import Atn
 from actors.power_meter import PowerMeter
 from actors.primary_scada import PrimaryScada
-from actors.atn import Atn
 from actors.tank_water_temp_sensor import TankWaterTempSensor
-from schema.gs.gs_dispatch import GsDispatch
+from data_classes.cacs.temp_sensor_cac import TempSensorCac
+from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 
+LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
+GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
 
 class ScadaRecorder(PrimaryScada):
     """Record data about a PrimaryScada execution during test"""
@@ -56,6 +56,7 @@ def test_load_house():
 
 
 def test_async_power_metering_dag():
+    """Verify power report makes it from meter -> Scada -> AtomicTNode"""
     load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
@@ -67,12 +68,15 @@ def test_async_power_metering_dag():
     scada.terminate_scheduling()
     scada.schedule_thread.join()
     atn = Atn(node=atn_node)
+    atn.terminate_scheduling()
+    atn.schedule_thread.join()
     assert atn.total_power_w == 0
     meter.total_power_w = 2100
     payload = GsPwr_Maker(power=meter.total_power_w).tuple
     meter.publish(payload=payload)
+    time.sleep(LOCAL_MQTT_MESSAGE_DELTA_S + GW_MQTT_MESSAGE_DELTA)
     time.sleep(.3)
-#     assert atn.total_power_w == 2100
+    assert atn.total_power_w == 2100
 
 
 def test_collect_temp_data():
