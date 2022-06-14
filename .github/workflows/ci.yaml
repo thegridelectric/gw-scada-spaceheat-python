@@ -23,3 +23,5 @@ jobs:
           pip install -r gw_spaceheat/requirements/test.txt
       - name: Run tests with pytest
         run: pytest
+        env:
+          PYTHONPATH: gw_spaceheat:$PYTHONPATH
