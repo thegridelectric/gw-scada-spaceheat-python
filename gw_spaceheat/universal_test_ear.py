@@ -9,7 +9,7 @@ from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry
-from schema.schema_switcher import SchemaMakerByAliasDict
+from schema.schema_switcher import TypeMakerByAliasDict
 
 
 class UniversalTestEar():
@@ -54,9 +54,9 @@ class UniversalTestEar():
         if from_alias not in ShNode.by_alias.keys():
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
         self.latest_from_node = ShNode.by_alias[from_alias]
-        if type_alias not in SchemaMakerByAliasDict.keys():
+        if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(f"Unrecognized type {type_alias}. Needs to be a key in SchemaSwitcher!")
-        self.latest_payload = SchemaMakerByAliasDict[type_alias].type_to_tuple(message.payload)
+        self.latest_payload = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
 
     def on_gw_message(self, client, userdata, message):
         try:
