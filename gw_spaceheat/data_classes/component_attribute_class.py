@@ -7,7 +7,7 @@ from data_classes.mixin import StreamlinedSerializerMixin
 
 
 class ComponentAttributeClass(ABC, StreamlinedSerializerMixin):
-    by_id: Dict[str, "ComponentAttributeClass"]  = {}
+    by_id: Dict[str, "ComponentAttributeClass"] = {}
 
     base_props = []
     base_props.append('component_attribute_class_id')
