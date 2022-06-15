@@ -12,7 +12,7 @@ class ThermalEdgeBase(ABC):
     base_props = []
     base_props.append("thermal_edge_id")
 
-    def __init__(self, 
+    def __init__(self,
                  thermal_edge_id: str,
                  ):
         self.thermal_edge_id = thermal_edge_id   #
