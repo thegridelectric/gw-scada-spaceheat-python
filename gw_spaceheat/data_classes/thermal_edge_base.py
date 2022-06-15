@@ -22,6 +22,7 @@ class ThermalEdgeBase(ABC):
         self._check_immutability_constraints(type=type)
 
     def _check_immutability_constraints(self, type: GtThermalEdge):
+        pass
 
     @abstractmethod
     def _check_update_axioms(self, type: GtThermalEdge):
