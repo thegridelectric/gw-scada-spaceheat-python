@@ -139,6 +139,7 @@
       <SemanticEnd>100</SemanticEnd>
       <LocalName>telemetry.name</LocalName>
       <PythonEnumNameStyle>UpperPython</PythonEnumNameStyle>
+      <Status>Active</Status>
       <Alias>spaceheat.telemetry.name.100</Alias>
       <MpSchemaAlias>gt.telemetry.100</MpSchemaAlias>
     </GtEnum>
@@ -158,10 +159,12 @@
       <FiniteStringSetMembers>recriuBbhyDgwz6U3</FiniteStringSetMembers>
       <FiniteStringSetMembers>recGLghuUh9gPboZY</FiniteStringSetMembers>
       <SchemaAttributes>recWJDdHiEzC7KYss</SchemaAttributes>
+      <SchemaAttributes>reczovvHr0jpI0nE1</SchemaAttributes>
       <AliasRoot>sh.node.role</AliasRoot>
       <SemanticEnd>100</SemanticEnd>
       <LocalName>role</LocalName>
       <PythonEnumNameStyle>UpperPython</PythonEnumNameStyle>
+      <Status>Deprecated</Status>
       <Alias>sh.node.role.100</Alias>
     </GtEnum>
     <GtEnum>
@@ -181,7 +184,35 @@
       <SemanticEnd>100</SemanticEnd>
       <LocalName>make.model</LocalName>
       <PythonEnumNameStyle>Upper</PythonEnumNameStyle>
+      <Status>Active</Status>
       <Alias>spaceheat.make.model.100</Alias>
+    </GtEnum>
+    <GtEnum>
+      <GtEnumId>recpuISeVCSDhSUOB</GtEnumId>
+      <createdTime>2022-06-14T10:25:20Z</createdTime>
+      <FiniteStringSetMembers>reclVQqsN9eKLnIFs</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recmK3fpzdj9xCe10</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recYLv2x2lR5rftCy</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recdWX5ZrS6f3KjcR</FiniteStringSetMembers>
+      <FiniteStringSetMembers>rec3CAP2O1QnDmoZO</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recHa5PoDhycQozqP</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recKU7bGZnIOJVL1Z</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recuFvwowZiXB8M1w</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recD9SeBr2hL70oTB</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recKOYKvUY1kPI2EC</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recNCSlxyWPHkPwtx</FiniteStringSetMembers>
+      <FiniteStringSetMembers>rec9HQGNlXpTRVF1D</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recYoDcnOm6YgiRz2</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recKvhVnUDsdpOydG</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recZtUxi5Vm8mqODR</FiniteStringSetMembers>
+      <FiniteStringSetMembers>receYYuzekeRIuXHN</FiniteStringSetMembers>
+      <FiniteStringSetMembers>recn6a7ywzaeer0hr</FiniteStringSetMembers>
+      <AliasRoot>sh.node.role</AliasRoot>
+      <SemanticEnd>101</SemanticEnd>
+      <LocalName>role</LocalName>
+      <PythonEnumNameStyle>UpperPython</PythonEnumNameStyle>
+      <Status>Active</Status>
+      <Alias>sh.node.role.101</Alias>
     </GtEnum>
   </GtEnums>
   <EnumSymbols>
@@ -192,6 +223,14 @@
       <Enum>recGY8tA8qaJlpJXP</Enum>
       <Symbol>f652d87f</Symbol>
       <DisplayName>sh.node.role.100__HeatedSpace</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>rec3CAP2O1QnDmoZO</EnumSymbolId>
+      <createdTime>2022-06-14T10:26:53Z</createdTime>
+      <LocalValue>BoostElement</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>99c5f326</Symbol>
+      <DisplayName>sh.node.role.101__BoostElement</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
       <EnumSymbolId>rec7DAQOMxfbTg2ar</EnumSymbolId>
@@ -208,6 +247,14 @@
       <Enum>recGY8tA8qaJlpJXP</Enum>
       <Symbol>eb1eb8b3</Symbol>
       <DisplayName>sh.node.role.100__ElectricHeater</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>rec9HQGNlXpTRVF1D</EnumSymbolId>
+      <createdTime>2022-06-14T10:30:01Z</createdTime>
+      <LocalValue>PipeFlowMeter</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>ece3b600</Symbol>
+      <DisplayName>sh.node.role.101__PipeFlowMeter</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
       <EnumSymbolId>rec9n5zRdlLVYTfp1</EnumSymbolId>
@@ -242,12 +289,65 @@
       <DisplayName>sh.node.role.100__AtomicTNode</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
+      <EnumSymbolId>recD9SeBr2hL70oTB</EnumSymbolId>
+      <createdTime>2022-06-14T10:27:03Z</createdTime>
+      <LocalValue>PowerMeter</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>9ac68b6e</Symbol>
+      <DisplayName>sh.node.role.101__PowerMeter</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
       <EnumSymbolId>recGLghuUh9gPboZY</EnumSymbolId>
       <createdTime>2022-06-11T13:09:24Z</createdTime>
       <LocalValue>BaseboardRadiator</LocalValue>
       <Enum>recGY8tA8qaJlpJXP</Enum>
       <Symbol>64044e41</Symbol>
       <DisplayName>sh.node.role.100__BaseboardRadiator</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recH554ccJyPzCPyG</EnumSymbolId>
+      <createdTime>2022-06-14T11:15:29Z</createdTime>
+      <DisplayName>__</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recHa5PoDhycQozqP</EnumSymbolId>
+      <createdTime>2022-06-14T10:26:55Z</createdTime>
+      <LocalValue>HeatedSpace</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>65725f44</Symbol>
+      <DisplayName>sh.node.role.101__HeatedSpace</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recKOYKvUY1kPI2EC</EnumSymbolId>
+      <createdTime>2022-06-14T10:27:06Z</createdTime>
+      <LocalValue>Scada</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>d0afb424</Symbol>
+      <DisplayName>sh.node.role.101__Scada</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recKU7bGZnIOJVL1Z</EnumSymbolId>
+      <createdTime>2022-06-14T10:26:57Z</createdTime>
+      <LocalValue>HydronicPipe</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>fe3cbdd5</Symbol>
+      <DisplayName>sh.node.role.101__HydronicPipe</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recKvhVnUDsdpOydG</EnumSymbolId>
+      <createdTime>2022-06-14T10:32:14Z</createdTime>
+      <LocalValue>PipeTempSensor</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>c480f612</Symbol>
+      <DisplayName>sh.node.role.101__PipeTempSensor</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recNCSlxyWPHkPwtx</EnumSymbolId>
+      <createdTime>2022-06-14T10:27:10Z</createdTime>
+      <LocalValue>BaseboardRadiator</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>05fdd645</Symbol>
+      <DisplayName>sh.node.role.101__BaseboardRadiator</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
       <EnumSymbolId>recOAkkrDxlp0hZYR</EnumSymbolId>
@@ -282,6 +382,46 @@
       <DisplayName>spaceheat.telemetry.name.100__RelayState</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
+      <EnumSymbolId>recYLv2x2lR5rftCy</EnumSymbolId>
+      <createdTime>2022-06-14T10:26:48Z</createdTime>
+      <LocalValue>CirculatorPump</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>b0eaf2ba</Symbol>
+      <DisplayName>sh.node.role.101__CirculatorPump</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recYoDcnOm6YgiRz2</EnumSymbolId>
+      <createdTime>2022-06-14T10:31:46Z</createdTime>
+      <LocalValue>TankWaterTempSensor</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>73308a1f</Symbol>
+      <DisplayName>sh.node.role.101__TankWaterTempSensor</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recZtUxi5Vm8mqODR</EnumSymbolId>
+      <createdTime>2022-06-14T10:33:00Z</createdTime>
+      <LocalValue>RoomTempSensor</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>fec74958</Symbol>
+      <DisplayName>sh.node.role.101__RoomTempSensor</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recdWX5ZrS6f3KjcR</EnumSymbolId>
+      <createdTime>2022-06-14T10:26:50Z</createdTime>
+      <LocalValue>DedicatedThermalStore</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>3ecfe9b8</Symbol>
+      <DisplayName>sh.node.role.101__DedicatedThermalStore</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>receYYuzekeRIuXHN</EnumSymbolId>
+      <createdTime>2022-06-14T10:33:09Z</createdTime>
+      <LocalValue>OutdoorTempSensor</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>5938bf1f</Symbol>
+      <DisplayName>sh.node.role.101__OutdoorTempSensor</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
       <EnumSymbolId>recgLuWiIpBnWvI8T</EnumSymbolId>
       <createdTime>2022-06-03T18:27:35Z</createdTime>
       <LocalValue>GridWorks__SimBool30AmpRelay</LocalValue>
@@ -290,12 +430,36 @@
       <DisplayName>spaceheat.make.model.100__GridWorks__SimBool30AmpRelay</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
+      <EnumSymbolId>reclVQqsN9eKLnIFs</EnumSymbolId>
+      <createdTime>2022-06-14T10:26:43Z</createdTime>
+      <LocalValue>BooleanActuator</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>57b788ee</Symbol>
+      <DisplayName>sh.node.role.101__BooleanActuator</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
       <EnumSymbolId>recljcVVnRh9ne2dH</EnumSymbolId>
       <createdTime>2022-06-03T18:27:38Z</createdTime>
       <LocalValue>Adafruit__642</LocalValue>
       <Enum>recLQWqTvGwSz2GcN</Enum>
       <Symbol>acd93fb3</Symbol>
       <DisplayName>spaceheat.make.model.100__Adafruit__642</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recmK3fpzdj9xCe10</EnumSymbolId>
+      <createdTime>2022-06-14T10:26:45Z</createdTime>
+      <LocalValue>AtomicTNode</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>6ddff83b</Symbol>
+      <DisplayName>sh.node.role.101__AtomicTNode</DisplayName>
+    </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recn6a7ywzaeer0hr</EnumSymbolId>
+      <createdTime>2022-06-14T11:15:37Z</createdTime>
+      <LocalValue>HomeAlone</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>863e50d1</Symbol>
+      <DisplayName>sh.node.role.101__HomeAlone</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
       <EnumSymbolId>recob3YuE614ND3hl</EnumSymbolId>
@@ -353,6 +517,14 @@
       <Symbol>5247fc8e</Symbol>
       <DisplayName>sh.node.role.100__CirculatorPump</DisplayName>
     </EnumSymbol>
+    <EnumSymbol>
+      <EnumSymbolId>recuFvwowZiXB8M1w</EnumSymbolId>
+      <createdTime>2022-06-14T10:27:00Z</createdTime>
+      <LocalValue>Outdoors</LocalValue>
+      <Enum>recpuISeVCSDhSUOB</Enum>
+      <Symbol>dd975b31</Symbol>
+      <DisplayName>sh.node.role.101__Outdoors</DisplayName>
+    </EnumSymbol>
   </EnumSymbols>
   <SchemaAttributes>
     <SchemaAttribute>
@@ -378,13 +550,6 @@
       <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
-    </SchemaAttribute>
-    <SchemaAttribute>
-      <SchemaAttributeId>rec12vIjcdKXzxIIU</SchemaAttributeId>
-      <createdTime>2022-06-09T21:32:40Z</createdTime>
-      <TypeCheck>0</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
@@ -428,6 +593,31 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>rec3DmgM8Y9CgZ3cu</SchemaAttributeId>
+      <createdTime>2022-06-14T23:03:01Z</createdTime>
+      <Value>HasActor</Value>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Boolean</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
+      <IsRequired>true</IsRequired>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec6F0YzYq2cynuBc</SchemaAttributeId>
+      <createdTime>2022-06-14T10:56:28Z</createdTime>
+      <Value>TempSensorCacs</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recrNYtQoRa7YhqI4</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.temp.sensor.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>rec6nH5gOkhOLmbYf</SchemaAttributeId>
       <createdTime>2022-06-10T12:20:50Z</createdTime>
       <Value>Alias</Value>
@@ -442,6 +632,20 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>rec7XOJqNOaly85Cg</SchemaAttributeId>
+      <createdTime>2022-06-14T23:02:54Z</createdTime>
+      <Value>Alias</Value>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>rec83s8fct15feQXU</SchemaAttributeId>
       <createdTime>2022-06-04T19:22:05Z</createdTime>
       <Value>DisplayName</Value>
@@ -449,6 +653,14 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec86i7GzBPoqtRjP</SchemaAttributeId>
+      <createdTime>2022-06-14T10:56:18Z</createdTime>
+      <Value>TempSe</Value>
+      <TypeCheck>0</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
@@ -514,6 +726,19 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recB5TxUpNgNtBoCz</SchemaAttributeId>
+      <createdTime>2022-06-14T10:51:41Z</createdTime>
+      <Value>TempSensorComponents</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recHrNVLHcDTTqaCq</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.temp.sensor.component.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recBvZfLA3CxARt9t</SchemaAttributeId>
       <createdTime>2022-06-07T09:32:21Z</createdTime>
       <Value>DisplayName</Value>
@@ -554,6 +779,19 @@
       <IsType>true</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recElLL0KN2fllmo7</SchemaAttributeId>
+      <createdTime>2022-06-14T10:39:33Z</createdTime>
+      <Value>BooleanActuatorComponents</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recdbl99ZoQqyOhS7</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.boolean.actuator.component.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recEnxacHBN9FC6GG</SchemaAttributeId>
       <createdTime>2022-06-07T09:32:04Z</createdTime>
       <Value>ComponentId</Value>
@@ -565,13 +803,6 @@
       <ImmutableInDc>true</ImmutableInDc>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
-    </SchemaAttribute>
-    <SchemaAttribute>
-      <SchemaAttributeId>recFELWTInVutGDqY</SchemaAttributeId>
-      <createdTime>2022-06-09T21:32:41Z</createdTime>
-      <TypeCheck>0</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
@@ -610,6 +841,16 @@
       <ImmutableInDc>true</ImmutableInDc>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recHyghQ3390tN8LF</SchemaAttributeId>
+      <createdTime>2022-06-14T10:41:49Z</createdTime>
+      <Value>FromNodeAlias</Value>
+      <GtSchema>recnOen6KenxkwQtB</GtSchema>
+      <IsRequired>true</IsRequired>
+      <TypeCheck>0</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
@@ -685,6 +926,18 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recLO20AZmUda0yof</SchemaAttributeId>
+      <createdTime>2022-06-14T10:59:30Z</createdTime>
+      <Value>ComponentAttributeClass</Value>
+      <GtSchema>recEdlcUTBfQ9Hy6D</GtSchema>
+      <SubTypeFormat>recK5H9Pt9ZpF6hgi</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <SubMessageFormatAlias>gt.component.attribute.class.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recLeFRJhQzSaEqF9</SchemaAttributeId>
       <createdTime>2022-06-07T09:32:30Z</createdTime>
       <Value>HwUid</Value>
@@ -706,6 +959,17 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recNXTWA84HMF94XV</SchemaAttributeId>
+      <createdTime>2022-06-14T23:02:56Z</createdTime>
+      <Value>DisplayName</Value>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recNiGLIdTxOhujx3</SchemaAttributeId>
@@ -730,6 +994,13 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
       <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recQd1bEEOC0vlJZz</SchemaAttributeId>
+      <createdTime>2022-06-14T11:01:07Z</createdTime>
+      <TypeCheck>0</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
@@ -775,6 +1046,32 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recULYzX6MQbnGbeu</SchemaAttributeId>
+      <createdTime>2022-06-14T10:51:44Z</createdTime>
+      <Value>OtherComponents</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recEdlcUTBfQ9Hy6D</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.component.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recUMZCNeGQssAuAj</SchemaAttributeId>
+      <createdTime>2022-06-14T10:51:37Z</createdTime>
+      <Value>PipeFlowSensorComponents</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>rec4u5c6FO198haBK</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.pipe.flow.sensor.component.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recUgsnOcEMiKpYMF</SchemaAttributeId>
       <createdTime>2022-06-04T19:22:01Z</createdTime>
       <Value>ComponentAttributeClassId</Value>
@@ -802,6 +1099,19 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recVqNOAao22ob4jS</SchemaAttributeId>
+      <createdTime>2022-06-14T10:51:34Z</createdTime>
+      <Value>ElectricMeterComponents</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recsMoh2JkG2YPR8u</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.electric.meter.component.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recVs9H70Rxs6FuHL</SchemaAttributeId>
       <createdTime>2022-06-07T09:34:52Z</createdTime>
       <Value>ComponentId</Value>
@@ -815,6 +1125,19 @@
       <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recVsS10EII3fL0zm</SchemaAttributeId>
+      <createdTime>2022-06-14T10:39:28Z</createdTime>
+      <Value>ShNodes</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recAMM4MM8wzs10u8</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.sh.node.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recW0pfyJkVdjaRTY</SchemaAttributeId>
@@ -902,6 +1225,19 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recckyOp6IRG7lBqe</SchemaAttributeId>
+      <createdTime>2022-06-14T10:51:48Z</createdTime>
+      <Value>BooleanActuatorCacs</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recy2lAURQitTqKTR</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.boolean.actuator.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recdFwlVqkCgZfGIS</SchemaAttributeId>
       <createdTime>2022-06-07T09:35:25Z</createdTime>
       <Value>DisplayName</Value>
@@ -924,13 +1260,6 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
-    </SchemaAttribute>
-    <SchemaAttribute>
-      <SchemaAttributeId>receNfY7ETGxGwNrO</SchemaAttributeId>
-      <createdTime>2022-06-07T09:37:11Z</createdTime>
-      <TypeCheck>0</TypeCheck>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recfMyBibCC1lqTy1</SchemaAttributeId>
@@ -957,6 +1286,19 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rechikfSomM4gopMG</SchemaAttributeId>
+      <createdTime>2022-06-14T10:39:39Z</createdTime>
+      <Value>ThermalEdges</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recnOen6KenxkwQtB</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.thermal.edge.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reci7Ga0o0Ubtlk5g</SchemaAttributeId>
@@ -1062,6 +1404,57 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recm6RNmsDWsa2sSy</SchemaAttributeId>
+      <createdTime>2022-06-14T10:59:22Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recEdlcUTBfQ9Hy6D</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recm7McSMLA5naEPt</SchemaAttributeId>
+      <createdTime>2022-06-14T10:52:44Z</createdTime>
+      <Value>ElectricMeterCacs</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>reccc96DDf5Ue9FmA</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.electric.meter.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recmAJ31xoOq5qTHU</SchemaAttributeId>
+      <createdTime>2022-06-14T23:02:59Z</createdTime>
+      <Value>Component</Value>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
+      <SubTypeFormat>recEdlcUTBfQ9Hy6D</SubTypeFormat>
+      <SubMessageFormatAlias>gt.component.100</SubMessageFormatAlias>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recmImNP9NN2MGFm9</SchemaAttributeId>
+      <createdTime>2022-06-14T10:52:47Z</createdTime>
+      <Value>PipeFlowSensorCacs</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recKVkCs5ktwXS3Bu</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.pipe.flow.sensor.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recmVpjjvpSG6SioS</SchemaAttributeId>
       <createdTime>2022-06-09T21:32:23Z</createdTime>
       <Value>ReportingPeriodS</Value>
@@ -1088,13 +1481,6 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
-      <SchemaAttributeId>recnKO5YoqP045XqY</SchemaAttributeId>
-      <createdTime>2022-06-07T09:34:51Z</createdTime>
-      <TypeCheck>0</TypeCheck>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
-    </SchemaAttribute>
-    <SchemaAttribute>
       <SchemaAttributeId>recnTa5fM2QEZCRft</SchemaAttributeId>
       <createdTime>2022-06-04T19:20:26Z</createdTime>
       <Value>DisplayName</Value>
@@ -1102,6 +1488,16 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recnVh3bX9GSsAkr3</SchemaAttributeId>
+      <createdTime>2022-06-14T10:41:54Z</createdTime>
+      <Value>ToNodeAlias</Value>
+      <GtSchema>recnOen6KenxkwQtB</GtSchema>
+      <IsRequired>true</IsRequired>
+      <TypeCheck>0</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
@@ -1127,6 +1523,19 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recpqHev4KGlcd4q4</SchemaAttributeId>
+      <createdTime>2022-06-14T10:52:41Z</createdTime>
+      <Value>ElectricHeaterCacs</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recjwzTYeT77Cq7NZ</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.electric.heater.cac.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recqIhKpky5FrUJul</SchemaAttributeId>
@@ -1167,6 +1576,13 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recu20L98RSiZfLsJ</SchemaAttributeId>
+      <createdTime>2022-06-14T10:56:26Z</createdTime>
+      <TypeCheck>0</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recw4w4kyKb5qsTUd</SchemaAttributeId>
       <createdTime>2022-05-11T18:23:36Z</createdTime>
       <Value>Power</Value>
@@ -1181,6 +1597,30 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recwB3WH6mXmzjugK</SchemaAttributeId>
+      <createdTime>2022-06-14T10:51:25Z</createdTime>
+      <Value>ElectricHeaterComponents</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recT6312S7LckLHZ9</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.electric.heater.component.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recxu6lhNMYHCoQey</SchemaAttributeId>
+      <createdTime>2022-06-14T10:59:26Z</createdTime>
+      <Value>HwUid</Value>
+      <GtSchema>recEdlcUTBfQ9Hy6D</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recyNip0u0FiM066j</SchemaAttributeId>
       <createdTime>2022-06-09T15:19:26Z</createdTime>
       <Value>Exponent</Value>
@@ -1188,6 +1628,44 @@
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recyiS4OAWw4Xe5dF</SchemaAttributeId>
+      <createdTime>2022-06-14T10:56:38Z</createdTime>
+      <Value>OtherCacs</Value>
+      <GtSchema>recvoY8JOncNeQjYF</GtSchema>
+      <SubTypeFormat>recK5H9Pt9ZpF6hgi</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.component.attribute.class.100</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reczovvHr0jpI0nE1</SchemaAttributeId>
+      <createdTime>2022-06-14T23:03:03Z</createdTime>
+      <Value>Role</Value>
+      <IsRequired>true</IsRequired>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>role</EnumLocalName>
+      <EnumRoot>sh.node.role</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reczq5nTQlac95iGp</SchemaAttributeId>
+      <createdTime>2022-06-14T11:01:03Z</createdTime>
+      <Value>DisplayName</Value>
+      <GtSchema>recK5H9Pt9ZpF6hgi</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -1210,6 +1688,7 @@
       <MpSchemaAttributes>recVs9H70Rxs6FuHL</MpSchemaAttributes>
       <MpSchemaAttributes>recIu6hGiK3PDyJrn</MpSchemaAttributes>
       <MpSchemaAttributes>rec9jK6ONtXBpXevt</MpSchemaAttributes>
+      <MpSchemaAttributes>recmAJ31xoOq5qTHU</MpSchemaAttributes>
     </PropertyFormat>
     <PropertyFormat>
       <PropertyFormatId>recb9fI4kRkTYXDzA</PropertyFormatId>
@@ -1217,6 +1696,7 @@
       <Name>LrdAliasFormat</Name>
       <Description>AlphanumericStrings separated by periods, with most significant word to the left.  I.e. `dw1.ne` is the child of `dw1`. </Description>
       <MpSchemaAttributes>rec6nH5gOkhOLmbYf</MpSchemaAttributes>
+      <MpSchemaAttributes>rec7XOJqNOaly85Cg</MpSchemaAttributes>
     </PropertyFormat>
     <PropertyFormat>
       <PropertyFormatId>recc5MBUv09sg8D4i</PropertyFormatId>
@@ -1251,29 +1731,64 @@
       <SchemaAttributes>recdFwlVqkCgZfGIS</SchemaAttributes>
       <SchemaAttributes>recibIy1C38bRpg0P</SchemaAttributes>
       <SchemaAttributes>reciqkS6Se3Cal1Tf</SchemaAttributes>
+      <UsedAsSubMessagein>recUMZCNeGQssAuAj</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>PipeFlowSensorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <Alias>gt.pipe.flow.sensor.component.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.pipe.flow.sensor.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>rec8CoTLGyxAXh6TD</SchemaId>
+      <createdTime>2022-06-14T23:02:31Z</createdTime>
+      <MakeDataClass>true</MakeDataClass>
+      <ConsistencyCheck>0</ConsistencyCheck>
+      <Alias>gt.sh.node.110</Alias>
+      <AliasRoot>gt.sh.node</AliasRoot>
+      <SemanticEnd>110</SemanticEnd>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>rec7XOJqNOaly85Cg</SchemaAttributes>
+      <SchemaAttributes>recNXTWA84HMF94XV</SchemaAttributes>
+      <SchemaAttributes>recmAJ31xoOq5qTHU</SchemaAttributes>
+      <SchemaAttributes>rec3DmgM8Y9CgZ3cu</SchemaAttributes>
+      <SchemaAttributes>reczovvHr0jpI0nE1</SchemaAttributes>
     </Schema>
     <Schema>
       <SchemaId>recAMM4MM8wzs10u8</SchemaId>
       <createdTime>2022-06-10T12:14:39Z</createdTime>
       <AliasRoot>gt.sh.node</AliasRoot>
-      <Status>Active</Status>
+      <Status>Deprecated</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>rec6nH5gOkhOLmbYf</SchemaAttributes>
       <SchemaAttributes>recWJDdHiEzC7KYss</SchemaAttributes>
       <SchemaAttributes>rec9jK6ONtXBpXevt</SchemaAttributes>
       <SchemaAttributes>reclinqE3CjESK6LE</SchemaAttributes>
       <SchemaAttributes>recXEIMX0kmlJ7eWH</SchemaAttributes>
+      <UsedAsSubMessagein>recVsS10EII3fL0zm</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ShNode</DataClass>
-      <Alias>gt.sh.node.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.sh.node.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recEdlcUTBfQ9Hy6D</SchemaId>
+      <createdTime>2022-06-14T10:57:42Z</createdTime>
+      <AliasRoot>gt.component</AliasRoot>
+      <Status>Pending</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recm6RNmsDWsa2sSy</SchemaAttributes>
+      <SchemaAttributes>recxu6lhNMYHCoQey</SchemaAttributes>
+      <SchemaAttributes>recLO20AZmUda0yof</SchemaAttributes>
+      <UsedAsSubMessagein>recULYzX6MQbnGbeu</UsedAsSubMessagein>
+      <UsedAsSubMessagein>recmAJ31xoOq5qTHU</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>Component</DataClass>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.component.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recHrNVLHcDTTqaCq</SchemaId>
@@ -1285,12 +1800,28 @@
       <SchemaAttributes>recIoMtP3BgfOzQ9C</SchemaAttributes>
       <SchemaAttributes>rece76qbENBm5shvn</SchemaAttributes>
       <SchemaAttributes>recojCBLEKvcVMiLq</SchemaAttributes>
+      <UsedAsSubMessagein>recB5TxUpNgNtBoCz</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>TempSensorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <Alias>gt.temp.sensor.component.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.temp.sensor.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recK5H9Pt9ZpF6hgi</SchemaId>
+      <createdTime>2022-06-14T10:58:01Z</createdTime>
+      <AliasRoot>gt.component.attribute.class</AliasRoot>
+      <Status>Pending</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>reczq5nTQlac95iGp</SchemaAttributes>
+      <UsedAsSubMessagein>recyiS4OAWw4Xe5dF</UsedAsSubMessagein>
+      <UsedAsSubMessagein>recLO20AZmUda0yof</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>ComponentAttributeClass</DataClass>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.component.attribute.class.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recKVkCs5ktwXS3Bu</SchemaId>
@@ -1303,12 +1834,13 @@
       <SchemaAttributes>recJJ7HIE1Ow738vc</SchemaAttributes>
       <SchemaAttributes>reco2D59kEGzC9zN3</SchemaAttributes>
       <UsedAsSubMessagein>recibIy1C38bRpg0P</UsedAsSubMessagein>
+      <UsedAsSubMessagein>recmImNP9NN2MGFm9</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>PipeFlowSensorCac</DataClass>
       <IsCac>true</IsCac>
-      <Alias>gt.pipe.flow.sensor.cac.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.pipe.flow.sensor.cac.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recT6312S7LckLHZ9</SchemaId>
@@ -1320,12 +1852,13 @@
       <SchemaAttributes>recIJFbNuY4X6wfQG</SchemaAttributes>
       <SchemaAttributes>recqIhKpky5FrUJul</SchemaAttributes>
       <SchemaAttributes>recGXMXqUz6rHqVzg</SchemaAttributes>
+      <UsedAsSubMessagein>recwB3WH6mXmzjugK</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricHeaterComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <Alias>gt.electric.heater.component.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.electric.heater.component.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recc5qGcZNQPmktbe</SchemaId>
@@ -1336,8 +1869,8 @@
       <SchemaAttributes>recw4w4kyKb5qsTUd</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <SendAlias>p</SendAlias>
-      <Alias>gs.pwr.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gs.pwr.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>reccc96DDf5Ue9FmA</SchemaId>
@@ -1350,12 +1883,13 @@
       <SchemaAttributes>recnTa5fM2QEZCRft</SchemaAttributes>
       <SchemaAttributes>recMirwvdQxO5qyAY</SchemaAttributes>
       <UsedAsSubMessagein>rec0bzseFq3amPk5L</UsedAsSubMessagein>
+      <UsedAsSubMessagein>recm7McSMLA5naEPt</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricMeterCac</DataClass>
       <IsCac>true</IsCac>
-      <Alias>gt.electric.meter.cac.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.electric.meter.cac.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recdbl99ZoQqyOhS7</SchemaId>
@@ -1368,12 +1902,13 @@
       <SchemaAttributes>recEXU8tEG6X0jUnU</SchemaAttributes>
       <SchemaAttributes>recPuhtbcBHZR6Qai</SchemaAttributes>
       <SchemaAttributes>reci7Ga0o0Ubtlk5g</SchemaAttributes>
+      <UsedAsSubMessagein>recElLL0KN2fllmo7</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>BooleanActuatorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <Alias>gt.boolean.actuator.component.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.boolean.actuator.component.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>rece1suo3h3SqfW4M</SchemaId>
@@ -1387,13 +1922,14 @@
       <SchemaAttributes>recG11eY47BNnI8gt</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <DataClass>SensorReportingConfig</DataClass>
-      <Alias>gt.sensor.reporting.config.100</Alias>
       <ConsistencyCheck>0</ConsistencyCheck>
+      <Alias>gt.sensor.reporting.config.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>rechZ9OTpGxuT8xWl</SchemaId>
       <createdTime>2022-05-11T18:08:26Z</createdTime>
       <AliasRoot>gt.power.sync</AliasRoot>
+      <Status>Pending</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>recSUuF57hzqwp3RB</SchemaAttributes>
       <SchemaAttributes>recVdAiysaXLvmg8u</SchemaAttributes>
@@ -1404,8 +1940,8 @@
       <SchemaAttributes>reccTfzFazDviUeXp</SchemaAttributes>
       <SchemaAttributes>recn2CJw74mLLQ8tr</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <Alias>gt.power.sync.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.power.sync.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recjwzTYeT77Cq7NZ</SchemaId>
@@ -1417,12 +1953,28 @@
       <SchemaAttributes>recbnmzJKD2TRpfWS</SchemaAttributes>
       <SchemaAttributes>recrpGZFYeoLlFiGW</SchemaAttributes>
       <UsedAsSubMessagein>recqIhKpky5FrUJul</UsedAsSubMessagein>
+      <UsedAsSubMessagein>recpqHev4KGlcd4q4</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricHeaterCac</DataClass>
       <IsCac>true</IsCac>
-      <Alias>gt.electric.heater.cac.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.electric.heater.cac.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recnOen6KenxkwQtB</SchemaId>
+      <createdTime>2022-06-14T10:41:17Z</createdTime>
+      <AliasRoot>gt.thermal.edge</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recHyghQ3390tN8LF</SchemaAttributes>
+      <SchemaAttributes>recnVh3bX9GSsAkr3</SchemaAttributes>
+      <UsedAsSubMessagein>rechikfSomM4gopMG</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <MakeDataClass>true</MakeDataClass>
+      <DataClass>ThermalEdge</DataClass>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.thermal.edge.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recqVHqZ5DQVdVgby</SchemaId>
@@ -1432,8 +1984,8 @@
       <ProtocolType>Json</ProtocolType>
       <Enums>rec2HyLffy6QK9QId</Enums>
       <SemanticEnd>100</SemanticEnd>
-      <Alias>gt.telemetry.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.telemetry.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recrNYtQoRa7YhqI4</SchemaId>
@@ -1448,12 +2000,13 @@
       <SchemaAttributes>recW0pfyJkVdjaRTY</SchemaAttributes>
       <SchemaAttributes>recL9BeJniQtSOgyV</SchemaAttributes>
       <UsedAsSubMessagein>rece76qbENBm5shvn</UsedAsSubMessagein>
+      <UsedAsSubMessagein>rec6F0YzYq2cynuBc</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>TempSensorCac</DataClass>
       <IsCac>true</IsCac>
-      <Alias>gt.temp.sensor.cac.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.temp.sensor.cac.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recsMoh2JkG2YPR8u</SchemaId>
@@ -1465,12 +2018,37 @@
       <SchemaAttributes>recBvZfLA3CxARt9t</SchemaAttributes>
       <SchemaAttributes>rec0bzseFq3amPk5L</SchemaAttributes>
       <SchemaAttributes>recLeFRJhQzSaEqF9</SchemaAttributes>
+      <UsedAsSubMessagein>recVqNOAao22ob4jS</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricMeterComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <Alias>gt.electric.meter.component.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.electric.meter.component.100</Alias>
+    </Schema>
+    <Schema>
+      <SchemaId>recvoY8JOncNeQjYF</SchemaId>
+      <createdTime>2022-06-14T10:38:52Z</createdTime>
+      <AliasRoot>gt.spaceheat.house.config</AliasRoot>
+      <Status>Pending</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recVsS10EII3fL0zm</SchemaAttributes>
+      <SchemaAttributes>recElLL0KN2fllmo7</SchemaAttributes>
+      <SchemaAttributes>rechikfSomM4gopMG</SchemaAttributes>
+      <SchemaAttributes>recwB3WH6mXmzjugK</SchemaAttributes>
+      <SchemaAttributes>recVqNOAao22ob4jS</SchemaAttributes>
+      <SchemaAttributes>recUMZCNeGQssAuAj</SchemaAttributes>
+      <SchemaAttributes>recB5TxUpNgNtBoCz</SchemaAttributes>
+      <SchemaAttributes>recULYzX6MQbnGbeu</SchemaAttributes>
+      <SchemaAttributes>recckyOp6IRG7lBqe</SchemaAttributes>
+      <SchemaAttributes>recpqHev4KGlcd4q4</SchemaAttributes>
+      <SchemaAttributes>recm7McSMLA5naEPt</SchemaAttributes>
+      <SchemaAttributes>recmImNP9NN2MGFm9</SchemaAttributes>
+      <SchemaAttributes>rec6F0YzYq2cynuBc</SchemaAttributes>
+      <SchemaAttributes>recyiS4OAWw4Xe5dF</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.spaceheat.house.config.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recx4EL5mDebUhtzp</SchemaId>
@@ -1483,8 +2061,8 @@
       <SchemaAttributes>recKwPBxJr8R55KlB</SchemaAttributes>
       <SchemaAttributes>recfMyBibCC1lqTy1</SchemaAttributes>
       <SemanticEnd>110</SemanticEnd>
-      <Alias>gt.telemetry.110</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.telemetry.110</Alias>
     </Schema>
     <Schema>
       <SchemaId>recy2lAURQitTqKTR</SchemaId>
@@ -1496,12 +2074,13 @@
       <SchemaAttributes>rec9E6HTIAJLoh9wW</SchemaAttributes>
       <SchemaAttributes>reciCl45E5pQe7ans</SchemaAttributes>
       <UsedAsSubMessagein>recEXU8tEG6X0jUnU</UsedAsSubMessagein>
+      <UsedAsSubMessagein>recckyOp6IRG7lBqe</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>BooleanActuatorCac</DataClass>
       <IsCac>true</IsCac>
-      <Alias>gt.boolean.actuator.cac.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.boolean.actuator.cac.100</Alias>
     </Schema>
   </Schemas>
   <ShNodes>

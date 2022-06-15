@@ -1,6 +1,6 @@
 import platform
 from data_classes.sh_node import ShNode
-from actors.strategy_switcher import main as strategy_switcher
+from actors.strategy_switcher import strategy_from_node
 import load_house
 
 if platform.platform() == 'Linux-4.19.118-v7l+-armv7l-with-glibc2.28':
@@ -10,5 +10,7 @@ else:
 
 node = ShNode.by_alias["a.tank.temp0"]
 
-(actor_function, keys) = strategy_switcher(node.python_actor_name)
+actor_function = strategy_from_node(node)
+if actor_function is None:
+    raise Exception(f"expected strategy for {node}!")
 sensor = actor_function(node)

@@ -1,20 +1,26 @@
-from actors.primary_scada import PrimaryScada
+from actors.scada import Scada
 from actors.pipe_flow_meter import PipeFlowMeter
 from actors.tank_water_temp_sensor import TankWaterTempSensor
 from actors.power_meter import PowerMeter
 from actors.atn import Atn
+from data_classes.sh_node import ShNode
+from schema.enums.role.role_map import Role
+
+switcher = {}
+switcher[Role.SCADA] = Scada
+switcher[Role.PIPE_FLOW_METER] = PipeFlowMeter
+switcher[Role.POWER_METER] = PowerMeter
+switcher[Role.ATN] = Atn
+switcher[Role.TANK_WATER_TEMP_SENSOR] = TankWaterTempSensor
 
 
-def main(python_actor_name):
-    switcher = {}
-    switcher['PrimaryScada'] = PrimaryScada
-    switcher['PipeFlowMeter'] = PipeFlowMeter
-    switcher['PowerMeter'] = PowerMeter
-    switcher['Atn'] = Atn
-    switcher['TankWaterTempSensor'] = TankWaterTempSensor
-    func = switcher.get(python_actor_name,
-                        lambda x: f"No python implementation for strategy {python_actor_name}")
-    return func, switcher.keys()
+def strategy_from_node(node: ShNode):
+    if not node.has_actor:
+        return None
+    if node.role not in list(switcher.keys()):
+        raise Exception(f"Missing implementation for {node.role.value}!")
+    func = switcher[node.role]
+    return func
 
 
 def stickler():

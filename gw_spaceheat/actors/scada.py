@@ -4,7 +4,7 @@ import time
 from typing import Dict, List
 
 import pendulum
-from actors.primary_scada_base import PrimaryScadaBase
+from actors.scada_base import ScadaBase
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
@@ -20,10 +20,10 @@ from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 from actors.utils import QOS, Subscription
 
-class PrimaryScada(PrimaryScadaBase):
+class Scada(ScadaBase):
 
     def __init__(self, node: ShNode):
-        super(PrimaryScada, self).__init__(node=node)
+        super(Scada, self).__init__(node=node)
         self.power = 0
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
@@ -37,25 +37,25 @@ class PrimaryScada(PrimaryScadaBase):
 
     def set_actuator_components(self):
         self.boost_actuator = ShNode.by_alias['a.elt1.relay']
-        if self.boost_actuator.primary_component.make_model == MakeModel.NCD__PR814SPST:
+        if self.boost_actuator.component.make_model == MakeModel.NCD__PR814SPST:
             self.driver[self.boost_actuator] = NcdPr814Spst_BooleanActuatorDriver(
-                component=self.boost_actuator.primary_component)
-        elif self.boost_actuator.primary_component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
+                component=self.boost_actuator.component)
+        elif self.boost_actuator.component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             self.driver[self.boost_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
-                component=self.boost_actuator.primary_component)
+                component=self.boost_actuator.component)
         else:
-            raise NotImplementedError(f"No driver yet for {self.boost_actuator.primary_component.make_model}")
+            raise NotImplementedError(f"No driver yet for {self.boost_actuator.component.make_model}")
 
         self.pump_actuator = ShNode.by_alias['a.tank.out.pump.relay']
 
-        if self.pump_actuator.primary_component.make_model == MakeModel.NCD__PR814SPST:
+        if self.pump_actuator.component.make_model == MakeModel.NCD__PR814SPST:
             self.driver[self.pump_actuator] = NcdPr814Spst_BooleanActuatorDriver(
-                component=self.pump_actuator.primary_component)
-        elif self.pump_actuator.primary_component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
+                component=self.pump_actuator.component)
+        elif self.pump_actuator.component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             self.driver[self.pump_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
-                component=self.pump_actuator.primary_component)
+                component=self.pump_actuator.component)
         else:
-            raise NotImplementedError(f"No driver yet for {self.pump_actuator.primary_component.make_model}")
+            raise NotImplementedError(f"No driver yet for {self.pump_actuator.component.make_model}")
 
     ################################################
     # Receiving messages
@@ -106,7 +106,7 @@ class PrimaryScada(PrimaryScadaBase):
     ###############################################
     
     def turn_on(self, ba: ShNode):
-        if not isinstance(ba.primary_component, BooleanActuatorComponent):
+        if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         if ba.has_actor:
             raise NotImplementedError('No actor for boolean actuator yet')
@@ -114,7 +114,7 @@ class PrimaryScada(PrimaryScadaBase):
             self.driver[ba].turn_on()
 
     def turn_off(self, ba: ShNode):
-        if not isinstance(ba.primary_component, BooleanActuatorComponent):
+        if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         if ba.has_actor:
             raise NotImplementedError('No actor for boolean actuator yet')

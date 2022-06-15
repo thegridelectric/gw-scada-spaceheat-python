@@ -1,7 +1,7 @@
 import platform
 
 from data_classes.sh_node import ShNode
-from actors.strategy_switcher import main as strategy_switcher
+from actors.strategy_switcher import strategy_from_node
 import load_house
 
 if platform.system() == 'Darwin':
@@ -12,5 +12,6 @@ else:
 load_house.load_all(house_json_file=house_json_file)
 node = ShNode.by_alias["a.s"]
 
-(actor_function, keys) = strategy_switcher(node.python_actor_name)
-scada = actor_function(node)
+actor_function = strategy_from_node(node)
+if actor_function:
+    scada = actor_function(node)

@@ -22,7 +22,7 @@ class TankWaterTempSensor(ActorBase):
         super(TankWaterTempSensor, self).__init__(node=node)   
         self.temp = 67123
         self.driver: TempSensorDriver = None
-        self.cac: TempSensorCac = self.node.primary_component.cac
+        self.cac: TempSensorCac = self.node.component.cac
         self.set_driver()
         self.telemetry_name: TelemetryName = None
         self.set_telemetry_name()
@@ -32,10 +32,10 @@ class TankWaterTempSensor(ActorBase):
         self.screen_print(f'Started {self.__class__}')
 
     def set_driver(self):
-        if self.node.primary_component.make_model == MakeModel.ADAFRUIT__642:
-            self.driver = Adafruit642_TempSensorDriver(component=self.node.primary_component)
-        elif self.node.primary_component.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
-            self.driver = GridworksWaterTempSensorHighPrecision_TempSensorDriver(component=self.node.primary_component)
+        if self.node.component.make_model == MakeModel.ADAFRUIT__642:
+            self.driver = Adafruit642_TempSensorDriver(component=self.node.component)
+        elif self.node.component.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
+            self.driver = GridworksWaterTempSensorHighPrecision_TempSensorDriver(component=self.node.component)
 
     def set_telemetry_name(self):
         if self.cac.temp_unit == 'F' and self.cac.precision_exponent == 3:
