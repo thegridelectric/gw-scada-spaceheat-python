@@ -61,3 +61,27 @@ Input data is in input_data folder. The `dev_house.json` is used for developing 
 
 Run the code in main.py as a script. It creates the main code for the primary scada actor, loading its input data by checking if the OS belongs to a mac or not.
 
+## Tests
+
+### Setup 
+
+1. Install pytest and coverage in your development environment with:
+    - `source venv/bin/activate`
+    - `pip install -r requirements/dev.txt`
+2. Set you PYTHONPATH with:
+    - `export PYTHONPATH=gw_spaceheat:$PYTHONPATH`
+
+### Running tests
+
+From the base of the repo run:  `pytest`
+
+To show pytest screen output use: `pytest -s`
+
+### Running tests with coverage
+
+From the base of the repo run: 
+- `coverage run -m pytest`
+- `coverage html`
+- `open htmlcov/index.html &`
+
+
