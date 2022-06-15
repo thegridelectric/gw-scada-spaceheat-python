@@ -2,19 +2,19 @@
 import time
 from typing import List
 
-from actors.actor_base import ActorBase
-from actors.utils import Subscription
 from data_classes.sh_node import ShNode
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
+
+from actors.actor_base import ActorBase
+from actors.utils import Subscription
 
 
 class PipeFlowMeter(ActorBase):
     def __init__(self, node: ShNode):
         super(PipeFlowMeter, self).__init__(node=node)
         self.water_flow_gpm = 0
-        self.consume()
-        self.screen_print(f'Started {self.__class__}')
+        self.screen_print(f'Initialized {self.__class__}')
 
     def subscriptions(self) -> List[Subscription]:
         return []
@@ -30,6 +30,8 @@ class PipeFlowMeter(ActorBase):
                                     exponent=0,
                                     scada_read_time_unix_ms=int(time.time() * 1000)).tuple
         self.publish(payload=payload)
-        
-    def consume(self):
-        pass
+
+    def main(self):
+        self._main_loop_running = True
+        while self._main_loop_running is True:
+            time.sleep(1)

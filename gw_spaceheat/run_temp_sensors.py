@@ -19,3 +19,4 @@ for node in tank_water_temp_sensor_nodes:
     if not actor_function:
         raise Exception(f"Expected strategy for {node}!")
     sensor = actor_function(node)
+    sensor.start()

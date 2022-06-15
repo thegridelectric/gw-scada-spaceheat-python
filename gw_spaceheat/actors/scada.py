@@ -1,10 +1,6 @@
-import csv
-import threading
 import time
 from typing import Dict, List
 
-import pendulum
-from actors.scada_base import ScadaBase
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
@@ -17,8 +13,12 @@ from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import \
 from schema.enums.make_model.make_model_map import MakeModel
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
+from schema.gt.gt_telemetry.gt_telemetry_maker import (GtTelemetry,
+                                                       GtTelemetry_Maker)
+
+from actors.scada_base import ScadaBase
 from actors.utils import QOS, Subscription
+
 
 class Scada(ScadaBase):
 
@@ -29,11 +29,7 @@ class Scada(ScadaBase):
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
         self.temp_readings: List = []
         self.set_actuator_components()
-        self.consume()
-        self.gw_consume()
-        self.schedule_thread = threading.Thread(target=self.main)
-        self.schedule_thread.start()
-        self.screen_print(f'Started {self.__class__}')
+        self.screen_print(f'Initialized {self.__class__}')
 
     def set_actuator_components(self):
         self.boost_actuator = ShNode.by_alias['a.elt1.relay']
@@ -121,11 +117,8 @@ class Scada(ScadaBase):
         else:
             self.driver[ba].turn_off()
 
-    def terminate_scheduling(self):
-        self._scheduler_running = False
-
     def main(self):
-        self._scheduler_running = True
-        while self._scheduler_running is True:
+        self._main_loop_running = True
+        while self._main_loop_running is True:
             # track time and send status every x minutes (likely 5)
             time.sleep(1)

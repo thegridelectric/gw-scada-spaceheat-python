@@ -1,9 +1,6 @@
-import threading
 import time
 from typing import List
 
-from actors.actor_base import ActorBase
-from actors.utils import Subscription
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
 from drivers.temp_sensor.adafruit_642__temp_sensor_driver import \
@@ -11,25 +8,24 @@ from drivers.temp_sensor.adafruit_642__temp_sensor_driver import \
 from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import \
     GridworksWaterTempSensorHighPrecision_TempSensorDriver
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
+from schema.enums.make_model.make_model_map import MakeModel
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
-from schema.enums.make_model.make_model_map import MakeModel
+from actors.actor_base import ActorBase
+from actors.utils import Subscription
 
 
 class TankWaterTempSensor(ActorBase):
     def __init__(self, node: ShNode):
-        super(TankWaterTempSensor, self).__init__(node=node)   
+        super(TankWaterTempSensor, self).__init__(node=node)
         self.temp = 67123
         self.driver: TempSensorDriver = None
         self.cac: TempSensorCac = self.node.component.cac
         self.set_driver()
         self.telemetry_name: TelemetryName = None
         self.set_telemetry_name()
-        self.sensing_thread = threading.Thread(target=self.main)
-        self.sensing_thread.start()
-        self.consume()
-        self.screen_print(f'Started {self.__class__}')
+        self.screen_print(f"Initialized {self.__class__}")
 
     def set_driver(self):
         if self.node.component.make_model == MakeModel.ADAFRUIT__642:
@@ -46,21 +42,15 @@ class TankWaterTempSensor(ActorBase):
             raise Exception(f"TelemetryName for {self.cac.temp_unit} and precision exponent of"
                             f"{self.cac.precision_exponent} not set yet!")
 
-    def consume(self):
-        pass
-
     def subscriptions(self) -> List[Subscription]:
         return []
 
     def on_message(self, from_node: ShNode, payload):
         pass
 
-    def terminate_sensing(self):
-        self._sensing = False
-
     def main(self):
-        self._sensing = True
-        while self._sensing is True:
+        self._main_loop_running = True
+        while self._main_loop_running is True:
             self.temp = self.driver.read_temp()
             payload = GtTelemetry_Maker(name=self.telemetry_name,
                                         value=int(self.temp),

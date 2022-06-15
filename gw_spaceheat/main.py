@@ -15,3 +15,5 @@ node = ShNode.by_alias["a.s"]
 actor_function = strategy_from_node(node)
 if actor_function:
     scada = actor_function(node)
+
+scada.start()

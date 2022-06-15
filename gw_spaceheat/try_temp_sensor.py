@@ -14,3 +14,4 @@ actor_function = strategy_from_node(node)
 if actor_function is None:
     raise Exception(f"expected strategy for {node}!")
 sensor = actor_function(node)
+sensor.start()
