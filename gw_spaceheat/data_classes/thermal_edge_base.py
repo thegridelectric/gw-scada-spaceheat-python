@@ -1,10 +1,9 @@
 """ThermalEdgeBase definition"""
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict
+from typing import Dict
 
 from schema.gt.gt_thermal_edge.gt_thermal_edge import GtThermalEdge
-from data_classes.errors import DcError
 
 
 class ThermalEdgeBase(ABC):
