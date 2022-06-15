@@ -8,7 +8,6 @@ from actors.atn import Atn
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.tank_water_temp_sensor import TankWaterTempSensor
-from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.enums.role.role_map import Role
@@ -69,14 +68,17 @@ def test_async_power_metering_dag():
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
     meter = PowerMeter(node=meter_node)
-    meter.terminate_sensing()
-    meter.sensing_thread.join()
+    meter.start()
+    meter.terminate_main_loop()
+    meter.main_thread.join()
     scada = Scada(node=scada_node)
-    scada.terminate_scheduling()
-    scada.schedule_thread.join()
+    scada.start()
+    scada.terminate_main_loop()
+    scada.main_thread.join()
     atn = Atn(node=atn_node)
-    atn.terminate_scheduling()
-    atn.schedule_thread.join()
+    atn.start()
+    atn.terminate_main_loop()
+    atn.main_thread.join()
     assert atn.total_power_w == 0
     meter.total_power_w = 2100
     payload = GsPwr_Maker(power=meter.total_power_w).tuple
@@ -90,11 +92,13 @@ def test_collect_temp_data():
     """Verify Scada receives publication from TankWaterTempSensor"""
     load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
     scada = ScadaRecorder(node=typing.cast(ShNode, ShNode.by_alias["a.s"]))
+    scada.start()
     thermo = TankWaterTempSensor(node=typing.cast(ShNode, ShNode.by_alias["a.tank.temp0"]))
+    thermo.start()
     time.sleep(1)
-    thermo.terminate_sensing()
-    thermo.sensing_thread.join()
-    scada.terminate_scheduling()
-    scada.schedule_thread.join()
+    thermo.terminate_main_loop()
+    thermo.main_thread.join()
+    scada.terminate_main_loop()
+    scada.main_thread.join()
     assert scada.num_received > 0
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] == scada.num_received

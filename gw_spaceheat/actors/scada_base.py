@@ -5,13 +5,15 @@ from typing import List
 import helpers
 import paho.mqtt.client as mqtt
 import settings
-from actors.actor_base import ActorBase
-from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
-from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.gs.gs_pwr import GsPwr
+from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.schema_switcher import TypeMakerByAliasDict
+
+from actors.actor_base import ActorBase
+from actors.utils import QOS, Subscription
+
 
 class ScadaBase(ActorBase):
     def __init__(self, node: ShNode):
@@ -68,3 +70,21 @@ class ScadaBase(ActorBase):
             payload=payload.as_type(),
             qos=qos.value,
             retain=False)
+
+    def start(self):
+        self.publish_client.loop_start()
+        self.consume_client.loop_start()
+        self.gw_consume_client.loop_start()
+        self.gw_publish_client.loop_start()
+        self.main_thread.start()
+        self.screen_print(f'Started {self.__class__}')
+
+    def stop(self):
+        self.screen_print("Stopping ...")
+        self.consume_client.loop_stop()
+        self.gw_consume_client.loop_stop()
+        self.terminate_main_loop()
+        self.main_thread.join()
+        self.publish_client.loop_stop()
+        self.gw_publish_client.loop_stop()
+        self.screen_print("Stopped")

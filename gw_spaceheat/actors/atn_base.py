@@ -1,3 +1,4 @@
+import threading
 import uuid
 from abc import ABC, abstractmethod
 from typing import List
@@ -5,11 +6,13 @@ from typing import List
 import helpers
 import paho.mqtt.client as mqtt
 import settings
-from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gs.gs_dispatch_maker import GsDispatch
+from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.schema_switcher import TypeMakerByAliasDict
+
+from actors.utils import QOS, Subscription
+
 
 class Atn_Base(ABC):
     def __init__(self, node: ShNode):
@@ -33,6 +36,7 @@ class Atn_Base(ABC):
             self.gw_consume_client.on_log = self.on_log
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
         self.gw_consume_client.on_message = self.on_gw_mqtt_message
+        self.main_thread = threading.Thread(target=self.main)
 
     def gw_consume(self):
         self.gw_consume_client.loop_start()
@@ -71,6 +75,27 @@ class Atn_Base(ABC):
             qos=qos.value,
             retain=False)
 
+    def terminate_main_loop(self):
+        self._main_loop_running = False
+
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
+
+    @abstractmethod
+    def main(self):
+        raise NotImplementedError
+
+    def start(self):
+        self.gw_consume_client.loop_start()
+        self.gw_publish_client.loop_start()
+        self.main_thread.start()
+        self.screen_print(f'Started {self.__class__}')
+
+    def stop(self):
+        self.screen_print("Stopping ...")
+        self.gw_consume_client.loop_stop()
+        self.terminate_main_loop()
+        self.main_thread.join()
+        self.gw_publish_client.loop_stop()
+        self.screen_print("Stopped")
