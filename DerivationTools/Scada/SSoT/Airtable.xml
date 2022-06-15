@@ -159,6 +159,7 @@
       <FiniteStringSetMembers>recriuBbhyDgwz6U3</FiniteStringSetMembers>
       <FiniteStringSetMembers>recGLghuUh9gPboZY</FiniteStringSetMembers>
       <SchemaAttributes>recWJDdHiEzC7KYss</SchemaAttributes>
+      <SchemaAttributes>reczovvHr0jpI0nE1</SchemaAttributes>
       <AliasRoot>sh.node.role</AliasRoot>
       <SemanticEnd>100</SemanticEnd>
       <LocalName>role</LocalName>
@@ -592,6 +593,18 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>rec3DmgM8Y9CgZ3cu</SchemaAttributeId>
+      <createdTime>2022-06-14T23:03:01Z</createdTime>
+      <Value>HasActor</Value>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Boolean</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
+      <IsRequired>true</IsRequired>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>rec6F0YzYq2cynuBc</SchemaAttributeId>
       <createdTime>2022-06-14T10:56:28Z</createdTime>
       <Value>TempSensorCacs</Value>
@@ -617,6 +630,20 @@
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec7XOJqNOaly85Cg</SchemaAttributeId>
+      <createdTime>2022-06-14T23:02:54Z</createdTime>
+      <Value>Alias</Value>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec83s8fct15feQXU</SchemaAttributeId>
@@ -932,6 +959,17 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recNXTWA84HMF94XV</SchemaAttributeId>
+      <createdTime>2022-06-14T23:02:56Z</createdTime>
+      <Value>DisplayName</Value>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recNiGLIdTxOhujx3</SchemaAttributeId>
@@ -1390,6 +1428,20 @@
       <IsType>true</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recmAJ31xoOq5qTHU</SchemaAttributeId>
+      <createdTime>2022-06-14T23:02:59Z</createdTime>
+      <Value>Component</Value>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
+      <SubTypeFormat>recEdlcUTBfQ9Hy6D</SubTypeFormat>
+      <SubMessageFormatAlias>gt.component.100</SubMessageFormatAlias>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recmImNP9NN2MGFm9</SchemaAttributeId>
       <createdTime>2022-06-14T10:52:47Z</createdTime>
       <Value>PipeFlowSensorCacs</Value>
@@ -1594,6 +1646,20 @@
       <IsType>true</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>reczovvHr0jpI0nE1</SchemaAttributeId>
+      <createdTime>2022-06-14T23:03:03Z</createdTime>
+      <Value>Role</Value>
+      <IsRequired>true</IsRequired>
+      <Enum>recGY8tA8qaJlpJXP</Enum>
+      <ImmutableInDc>true</ImmutableInDc>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>role</EnumLocalName>
+      <EnumRoot>sh.node.role</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>reczq5nTQlac95iGp</SchemaAttributeId>
       <createdTime>2022-06-14T11:01:03Z</createdTime>
       <Value>DisplayName</Value>
@@ -1622,6 +1688,7 @@
       <MpSchemaAttributes>recVs9H70Rxs6FuHL</MpSchemaAttributes>
       <MpSchemaAttributes>recIu6hGiK3PDyJrn</MpSchemaAttributes>
       <MpSchemaAttributes>rec9jK6ONtXBpXevt</MpSchemaAttributes>
+      <MpSchemaAttributes>recmAJ31xoOq5qTHU</MpSchemaAttributes>
     </PropertyFormat>
     <PropertyFormat>
       <PropertyFormatId>recb9fI4kRkTYXDzA</PropertyFormatId>
@@ -1629,6 +1696,7 @@
       <Name>LrdAliasFormat</Name>
       <Description>AlphanumericStrings separated by periods, with most significant word to the left.  I.e. `dw1.ne` is the child of `dw1`. </Description>
       <MpSchemaAttributes>rec6nH5gOkhOLmbYf</MpSchemaAttributes>
+      <MpSchemaAttributes>rec7XOJqNOaly85Cg</MpSchemaAttributes>
     </PropertyFormat>
     <PropertyFormat>
       <PropertyFormatId>recc5MBUv09sg8D4i</PropertyFormatId>
@@ -1672,10 +1740,26 @@
       <Alias>gt.pipe.flow.sensor.component.100</Alias>
     </Schema>
     <Schema>
+      <SchemaId>rec8CoTLGyxAXh6TD</SchemaId>
+      <createdTime>2022-06-14T23:02:31Z</createdTime>
+      <MakeDataClass>true</MakeDataClass>
+      <ConsistencyCheck>0</ConsistencyCheck>
+      <Alias>gt.sh.node.110</Alias>
+      <AliasRoot>gt.sh.node</AliasRoot>
+      <SemanticEnd>110</SemanticEnd>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>rec7XOJqNOaly85Cg</SchemaAttributes>
+      <SchemaAttributes>recNXTWA84HMF94XV</SchemaAttributes>
+      <SchemaAttributes>recmAJ31xoOq5qTHU</SchemaAttributes>
+      <SchemaAttributes>rec3DmgM8Y9CgZ3cu</SchemaAttributes>
+      <SchemaAttributes>reczovvHr0jpI0nE1</SchemaAttributes>
+    </Schema>
+    <Schema>
       <SchemaId>recAMM4MM8wzs10u8</SchemaId>
       <createdTime>2022-06-10T12:14:39Z</createdTime>
       <AliasRoot>gt.sh.node</AliasRoot>
-      <Status>Active</Status>
+      <Status>Deprecated</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>rec6nH5gOkhOLmbYf</SchemaAttributes>
       <SchemaAttributes>recWJDdHiEzC7KYss</SchemaAttributes>
@@ -1699,6 +1783,7 @@
       <SchemaAttributes>recxu6lhNMYHCoQey</SchemaAttributes>
       <SchemaAttributes>recLO20AZmUda0yof</SchemaAttributes>
       <UsedAsSubMessagein>recULYzX6MQbnGbeu</UsedAsSubMessagein>
+      <UsedAsSubMessagein>recmAJ31xoOq5qTHU</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>Component</DataClass>

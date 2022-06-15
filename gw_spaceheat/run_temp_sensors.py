@@ -1,8 +1,8 @@
 import platform
 from data_classes.sh_node import ShNode
-from data_classes.cacs.temp_sensor_cac import TempSensorCac
-from actors.strategy_switcher import main as strategy_switcher
+from actors.strategy_switcher import strategy_from_node
 import load_house
+from schema.enums.role.role_map import Role
 
 
 if platform.platform() == 'Linux-4.19.118-v7l+-armv7l-with-glibc2.28':
@@ -10,10 +10,12 @@ if platform.platform() == 'Linux-4.19.118-v7l+-armv7l-with-glibc2.28':
 else:
     load_house.load_all(house_json_file='input_data/dev_house.json')
 
-nodes_w_components = list(filter(lambda x: x.primary_component_id is not None, ShNode.by_alias.values()))
-actor_nodes_w_components = list(filter(lambda x: x.python_actor_name is not None, nodes_w_components))
-temp_sensor_nodes = list(filter(lambda x: isinstance(x.primary_component.cac, TempSensorCac), actor_nodes_w_components))
+all_nodes = list(ShNode.by_alias.values())
+tank_water_temp_sensor_nodes = list(filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes))
 
-for node in temp_sensor_nodes:
-    (actor_function, keys) = strategy_switcher(node.python_actor_name)
+
+for node in tank_water_temp_sensor_nodes:
+    actor_function = strategy_from_node(node)
+    if not actor_function:
+        raise Exception(f"Expected strategy for {node}!")
     sensor = actor_function(node)

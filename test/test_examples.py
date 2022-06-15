@@ -11,6 +11,7 @@ from actors.tank_water_temp_sensor import TankWaterTempSensor
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr_Maker
+from schema.enums.role.role_map import Role
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
@@ -46,15 +47,19 @@ def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
     load_house.load_all(house_json_file='../test/test_data/test_load_house.json')
-    print(ShNode.by_alias['a.s'])
-    assert len(ShNode.by_alias) == 24
-    nodes_w_components = list(filter(lambda x: x.primary_component_id is not None, ShNode.by_alias.values()))
+    all_nodes = list(ShNode.by_alias.values())
+    assert len(all_nodes) == 24
+    aliases = list(ShNode.by_alias.keys())
+    for i in range(len(aliases)):
+        alias = aliases[i]
+        node = ShNode.by_alias[alias]
+        print(node)
+    nodes_w_components = list(filter(lambda x: x.component_id is not None, ShNode.by_alias.values()))
     assert len(nodes_w_components) == 19
-    actor_nodes_w_components = list(filter(lambda x: x.python_actor_name is not None, nodes_w_components))
+    actor_nodes_w_components = list(filter(lambda x: x.has_actor, nodes_w_components))
     assert len(actor_nodes_w_components) == 7
-    temp_sensor_nodes = list(filter(lambda x: isinstance(
-        x.primary_component.cac, TempSensorCac), actor_nodes_w_components))
-    assert len(temp_sensor_nodes) == 5
+    tank_water_temp_sensor_nodes = list(filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes))
+    assert len(tank_water_temp_sensor_nodes) == 5
 
 
 def test_async_power_metering_dag():

@@ -19,7 +19,7 @@ class Role(enum.Enum):
     DEDICATED_THERMAL_STORE = "DedicatedThermalStore"
     OUTDOOR_TEMP_SENSOR = "OutdoorTempSensor"
     BOOLEAN_ACTUATOR = "BooleanActuator"
-    ATOMIC_T_NODE = "AtomicTNode"
+    ATN = "Atn"
     HOME_ALONE = "HomeAlone"
     OUTDOORS = "Outdoors"
     

@@ -39,7 +39,7 @@ class RoleMap():
         "3ecfe9b8": Role.DEDICATED_THERMAL_STORE,
         "5938bf1f": Role.OUTDOOR_TEMP_SENSOR,
         "57b788ee": Role.BOOLEAN_ACTUATOR,
-        "6ddff83b": Role.ATOMIC_T_NODE,
+        "6ddff83b": Role.ATN,
         "863e50d1": Role.HOME_ALONE,
         "dd975b31": Role.OUTDOORS, }
 
@@ -58,7 +58,7 @@ class RoleMap():
         Role.DEDICATED_THERMAL_STORE: "3ecfe9b8",
         Role.OUTDOOR_TEMP_SENSOR: "5938bf1f",
         Role.BOOLEAN_ACTUATOR: "57b788ee",
-        Role.ATOMIC_T_NODE: "6ddff83b",
+        Role.ATN: "6ddff83b",
         Role.HOME_ALONE: "863e50d1",
         Role.OUTDOORS: "dd975b31",
-         }
+        }

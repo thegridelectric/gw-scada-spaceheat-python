@@ -13,16 +13,16 @@ class ShNode(ShNodeBase):
 
     def __init__(self, sh_node_id: str,
                  alias: str,
-                 python_actor_name: str,
+                 has_actor: bool,
                  role_gt_enum_symbol: str,
-                 primary_component_id: Optional[str] = None,
+                 component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
                  ):
         super(self.__class__, self).__init__(sh_node_id=sh_node_id,
                                              alias=alias,
-                                             primary_component_id=primary_component_id,
+                                             has_actor=has_actor,
+                                             component_id=component_id,
                                              display_name=display_name,
-                                             python_actor_name=python_actor_name,
                                              role_gt_enum_symbol=role_gt_enum_symbol,
                                              )
         ShNode.by_alias[self.alias] = self
@@ -40,12 +40,12 @@ class ShNode(ShNodeBase):
         return rs
 
     @property
-    def primary_component(self) -> Optional[Component]:
-        if self.primary_component_id is None:
+    def component(self) -> Optional[Component]:
+        if self.component_id is None:
             return None
-        if self.primary_component_id not in Component.by_id.keys():
-            raise DataClassLoadingError(f"{self.alias} primary component {self.primary_component_id} not loaded!")
-        return Component.by_id[self.primary_component_id]
+        if self.component_id not in Component.by_id.keys():
+            raise DataClassLoadingError(f"{self.alias} primary component {self.component_id} not loaded!")
+        return Component.by_id[self.component_id]
 
     @property
     def parent(self) -> ShNodeBase:
@@ -60,9 +60,3 @@ class ShNode(ShNodeBase):
     @property
     def descendants(self) -> List[ShNodeBase]:
         return list(filter(lambda x: x.alias.startswith(self.alias), ShNode.by_alias.values()))
-    
-    @property
-    def has_actor(self) -> bool:
-        if self.python_actor_name is None:
-            return False
-        return True

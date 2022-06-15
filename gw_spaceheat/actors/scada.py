@@ -37,25 +37,25 @@ class Scada(ScadaBase):
 
     def set_actuator_components(self):
         self.boost_actuator = ShNode.by_alias['a.elt1.relay']
-        if self.boost_actuator.primary_component.make_model == MakeModel.NCD__PR814SPST:
+        if self.boost_actuator.component.make_model == MakeModel.NCD__PR814SPST:
             self.driver[self.boost_actuator] = NcdPr814Spst_BooleanActuatorDriver(
-                component=self.boost_actuator.primary_component)
-        elif self.boost_actuator.primary_component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
+                component=self.boost_actuator.component)
+        elif self.boost_actuator.component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             self.driver[self.boost_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
-                component=self.boost_actuator.primary_component)
+                component=self.boost_actuator.component)
         else:
-            raise NotImplementedError(f"No driver yet for {self.boost_actuator.primary_component.make_model}")
+            raise NotImplementedError(f"No driver yet for {self.boost_actuator.component.make_model}")
 
         self.pump_actuator = ShNode.by_alias['a.tank.out.pump.relay']
 
-        if self.pump_actuator.primary_component.make_model == MakeModel.NCD__PR814SPST:
+        if self.pump_actuator.component.make_model == MakeModel.NCD__PR814SPST:
             self.driver[self.pump_actuator] = NcdPr814Spst_BooleanActuatorDriver(
-                component=self.pump_actuator.primary_component)
-        elif self.pump_actuator.primary_component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
+                component=self.pump_actuator.component)
+        elif self.pump_actuator.component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             self.driver[self.pump_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
-                component=self.pump_actuator.primary_component)
+                component=self.pump_actuator.component)
         else:
-            raise NotImplementedError(f"No driver yet for {self.pump_actuator.primary_component.make_model}")
+            raise NotImplementedError(f"No driver yet for {self.pump_actuator.component.make_model}")
 
     ################################################
     # Receiving messages
@@ -106,7 +106,7 @@ class Scada(ScadaBase):
     ###############################################
     
     def turn_on(self, ba: ShNode):
-        if not isinstance(ba.primary_component, BooleanActuatorComponent):
+        if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         if ba.has_actor:
             raise NotImplementedError('No actor for boolean actuator yet')
@@ -114,7 +114,7 @@ class Scada(ScadaBase):
             self.driver[ba].turn_on()
 
     def turn_off(self, ba: ShNode):
-        if not isinstance(ba.primary_component, BooleanActuatorComponent):
+        if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         if ba.has_actor:
             raise NotImplementedError('No actor for boolean actuator yet')

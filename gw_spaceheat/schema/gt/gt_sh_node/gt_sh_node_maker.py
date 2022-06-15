@@ -1,4 +1,4 @@
-"""Makes gt.sh.node type"""
+"""Makes gt.sh.node.110 type"""
 
 import json
 from typing import Dict, Optional
@@ -10,22 +10,22 @@ from schema.enums.role.role_map import Role, RoleMap
 
 
 class GtShNode_Maker():
-    type_alias = 'gt.sh.node.100'
+    type_alias = 'gt.sh.node.110'
 
     def __init__(self,
                  sh_node_id: str,
                  alias: str,
                  role: Role,
-                 primary_component_id: Optional[str],
-                 display_name: Optional[str],
-                 python_actor_name: Optional[str]):
+                 has_actor: bool,
+                 component_id: Optional[str],
+                 display_name: Optional[str]):
 
         tuple = GtShNode(ShNodeId=sh_node_id,
                                           Alias=alias,
-                                          PrimaryComponentId=primary_component_id,
+                                          ComponentId=component_id,
                                           Role=role,
+                                          HasActor=has_actor,
                                           DisplayName=display_name,
-                                          PythonActorName=python_actor_name,
                                           )
         tuple.check_for_errors()
         self.tuple = tuple
@@ -40,7 +40,7 @@ class GtShNode_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError(f'Type must be string or bytes!')
+            raise MpSchemaError('Type must be string or bytes!')
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
@@ -54,19 +54,18 @@ class GtShNode_Maker():
         if "RoleGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing RoleGtEnumSymbol")
         d["Role"] = RoleMap.gt_to_local(d["RoleGtEnumSymbol"])
-        if "PrimaryComponentId" not in d.keys():
-            d["PrimaryComponentId"] = None
+        if "ComponentId" not in d.keys():
+            d["ComponentId"] = None
         if "DisplayName" not in d.keys():
             d["DisplayName"] = None
-        if "PythonActorName" not in d.keys():
-            d["PythonActorName"] = None
 
-        tuple = GtShNode(ShNodeId=d["ShNodeId"],                                        
+
+        tuple = GtShNode(ShNodeId=d["ShNodeId"],                                    
                                           Alias=d["Alias"],
-                                          PrimaryComponentId=d["PrimaryComponentId"],
+                                          ComponentId=d["ComponentId"],
                                           Role=d["Role"],
+                                          HasActor=d["HasActor"],
                                           DisplayName=d["DisplayName"],
-                                          PythonActorName=d["PythonActorName"],
                                           )
         tuple.check_for_errors()
         return tuple
@@ -76,9 +75,9 @@ class GtShNode_Maker():
         s = {
             'sh_node_id': t.ShNodeId,
             'alias': t.Alias,
-            'primary_component_id': t.PrimaryComponentId,
+            'component_id': t.ComponentId,
+            'has_actor': t.HasActor,
             'display_name': t.DisplayName,
-            'python_actor_name': t.PythonActorName,
             'role_gt_enum_symbol': RoleMap.local_to_gt(t.Role),}
         if s['sh_node_id'] in ShNode.by_id.keys():
             dc = ShNode.by_id[s['sh_node_id']]
@@ -91,12 +90,12 @@ class GtShNode_Maker():
         if dc is None:
             return None
         t = GtShNode(
-            sShNodeId=dc.sh_node_id,
+             ShNodeId=dc.sh_node_id,
                                             Alias=dc.alias,
-                                            PrimaryComponentId=dc.primary_component_id,
+                                            ComponentId=dc.component_id,
                                             Role=dc.role,
+                                            HasActor=dc.has_actor,
                                             DisplayName=dc.display_name,
-                                            PythonActorName=dc.python_actor_name,
                                             )
         t.check_for_errors()
         return t
