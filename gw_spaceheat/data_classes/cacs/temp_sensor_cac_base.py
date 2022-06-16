@@ -6,6 +6,7 @@ from typing import Optional, Dict
 from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac import GtTempSensorCac
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.errors import DcError
+from schema.enums.units.units_map import UnitsMap
 from schema.enums.make_model.make_model_map import MakeModelMap
 
 
@@ -18,20 +19,23 @@ class TempSensorCacBase(ComponentAttributeClass):
     base_props.append("component_attribute_class_id")
     base_props.append("precision_exponent")
     base_props.append("comms_method")
+    base_props.append("typical_read_time_ms")
 
     def __init__(self, component_attribute_class_id: str,
+                 typical_read_time_ms: int,
+                 temp_unit_gt_enum_symbol: str,
                  make_model_gt_enum_symbol: str,
                  display_name: Optional[str] = None,
-                 temp_unit: Optional[str] = None,
                  precision_exponent: Optional[int] = None,
                  comms_method: Optional[str] = None,
                  ):
 
         super(TempSensorCacBase, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                                             display_name=display_name)
-        self.temp_unit = temp_unit
+                                                display_name=display_name)
         self.precision_exponent = precision_exponent
         self.comms_method = comms_method
+        self.typical_read_time_ms = typical_read_time_ms
+        self.temp_unit = UnitsMap.gt_to_local(temp_unit_gt_enum_symbol)
         self.make_model = MakeModelMap.gt_to_local(make_model_gt_enum_symbol)
 
     def update(self, type: GtTempSensorCac):

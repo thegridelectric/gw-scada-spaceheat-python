@@ -369,7 +369,8 @@
             "DisplayName": "Adafruit High Temp Waterproof DS18B20 Digital Temp Sensor",
             "CommsMethod": "OneWire",
             "PrecisionExponent": 3,
-            "TempUnit": "C"
+            "TempUnitGtEnumSymbol": "ec14bd47",
+            "TypicalReadTimeMs": 880
         },
         {
             "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",

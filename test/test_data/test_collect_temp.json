@@ -369,7 +369,8 @@
             "DisplayName": "Simulated GridWorks high precision water temp sensor",
             "CommsMethod": "SassyMQ",
             "PrecisionExponent": 3,
-            "TempUnit": "F"
+            "TempUnitGtEnumSymbol": "7d8832f8",
+            "TypicalReadTimeMs": 880
         },
         {
             "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",

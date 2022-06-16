@@ -192,17 +192,18 @@
     <GtEnum>
       <GtEnumId>recc1W1unmzowrKX9</GtEnumId>
       <createdTime>2022-06-16T10:08:00Z</createdTime>
-      <LocalName>units</LocalName>
-      <Alias>spaceheat.units.100</Alias>
-      <AliasRoot>spaceheat.units</AliasRoot>
-      <SemanticEnd>100</SemanticEnd>
-      <PythonEnumNameStyle>UpperPython</PythonEnumNameStyle>
-      <Status>Active</Status>
       <FiniteStringSetMembers>recD09OLaDB4NHeH0</FiniteStringSetMembers>
       <FiniteStringSetMembers>recY1j4wZLAwwD5K5</FiniteStringSetMembers>
       <FiniteStringSetMembers>recoQaLaEtnGeQcwe</FiniteStringSetMembers>
       <FiniteStringSetMembers>recyROVELbss084Dl</FiniteStringSetMembers>
       <SchemaAttributes>recF5JRJR6AVkfQsK</SchemaAttributes>
+      <SchemaAttributes>recL9BeJniQtSOgyV</SchemaAttributes>
+      <AliasRoot>spaceheat.units</AliasRoot>
+      <SemanticEnd>100</SemanticEnd>
+      <LocalName>units</LocalName>
+      <PythonEnumNameStyle>UpperPython</PythonEnumNameStyle>
+      <Status>Active</Status>
+      <Alias>spaceheat.units.100</Alias>
     </GtEnum>
     <GtEnum>
       <GtEnumId>recpuISeVCSDhSUOB</GtEnumId>
@@ -308,10 +309,10 @@
     <EnumSymbol>
       <EnumSymbolId>recD09OLaDB4NHeH0</EnumSymbolId>
       <createdTime>2022-06-16T10:08:41Z</createdTime>
-      <DisplayName>spaceheat.units.100__Celcius</DisplayName>
-      <Enum>recc1W1unmzowrKX9</Enum>
       <LocalValue>Celcius</LocalValue>
+      <Enum>recc1W1unmzowrKX9</Enum>
       <Symbol>ec14bd47</Symbol>
+      <DisplayName>spaceheat.units.100__Celcius</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
       <EnumSymbolId>recD9SeBr2hL70oTB</EnumSymbolId>
@@ -409,10 +410,10 @@
     <EnumSymbol>
       <EnumSymbolId>recY1j4wZLAwwD5K5</EnumSymbolId>
       <createdTime>2022-06-16T10:09:12Z</createdTime>
-      <DisplayName>spaceheat.units.100__Fahrenheit</DisplayName>
-      <Enum>recc1W1unmzowrKX9</Enum>
       <LocalValue>Fahrenheit</LocalValue>
+      <Enum>recc1W1unmzowrKX9</Enum>
       <Symbol>7d8832f8</Symbol>
+      <DisplayName>spaceheat.units.100__Fahrenheit</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
       <EnumSymbolId>recYLv2x2lR5rftCy</EnumSymbolId>
@@ -502,10 +503,10 @@
     <EnumSymbol>
       <EnumSymbolId>recoQaLaEtnGeQcwe</EnumSymbolId>
       <createdTime>2022-06-16T10:09:48Z</createdTime>
-      <DisplayName>spaceheat.units.100__W</DisplayName>
-      <Enum>recc1W1unmzowrKX9</Enum>
       <LocalValue>W</LocalValue>
+      <Enum>recc1W1unmzowrKX9</Enum>
       <Symbol>f459a9c3</Symbol>
+      <DisplayName>spaceheat.units.100__W</DisplayName>
     </EnumSymbol>
     <EnumSymbol>
       <EnumSymbolId>recob3YuE614ND3hl</EnumSymbolId>
@@ -574,10 +575,10 @@
     <EnumSymbol>
       <EnumSymbolId>recyROVELbss084Dl</EnumSymbolId>
       <createdTime>2022-06-16T10:09:53Z</createdTime>
-      <DisplayName>spaceheat.units.100__Unitless</DisplayName>
-      <Enum>recc1W1unmzowrKX9</Enum>
       <LocalValue>Unitless</LocalValue>
+      <Enum>recc1W1unmzowrKX9</Enum>
       <Symbol>ec972387</Symbol>
+      <DisplayName>spaceheat.units.100__Unitless</DisplayName>
     </EnumSymbol>
   </EnumSymbols>
   <SchemaAttributes>
@@ -918,15 +919,15 @@
     <SchemaAttribute>
       <SchemaAttributeId>recF5JRJR6AVkfQsK</SchemaAttributeId>
       <createdTime>2022-06-16T10:07:39Z</createdTime>
-      <TypeCheck>1</TypeCheck>
-      <IsEnum>true</IsEnum>
-      <IsType>false</IsType>
       <Value>Units</Value>
       <GtSchema>rece1suo3h3SqfW4M</GtSchema>
       <IsRequired>true</IsRequired>
       <Enum>recc1W1unmzowrKX9</Enum>
+      <TypeCheck>1</TypeCheck>
       <EnumLocalName>units</EnumLocalName>
       <EnumRoot>spaceheat.units</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recFfaru1gmnzHcg3</SchemaAttributeId>
@@ -1068,11 +1069,12 @@
       <createdTime>2022-06-04T19:23:07Z</createdTime>
       <Value>TempUnit</Value>
       <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
-      <IsPrimitive>true</IsPrimitive>
-      <PrimitiveType>String</PrimitiveType>
       <TypeCheck>1</TypeCheck>
-      <IsEnum>false</IsEnum>
+      <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <Enum>recc1W1unmzowrKX9</Enum>
+      <EnumLocalName>units</EnumLocalName>
+      <EnumRoot>spaceheat.units</EnumRoot>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recLO20AZmUda0yof</SchemaAttributeId>
@@ -1102,14 +1104,14 @@
     <SchemaAttribute>
       <SchemaAttributeId>recMNoEhsIjpp7oXK</SchemaAttributeId>
       <createdTime>2022-06-16T10:07:24Z</createdTime>
-      <TypeCheck>1</TypeCheck>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
-      <GtSchema>rece1suo3h3SqfW4M</GtSchema>
       <Value>Exponent</Value>
+      <GtSchema>rece1suo3h3SqfW4M</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recMirwvdQxO5qyAY</SchemaAttributeId>
@@ -1381,14 +1383,14 @@
     <SchemaAttribute>
       <SchemaAttributeId>recbeaD5BXdYLqml8</SchemaAttributeId>
       <createdTime>2022-06-16T10:11:08Z</createdTime>
-      <TypeCheck>1</TypeCheck>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
       <Value>ScalingFactor</Value>
       <GtSchema>rece1suo3h3SqfW4M</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recbnmzJKD2TRpfWS</SchemaAttributeId>
@@ -1788,6 +1790,18 @@
       <SubTypeDataClass>ElectricHeaterCac</SubTypeDataClass>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recqGEAWc6ioKwYCv</SchemaAttributeId>
+      <createdTime>2022-06-16T12:06:21Z</createdTime>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <Value>TypicalReadTimeMs</Value>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recqIhKpky5FrUJul</SchemaAttributeId>
       <createdTime>2022-06-07T09:30:45Z</createdTime>
       <Value>ComponentAttributeClass</Value>
@@ -1839,6 +1853,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
+    <SchemaAttribute>itrP9BhT9JBhc8PrI/recrpGZFYeoLlFiGW</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recu20L98RSiZfLsJ</SchemaAttributeId>
       <createdTime>2022-06-14T10:56:26Z</createdTime>
@@ -1846,7 +1861,6 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itrosYMpYjOkECcrU/recu20L98RSiZfLsJ</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recw4w4kyKb5qsTUd</SchemaAttributeId>
       <createdTime>2022-05-11T18:23:36Z</createdTime>
@@ -2343,6 +2357,7 @@
       <SchemaAttributes>recXsEwhOA9OvUCK6</SchemaAttributes>
       <SchemaAttributes>recW0pfyJkVdjaRTY</SchemaAttributes>
       <SchemaAttributes>recL9BeJniQtSOgyV</SchemaAttributes>
+      <SchemaAttributes>recqGEAWc6ioKwYCv</SchemaAttributes>
       <UsedAsSubMessagein>rece76qbENBm5shvn</UsedAsSubMessagein>
       <UsedAsSubMessagein>rec6F0YzYq2cynuBc</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
