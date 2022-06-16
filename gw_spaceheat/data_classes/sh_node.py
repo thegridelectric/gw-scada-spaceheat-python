@@ -2,6 +2,7 @@
 from typing import Dict, List, Optional
 
 from data_classes.component import Component
+from data_classes.components.temp_sensor_component import TempSensorComponent
 from data_classes.errors import DataClassLoadingError
 from data_classes.sh_node_base import ShNodeBase
 from schema.gt.gt_sh_node.gt_sh_node import GtShNode
@@ -15,12 +16,14 @@ class ShNode(ShNodeBase):
                  alias: str,
                  has_actor: bool,
                  role_gt_enum_symbol: str,
+                 reporting_sample_period_s: Optional[int] = None,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
                  ):
         super(self.__class__, self).__init__(sh_node_id=sh_node_id,
                                              alias=alias,
                                              has_actor=has_actor,
+                                             reporting_sample_period_s=reporting_sample_period_s,
                                              component_id=component_id,
                                              display_name=display_name,
                                              role_gt_enum_symbol=role_gt_enum_symbol,
@@ -44,8 +47,18 @@ class ShNode(ShNodeBase):
         if self.component_id is None:
             return None
         if self.component_id not in Component.by_id.keys():
-            raise DataClassLoadingError(f"{self.alias} primary component {self.component_id} not loaded!")
+            raise DataClassLoadingError(f"{self.alias} component {self.component_id} not loaded!")
         return Component.by_id[self.component_id]
+
+    @property
+    def temp_sensor_component(self) -> Optional[TempSensorComponent]:
+        if self.component_id is None:
+            return None
+        if self.component_id not in Component.by_id.keys():
+            raise DataClassLoadingError(f"{self.alias}  component {self.component_id} not loaded!")
+        if self.component_id not in TempSensorComponent.by_id.keys():
+            return None
+        return TempSensorComponent.by_id[self.component_id]
 
     @property
     def parent(self) -> ShNodeBase:
