@@ -9,7 +9,6 @@ from schema.enums.unit.unit_map import Unit, UnitMap
 class GtSensorReportingConfigBase(NamedTuple):
     ReportOnChange: bool     #
     Exponent: int     #
-    ScalingFactor: int     #
     ReportingPeriodS: int     #
     SamplePeriodS: int     #
     TelemetryName: TelemetryName     #
@@ -39,8 +38,6 @@ class GtSensorReportingConfigBase(NamedTuple):
                 errors.append(f"AsyncReportThreshold {self.AsyncReportThreshold} must have type float.")
         if not isinstance(self.Exponent, int):
             errors.append(f"Exponent {self.Exponent} must have type int.")
-        if not isinstance(self.ScalingFactor, int):
-            errors.append(f"ScalingFactor {self.ScalingFactor} must have type int.")
         if not isinstance(self.ReportingPeriodS, int):
             errors.append(f"ReportingPeriodS {self.ReportingPeriodS} must have type int.")
         if not isinstance(self.SamplePeriodS, int):

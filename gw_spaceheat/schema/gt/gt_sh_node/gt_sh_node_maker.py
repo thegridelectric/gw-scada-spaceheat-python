@@ -17,6 +17,7 @@ class GtShNode_Maker():
                  alias: str,
                  role: Role,
                  has_actor: bool,
+                 reporting_sample_period_s: Optional[int],
                  component_id: Optional[str],
                  display_name: Optional[str]):
 
@@ -24,6 +25,7 @@ class GtShNode_Maker():
                                           Alias=alias,
                                           ComponentId=component_id,
                                           Role=role,
+                                          ReportingSamplePeriodS=reporting_sample_period_s,
                                           HasActor=has_actor,
                                           DisplayName=display_name,
                                           )
@@ -46,7 +48,7 @@ class GtShNode_Maker():
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) ->  GtShNode:
+    def dict_to_tuple(cls, d: dict) -> GtShNode:
         if "ShNodeId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ShNodeId")
         if "Alias" not in d.keys():
@@ -54,6 +56,8 @@ class GtShNode_Maker():
         if "RoleGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing RoleGtEnumSymbol")
         d["Role"] = RoleMap.gt_to_local(d["RoleGtEnumSymbol"])
+        if "ReportingSamplePeriodS" not in d.keys():
+            d["ReportingSamplePeriodS"] = None
         if "ComponentId" not in d.keys():
             d["ComponentId"] = None
         if "DisplayName" not in d.keys():
@@ -64,6 +68,7 @@ class GtShNode_Maker():
                                           Alias=d["Alias"],
                                           ComponentId=d["ComponentId"],
                                           Role=d["Role"],
+                                          ReportingSamplePeriodS=d["ReportingSamplePeriodS"],
                                           HasActor=d["HasActor"],
                                           DisplayName=d["DisplayName"],
                                           )
@@ -76,6 +81,7 @@ class GtShNode_Maker():
             'sh_node_id': t.ShNodeId,
             'alias': t.Alias,
             'component_id': t.ComponentId,
+            'reporting_sample_period_s': t.ReportingSamplePeriodS,
             'has_actor': t.HasActor,
             'display_name': t.DisplayName,
             'role_gt_enum_symbol': RoleMap.local_to_gt(t.Role),}
@@ -94,6 +100,7 @@ class GtShNode_Maker():
                                             Alias=dc.alias,
                                             ComponentId=dc.component_id,
                                             Role=dc.role,
+                                            ReportingSamplePeriodS=dc.reporting_sample_period_s,
                                             HasActor=dc.has_actor,
                                             DisplayName=dc.display_name,
                                             )

@@ -5,8 +5,10 @@ from typing import List
 from schema.gt.gt_spaceheat_status.gt_spaceheat_status import GtSpaceheatStatus
 from schema.errors import MpSchemaError
 
-from schema.gt.gt_spaceheat_sync_single.gt_spaceheat_sync_single_maker import GtSpaceheatSyncSingle
-from schema.gt.gt_spaceheat_async_single.gt_spaceheat_async_single_maker import GtSpaceheatAsyncSingle
+from schema.gt.gt_spaceheat_sync_single.gt_spaceheat_sync_single_maker \
+    import GtSpaceheatSyncSingle, GtSpaceheatSyncSingle_Maker
+from schema.gt.gt_spaceheat_async_single.gt_spaceheat_async_single_maker \
+    import GtSpaceheatAsyncSingle, GtSpaceheatAsyncSingle_Maker
 
 
 class GtSpaceheatStatus_Maker():
@@ -55,6 +57,18 @@ class GtSpaceheatStatus_Maker():
             raise MpSchemaError(f"dict {d} missing AsyncStatusList")
         if "SyncStatusList" not in d.keys():
             raise MpSchemaError(f"dict {d} missing SyncStatusList")
+        if not isinstance(d["SyncStatusList"], list):
+            raise MpSchemaError(f"d['SyncStatusList'] {d['SyncStatusList']} must be a list!")
+        sync_status_list = []
+        for sync_status in d["SyncStatusList"]:
+            sync_status_list.append(GtSpaceheatSyncSingle_Maker.dict_to_tuple(sync_status))
+        d["SyncStatusList"] = sync_status_list
+        if not isinstance(d["AsyncStatusList"], list):
+            raise MpSchemaError(f"d['AsyncStatusList'] {d['AsyncStatusList']} must be a list!")
+        async_status_list = []
+        for async_status in d["AsyncStatusList"]:
+            async_status_list.append(GtSpaceheatAsyncSingle_Maker.dict_to_tuple(async_status))
+        d["AsyncStatusList"] = async_status_list
 
         tuple = GtSpaceheatStatus(AboutGNodeAlias=d["AboutGNodeAlias"],
                                   SlotStartUnixS=d["SlotStartUnixS"],

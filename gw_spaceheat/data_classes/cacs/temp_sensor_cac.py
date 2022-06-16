@@ -46,3 +46,7 @@ class TempSensorCac(TempSensorCacBase):
             return TelemetryName.WATER_TEMP_F_TIMES1000
         else:
             raise Exception(f'No Telemetry name for {self}')
+
+    @property
+    def reporting_exponent(self):
+        return 0

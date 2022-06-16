@@ -59,6 +59,8 @@ def test_load_house():
     assert len(actor_nodes_w_components) == 7
     tank_water_temp_sensor_nodes = list(filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes))
     assert len(tank_water_temp_sensor_nodes) == 5
+    for node in tank_water_temp_sensor_nodes:
+        assert node.reporting_sample_period_s is not None
 
 
 def test_async_power_metering_dag():
@@ -96,6 +98,7 @@ def test_collect_temp_data():
     thermo = TankWaterTempSensor(node=typing.cast(ShNode, ShNode.by_alias["a.tank.temp0"]))
     thermo.start()
     time.sleep(1)
+    time.sleep(thermo.node.reporting_sample_period_s)
     thermo.terminate_main_loop()
     thermo.main_thread.join()
     scada.terminate_main_loop()

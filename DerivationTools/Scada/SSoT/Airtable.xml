@@ -1081,13 +1081,13 @@
       <createdTime>2022-06-04T19:23:07Z</createdTime>
       <Value>TempUnit</Value>
       <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsRequired>true</IsRequired>
       <Enum>recc1W1unmzowrKX9</Enum>
       <TypeCheck>1</TypeCheck>
       <EnumLocalName>unit</EnumLocalName>
       <EnumRoot>spaceheat.unit</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
-      <IsRequired>true</IsRequired>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recLO20AZmUda0yof</SchemaAttributeId>
@@ -1325,12 +1325,12 @@
       <createdTime>2022-06-04T19:22:47Z</createdTime>
       <Value>PrecisionExponent</Value>
       <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <IsRequired>true</IsRequired>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recWJDdHiEzC7KYss</SchemaAttributeId>
@@ -1390,18 +1390,6 @@
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Boolean</PrimitiveType>
-      <TypeCheck>1</TypeCheck>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
-    </SchemaAttribute>
-    <SchemaAttribute>
-      <SchemaAttributeId>recbeaD5BXdYLqml8</SchemaAttributeId>
-      <createdTime>2022-06-16T10:11:08Z</createdTime>
-      <Value>ScalingFactor</Value>
-      <GtSchema>rece1suo3h3SqfW4M</GtSchema>
-      <IsRequired>true</IsRequired>
-      <IsPrimitive>true</IsPrimitive>
-      <PrimitiveType>Integer</PrimitiveType>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -1856,7 +1844,6 @@
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itrP88ABvNVAKQxSA/recrX6PgQEW9ggu8q</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recrpGZFYeoLlFiGW</SchemaAttributeId>
       <createdTime>2022-06-04T19:11:12Z</createdTime>
@@ -1868,6 +1855,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
+    <SchemaAttribute>itri5rfXj0H22Z7AN/recrpGZFYeoLlFiGW</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recu20L98RSiZfLsJ</SchemaAttributeId>
       <createdTime>2022-06-14T10:56:26Z</createdTime>
@@ -2277,7 +2265,6 @@
       <SchemaAttributes>reczOogxDbgX7j8pi</SchemaAttributes>
       <SchemaAttributes>recMNoEhsIjpp7oXK</SchemaAttributes>
       <SchemaAttributes>recF5JRJR6AVkfQsK</SchemaAttributes>
-      <SchemaAttributes>recbeaD5BXdYLqml8</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <DataClass>SensorReportingConfig</DataClass>
       <Alias>gt.sensor.reporting.config.100</Alias>

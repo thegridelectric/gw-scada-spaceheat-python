@@ -16,7 +16,6 @@ class GtSensorReportingConfig_Maker():
     def __init__(self,
                     report_on_change: bool,
                     exponent: int,
-                    scaling_factor: int,
                     reporting_period_s: int,
                     sample_period_s: int,
                     telemetry_name: TelemetryName,
@@ -28,7 +27,6 @@ class GtSensorReportingConfig_Maker():
                                             Unit=unit,
                                             AsyncReportThreshold=async_report_threshold,
                                             Exponent=exponent,
-                                            ScalingFactor=scaling_factor,
                                             ReportingPeriodS=reporting_period_s,
                                             SamplePeriodS=sample_period_s,
                                             )
@@ -56,8 +54,6 @@ class GtSensorReportingConfig_Maker():
             raise MpSchemaError(f"dict {d} missing ReportOnChange")
         if "Exponent" not in d.keys():
             raise MpSchemaError(f"dict {d} missing Exponent")
-        if "ScalingFactor" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ScalingFactor")
         if "ReportingPeriodS" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ReportingPeriodS")
         if "SamplePeriodS" not in d.keys():
@@ -76,7 +72,6 @@ class GtSensorReportingConfig_Maker():
                                             Unit=d["Unit"],
                                             AsyncReportThreshold=d["AsyncReportThreshold"],
                                             Exponent=d["Exponent"],
-                                            ScalingFactor=d["ScalingFactor"],
                                             ReportingPeriodS=d["ReportingPeriodS"],
                                             SamplePeriodS=d["SamplePeriodS"],
                                             )
