@@ -1,25 +1,27 @@
 
 import time
 from typing import List
-from data_classes.sh_node import ShNode
 
-from actors.atn_base import Atn_Base
-from actors.utils import QOS, Subscription
+import helpers
 import settings
-from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import (GtSpaceheatStatus,
-                                                                     GtSpaceheatStatus_Maker)
+from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
+from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import (
+    GtSpaceheatStatus, GtSpaceheatStatus_Maker)
+
+from actors.atn_base import AtnBase
+from actors.utils import QOS, Subscription
 
 
-class Atn(Atn_Base):
+class Atn(AtnBase):
     def __init__(self, node: ShNode):
         super(Atn, self).__init__(node=node)
         self.total_power_w = 0
         self.screen_print(f'Initialized {self.__class__}')
 
     def gw_subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'{settings.SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'{settings.SCADA_G_NODE_ALIAS}/{GtSpaceheatStatus_Maker.type_alias}',
+        return [Subscription(Topic=f'{helpers.scada_g_node_alias()}/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
+                Subscription(Topic=f'{helpers.scada_g_node_alias()}/{GtSpaceheatStatus_Maker.type_alias}',
                              Qos=QOS.AtLeastOnce)]
 
     def on_gw_message(self, from_node: ShNode, payload: GsPwr):

@@ -1,8 +1,8 @@
 import time
 from typing import Dict, List
 
+import helpers
 import settings
-
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
@@ -16,15 +16,16 @@ from schema.enums.make_model.make_model_map import MakeModel
 from schema.enums.role.role_map import Role
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
+from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import \
+    GtSensorReportingConfig as ReportingConfig
+from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import \
+    GtSensorReportingConfig_Maker as ConfigMaker
+from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import \
+    GtSpaceheatStatus_Maker
+from schema.gt.gt_spaceheat_sync_single.gt_spaceheat_sync_single_maker import \
+    GtSpaceheatSyncSingle_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import (GtTelemetry,
                                                        GtTelemetry_Maker)
-from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker \
-    import (GtSensorReportingConfig as ReportingConfig,
-            GtSensorReportingConfig_Maker as ConfigMaker)
-from schema.gt.gt_spaceheat_sync_single.gt_spaceheat_sync_single_maker \
-    import GtSpaceheatSyncSingle_Maker
-from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker \
-    import GtSpaceheatStatus_Maker
 
 from actors.scada_base import ScadaBase
 from actors.utils import QOS, Subscription
@@ -158,19 +159,25 @@ class Scada(ScadaBase):
 
     def send_status(self):
         self.screen_print("Should send status")
-        node = ShNode.by_alias['a.tank.temp0']
-        first_read_time_unix_s = int(self.latest_sample_times[node][0] / 1000)
-        sync = GtSpaceheatSyncSingle_Maker(first_read_time_unix_s=first_read_time_unix_s,
-                                           sample_period_s=self.reporting_config[node].SamplePeriodS,
-                                           sh_node_alias=node.alias,
-                                           telemetry_name=self.reporting_config[node].TelemetryName,
-                                           value_list=self.latest_readings[node]).tuple
+        sync_status_list = []
+        for node in self.my_tank_water_temp_sensors():
+            if node not in self.latest_sample_times.keys():
+                raise Exception(f'{node} missing from self.lastest_sample-times')
+            if len(self.latest_sample_times[node]) > 0:
+                first_read_time_unix_s = int(self.latest_sample_times[node][0] / 1000)
+                sync_status = GtSpaceheatSyncSingle_Maker(first_read_time_unix_s=first_read_time_unix_s,
+                                                          sample_period_s=self.reporting_config[node].SamplePeriodS,
+                                                          sh_node_alias=node.alias,
+                                                          telemetry_name=self.reporting_config[node].TelemetryName,
+                                                          value_list=self.latest_readings[node]).tuple
+                sync_status_list.append(sync_status)
+
         slot_start_unix_s = self._last_5_cron_s
-        status_payload = GtSpaceheatStatus_Maker(about_g_node_alias=settings.TA_G_NODE_ALIAS,
+        status_payload = GtSpaceheatStatus_Maker(about_g_node_alias=helpers.ta_g_node_alias(),
                                                  slot_start_unix_s=slot_start_unix_s,
                                                  reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
                                                  async_status_list=[],
-                                                 sync_status_list=[sync]).tuple
+                                                 sync_status_list=sync_status_list).tuple
         self.latest_status_payload = status_payload
         self.gw_publish(payload=status_payload)
         self.flush_latest_readings()
