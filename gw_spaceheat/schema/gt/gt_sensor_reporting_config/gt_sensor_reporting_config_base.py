@@ -3,7 +3,7 @@ import json
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
-from schema.enums.units.units_map import Units, UnitsMap
+from schema.enums.unit.unit_map import Unit, UnitMap
 
 
 class GtSensorReportingConfigBase(NamedTuple):
@@ -13,7 +13,7 @@ class GtSensorReportingConfigBase(NamedTuple):
     ReportingPeriodS: int     #
     SamplePeriodS: int     #
     TelemetryName: TelemetryName     #
-    Units: Units     #
+    Unit: Unit     #
     AsyncReportThreshold: Optional[float] = None
     TypeAlias: str = 'gt.sensor.reporting.config.100'
 
@@ -26,8 +26,8 @@ class GtSensorReportingConfigBase(NamedTuple):
             del d["AsyncReportThreshold"]
         del(d["TelemetryName"])
         d["TelemetryNameGtEnumSymbol"] = TelemetryNameMap.local_to_gt(self.TelemetryName)
-        del(d["Units"])
-        d["UnitsGtEnumSymbol"] = UnitsMap.local_to_gt(self.Units)
+        del(d["Unit"])
+        d["UnitGtEnumSymbol"] = UnitMap.local_to_gt(self.Unit)
         return d
 
     def derived_errors(self) -> List[str]:
@@ -47,8 +47,8 @@ class GtSensorReportingConfigBase(NamedTuple):
             errors.append(f"SamplePeriodS {self.SamplePeriodS} must have type int.")
         if not isinstance(self.TelemetryName, TelemetryName):
             errors.append(f"TelemetryName {self.TelemetryName} must have type {TelemetryName}.")
-        if not isinstance(self.Units, Units):
-            errors.append(f"Units {self.Units} must have type {Units}.")
+        if not isinstance(self.Unit, Unit):
+            errors.append(f"Unit {self.Unit} must have type {Unit}.")
         if self.TypeAlias != 'gt.sensor.reporting.config.100':
             errors.append(f"Type requires TypeAlias of gt.sensor.reporting.config.100, not {self.TypeAlias}.")
         

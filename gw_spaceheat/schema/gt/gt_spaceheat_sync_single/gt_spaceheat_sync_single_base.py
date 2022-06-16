@@ -6,6 +6,7 @@ from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, Teleme
 
 
 class GtSpaceheatSyncSingleBase(NamedTuple):
+    FirstReadTimeUnixS: int
     SamplePeriodS: int     #
     ShNodeAlias: str     #
     ValueList: List[int]    #
@@ -23,6 +24,8 @@ class GtSpaceheatSyncSingleBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
+        if not isinstance(self.FirstReadTimeUnixS, int):
+            errors.append(f"FirstReadTimeUnixS {self.FirstReadTimeUnixS} must have type int.")
         if not isinstance(self.SamplePeriodS, int):
             errors.append(f"SamplePeriodS {self.SamplePeriodS} must have type int.")
         if not isinstance(self.ShNodeAlias, str):

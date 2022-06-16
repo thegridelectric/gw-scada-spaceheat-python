@@ -12,12 +12,14 @@ class GtSpaceheatSyncSingle_Maker():
     type_alias = 'gt.spaceheat.sync.single.100'
 
     def __init__(self,
+                 first_read_time_unix_s: int,
                  sample_period_s: int,
                  sh_node_alias: str,
                  value_list: List[int],
                  telemetry_name: TelemetryName):
 
-        tuple = GtSpaceheatSyncSingle(SamplePeriodS=sample_period_s,
+        tuple = GtSpaceheatSyncSingle(FirstReadTimeUnixS=first_read_time_unix_s,
+                                      SamplePeriodS=sample_period_s,
                                       TelemetryName=telemetry_name,
                                       ShNodeAlias=sh_node_alias,
                                       ValueList=value_list,
@@ -42,6 +44,8 @@ class GtSpaceheatSyncSingle_Maker():
 
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtSpaceheatSyncSingle:
+        if "FirstReadTimeUnixS" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing FirstReadTimeUnixS")
         if "SamplePeriodS" not in d.keys():
             raise MpSchemaError(f"dict {d} missing SamplePeriodS")
         if "ShNodeAlias" not in d.keys():
@@ -52,7 +56,8 @@ class GtSpaceheatSyncSingle_Maker():
             raise MpSchemaError(f"dict {d} missing TelemetryNameGtEnumSymbol")
         d["TelemetryName"] = TelemetryNameMap.gt_to_local(d["TelemetryNameGtEnumSymbol"])
 
-        tuple = GtSpaceheatSyncSingle(SamplePeriodS=d["SamplePeriodS"],
+        tuple = GtSpaceheatSyncSingle(FirstReadTimeUnixS=d["FirstReadTimeUnixS"],
+                                      SamplePeriodS=d["SamplePeriodS"],
                                       TelemetryName=d["TelemetryName"],
                                       ShNodeAlias=d["ShNodeAlias"],
                                       ValueList=d["ValueList"],

@@ -7,7 +7,7 @@ from typing import Dict, Optional
 from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config import GtSensorReportingConfig
 from schema.errors import MpSchemaError
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
-from schema.enums.units.units_map import Units, UnitsMap
+from schema.enums.unit.unit_map import Unit, UnitMap
 
 
 class GtSensorReportingConfig_Maker():
@@ -20,12 +20,12 @@ class GtSensorReportingConfig_Maker():
                     reporting_period_s: int,
                     sample_period_s: int,
                     telemetry_name: TelemetryName,
-                    units: Units,
+                    unit: Unit,
                     async_report_threshold: Optional[float]):
 
         tuple = GtSensorReportingConfig(ReportOnChange=report_on_change,
                                             TelemetryName=telemetry_name,
-                                            Units=units,
+                                            Unit=unit,
                                             AsyncReportThreshold=async_report_threshold,
                                             Exponent=exponent,
                                             ScalingFactor=scaling_factor,
@@ -65,15 +65,15 @@ class GtSensorReportingConfig_Maker():
         if "TelemetryNameGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing TelemetryNameGtEnumSymbol")
         d["TelemetryName"] = TelemetryNameMap.gt_to_local(d["TelemetryNameGtEnumSymbol"])
-        if "UnitsGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing UnitsGtEnumSymbol")
-        d["Units"] = UnitsMap.gt_to_local(d["UnitsGtEnumSymbol"])
+        if "UnitGtEnumSymbol" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing UnitGtEnumSymbol")
+        d["Unit"] = UnitMap.gt_to_local(d["UnitGtEnumSymbol"])
         if "AsyncReportThreshold" not in d.keys():
             d["AsyncReportThreshold"] = None
 
         tuple = GtSensorReportingConfig(ReportOnChange=d["ReportOnChange"],
                                             TelemetryName=d["TelemetryName"],
-                                            Units=d["Units"],
+                                            Unit=d["Unit"],
                                             AsyncReportThreshold=d["AsyncReportThreshold"],
                                             Exponent=d["Exponent"],
                                             ScalingFactor=d["ScalingFactor"],

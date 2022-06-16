@@ -32,7 +32,7 @@
                                     <xsl:with-param name="camel-case-text" select="DataClass"  />
                                 </xsl:call-template><xsl:text>.py</xsl:text></xsl:element>
 
-                        <OverwriteMode>Always</OverwriteMode>
+                        <OverwriteMode>Never</OverwriteMode>
                         <xsl:element name="FileContents">
 
    

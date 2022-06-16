@@ -374,15 +374,24 @@
         },
         {
             "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
-            "MakeModelGtEnumSymbol": "b6a32d9b"
+            "MakeModelGtEnumSymbol": "b6a32d9b",
+            "TempUnitGtEnumSymbol": "ec14bd47",
+            "TypicalReadTimeMs": 0,
+            "PrecisionExponent": 3
         },
         {
             "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
-            "MakeModelGtEnumSymbol": "b6a32d9b"
+            "MakeModelGtEnumSymbol": "b6a32d9b",
+            "TempUnitGtEnumSymbol": "ec14bd47",
+            "TypicalReadTimeMs": 0,
+            "PrecisionExponent": 3
         },
         {
             "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
-            "MakeModelGtEnumSymbol": "b6a32d9b"
+            "MakeModelGtEnumSymbol": "b6a32d9b",
+            "TempUnitGtEnumSymbol": "ec14bd47",
+            "TypicalReadTimeMs": 0,
+            "PrecisionExponent": 3
         }
     ],
     "OtherCacs": [

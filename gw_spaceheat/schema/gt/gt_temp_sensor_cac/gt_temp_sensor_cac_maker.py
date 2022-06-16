@@ -6,7 +6,7 @@ from data_classes.cacs.temp_sensor_cac import TempSensorCac
 
 from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac import GtTempSensorCac
 from schema.errors import MpSchemaError
-from schema.enums.units.units_map import Units, UnitsMap
+from schema.enums.unit.unit_map import Unit, UnitMap
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 
@@ -15,11 +15,11 @@ class GtTempSensorCac_Maker():
 
     def __init__(self,
                  component_attribute_class_id: str,
+                 precision_exponent: int,
                  typical_read_time_ms: int,
-                 temp_unit: Units,
+                 temp_unit: Unit,
                  make_model: MakeModel,
                  display_name: Optional[str],
-                 precision_exponent: Optional[int],
                  comms_method: Optional[str]):
 
         tuple = GtTempSensorCac(DisplayName=display_name,
@@ -52,18 +52,18 @@ class GtTempSensorCac_Maker():
     def dict_to_tuple(cls, d: dict) ->  GtTempSensorCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
+        if "PrecisionExponent" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing PrecisionExponent")
         if "TypicalReadTimeMs" not in d.keys():
             raise MpSchemaError(f"dict {d} missing TypicalReadTimeMs")
         if "TempUnitGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing TempUnitGtEnumSymbol")
-        d["TempUnit"] = UnitsMap.gt_to_local(d["TempUnitGtEnumSymbol"])
+        d["TempUnit"] = UnitMap.gt_to_local(d["TempUnitGtEnumSymbol"])
         if "MakeModelGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing MakeModelGtEnumSymbol")
         d["MakeModel"] = MakeModelMap.gt_to_local(d["MakeModelGtEnumSymbol"])
         if "DisplayName" not in d.keys():
             d["DisplayName"] = None
-        if "PrecisionExponent" not in d.keys():
-            d["PrecisionExponent"] = None
         if "CommsMethod" not in d.keys():
             d["CommsMethod"] = None
 
@@ -86,7 +86,7 @@ class GtTempSensorCac_Maker():
             'precision_exponent': t.PrecisionExponent,
             'comms_method': t.CommsMethod,
             'typical_read_time_ms': t.TypicalReadTimeMs,
-            'temp_unit_gt_enum_symbol': UnitsMap.local_to_gt(t.TempUnit),'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
+            'temp_unit_gt_enum_symbol': UnitMap.local_to_gt(t.TempUnit),'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
         if s['component_attribute_class_id'] in TempSensorCac.by_id.keys():
             dc = TempSensorCac.by_id[s['component_attribute_class_id']]
         else:
