@@ -61,4 +61,4 @@ class RoleMap():
         Role.ATN: "6ddff83b",
         Role.HOME_ALONE: "863e50d1",
         Role.OUTDOORS: "dd975b31",
-        }
+         }
