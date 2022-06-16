@@ -3,7 +3,6 @@ import time
 from typing import List
 
 import helpers
-import settings
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import (
