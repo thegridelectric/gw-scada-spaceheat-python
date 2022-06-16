@@ -2,6 +2,7 @@ import threading
 import uuid
 from abc import ABC, abstractmethod
 from typing import List
+import time
 
 import helpers
 import paho.mqtt.client as mqtt
@@ -18,6 +19,8 @@ from actors.utils import QOS, Subscription
 class ActorBase(ABC):
 
     def __init__(self, node: ShNode):
+        now = int(time.time())
+        self._last_5_cron_s = (now - (now % 300))
         self.node = node
         self.logging_on = False
         self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
@@ -98,3 +101,13 @@ class ActorBase(ABC):
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
+
+    @property
+    def next_5_cron_s(self) -> int:
+        last_cron_s = self._last_5_cron_s - (self._last_5_cron_s % 300)
+        return last_cron_s + 300
+
+    def time_for_5_cron(self) -> bool:
+        if time.time() > self.next_5_cron_s:
+            return True
+        return False
