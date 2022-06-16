@@ -14,7 +14,7 @@ from schema.schema_switcher import TypeMakerByAliasDict
 from actors.utils import QOS, Subscription
 
 
-class Atn_Base(ABC):
+class AtnBase(ABC):
     def __init__(self, node: ShNode):
         self.node = node
         self.logging_on = False
@@ -38,21 +38,18 @@ class Atn_Base(ABC):
         self.gw_consume_client.on_message = self.on_gw_mqtt_message
         self.main_thread = threading.Thread(target=self.main)
 
-    def gw_consume(self):
-        self.gw_consume_client.loop_start()
-
     def on_log(self, client, userdata, level, buf):
         self.screen_print(f"log: {buf}")
 
     def gw_subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'{settings.SCADA_G_NODE_ALIAS}/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce)]
+        return [Subscription(Topic=f'{helpers.scada_g_node_alias()}/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce)]
 
     def on_gw_mqtt_message(self, client, userdata, message):
         try:
             (from_alias, type_alias) = message.topic.split('/')
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if from_alias != settings.SCADA_G_NODE_ALIAS:
+        if from_alias !=  helpers.scada_g_node_alias():
             raise Exception(f"alias {from_alias} not my Scada!")
         from_node = ShNode.by_alias['a.s']
         if type_alias not in TypeMakerByAliasDict.keys():
