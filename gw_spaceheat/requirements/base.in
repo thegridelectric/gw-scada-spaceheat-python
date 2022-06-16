@@ -3,4 +3,4 @@ pika==1.1.0
 paho-mqtt
 pytz
 python-dotenv
-
+numpy
