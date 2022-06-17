@@ -137,6 +137,7 @@
       <SchemaAttributes>recAy1MJ6WTkJC2Bt</SchemaAttributes>
       <SchemaAttributes>recFfaru1gmnzHcg3</SchemaAttributes>
       <SchemaAttributes>recxEGfMCfyl49hgk</SchemaAttributes>
+      <SchemaAttributes>rec1TiEjRVAsU1G6T</SchemaAttributes>
       <AliasRoot>spaceheat.telemetry.name</AliasRoot>
       <SemanticEnd>100</SemanticEnd>
       <LocalName>telemetry.name</LocalName>
@@ -610,6 +611,19 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>rec1TiEjRVAsU1G6T</SchemaAttributeId>
+      <createdTime>2022-06-17T12:46:48Z</createdTime>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+      <Value>TelemetryName</Value>
+      <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
+      <IsRequired>true</IsRequired>
+      <Enum>rec2HyLffy6QK9QId</Enum>
+      <EnumLocalName>telemetry.name</EnumLocalName>
+      <EnumRoot>spaceheat.telemetry.name</EnumRoot>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>rec1lT7lfuqohFuY2</SchemaAttributeId>
       <createdTime>2022-05-12T01:45:00Z</createdTime>
       <Value>PowerWList</Value>
@@ -902,6 +916,18 @@
       <SubTypeDataClass>BooleanActuatorComponent</SubTypeDataClass>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recEmEL3LueXj4YbW</SchemaAttributeId>
+      <createdTime>2022-06-17T12:09:48Z</createdTime>
+      <Value>TypicalResponseTimeMs</Value>
+      <GtSchema>recy2lAURQitTqKTR</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recEnxacHBN9FC6GG</SchemaAttributeId>
       <createdTime>2022-06-07T09:32:04Z</createdTime>
       <Value>ComponentId</Value>
@@ -1101,6 +1127,17 @@
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
       <SubTypeDataClass>ComponentAttributeClass</SubTypeDataClass>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recLaGiS5e3m5TwNz</SchemaAttributeId>
+      <createdTime>2022-06-16T14:48:44Z</createdTime>
+      <Value>ReportingSamplePeriodS</Value>
+      <GtSchema>rec8CoTLGyxAXh6TD</GtSchema>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recLeFRJhQzSaEqF9</SchemaAttributeId>
@@ -1323,7 +1360,7 @@
     <SchemaAttribute>
       <SchemaAttributeId>recW0pfyJkVdjaRTY</SchemaAttributeId>
       <createdTime>2022-06-04T19:22:47Z</createdTime>
-      <Value>PrecisionExponent</Value>
+      <Value>Exponent</Value>
       <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
@@ -1794,7 +1831,7 @@
     <SchemaAttribute>
       <SchemaAttributeId>recqGEAWc6ioKwYCv</SchemaAttributeId>
       <createdTime>2022-06-16T12:06:21Z</createdTime>
-      <Value>TypicalReadTimeMs</Value>
+      <Value>TypicalResponseTimeMs</Value>
       <GtSchema>recrNYtQoRa7YhqI4</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
@@ -1817,6 +1854,7 @@
       <IsType>true</IsType>
       <SubTypeDataClass>ElectricHeaterCac</SubTypeDataClass>
     </SchemaAttribute>
+    <SchemaAttribute>itrX3kKL4G1SA3Pz0/recqIhKpky5FrUJul</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recqTlmb22FCbFzaQ</SchemaAttributeId>
       <createdTime>2022-06-15T23:00:50Z</createdTime>
@@ -1855,7 +1893,6 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itri5rfXj0H22Z7AN/recrpGZFYeoLlFiGW</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recu20L98RSiZfLsJ</SchemaAttributeId>
       <createdTime>2022-06-14T10:56:26Z</createdTime>
@@ -2075,6 +2112,7 @@
       <SchemaAttributes>recmAJ31xoOq5qTHU</SchemaAttributes>
       <SchemaAttributes>rec3DmgM8Y9CgZ3cu</SchemaAttributes>
       <SchemaAttributes>reczovvHr0jpI0nE1</SchemaAttributes>
+      <SchemaAttributes>recLaGiS5e3m5TwNz</SchemaAttributes>
       <SemanticEnd>110</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ShNode</DataClass>
@@ -2360,6 +2398,7 @@
       <SchemaAttributes>recW0pfyJkVdjaRTY</SchemaAttributes>
       <SchemaAttributes>recL9BeJniQtSOgyV</SchemaAttributes>
       <SchemaAttributes>recqGEAWc6ioKwYCv</SchemaAttributes>
+      <SchemaAttributes>rec1TiEjRVAsU1G6T</SchemaAttributes>
       <UsedAsSubMessagein>rece76qbENBm5shvn</UsedAsSubMessagein>
       <UsedAsSubMessagein>rec6F0YzYq2cynuBc</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
@@ -2434,6 +2473,7 @@
       <SchemaAttributes>recD4VpikwJAaTf0c</SchemaAttributes>
       <SchemaAttributes>rec9E6HTIAJLoh9wW</SchemaAttributes>
       <SchemaAttributes>reciCl45E5pQe7ans</SchemaAttributes>
+      <SchemaAttributes>recEmEL3LueXj4YbW</SchemaAttributes>
       <UsedAsSubMessagein>recEXU8tEG6X0jUnU</UsedAsSubMessagein>
       <UsedAsSubMessagein>recckyOp6IRG7lBqe</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>

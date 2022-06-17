@@ -6,6 +6,7 @@ from data_classes.cacs.temp_sensor_cac import TempSensorCac
 
 from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac import GtTempSensorCac
 from schema.errors import MpSchemaError
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 from schema.enums.unit.unit_map import Unit, UnitMap
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
@@ -15,20 +16,22 @@ class GtTempSensorCac_Maker():
 
     def __init__(self,
                  component_attribute_class_id: str,
-                 precision_exponent: int,
-                 typical_read_time_ms: int,
+                 exponent: int,
+                 typical_response_time_ms: int,
+                 telemetry_name: TelemetryName,
                  temp_unit: Unit,
                  make_model: MakeModel,
                  display_name: Optional[str],
                  comms_method: Optional[str]):
 
-        tuple = GtTempSensorCac(DisplayName=display_name,
+        tuple = GtTempSensorCac(TelemetryName=telemetry_name,
+                                          DisplayName=display_name,
                                           TempUnit=temp_unit,
                                           MakeModel=make_model,
                                           ComponentAttributeClassId=component_attribute_class_id,
-                                          PrecisionExponent=precision_exponent,
+                                          Exponent=exponent,
                                           CommsMethod=comms_method,
-                                          TypicalReadTimeMs=typical_read_time_ms,
+                                          TypicalResponseTimeMs=typical_response_time_ms,
                                           )
         tuple.check_for_errors()
         self.tuple = tuple
@@ -52,10 +55,13 @@ class GtTempSensorCac_Maker():
     def dict_to_tuple(cls, d: dict) ->  GtTempSensorCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
-        if "PrecisionExponent" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing PrecisionExponent")
-        if "TypicalReadTimeMs" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing TypicalReadTimeMs")
+        if "Exponent" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing Exponent")
+        if "TypicalResponseTimeMs" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing TypicalResponseTimeMs")
+        if "TelemetryNameGtEnumSymbol" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing TelemetryNameGtEnumSymbol")
+        d["TelemetryName"] = TelemetryNameMap.gt_to_local(d["TelemetryNameGtEnumSymbol"])
         if "TempUnitGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing TempUnitGtEnumSymbol")
         d["TempUnit"] = UnitMap.gt_to_local(d["TempUnitGtEnumSymbol"])
@@ -67,13 +73,14 @@ class GtTempSensorCac_Maker():
         if "CommsMethod" not in d.keys():
             d["CommsMethod"] = None
 
-        tuple = GtTempSensorCac(DisplayName=d["DisplayName"],
+        tuple = GtTempSensorCac(TelemetryName=d["TelemetryName"],
+                                          DisplayName=d["DisplayName"],
                                           TempUnit=d["TempUnit"],
                                           MakeModel=d["MakeModel"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          PrecisionExponent=d["PrecisionExponent"],
+                                          Exponent=d["Exponent"],
                                           CommsMethod=d["CommsMethod"],
-                                          TypicalReadTimeMs=d["TypicalReadTimeMs"],
+                                          TypicalResponseTimeMs=d["TypicalResponseTimeMs"],
                                           )
         tuple.check_for_errors()
         return tuple
@@ -83,10 +90,10 @@ class GtTempSensorCac_Maker():
         s = {
             'display_name': t.DisplayName,
             'component_attribute_class_id': t.ComponentAttributeClassId,
-            'precision_exponent': t.PrecisionExponent,
+            'exponent': t.Exponent,
             'comms_method': t.CommsMethod,
-            'typical_read_time_ms': t.TypicalReadTimeMs,
-            'temp_unit_gt_enum_symbol': UnitMap.local_to_gt(t.TempUnit),'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
+            'typical_response_time_ms': t.TypicalResponseTimeMs,
+            'telemetry_name_gt_enum_symbol': TelemetryNameMap.local_to_gt(t.TelemetryName),'temp_unit_gt_enum_symbol': UnitMap.local_to_gt(t.TempUnit),'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
         if s['component_attribute_class_id'] in TempSensorCac.by_id.keys():
             dc = TempSensorCac.by_id[s['component_attribute_class_id']]
         else:
@@ -97,13 +104,14 @@ class GtTempSensorCac_Maker():
     def dc_to_tuple(cls, dc: TempSensorCac) -> GtTempSensorCac:
         if dc is None:
             return None
-        t = GtTempSensorCac(DisplayName=dc.display_name,
+        t = GtTempSensorCac(TelemetryName=dc.telemetry_name,
+                                            DisplayName=dc.display_name,
                                             TempUnit=dc.temp_unit,
                                             MakeModel=dc.make_model,
                                             ComponentAttributeClassId=dc.component_attribute_class_id,
-                                            PrecisionExponent=dc.precision_exponent,
+                                            Exponent=dc.exponent,
                                             CommsMethod=dc.comms_method,
-                                            TypicalReadTimeMs=dc.typical_read_time_ms,
+                                            TypicalResponseTimeMs=dc.typical_response_time_ms,
                                             )
         t.check_for_errors()
         return t

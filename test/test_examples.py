@@ -80,11 +80,24 @@ def test_load_house():
     nodes_w_components = list(filter(lambda x: x.component_id is not None, ShNode.by_alias.values()))
     assert len(nodes_w_components) == 19
     actor_nodes_w_components = list(filter(lambda x: x.has_actor, nodes_w_components))
-    assert len(actor_nodes_w_components) == 7
+    assert len(actor_nodes_w_components) == 9
     tank_water_temp_sensor_nodes = list(filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes))
     assert len(tank_water_temp_sensor_nodes) == 5
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
+
+
+def test_temp_sensor_loop_time():
+    load_house.load_all(input_json_file='../test/test_data/test_load_house.json')
+    all_nodes = list(ShNode.by_alias.values())
+    tank_water_temp_sensor_nodes = list(filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes))
+    for node in tank_water_temp_sensor_nodes:
+        sensor = TankWaterTempSensor(node)
+        start = time.time()
+        sensor.check_and_report_temp()
+        end = time.time()
+        loop_ms = 1000 * (end - start)
+        assert loop_ms > 200
 
 
 def test_async_power_metering_dag():

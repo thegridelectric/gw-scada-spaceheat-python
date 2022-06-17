@@ -14,11 +14,13 @@ class GtBooleanActuatorCac_Maker():
 
     def __init__(self,
                  component_attribute_class_id: str,
+                 typical_response_time_ms: int,
                  make_model: MakeModel,
                  display_name: Optional[str]):
 
         tuple = GtBooleanActuatorCac(MakeModel=make_model,
                                           ComponentAttributeClassId=component_attribute_class_id,
+                                          TypicalResponseTimeMs=typical_response_time_ms,
                                           DisplayName=display_name,
                                           )
         tuple.check_for_errors()
@@ -43,6 +45,8 @@ class GtBooleanActuatorCac_Maker():
     def dict_to_tuple(cls, d: dict) ->  GtBooleanActuatorCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
+        if "TypicalResponseTimeMs" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing TypicalResponseTimeMs")
         if "MakeModelGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing MakeModelGtEnumSymbol")
         d["MakeModel"] = MakeModelMap.gt_to_local(d["MakeModelGtEnumSymbol"])
@@ -51,6 +55,7 @@ class GtBooleanActuatorCac_Maker():
 
         tuple = GtBooleanActuatorCac(MakeModel=d["MakeModel"],
                                           ComponentAttributeClassId=d["ComponentAttributeClassId"],
+                                          TypicalResponseTimeMs=d["TypicalResponseTimeMs"],
                                           DisplayName=d["DisplayName"],
                                           )
         tuple.check_for_errors()
@@ -60,6 +65,7 @@ class GtBooleanActuatorCac_Maker():
     def tuple_to_dc(cls, t: GtBooleanActuatorCac) -> BooleanActuatorCac:
         s = {
             'component_attribute_class_id': t.ComponentAttributeClassId,
+            'typical_response_time_ms': t.TypicalResponseTimeMs,
             'display_name': t.DisplayName,
             'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
         if s['component_attribute_class_id'] in BooleanActuatorCac.by_id.keys():
@@ -74,6 +80,7 @@ class GtBooleanActuatorCac_Maker():
             return None
         t = GtBooleanActuatorCac(MakeModel=dc.make_model,
                                             ComponentAttributeClassId=dc.component_attribute_class_id,
+                                            TypicalResponseTimeMs=dc.typical_response_time_ms,
                                             DisplayName=dc.display_name,
                                             )
         t.check_for_errors()

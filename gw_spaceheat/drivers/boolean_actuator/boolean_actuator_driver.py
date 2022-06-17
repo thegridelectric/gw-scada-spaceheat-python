@@ -6,6 +6,8 @@ from data_classes.components.boolean_actuator_component import \
 
 class BooleanActuatorDriver(ABC):
     def __init__(self, component: BooleanActuatorComponent):
+        if not isinstance(component, BooleanActuatorComponent):
+            raise Exception(f"BooleanActuatorDriver requires BooleanActuatorComponent. Got {component}")
         self.component = component
 
     @abstractmethod
@@ -14,4 +16,8 @@ class BooleanActuatorDriver(ABC):
 
     @abstractmethod
     def turn_off(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def is_on(self) -> int:
         raise NotImplementedError

@@ -7,6 +7,7 @@ from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 class GtBooleanActuatorCacBase(NamedTuple):
     ComponentAttributeClassId: str     #
+    TypicalResponseTimeMs: int     #
     MakeModel: MakeModel     #
     DisplayName: Optional[str] = None
     TypeAlias: str = 'gt.boolean.actuator.cac.100'
@@ -29,6 +30,8 @@ class GtBooleanActuatorCacBase(NamedTuple):
         if not property_format.is_uuid_canonical_textual(self.ComponentAttributeClassId):
             errors.append(f"ComponentAttributeClassId {self.ComponentAttributeClassId}"
                           " must have format UuidCanonicalTextual")
+        if not isinstance(self.TypicalResponseTimeMs, int):
+            errors.append(f"TypicalResponseTimeMs {self.TypicalResponseTimeMs} must have type int.")
         if self.DisplayName:
             if not isinstance(self.DisplayName, str):
                 errors.append(f"DisplayName {self.DisplayName} must have type str.")

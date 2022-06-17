@@ -37,7 +37,7 @@
                     "DisplayName": "30A Relay for first boost element",
                     "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
                     "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
-                    "HasActor": false
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank",
@@ -85,7 +85,7 @@
                     "DisplayName": "Circulator Pump Boolean Actuator",
                     "ShNodeId": "357a45f0-1a57-4f3d-9be4-4ff77cf19ba2",
                     "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
-                    "HasActor": false
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank.out.pump.allradiators",
@@ -115,6 +115,7 @@
                     "DisplayName": "Flow Meter on distribution pipe out of tank",
                     "ShNodeId": "fcc8cc94-75eb-42e1-8ef1-024961b053b7",
                     "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
+                    "ReportingSamplePeriodS": 60,
                     "HasActor": true
                 },
                 {
@@ -123,6 +124,7 @@
                     "DisplayName": "Temp Sensor on distribution pipe out of tank",
                     "ShNodeId": "66a4a5e7-f160-424a-8ad5-f6554bf9a99a",
                     "ComponentId": "a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e",
+                    "ReportingSamplePeriodS": 60,
                     "HasActor": false
                 },
                 {
@@ -131,6 +133,7 @@
                     "DisplayName": "Temp Sensor on distribution pipe into tank",
                     "ShNodeId": "d9c461f6-ed11-4dc1-9fe2-992d5d2413d0",
                     "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
+                    "ReportingSamplePeriodS": 60,
                     "HasActor": false
                 },
                 {
@@ -184,6 +187,7 @@
                     "DisplayName": "First Garage Temp sensor",
                     "ShNodeId": "2793ae37-e680-404e-a4ad-1efb0b8987cf",
                     "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
+                    "ReportingSamplePeriodS": 60,
                     "HasActor": false
                 },
                 {
@@ -192,6 +196,7 @@
                     "DisplayName": "First Garage Temp sensor",
                     "ShNodeId": "4c94cf37-dd87-49de-b782-aac97b69c154",
                     "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",
+                    "ReportingSamplePeriodS": 60,
                     "HasActor": false
                 }
 
@@ -354,7 +359,8 @@
             "BooleanActuatorCacs":[
                 {
                     "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
-                    "MakeModelGtEnumSymbol": "e81d74a8"
+                    "MakeModelGtEnumSymbol": "e81d74a8",
+                    "TypicalResponseTimeMs": 400
                 }
             ],
             "PipeFlowSensorCacs":[
@@ -375,30 +381,34 @@
                     "MakeModelGtEnumSymbol": "f8b497e8",
                     "DisplayName": "Simulated GridWorks high precision water temp sensor",
                     "CommsMethod": "SassyMQ",
-                    "PrecisionExponent": 3,
+                    "Exponent": -3,
                     "TempUnitGtEnumSymbol": "7d8832f8",
-                    "TypicalReadTimeMs": 880
+                    "TelemetryNameGtEnumSymbol": "793505aa",
+                    "TypicalResponseTimeMs": 880
                 },
                 {
                     "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "TelemetryNameGtEnumSymbol": "793505aa",
+                    "TypicalResponseTimeMs": 0,
+                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "TelemetryNameGtEnumSymbol": "793505aa",
+                    "TypicalResponseTimeMs": 0,
+                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "TelemetryNameGtEnumSymbol": "793505aa",
+                    "TypicalResponseTimeMs": 0,
+                    "Exponent": -3
                 }
             ],
             "OtherCacs": [
@@ -458,7 +468,7 @@
                     "DisplayName": "30A Relay for first boost element",
                     "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
                     "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
-                    "HasActor": false
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank",
@@ -506,7 +516,7 @@
                     "DisplayName": "Circulator Pump Boolean Actuator",
                     "ShNodeId": "357a45f0-1a57-4f3d-9be4-4ff77cf19ba2",
                     "ComponentId": "7de91fae-72ab-4226-8ebe-f66a9d85cea4",
-                    "HasActor": false
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank.out.pump.baseboard1",
@@ -774,7 +784,8 @@
             "BooleanActuatorCacs":[
                 {
                     "ComponentAttributeClassId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
-                    "MakeModelGtEnumSymbol": "fabfa505"
+                    "MakeModelGtEnumSymbol": "fabfa505",
+                    "TypicalResponseTimeMs": 200
                 }
             ],
             "PipeFlowSensorCacs":[
@@ -796,30 +807,34 @@
                     "MakeModelGtEnumSymbol": "acd93fb3",
                     "DisplayName": "Adafruit High Temp Waterproof DS18B20 Digital Temp Sensor",
                     "CommsMethod": "OneWire",
-                    "PrecisionExponent": 3,
+                    "Exponent": -3,
+                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 880
+                    "TypicalResponseTimeMs": 880
                 },
                 {
                     "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
+                    "TypicalResponseTimeMs": 0,
+                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
+                    "TypicalResponseTimeMs": 0,
+                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
+                    "TypicalResponseTimeMs": 0,
+                    "Exponent": -3
                 }
             ],
             "OtherCacs": [
