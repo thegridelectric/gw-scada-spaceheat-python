@@ -1,17 +1,16 @@
-"""Base for gt.spaceheat.sync.single.100"""
+"""Base for gt.sh.simple.single.status.100"""
 import json
 from typing import List, NamedTuple
 import schema.property_format as property_format
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 
 
-class GtSpaceheatSyncSingleBase(NamedTuple):
-    FirstReadTimeUnixS: int
-    SamplePeriodS: int     #
+class GtShSimpleSingleStatusBase(NamedTuple):
+    ReadTimeUnixSList: List[int]
     ShNodeAlias: str     #
     ValueList: List[int]    #
     TelemetryName: TelemetryName     #
-    TypeAlias: str = 'gt.spaceheat.sync.single.100'
+    TypeAlias: str = 'gt.sh.simple.single.status.100'
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -24,10 +23,12 @@ class GtSpaceheatSyncSingleBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
-        if not isinstance(self.FirstReadTimeUnixS, int):
-            errors.append(f"FirstReadTimeUnixS {self.FirstReadTimeUnixS} must have type int.")
-        if not isinstance(self.SamplePeriodS, int):
-            errors.append(f"SamplePeriodS {self.SamplePeriodS} must have type int.")
+        if not isinstance(self.ReadTimeUnixSList, list):
+            errors.append(f"ReadTimeUnixSList {self.ReadTimeUnixSList} must have type list.")
+        else:
+            for elt in self.ReadTimeUnixSList:
+                if not isinstance(elt, int):
+                    errors.append(f"elt {elt} of ReadTimeUnixSList must have type int")
         if not isinstance(self.ShNodeAlias, str):
             errors.append(f"ShNodeAlias {self.ShNodeAlias} must have type str.")
         if not property_format.is_lrd_alias_format(self.ShNodeAlias):
@@ -35,12 +36,13 @@ class GtSpaceheatSyncSingleBase(NamedTuple):
                           " must have format LrdAliasFormat")
         if not isinstance(self.ValueList, list):
             errors.append(f"ValueList {self.ValueList} must have type list.")
-        for elt in self.ValueList:
-            if not isinstance(elt, int):
-                errors.append(f"elt {elt} of ValueList must have type int")
+        else:
+            for elt in self.ValueList:
+                if not isinstance(elt, int):
+                    errors.append(f"elt {elt} of ValueList must have type int")
         if not isinstance(self.TelemetryName, TelemetryName):
             errors.append(f"TelemetryName {self.TelemetryName} must have type {TelemetryName}.")
-        if self.TypeAlias != 'gt.spaceheat.sync.single.100':
-            errors.append(f"Type requires TypeAlias of gt.spaceheat.sync.single.100, not {self.TypeAlias}.")
+        if self.TypeAlias != 'gt.sh.simple.single.status.100':
+            errors.append(f"Type requires TypeAlias of gt.sh.simple.single.status.100, not {self.TypeAlias}.")
         
         return errors
