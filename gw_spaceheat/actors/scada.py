@@ -1,6 +1,8 @@
 import time
 from typing import Dict, List
 
+import helpers
+import settings
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
@@ -11,8 +13,17 @@ from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driv
 from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import \
     NcdPr814Spst_BooleanActuatorDriver
 from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums.role.role_map import Role
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
+from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import \
+    GtSensorReportingConfig as ReportingConfig
+from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import \
+    GtSensorReportingConfig_Maker as ConfigMaker
+from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import \
+    GtSpaceheatStatus_Maker
+from schema.gt.gt_spaceheat_sync_single.gt_spaceheat_sync_single_maker import \
+    GtSpaceheatSyncSingle_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import (GtTelemetry,
                                                        GtTelemetry_Maker)
 
@@ -27,9 +38,32 @@ class Scada(ScadaBase):
         self.power = 0
         self.total_power_w = 0
         self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
-        self.temp_readings: List = []
+        self.reporting_config: Dict[ShNode, ReportingConfig] = {}
+        self.set_reporting_configs()
+        self.latest_readings: Dict[ShNode, List] = {}
+        self.latest_sample_times: Dict[ShNode, List] = {}
+        self.flush_latest_readings()
         self.set_actuator_components()
         self.screen_print(f'Initialized {self.__class__}')
+
+    def flush_latest_readings(self):
+        for node in self.my_tank_water_temp_sensors():
+            self.latest_readings[node] = []
+            self.latest_sample_times[node] = []
+
+    def set_reporting_configs(self):
+        for node in self.my_tank_water_temp_sensors():
+            cac = node.temp_sensor_component.cac
+            if node.reporting_sample_period_s is None:
+                raise Exception(f"Temp sensor node {node} is missing ReportingSamplePeriodS!")
+            reporting_config = ConfigMaker(report_on_change=False,
+                                           exponent=cac.reporting_exponent,
+                                           reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                           sample_period_s=node.reporting_sample_period_s,
+                                           telemetry_name=cac.telemetry_name,
+                                           unit=cac.temp_unit,
+                                           async_report_threshold=None).tuple
+            self.reporting_config[node] = reporting_config
 
     def set_actuator_components(self):
         self.boost_actuator = ShNode.by_alias['a.elt1.relay']
@@ -58,15 +92,16 @@ class Scada(ScadaBase):
     ###############################################
 
     def subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp0/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp1/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp2/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp3/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce),
-                Subscription(Topic=f'a.tank.temp4/{GtTelemetry_Maker.type_alias}', Qos=QOS.AtLeastOnce)]
+        my_subscriptions = [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
+                            Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry_Maker.type_alias}',
+                            Qos=QOS.AtLeastOnce)]
+        for node in self.my_tank_water_temp_sensors():
+            my_subscriptions.append(Subscription(Topic=f'{node.alias}/{GtTelemetry_Maker.type_alias}',
+                                    Qos=QOS.AtLeastOnce))
+        return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
+        self.screen_print("Got message")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GsDispatch):
@@ -85,6 +120,11 @@ class Scada(ScadaBase):
 
     def gt_telemetry_received(self, from_node: ShNode, payload: GtTelemetry):
         self.screen_print(f"{payload.Value} from {from_node.alias}")
+        if from_node not in self.latest_readings.keys():
+            self.screen_print(f"Not tracking readings from {from_node}!")
+            return
+        self.latest_readings[from_node].append(payload.Value)
+        self.latest_sample_times[from_node].append(payload.ScadaReadTimeUnixMs)
 
     def on_gw_message(self, from_node: ShNode, payload: GtTelemetry):
         if from_node != ShNode.by_alias['a']:
@@ -100,7 +140,7 @@ class Scada(ScadaBase):
     ################################################
     # Primary functions
     ###############################################
-    
+
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
@@ -117,8 +157,42 @@ class Scada(ScadaBase):
         else:
             self.driver[ba].turn_off()
 
+    def send_status(self):
+        self.screen_print("Should send status")
+        sync_status_list = []
+        for node in self.my_tank_water_temp_sensors():
+            if node not in self.latest_sample_times.keys():
+                raise Exception(f'{node} missing from self.lastest_sample-times')
+            if len(self.latest_sample_times[node]) > 0:
+                first_read_time_unix_s = int(self.latest_sample_times[node][0] / 1000)
+                sync_status = GtSpaceheatSyncSingle_Maker(first_read_time_unix_s=first_read_time_unix_s,
+                                                          sample_period_s=self.reporting_config[node].SamplePeriodS,
+                                                          sh_node_alias=node.alias,
+                                                          telemetry_name=self.reporting_config[node].TelemetryName,
+                                                          value_list=self.latest_readings[node]).tuple
+                sync_status_list.append(sync_status)
+
+        slot_start_unix_s = self._last_5_cron_s
+        status_payload = GtSpaceheatStatus_Maker(about_g_node_alias=helpers.ta_g_node_alias(),
+                                                 slot_start_unix_s=slot_start_unix_s,
+                                                 reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                                 async_status_list=[],
+                                                 sync_status_list=sync_status_list).tuple
+        self.latest_status_payload = status_payload
+        self.gw_publish(payload=status_payload)
+        self.flush_latest_readings()
+
+    def cron_every_5(self):
+        self.send_status()
+        self._last_5_cron_s = int(time.time())
+
     def main(self):
         self._main_loop_running = True
         while self._main_loop_running is True:
-            # track time and send status every x minutes (likely 5)
+            if self.time_for_5_cron():
+                self.cron_every_5()
             time.sleep(1)
+
+    def my_tank_water_temp_sensors(self) -> List[ShNode]:
+        all_nodes = list(ShNode.by_alias.values())
+        return list(filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes))

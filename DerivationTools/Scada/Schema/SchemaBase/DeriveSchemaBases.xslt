@@ -71,12 +71,20 @@ class </xsl:text>
     <xsl:value-of select="DataClass"/><xsl:text>Id: str 
     </xsl:text>
     </xsl:if>
-    <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsRequired = 'true')]">
+    <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsRequired = 'true') and not (IsList = 'true')]">
         <xsl:value-of select="Value"/><xsl:text>: </xsl:text>
         <xsl:call-template name="python-type">
             <xsl:with-param name="gw-type" select="PrimitiveType"/>
         </xsl:call-template>
 <xsl:text>     #
+    </xsl:text>
+    </xsl:for-each>
+    <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsPrimitive = 'true') and (IsList = 'true')]">
+        <xsl:value-of select="Value"/><xsl:text>: List[</xsl:text>
+        <xsl:call-template name="python-type">
+            <xsl:with-param name="gw-type" select="PrimitiveType"/>
+        </xsl:call-template>
+<xsl:text>]
     </xsl:text>
     </xsl:for-each>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsEnum = 'true')]">

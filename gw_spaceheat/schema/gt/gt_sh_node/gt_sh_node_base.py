@@ -11,6 +11,7 @@ class GtShNodeBase(NamedTuple):
     Alias: str     #
     Role: Role     #
     HasActor: Boolean
+    ReportingSamplePeriodS: Optional[int] = None
     ComponentId: Optional[str] = None
     DisplayName: Optional[str] = None
     TypeAlias: str = 'gt.sh.node.110'
@@ -24,6 +25,8 @@ class GtShNodeBase(NamedTuple):
             del d["ComponentId"]
         if d["DisplayName"] is None:
             del d["DisplayName"]
+        if d["ReportingSamplePeriodS"] is None:
+            del d["ReportingSamplePeriodS"]
         del(d["Role"])
         d["RoleGtEnumSymbol"] = RoleMap.local_to_gt(self.Role)
         return d
@@ -40,7 +43,10 @@ class GtShNodeBase(NamedTuple):
                 errors.append(f"ComponentId {self.ComponentId} must have type str.")
             if not property_format.is_uuid_canonical_textual(self.ComponentId):
                 errors.append(f"ComponentId {self.ComponentId}"
-                                " must have format UuidCanonicalTextual")
+                              " must have format UuidCanonicalTextual")
+        if self.ReportingSamplePeriodS:
+            if not isinstance(self.ReportingSamplePeriodS, int):
+                errors.append(f"ReportingSamplePeriodS {self.ReportingSamplePeriodS} must have type int.")
         if not isinstance(self.HasActor, bool):
             errors.append(f"HasActor {self.HasActor} must hav etype bool")
         if self.DisplayName:
@@ -50,5 +56,5 @@ class GtShNodeBase(NamedTuple):
             errors.append(f"Role {self.Role} must have type {Role}.")
         if self.TypeAlias != 'gt.sh.node.110':
             errors.append(f"Type requires TypeAlias of gt.sh.node.110, not {self.TypeAlias}.")
-        
+  
         return errors

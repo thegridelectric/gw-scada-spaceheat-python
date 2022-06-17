@@ -37,9 +37,6 @@ class ScadaBase(ActorBase):
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
         self.gw_consume_client.on_message = self.on_gw_mqtt_message
 
-    def gw_consume(self):
-        self.gw_consume_client.loop_start()
-
     def gw_subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/{GsDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
 
@@ -66,7 +63,7 @@ class ScadaBase(ActorBase):
         else:
             qos = QOS.AtLeastOnce
         self.gw_publish_client.publish(
-            topic=f'{settings.SCADA_G_NODE_ALIAS}/{payload.TypeAlias}',
+            topic=f'{helpers.scada_g_node_alias()}/{payload.TypeAlias}',
             payload=payload.as_type(),
             qos=qos.value,
             retain=False)

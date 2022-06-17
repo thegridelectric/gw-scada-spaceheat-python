@@ -127,7 +127,9 @@ class </xsl:text><xsl:value-of select="DataClass"/><xsl:text>Base(ComponentAttri
                 <xsl:call-template name="nt-case">
                     <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
                 </xsl:call-template><xsl:text>Map.gt_to_local(</xsl:text>
-                <xsl:value-of select="translate(EnumLocalName,'.','_')"/>
+                <xsl:call-template name="python-case">
+                    <xsl:with-param name="camel-case-text" select="Value"  />
+                </xsl:call-template>
                 <xsl:text>_gt_enum_symbol)</xsl:text>
         </xsl:for-each>                                    
     <xsl:text>

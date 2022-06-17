@@ -13,6 +13,7 @@ class ShNodeBase(ABC):
     base_props.append("sh_node_id")
     base_props.append("alias")
     base_props.append("component_id")
+    base_props.append("reporting_sample_period_s")
     base_props.append("display_name")
     base_props.append("has_actor")
     base_props.append("role_gt_enum_symbol")
@@ -22,12 +23,14 @@ class ShNodeBase(ABC):
                  alias: str,
                  role_gt_enum_symbol: str,
                  has_actor: bool,
+                 reporting_sample_period_s: Optional[int] = None,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
                  ):
         self.sh_node_id = sh_node_id
         self.alias = alias
         self.component_id = component_id
+        self.reporting_sample_period_s = reporting_sample_period_s
         self.display_name = display_name
         self.has_actor = has_actor
         self.role = RoleMap.gt_to_local(role_gt_enum_symbol)
