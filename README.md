@@ -1,7 +1,7 @@
 # GridWorks SpaceHeat SCADA
 
 [![Tests](https://github.com/anschweitzer/gw-scada-spaceheat-python/actions/workflows/ci.yaml/badge.svg)][tests]
-[![Codecov](https://codecov.io/gh/anschweitzer/gw-scada-spaceheat-python/branch/as/coverage/graph/badge.svg)][codecov]
+[![Codecov](https://codecov.io/gh/anschweitzer/gw-scada-spaceheat-python/branch/main/graph/badge.svg)][codecov]
 
 [tests]: https://github.com/anschweitzer/gw-scada-spaceheat-python/actions/workflows/ci.yaml
 [codecov]: https://app.codecov.io/gh/anschweitzer/gw-scada-spaceheat-python
