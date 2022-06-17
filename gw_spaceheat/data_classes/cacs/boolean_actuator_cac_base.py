@@ -14,15 +14,18 @@ class BooleanActuatorCacBase(ComponentAttributeClass):
     
     base_props.append("make_model")
     base_props.append("component_attribute_class_id")
+    base_props.append("typical_response_time_ms")
     base_props.append("display_name")
 
     def __init__(self, component_attribute_class_id: str,
+                 typical_response_time_ms: int,
                  make_model_gt_enum_symbol: str,
                  display_name: Optional[str] = None,
                  ):
 
         super(BooleanActuatorCacBase, self).__init__(component_attribute_class_id=component_attribute_class_id,
                                              display_name=display_name)
+        self.typical_response_time_ms = typical_response_time_ms
         self.make_model = MakeModelMap.gt_to_local(make_model_gt_enum_symbol)
 
     def update(self, type: GtBooleanActuatorCac):

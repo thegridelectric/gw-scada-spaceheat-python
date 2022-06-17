@@ -12,17 +12,19 @@ class TempSensorCac(TempSensorCacBase):
     by_id: Dict[str, "TempSensorCac"] = {}
 
     def __init__(self, component_attribute_class_id: str,
-                 precision_exponent: int,
+                 exponent: int,
                  typical_response_time_ms: int,
                  temp_unit_gt_enum_symbol: str,
                  make_model_gt_enum_symbol: str,
+                 telemetry_name_gt_enum_symbol: str,
                  display_name: Optional[str] = None,
                  comms_method: Optional[str] = None,
                  ):
         super(self.__class__, self).__init__(display_name=display_name,
                                              component_attribute_class_id=component_attribute_class_id,
-                                             precision_exponent=precision_exponent,
+                                             exponent=exponent,
                                              comms_method=comms_method,
+                                             telemetry_name_gt_enum_symbol=telemetry_name_gt_enum_symbol,
                                              typical_response_time_ms=typical_response_time_ms,
                                              temp_unit_gt_enum_symbol=temp_unit_gt_enum_symbol,
                                              make_model_gt_enum_symbol=make_model_gt_enum_symbol,
@@ -38,16 +40,3 @@ class TempSensorCac(TempSensorCacBase):
 
     def __repr__(self):
         return f"{self.make_model.value} {self.display_name}"
-
-    @property
-    def telemetry_name(self):
-        if self.precision_exponent == 3 and self.temp_unit == Unit.CELCIUS:
-            return TelemetryName.WATER_TEMP_C_TIMES1000
-        elif self.precision_exponent == 3 and self.temp_unit == Unit.FAHRENHEIT:
-            return TelemetryName.WATER_TEMP_F_TIMES1000
-        else:
-            raise Exception(f'No Telemetry name for {self}')
-
-    @property
-    def reporting_exponent(self):
-        return 0

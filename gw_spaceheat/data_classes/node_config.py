@@ -34,43 +34,46 @@ class NodeConfig():
         elif isinstance(node.component, BooleanActuatorComponent):
             self.set_boolean_actuator_config(component=component)
         else:
-            self.reporting_config = None
+            self.reporting = None
             self.driver = None
+            self.typical_response_time_ms = 0
 
     def set_temp_sensor_config(self, component: TempSensorComponent):
         cac = component.cac
+        self.typical_response_time_ms = cac.typical_response_time_ms
         if self.node.reporting_sample_period_s is None:
-            raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!") 
-        self.reporting_config = ConfigMaker(report_on_change=False,
-                                            exponent=cac.reporting_exponent,
-                                            reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
-                                            sample_period_s=self.node.reporting_sample_period_s,
-                                            telemetry_name=cac.telemetry_name,
-                                            unit=cac.temp_unit,
-                                            async_report_threshold=None).tuple
+            raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!")
+        self.reporting = ConfigMaker(report_on_change=False,
+                                     exponent=cac.exponent,
+                                     reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                     sample_period_s=self.node.reporting_sample_period_s,
+                                     telemetry_name=cac.telemetry_name,
+                                     unit=cac.temp_unit,
+                                     async_report_threshold=None).tuple
         if cac.make_model == MakeModel.ADAFRUIT__642:
             self.driver = Adafruit642_TempSensorDriver(component=component)
         elif cac.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             self.driver = GridworksWaterTempSensorHighPrecision_TempSensorDriver(
                 component=component)
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            self.driver = UnknownBooleanActuatorDriver(component=component)
+            self.driver = UnknownTempSensorDriver(component=component)
         else:
-            raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}")     
+            raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}") 
 
     def set_boolean_actuator_config(self, component: BooleanActuatorComponent):
         cac = component.cac
+        self.typical_response_time_ms = cac.typical_response_time_ms
         if self.node.reporting_sample_period_s is None:
             reporting_sample_period_s = settings.SCADA_REPORTING_PERIOD_S
         else:
             reporting_sample_period_s = self.node.reporting_sample_period_s
-        self.reporting_config = ConfigMaker(report_on_change=True,
-                                            exponent=0,
-                                            reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
-                                            sample_period_s=reporting_sample_period_s,
-                                            telemetry_name=cac.telemetry_name,
-                                            unit=Unit.UNITLESS,
-                                            async_report_threshold=0.5).tuple
+        self.reporting = ConfigMaker(report_on_change=True,
+                                     exponent=0,
+                                     reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                     sample_period_s=reporting_sample_period_s,
+                                     telemetry_name=cac.telemetry_name,
+                                     unit=Unit.UNITLESS,
+                                     async_report_threshold=0.5).tuple
 
         if cac.make_model == MakeModel.NCD__PR814SPST:
             self.driver = NcdPr814Spst_BooleanActuatorDriver(component=component)
@@ -78,6 +81,6 @@ class NodeConfig():
             self.driver = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
                 component=component)
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            self.driver = UnknownTempSensorDriver(component=component)
+            self.driver = UnknownBooleanActuatorDriver(component=component)
         else:
             raise NotImplementedError(f"No BooleanActuator driver yet for {cac.make_model}")
