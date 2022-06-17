@@ -114,25 +114,8 @@ def test_async_power_metering_dag():
     assert atn.total_power_w == 2100
 
 
-def test_collect_temp_data():
-    """Verify Scada receives publication from TankWaterTempSensor"""
-    load_house.load_all(input_json_file='../test/test_data/test_load_house.json')
-    scada = ScadaRecorder(node=typing.cast(ShNode, ShNode.by_alias["a.s"]))
-    scada.start()
-    thermo = TankWaterTempSensor(node=typing.cast(ShNode, ShNode.by_alias["a.tank.temp0"]))
-    thermo.start()
-    time.sleep(1)
-    time.sleep(thermo.node.reporting_sample_period_s)
-    thermo.terminate_main_loop()
-    thermo.main_thread.join()
-    scada.terminate_main_loop()
-    scada.main_thread.join()
-    assert scada.num_received > 0
-    assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] == scada.num_received
-
-
 def test_scada_sends_status():
-    scada = ScadaRecorder(node=typing.cast(ShNode, ShNode.by_alias["a.s"]))
+    scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
     scada.terminate_main_loop()
     scada.main_thread.join()
@@ -140,9 +123,11 @@ def test_scada_sends_status():
     ear.start()
     ear.terminate_main_loop()
     ear.main_thread.join()
-    thermo0 = TankWaterTempSensor(node=typing.cast(ShNode, ShNode.by_alias["a.tank.temp0"]))
+    time.sleep(2)
+
+    thermo0 = TankWaterTempSensor(node=ShNode.by_alias["a.tank.temp0"])
     thermo0.start()
-    thermo1 = TankWaterTempSensor(node=typing.cast(ShNode, ShNode.by_alias["a.tank.temp1"]))
+    thermo1 = TankWaterTempSensor(node=ShNode.by_alias["a.tank.temp1"])
     thermo1.start()
     time.sleep(1)
     time.sleep(thermo0.node.reporting_sample_period_s)
@@ -151,10 +136,12 @@ def test_scada_sends_status():
     thermo1.terminate_main_loop()
     thermo1.main_thread.join()
 
+    assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
+    assert scada.num_received_by_topic["a.tank.temp1/gt.telemetry.110"] > 0
     scada.send_status()
     time.sleep(1)
     assert ear.num_received > 0
-    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.spaceheat.status.100"] == ear.num_received
+    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.spaceheat.status.100"] == 1
     assert isinstance(ear.latest_payload, GtSpaceheatStatus)
     assert len(ear.latest_payload.SyncStatusList) == 2
     sync_status = ear.latest_payload.SyncStatusList[0]
