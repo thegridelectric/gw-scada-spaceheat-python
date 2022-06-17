@@ -157,3 +157,13 @@ class Scada(ScadaBase):
     def my_tank_water_temp_sensors(self) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes))
+
+    @property
+    def next_5_cron_s(self) -> int:
+        last_cron_s = self._last_5_cron_s - (self._last_5_cron_s % 300)
+        return last_cron_s + 300
+
+    def time_for_5_cron(self) -> bool:
+        if time.time() > self.next_5_cron_s:
+            return True
+        return False
