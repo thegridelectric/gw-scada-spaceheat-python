@@ -8,7 +8,7 @@ from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
-from schema.gs.gs_dispatch import GsDispatch
+from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import \
     GtSpaceheatStatus_Maker
@@ -32,14 +32,14 @@ class Scada(ScadaBase):
         self.config: Dict[ShNode, NodeConfig] = {}
         self.set_node_configs()
         self.latest_readings: Dict[ShNode, List] = {}
-        self.latest_sample_times: Dict[ShNode, List] = {}
+        self.latest_sample_times_ms: Dict[ShNode, List] = {}
         self.flush_latest_readings()
         self.screen_print(f'Initialized {self.__class__}')
 
     def flush_latest_readings(self):
-        for node in self.my_tank_water_temp_sensors():
+        for node in self.my_tank_water_temp_sensors() + self.my_boolean_actuators():
             self.latest_readings[node] = []
-            self.latest_sample_times[node] = []
+            self.latest_sample_times_ms[node] = []
 
     def set_node_configs(self):
         all_nodes = list(ShNode.by_alias.values())
@@ -51,10 +51,9 @@ class Scada(ScadaBase):
     ###############################################
 
     def subscriptions(self) -> List[Subscription]:
-        my_subscriptions = [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
-                            Subscription(Topic=f'a.tank.out.flowmeter1/{GtTelemetry_Maker.type_alias}',
-                            Qos=QOS.AtLeastOnce)]
-        for node in self.my_tank_water_temp_sensors():
+        my_subscriptions = [Subscription(Topic=f'a.m/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce)]
+
+        for node in self.my_tank_water_temp_sensors() + self.my_boolean_actuators():
             my_subscriptions.append(Subscription(Topic=f'{node.alias}/{GtTelemetry_Maker.type_alias}',
                                     Qos=QOS.AtLeastOnce))
         return my_subscriptions
@@ -83,7 +82,7 @@ class Scada(ScadaBase):
             self.screen_print(f"Not tracking readings from {from_node}!")
             return
         self.latest_readings[from_node].append(payload.Value)
-        self.latest_sample_times[from_node].append(payload.ScadaReadTimeUnixMs)
+        self.latest_sample_times_ms[from_node].append(payload.ScadaReadTimeUnixMs)
 
     def on_gw_message(self, from_node: ShNode, payload: GtTelemetry):
         if from_node != ShNode.by_alias['a']:
@@ -104,7 +103,8 @@ class Scada(ScadaBase):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         if ba.has_actor:
-            raise NotImplementedError('No actor for boolean actuator yet')
+            dispatch_payload = GsDispatch_Maker(relay_state=1).tuple
+            self.publish(payload=dispatch_payload)
         else:
             self.config[ba].driver.turn_on()
 
@@ -112,7 +112,8 @@ class Scada(ScadaBase):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         if ba.has_actor:
-            raise NotImplementedError('No actor for boolean actuator yet')
+            dispatch_payload = GsDispatch_Maker(relay_state=0).tuple
+            self.publish(payload=dispatch_payload)
         else:
             self.config[ba].driver.turn_off()
 
@@ -120,12 +121,12 @@ class Scada(ScadaBase):
         self.screen_print("Should send status")
         sync_status_list = []
         for node in self.my_tank_water_temp_sensors():
-            if node not in self.latest_sample_times.keys():
+            if node not in self.latest_sample_times_ms.keys():
                 raise Exception(f'{node} missing from self.lastest_sample-times')
-            if len(self.latest_sample_times[node]) > 0:
-                first_read_time_unix_s = int(self.latest_sample_times[node][0] / 1000)
-                sample_period_s = self.config[node].reporting_config.SamplePeriodS
-                telemetry_name = self.config[node].reporting_config.TelemetryName
+            if len(self.latest_sample_times_ms[node]) > 0:
+                first_read_time_unix_s = int(self.latest_sample_times_ms[node][0] / 1000)
+                sample_period_s = self.config[node].reporting.SamplePeriodS
+                telemetry_name = self.config[node].reporting.TelemetryName
                 sync_status = GtSpaceheatSyncSingle_Maker(first_read_time_unix_s=first_read_time_unix_s,
                                                           sample_period_s=sample_period_s,
                                                           sh_node_alias=node.alias,
@@ -157,6 +158,10 @@ class Scada(ScadaBase):
     def my_tank_water_temp_sensors(self) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes))
+
+    def my_boolean_actuators(self) -> List[ShNode]:
+        all_nodes = list(ShNode.by_alias.values())
+        return list(filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, all_nodes))
 
     @property
     def next_5_cron_s(self) -> int:
