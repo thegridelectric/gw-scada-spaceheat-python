@@ -17,7 +17,7 @@ class BooleanActuatorDriver(ABC):
     @abstractmethod
     def turn_off(self):
         raise NotImplementedError
-    
+
     @abstractmethod
     def is_on(self) -> int:
         raise NotImplementedError

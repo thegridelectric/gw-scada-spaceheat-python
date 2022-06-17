@@ -74,7 +74,7 @@ class BooleanActuator(ActorBase):
             self.update_and_report_state_change()
             if self.time_for_sync_report():
                 self.sync_report()
-            
+
             time_of_read_s = time.time()
             if (time_of_read_s - check_start_s) > self.MAIN_LOOP_MIN_TIME_S:
                 return
@@ -90,4 +90,3 @@ class BooleanActuator(ActorBase):
         if time.time() > self.next_sync_report_time_s:
             return True
         return False
-

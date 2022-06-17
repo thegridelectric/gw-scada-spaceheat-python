@@ -58,7 +58,7 @@ class NodeConfig():
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             self.driver = UnknownTempSensorDriver(component=component)
         else:
-            raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}") 
+            raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}")
 
     def set_boolean_actuator_config(self, component: BooleanActuatorComponent):
         cac = component.cac
