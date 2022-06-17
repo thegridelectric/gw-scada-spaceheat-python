@@ -49,7 +49,7 @@ class AtnBase(ABC):
             (from_alias, type_alias) = message.topic.split('/')
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if from_alias !=  helpers.scada_g_node_alias():
+        if from_alias != helpers.scada_g_node_alias():
             raise Exception(f"alias {from_alias} not my Scada!")
         from_node = ShNode.by_alias['a.s']
         if type_alias not in TypeMakerByAliasDict.keys():

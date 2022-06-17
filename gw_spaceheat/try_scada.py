@@ -8,7 +8,7 @@ def main(input_json_file='input_data/houses.json'):
     scada_node = ShNode.by_alias["a.s"]
     scada = Scada(scada_node)
     scada.start()
-    
+
 
 if __name__ == "__main__":
     main()
