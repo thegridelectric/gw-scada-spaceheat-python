@@ -1,7 +1,7 @@
 import uuid
 from abc import abstractmethod
 from typing import List
-
+import threading
 import helpers
 import paho.mqtt.client as mqtt
 import settings
@@ -73,6 +73,7 @@ class ScadaBase(ActorBase):
         self.consume_client.loop_start()
         self.gw_consume_client.loop_start()
         self.gw_publish_client.loop_start()
+        self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f'Started {self.__class__}')
 

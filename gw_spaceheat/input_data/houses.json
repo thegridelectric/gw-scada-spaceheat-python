@@ -359,7 +359,8 @@
             "BooleanActuatorCacs":[
                 {
                     "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
-                    "MakeModelGtEnumSymbol": "e81d74a8"
+                    "MakeModelGtEnumSymbol": "e81d74a8",
+                    "TypicalResponseTimeMs": 400
                 }
             ],
             "PipeFlowSensorCacs":[
@@ -382,27 +383,27 @@
                     "CommsMethod": "SassyMQ",
                     "PrecisionExponent": 3,
                     "TempUnitGtEnumSymbol": "7d8832f8",
-                    "TypicalReadTimeMs": 880
+                    "TypicalResponseTimeMs": 880
                 },
                 {
                     "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
+                    "TypicalResponseTimeMs": 0,
                     "PrecisionExponent": 3
                 },
                 {
                     "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
+                    "TypicalResponseTimeMs": 0,
                     "PrecisionExponent": 3
                 },
                 {
                     "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
+                    "TypicalResponseTimeMs": 0,
                     "PrecisionExponent": 3
                 }
             ],
@@ -779,7 +780,8 @@
             "BooleanActuatorCacs":[
                 {
                     "ComponentAttributeClassId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
-                    "MakeModelGtEnumSymbol": "fabfa505"
+                    "MakeModelGtEnumSymbol": "fabfa505",
+                    "TypicalResponseTimeMs": 200
                 }
             ],
             "PipeFlowSensorCacs":[
@@ -803,27 +805,27 @@
                     "CommsMethod": "OneWire",
                     "PrecisionExponent": 3,
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 880
+                    "TypicalResponseTimeMs": 880
                 },
                 {
                     "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
+                    "TypicalResponseTimeMs": 0,
                     "PrecisionExponent": 3
                 },
                 {
                     "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
+                    "TypicalResponseTimeMs": 0,
                     "PrecisionExponent": 3
                 },
                 {
                     "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TypicalReadTimeMs": 0,
+                    "TypicalResponseTimeMs": 0,
                     "PrecisionExponent": 3
                 }
             ],

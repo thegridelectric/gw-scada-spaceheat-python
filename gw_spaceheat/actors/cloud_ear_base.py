@@ -35,7 +35,6 @@ class CloudEarBase(ABC):
             self.gw_consume_client.on_log = self.on_log
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
         self.gw_consume_client.on_message = self.on_gw_mqtt_message
-        self.main_thread = threading.Thread(target=self.main)
 
     def on_log(self, client, userdata, level, buf):
         self.screen_print(f"log: {buf}")
@@ -87,6 +86,7 @@ class CloudEarBase(ABC):
     def start(self):
         self.gw_consume_client.loop_start()
         self.gw_publish_client.loop_start()
+        self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f'Started {self.__class__}')
 

@@ -4,7 +4,7 @@ from data_classes.components.boolean_actuator_component import \
 from drivers.base.mcp23008 import mcp23008
 from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
 from schema.enums.make_model.make_model_map import MakeModel
-
+import schema.property_format as property_format
 COMPONENT_ADDRESS = 0x20
 
 
@@ -25,8 +25,8 @@ class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
     def turn_off(self):
         self.mcp23008_driver.turn_off_relay(self.component.gpio)
 
-    def is_on(self):
-        return self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
-    
-
-
+    def is_on(self) -> int:
+        result = self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
+        if not property_format.is_bit(result):
+            raise Exception(f"{ MakeModel.NCD__PR814SPST} returned {result}, expected 0 or 1!")
+        return int(result)

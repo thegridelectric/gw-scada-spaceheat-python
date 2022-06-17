@@ -37,7 +37,7 @@ class ActorBase(ABC):
             self.consume_client.on_log = self.on_log
         self.consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
         self.consume_client.on_message = self.on_mqtt_message
-        self.main_thread = threading.Thread(target=self.main)
+        self.main_thread = None
 
     def on_log(self, client, userdata, level, buf):
         self.screen_print(f"log: {buf}")
@@ -80,6 +80,7 @@ class ActorBase(ABC):
     def start(self):
         self.publish_client.loop_start()
         self.consume_client.loop_start()
+        self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f'Started {self.__class__}')
 
@@ -98,4 +99,3 @@ class ActorBase(ABC):
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
-

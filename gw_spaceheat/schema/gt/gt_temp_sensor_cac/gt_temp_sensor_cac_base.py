@@ -9,7 +9,7 @@ from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 class GtTempSensorCacBase(NamedTuple):
     ComponentAttributeClassId: str     #
     PrecisionExponent: int     #
-    TypicalReadTimeMs: int     #
+    TypicalResponseTimeMs: int     #
     TempUnit: Unit     #
     MakeModel: MakeModel     #
     DisplayName: Optional[str] = None
@@ -46,8 +46,8 @@ class GtTempSensorCacBase(NamedTuple):
         if self.CommsMethod:
             if not isinstance(self.CommsMethod, str):
                 errors.append(f"CommsMethod {self.CommsMethod} must have type str.")
-        if not isinstance(self.TypicalReadTimeMs, int):
-            errors.append(f"TypicalReadTimeMs {self.TypicalReadTimeMs} must have type int.")
+        if not isinstance(self.TypicalResponseTimeMs, int):
+            errors.append(f"TypicalResponseTimeMs {self.TypicalResponseTimeMs} must have type int.")
         if not isinstance(self.TempUnit, Unit):
             errors.append(f"TempUnit {self.TempUnit} must have type {Unit}.")
         if not isinstance(self.MakeModel, MakeModel):
