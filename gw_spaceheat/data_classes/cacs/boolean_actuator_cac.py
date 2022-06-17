@@ -4,6 +4,7 @@ from typing import Dict, Optional
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.cacs.boolean_actuator_cac_base import BooleanActuatorCacBase
 from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac import GtBooleanActuatorCac
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 
 
 class BooleanActuatorCac(BooleanActuatorCacBase):
@@ -25,3 +26,7 @@ class BooleanActuatorCac(BooleanActuatorCacBase):
 
     def __repr__(self):
         return f"{self.make_model.value} {self.display_name}"
+
+    @property
+    def telemetry_name(self):
+        return TelemetryName.RELAY_STATE

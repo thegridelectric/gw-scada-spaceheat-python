@@ -3,23 +3,13 @@ from typing import Dict, List
 
 import helpers
 import settings
+from data_classes.node_config import NodeConfig
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
-from drivers.boolean_actuator.boolean_actuator_driver import \
-    BooleanActuatorDriver
-from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import \
-    GridworksSimBool30AmpRelay_BooleanActuatorDriver
-from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import \
-    NcdPr814Spst_BooleanActuatorDriver
-from schema.enums.make_model.make_model_map import MakeModel
 from schema.enums.role.role_map import Role
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import \
-    GtSensorReportingConfig as ReportingConfig
-from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import \
-    GtSensorReportingConfig_Maker as ConfigMaker
 from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import \
     GtSpaceheatStatus_Maker
 from schema.gt.gt_spaceheat_sync_single.gt_spaceheat_sync_single_maker import \
@@ -35,15 +25,15 @@ class Scada(ScadaBase):
 
     def __init__(self, node: ShNode):
         super(Scada, self).__init__(node=node)
+        now = int(time.time())
+        self._last_5_cron_s = (now - (now % 300))
         self.power = 0
         self.total_power_w = 0
-        self.driver: Dict[ShNode, BooleanActuatorDriver] = {}
-        self.reporting_config: Dict[ShNode, ReportingConfig] = {}
-        self.set_reporting_configs()
+        self.config: Dict[ShNode, NodeConfig] = {}
+        self.set_node_configs()
         self.latest_readings: Dict[ShNode, List] = {}
         self.latest_sample_times: Dict[ShNode, List] = {}
         self.flush_latest_readings()
-        self.set_actuator_components()
         self.screen_print(f'Initialized {self.__class__}')
 
     def flush_latest_readings(self):
@@ -51,41 +41,10 @@ class Scada(ScadaBase):
             self.latest_readings[node] = []
             self.latest_sample_times[node] = []
 
-    def set_reporting_configs(self):
-        for node in self.my_tank_water_temp_sensors():
-            cac = node.temp_sensor_component.cac
-            if node.reporting_sample_period_s is None:
-                raise Exception(f"Temp sensor node {node} is missing ReportingSamplePeriodS!")
-            reporting_config = ConfigMaker(report_on_change=False,
-                                           exponent=cac.reporting_exponent,
-                                           reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
-                                           sample_period_s=node.reporting_sample_period_s,
-                                           telemetry_name=cac.telemetry_name,
-                                           unit=cac.temp_unit,
-                                           async_report_threshold=None).tuple
-            self.reporting_config[node] = reporting_config
-
-    def set_actuator_components(self):
-        self.boost_actuator = ShNode.by_alias['a.elt1.relay']
-        if self.boost_actuator.component.make_model == MakeModel.NCD__PR814SPST:
-            self.driver[self.boost_actuator] = NcdPr814Spst_BooleanActuatorDriver(
-                component=self.boost_actuator.component)
-        elif self.boost_actuator.component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
-            self.driver[self.boost_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
-                component=self.boost_actuator.component)
-        else:
-            raise NotImplementedError(f"No driver yet for {self.boost_actuator.component.make_model}")
-
-        self.pump_actuator = ShNode.by_alias['a.tank.out.pump.relay']
-
-        if self.pump_actuator.component.make_model == MakeModel.NCD__PR814SPST:
-            self.driver[self.pump_actuator] = NcdPr814Spst_BooleanActuatorDriver(
-                component=self.pump_actuator.component)
-        elif self.pump_actuator.component.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
-            self.driver[self.pump_actuator] = GridworksSimBool30AmpRelay_BooleanActuatorDriver(
-                component=self.pump_actuator.component)
-        else:
-            raise NotImplementedError(f"No driver yet for {self.pump_actuator.component.make_model}")
+    def set_node_configs(self):
+        all_nodes = list(ShNode.by_alias.values())
+        for node in all_nodes:
+            self.config[node] = NodeConfig(node)
 
     ################################################
     # Receiving messages
@@ -147,7 +106,7 @@ class Scada(ScadaBase):
         if ba.has_actor:
             raise NotImplementedError('No actor for boolean actuator yet')
         else:
-            self.driver[ba].turn_on()
+            self.config[ba].driver.turn_on()
 
     def turn_off(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
@@ -155,7 +114,7 @@ class Scada(ScadaBase):
         if ba.has_actor:
             raise NotImplementedError('No actor for boolean actuator yet')
         else:
-            self.driver[ba].turn_off()
+            self.config[ba].driver.turn_off()
 
     def send_status(self):
         self.screen_print("Should send status")
@@ -165,10 +124,12 @@ class Scada(ScadaBase):
                 raise Exception(f'{node} missing from self.lastest_sample-times')
             if len(self.latest_sample_times[node]) > 0:
                 first_read_time_unix_s = int(self.latest_sample_times[node][0] / 1000)
+                sample_period_s = self.config[node].reporting_config.SamplePeriodS
+                telemetry_name = self.config[node].reporting_config.TelemetryName
                 sync_status = GtSpaceheatSyncSingle_Maker(first_read_time_unix_s=first_read_time_unix_s,
-                                                          sample_period_s=self.reporting_config[node].SamplePeriodS,
+                                                          sample_period_s=sample_period_s,
                                                           sh_node_alias=node.alias,
-                                                          telemetry_name=self.reporting_config[node].TelemetryName,
+                                                          telemetry_name=telemetry_name,
                                                           value_list=self.latest_readings[node]).tuple
                 sync_status_list.append(sync_status)
 

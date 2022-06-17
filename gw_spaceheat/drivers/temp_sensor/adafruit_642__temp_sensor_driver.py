@@ -19,7 +19,7 @@ class Adafruit642_TempSensorDriver(TempSensorDriver):
         super(Adafruit642_TempSensorDriver, self).__init__(component=component)
         if component.cac.make_model != MakeModel.ADAFRUIT__642:
             raise Exception(f"Expected Adafruit__642, got {component.cac}")
-        property_format.check_is_64_bit_hex(component.hw_uid)
+        property_format.is_64_bit_hex(component.hw_uid)
 
     def read_temp_raw(self):
         if platform.system() == 'Darwin':
