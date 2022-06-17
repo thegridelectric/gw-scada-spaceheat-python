@@ -57,7 +57,10 @@ To use a local mosquitto broker:
 
 ## Step 2: input data and running the code
 
-Input data is in input_data folder. The `dev_house.json` is used for developing on a mac. The `pi_dev_house.json` is used for a pi that is connected to actual hardware and has its various drivers (like i2c) enabled.
+Input data is in the `input_data/houses.json` file. It includes house data organized by the `GNodeAlias` for the `AtomicTNode` 
+representing the house. If `ATN_G_NODE_ALIAS` in `settings.py` matches `template_settings.py` (i.e. `dw1.isone.nh.orange.1`) then the house is 
+_simulated_. If `ATN_G_NODE_ALIAS` in `settings.py` is `w.isone.nh.orange.1`, then the code expects the test heating system
+in Jessica's garage.
 
 Run the code in main.py as a script. It creates the main code for the primary scada actor, loading its input data by checking if the OS belongs to a mac or not.
 
