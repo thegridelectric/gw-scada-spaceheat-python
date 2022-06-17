@@ -11,3 +11,6 @@ SassyMQ
 .env
 settings.py
 tmp.csv
+
+.coverage
+htmlcov
