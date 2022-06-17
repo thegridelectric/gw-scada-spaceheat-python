@@ -1,7 +1,6 @@
 import time
 import typing
 from collections import defaultdict
-from actors.boolean_actuator import BooleanActuator
 
 import load_house
 import settings
