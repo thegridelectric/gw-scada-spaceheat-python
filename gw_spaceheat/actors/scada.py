@@ -1,6 +1,7 @@
 import time
 from typing import Dict, List
 
+import pendulum
 import helpers
 import settings
 from data_classes.node_config import NodeConfig
@@ -59,13 +60,13 @@ class Scada(ScadaBase):
         return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
-        self.screen_print("Got message")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GsDispatch):
             self.gs_dispatch_received(from_node, payload)
         elif isinstance(payload, GtTelemetry):
             self.gt_telemetry_received(from_node, payload)
+            self.screen_print(f"{from_node.alias}: {payload.Value}")
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
@@ -154,6 +155,9 @@ class Scada(ScadaBase):
             if self.time_for_5_cron():
                 self.cron_every_5()
             time.sleep(1)
+            if int(time.time()) % 30 == 0:
+                self.screen_print(f"{pendulum.from_timestamp(int(time.time()))}")
+                self.screen_print(f"{self.next_5_cron_s - int(time.time())} seconds left")
 
     def my_tank_water_temp_sensors(self) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
