@@ -37,7 +37,7 @@
                     "DisplayName": "30A Relay for first boost element",
                     "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
                     "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
-                    "HasActor": false
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank",
@@ -85,7 +85,7 @@
                     "DisplayName": "Circulator Pump Boolean Actuator",
                     "ShNodeId": "357a45f0-1a57-4f3d-9be4-4ff77cf19ba2",
                     "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
-                    "HasActor": false
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank.out.pump.allradiators",
@@ -381,30 +381,34 @@
                     "MakeModelGtEnumSymbol": "f8b497e8",
                     "DisplayName": "Simulated GridWorks high precision water temp sensor",
                     "CommsMethod": "SassyMQ",
-                    "PrecisionExponent": 3,
+                    "Exponent": -3,
                     "TempUnitGtEnumSymbol": "7d8832f8",
+                    "TelemetryNameGtEnumSymbol": "793505aa",
                     "TypicalResponseTimeMs": 880
                 },
                 {
                     "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
+                    "TelemetryNameGtEnumSymbol": "793505aa",
                     "TypicalResponseTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
+                    "TelemetryNameGtEnumSymbol": "793505aa",
                     "TypicalResponseTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
+                    "TelemetryNameGtEnumSymbol": "793505aa",
                     "TypicalResponseTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "Exponent": -3
                 }
             ],
             "OtherCacs": [
@@ -464,7 +468,7 @@
                     "DisplayName": "30A Relay for first boost element",
                     "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
                     "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
-                    "HasActor": false
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank",
@@ -512,7 +516,7 @@
                     "DisplayName": "Circulator Pump Boolean Actuator",
                     "ShNodeId": "357a45f0-1a57-4f3d-9be4-4ff77cf19ba2",
                     "ComponentId": "7de91fae-72ab-4226-8ebe-f66a9d85cea4",
-                    "HasActor": false
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank.out.pump.baseboard1",
@@ -803,7 +807,8 @@
                     "MakeModelGtEnumSymbol": "acd93fb3",
                     "DisplayName": "Adafruit High Temp Waterproof DS18B20 Digital Temp Sensor",
                     "CommsMethod": "OneWire",
-                    "PrecisionExponent": 3,
+                    "Exponent": -3,
+                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
                     "TempUnitGtEnumSymbol": "ec14bd47",
                     "TypicalResponseTimeMs": 880
                 },
@@ -811,22 +816,25 @@
                     "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
+                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
                     "TypicalResponseTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
+                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
                     "TypicalResponseTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
+                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
                     "TypicalResponseTimeMs": 0,
-                    "PrecisionExponent": 3
+                    "Exponent": -3
                 }
             ],
             "OtherCacs": [
