@@ -40,7 +40,7 @@ class NodeConfig():
     def set_temp_sensor_config(self, component: TempSensorComponent):
         cac = component.cac
         if self.node.reporting_sample_period_s is None:
-            raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!") 
+            raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!")
         self.reporting_config = ConfigMaker(report_on_change=False,
                                             exponent=cac.reporting_exponent,
                                             reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
@@ -56,7 +56,7 @@ class NodeConfig():
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             self.driver = UnknownBooleanActuatorDriver(component=component)
         else:
-            raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}")     
+            raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}")
 
     def set_boolean_actuator_config(self, component: BooleanActuatorComponent):
         cac = component.cac
