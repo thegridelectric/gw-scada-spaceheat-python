@@ -1,5 +1,12 @@
 # GridWorks SpaceHeat SCADA
 
+[![Tests](https://github.com/anschweitzer/gw-scada-spaceheat-python/actions/workflows/ci.yaml/badge.svg)][tests]
+[![Codecov](https://codecov.io/gh/anschweitzer/gw-scada-spaceheat-python/branch/main/graph/badge.svg)][codecov]
+
+[tests]: https://github.com/anschweitzer/gw-scada-spaceheat-python/actions/workflows/ci.yaml
+[codecov]: https://app.codecov.io/gh/anschweitzer/gw-scada-spaceheat-python
+
+
 This code is intended to run on a raspberry Pi 4 attached to a number of actuating and sensing devices. It is for running a heat pump thermal storage heating system in a house, and doing this _transactively_. That means the heating system is capable of dynamically responding to local electric grid conditions and buying energy at the lowest cost times, while keeping the house warm. Most of the time, the decisions for when to charge the heating system (and how to participate in electricity markets) are made by an agent outside of the home's LAN - this agent is called the AtomicTransactive Node or AtomicTNode for short. 
 
 The SCADA It does 5 main things:
