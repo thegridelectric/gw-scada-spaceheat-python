@@ -2,6 +2,7 @@
 from schema.errors import MpSchemaError
 from schema.gs.gs_dispatch_base import GsDispatchBase
 
+
 class GsDispatch(GsDispatchBase):
 
     def check_for_errors(self):

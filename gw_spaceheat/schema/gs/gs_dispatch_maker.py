@@ -5,9 +5,9 @@ from schema.gs.gs_dispatch import GsDispatch
 
 class GsDispatch_Maker():
     type_alias = 'd'
-    
-    def __init__(self,power):
-        tuple = GsDispatch(Power=power)
+
+    def __init__(self, relay_state):
+        tuple = GsDispatch(RelayState=relay_state)
         tuple.check_for_errors()
         self.tuple = tuple
 
@@ -18,8 +18,8 @@ class GsDispatch_Maker():
 
     @classmethod
     def type_to_tuple(cls, b: bytes) -> GsDispatch:
-        (power,) = struct.unpack("<h", b)
-        tuple = GsDispatch(Power=power)
+        (relay_state,) = struct.unpack("<h", b)
+        tuple = GsDispatch(RelayState=relay_state)
         tuple.check_for_errors
         return tuple
 

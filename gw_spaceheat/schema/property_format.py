@@ -3,6 +3,14 @@ import struct
 import string
 
 
+def is_bit(candidate):
+    if candidate == 0:
+        return True
+    if candidate == 1:
+        return True
+    return False
+
+
 def is_64_bit_hex(candidate):
     if len(candidate) != 8:
         raise Exception(f"Wrong number of bits for 64 bit hex! {candidate}")
@@ -23,37 +31,27 @@ def is_lrd_alias_format(candidate: str):
             return False
     return True
 
-    
-def is_recognized_component_manufacturer(candidate):
-    #TODO: add
-    return True
-
-
-def is_recognized_component_type(candidate):
-    #TODO: add
-    return True
-
 
 def is_reasonable_unix_time_ms(candidate):
-    if pendulum.parse("2000-01-01T00:00:00Z").int_timestamp*1000 > candidate:
+    if pendulum.parse("2000-01-01T00:00:00Z").int_timestamp * 1000 > candidate:
         return False
-    if pendulum.parse("3000-01-01T00:00:00Z").int_timestamp*1000 < candidate:
+    if pendulum.parse("3000-01-01T00:00:00Z").int_timestamp * 1000 < candidate:
         return False
     return True
 
 
 def is_unsigned_short(candidate):
     try:
-        struct.pack("H",candidate)
+        struct.pack("H", candidate)
     except:
-        print(f"requires 0 <= number <= 65535")
+        print("requires 0 <= number <= 65535")
         return False
     return True
 
 
 def is_short_integer(candidate):
     try:
-        struct.pack("h",candidate)
+        struct.pack("h", candidate)
     except:
         print("short format requires (-32767 -1) <= number <= 32767")
         return False
