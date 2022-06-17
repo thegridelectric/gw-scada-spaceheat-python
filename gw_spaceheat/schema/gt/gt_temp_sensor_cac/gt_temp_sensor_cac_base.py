@@ -2,14 +2,16 @@
 import json
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 from schema.enums.unit.unit_map import Unit, UnitMap
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 
 class GtTempSensorCacBase(NamedTuple):
     ComponentAttributeClassId: str     #
-    PrecisionExponent: int     #
+    Exponent: int     #
     TypicalResponseTimeMs: int     #
+    TelemetryName: TelemetryName     #
     TempUnit: Unit     #
     MakeModel: MakeModel     #
     DisplayName: Optional[str] = None
@@ -25,6 +27,8 @@ class GtTempSensorCacBase(NamedTuple):
             del d["DisplayName"]
         if d["CommsMethod"] is None:
             del d["CommsMethod"]
+        del(d["TelemetryName"])
+        d["TelemetryNameGtEnumSymbol"] = TelemetryNameMap.local_to_gt(self.TelemetryName)
         del(d["TempUnit"])
         d["TempUnitGtEnumSymbol"] = UnitMap.local_to_gt(self.TempUnit)
         del(d["MakeModel"])
@@ -41,13 +45,15 @@ class GtTempSensorCacBase(NamedTuple):
         if not property_format.is_uuid_canonical_textual(self.ComponentAttributeClassId):
             errors.append(f"ComponentAttributeClassId {self.ComponentAttributeClassId}"
                           " must have format UuidCanonicalTextual")
-        if not isinstance(self.PrecisionExponent, int):
-            errors.append(f"PrecisionExponent {self.PrecisionExponent} must have type int.")
+        if not isinstance(self.Exponent, int):
+            errors.append(f"Exponent {self.Exponent} must have type int.")
         if self.CommsMethod:
             if not isinstance(self.CommsMethod, str):
                 errors.append(f"CommsMethod {self.CommsMethod} must have type str.")
         if not isinstance(self.TypicalResponseTimeMs, int):
             errors.append(f"TypicalResponseTimeMs {self.TypicalResponseTimeMs} must have type int.")
+        if not isinstance(self.TelemetryName, TelemetryName):
+            errors.append(f"TelemetryName {self.TelemetryName} must have type {TelemetryName}.")
         if not isinstance(self.TempUnit, Unit):
             errors.append(f"TempUnit {self.TempUnit} must have type {Unit}.")
         if not isinstance(self.MakeModel, MakeModel):
