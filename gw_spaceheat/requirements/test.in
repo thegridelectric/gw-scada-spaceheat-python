@@ -1,3 +1,5 @@
 nose
 pytest
 coverage
+mypy
+black
