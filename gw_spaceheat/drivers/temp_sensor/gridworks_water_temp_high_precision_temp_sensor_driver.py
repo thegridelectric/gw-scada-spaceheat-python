@@ -22,7 +22,7 @@ class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
             raise Exception(f"TempSensor unit {component.cac.temp_unit} not recognized!")
 
     def cmd_delay(self):
-        typical_delay_ms = self.component.cac.typical_response_time_ms / 1000
+        typical_delay_ms = self.component.cac.typical_response_time_ms
         read_delay_ms = typical_delay_ms + int(self.READ_TIME_FUZZ_MULTIPLIER * random.random())
         time.sleep(read_delay_ms / 1000)
 
