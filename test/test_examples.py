@@ -3,7 +3,7 @@ import typing
 from collections import defaultdict
 
 import load_house
-from schema.gt.gt_sh_simple_single_status.gt_spaceheat_sync_single_status \
+from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status \
     import GtShSimpleSingleStatus
 import settings
 from actors.atn import Atn

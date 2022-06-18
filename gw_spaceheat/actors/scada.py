@@ -10,6 +10,7 @@ from data_classes.components.boolean_actuator_component import \
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status_maker import \
     GtShSimpleSingleStatus_Maker, GtShSimpleSingleStatus
@@ -64,7 +65,7 @@ class Scada(ScadaBase):
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GsDispatch):
-            self.gs_dispatch_received(from_node, payload)
+            self.gt_dispatch_received(from_node, payload)
         elif isinstance(payload, GtTelemetry):
             self.gt_telemetry_received(from_node, payload)
         else:
@@ -89,11 +90,29 @@ class Scada(ScadaBase):
             raise Exception("gw messages must come from the remote AtomicTNode!")
         if isinstance(payload, GsDispatch):
             self.gs_dispatch_received(from_node, payload)
+        elif isinstance(payload, GtDispatch):
+            self.gt_dispatch_received(from_node, payload)
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
     def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
         raise NotImplementedError
+
+    def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatch):
+        self.screen_print(f"received {payload} from {from_node}")
+        if payload.ShNodeAlias not in ShNode.by_alias.keys():
+            self.screen_print(f"dispatch received for unknnown sh_node {payload.ShNodeAlias}")
+            return
+        ba = ShNode.by_alias[payload.ShNodeAlias]
+        if not isinstance(ba.component, BooleanActuatorComponent):
+            self.screen_print(f"{ba} must be a BooleanActuator!")
+            return
+        if payload.RelayState == 1:
+            self.turn_on(ba)
+            self.screen_print(f"Dispatched {ba.alias}  on")
+        else:
+            self.turn_off(ba)
+            self.screen_print(f"Dispatched {ba.alias} off")
 
     ################################################
     # Primary functions
