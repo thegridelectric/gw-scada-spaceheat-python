@@ -166,7 +166,7 @@ def test_scada_sends_status():
     assert single_status.ReadTimeUnixMsList == scada.latest_sample_times_ms[thermo0_node]
     assert single_status.ValueList == scada.latest_readings[thermo0_node]
     assert single_status.ShNodeAlias == thermo0_node.alias
-    
+
     scada.send_status()
     time.sleep(1)
     assert ear.num_received > 0
@@ -176,4 +176,3 @@ def test_scada_sends_status():
     single_status = ear.latest_payload.SimpleSingleStatusList[0]
     assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
     assert ear.latest_payload.ReportingPeriodS == 300
-
