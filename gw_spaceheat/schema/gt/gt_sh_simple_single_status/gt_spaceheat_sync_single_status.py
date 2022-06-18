@@ -9,10 +9,10 @@ class GtShSimpleSingleStatus(GtShSimpleSingleStatusBase):
     def check_for_errors(self):
         errors = self.derived_errors() + self.hand_coded_errors()
         if len(errors) > 0:
-            raise MpSchemaError(f" Errors making making gt.spaceheat.sync.single for {self}: {errors}")
+            raise MpSchemaError(f" Errors making making gt.sh.simple.single.status.100 for {self}: {errors}")
 
     def hand_coded_errors(self):
         errors = []
-        if len(self.ValueList) != len(self.ReadTimeUnixSList):
-            errors.append("Length of ValueList and ReadTimeUnixSList must be equal ")
+        if len(self.ValueList) != len(self.ReadTimeUnixMsList):
+            errors.append("Length of ValueList and ReadTimeUnixMsList must be equal ")
         return errors

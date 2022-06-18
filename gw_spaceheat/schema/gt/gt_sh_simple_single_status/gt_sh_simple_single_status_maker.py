@@ -13,12 +13,12 @@ class GtShSimpleSingleStatus_Maker():
     type_alias = 'gt.sh.simple.single.status.100'
 
     def __init__(self,
-                 read_time_unix_s_list: List[int],
+                 read_time_unix_ms_list: List[int],
                  sh_node_alias: str,
                  value_list: List[int],
                  telemetry_name: TelemetryName):
 
-        tuple = GtShSimpleSingleStatus(ReadTimeUnixSList=read_time_unix_s_list,
+        tuple = GtShSimpleSingleStatus(ReadTimeUnixMsList=read_time_unix_ms_list,
                                        TelemetryName=telemetry_name,
                                        ShNodeAlias=sh_node_alias,
                                        ValueList=value_list,
@@ -43,10 +43,8 @@ class GtShSimpleSingleStatus_Maker():
 
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtShSimpleSingleStatus:
-        if "FirstReadTimeUnixS" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing FirstReadTimeUnixS")
-        if "ReadTimeUnixSList" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ReadTimeUnixSList")
+        if "ReadTimeUnixMsList" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing ReadTimeUnixMsList")
         if "ShNodeAlias" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ShNodeAlias")
         if "ValueList" not in d.keys():
@@ -55,8 +53,7 @@ class GtShSimpleSingleStatus_Maker():
             raise MpSchemaError(f"dict {d} missing TelemetryNameGtEnumSymbol")
         d["TelemetryName"] = TelemetryNameMap.gt_to_local(d["TelemetryNameGtEnumSymbol"])
 
-        tuple = GtShSimpleSingleStatus(FirstReadTimeUnixS=d["FirstReadTimeUnixS"],
-                                       ReadTimeUnixSList=d["ReadTimeUnixSList"],
+        tuple = GtShSimpleSingleStatus(ReadTimeUnixMsList=d["ReadTimeUnixMsList"],
                                        TelemetryName=d["TelemetryName"],
                                        ShNodeAlias=d["ShNodeAlias"],
                                        ValueList=d["ValueList"],

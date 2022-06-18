@@ -6,7 +6,7 @@ from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, Teleme
 
 
 class GtShSimpleSingleStatusBase(NamedTuple):
-    ReadTimeUnixSList: List[int]
+    ReadTimeUnixMsList: List[int]
     ShNodeAlias: str     #
     ValueList: List[int]    #
     TelemetryName: TelemetryName     #
@@ -23,12 +23,14 @@ class GtShSimpleSingleStatusBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
-        if not isinstance(self.ReadTimeUnixSList, list):
-            errors.append(f"ReadTimeUnixSList {self.ReadTimeUnixSList} must have type list.")
+        if not isinstance(self.ReadTimeUnixMsList, list):
+            errors.append(f"ReadTimeUnixMsList {self.ReadTimeUnixMsList} must have type list.")
         else:
-            for elt in self.ReadTimeUnixSList:
+            for elt in self.ReadTimeUnixMsList:
                 if not isinstance(elt, int):
-                    errors.append(f"elt {elt} of ReadTimeUnixSList must have type int")
+                    errors.append(f"elt {elt} of ReadTimeUnixMsList must have type int")
+                if not property_format.is_reasonable_unix_time_ms(elt):
+                    errors.append(f"elt {elt} of ReadTimeUnixMsList must reasonble_unix_time_ms format")
         if not isinstance(self.ShNodeAlias, str):
             errors.append(f"ShNodeAlias {self.ShNodeAlias} must have type str.")
         if not property_format.is_lrd_alias_format(self.ShNodeAlias):

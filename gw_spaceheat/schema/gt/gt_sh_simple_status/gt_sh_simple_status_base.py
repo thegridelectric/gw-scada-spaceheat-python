@@ -1,4 +1,4 @@
-"""Base for gt.spaceheat.status.100"""
+"""Base for gt.sh.simple.status.100"""
 import json
 from typing import List, NamedTuple
 import schema.property_format as property_format
@@ -6,12 +6,12 @@ from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status_maker \
     import GtShSimpleSingleStatus
 
 
-class GtSpaceheatStatusBase(NamedTuple):
+class GtShSimpleStatusBase(NamedTuple):
     AboutGNodeAlias: str     #
     SlotStartUnixS: int     #
     ReportingPeriodS: int     #
     SimpleSingleStatusList: List[GtShSimpleSingleStatus]
-    TypeAlias: str = 'gt.spaceheat.status.100'
+    TypeAlias: str = 'gt.sh.simple.status.100'
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -36,12 +36,12 @@ class GtSpaceheatStatusBase(NamedTuple):
         if not isinstance(self.ReportingPeriodS, int):
             errors.append(f"ReportingPeriodS {self.ReportingPeriodS} must have type int.")
         if not isinstance(self.SimpleSingleStatusList, list):
-            errors.append(f"SyncStatusesId {self.SimpleSingleStatusList} must have type list.")
+            errors.append(f"SimpleSingleStatusList {self.SimpleSingleStatusList} must have type list.")
         else:
             for elt in self.SimpleSingleStatusList:
                 if not isinstance(elt, GtShSimpleSingleStatus):
-                    errors.append(f"{elt} of self.SimpleSingleStatusList must have type GtShSimpleSingleStatu.")
-        if self.TypeAlias != 'gt.spaceheat.status.100':
-            errors.append(f"Type requires TypeAlias of gt.spaceheat.status.100, not {self.TypeAlias}.")
+                    errors.append(f"{elt} of self.SimpleSingleStatusList must have type GtShSimpleSingleStatus.")
+        if self.TypeAlias != 'gt.sh.simple.status.100':
+            errors.append(f"Type requires TypeAlias of gt.sh.simple.status.100, not {self.TypeAlias}.")
         
         return errors
