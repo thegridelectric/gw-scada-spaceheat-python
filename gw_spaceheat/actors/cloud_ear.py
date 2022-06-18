@@ -74,6 +74,8 @@ class CloudEar(CloudEarBase):
                                      single.TelemetryName.value])
 
         self.screen_print(f"appending output to {self.out_telemetry.split('_')[-1]}")
+        now_utc = pendulum.from_timestamp(int(time.time()))
+        self.screen_print(f'{now_utc.strftime("%Y-%m-%d %H:%M:%S")}')
         with open(self.out_telemetry, 'a') as outfile:
             write = csv.writer(outfile, delimiter=',')
             for row in new_readings:
