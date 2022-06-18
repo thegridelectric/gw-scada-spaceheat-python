@@ -73,7 +73,7 @@ class CloudEar(CloudEarBase):
                                      single.ValueList[i],
                                      single.TelemetryName.value])
 
-        self.screen_print(f"appending output to {self.out_telemetry.split(_)[-1]}")
+        self.screen_print(f"appending output to {self.out_telemetry.split('_')[-1]}")
         with open(self.out_telemetry, 'a') as outfile:
             write = csv.writer(outfile, delimiter=',')
             for row in new_readings:
