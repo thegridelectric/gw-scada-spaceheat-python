@@ -156,17 +156,24 @@ def test_scada_sends_status():
 
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
     assert scada.num_received_by_topic["a.tank.temp1/gt.telemetry.110"] > 0
+    assert len(scada.latest_readings[thermo0_node]) > 0
+    for unix_ms in scada.latest_sample_times_ms[thermo0_node]:
+        assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
+
+    single_status = scada.make_single_status(thermo0_node)
+    assert isinstance(single_status, GtShSimpleSingleStatus)
+    assert single_status.TelemetryName == scada.config[thermo0_node].reporting.TelemetryName
+    assert single_status.ReadTimeUnixMsList == scada.latest_sample_times_ms[thermo0_node]
+    assert single_status.ValueList == scada.latest_readings[thermo0_node]
+    assert single_status.ShNodeAlias == thermo0_node.alias
+    
     scada.send_status()
     time.sleep(1)
     assert ear.num_received > 0
-    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.spaceheat.status.100"] == 1
-    assert isinstance(ear.latest_payload, GtSpaceheatStatus)
-    assert len(ear.latest_payload.SyncStatusList) == 2
-    sync_status = ear.latest_payload.SyncStatusList[0]
-    assert sync_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
-    assert sync_status.SamplePeriodS == 5
-    now = time.time()
+    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.sh.simple.status.100"] == 1
+    assert isinstance(ear.latest_payload, GtShSimpleStatus)
+    assert len(ear.latest_payload.SimpleSingleStatusList) == 2
+    single_status = ear.latest_payload.SimpleSingleStatusList[0]
+    assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
     assert ear.latest_payload.ReportingPeriodS == 300
-    assert now > ear.latest_payload.SlotStartUnixS
-    assert ear.latest_payload.SlotStartUnixS % 300 == 0
-    assert ear.latest_payload.SlotStartUnixS + 300 > now
+
