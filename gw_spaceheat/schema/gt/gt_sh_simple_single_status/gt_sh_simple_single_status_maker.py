@@ -3,7 +3,7 @@
 import json
 from typing import List
 
-from schema.gt.gt_sh_simple_single_status.gt_spaceheat_sync_single_status \
+from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status \
     import GtShSimpleSingleStatus
 from schema.errors import MpSchemaError
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
