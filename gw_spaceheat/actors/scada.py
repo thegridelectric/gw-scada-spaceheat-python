@@ -9,8 +9,8 @@ from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
-from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch
+from schema.gs.gs_dispatch_maker import GsDispatch
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status_maker import \
     GtShSimpleSingleStatus_Maker, GtShSimpleSingleStatus
@@ -122,8 +122,10 @@ class Scada(ScadaBase):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         if ba.has_actor:
-            dispatch_payload = GsDispatch_Maker(relay_state=1).tuple
+            dispatch_payload = GtDispatch_Maker(relay_state=1,
+                                                sh_node_alias=ba.alias).tuple
             self.publish(payload=dispatch_payload)
+            self.screen_print(f"Sent {dispatch_payload}")
         else:
             self.config[ba].driver.turn_on()
 
@@ -131,7 +133,8 @@ class Scada(ScadaBase):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         if ba.has_actor:
-            dispatch_payload = GsDispatch_Maker(relay_state=0).tuple
+            dispatch_payload = GtDispatch_Maker(relay_state=0,
+                                                sh_node_alias=ba.alias).tuple
             self.publish(payload=dispatch_payload)
         else:
             self.config[ba].driver.turn_off()

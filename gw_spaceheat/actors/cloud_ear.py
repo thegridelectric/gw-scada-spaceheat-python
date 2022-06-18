@@ -18,8 +18,8 @@ from actors.cloud_ear_base import CloudEarBase
 from actors.utils import QOS, Subscription
 
 atn_ender = settings.ATN_G_NODE_ALIAS.replace(".", "_")
-# OUT_STUB = f'/Users/jess/Google Drive/My Drive/GridWorks/Projects/Internal Maine Heat Pilot/SCADA/data/{atn_ender}'
-OUT_STUB = atn_ender
+OUT_STUB = f'/Users/jess/Google Drive/My Drive/GridWorks/Projects/Internal Maine Heat Pilot/SCADA/data/{atn_ender}'
+# OUT_STUB = atn_ender
 
 
 class CloudEar(CloudEarBase):
