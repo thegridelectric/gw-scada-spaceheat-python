@@ -2080,7 +2080,7 @@
       <SchemaAttributes>recqTlmb22FCbFzaQ</SchemaAttributes>
       <SchemaAttributes>rec4ChH5i41q9ZWkf</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <Alias>gt.spaceheat.status.100</Alias>
+      <Alias>gt.sh.simple.status.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
