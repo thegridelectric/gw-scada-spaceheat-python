@@ -53,6 +53,7 @@ class BooleanActuator(ActorBase):
         new_state = self.config.driver.is_on()
         if self.relay_state != new_state:
             self.relay_state = new_state
+            self.screen_print(f"Relay: {self.relay_state}")
             payload = GtTelemetry_Maker(name=self.config.reporting.TelemetryName,
                                         value=int(self.relay_state),
                                         exponent=self.config.reporting.Exponent,

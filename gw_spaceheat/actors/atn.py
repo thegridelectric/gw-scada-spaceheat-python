@@ -3,8 +3,11 @@ import time
 from typing import List
 
 import helpers
+from data_classes.components.boolean_actuator_component import \
+    BooleanActuatorComponent
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
 from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
     GtShSimpleStatus, GtShSimpleStatus_Maker)
 
@@ -38,6 +41,27 @@ class Atn(AtnBase):
 
     def gt_spaceheat_status_received(self, from_node: ShNode, payload: GtShSimpleStatus):
         self.screen_print("Got status!")
+
+    ################################################
+    # Primary functions
+    ###############################################
+
+    def turn_on(self, ba: ShNode):
+        if not isinstance(ba.component, BooleanActuatorComponent):
+            raise Exception(f"{ba} must be a BooleanActuator!")
+        payload = GtDispatch_Maker(
+            relay_state=1,
+            sh_node_alias=ba.alias).tuple
+        self.gw_publish(payload)
+
+    def turn_off(self, ba: ShNode):
+        if not isinstance(ba.component, BooleanActuatorComponent):
+            raise Exception(f"{ba} must be a BooleanActuator!")
+        payload = GtDispatch_Maker(
+            relay_state=0,
+            sh_node_alias=ba.alias).tuple
+        self.gw_publish(payload)
+
 
     def main(self):
         self._main_loop_running = True

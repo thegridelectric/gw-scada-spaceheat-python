@@ -6,7 +6,8 @@ import helpers
 import paho.mqtt.client as mqtt
 import settings
 from data_classes.sh_node import ShNode
-from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
+from schema.gs.gs_dispatch_maker import GsDispatch
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
 from schema.gs.gs_pwr import GsPwr
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.schema_switcher import TypeMakerByAliasDict
@@ -38,7 +39,7 @@ class ScadaBase(ActorBase):
         self.gw_consume_client.on_message = self.on_gw_mqtt_message
 
     def gw_subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/{GsDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
+        return [Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/{GtDispatch_Maker.type_alias}', Qos=QOS.AtLeastOnce)]
 
     def on_gw_mqtt_message(self, client, userdata, message):
         try:
