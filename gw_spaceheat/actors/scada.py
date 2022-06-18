@@ -1,5 +1,5 @@
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import pendulum
 import helpers
@@ -67,7 +67,6 @@ class Scada(ScadaBase):
             self.gs_dispatch_received(from_node, payload)
         elif isinstance(payload, GtTelemetry):
             self.gt_telemetry_received(from_node, payload)
-            self.screen_print(f"{from_node.alias}: {payload.Value}")
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
@@ -79,7 +78,6 @@ class Scada(ScadaBase):
         self.gw_publish(payload=payload)
 
     def gt_telemetry_received(self, from_node: ShNode, payload: GtTelemetry):
-        self.screen_print(f"{payload.Value} from {from_node.alias}")
         if from_node not in self.latest_readings.keys():
             self.screen_print(f"Not tracking readings from {from_node}!")
             return
@@ -163,7 +161,7 @@ class Scada(ScadaBase):
             time.sleep(1)
             if int(time.time()) % 30 == 0:
                 self.screen_print(f"{pendulum.from_timestamp(int(time.time()))}")
-                self.screen_print(f"{self.next_5_cron_s - int(time.time())} seconds left")
+                self.screen_print(f"{self.next_5_cron_s - int(time.time())} seconds till status")
 
     def my_tank_water_temp_sensors(self) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
