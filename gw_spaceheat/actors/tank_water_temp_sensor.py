@@ -39,7 +39,8 @@ class TankWaterTempSensor(ActorBase):
                                             exponent=exponent,
                                             scada_read_time_unix_ms=int(time_of_read_s * 1000)).tuple
                 self.publish(payload=payload)
-                self.screen_print("Published!")
+                # self.screen_print(f"{payload.Value} {telemetry_name.value}")
+                self.screen_print(f"{int(time_of_read_s * 1000)}")
                 self._sent_latest_sample = True
                 self._last_sent_s = int(time_of_read_s)
         else:
