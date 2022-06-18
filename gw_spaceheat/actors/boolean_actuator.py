@@ -4,7 +4,7 @@ from typing import List
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 
-from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
 from actors.actor_base import ActorBase
@@ -27,27 +27,27 @@ class BooleanActuator(ActorBase):
     ###############################################
 
     def subscriptions(self) -> List[Subscription]:
-        my_subscriptions = [Subscription(Topic=f'a.s/{GsDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
+        my_subscriptions = [Subscription(Topic=f'a.s/{GtDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
         return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
-        self.latest_payload = payload
-        if isinstance(payload, GsDispatch):
-            self.gs_dispatch_received(from_node, payload)
+        if isinstance(payload, GtDispatch):
+            self.gt_dispatch_received(from_node, payload)
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
-    def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
+    def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatch):
         if from_node != ShNode.by_alias['a.s']:
             raise Exception(f"Only responds to dispatch from Scada. Got dispatch from {from_node}")
-        old_state = self.relay_state
-        new_state = payload.RelayState
-        if payload.RelayState == 0:
-            self.config.driver.turn_off()
-        elif payload.RelayState == 1:
-            self.config.driver.turn_on()
-        if old_state != new_state:
-            self.update_and_report_state_change()
+        if payload.ShNodeAlias == self.node.alias:
+            old_state = self.relay_state
+            new_state = payload.RelayState
+            if payload.RelayState == 0:
+                self.config.driver.turn_off()
+            elif payload.RelayState == 1:
+                self.config.driver.turn_on()
+            if old_state != new_state:
+                self.update_and_report_state_change()
 
     def update_and_report_state_change(self):
         new_state = self.config.driver.is_on()
