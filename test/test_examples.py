@@ -3,6 +3,8 @@ import typing
 from collections import defaultdict
 
 import load_house
+from schema.gt.gt_sh_simple_single_status.gt_spaceheat_sync_single_status \
+    import GtShSimpleSingleStatus
 import settings
 from actors.atn import Atn
 from actors.cloud_ear import CloudEar
@@ -14,8 +16,9 @@ from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import \
     TelemetryName
 from schema.gs.gs_pwr_maker import GsPwr_Maker
-from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import \
-    GtSpaceheatStatus
+from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import \
+    GtShSimpleStatus
+import schema.property_format
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
@@ -35,7 +38,7 @@ class EarRecorder(CloudEar):
         self.num_received_by_topic[message.topic] += 1
         super().on_gw_mqtt_message(client, userdata, message)
 
-    def on_gw_message(self, from_node: ShNode, payload: GtSpaceheatStatus):
+    def on_gw_message(self, from_node: ShNode, payload: GtShSimpleStatus):
         self.latest_payload = payload
         super().on_gw_message(from_node, payload)
 
@@ -137,10 +140,12 @@ def test_scada_sends_status():
     ear.terminate_main_loop()
     ear.main_thread.join()
     time.sleep(2)
-
-    thermo0 = TankWaterTempSensor(node=ShNode.by_alias["a.tank.temp0"])
+    thermo0_node = ShNode.by_alias["a.tank.temp0"]
+    thermo1_node = ShNode.by_alias["a.tank.temp1"]
+    assert len(scada.latest_readings[thermo0_node]) == 0
+    thermo0 = TankWaterTempSensor(node=thermo0_node)
     thermo0.start()
-    thermo1 = TankWaterTempSensor(node=ShNode.by_alias["a.tank.temp1"])
+    thermo1 = TankWaterTempSensor(node=thermo1_node)
     thermo1.start()
     time.sleep(1)
     time.sleep(thermo0.node.reporting_sample_period_s)
@@ -151,17 +156,23 @@ def test_scada_sends_status():
 
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
     assert scada.num_received_by_topic["a.tank.temp1/gt.telemetry.110"] > 0
+    assert len(scada.latest_readings[thermo0_node]) > 0
+    for unix_ms in scada.latest_sample_times_ms[thermo0_node]:
+        assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
+
+    single_status = scada.make_single_status(thermo0_node)
+    assert isinstance(single_status, GtShSimpleSingleStatus)
+    assert single_status.TelemetryName == scada.config[thermo0_node].reporting.TelemetryName
+    assert single_status.ReadTimeUnixMsList == scada.latest_sample_times_ms[thermo0_node]
+    assert single_status.ValueList == scada.latest_readings[thermo0_node]
+    assert single_status.ShNodeAlias == thermo0_node.alias
+
     scada.send_status()
     time.sleep(1)
     assert ear.num_received > 0
-    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.spaceheat.status.100"] == 1
-    assert isinstance(ear.latest_payload, GtSpaceheatStatus)
-    assert len(ear.latest_payload.SyncStatusList) == 2
-    sync_status = ear.latest_payload.SyncStatusList[0]
-    assert sync_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
-    assert sync_status.SamplePeriodS == 5
-    now = time.time()
+    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.sh.simple.status.100"] == 1
+    assert isinstance(ear.latest_payload, GtShSimpleStatus)
+    assert len(ear.latest_payload.SimpleSingleStatusList) == 2
+    single_status = ear.latest_payload.SimpleSingleStatusList[0]
+    assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
     assert ear.latest_payload.ReportingPeriodS == 300
-    assert now > ear.latest_payload.SlotStartUnixS
-    assert ear.latest_payload.SlotStartUnixS % 300 == 0
-    assert ear.latest_payload.SlotStartUnixS + 300 > now

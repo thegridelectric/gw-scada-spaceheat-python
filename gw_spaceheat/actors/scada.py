@@ -1,6 +1,7 @@
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
+import pendulum
 import helpers
 import settings
 from data_classes.node_config import NodeConfig
@@ -10,10 +11,11 @@ from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.gs.gs_dispatch_maker import GsDispatch, GsDispatch_Maker
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import \
-    GtSpaceheatStatus_Maker
-from schema.gt.gt_spaceheat_sync_single.gt_spaceheat_sync_single_maker import \
-    GtSpaceheatSyncSingle_Maker
+from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status_maker import \
+    GtShSimpleSingleStatus_Maker, GtShSimpleSingleStatus
+from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import \
+    GtShSimpleStatus_Maker
+
 from schema.gt.gt_telemetry.gt_telemetry_maker import (GtTelemetry,
                                                        GtTelemetry_Maker)
 
@@ -59,7 +61,6 @@ class Scada(ScadaBase):
         return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
-        self.screen_print("Got message")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GsDispatch):
@@ -77,7 +78,6 @@ class Scada(ScadaBase):
         self.gw_publish(payload=payload)
 
     def gt_telemetry_received(self, from_node: ShNode, payload: GtTelemetry):
-        self.screen_print(f"{payload.Value} from {from_node.alias}")
         if from_node not in self.latest_readings.keys():
             self.screen_print(f"Not tracking readings from {from_node}!")
             return
@@ -117,31 +117,36 @@ class Scada(ScadaBase):
         else:
             self.config[ba].driver.turn_off()
 
+    def make_single_status(self, node: ShNode) -> Optional[GtShSimpleSingleStatus]:
+        if node not in self.latest_sample_times_ms.keys():
+            raise Exception(f'{node} missing from self.lastest_sample-times')
+        if len(self.latest_readings[node]) == 0:
+            return None
+        read_time_unix_ms_list = self.latest_sample_times_ms[node]
+        value_list = self.latest_readings[node]
+        telemetry_name = self.config[node].reporting.TelemetryName
+        return GtShSimpleSingleStatus_Maker(sh_node_alias=node.alias,
+                                            telemetry_name=telemetry_name,
+                                            value_list=value_list,
+                                            read_time_unix_ms_list=read_time_unix_ms_list,
+                                            ).tuple
+
     def send_status(self):
         self.screen_print("Should send status")
-        sync_status_list = []
-        for node in self.my_tank_water_temp_sensors():
-            if node not in self.latest_sample_times_ms.keys():
-                raise Exception(f'{node} missing from self.lastest_sample-times')
-            if len(self.latest_sample_times_ms[node]) > 0:
-                first_read_time_unix_s = int(self.latest_sample_times_ms[node][0] / 1000)
-                sample_period_s = self.config[node].reporting.SamplePeriodS
-                telemetry_name = self.config[node].reporting.TelemetryName
-                sync_status = GtSpaceheatSyncSingle_Maker(first_read_time_unix_s=first_read_time_unix_s,
-                                                          sample_period_s=sample_period_s,
-                                                          sh_node_alias=node.alias,
-                                                          telemetry_name=telemetry_name,
-                                                          value_list=self.latest_readings[node]).tuple
-                sync_status_list.append(sync_status)
+        simple_single_status_list = []
+        for node in (self.my_tank_water_temp_sensors() + self.my_boolean_actuators()):
+            single_status = self.make_single_status(node)
+            if single_status:
+                simple_single_status_list.append(self.make_single_status(node))
 
         slot_start_unix_s = self._last_5_cron_s
-        status_payload = GtSpaceheatStatus_Maker(about_g_node_alias=helpers.ta_g_node_alias(),
-                                                 slot_start_unix_s=slot_start_unix_s,
-                                                 reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
-                                                 async_status_list=[],
-                                                 sync_status_list=sync_status_list).tuple
-        self.latest_status_payload = status_payload
-        self.gw_publish(payload=status_payload)
+        payload = GtShSimpleStatus_Maker(about_g_node_alias=helpers.ta_g_node_alias(),
+                                         slot_start_unix_s=slot_start_unix_s,
+                                         reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                         simple_single_status_list=simple_single_status_list,
+                                         ).tuple
+
+        self.gw_publish(payload)
         self.flush_latest_readings()
 
     def cron_every_5(self):
@@ -154,6 +159,9 @@ class Scada(ScadaBase):
             if self.time_for_5_cron():
                 self.cron_every_5()
             time.sleep(1)
+            if int(time.time()) % 30 == 0:
+                self.screen_print(f"{pendulum.from_timestamp(int(time.time()))}")
+                self.screen_print(f"{self.next_5_cron_s - int(time.time())} seconds till status")
 
     def my_tank_water_temp_sensors(self) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())

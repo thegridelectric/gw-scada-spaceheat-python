@@ -1,38 +1,38 @@
-"""Makes gt.spaceheat.async.single.100 type"""
+"""Makes gt.sh.simple.single.status.100 type"""
 
 import json
 from typing import List
 
-
-from schema.gt.gt_spaceheat_async_single.gt_spaceheat_async_single import GtSpaceheatAsyncSingle
+from schema.gt.gt_sh_simple_single_status.gt_spaceheat_sync_single_status \
+    import GtShSimpleSingleStatus
 from schema.errors import MpSchemaError
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 
 
-class GtSpaceheatAsyncSingle_Maker():
-    type_alias = 'gt.spaceheat.async.single.100'
+class GtShSimpleSingleStatus_Maker():
+    type_alias = 'gt.sh.simple.single.status.100'
 
     def __init__(self,
-                 value_list: List[int],
+                 read_time_unix_ms_list: List[int],
                  sh_node_alias: str,
-                 unix_time_s_list: List[int],
+                 value_list: List[int],
                  telemetry_name: TelemetryName):
 
-        tuple = GtSpaceheatAsyncSingle(ValueList=value_list,
-                                       ShNodeAlias=sh_node_alias,
-                                       UnixTimeSList=unix_time_s_list,
+        tuple = GtShSimpleSingleStatus(ReadTimeUnixMsList=read_time_unix_ms_list,
                                        TelemetryName=telemetry_name,
+                                       ShNodeAlias=sh_node_alias,
+                                       ValueList=value_list,
                                        )
         tuple.check_for_errors()
         self.tuple = tuple
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtSpaceheatAsyncSingle) -> str:
+    def tuple_to_type(cls, tuple: GtShSimpleSingleStatus) -> str:
         tuple.check_for_errors()
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtSpaceheatAsyncSingle:
+    def type_to_tuple(cls, t: str) -> GtShSimpleSingleStatus:
         try:
             d = json.loads(t)
         except TypeError:
@@ -42,21 +42,21 @@ class GtSpaceheatAsyncSingle_Maker():
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) -> GtSpaceheatAsyncSingle:
-        if "ValueList" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ValueList")
+    def dict_to_tuple(cls, d: dict) -> GtShSimpleSingleStatus:
+        if "ReadTimeUnixMsList" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing ReadTimeUnixMsList")
         if "ShNodeAlias" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ShNodeAlias")
-        if "UnixTimeSList" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing UnixTimeSList")
+        if "ValueList" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing ValueList")
         if "TelemetryNameGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing TelemetryNameGtEnumSymbol")
         d["TelemetryName"] = TelemetryNameMap.gt_to_local(d["TelemetryNameGtEnumSymbol"])
 
-        tuple = GtSpaceheatAsyncSingle(ValueList=d["ValueList"],
-                                       ShNodeAlias=d["ShNodeAlias"],
-                                       UnixTimeSList=d["UnixTimeSList"],
+        tuple = GtShSimpleSingleStatus(ReadTimeUnixMsList=d["ReadTimeUnixMsList"],
                                        TelemetryName=d["TelemetryName"],
+                                       ShNodeAlias=d["ShNodeAlias"],
+                                       ValueList=d["ValueList"],
                                        )
         tuple.check_for_errors()
         return tuple

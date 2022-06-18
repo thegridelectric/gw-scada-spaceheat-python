@@ -44,7 +44,6 @@ class CloudEarBase(ABC):
         raise NotImplementedError
 
     def on_gw_mqtt_message(self, client, userdata, message):
-        self.screen_print(f"topic is {message.topic}")
         try:
             (from_alias, type_alias) = message.topic.split('/')
         except IndexError:
