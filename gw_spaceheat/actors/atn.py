@@ -62,7 +62,6 @@ class Atn(AtnBase):
             sh_node_alias=ba.alias).tuple
         self.gw_publish(payload)
 
-
     def main(self):
         self._main_loop_running = True
         while self._main_loop_running is True:

@@ -114,7 +114,6 @@ class Scada(ScadaBase):
             self.turn_off(ba)
             self.screen_print(f"Dispatched {ba.alias} off")
 
-
     ################################################
     # Primary functions
     ###############################################
