@@ -10,8 +10,9 @@ import pendulum
 import settings
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import (
-    GtSpaceheatStatus, GtSpaceheatStatus_Maker)
+from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
+    GtShSimpleStatus_Maker, GtShSimpleStatus)
+
 
 from actors.cloud_ear_base import CloudEarBase
 from actors.utils import QOS, Subscription
@@ -41,7 +42,7 @@ class CloudEar(CloudEarBase):
 
     def gw_subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{helpers.scada_g_node_alias()}/{GsPwr_Maker.type_alias}', Qos=QOS.AtMostOnce),
-                Subscription(Topic=f'{helpers.scada_g_node_alias()}/{GtSpaceheatStatus_Maker.type_alias}',
+                Subscription(Topic=f'{helpers.scada_g_node_alias()}/{GtShSimpleStatus_Maker.type_alias}',
                              Qos=QOS.AtLeastOnce)]
 
     def on_gw_message(self, from_node: ShNode, payload: GsPwr):

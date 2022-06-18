@@ -3,6 +3,8 @@ import typing
 from collections import defaultdict
 
 import load_house
+from schema.gt.gt_sh_simple_single_status.gt_spaceheat_sync_single_status \
+    import GtShSimpleSingleStatus
 import settings
 from actors.atn import Atn
 from actors.cloud_ear import CloudEar
@@ -14,8 +16,9 @@ from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import \
     TelemetryName
 from schema.gs.gs_pwr_maker import GsPwr_Maker
-from schema.gt.gt_spaceheat_status.gt_spaceheat_status_maker import \
-    GtSpaceheatStatus
+from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import \
+    GtShSimpleStatus
+import schema.property_format
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
@@ -35,7 +38,7 @@ class EarRecorder(CloudEar):
         self.num_received_by_topic[message.topic] += 1
         super().on_gw_mqtt_message(client, userdata, message)
 
-    def on_gw_message(self, from_node: ShNode, payload: GtSpaceheatStatus):
+    def on_gw_message(self, from_node: ShNode, payload: GtShSimpleStatus):
         self.latest_payload = payload
         super().on_gw_message(from_node, payload)
 
