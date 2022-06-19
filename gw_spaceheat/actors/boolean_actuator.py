@@ -14,8 +14,8 @@ from actors.utils import QOS, Subscription
 class BooleanActuator(ActorBase):
     MAIN_LOOP_MIN_TIME_S = 5
 
-    def __init__(self, node: ShNode):
-        super(BooleanActuator, self).__init__(node=node)
+    def __init__(self, node: ShNode, logging_on=False):
+        super(BooleanActuator, self).__init__(node=node, logging_on=logging_on)
         now = int(time.time())
         self._last_sync_report_time_s = (now - (now % 300) - 60)
         self.relay_state: int = None

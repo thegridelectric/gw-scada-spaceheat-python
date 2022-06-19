@@ -26,8 +26,8 @@ from actors.utils import QOS, Subscription
 
 class Scada(ScadaBase):
 
-    def __init__(self, node: ShNode):
-        super(Scada, self).__init__(node=node)
+    def __init__(self, node: ShNode, logging_on=False):
+        super(Scada, self).__init__(node=node, logging_on=logging_on)
         now = int(time.time())
         self._last_5_cron_s = (now - (now % 300))
         self.power = 0

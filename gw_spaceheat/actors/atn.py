@@ -1,7 +1,7 @@
 
 import time
 from typing import List
-
+import uuid
 import helpers
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
@@ -11,13 +11,15 @@ from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
 from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
     GtShSimpleStatus, GtShSimpleStatus_Maker)
 
-from actors.atn_base import AtnBase
+from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription
 
 
-class Atn(AtnBase):
-    def __init__(self, node: ShNode):
-        super(Atn, self).__init__(node=node)
+class Atn(CloudBase):
+    def __init__(self, node: ShNode, logging_on=False):
+        super(Atn, self).__init__(logging_on=logging_on)
+        self.node = node
+        self.log_csv = f"output/debug_logs/atn_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.total_power_w = 0
         self.screen_print(f'Initialized {self.__class__}')
 
@@ -66,3 +68,7 @@ class Atn(AtnBase):
         self._main_loop_running = True
         while self._main_loop_running is True:
             time.sleep(1)
+
+    def screen_print(self, note):
+        header = f"{self.node.alias}: "
+        print(header + note)

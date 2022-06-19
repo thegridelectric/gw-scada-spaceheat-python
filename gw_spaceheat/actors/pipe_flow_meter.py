@@ -11,8 +11,8 @@ from actors.utils import Subscription
 
 
 class PipeFlowMeter(ActorBase):
-    def __init__(self, node: ShNode):
-        super(PipeFlowMeter, self).__init__(node=node)
+    def __init__(self, node: ShNode, logging_on=False):
+        super(PipeFlowMeter, self).__init__(node=node, logging_on=logging_on)
         self.water_flow_gpm = 0
         self.screen_print(f'Initialized {self.__class__}')
 

@@ -5,6 +5,10 @@ from typing import List
 
 
 class Role(enum.Enum):
+    @classmethod
+    def values(cls):
+        return [function.value for function in cls]
+
     BOOST_ELEMENT = "BoostElement"
     PIPE_FLOW_METER = "PipeFlowMeter"
     POWER_METER = "PowerMeter"
@@ -22,7 +26,7 @@ class Role(enum.Enum):
     ATN = "Atn"
     HOME_ALONE = "HomeAlone"
     OUTDOORS = "Outdoors"
-    
+
 
 class ShNodeRole101GtEnum(ABC):
     symbols: List[str] = ["99c5f326",

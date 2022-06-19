@@ -12,8 +12,8 @@ from actors.utils import Subscription
 class TankWaterTempSensor(ActorBase):
     MAIN_LOOP_MIN_TIME_S = 0.2
 
-    def __init__(self, node: ShNode):
-        super(TankWaterTempSensor, self).__init__(node=node)
+    def __init__(self, node: ShNode, logging_on=False):
+        super(TankWaterTempSensor, self).__init__(node=node, logging_on=logging_on)
         self._last_sent_s = 0
         self.temp = None
         self.config = NodeConfig(self.node)
@@ -40,7 +40,7 @@ class TankWaterTempSensor(ActorBase):
                                             scada_read_time_unix_ms=int(time_of_read_s * 1000)).tuple
                 self.publish(payload=payload)
                 self.screen_print(f"{payload.Value} {telemetry_name.value}")
-                #self.screen_print(f"{int(time_of_read_s * 1000)}")
+                # self.screen_print(f"{int(time_of_read_s * 1000)}")
                 self._sent_latest_sample = True
                 self._last_sent_s = int(time_of_read_s)
         else:
