@@ -69,7 +69,8 @@ class Scada(ScadaBase):
     def subscriptions(self) -> List[Subscription]:
         my_subscriptions = [Subscription(Topic=f"a.m/{GsPwr_Maker.type_alias}", Qos=QOS.AtMostOnce)]
 
-        for node in self.my_tank_water_temp_sensors() + self.my_boolean_actuators():
+        for node in self.my_tank_water_temp_sensors() + self.my_boolean_actuators() + \
+                self.my_pipe_temp_sensors():
             my_subscriptions.append(
                 Subscription(
                     Topic=f"{node.alias}/{GtTelemetry_Maker.type_alias}", Qos=QOS.AtLeastOnce
@@ -173,7 +174,8 @@ class Scada(ScadaBase):
     def send_status(self):
         self.screen_print("Should send status")
         simple_single_status_list = []
-        for node in self.my_tank_water_temp_sensors() + self.my_boolean_actuators():
+        for node in self.my_tank_water_temp_sensors() + self.my_boolean_actuators() \
+                + self.my_pipe_temp_sensors():
             single_status = self.make_single_status(node)
             if single_status:
                 simple_single_status_list.append(self.make_single_status(node))
