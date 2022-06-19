@@ -101,6 +101,7 @@ def test_temp_sensor_loop_time():
         end = time.time()
         loop_ms = 1000 * (end - start)
         assert loop_ms > 200
+    time.sleep(2)
 
 
 def test_async_power_metering_dag():
@@ -143,7 +144,7 @@ def test_scada_sends_status():
     time.sleep(2)
     thermo0_node = ShNode.by_alias["a.tank.temp0"]
     thermo1_node = ShNode.by_alias["a.tank.temp1"]
-    assert len(scada.latest_readings[thermo0_node]) == 0
+
     thermo0 = TankWaterTempSensor(node=thermo0_node)
     thermo0.start()
     thermo1 = TankWaterTempSensor(node=thermo1_node)
