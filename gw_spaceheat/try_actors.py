@@ -61,9 +61,9 @@ def get_y_n(response) -> Optional[bool]:
         return False
 
 
-def main():
+def start_singles(actor_list) -> list:
     load_house.load_all(input_json_file="input_data/houses.json")
-    actor_list = []
+
     starting_singles = True
     while starting_singles:
         response = input("Start single node (y,n)? ")
@@ -74,8 +74,10 @@ def main():
                 actor_list = add_actor(actor_list, node)
         else:
             starting_singles = False
-        time.sleep(.5)
+        time.sleep(0.5)
+    return actor_list
 
+def start_roles(actor_list) -> List:
     response = input("Start all TankWaterTempSensors? ")
     start_tank_water_temp_sensors = get_y_n(response)
     if start_tank_water_temp_sensors:
@@ -85,7 +87,7 @@ def main():
     start_tank_water_temp_sensors = get_y_n(response)
     if start_tank_water_temp_sensors:
         actor_list = add_all_nodes_of_role(actor_list, Role.BOOLEAN_ACTUATOR)
-    
+
     starting_roles = True
     while starting_roles:
         response = input("Start all actors of some other role? ")
@@ -96,12 +98,16 @@ def main():
                 actor_list = add_all_nodes_of_role(actor_list, role)
         else:
             starting_roles = False
+    return actor_list
 
-    actor_list = list(set(actor_list))
-    actor_list = sorted(actor_list, key=lambda x: x.node.alias)
+def main():
+    actor_list = []
+    actor_list = start_singles(actor_list)
+    actor_list = start_roles(actor_list)
+    actor_list = sorted(list(set(actor_list)), key=lambda x: x.node.alias)
+
     print("About to start these actors:")
     print("")
-
     for actor in actor_list:
         print(actor.node.alias)
 
