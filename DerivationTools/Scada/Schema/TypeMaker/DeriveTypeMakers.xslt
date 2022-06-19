@@ -179,7 +179,7 @@ class </xsl:text><xsl:value-of select="$class-name"/>
     </xsl:for-each>
     <xsl:text>)
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: </xsl:text><xsl:value-of select="$class-name"/><xsl:text> = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: </xsl:text><xsl:value-of select="$class-name"/>

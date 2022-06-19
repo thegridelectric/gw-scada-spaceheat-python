@@ -22,7 +22,7 @@ class GtElectricHeaterCac_Maker():
                                           DisplayName=display_name,
                                           )
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: GtElectricHeaterCac = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtElectricHeaterCac) -> str:

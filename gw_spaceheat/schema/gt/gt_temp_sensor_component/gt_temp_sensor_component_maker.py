@@ -23,7 +23,7 @@ class GtTempSensorComponent_Maker():
                                           ComponentAttributeClassId=component_attribute_class_id,
                                           )
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: GtTempSensorComponent = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtTempSensorComponent) -> str:

@@ -1,5 +1,5 @@
 import time
-from typing import List
+from typing import List, Optional
 
 import helpers
 from data_classes.sh_node import ShNode
@@ -17,7 +17,7 @@ class HomeAlone(ActorBase):
 
     def __init__(self, node: ShNode, logging_on=False):
         super(HomeAlone, self).__init__(node=node, logging_on=logging_on)
-
+        self.latest_status: Optional[GtShSimpleStatus] = None
         self.screen_print(f"Initialized {self.__class__}")
 
     def subscriptions(self) -> List[Subscription]:
@@ -35,10 +35,11 @@ class HomeAlone(ActorBase):
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
-    def gt_sh_simple_status_received(
-        self, from_node: ShNode, payload: GtShSimpleStatus
-    ):
+    def gt_sh_simple_status_received(self, from_node: ShNode, payload: GtShSimpleStatus):
         self.screen_print("Got status!")
+        if from_node != ShNode.by_alias["a.s"]:
+            raise Exception(f"Got status from {from_node}! Expected a.s!")
+        self.latest_status = payload
 
     ################################################
     # Primary functions

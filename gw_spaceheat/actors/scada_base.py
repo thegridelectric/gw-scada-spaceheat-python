@@ -1,14 +1,15 @@
+import threading
 import uuid
 from abc import abstractmethod
 from typing import List
-import threading
+
 import helpers
 import paho.mqtt.client as mqtt
 import settings
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
 from schema.gs.gs_pwr import GsPwr
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.schema_switcher import TypeMakerByAliasDict
 
@@ -17,13 +18,23 @@ from actors.utils import QOS, Subscription
 
 
 class ScadaBase(ActorBase):
+    @classmethod
+    def gw_subscriptions(cls) -> List[Subscription]:
+        return [
+            Subscription(
+                Topic=f"{settings.ATN_G_NODE_ALIAS}/{GtDispatch_Maker.type_alias}",
+                Qos=QOS.AtLeastOnce,
+            )
+        ]
+
     def __init__(self, node: ShNode, logging_on=False):
         super(ScadaBase, self).__init__(node=node, logging_on=logging_on)
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
-        self.gw_publish_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
+        self.gw_publish_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_publish_client = mqtt.Client(self.gw_publish_client_id)
-        self.gw_publish_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
-                                               password=helpers.get_secret('GW_MQTT_PW'))
+        self.gw_publish_client.username_pw_set(
+            username=settings.GW_MQTT_USER_NAME, password=helpers.get_secret("GW_MQTT_PW")
+        )
         self.gw_publish_client.on_connect = self.on_connect
         self.gw_publish_client.on_connect_fail = self.on_connect_fail
         self.gw_publish_client.on_disconnect = self.on_disconnect
@@ -31,10 +42,11 @@ class ScadaBase(ActorBase):
         self.gw_publish_client.loop_start()
         if self.logging_on:
             self.gw_publish_client.on_log = self.on_log
-        self.gw_consume_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
+        self.gw_consume_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_consume_client = mqtt.Client(self.gw_consume_client_id)
-        self.gw_consume_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
-                                               password=helpers.get_secret('GW_MQTT_PW'))
+        self.gw_consume_client.username_pw_set(
+            username=settings.GW_MQTT_USER_NAME, password=helpers.get_secret("GW_MQTT_PW")
+        )
         self.gw_consume_client.on_message = self.on_gw_mqtt_message
         self.gw_consume_client.on_connect = self.on_connect
         self.gw_consume_client.on_connect_fail = self.on_connect_fail
@@ -42,19 +54,19 @@ class ScadaBase(ActorBase):
         self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
-        self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
+        self.gw_consume_client.subscribe(
+            list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
+        )
 
-    def gw_subscriptions(self) -> List[Subscription]:
-        return [Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/{GtDispatch_Maker.type_alias}', Qos=QOS.AtLeastOnce)]
-
+    # noinspection PyUnusedLocal
     def on_gw_mqtt_message(self, client, userdata, message):
         try:
-            (from_alias, type_alias) = message.topic.split('/')
+            (from_alias, type_alias) = message.topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
         if from_alias != settings.ATN_G_NODE_ALIAS:
             raise Exception(f"alias {from_alias} not my AtomicTNode!")
-        from_node = ShNode.by_alias['a']
+        from_node = ShNode.by_alias["a"]
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
@@ -64,16 +76,17 @@ class ScadaBase(ActorBase):
     def on_gw_message(self, from_node: ShNode, payload: GtTelemetry):
         raise NotImplementedError
 
-    def gw_publish(self, payload: GtTelemetry):
+    def gw_publish(self, payload):
         if type(payload) in [GsPwr, GsDispatch]:
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
         self.gw_publish_client.publish(
-            topic=f'{helpers.scada_g_node_alias()}/{payload.TypeAlias}',
+            topic=f"{helpers.scada_g_node_alias()}/{payload.TypeAlias}",
             payload=payload.as_type(),
             qos=qos.value,
-            retain=False)
+            retain=False,
+        )
 
     def start(self):
         self.publish_client.loop_start()
@@ -82,7 +95,7 @@ class ScadaBase(ActorBase):
         self.gw_publish_client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
-        self.screen_print(f'Started {self.__class__}')
+        self.screen_print(f"Started {self.__class__}")
 
     def stop(self):
         self.screen_print("Stopping ...")

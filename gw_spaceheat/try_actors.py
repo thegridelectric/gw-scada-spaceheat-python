@@ -1,5 +1,5 @@
 import time
-from typing import Optional, List
+from typing import List, Optional
 
 import load_house
 from actors.strategy_switcher import strategy_from_node
@@ -11,9 +11,11 @@ def add_actor(actor_list: List, node: ShNode) -> List:
     actor_function = strategy_from_node(node)
     if not actor_function:
         print(f"Missing strategy for {node} in strategy_switcher")
-        return
+        return actor_list
     actor = actor_function(node)
-    actor_list.append(actor)
+    existing_nodes = list(map(lambda x: x.node, actor_list))
+    if actor.node not in existing_nodes:
+        actor_list.append(actor)
     return actor_list
 
 

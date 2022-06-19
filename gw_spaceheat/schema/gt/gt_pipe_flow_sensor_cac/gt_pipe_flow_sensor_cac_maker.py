@@ -24,7 +24,7 @@ class GtPipeFlowSensorCac_Maker():
                                           MakeModel=make_model,
                                           )
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: GtPipeFlowSensorCac = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtPipeFlowSensorCac) -> str:

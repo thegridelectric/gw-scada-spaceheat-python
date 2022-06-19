@@ -21,3 +21,7 @@ htmlcov
 gw_spaceheat/output/**
 !gw_spaceheat/output/**/
 !gw_spaceheat/output/**/__init__.py
+
+output/**
+!output/**/
+!output/**/__init__.py

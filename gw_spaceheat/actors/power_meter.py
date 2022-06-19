@@ -1,4 +1,3 @@
-
 import random
 import time
 from typing import List
@@ -14,7 +13,7 @@ class PowerMeter(ActorBase):
     def __init__(self, node: ShNode, logging_on=False):
         super(PowerMeter, self).__init__(node=node, logging_on=logging_on)
         self.total_power_w = 4230
-        self.screen_print(f'Initialized {self.__class__}')
+        self.screen_print(f"Initialized {self.__class__}")
 
     def subscriptions(self) -> List[Subscription]:
         return []

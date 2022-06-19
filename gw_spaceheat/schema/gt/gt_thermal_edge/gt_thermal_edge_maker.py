@@ -17,7 +17,7 @@ class GtThermalEdge_Maker():
         tuple = GtThermalEdge(ThermalEdgeId=thermal_edge_id,
                                           )
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: GtThermalEdge = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtThermalEdge) -> str:

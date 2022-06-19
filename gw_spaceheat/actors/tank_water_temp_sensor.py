@@ -15,6 +15,7 @@ class TankWaterTempSensor(ActorBase):
     def __init__(self, node: ShNode, logging_on=False):
         super(TankWaterTempSensor, self).__init__(node=node, logging_on=logging_on)
         self._last_sent_s = 0
+        self._sent_latest_sample = False
         self.temp = None
         self.config = NodeConfig(self.node)
         self.screen_print(f"Initialized {self.__class__}")
@@ -34,10 +35,12 @@ class TankWaterTempSensor(ActorBase):
             self.temp = self.config.driver.read_temp()
             time_of_read_s = time.time()
             if int(time_of_read_s) > self._last_sent_s:
-                payload = GtTelemetry_Maker(name=telemetry_name,
-                                            value=int(self.temp),
-                                            exponent=exponent,
-                                            scada_read_time_unix_ms=int(time_of_read_s * 1000)).tuple
+                payload = GtTelemetry_Maker(
+                    name=telemetry_name,
+                    value=int(self.temp),
+                    exponent=exponent,
+                    scada_read_time_unix_ms=int(time_of_read_s * 1000),
+                ).tuple
                 self.publish(payload=payload)
                 self.screen_print(f"{payload.Value} {telemetry_name.value}")
                 # self.screen_print(f"{int(time_of_read_s * 1000)}")
@@ -54,4 +57,3 @@ class TankWaterTempSensor(ActorBase):
         self._main_loop_running = True
         while self._main_loop_running is True:
             self.check_and_report_temp()
-
