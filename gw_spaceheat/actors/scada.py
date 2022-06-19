@@ -33,6 +33,11 @@ class Scada(ScadaBase):
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, all_nodes))
 
+    @classmethod
+    def my_pipe_temp_sensors(cls) -> List[ShNode]:
+        all_nodes = list(ShNode.by_alias.values())
+        return list(filter(lambda x: x.role == Role.PIPE_TEMP_SENSOR, all_nodes))
+
     def __init__(self, node: ShNode, logging_on=False):
         super(Scada, self).__init__(node=node, logging_on=logging_on)
         now = int(time.time())
@@ -47,7 +52,8 @@ class Scada(ScadaBase):
         self.screen_print(f"Initialized {self.__class__}")
 
     def flush_latest_readings(self):
-        for node in self.my_tank_water_temp_sensors() + self.my_boolean_actuators():
+        for node in self.my_tank_water_temp_sensors() + self.my_boolean_actuators() \
+                + self.my_pipe_temp_sensors():
             self.latest_readings[node] = []
             self.latest_sample_times_ms[node] = []
 

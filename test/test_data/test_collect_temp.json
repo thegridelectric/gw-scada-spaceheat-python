@@ -119,7 +119,7 @@
                     "HasActor": true
                 },
                 {
-                    "Alias": "a.tank.out.tempmeter1",
+                    "Alias": "a.tank.out.temp1",
                     "RoleGtEnumSymbol": "c480f612",
                     "DisplayName": "Temp Sensor on distribution pipe out of tank",
                     "ShNodeId": "66a4a5e7-f160-424a-8ad5-f6554bf9a99a",
@@ -128,7 +128,7 @@
                     "HasActor": false
                 },
                 {
-                    "Alias": "a.tank.in.tempmeter1",
+                    "Alias": "a.tank.in.temp1",
                     "RoleGtEnumSymbol": "c480f612",
                     "DisplayName": "Temp Sensor on distribution pipe into tank",
                     "ShNodeId": "d9c461f6-ed11-4dc1-9fe2-992d5d2413d0",

@@ -119,7 +119,7 @@
                     "HasActor": true
                 },
                 {
-                    "Alias": "a.tank.out.tempmeter1",
+                    "Alias": "a.tank.out.temp1",
                     "RoleGtEnumSymbol": "c480f612",
                     "DisplayName": "Temp Sensor on distribution pipe out of tank",
                     "ShNodeId": "66a4a5e7-f160-424a-8ad5-f6554bf9a99a",
@@ -128,7 +128,7 @@
                     "HasActor": false
                 },
                 {
-                    "Alias": "a.tank.in.tempmeter1",
+                    "Alias": "a.tank.in.temp1",
                     "RoleGtEnumSymbol": "c480f612",
                     "DisplayName": "Temp Sensor on distribution pipe into tank",
                     "ShNodeId": "d9c461f6-ed11-4dc1-9fe2-992d5d2413d0",
@@ -549,16 +549,16 @@
                     "HasActor": true
                 },
                 {
-                    "Alias": "a.tank.out.tempmeter1",
+                    "Alias": "a.tank.out.temp1",
                     "RoleGtEnumSymbol": "c480f612",
                     "DisplayName": "Temp Sensor on distribution pipe out of tank",
                     "ShNodeId": "66a4a5e7-f160-424a-8ad5-f6554bf9a99a",
-                    "ComponentId": "a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e",
-                    "ReportingSamplePeriodS": 60,
-                    "HasActor": false
+                    "ComponentId": "2ca9e65a-5e85-4eaa-811b-901e940f8d09",
+                    "ReportingSamplePeriodS": 5,
+                    "HasActor": true
                 },
                 {
-                    "Alias": "a.tank.in.tempmeter1",
+                    "Alias": "a.tank.in.temp1",
                     "RoleGtEnumSymbol": "c480f612",
                     "DisplayName": "Temp Sensor on distribution pipe into tank",
                     "ShNodeId": "d9c461f6-ed11-4dc1-9fe2-992d5d2413d0",
@@ -656,9 +656,10 @@
                     "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566"
                 },
                 {
-                    "ComponentId": "a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e",
+                    "ComponentId": "2ca9e65a-5e85-4eaa-811b-901e940f8d09",
                     "DisplayName": "Temp sensor on pipe out of tank",
-                    "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
+                    "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
+                    "HwUid": "00033ffe"
                 },
                 {
                     "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
