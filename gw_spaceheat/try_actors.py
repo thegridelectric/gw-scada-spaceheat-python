@@ -77,6 +77,7 @@ def start_singles(actor_list) -> list:
         time.sleep(0.5)
     return actor_list
 
+
 def start_roles(actor_list) -> List:
     response = input("Start all TankWaterTempSensors? ")
     start_tank_water_temp_sensors = get_y_n(response)
@@ -99,6 +100,7 @@ def start_roles(actor_list) -> List:
         else:
             starting_roles = False
     return actor_list
+
 
 def main():
     actor_list = []
