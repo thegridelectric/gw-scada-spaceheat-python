@@ -562,9 +562,9 @@
                     "RoleGtEnumSymbol": "c480f612",
                     "DisplayName": "Temp Sensor on distribution pipe into tank",
                     "ShNodeId": "d9c461f6-ed11-4dc1-9fe2-992d5d2413d0",
-                    "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
-                    "ReportingSamplePeriodS": 60,
-                    "HasActor": false
+                    "ComponentId": "35b5107c-bf32-4791-93eb-0497929fae57",
+                    "ReportingSamplePeriodS": 5,
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank.temp0",
@@ -662,9 +662,9 @@
                     "HwUid": "00033ffe"
                 },
                 {
-                    "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
+                    "ComponentId": "35b5107c-bf32-4791-93eb-0497929fae57",
                     "DisplayName": "Temp sensor on pipe into tank",
-                    "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
+                    "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
                 },
                 {
                     "ComponentId": "2d4b3b73-fc58-4789-b15e-9881f0b4ff40",
