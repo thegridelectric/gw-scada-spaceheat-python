@@ -664,7 +664,8 @@
                 {
                     "ComponentId": "35b5107c-bf32-4791-93eb-0497929fae57",
                     "DisplayName": "Temp sensor on pipe into tank",
-                    "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8"
+                    "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
+                    "HwUid": "000363a9"
                 },
                 {
                     "ComponentId": "2d4b3b73-fc58-4789-b15e-9881f0b4ff40",
