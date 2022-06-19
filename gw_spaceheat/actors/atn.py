@@ -55,7 +55,7 @@ class Atn(CloudBase):
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(payload)
         elif isinstance(payload, GtShSimpleStatus):
-            self.gt_sh_simple_status_received( payload)
+            self.gt_sh_simple_status_received(payload)
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 

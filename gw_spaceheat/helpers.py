@@ -36,4 +36,3 @@ def ta_g_node_alias():
 def log_time() -> str:
     time_utc = pendulum.from_timestamp(time.time())
     return time_utc.strftime("%Y-%m-%d %H:%M:%S")
-
