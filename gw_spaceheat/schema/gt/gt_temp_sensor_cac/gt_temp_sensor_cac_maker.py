@@ -34,7 +34,7 @@ class GtTempSensorCac_Maker():
                                           TypicalResponseTimeMs=typical_response_time_ms,
                                           )
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: GtTempSensorCac = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtTempSensorCac) -> str:

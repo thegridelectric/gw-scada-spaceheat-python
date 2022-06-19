@@ -1,5 +1,5 @@
 import time
-from typing import List
+from typing import List, Optional
 
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
@@ -18,7 +18,7 @@ class BooleanActuator(ActorBase):
         super(BooleanActuator, self).__init__(node=node, logging_on=logging_on)
         now = int(time.time())
         self._last_sync_report_time_s = (now - (now % 300) - 60)
-        self.relay_state: int = None
+        self.relay_state: Optional[int] = None
         self.config = NodeConfig(self.node)
         self.screen_print(f"Initialized {self.__class__}")
 

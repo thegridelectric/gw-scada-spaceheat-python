@@ -24,7 +24,7 @@ class GtShSimpleSingleStatus_Maker():
                                        ValueList=value_list,
                                        )
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: GtShSimpleSingleStatus = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtShSimpleSingleStatus) -> str:

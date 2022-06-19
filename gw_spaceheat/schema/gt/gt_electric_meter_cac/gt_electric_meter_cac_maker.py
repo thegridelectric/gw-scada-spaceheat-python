@@ -24,7 +24,7 @@ class GtElectricMeterCac_Maker():
                                           DisplayName=display_name,
                                           )
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: GtElectricMeterCac = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtElectricMeterCac) -> str:

@@ -38,7 +38,7 @@ class EarRecorder(CloudEar):
         self.num_received_by_topic[message.topic] += 1
         super().on_gw_mqtt_message(client, userdata, message)
 
-    def on_gw_message(self, from_node: ShNode, payload: GtShSimpleStatus):
+    def on_gw_message(self, from_node: ShNode, payload):
         self.latest_payload = payload
         super().on_gw_message(from_node, payload)
 
@@ -131,6 +131,7 @@ def test_async_power_metering_dag():
 
 
 def test_scada_sends_status():
+    load_house.load_all(input_json_file='../test/test_data/test_load_house.json')
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
     scada.terminate_main_loop()

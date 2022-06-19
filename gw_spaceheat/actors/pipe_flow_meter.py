@@ -1,4 +1,3 @@
-
 import time
 from typing import List
 
@@ -14,7 +13,7 @@ class PipeFlowMeter(ActorBase):
     def __init__(self, node: ShNode, logging_on=False):
         super(PipeFlowMeter, self).__init__(node=node, logging_on=logging_on)
         self.water_flow_gpm = 0
-        self.screen_print(f'Initialized {self.__class__}')
+        self.screen_print(f"Initialized {self.__class__}")
 
     def subscriptions(self) -> List[Subscription]:
         return []
@@ -25,10 +24,12 @@ class PipeFlowMeter(ActorBase):
     def test_publish(self):
         self.water_flow_gpm += 100
         self.water_flow_gpm = self.water_flow_gpm % 3000
-        payload = GtTelemetry_Maker(name=TelemetryName.WATER_FLOW_GPM_TIMES100,
-                                    value=int(self.water_flow_gpm * 100),
-                                    exponent=0,
-                                    scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+        payload = GtTelemetry_Maker(
+            name=TelemetryName.WATER_FLOW_GPM_TIMES100,
+            value=int(self.water_flow_gpm * 100),
+            exponent=0,
+            scada_read_time_unix_ms=int(time.time() * 1000),
+        ).tuple
         self.publish(payload=payload)
 
     def main(self):

@@ -9,14 +9,15 @@ from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.tank_water_temp_sensor import TankWaterTempSensor
 
-switcher = {}
-switcher[Role.ATN] = Atn
-switcher[Role.BOOLEAN_ACTUATOR] = BooleanActuator
-switcher[Role.HOME_ALONE] = HomeAlone
-switcher[Role.PIPE_FLOW_METER] = PipeFlowMeter
-switcher[Role.POWER_METER] = PowerMeter
-switcher[Role.SCADA] = Scada
-switcher[Role.TANK_WATER_TEMP_SENSOR] = TankWaterTempSensor
+switcher = {
+    Role.ATN: Atn,
+    Role.BOOLEAN_ACTUATOR: BooleanActuator,
+    Role.HOME_ALONE: HomeAlone,
+    Role.PIPE_FLOW_METER: PipeFlowMeter,
+    Role.POWER_METER: PowerMeter,
+    Role.SCADA: Scada,
+    Role.TANK_WATER_TEMP_SENSOR: TankWaterTempSensor,
+}
 
 
 def strategy_from_node(node: ShNode):

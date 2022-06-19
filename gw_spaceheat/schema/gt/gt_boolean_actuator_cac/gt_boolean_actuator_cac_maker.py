@@ -24,7 +24,7 @@ class GtBooleanActuatorCac_Maker():
                                           DisplayName=display_name,
                                           )
         tuple.check_for_errors()
-        self.tuple = tuple
+        self.tuple: GtBooleanActuatorCac = tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtBooleanActuatorCac) -> str:
