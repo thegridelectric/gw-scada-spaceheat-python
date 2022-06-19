@@ -27,7 +27,7 @@ class ActorBase(ABC):
             with open(self.log_csv, "w") as outfile:
                 write = csv.writer(outfile, delimiter=",")
                 write.writerow(row)
-        self.screen_print(f"log csv is {self.log_csv}")
+            self.screen_print(f"log csv is {self.log_csv}")
         self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
         self.publish_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.publish_client = mqtt.Client(self.publish_client_id)
@@ -60,9 +60,10 @@ class ActorBase(ABC):
 
     def mqtt_log_hack(self, row):
         self.screen_print(row[0])
-        with open(self.log_csv, "a") as outfile:
-            write = csv.writer(outfile, delimiter=",")
-            write.writerow(row)
+        if self.logging_on:
+            with open(self.log_csv, "a") as outfile:
+                write = csv.writer(outfile, delimiter=",")
+                write.writerow(row)
 
     # noinspection PyUnusedLocal
     def on_log(self, client, userdata, level, buf):

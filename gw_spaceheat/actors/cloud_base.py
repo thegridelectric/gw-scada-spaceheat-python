@@ -55,9 +55,10 @@ class CloudBase(ABC):
 
     def mqtt_log_hack(self, row):
         self.screen_print(row[0])
-        with open(self.log_csv, "a") as outfile:
-            write = csv.writer(outfile, delimiter=",")
-            write.writerow(row)
+        if self.logging_on:
+            with open(self.log_csv, "a") as outfile:
+                write = csv.writer(outfile, delimiter=",")
+                write.writerow(row)
 
     # noinspection PyUnusedLocal
     def on_log(self, client, userdata, level, buf):
