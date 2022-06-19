@@ -2,7 +2,7 @@ import threading
 import uuid
 from abc import ABC, abstractmethod
 from typing import List
-
+import csv
 import helpers
 import paho.mqtt.client as mqtt
 import settings
@@ -14,9 +14,10 @@ from schema.schema_switcher import TypeMakerByAliasDict
 from actors.utils import QOS, Subscription
 
 
-class CloudEarBase(ABC):
-    def __init__(self):
-        self.logging_on = False
+class CloudBase(ABC):
+    def __init__(self, logging_on=False):
+        self.logging_on = logging_on
+        self.log_csv = f"output/debug_logs/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
         self.gw_publish_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
         self.gw_publish_client = mqtt.Client(self.gw_publish_client_id)
@@ -30,14 +31,45 @@ class CloudEarBase(ABC):
         self.gw_consume_client = mqtt.Client(self.gw_consume_client_id)
         self.gw_consume_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
                                                password=helpers.get_secret('GW_MQTT_PW'))
+        self.gw_consume_client.on_message = self.on_gw_mqtt_message
+        self.gw_consume_client.on_connect = self.on_connect
+        self.gw_consume_client.on_connect_fail = self.on_connect_fail
+        self.gw_consume_client.on_disconnect = self.on_disconnect
         self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
-        self.gw_consume_client.on_message = self.on_gw_mqtt_message
-
+        
     def on_log(self, client, userdata, level, buf):
-        self.screen_print(f"log: {buf}")
+        row = [f"({helpers.log_time()}) log: {buf}"]
+        self.screen_print(row[0])
+        with open(self.log_csv, 'a') as outfile:
+            write = csv.writer(outfile, delimiter=',')
+            write.writerow(row)
+
+    def on_connect(self, client, userdata, flags, rc):
+        row = [f"({helpers.log_time()}) Publisher connected flags {str(flags)} + result code {str(rc)}"]
+        self.screen_print(row[0])
+        if self.logging_on:
+            with open(self.log_csv, 'a') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                write.writerow(row)
+
+    def on_connect_fail(self, client, userdata, rc):
+        row = [f"({helpers.log_time()}) Connect fail! result code {str(rc)}"]
+        self.screen_print(row[0])
+        if self.logging_on:
+            with open(self.log_csv, 'a') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                write.writerow(row)
+
+    def on_disconnect(self, client, userdata, rc):
+        row = [f"({helpers.log_time()}) Publisher disconnected! result code {str(rc)}"]
+        self.screen_print(row[0])
+        if self.logging_on:
+            with open(self.log_csv, 'a') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                write.writerow(row)
 
     @abstractmethod
     def gw_subscriptions(self) -> List[Subscription]:
@@ -74,9 +106,9 @@ class CloudEarBase(ABC):
     def terminate_main_loop(self):
         self._main_loop_running = False
 
+    @abstractmethod
     def screen_print(self, note):
-        header = "Cloud Ear: "
-        print(header + note)
+        raise NotImplementedError
 
     @abstractmethod
     def main(self):

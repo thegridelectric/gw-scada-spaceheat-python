@@ -2,7 +2,7 @@ import threading
 import uuid
 from abc import ABC, abstractmethod
 from typing import List
-
+import csv
 import helpers
 import paho.mqtt.client as mqtt
 import settings
@@ -17,14 +17,24 @@ from actors.utils import QOS, Subscription
 
 class ActorBase(ABC):
 
-    def __init__(self, node: ShNode):
+    def __init__(self, node: ShNode, logging_on=False):
         self.node = node
-        self.logging_on = False
+        self.logging_on = logging_on
+        self.log_csv = f"output/debug_logs/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
+        if self.logging_on:
+            row = [f"({helpers.log_time()}) {self.node.alias}"]
+            with open(self.log_csv, 'w') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                write.writerow(row)
+        self.screen_print(f"log csv is {self.log_csv}")
         self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
         self.publish_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
         self.publish_client = mqtt.Client(self.publish_client_id)
         self.publish_client.username_pw_set(username=settings.LOCAL_MQTT_USER_NAME,
                                             password=helpers.get_secret('LOCAL_MQTT_PW'))
+        self.publish_client.on_connect = self.on_connect
+        self.publish_client.on_connect_fail = self.on_connect_fail
+        self.publish_client.on_disconnect = self.on_disconnect
         self.publish_client.connect(self.mqttBroker)
         if self.logging_on:
             self.publish_client.on_log = self.on_log
@@ -32,15 +42,46 @@ class ActorBase(ABC):
         self.consume_client = mqtt.Client(self.consume_client_id)
         self.consume_client.username_pw_set(username=settings.LOCAL_MQTT_USER_NAME,
                                             password=helpers.get_secret('LOCAL_MQTT_PW'))
+        self.consume_client.on_message = self.on_mqtt_message
+        self.consume_client.on_connect = self.on_connect
+        self.consume_client.on_connect_fail = self.on_connect_fail
+        self.consume_client.on_disconnect = self.on_disconnect
         self.consume_client.connect(self.mqttBroker)
         if self.logging_on:
             self.consume_client.on_log = self.on_log
         self.consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions())))
-        self.consume_client.on_message = self.on_mqtt_message
         self.main_thread = None
 
     def on_log(self, client, userdata, level, buf):
-        self.screen_print(f"log: {buf}")
+        row = [f"({helpers.log_time()}) log: {buf}"]
+        self.screen_print(row[0])
+        with open(self.log_csv, 'a') as outfile:
+            write = csv.writer(outfile, delimiter=',')
+            write.writerow(row)
+
+    def on_connect(self, client, userdata, flags, rc):
+        row = [f"({helpers.log_time()}) Connected flags {str(flags)} + result code {str(rc)}"]
+        self.screen_print(row[0])
+        if self.logging_on:
+            with open(self.log_csv, 'a') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                write.writerow(row)
+
+    def on_connect_fail(self, client, userdata, rc):
+        row = [f"({helpers.log_time()}) Connect fail! result code {str(rc)}"]
+        self.screen_print(row[0])
+        if self.logging_on:
+            with open(self.log_csv, 'a') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                write.writerow(row)
+
+    def on_disconnect(self, client, userdata, rc):
+        row = [f"({helpers.log_time()}) Disconnected! result code {str(rc)}"]
+        self.screen_print(row[0])
+        if self.logging_on:
+            with open(self.log_csv, 'a') as outfile:
+                write = csv.writer(outfile, delimiter=',')
+                write.writerow(row)
 
     @abstractmethod
     def subscriptions(self) -> List[Subscription]:

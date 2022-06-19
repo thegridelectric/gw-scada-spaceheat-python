@@ -17,13 +17,16 @@ from actors.utils import QOS, Subscription
 
 
 class ScadaBase(ActorBase):
-    def __init__(self, node: ShNode):
-        super(ScadaBase, self).__init__(node=node)
+    def __init__(self, node: ShNode, logging_on=False):
+        super(ScadaBase, self).__init__(node=node, logging_on=logging_on)
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
         self.gw_publish_client_id = ('-').join(str(uuid.uuid4()).split('-')[:-1])
         self.gw_publish_client = mqtt.Client(self.gw_publish_client_id)
         self.gw_publish_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
                                                password=helpers.get_secret('GW_MQTT_PW'))
+        self.gw_publish_client.on_connect = self.on_connect
+        self.gw_publish_client.on_connect_fail = self.on_connect_fail
+        self.gw_publish_client.on_disconnect = self.on_disconnect
         self.gw_publish_client.connect(self.gwMqttBroker)
         self.gw_publish_client.loop_start()
         if self.logging_on:
@@ -32,11 +35,14 @@ class ScadaBase(ActorBase):
         self.gw_consume_client = mqtt.Client(self.gw_consume_client_id)
         self.gw_consume_client.username_pw_set(username=settings.GW_MQTT_USER_NAME,
                                                password=helpers.get_secret('GW_MQTT_PW'))
+        self.gw_consume_client.on_message = self.on_gw_mqtt_message
+        self.gw_consume_client.on_connect = self.on_connect
+        self.gw_consume_client.on_connect_fail = self.on_connect_fail
+        self.gw_consume_client.on_disconnect = self.on_disconnect
         self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
         self.gw_consume_client.subscribe(list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions())))
-        self.gw_consume_client.on_message = self.on_gw_mqtt_message
 
     def gw_subscriptions(self) -> List[Subscription]:
         return [Subscription(Topic=f'{settings.ATN_G_NODE_ALIAS}/{GtDispatch_Maker.type_alias}', Qos=QOS.AtLeastOnce)]

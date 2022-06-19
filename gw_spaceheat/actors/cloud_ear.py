@@ -14,18 +14,19 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
     GtShSimpleStatus_Maker, GtShSimpleStatus)
 
 
-from actors.cloud_ear_base import CloudEarBase
+from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription
 
 atn_ender = settings.ATN_G_NODE_ALIAS.replace(".", "_")
-OUT_STUB = f'/Users/jess/Google Drive/My Drive/GridWorks/Projects/Internal Maine Heat Pilot/SCADA/data/{atn_ender}'
-# OUT_STUB = atn_ender
+# OUT_STUB = f'/Users/jess/Google Drive/My Drive/GridWorks/Projects/Internal Maine Heat Pilot/SCADA/data/{atn_ender}'
+OUT_STUB = f"output/status/{atn_ender}"
 
 
-class CloudEar(CloudEarBase):
-    def __init__(self, write_to_csv=False):
+class CloudEar(CloudBase):
+    def __init__(self, write_to_csv=False, logging_on=False):
         self.write_to_csv = write_to_csv
-        super(CloudEar, self).__init__()
+        super(CloudEar, self).__init__(logging_on=logging_on)
+        self.log_csv = f"output/debug_logs/ear_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.total_power_w = 0
         if self.write_to_csv:
             adder = str(uuid.uuid4()).split('-')[1]
@@ -90,3 +91,7 @@ class CloudEar(CloudEarBase):
         self._main_loop_running = True
         while self._main_loop_running is True:
             time.sleep(10)
+
+    def screen_print(self, note):
+        header = "Cloud Ear: "
+        print(header + note)

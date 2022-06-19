@@ -109,6 +109,11 @@ def test_async_power_metering_dag():
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
+    atn = Atn(node=atn_node)
+    atn.start()
+    atn.terminate_main_loop()
+    atn.main_thread.join()
+    assert atn.total_power_w == 0
     meter = PowerMeter(node=meter_node)
     meter.start()
     meter.terminate_main_loop()
@@ -117,11 +122,6 @@ def test_async_power_metering_dag():
     scada.start()
     scada.terminate_main_loop()
     scada.main_thread.join()
-    atn = Atn(node=atn_node)
-    atn.start()
-    atn.terminate_main_loop()
-    atn.main_thread.join()
-    assert atn.total_power_w == 0
     meter.total_power_w = 2100
     payload = GsPwr_Maker(power=meter.total_power_w).tuple
     meter.publish(payload=payload)

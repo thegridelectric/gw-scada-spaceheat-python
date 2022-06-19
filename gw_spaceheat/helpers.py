@@ -1,6 +1,7 @@
 import os
 import re
-
+import pendulum
+import time
 from dotenv import load_dotenv
 
 import settings
@@ -28,3 +29,8 @@ def scada_g_node_alias():
 
 def ta_g_node_alias():
     return f'{settings.ATN_G_NODE_ALIAS}.ta'
+
+
+def log_time() -> str:
+    time_utc = pendulum.from_timestamp(time.time())
+    return time_utc.strftime("%Y-%m-%d %H:%M:%S")

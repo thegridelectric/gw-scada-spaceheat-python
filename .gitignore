@@ -16,3 +16,8 @@ tmp.csv
 
 .coverage
 htmlcov
+
+# ignore output
+gw_spaceheat/output/**
+!gw_spaceheat/output/**/
+!gw_spaceheat/output/**/__init__.py

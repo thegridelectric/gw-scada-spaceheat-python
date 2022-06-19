@@ -62,5 +62,11 @@ representing the house. If `ATN_G_NODE_ALIAS` in `settings.py` matches `template
 _simulated_. If `ATN_G_NODE_ALIAS` in `settings.py` is `w.isone.nh.orange.1`, then the code expects the test heating system
 in Jessica's garage.
 
-Run the code in main.py as a script. It creates the main code for the primary scada actor, loading its input data by checking if the OS belongs to a mac or not.
+`python run_local.py` will start up all actors meant to run on the SCADA pi. 
+`python try_actors.py` gives an interactive script to selectively start some of the actors.
+
+`python run_atn.py` will start up an `AtomicTNode` meant to run in the cloud (this will not 
+remain in this repo).
+
+`python run_ear.py` will start up a data logger meant to run in the cloud.
 
