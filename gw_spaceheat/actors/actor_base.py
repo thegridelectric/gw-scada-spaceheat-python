@@ -35,9 +35,9 @@ class ActorBase(ABC):
             username=settings.LOCAL_MQTT_USER_NAME,
             password=helpers.get_secret("LOCAL_MQTT_PW"),
         )
-        self.publish_client.on_connect = self.on_connect
-        self.publish_client.on_connect_fail = self.on_connect_fail
-        self.publish_client.on_disconnect = self.on_disconnect
+        self.publish_client.on_connect = self.on_publish_connect
+        self.publish_client.on_connect_fail = self.on_publish_connect_fail
+        self.publish_client.on_disconnect = self.on_publish_disconnect
         self.publish_client.connect(self.mqttBroker)
         if self.logging_on:
             self.publish_client.on_log = self.on_log
@@ -48,9 +48,9 @@ class ActorBase(ABC):
             password=helpers.get_secret("LOCAL_MQTT_PW"),
         )
         self.consume_client.on_message = self.on_mqtt_message
-        self.consume_client.on_connect = self.on_connect
-        self.consume_client.on_connect_fail = self.on_connect_fail
-        self.consume_client.on_disconnect = self.on_disconnect
+        self.consume_client.on_connect = self.on_consume_connect
+        self.consume_client.on_connect_fail = self.on_consume_connect_fail
+        self.consume_client.on_disconnect = self.on_consume_disconnect
         self.consume_client.connect(self.mqttBroker)
         if self.logging_on:
             self.consume_client.on_log = self.on_log
@@ -70,18 +70,32 @@ class ActorBase(ABC):
         self.mqtt_log_hack([f"({helpers.log_time()}) log: {buf}"])
 
     # noinspection PyUnusedLocal
-    def on_connect(self, client, userdata, flags, rc):
+    def on_publish_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
-            [f"({helpers.log_time()}) Connected flags {str(flags)} + result code {str(rc)}"]
+            [f"({helpers.log_time()}) Local Publish Connected flags {str(flags)} + result code {str(rc)}"]
         )
 
     # noinspection PyUnusedLocal
-    def on_connect_fail(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Connect fail! result code {str(rc)}"])
+    def on_publish_connect_fail(self, client, userdata, rc):
+        self.mqtt_log_hack([f"({helpers.log_time()}) Local Publish Connect fail! result code {str(rc)}"])
 
     # noinspection PyUnusedLocal
-    def on_disconnect(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Disconnected! result code {str(rc)}"])
+    def on_publish_disconnect(self, client, userdata, rc):
+        self.mqtt_log_hack([f"({helpers.log_time()}) Local Publish Disconnected! result code {str(rc)}"])
+    
+        # noinspection PyUnusedLocal
+    def on_consume_connect(self, client, userdata, flags, rc):
+        self.mqtt_log_hack(
+            [f"({helpers.log_time()}) Local Consume Connected flags {str(flags)} + result code {str(rc)}"]
+        )
+
+    # noinspection PyUnusedLocal
+    def on_consume_connect_fail(self, client, userdata, rc):
+        self.mqtt_log_hack([f"({helpers.log_time()}) Local Consume Connect fail! result code {str(rc)}"])
+
+    # noinspection PyUnusedLocal
+    def on_consume_disconnect(self, client, userdata, rc):
+        self.mqtt_log_hack([f"({helpers.log_time()}) Local Consume Disconnected! result code {str(rc)}"])
 
     @abstractmethod
     def subscriptions(self) -> List[Subscription]:
