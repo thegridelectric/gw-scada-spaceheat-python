@@ -521,9 +521,17 @@
                 {
                     "Alias": "a.tank.out.pump.baseboard1",
                     "RoleGtEnumSymbol": "05fdd645",
-                    "DisplayName": "All the garage passive radiators",
+                    "DisplayName": "Single baseboard radiator",
                     "ShNodeId": "7d555c14-dcfe-43ba-9f50-92bd174c1d17",
                     "HasActor": false
+                },
+                {
+                    "Alias": "a.tank.out.pump.baseboard1.fan.relay",
+                    "RoleGtEnumSymbol": "57b788ee",
+                    "DisplayName": "Relay for first baseboard radiator fan",
+                    "ShNodeId": "0223a903-ae99-4cd9-bd67-f28e1e799938",
+                    "ComponentId": "dd9a1452-d7aa-4523-8deb-8e302a4f86ba",
+                    "HasActor": true
                 },
                 {
                     "Alias": "a.tank.out.pump.baseboard1.garage",
@@ -636,6 +644,12 @@
                     "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d"     
                 }],
             "BooleanActuatorComponents": [
+                {
+                    "ComponentId": "dd9a1452-d7aa-4523-8deb-8e302a4f86ba",
+                    "DisplayName": "relay for radiator fan",
+                    "ComponentAttributeClassId": "c6e736d8-8078-44f5-98bb-d72ca91dc773",
+                    "Gpio": 1
+                },
                 {
                     "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
                     "DisplayName": "relay for first elt in tank",
