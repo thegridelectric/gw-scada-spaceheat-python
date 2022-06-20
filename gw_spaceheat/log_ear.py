@@ -4,6 +4,6 @@ from actors.cloud_ear import CloudEar
 
 logging.basicConfig(level="DEBUG")
 
-ear = CloudEar(logging_on=True)
+ear = CloudEar(write_to_csv=True, logging_on=True)
 
 ear.start()
