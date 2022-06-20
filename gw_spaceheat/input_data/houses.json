@@ -484,7 +484,7 @@
                     "DisplayName": "Main Power Meter Little Orange House Test System",
                     "ShNodeId":"0dd8a803-4724-4f49-b845-14ff57bdb3e6",
                     "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
-                    "HasActor": true
+                    "HasActor": false
                 },
                 {
                     "Alias": "a.tank.out",
