@@ -580,7 +580,7 @@
                     "DisplayName": "Tank temp sensor temp0 (on top)",
                     "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
                     "ComponentId": "2d4b3b73-fc58-4789-b15e-9881f0b4ff40",
-                    "ReportingSamplePeriodS": 5,
+                    "ReportingSamplePeriodS": 60,
                     "HasActor": true
                 },
                 {
