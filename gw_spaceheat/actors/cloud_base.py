@@ -28,10 +28,11 @@ class CloudBase(ABC):
             username=settings.GW_MQTT_USER_NAME,
             password=helpers.get_secret("GW_MQTT_PW"),
         )
-        self.gw_publish_client.connect(self.gwMqttBroker)
-        self.gw_publish_client.loop_start()
         if self.logging_on:
             self.gw_publish_client.on_log = self.on_log
+            self.gw_publish_client.enable_logger()
+        self.gw_publish_client.connect(self.gwMqttBroker)
+        self.gw_publish_client.loop_start()
         self.gw_consume_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_consume_client = mqtt.Client(self.gw_consume_client_id)
         self.gw_consume_client.username_pw_set(
@@ -42,9 +43,10 @@ class CloudBase(ABC):
         self.gw_consume_client.on_connect = self.on_connect
         self.gw_consume_client.on_connect_fail = self.on_connect_fail
         self.gw_consume_client.on_disconnect = self.on_disconnect
-        self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
+            self.gw_consume_client.enable_logger()
+        self.gw_consume_client.connect(self.gwMqttBroker)
         self.gw_consume_client.subscribe(
             list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
         )
