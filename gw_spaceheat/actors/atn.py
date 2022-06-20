@@ -13,6 +13,8 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
     GtShSimpleStatus,
     GtShSimpleStatus_Maker,
 )
+from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
+from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse_Maker, GtShCliScadaResponse
 
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription
@@ -47,6 +49,10 @@ class Atn(CloudBase):
                 Topic=f"{helpers.scada_g_node_alias()}/{GtShSimpleStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
+            Subscription(
+                Topic=f"{helpers.scada_g_node_alias()}/{GtShCliScadaResponse_Maker.type_alias}",
+                Qos=QOS.AtLeastOnce,
+            ),
         ]
 
     def on_gw_message(self, from_node: ShNode, payload: GsPwr):
@@ -54,6 +60,8 @@ class Atn(CloudBase):
             raise Exception("gw messages must come from the Scada!")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(payload)
+        elif isinstance(payload, GtShCliScadaResponse):
+            self.gt_sh_cli_scada_response_received(payload)
         elif isinstance(payload, GtShSimpleStatus):
             self.gt_sh_simple_status_received(payload)
         else:
@@ -66,9 +74,19 @@ class Atn(CloudBase):
     def gt_sh_simple_status_received(self, payload: GtShSimpleStatus):
         self.latest_status = payload
 
+    def gt_sh_cli_scada_response_received(self, payload: GtShCliScadaResponse):
+        self.screen_print("Got StatusSnapshot!")
+        snapshot = payload.Snapshot
+        for i in range(len(snapshot.AboutNodeList)):
+            print(f"{snapshot.AboutNodeList[i]}: {snapshot.ValueList[i]} {snapshot.TelemetryNameList[i].value}")
+
     ################################################
     # Primary functions
     ################################################
+
+    def status(self):
+        payload = GtShCliAtnCmd_Maker(send_snapshot=True).tuple
+        self.gw_publish(payload)
 
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):

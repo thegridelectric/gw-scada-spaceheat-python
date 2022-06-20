@@ -1,7 +1,6 @@
 import threading
 import uuid
 from abc import abstractmethod
-from typing import List
 
 import helpers
 import paho.mqtt.client as mqtt
@@ -9,23 +8,14 @@ import settings
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr import GsPwr
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.schema_switcher import TypeMakerByAliasDict
 
 from actors.actor_base import ActorBase
-from actors.utils import QOS, Subscription
+from actors.utils import QOS
 
 
 class ScadaBase(ActorBase):
-    @classmethod
-    def gw_subscriptions(cls) -> List[Subscription]:
-        return [
-            Subscription(
-                Topic=f"{settings.ATN_G_NODE_ALIAS}/{GtDispatch_Maker.type_alias}",
-                Qos=QOS.AtLeastOnce,
-            )
-        ]
 
     def __init__(self, node: ShNode, logging_on=False):
         super(ScadaBase, self).__init__(node=node, logging_on=logging_on)
@@ -58,33 +48,49 @@ class ScadaBase(ActorBase):
             list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
         )
 
+    @abstractmethod
+    def gw_subscriptions(self):
+        raise NotImplementedError
+
     # noinspection PyUnusedLocal
     def on_gw_publish_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
-            [f"({helpers.log_time()}) GW Publish Connected flags {str(flags)} + result code {str(rc)} + "
-             f" userdata {str(userdata)}"]
+            [
+                f"({helpers.log_time()}) GW Publish Connected flags {str(flags)} + result code {str(rc)} + "
+                f" userdata {str(userdata)}"
+            ]
         )
 
     # noinspection PyUnusedLocal
     def on_gw_publish_connect_fail(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) GW Publish Connect fail! result code {str(rc)}"])
+        self.mqtt_log_hack(
+            [f"({helpers.log_time()}) GW Publish Connect fail! result code {str(rc)}"]
+        )
 
     # noinspection PyUnusedLocal
     def on_gw_publish_disconnect(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) GW Publish disconnected! result code {str(rc)}"])
+        self.mqtt_log_hack(
+            [f"({helpers.log_time()}) GW Publish disconnected! result code {str(rc)}"]
+        )
 
     def on_gw_consume_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
-            [f"({helpers.log_time()}) GW Consume Connected flags {str(flags)} + result code {str(rc)}"]
+            [
+                f"({helpers.log_time()}) GW Consume Connected flags {str(flags)} + result code {str(rc)}"
+            ]
         )
 
     # noinspection PyUnusedLocal
     def on_gw_consume_connect_fail(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) GW Consume Connect fail! result code {str(rc)}"])
+        self.mqtt_log_hack(
+            [f"({helpers.log_time()}) GW Consume Connect fail! result code {str(rc)}"]
+        )
 
     # noinspection PyUnusedLocal
     def on_gw_consume_disconnect(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) GW Consume disconnected! result code {str(rc)}"])
+        self.mqtt_log_hack(
+            [f"({helpers.log_time()}) GW Consume disconnected! result code {str(rc)}"]
+        )
 
     # noinspection PyUnusedLocal
     def on_gw_mqtt_message(self, client, userdata, message):
