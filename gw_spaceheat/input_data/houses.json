@@ -264,12 +264,12 @@
                 {
                     "ComponentId": "a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e",
                     "DisplayName": "Temp sensor on pipe out of tank",
-                    "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
+                    "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83"
                 },
                 {
                     "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
                     "DisplayName": "Temp sensor on pipe into tank",
-                    "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318"
+                    "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83"
                 },
                 {
                     "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
@@ -385,14 +385,6 @@
                     "TempUnitGtEnumSymbol": "7d8832f8",
                     "TelemetryNameGtEnumSymbol": "793505aa",
                     "TypicalResponseTimeMs": 880
-                },
-                {
-                    "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
-                    "MakeModelGtEnumSymbol": "b6a32d9b",
-                    "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TelemetryNameGtEnumSymbol": "793505aa",
-                    "TypicalResponseTimeMs": 0,
-                    "Exponent": -3
                 },
                 {
                     "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
@@ -783,14 +775,6 @@
                 },
                 {
                     "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
-                    "MakeModelGtEnumSymbol": "b6a32d9b",
-                    "TempUnitGtEnumSymbol": "ec14bd47",
-                    "TelemetryNameGtEnumSymbol": "c89d0ba1",
-                    "TypicalResponseTimeMs": 0,
-                    "Exponent": -3
-                },
-                {
-                    "ComponentAttributeClassId": "d95af339-9f2b-45aa-9133-04f267ef0318",
                     "MakeModelGtEnumSymbol": "b6a32d9b",
                     "TempUnitGtEnumSymbol": "ec14bd47",
                     "TelemetryNameGtEnumSymbol": "c89d0ba1",

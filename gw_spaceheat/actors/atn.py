@@ -33,6 +33,8 @@ class Atn(CloudBase):
                     x.role == Role.TANK_WATER_TEMP_SENSOR
                     or x.role == Role.BOOLEAN_ACTUATOR
                     or x.role == Role.PIPE_TEMP_SENSOR
+                    or x.role == Role.PIPE_FLOW_METER
+                    or x.role == Role.POWER_METER
                 ),
                 all_nodes,
             )

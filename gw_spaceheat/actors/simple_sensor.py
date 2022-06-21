@@ -16,7 +16,7 @@ class SimpleSensor(ActorBase):
         super(SimpleSensor, self).__init__(node=node, logging_on=logging_on)
         self._last_sent_s = 0
         self._sent_latest_sample = False
-        self.temp = None
+        self.telemetry_value = None
         self.config = NodeConfig(self.node)
         self.screen_print(f"Initialized {self.__class__}")
 
@@ -26,18 +26,20 @@ class SimpleSensor(ActorBase):
     def on_message(self, from_node: ShNode, payload):
         pass
 
-    def check_and_report_temp(self):
+    def check_and_report_telemetry(self):
         check_start_s = time.time()
         sample_period_s = self.config.reporting.SamplePeriodS
         telemetry_name = self.config.reporting.TelemetryName
         exponent = self.config.reporting.Exponent
         if int(check_start_s + self.config.typical_response_time_ms / 1000) % sample_period_s == 0:
-            self.temp = self.config.driver.read_temp()
+            self.telemetry_value = self.config.driver.read_telemetry_value()
+            if self.telemetry_value is None:
+                return
             time_of_read_s = time.time()
             if int(time_of_read_s) > self._last_sent_s:
                 payload = GtTelemetry_Maker(
                     name=telemetry_name,
-                    value=int(self.temp),
+                    value=int(self.telemetry_value),
                     exponent=exponent,
                     scada_read_time_unix_ms=int(time_of_read_s * 1000),
                 ).tuple
@@ -56,4 +58,4 @@ class SimpleSensor(ActorBase):
     def main(self):
         self._main_loop_running = True
         while self._main_loop_running is True:
-            self.check_and_report_temp()
+            self.check_and_report_telemetry()
