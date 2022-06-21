@@ -17,20 +17,22 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription
 
-atn_ender = settings.ATN_G_NODE_ALIAS.replace(".", "_")
-# OUT_STUB = f'/Users/jess/Google Drive/My Drive/GridWorks/Projects/Internal Maine Heat Pilot/SCADA/data/{atn_ender}'
-OUT_STUB = f"output/status/{atn_ender}"
+OUT_STUB = f"output/status"
 
 
 class CloudEar(CloudBase):
-    def __init__(self, write_to_csv=False, logging_on=False):
-        self.write_to_csv = write_to_csv
+    def __init__(self, out_stub=OUT_STUB, logging_on=False):
+        if out_stub is None:
+            self.write_to_csv = False
+        else:
+            self.write_to_csv = True
         super(CloudEar, self).__init__(logging_on=logging_on)
         self.log_csv = f"output/debug_logs/ear_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.load_sh_nodes()
         if self.write_to_csv:
             adder = str(uuid.uuid4()).split("-")[1]
-            self.out_telemetry = f"{OUT_STUB}_{adder}.csv"
+            atn_ender = settings.ATN_G_NODE_ALIAS.replace(".", "_")
+            self.out_telemetry = f"{out_stub}/{atn_ender}_{adder}.csv"
             self.screen_print(f"writing output headers ending in {adder}")
             with open(self.out_telemetry, "w") as outfile:
                 write = csv.writer(outfile, delimiter=",")
