@@ -8,6 +8,10 @@ from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import \
     NcdPr814Spst_BooleanActuatorDriver
 from drivers.boolean_actuator.unknown_boolean_actuator_driver import \
     UnknownBooleanActuatorDriver
+from drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver import \
+    UnknownPipeFlowSensorDriver
+from drivers.power_meter.unknown_power_meter_driver import \
+    UnknownPowerMeterDriver
 from drivers.temp_sensor.adafruit_642__temp_sensor_driver import \
     Adafruit642_TempSensorDriver
 from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import \
@@ -20,8 +24,10 @@ from schema.enums.unit.unit_map import Unit
 from schema.enums.make_model.make_model_map import MakeModel
 
 
-from data_classes.components.temp_sensor_component import TempSensorComponent
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from data_classes.components.electric_meter_component import ElectricMeterComponent
+from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
+from data_classes.components.temp_sensor_component import TempSensorComponent
 
 
 class NodeConfig():
@@ -29,14 +35,55 @@ class NodeConfig():
     def __init__(self, node: ShNode):
         self.node = node
         component = node.component
-        if isinstance(node.component, TempSensorComponent):
-            self.set_temp_sensor_config(component=component)
-        elif isinstance(node.component, BooleanActuatorComponent):
+        self.reporting = None
+        self.driver = None
+        self.typical_response_time_ms = 0
+        if isinstance(node.component, BooleanActuatorComponent):
             self.set_boolean_actuator_config(component=component)
+        elif isinstance(node.component, ElectricMeterComponent):
+            self.set_electric_meter_config(component=component)
+        elif isinstance(node.component, TempSensorComponent):
+            self.set_temp_sensor_config(component=component)
+        elif isinstance(node.component, PipeFlowSensorComponent):
+            self.set_pipe_flow_sensor_config(component=component)
+        if self.reporting is None:
+            raise Exception(f"Failed to set reporting config for {node}!")
+        if self.driver is None:
+            raise Exception(f"Failed to set driver for {node}")
+
+    def __repr__(self):
+        return f"Driver: {self.driver}. Reporting: {self.reporting}"
+
+    def set_electric_meter_config(self, component: ElectricMeterComponent):
+        cac = component.cac
+        self.reporting = ConfigMaker(report_on_change=True,
+                                     exponent=0,
+                                     reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                     sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                     telemetry_name=cac.telemetry_name,
+                                     unit=Unit.W,
+                                     async_report_threshold=0.1).tuple
+        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            self.driver = UnknownPowerMeterDriver(component=component)
         else:
-            self.reporting = None
-            self.driver = None
-            self.typical_response_time_ms = 0
+            raise NotImplementedError(f"No ElectricMeter driver yet for {cac.make_model}")
+
+    def set_pipe_flow_sensor_config(self, component: PipeFlowSensorComponent):
+        cac = component.cac
+        if self.node.reporting_sample_period_s is None:
+            raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!")
+        pass
+        self.reporting = ConfigMaker(report_on_change=False,
+                                     exponent=0,
+                                     reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                     sample_period_s=self.node.reporting_sample_period_s,
+                                     telemetry_name=cac.telemetry_name,
+                                     unit=Unit.GPM,
+                                     async_report_threshold=None).tuple
+        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            self.driver = UnknownPipeFlowSensorDriver(component=component)
+        else:
+            raise NotImplementedError(f"No PipeTempSensor driver yet for {cac.make_model}")
 
     def set_temp_sensor_config(self, component: TempSensorComponent):
         cac = component.cac

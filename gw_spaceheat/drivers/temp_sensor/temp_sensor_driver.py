@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+from typing import Optional
 from data_classes.components.temp_sensor_component import TempSensorComponent
 
 
@@ -10,5 +10,5 @@ class TempSensorDriver(ABC):
         self.component = component
 
     @abstractmethod
-    def read_temp(self):
+    def read_telemetry_value(self) -> Optional[int]:
         raise NotImplementedError

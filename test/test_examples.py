@@ -156,7 +156,7 @@ def test_temp_sensor_loop_time():
     for node in tank_water_temp_sensor_nodes:
         sensor = SimpleSensor(node)
         start = time.time()
-        sensor.check_and_report_temp()
+        sensor.check_and_report_telemetry()
         end = time.time()
         loop_ms = 1000 * (end - start)
         assert loop_ms > 200
