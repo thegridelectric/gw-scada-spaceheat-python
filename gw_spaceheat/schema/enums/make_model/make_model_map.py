@@ -4,6 +4,7 @@ from schema.enums.make_model.spaceheat_make_model_100 import MakeModel, Spacehea
 
 
 class MakeModelGtEnum(SpaceheatMakeModel100GtEnum):
+
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -37,4 +38,4 @@ class MakeModelMap():
         MakeModel.ADAFRUIT__642: "acd93fb3",
         MakeModel.NCD__PR814SPST: "fabfa505",
         MakeModel.UNKNOWNMAKE__UNKNOWNMODEL: "b6a32d9b",
-         }
+        }

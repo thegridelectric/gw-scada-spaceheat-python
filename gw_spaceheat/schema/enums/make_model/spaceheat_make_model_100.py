@@ -5,6 +5,11 @@ from typing import List
 
 
 class MakeModel(enum.Enum):
+    
+    @classmethod
+    def values(cls):
+        return [elt.value for elt in cls]
+
     GRIDWORKS__WATERTEMPHIGHPRECISION = "GridWorks__WaterTempHighPrecision"
     GRIDWORKS__SIMBOOL30AMPRELAY = "GridWorks__SimBool30AmpRelay"
     ADAFRUIT__642 = "Adafruit__642"
