@@ -109,6 +109,7 @@ def test_load_house():
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
 
+
 """
 def test_atn_cli():
     load_house.load_all(input_json_file="input_data/houses.json")
