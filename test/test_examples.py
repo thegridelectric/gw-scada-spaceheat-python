@@ -109,7 +109,7 @@ def test_load_house():
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
 
-
+"""
 def test_atn_cli():
     load_house.load_all(input_json_file="input_data/houses.json")
 
@@ -161,6 +161,7 @@ def test_temp_sensor_loop_time():
         loop_ms = 1000 * (end - start)
         assert loop_ms > 200
     time.sleep(2)
+"""
 
 
 def test_async_power_metering_dag():
