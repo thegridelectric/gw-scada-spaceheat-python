@@ -9,11 +9,11 @@ from actors.actor_base import ActorBase
 from actors.utils import Subscription
 
 
-class PipeTempSensor(ActorBase):
+class SimpleSensor(ActorBase):
     MAIN_LOOP_MIN_TIME_S = 0.2
 
     def __init__(self, node: ShNode, logging_on=False):
-        super(PipeTempSensor, self).__init__(node=node, logging_on=logging_on)
+        super(SimpleSensor, self).__init__(node=node, logging_on=logging_on)
         self._last_sent_s = 0
         self._sent_latest_sample = False
         self.temp = None

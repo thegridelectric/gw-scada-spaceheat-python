@@ -9,7 +9,7 @@ from actors.atn import Atn
 from actors.cloud_ear import CloudEar
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
-from actors.tank_water_temp_sensor import TankWaterTempSensor
+from actors.simple_sensor import SimpleSensor
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
@@ -112,7 +112,7 @@ def test_load_house():
 def test_atn_cli():
     load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
     thermo0_node = ShNode.by_alias["a.tank.temp0"]
-    thermo0 = TankWaterTempSensor(node=thermo0_node)
+    thermo0 = SimpleSensor(node=thermo0_node)
     thermo0.start()
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
@@ -141,7 +141,7 @@ def test_temp_sensor_loop_time():
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
     )
     for node in tank_water_temp_sensor_nodes:
-        sensor = TankWaterTempSensor(node)
+        sensor = SimpleSensor(node)
         start = time.time()
         sensor.check_and_report_temp()
         end = time.time()
@@ -191,9 +191,9 @@ def test_scada_sends_status():
     thermo0_node = ShNode.by_alias["a.tank.temp0"]
     thermo1_node = ShNode.by_alias["a.tank.temp1"]
 
-    thermo0 = TankWaterTempSensor(node=thermo0_node)
+    thermo0 = SimpleSensor(node=thermo0_node)
     thermo0.start()
-    thermo1 = TankWaterTempSensor(node=thermo1_node)
+    thermo1 = SimpleSensor(node=thermo1_node)
     thermo1.start()
     time.sleep(1)
     time.sleep(thermo0.node.reporting_sample_period_s)
