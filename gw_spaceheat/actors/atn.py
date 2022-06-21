@@ -72,7 +72,7 @@ class Atn(CloudBase):
             ),
         ]
 
-    def on_gw_message(self, from_node: ShNode, payload: GsPwr):
+    def on_gw_message(self, from_node: ShNode, payload):
         if from_node != ShNode.by_alias["a.s"]:
             raise Exception("gw messages must come from the Scada!")
         if isinstance(payload, GsPwr):

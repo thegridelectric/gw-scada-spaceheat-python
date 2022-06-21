@@ -107,7 +107,7 @@ class ScadaBase(ActorBase):
         self.on_gw_message(from_node=from_node, payload=payload_as_tuple)
 
     @abstractmethod
-    def on_gw_message(self, from_node: ShNode, payload: GtTelemetry):
+    def on_gw_message(self, from_node: ShNode, payload):
         raise NotImplementedError
 
     def gw_publish(self, payload):

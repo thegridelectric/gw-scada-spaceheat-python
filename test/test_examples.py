@@ -18,10 +18,27 @@ from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import \
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import \
     GtShSimpleStatus
+from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import \
+    GtShCliScadaResponse
 import schema.property_format
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
+
+
+class AtnRecorder(Atn):
+    cli_resp_received: int
+
+    def __init__(self, node: ShNode):
+        self.cli_resp_received = 0
+        self.latest_cli_response_payload: typing.Optional[GtShCliScadaResponse] = None
+        super().__init__(node)
+    
+    def on_gw_message(self, from_node: ShNode, payload):
+        if isinstance(payload, GtShCliScadaResponse):
+            self.cli_resp_received += 1
+            self.latest_cli_response_payload = payload
+        super().on_gw_message(from_node, payload)
 
 
 class EarRecorder(CloudEar):
@@ -31,6 +48,7 @@ class EarRecorder(CloudEar):
     def __init__(self):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
+        self.latest_payload = None
         super().__init__()
 
     def on_gw_mqtt_message(self, client, userdata, message):
@@ -88,6 +106,31 @@ def test_load_house():
     assert len(tank_water_temp_sensor_nodes) == 5
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
+
+
+def test_atn_cli():
+    load_house.load_all(input_json_file='../test/test_data/test_load_house.json')
+    thermo0_node = ShNode.by_alias["a.tank.temp0"]
+    thermo0 = TankWaterTempSensor(node=thermo0_node)
+    thermo0.start()
+    scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
+    scada.start()
+    scada.terminate_main_loop()
+    scada.main_thread.join()
+    time.sleep(2)
+    thermo0.stop()
+    atn = AtnRecorder(node=ShNode.by_alias["a"])
+    atn.start()
+    atn.terminate_main_loop()
+    atn.main_thread.join()
+    assert atn.cli_resp_received == 0
+    atn.status()
+    time.sleep(1)
+    assert atn.cli_resp_received == 1
+    snapshot = atn.latest_cli_response_payload.Snapshot
+    assert snapshot.AboutNodeList == ["a.tank.temp0"]
+    assert snapshot.TelemetryNameList == [TelemetryName.WATER_TEMP_F_TIMES1000]
+    assert len(snapshot.ValueList) == 1
 
 
 def test_temp_sensor_loop_time():
