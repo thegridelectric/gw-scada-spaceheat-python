@@ -115,10 +115,13 @@ def test_atn_cli():
 
     elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
     elt.start()
+    elt.terminate_main_loop()
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
+    scada.terminate_main_loop()
     atn = AtnRecorder(node=ShNode.by_alias["a"])
     atn.start()
+    atn.terminate_main_loop()
 
     assert atn.cli_resp_received == 0
     atn.turn_off(ShNode.by_alias["a.elt1.relay"])
@@ -143,9 +146,6 @@ def test_atn_cli():
     snapshot = atn.latest_cli_response_payload.Snapshot
     idx = snapshot.AboutNodeList.index("a.elt1.relay")
     assert snapshot.ValueList[idx] == 1
-    elt.stop()
-    scada.stop()
-    atn.stop()
 
 
 def test_temp_sensor_loop_time():
