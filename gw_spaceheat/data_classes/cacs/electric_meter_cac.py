@@ -3,6 +3,7 @@ from typing import Dict, Optional
 
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.cacs.electric_meter_cac_base import ElectricMeterCacBase
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac import GtElectricMeterCac
 
 
@@ -27,3 +28,7 @@ class ElectricMeterCac(ElectricMeterCacBase):
 
     def __repr__(self):
         return f"{self.make_model.value} {self.display_name}"
+
+    @property
+    def telemetry_name(self):
+        return TelemetryName.POWER_W
