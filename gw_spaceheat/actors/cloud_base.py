@@ -47,6 +47,8 @@ class CloudBase(ABC):
             self.gw_consume_client.on_log = self.on_log
             self.gw_consume_client.enable_logger()
         self.gw_consume_client.connect(self.gwMqttBroker)
+
+    def subscribe_gw_consume_client(self):
         self.gw_consume_client.subscribe(
             list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
         )
@@ -73,10 +75,11 @@ class CloudBase(ABC):
                 f"({helpers.log_time()}) Publisher connected flags {str(flags)} + result code {str(rc)}"
             ]
         )
+        self.subscribe_gw_consume_client()
 
     # noinspection PyUnusedLocal
-    def on_connect_fail(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Connect fail! result code {str(rc)}"])
+    def on_connect_fail(self, client, userdata):
+        self.mqtt_log_hack([f"({helpers.log_time()}) Connect fail"])
 
     # noinspection PyUnusedLocal
     def on_disconnect(self, client, userdata, rc):

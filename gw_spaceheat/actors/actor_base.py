@@ -56,6 +56,8 @@ class ActorBase(ABC):
             self.consume_client.on_log = self.on_log
             self.consume_client.enable_logger()
         self.consume_client.connect(self.mqttBroker)
+
+    def subscribe_consume_client(self):
         self.consume_client.subscribe(
             list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions()))
         )
@@ -76,10 +78,11 @@ class ActorBase(ABC):
         self.mqtt_log_hack(
             [f"({helpers.log_time()}) Local Publish Connected flags {str(flags)} + result code {str(rc)}"]
         )
+        self.subscribe_consume_client()
 
     # noinspection PyUnusedLocal
-    def on_publish_connect_fail(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Local Publish Connect fail! result code {str(rc)}"])
+    def on_publish_connect_fail(self, client, userdata):
+        self.mqtt_log_hack([f"({helpers.log_time()}) Local Publish Connect fail!"])
 
     # noinspection PyUnusedLocal
     def on_publish_disconnect(self, client, userdata, rc):
@@ -92,8 +95,8 @@ class ActorBase(ABC):
         )
 
     # noinspection PyUnusedLocal
-    def on_consume_connect_fail(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Local Consume Connect fail! result code {str(rc)}"])
+    def on_consume_connect_fail(self, client, userdata):
+        self.mqtt_log_hack([f"({helpers.log_time()}) Local Consume Connect fail!"])
 
     # noinspection PyUnusedLocal
     def on_consume_disconnect(self, client, userdata, rc):
