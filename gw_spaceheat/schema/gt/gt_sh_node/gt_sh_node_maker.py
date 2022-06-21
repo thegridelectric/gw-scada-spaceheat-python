@@ -19,7 +19,7 @@ class GtShNode_Maker:
         alias: str,
         actor_class: ActorClass,
         role: Role,
-        component_id: str,
+        component_id: Optional[str],
         display_name: Optional[str],
         reporting_sample_period_s: Optional[int],
     ):
@@ -57,8 +57,6 @@ class GtShNode_Maker:
             raise MpSchemaError(f"dict {d} missing ShNodeId")
         if "Alias" not in d.keys():
             raise MpSchemaError(f"dict {d} missing Alias")
-        if "ComponentId" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ComponentId")
         if "ActorClassGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ActorClassGtEnumSymbol")
         d["ActorClass"] = ActorClassMap.gt_to_local(d["ActorClassGtEnumSymbol"])
@@ -69,8 +67,10 @@ class GtShNode_Maker:
             d["DisplayName"] = None
         if "ReportingSamplePeriodS" not in d.keys():
             d["ReportingSamplePeriodS"] = None
+        if "ComponentId" not in d.keys():
+            d["ComponentId"] = None
 
-        gw_tuple = GtShNode(
+        tuple = GtShNode(
             ShNodeId=d["ShNodeId"],
             DisplayName=d["DisplayName"],
             ActorClass=d["ActorClass"],
@@ -79,8 +79,8 @@ class GtShNode_Maker:
             Alias=d["Alias"],
             ComponentId=d["ComponentId"],
         )
-        gw_tuple.check_for_errors()
-        return gw_tuple
+        tuple.check_for_errors()
+        return tuple
 
     @classmethod
     def tuple_to_dc(cls, t: GtShNode) -> ShNode:

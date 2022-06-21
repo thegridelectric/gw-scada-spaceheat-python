@@ -4,6 +4,7 @@ from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryNa
 
 
 class TelemetryNameGtEnum(SpaceheatTelemetryName100GtEnum):
+
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -35,4 +36,4 @@ class TelemetryNameMap():
         TelemetryName.WATER_FLOW_GPM_TIMES100: "d70cce28",
         TelemetryName.WATER_TEMP_C_TIMES1000: "c89d0ba1",
         TelemetryName.RELAY_STATE: "5a71d4b3",
-         }
+        }

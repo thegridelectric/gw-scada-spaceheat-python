@@ -27,6 +27,7 @@ class ActorClassMap():
 
     gt_to_local_dict: Dict[str, ActorClass] = {
         "6d37aa41": ActorClass.SCADA,
+        "32d3d19f": ActorClass.HOME_ALONE,
         "fddd0064": ActorClass.BOOLEAN_ACTUATOR,
         "2ea112b9": ActorClass.POWER_METER,
         "b103058f": ActorClass.ATN,
@@ -35,6 +36,7 @@ class ActorClassMap():
 
     local_to_gt_dict: Dict[ActorClass, str] = {
         ActorClass.SCADA: "6d37aa41",
+        ActorClass.HOME_ALONE: "32d3d19f",
         ActorClass.BOOLEAN_ACTUATOR: "fddd0064",
         ActorClass.POWER_METER: "2ea112b9",
         ActorClass.ATN: "b103058f",

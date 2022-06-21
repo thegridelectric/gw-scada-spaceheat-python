@@ -12,7 +12,7 @@ class GtShNodeBase(NamedTuple):
     Alias: str  #
     ActorClass: ActorClass  #
     Role: Role  #
-    ComponentId: str
+    ComponentId: Optional[str] = None
     DisplayName: Optional[str] = None
     ReportingSamplePeriodS: Optional[int] = None
     TypeAlias: str = "gt.sh.node.120"
@@ -44,6 +44,13 @@ class GtShNodeBase(NamedTuple):
                 errors.append(
                     f"ReportingSamplePeriodS {self.ReportingSamplePeriodS} must have type int."
                 )
+        if self.ComponentId:
+            if not isinstance(self.ComponentId, str):
+                errors.append(f"ComponentId {self.ComponentId} must have type str.")
+            if not property_format.is_uuid_canonical_textual(self.ComponentId):
+                errors.append(
+                    f"ComponentId {self.ComponentId}" " must have format UuidCanonicalTextual"
+                )
         if not isinstance(self.Alias, str):
             errors.append(f"Alias {self.Alias} must have type str.")
         if not property_format.is_lrd_alias_format(self.Alias):
@@ -52,12 +59,6 @@ class GtShNodeBase(NamedTuple):
             errors.append(f"ActorClass {self.ActorClass} must have type {ActorClass}.")
         if not isinstance(self.Role, Role):
             errors.append(f"Role {self.Role} must have type {Role}.")
-        if not isinstance(self.ComponentId, str):
-            errors.append(f"ComponentId {self.ComponentId} must have type str.")
-        if not property_format.is_uuid_canonical_textual(self.ComponentId):
-            errors.append(
-                f"ComponentId {self.ComponentId}" " must have format UuidCanonicalTextual"
-            )
         if self.TypeAlias != "gt.sh.node.120":
             errors.append(f"Type requires TypeAlias of gt.sh.node.120, not {self.TypeAlias}.")
 

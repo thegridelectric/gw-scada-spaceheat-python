@@ -11,6 +11,7 @@ class ActorClass(enum.Enum):
         return [elt.value for elt in cls]
 
     SCADA = "Scada"
+    HOME_ALONE = "HomeAlone"
     BOOLEAN_ACTUATOR = "BooleanActuator"
     POWER_METER = "PowerMeter"
     ATN = "Atn"
@@ -20,6 +21,7 @@ class ActorClass(enum.Enum):
 
 class ShActorClass100GtEnum(ABC):
     symbols: List[str] = ["6d37aa41",
+                          "32d3d19f",
                           "fddd0064",
                           "2ea112b9",
                           "b103058f",
