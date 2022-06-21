@@ -85,7 +85,6 @@ def test_imports():
     actors.strategy_switcher.stickler()
 
 
-
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
