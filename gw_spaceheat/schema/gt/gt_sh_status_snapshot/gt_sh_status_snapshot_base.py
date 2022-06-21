@@ -1,6 +1,6 @@
 """Base for gt.sh.status.snapshot"""
 import json
-from typing import List, Optional, NamedTuple
+from typing import List, NamedTuple
 import schema.property_format as property_format
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 
@@ -34,7 +34,7 @@ class GtShStatusSnapshotBase(NamedTuple):
                     errors.append(f"elt {elt} of AboutNodeAlias must have type str!")
                 if not property_format.is_lrd_alias_format(elt):
                     errors.append(f"elt {elt} of AboutNodeList "
-                                " must have format LrdAliasFormat")
+                                  " must have format LrdAliasFormat")
         if not isinstance(self.ReportTimeUnixS, int):
             errors.append(f"ReportTimeUnixS {self.ReportTimeUnixS} must have type int.")
         if not property_format.is_reasonable_unix_time_s(self.ReportTimeUnixS):
@@ -54,5 +54,5 @@ class GtShStatusSnapshotBase(NamedTuple):
                     errors.append(f"elt {elt} of TelemetryNameList must have type TelemetryName!")
         if self.TypeAlias != 'gt.sh.status.snapshot.100':
             errors.append(f"Type requires TypeAlias of gt.sh.status.snapshot.100, not {self.TypeAlias}.")
-    
+
         return errors

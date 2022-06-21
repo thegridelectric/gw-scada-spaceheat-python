@@ -83,7 +83,7 @@ class ActorBase(ABC):
     def on_publish_disconnect(self, client, userdata, rc):
         self.mqtt_log_hack([f"({helpers.log_time()}) Local Publish Disconnected! result code {str(rc)}"])
     
-        # noinspection PyUnusedLocal
+    # noinspection PyUnusedLocal
     def on_consume_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
             [f"({helpers.log_time()}) Local Consume Connected flags {str(flags)} + result code {str(rc)}"]

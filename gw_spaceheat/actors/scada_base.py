@@ -8,7 +8,6 @@ import settings
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr import GsPwr
-from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.schema_switcher import TypeMakerByAliasDict
 
 from actors.actor_base import ActorBase
@@ -73,6 +72,7 @@ class ScadaBase(ActorBase):
             [f"({helpers.log_time()}) GW Publish disconnected! result code {str(rc)}"]
         )
 
+    # noinspection PyUnusedLocal
     def on_gw_consume_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
             [

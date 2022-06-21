@@ -1,21 +1,21 @@
 """Makes gt.sh.status.snapshot.100 type"""
 
 import json
-
+from typing import List
 
 from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot import GtShStatusSnapshot
 from schema.errors import MpSchemaError
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 
 
-class GtShStatusSnapshot_Maker():
+class GtShStatusSnapshot_Maker:
     type_alias = 'gt.sh.status.snapshot.100'
 
     def __init__(self,
-                 about_node_list: str,
+                 about_node_list: List[str],
                  report_time_unix_s: int,
-                 value_list: int,
-                 telemetry_name_list: TelemetryName):
+                 value_list: List[int],
+                 telemetry_name_list: List[TelemetryName]):
 
         tuple = GtShStatusSnapshot(TelemetryNameList=telemetry_name_list,
                                    AboutNodeList=about_node_list,
