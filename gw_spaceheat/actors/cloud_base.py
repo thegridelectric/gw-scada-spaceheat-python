@@ -58,7 +58,6 @@ class CloudBase(ABC):
         load_house.load_all()
 
     def mqtt_log_hack(self, row):
-        self.screen_print(row[0])
         if self.logging_on:
             with open(self.log_csv, "a") as outfile:
                 write = csv.writer(outfile, delimiter=",")

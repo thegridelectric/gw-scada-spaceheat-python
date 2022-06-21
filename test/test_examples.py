@@ -2,7 +2,11 @@ import time
 import typing
 from collections import defaultdict
 
+import pytest
+
 import load_house
+from command_line_utils import run_nodes_main
+from schema.gs.gs_dispatch import GsDispatch
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status \
     import GtShSimpleSingleStatus
 import settings
@@ -31,6 +35,7 @@ class EarRecorder(CloudEar):
     def __init__(self):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
+        self.latest_payload = None
         super().__init__()
 
     def on_gw_mqtt_message(self, client, userdata, message):
@@ -58,6 +63,9 @@ class ScadaRecorder(Scada):
         self.num_received += 1
         self.num_received_by_topic[message.topic] += 1
         super().on_mqtt_message(client, userdata, message)
+
+    def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
+        pass
 
 
 def test_imports():
@@ -178,3 +186,42 @@ def test_scada_sends_status():
     single_status = ear.latest_payload.SimpleSingleStatusList[0]
     assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
     assert ear.latest_payload.ReportingPeriodS == 300
+
+
+
+@pytest.mark.parametrize(
+    "aliases",
+    [
+        ["a.elt1.relay"],
+        ["a.s"],
+        ["a.tank.temp0", "a.s"],
+        ["a"],
+    ],
+)
+def test_run_nodes_main(aliases):
+    """Test command_line_utils.run_nodes_main()"""
+    dbg = dict(actors={})
+    try:
+        run_nodes_main(
+            argv=[
+                "-n", *aliases,
+                "-f", "../test/test_data/test_load_house.json"
+            ],
+            dbg=dbg,
+        )
+        assert len(dbg["actors"]) == len(aliases)
+    finally:
+        for actor in dbg["actors"].values():
+            actor.stop()
+
+
+def test_run_local():
+    """Test the "run_local" script semantics"""
+    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    aliases = [
+        node.alias for node in filter(
+            lambda x: (x.role != Role.ATN and x.has_actor),
+            ShNode.by_alias.values()
+        )
+    ]
+    test_run_nodes_main(aliases)
