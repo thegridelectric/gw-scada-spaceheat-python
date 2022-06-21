@@ -1,7 +1,7 @@
 linters:
   flake8:
     python: 3
-    ignore: 'W28'
+    ignore: 'W28, W503'
     max-line-length: 120
     max-complexity: 10
     fixer: true

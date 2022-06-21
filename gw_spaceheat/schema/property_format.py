@@ -40,6 +40,14 @@ def is_reasonable_unix_time_ms(candidate):
     return True
 
 
+def is_reasonable_unix_time_s(candidate):
+    if pendulum.parse("2000-01-01T00:00:00Z").int_timestamp > candidate:
+        return False
+    if pendulum.parse("3000-01-01T00:00:00Z").int_timestamp < candidate:
+        return False
+    return True
+
+
 def is_unsigned_short(candidate):
     try:
         struct.pack("H", candidate)
