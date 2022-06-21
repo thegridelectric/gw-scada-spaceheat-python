@@ -88,7 +88,7 @@ def test_imports():
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
-    load_house.load_all(input_json_file="gw_spaceheat/input_data/houses.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
     all_nodes = list(ShNode.by_alias.values())
     assert len(all_nodes) == 24
     aliases = list(ShNode.by_alias.keys())
@@ -111,7 +111,7 @@ def test_load_house():
 
 
 def test_atn_cli():
-    load_house.load_all(input_json_file="gw_spaceheat/input_data/houses.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
 
     elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
     elt.start()
@@ -149,7 +149,7 @@ def test_atn_cli():
 
 
 def test_temp_sensor_loop_time():
-    load_house.load_all(input_json_file="gw_spaceheat/input_data/houses.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
     all_nodes = list(ShNode.by_alias.values())
     tank_water_temp_sensor_nodes = list(
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
@@ -166,7 +166,7 @@ def test_temp_sensor_loop_time():
 
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
-    load_house.load_all(input_json_file="gw_spaceheat/input_data/houses.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
@@ -192,7 +192,7 @@ def test_async_power_metering_dag():
 
 
 def test_scada_sends_status():
-    load_house.load_all(input_json_file="gw_spaceheat/input_data/houses.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
     scada.terminate_main_loop()
