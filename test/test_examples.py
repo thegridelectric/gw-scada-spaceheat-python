@@ -100,7 +100,7 @@ def test_load_house():
     )
     assert len(nodes_w_components) == 19
     actor_nodes_w_components = list(filter(lambda x: x.has_actor, nodes_w_components))
-    assert len(actor_nodes_w_components) == 9
+    assert len(actor_nodes_w_components) == 12
     tank_water_temp_sensor_nodes = list(
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
     )
