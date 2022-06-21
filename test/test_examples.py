@@ -33,7 +33,7 @@ class AtnRecorder(Atn):
         self.cli_resp_received = 0
         self.latest_cli_response_payload: typing.Optional[GtShCliScadaResponse] = None
         super().__init__(node)
-    
+
     def on_gw_message(self, from_node: ShNode, payload):
         if isinstance(payload, GtShCliScadaResponse):
             self.cli_resp_received += 1
