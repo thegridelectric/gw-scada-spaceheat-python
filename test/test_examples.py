@@ -109,43 +109,6 @@ def test_load_house():
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
 
-"""
-def test_atn_cli():
-    load_house.load_all(input_json_file="input_data/houses.json")
-
-    elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
-    elt.start()
-    elt.terminate_main_loop()
-    scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
-    scada.start()
-    scada.terminate_main_loop()
-    atn = AtnRecorder(node=ShNode.by_alias["a"])
-    atn.start()
-    atn.terminate_main_loop()
-
-    assert atn.cli_resp_received == 0
-    atn.turn_off(ShNode.by_alias["a.elt1.relay"])
-    time.sleep(2)
-
-    atn.status()
-    time.sleep(1)
-    snapshot = atn.latest_cli_response_payload.Snapshot
-    assert "a.elt1.relay" in snapshot.AboutNodeList
-    assert TelemetryName.RELAY_STATE in snapshot.TelemetryNameList
-    assert len(snapshot.ValueList) > 0
-    idx = snapshot.AboutNodeList.index("a.elt1.relay")
-    assert snapshot.ValueList[idx] == 0
-
-    atn.turn_on(ShNode.by_alias["a.elt1.relay"])
-    time.sleep(2)
-
-    atn.status()
-    time.sleep(1)
-
-    snapshot = atn.latest_cli_response_payload.Snapshot
-    idx = snapshot.AboutNodeList.index("a.elt1.relay")
-    assert snapshot.ValueList[idx] == 1
-
 
 def test_temp_sensor_loop_time():
     load_house.load_all(input_json_file="input_data/houses.json")
@@ -161,7 +124,6 @@ def test_temp_sensor_loop_time():
         loop_ms = 1000 * (end - start)
         assert loop_ms > 200
     time.sleep(2)
-"""
 
 
 def test_async_power_metering_dag():
