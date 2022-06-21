@@ -88,7 +88,7 @@ def test_imports():
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
     all_nodes = list(ShNode.by_alias.values())
     assert len(all_nodes) == 24
     aliases = list(ShNode.by_alias.keys())
@@ -110,45 +110,8 @@ def test_load_house():
         assert node.reporting_sample_period_s is not None
 
 
-    def test_atn_cli():
-        load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
-
-        elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
-        elt.start()
-        scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
-        scada.start()
-        atn = AtnRecorder(node=ShNode.by_alias["a"])
-        atn.start()
-
-        assert atn.cli_resp_received == 0
-        atn.turn_off(ShNode.by_alias["a.elt1.relay"])
-        time.sleep(2)
-
-        atn.status()
-        time.sleep(1)
-        assert atn.cli_resp_received == 1
-        snapshot = atn.latest_cli_response_payload.Snapshot
-        assert snapshot.AboutNodeList == ["a.elt1.relay"]
-        assert snapshot.TelemetryNameList == [TelemetryName.RELAY_STATE]
-        assert len(snapshot.ValueList) == 1
-        idx = snapshot.AboutNodeList.index("a.elt1.relay")
-        assert snapshot.ValueList[idx] == 0
-
-        atn.turn_on(ShNode.by_alias["a.elt1.relay"])
-        time.sleep(2)
-
-        atn.status()
-        time.sleep(1)
-
-        snapshot = atn.latest_cli_response_payload.Snapshot
-        assert snapshot.ValueList == [1]
-        elt.stop()
-        scada.stop()
-        atn.stop()
-
-
 def test_temp_sensor_loop_time():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
     all_nodes = list(ShNode.by_alias.values())
     tank_water_temp_sensor_nodes = list(
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
@@ -165,7 +128,7 @@ def test_temp_sensor_loop_time():
 
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
@@ -191,7 +154,7 @@ def test_async_power_metering_dag():
 
 
 def test_scada_sends_status():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all(input_json_file="input_data/houses.json")
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
     scada.terminate_main_loop()
@@ -231,7 +194,8 @@ def test_scada_sends_status():
     scada.send_status()
     time.sleep(1)
     assert ear.num_received > 0
-    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.sh.simple.status.100"] == 1
+    scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
+    assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
     assert isinstance(ear.latest_payload, GtShSimpleStatus)
     assert len(ear.latest_payload.SimpleSingleStatusList) == 2
     single_status = ear.latest_payload.SimpleSingleStatusList[0]
