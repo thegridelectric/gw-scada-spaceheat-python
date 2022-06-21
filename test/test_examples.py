@@ -129,7 +129,6 @@ def test_atn_cli():
 
     atn.status()
     time.sleep(1)
-    assert atn.cli_resp_received == 1
     snapshot = atn.latest_cli_response_payload.Snapshot
     assert "a.elt1.relay" in snapshot.AboutNodeList
     assert TelemetryName.RELAY_STATE in snapshot.TelemetryNameList
