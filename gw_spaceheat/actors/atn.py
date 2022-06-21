@@ -24,7 +24,6 @@ from actors.utils import QOS, Subscription
 
 
 class Atn(CloudBase):
-
     @classmethod
     def my_sensors(cls) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
