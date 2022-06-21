@@ -85,9 +85,6 @@ def test_imports():
     actors.strategy_switcher.stickler()
 
 
-def test_orange_garage_load_house():
-    load_house.load_all(atn_g_node_alias='w.isone.nh.orange.1')
-
 
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
@@ -112,7 +109,6 @@ def test_load_house():
     assert len(tank_water_temp_sensor_nodes) == 5
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
-
 
     def test_atn_cli():
         load_house.load_all()

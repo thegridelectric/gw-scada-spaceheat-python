@@ -35,6 +35,7 @@
             {
                 "Alias": "a.elt1.relay",
                 "RoleGtEnumSymbol": "57b788ee",
+                "ActorClassGtEnumSymbol": "fddd0064",
                 "DisplayName": "30A Relay for first boost element",
                 "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
                 "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
