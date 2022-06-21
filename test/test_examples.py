@@ -46,7 +46,7 @@ class EarRecorder(CloudEar):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
         self.latest_payload = None
-        super().__init__()
+        super().__init__(out_stub=None)
 
     def on_gw_mqtt_message(self, client, userdata, message):
         self.num_received += 1
