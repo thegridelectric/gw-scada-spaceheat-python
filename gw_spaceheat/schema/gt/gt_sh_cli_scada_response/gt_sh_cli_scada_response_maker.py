@@ -35,9 +35,9 @@ class GtShCliScadaResponse_Maker():
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtShCliScadaResponse:
         if "Snapshot" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing SnapshotId")
+            raise MpSchemaError(f"dict {d} missing Snapshot")
         snapshot = GtShStatusSnapshot_Maker.dict_to_tuple(d["Snapshot"])
         d["Snapshot"] = snapshot
-        tuple = GtShCliScadaResponse(Snapshot=d["SnapshotId"])
+        tuple = GtShCliScadaResponse(Snapshot=d["Snapshot"])
         tuple.check_for_errors()
         return tuple

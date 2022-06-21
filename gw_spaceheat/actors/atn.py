@@ -9,18 +9,36 @@ from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
+from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
+from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
+    GtShCliScadaResponse,
+    GtShCliScadaResponse_Maker,
+)
 from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
     GtShSimpleStatus,
     GtShSimpleStatus_Maker,
 )
-from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse_Maker, GtShCliScadaResponse
 
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription
 
 
 class Atn(CloudBase):
+
+    @classmethod
+    def my_sensors(cls) -> List[ShNode]:
+        all_nodes = list(ShNode.by_alias.values())
+        return list(
+            filter(
+                lambda x: (
+                    x.role == Role.TANK_WATER_TEMP_SENSOR
+                    or x.role == Role.BOOLEAN_ACTUATOR
+                    or x.role == Role.PIPE_TEMP_SENSOR
+                ),
+                all_nodes,
+            )
+        )
+    
     @classmethod
     def local_nodes(cls) -> List[ShNode]:
         load_house.load_all(input_json_file="input_data/houses.json")
@@ -75,10 +93,15 @@ class Atn(CloudBase):
         self.latest_status = payload
 
     def gt_sh_cli_scada_response_received(self, payload: GtShCliScadaResponse):
-        self.screen_print("Got StatusSnapshot!")
         snapshot = payload.Snapshot
+        for node in self.my_sensors():
+            if node.alias not in snapshot.AboutNodeList:
+                self.screen_print(f"No data for {node.alias}")
+
         for i in range(len(snapshot.AboutNodeList)):
-            print(f"{snapshot.AboutNodeList[i]}: {snapshot.ValueList[i]} {snapshot.TelemetryNameList[i].value}")
+            print(
+                f"{snapshot.AboutNodeList[i]}: {snapshot.ValueList[i]} {snapshot.TelemetryNameList[i].value}"
+            )
 
     ################################################
     # Primary functions
@@ -87,6 +110,7 @@ class Atn(CloudBase):
     def status(self):
         payload = GtShCliAtnCmd_Maker(send_snapshot=True).tuple
         self.gw_publish(payload)
+        self.screen_print(f"Published {payload}")
 
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):

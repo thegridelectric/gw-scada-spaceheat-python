@@ -1,7 +1,7 @@
 """Base for gt.sh.cli.scada.response.100"""
 import json
 from typing import List, NamedTuple
-from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot import GtShStatusSnapshot
+from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import GtShStatusSnapshot
 
 
 class GtShCliScadaResponseBase(NamedTuple):
@@ -13,6 +13,8 @@ class GtShCliScadaResponseBase(NamedTuple):
 
     def asdict(self):
         d = self._asdict()
+        del(d["Snapshot"])
+        d["Snapshot"] = self.Snapshot.asdict()
         return d
 
     def derived_errors(self) -> List[str]:
