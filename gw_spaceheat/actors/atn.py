@@ -38,7 +38,7 @@ class Atn(CloudBase):
                 all_nodes,
             )
         )
-    
+
     @classmethod
     def local_nodes(cls) -> List[ShNode]:
         load_house.load_all(input_json_file="input_data/houses.json")
