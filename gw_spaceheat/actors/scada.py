@@ -164,7 +164,7 @@ class Scada(ScadaBase):
         value_list = []
         telemetry_name_list = []
         for node in self.my_sensors():
-            if self.latest_reading[node]:
+            if self.latest_reading[node] is not None:
                 about_node_list.append(node.alias)
                 value_list.append(self.recent_readings[node][-1])
                 telemetry_name_list.append(self.config[node].reporting.TelemetryName)
