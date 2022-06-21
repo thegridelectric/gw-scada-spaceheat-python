@@ -85,10 +85,14 @@ def test_imports():
     actors.strategy_switcher.stickler()
 
 
+def test_orange_garage_load_house():
+    load_house.load_all(atn_g_node_alias='w.isone.nh.orange.1')
+
+
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     all_nodes = list(ShNode.by_alias.values())
     assert len(all_nodes) == 24
     aliases = list(ShNode.by_alias.keys())
@@ -111,7 +115,7 @@ def test_load_house():
 
 
     def test_atn_cli():
-        load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+        load_house.load_all()
 
         elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
         elt.start()
@@ -148,7 +152,7 @@ def test_load_house():
 
 
 def test_temp_sensor_loop_time():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     all_nodes = list(ShNode.by_alias.values())
     tank_water_temp_sensor_nodes = list(
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
@@ -165,7 +169,7 @@ def test_temp_sensor_loop_time():
 
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
@@ -191,7 +195,7 @@ def test_async_power_metering_dag():
 
 
 def test_scada_sends_status():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
     scada.terminate_main_loop()

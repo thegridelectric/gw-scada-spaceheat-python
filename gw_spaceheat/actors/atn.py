@@ -40,7 +40,7 @@ class Atn(CloudBase):
 
     @classmethod
     def local_nodes(cls) -> List[ShNode]:
-        load_house.load_all(input_json_file="input_data/houses.json")
+        load_house.load_all()
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: (x.role != Role.ATN and x.has_actor), all_nodes))
 

@@ -64,7 +64,7 @@ def get_y_n(response) -> Optional[bool]:
 
 
 def start_singles(actor_list) -> list:
-    load_house.load_all(input_json_file="input_data/houses.json")
+    load_house.load_all()
 
     starting_singles = True
     while starting_singles:
