@@ -17,7 +17,7 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription
 
-OUT_STUB = f"output/status"
+OUT_STUB = "output/status"
 
 
 class CloudEar(CloudBase):
