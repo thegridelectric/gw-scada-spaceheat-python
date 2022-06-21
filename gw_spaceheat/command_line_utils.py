@@ -9,6 +9,7 @@ from data_classes.sh_node import ShNode
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
+
 def parse_args(
         argv: Optional[Sequence[str]] = None,
         default_nodes: Optional[Sequence[str]] = None,
@@ -20,7 +21,8 @@ def parse_args(
     parser.add_argument("-n", "--nodes", default=default_nodes or [], nargs="*", help="ShNode aliases to load.")
     return parser.parse_args(argv or sys.argv[1:])
 
-def setup_logging(args:argparse.Namespace) -> None:
+
+def setup_logging(args: argparse.Namespace) -> None:
     """Setup python logging based on parsed command line args"""
     if args.log:
         level = "DEBUG"
@@ -32,7 +34,7 @@ def setup_logging(args:argparse.Namespace) -> None:
     )
 
 
-def run_nodes(aliases:Sequence[str], logging_on:bool = False, dbg: Optional[Dict] = None) -> None:
+def run_nodes(aliases: Sequence[str], logging_on: bool = False, dbg: Optional[Dict] = None) -> None:
     """Start actors associated with node aliases. If dbg is not None, the actor instances will be returned in dbg["actors"]
     as dict of alias:actor."""
 
@@ -54,6 +56,7 @@ def run_nodes(aliases:Sequence[str], logging_on:bool = False, dbg: Optional[Dict
 
     if dbg is not None:
         dbg["actors"] = {actor.node.alias: actor for actor in actors}
+
 
 def run_nodes_main(
         argv: Optional[Sequence[str]] = None,

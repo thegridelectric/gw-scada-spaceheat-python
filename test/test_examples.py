@@ -188,7 +188,6 @@ def test_scada_sends_status():
     assert ear.latest_payload.ReportingPeriodS == 300
 
 
-
 @pytest.mark.parametrize(
     "aliases",
     [
