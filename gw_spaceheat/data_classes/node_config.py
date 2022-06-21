@@ -50,7 +50,7 @@ class NodeConfig():
             raise Exception(f"Failed to set reporting config for {node}!")
         if self.driver is None:
             raise Exception(f"Failed to set driver for {node}")
-            
+
     def __repr__(self):
         return f"Driver: {self.driver}. Reporting: {self.reporting}"
 
