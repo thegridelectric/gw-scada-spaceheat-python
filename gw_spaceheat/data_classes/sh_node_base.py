@@ -6,6 +6,7 @@ from typing import Optional
 from schema.gt.gt_sh_node.gt_sh_node import GtShNode
 from data_classes.errors import DcError
 from schema.enums.role.role_map import RoleMap
+from schema.enums.actor_class.actor_class_map import ActorClassMap
 
 
 class ShNodeBase(ABC):
@@ -15,14 +16,14 @@ class ShNodeBase(ABC):
     base_props.append("component_id")
     base_props.append("reporting_sample_period_s")
     base_props.append("display_name")
-    base_props.append("has_actor")
+    base_props.append("actor_class_gt_enum_symbol")
     base_props.append("role_gt_enum_symbol")
 
     def __init__(self,
                  sh_node_id: str,
                  alias: str,
                  role_gt_enum_symbol: str,
-                 has_actor: bool,
+                 actor_class_gt_enum_symbol: str,
                  reporting_sample_period_s: Optional[int] = None,
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
@@ -32,7 +33,7 @@ class ShNodeBase(ABC):
         self.component_id = component_id
         self.reporting_sample_period_s = reporting_sample_period_s
         self.display_name = display_name
-        self.has_actor = has_actor
+        self.actor_class = ActorClassMap.gt_to_local(actor_class_gt_enum_symbol)
         self.role = RoleMap.gt_to_local(role_gt_enum_symbol)
 
     def update(self, type: GtShNode):

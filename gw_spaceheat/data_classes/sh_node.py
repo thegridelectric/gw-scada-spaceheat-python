@@ -6,6 +6,7 @@ from data_classes.components.temp_sensor_component import TempSensorComponent
 from data_classes.errors import DataClassLoadingError
 from data_classes.sh_node_base import ShNodeBase
 from schema.gt.gt_sh_node.gt_sh_node import GtShNode
+from schema.enums.actor_class.actor_class_map import ActorClass
 
 
 class ShNode(ShNodeBase):
@@ -14,7 +15,7 @@ class ShNode(ShNodeBase):
 
     def __init__(self, sh_node_id: str,
                  alias: str,
-                 has_actor: bool,
+                 actor_class_gt_enum_symbol: str,
                  role_gt_enum_symbol: str,
                  reporting_sample_period_s: Optional[int] = None,
                  component_id: Optional[str] = None,
@@ -22,7 +23,7 @@ class ShNode(ShNodeBase):
                  ):
         super(self.__class__, self).__init__(sh_node_id=sh_node_id,
                                              alias=alias,
-                                             has_actor=has_actor,
+                                             actor_class_gt_enum_symbol=actor_class_gt_enum_symbol,
                                              reporting_sample_period_s=reporting_sample_period_s,
                                              component_id=component_id,
                                              display_name=display_name,
@@ -41,6 +42,12 @@ class ShNode(ShNodeBase):
         else:
             rs += ' (passive, no actor)'
         return rs
+
+    @property
+    def has_actor(self) -> bool:
+        if self.actor_class == ActorClass.NONE:
+            return False
+        return True
 
     @property
     def component(self) -> Optional[Component]:
