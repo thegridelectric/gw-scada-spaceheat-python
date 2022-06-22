@@ -29,36 +29,24 @@ class ActorBase(ABC):
                 write.writerow(row)
             self.screen_print(f"log csv is {self.log_csv}")
         self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
-        self.publish_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
-        self.publish_client = mqtt.Client(self.publish_client_id)
-        self.publish_client.username_pw_set(
+        self.client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
+        self.client = mqtt.Client(self.client_id)
+        self.client.username_pw_set(
             username=settings.LOCAL_MQTT_USER_NAME,
             password=helpers.get_secret("LOCAL_MQTT_PW"),
         )
-        self.publish_client.on_connect = self.on_publish_connect
-        self.publish_client.on_connect_fail = self.on_publish_connect_fail
-        self.publish_client.on_disconnect = self.on_publish_disconnect
+        self.client.on_message = self.on_mqtt_message
+        self.client.on_connect = self.on_connect
+        self.client.on_connect_fail = self.on_connect_fail
+        self.client.on_disconnect = self.on_disconnect
         if self.logging_on:
-            self.publish_client.on_log = self.on_log
-            self.publish_client.enable_logger()
-        self.consume_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
-        self.consume_client = mqtt.Client(self.consume_client_id)
-        self.consume_client.username_pw_set(
-            username=settings.LOCAL_MQTT_USER_NAME,
-            password=helpers.get_secret("LOCAL_MQTT_PW"),
-        )
-        self.consume_client.on_message = self.on_mqtt_message
-        self.consume_client.on_connect = self.on_consume_connect
-        self.consume_client.on_connect_fail = self.on_consume_connect_fail
-        self.consume_client.on_disconnect = self.on_consume_disconnect
-        if self.logging_on:
-            self.consume_client.on_log = self.on_log
-            self.consume_client.enable_logger()
+            self.client.on_log = self.on_log
+            self.client.enable_logger()
 
-    def subscribe_consume_client(self):
-        self.consume_client.subscribe(
-            list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions()))
-        )
+    def subscribe(self):
+        subscriptions = list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions()))
+        if subscriptions:
+            self.client.subscribe(subscriptions)
 
     def mqtt_log_hack(self, row):
         if self.logging_on:
@@ -71,32 +59,18 @@ class ActorBase(ABC):
         self.mqtt_log_hack([f"({helpers.log_time()}) log: {buf}"])
 
     # noinspection PyUnusedLocal
-    def on_publish_connect(self, client, userdata, flags, rc):
-        self.mqtt_log_hack(
-            [f"({helpers.log_time()}) Local Publish Connected flags {str(flags)} + result code {str(rc)}"]
-        )
-
-    # noinspection PyUnusedLocal
-    def on_publish_connect_fail(self, client, userdata):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Local Publish Connect fail!"])
-
-    # noinspection PyUnusedLocal
-    def on_publish_disconnect(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Local Publish Disconnected! result code {str(rc)}"])
-    
-    # noinspection PyUnusedLocal
-    def on_consume_connect(self, client, userdata, flags, rc):
+    def on_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
             [f"({helpers.log_time()}) Local Consume Connected flags {str(flags)} + result code {str(rc)}"]
         )
-        self.subscribe_consume_client()
+        self.subscribe()
 
     # noinspection PyUnusedLocal
-    def on_consume_connect_fail(self, client, userdata):
+    def on_connect_fail(self, client, userdata):
         self.mqtt_log_hack([f"({helpers.log_time()}) Local Consume Connect fail!"])
 
     # noinspection PyUnusedLocal
-    def on_consume_disconnect(self, client, userdata, rc):
+    def on_disconnect(self, client, userdata, rc):
         self.mqtt_log_hack([f"({helpers.log_time()}) Local Consume Disconnected! result code {str(rc)}"])
 
     @abstractmethod
@@ -127,9 +101,8 @@ class ActorBase(ABC):
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
-        topic = f"{self.node.alias}/{payload.TypeAlias}"
-        self.publish_client.publish(
-            topic=topic,
+        self.client.publish(
+            topic=f"{self.node.alias}/{payload.TypeAlias}",
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
@@ -139,10 +112,8 @@ class ActorBase(ABC):
         self._main_loop_running = False
 
     def start(self):
-        self.publish_client.connect(self.mqttBroker)
-        self.consume_client.connect(self.mqttBroker)
-        self.publish_client.loop_start()
-        self.consume_client.loop_start()
+        self.client.connect(self.mqttBroker)
+        self.client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f"Started {self.__class__}")
@@ -150,10 +121,8 @@ class ActorBase(ABC):
     def stop(self):
         self.screen_print("Stopping ...")
         self.terminate_main_loop()
-        self.consume_client.disconnect()
-        self.publish_client.disconnect()
-        self.consume_client.loop_stop()
-        self.publish_client.loop_stop()
+        self.client.disconnect()
+        self.client.loop_stop()
         self.main_thread.join()
         self.screen_print("Stopped")
 

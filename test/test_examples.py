@@ -22,6 +22,7 @@ from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
 from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import GtShSimpleStatus
+from utils import wait_for
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
@@ -46,11 +47,11 @@ class EarRecorder(CloudEar):
     num_received: int
     num_received_by_topic: typing.Dict[str, int]
 
-    def __init__(self):
+    def __init__(self, logging_on: bool = False):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
         self.latest_payload = None
-        super().__init__(out_stub=None)
+        super().__init__(out_stub=None, logging_on=logging_on)
 
     def on_gw_mqtt_message(self, client, userdata, message):
         self.num_received += 1
@@ -68,12 +69,13 @@ class ScadaRecorder(Scada):
     num_received: int
     num_received_by_topic: typing.Dict[str, int]
 
-    def __init__(self, node: ShNode):
+    def __init__(self, node: ShNode, logging_on: bool = False):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
-        super().__init__(node)
+        super().__init__(node, logging_on=logging_on)
 
     def on_mqtt_message(self, client, userdata, message):
+        print(f"GOT {message.topic}")
         self.num_received += 1
         self.num_received_by_topic[message.topic] += 1
         super().on_mqtt_message(client, userdata, message)
@@ -185,7 +187,9 @@ def test_async_power_metering_dag():
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
-    atn = Atn(node=atn_node)
+    import logging
+    logging.basicConfig(level="DEBUG")
+    atn = Atn(node=atn_node, logging_on=True)
     atn.start()
     atn.terminate_main_loop()
     atn.main_thread.join()
@@ -202,42 +206,38 @@ def test_async_power_metering_dag():
     payload = GsPwr_Maker(power=meter.total_power_w).tuple
     meter.publish(payload=payload)
     time.sleep(LOCAL_MQTT_MESSAGE_DELTA_S + GW_MQTT_MESSAGE_DELTA)
-    time.sleep(0.3)
+    time.sleep(.3)
     assert atn.total_power_w == 2100
 
 
 def test_scada_sends_status():
+    logging_on = False
     load_house.load_all()
-    scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
+    scada = ScadaRecorder(node=ShNode.by_alias["a.s"], logging_on=logging_on)
     scada.start()
     scada.terminate_main_loop()
     scada.main_thread.join()
-
-    assert scada.consume_client.is_connected()
-    assert scada.publish_client.is_connected()
-    assert scada.gw_consume_client.is_connected()
-    assert scada.gw_publish_client.is_connected()
-    ear = EarRecorder()
+    wait_for(scada.client.is_connected, 1)
+    wait_for(scada.gw_client.is_connected, 1)
+    ear = EarRecorder(logging_on=logging_on)
     ear.start()
     ear.terminate_main_loop()
     ear.main_thread.join()
-    assert ear.gw_consume_client.is_connected()
-    assert ear.gw_publish_client.is_connected()
+    wait_for(ear.gw_client.is_connected, 1)
     thermo0_node = ShNode.by_alias["a.tank.temp0"]
 
-    thermo0 = SimpleSensor(node=thermo0_node)
+    thermo0 = SimpleSensor(node=thermo0_node, logging_on=logging_on)
     thermo0.start()
     thermo0.terminate_main_loop()
     thermo0.main_thread.join()
     known_sent = thermo0._last_sent_s
-    while thermo0._last_sent_s == known_sent:
-        time.sleep(.1)
+    def _send_telemetry() -> bool:
         thermo0.check_and_report_telemetry()
-    until = time.time() + 1
-    while time.time() < until:
-        if scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0:
-            break
-    assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
+        return thermo0._last_sent_s != known_sent
+    wait_for(_send_telemetry, 60)
+    def _scada_received_telemetry() -> bool:
+        return scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
+    wait_for(_scada_received_telemetry, 5)
     assert len(scada.recent_readings[thermo0_node]) > 0
     for unix_ms in scada.recent_reading_times_ms[thermo0_node]:
         assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)

@@ -22,31 +22,22 @@ class CloudBase(ABC):
         self.logging_on = logging_on
         self.log_csv = f"output/debug_logs/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
-        self.gw_publish_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
-        self.gw_publish_client = mqtt.Client(self.gw_publish_client_id)
-        self.gw_publish_client.username_pw_set(
+        self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
+        self.gw_client = mqtt.Client(self.gw_client_id)
+        self.gw_client.username_pw_set(
             username=settings.GW_MQTT_USER_NAME,
             password=helpers.get_secret("GW_MQTT_PW"),
         )
+        self.gw_client.on_message = self.on_gw_mqtt_message
+        self.gw_client.on_connect = self.on_connect
+        self.gw_client.on_connect_fail = self.on_connect_fail
+        self.gw_client.on_disconnect = self.on_disconnect
         if self.logging_on:
-            self.gw_publish_client.on_log = self.on_log
-            self.gw_publish_client.enable_logger()
-        self.gw_consume_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
-        self.gw_consume_client = mqtt.Client(self.gw_consume_client_id)
-        self.gw_consume_client.username_pw_set(
-            username=settings.GW_MQTT_USER_NAME,
-            password=helpers.get_secret("GW_MQTT_PW"),
-        )
-        self.gw_consume_client.on_message = self.on_gw_mqtt_message
-        self.gw_consume_client.on_connect = self.on_connect
-        self.gw_consume_client.on_connect_fail = self.on_connect_fail
-        self.gw_consume_client.on_disconnect = self.on_disconnect
-        if self.logging_on:
-            self.gw_consume_client.on_log = self.on_log
-            self.gw_consume_client.enable_logger()
+            self.gw_client.on_log = self.on_log
+            self.gw_client.enable_logger()
 
-    def subscribe_gw_consume_client(self):
-        self.gw_consume_client.subscribe(
+    def subscribe_gw(self):
+        self.gw_client.subscribe(
             list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
         )
 
@@ -71,7 +62,7 @@ class CloudBase(ABC):
                 f"({helpers.log_time()}) Publisher connected flags {str(flags)} + result code {str(rc)}"
             ]
         )
-        self.subscribe_gw_consume_client()
+        self.subscribe_gw()
 
     # noinspection PyUnusedLocal
     def on_connect_fail(self, client, userdata):
@@ -111,9 +102,8 @@ class CloudBase(ABC):
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
-        topic = f"{settings.ATN_G_NODE_ALIAS}/{payload.TypeAlias}"
-        self.gw_publish_client.publish(
-            topic=topic,
+        self.gw_client.publish(
+            topic=f"{settings.ATN_G_NODE_ALIAS}/{payload.TypeAlias}",
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
@@ -131,10 +121,8 @@ class CloudBase(ABC):
         raise NotImplementedError
 
     def start(self):
-        self.gw_publish_client.connect(self.gwMqttBroker)
-        self.gw_publish_client.loop_start()
-        self.gw_consume_client.connect(self.gwMqttBroker)
-        self.gw_consume_client.loop_start()
+        self.gw_client.connect(self.gwMqttBroker)
+        self.gw_client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f"Started {self.__class__}")
@@ -142,9 +130,7 @@ class CloudBase(ABC):
     def stop(self):
         self.screen_print("Stopping ...")
         self.terminate_main_loop()
-        self.gw_consume_client.disconnect()
-        self.gw_publish_client.disconnect()
-        self.gw_consume_client.loop_stop()
-        self.gw_publish_client.loop_stop()
+        self.gw_client.disconnect()
+        self.gw_client.loop_stop()
         self.main_thread.join()
         self.screen_print("Stopped")
