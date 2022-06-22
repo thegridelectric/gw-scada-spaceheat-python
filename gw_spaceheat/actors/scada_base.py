@@ -115,12 +115,14 @@ class ScadaBase(ActorBase):
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
+        topic = f"{helpers.scada_g_node_alias()}/{payload.TypeAlias}"
         self.gw_publish_client.publish(
-            topic=f"{helpers.scada_g_node_alias()}/{payload.TypeAlias}",
+            topic=topic,
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
         )
+        self.screen_print(f"published to {topic}")
 
     def start(self):
         super().start()
