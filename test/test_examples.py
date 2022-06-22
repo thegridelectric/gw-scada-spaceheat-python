@@ -162,23 +162,6 @@ def test_load_house():
 #     scada.stop()
 #     atn.stop()
 
-
-def test_temp_sensor_loop_time():
-    load_house.load_all()
-    all_nodes = list(ShNode.by_alias.values())
-    tank_water_temp_sensor_nodes = list(
-        filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
-    )
-    for node in tank_water_temp_sensor_nodes:
-        sensor = SimpleSensor(node)
-        sensor._main_loop_running = True
-        start = time.time()
-        sensor.check_and_report_telemetry()
-        end = time.time()
-        loop_ms = 1000 * (end - start)
-        assert loop_ms > 200
-
-
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
     load_house.load_all()
@@ -230,7 +213,9 @@ def test_scada_sends_status():
     thermo0.terminate_main_loop()
     thermo0.main_thread.join()
     time.sleep(2)
-    thermo0.check_and_report_telemetry()
+    thermo0.update_telemetry_value()
+    assert thermo0.telemetry_value is not None
+    thermo0.report_telemetry()
     time.sleep(.5)
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
     assert len(scada.recent_readings[thermo0_node]) > 0
@@ -290,3 +275,12 @@ def test_run_local():
         )
     ]
     test_run_nodes_main(aliases)
+
+
+def test_simple_sensor_value_update():
+    load_house.load_all()
+    thermo0 = SimpleSensor(ShNode.by_alias["a.tank.temp0"])
+    thermo0.start()
+    thermo0.terminate_main_loop()
+    thermo0.main_thread.join()
+    thermo0.update_telemetry_value()
