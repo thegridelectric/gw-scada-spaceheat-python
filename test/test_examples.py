@@ -183,13 +183,12 @@ def test_temp_sensor_loop_time():
 
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
+    logging_on = False
     load_house.load_all()
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
-    import logging
-    logging.basicConfig(level="DEBUG")
-    atn = Atn(node=atn_node, logging_on=True)
+    atn = Atn(node=atn_node, logging_on=logging_on)
     atn.start()
     atn.terminate_main_loop()
     atn.main_thread.join()
