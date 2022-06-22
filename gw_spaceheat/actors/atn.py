@@ -9,6 +9,11 @@ from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
+from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
+from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
+    GtShCliScadaResponse,
+    GtShCliScadaResponse_Maker,
+)
 from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
     GtShSimpleStatus,
     GtShSimpleStatus_Maker,
@@ -19,6 +24,20 @@ from actors.utils import QOS, Subscription
 
 
 class Atn(CloudBase):
+    @classmethod
+    def my_sensors(cls) -> List[ShNode]:
+        all_nodes = list(ShNode.by_alias.values())
+        return list(
+            filter(
+                lambda x: (
+                    x.role == Role.TANK_WATER_TEMP_SENSOR
+                    or x.role == Role.BOOLEAN_ACTUATOR
+                    or x.role == Role.PIPE_TEMP_SENSOR
+                ),
+                all_nodes,
+            )
+        )
+
     @classmethod
     def local_nodes(cls) -> List[ShNode]:
         load_house.load_all(input_json_file="input_data/houses.json")
@@ -47,13 +66,19 @@ class Atn(CloudBase):
                 Topic=f"{helpers.scada_g_node_alias()}/{GtShSimpleStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
+            Subscription(
+                Topic=f"{helpers.scada_g_node_alias()}/{GtShCliScadaResponse_Maker.type_alias}",
+                Qos=QOS.AtLeastOnce,
+            ),
         ]
 
-    def on_gw_message(self, from_node: ShNode, payload: GsPwr):
+    def on_gw_message(self, from_node: ShNode, payload):
         if from_node != ShNode.by_alias["a.s"]:
             raise Exception("gw messages must come from the Scada!")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(payload)
+        elif isinstance(payload, GtShCliScadaResponse):
+            self.gt_sh_cli_scada_response_received(payload)
         elif isinstance(payload, GtShSimpleStatus):
             self.gt_sh_simple_status_received(payload)
         else:
@@ -66,9 +91,25 @@ class Atn(CloudBase):
     def gt_sh_simple_status_received(self, payload: GtShSimpleStatus):
         self.latest_status = payload
 
+    def gt_sh_cli_scada_response_received(self, payload: GtShCliScadaResponse):
+        snapshot = payload.Snapshot
+        for node in self.my_sensors():
+            if node.alias not in snapshot.AboutNodeList:
+                self.screen_print(f"No data for {node.alias}")
+
+        for i in range(len(snapshot.AboutNodeList)):
+            print(
+                f"{snapshot.AboutNodeList[i]}: {snapshot.ValueList[i]} {snapshot.TelemetryNameList[i].value}"
+            )
+
     ################################################
     # Primary functions
     ################################################
+
+    def status(self):
+        payload = GtShCliAtnCmd_Maker(send_snapshot=True).tuple
+        self.gw_publish(payload)
+        self.screen_print(f"Published {payload}")
 
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):

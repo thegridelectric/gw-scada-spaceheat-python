@@ -1,33 +1,29 @@
 from data_classes.sh_node import ShNode
-from schema.enums.role.role_map import Role
+from schema.enums.actor_class.actor_class_map import ActorClass
 
 from actors.atn import Atn
 from actors.boolean_actuator import BooleanActuator
 from actors.home_alone import HomeAlone
-from actors.pipe_flow_meter import PipeFlowMeter
-from actors.pipe_temp_sensor import PipeTempSensor
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
-from actors.tank_water_temp_sensor import TankWaterTempSensor
+from actors.simple_sensor import SimpleSensor
 
 switcher = {
-    Role.ATN: Atn,
-    Role.BOOLEAN_ACTUATOR: BooleanActuator,
-    Role.HOME_ALONE: HomeAlone,
-    Role.PIPE_FLOW_METER: PipeFlowMeter,
-    Role.PIPE_TEMP_SENSOR: PipeTempSensor,
-    Role.POWER_METER: PowerMeter,
-    Role.SCADA: Scada,
-    Role.TANK_WATER_TEMP_SENSOR: TankWaterTempSensor,
+    ActorClass.ATN: Atn,
+    ActorClass.BOOLEAN_ACTUATOR: BooleanActuator,
+    ActorClass.HOME_ALONE: HomeAlone,
+    ActorClass.POWER_METER: PowerMeter,
+    ActorClass.SCADA: Scada,
+    ActorClass.SIMPLE_SENSOR: SimpleSensor,
 }
 
 
 def strategy_from_node(node: ShNode):
     if not node.has_actor:
         return None
-    if node.role not in list(switcher.keys()):
-        raise Exception(f"Missing implementation for {node.role.value}!")
-    func = switcher[node.role]
+    if node.role.value not in [key.value for key in switcher]:
+        raise Exception(f"Missing implementation for role {node.role.value}, node {node.alias}/{node.sh_node_id} !")
+    func = switcher[ActorClass(node.role.value)]
     return func
 
 
