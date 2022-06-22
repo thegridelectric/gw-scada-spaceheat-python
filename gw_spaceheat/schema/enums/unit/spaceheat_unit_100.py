@@ -5,6 +5,11 @@ from typing import List
 
 
 class Unit(enum.Enum):
+    
+    @classmethod
+    def values(cls):
+        return [elt.value for elt in cls]
+
     CELCIUS = "Celcius"
     FAHRENHEIT = "Fahrenheit"
     W = "W"

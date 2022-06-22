@@ -4,6 +4,7 @@ from schema.enums.unit.spaceheat_unit_100 import Unit, SpaceheatUnit100GtEnum
 
 
 class UnitGtEnum(SpaceheatUnit100GtEnum):
+
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -35,4 +36,4 @@ class UnitMap():
         Unit.FAHRENHEIT: "7d8832f8",
         Unit.W: "f459a9c3",
         Unit.UNITLESS: "ec972387",
-         }
+        }
