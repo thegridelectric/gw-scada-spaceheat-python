@@ -6,7 +6,7 @@ from data_classes.sh_node import ShNode
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
 from actors.actor_base import ActorBase
-from actors.utils import Subscription
+from actors.utils import Subscription, responsive_sleep
 
 
 class SimpleSensor(ActorBase):
@@ -53,7 +53,7 @@ class SimpleSensor(ActorBase):
         if (time_of_read_s - check_start_s) > self.MAIN_LOOP_MIN_TIME_S:
             return
         wait_time_s = self.MAIN_LOOP_MIN_TIME_S - (time_of_read_s - check_start_s)
-        time.sleep(wait_time_s)
+        responsive_sleep(self, wait_time_s)
 
     def main(self):
         self._main_loop_running = True

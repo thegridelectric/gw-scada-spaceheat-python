@@ -1,5 +1,4 @@
 import random
-import time
 from typing import List
 
 from data_classes.node_config import NodeConfig
@@ -7,7 +6,7 @@ from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 
 from actors.actor_base import ActorBase
-from actors.utils import Subscription
+from actors.utils import Subscription, responsive_sleep
 
 
 class PowerMeter(ActorBase):
@@ -29,4 +28,4 @@ class PowerMeter(ActorBase):
             self.total_power_w += 250 - int(500 * random.random())
             payload = GsPwr_Maker(power=self.total_power_w).tuple
             self.publish(payload=payload)
-            time.sleep(1)
+            responsive_sleep(self, 1)

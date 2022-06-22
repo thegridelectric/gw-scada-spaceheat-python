@@ -2,21 +2,9 @@ import time
 from typing import List, Optional
 
 import load_house
-from actors.strategy_switcher import strategy_from_node
+from command_line_utils import run_nodes_main
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
-
-
-def add_actor(actor_list: List, node: ShNode) -> List:
-    actor_function = strategy_from_node(node)
-    if not actor_function:
-        print(f"Missing strategy for {node} in strategy_switcher")
-        return actor_list
-    actor = actor_function(node)
-    existing_nodes = list(map(lambda x: x.node, actor_list))
-    if actor.node not in existing_nodes:
-        actor_list.append(actor)
-    return actor_list
 
 
 def get_single_node() -> Optional[ShNode]:
@@ -29,12 +17,12 @@ def get_single_node() -> Optional[ShNode]:
     return ShNode.by_alias[node_alias]
 
 
-def add_all_nodes_of_role(actor_list: List, role: Role) -> List:
+def add_all_nodes_of_role(node_alias_list: List, role: Role) -> List:
     all_nodes = list(ShNode.by_alias.values())
     role_nodes = list(filter(lambda x: (x.role == role and x.has_actor), all_nodes))
     for node in role_nodes:
-        actor_list = add_actor(actor_list, node)
-    return actor_list
+        node_alias_list.append(node.alias)
+    return node_alias_list
 
 
 def get_role() -> Optional[Role]:
@@ -63,9 +51,7 @@ def get_y_n(response) -> Optional[bool]:
         return False
 
 
-def start_singles(actor_list) -> list:
-    load_house.load_all()
-
+def start_singles(node_alias_list: List) -> List:
     starting_singles = True
     while starting_singles:
         response = input("Start single node (y,n)? ")
@@ -73,23 +59,23 @@ def start_singles(actor_list) -> list:
         if single_start is True:
             node = get_single_node()
             if node:
-                actor_list = add_actor(actor_list, node)
+                node_alias_list.append(node.alias)
         else:
             starting_singles = False
         time.sleep(0.5)
-    return actor_list
+    return node_alias_list
 
 
-def start_roles(actor_list) -> List:
+def start_roles(node_alias_list: List) -> List:
     response = input("Start all TankWaterTempSensors? ")
     start_tank_water_temp_sensors = get_y_n(response)
     if start_tank_water_temp_sensors:
-        actor_list = add_all_nodes_of_role(actor_list, Role.TANK_WATER_TEMP_SENSOR)
+        node_alias_list = add_all_nodes_of_role(node_alias_list, Role.TANK_WATER_TEMP_SENSOR)
 
     response = input("Start all BooleanActuators? ")
     start_tank_water_temp_sensors = get_y_n(response)
     if start_tank_water_temp_sensors:
-        actor_list = add_all_nodes_of_role(actor_list, Role.BOOLEAN_ACTUATOR)
+        node_alias_list = add_all_nodes_of_role(node_alias_list, Role.BOOLEAN_ACTUATOR)
 
     starting_roles = True
     while starting_roles:
@@ -98,26 +84,27 @@ def start_roles(actor_list) -> List:
         if start_role is True:
             role = get_role()
             if role:
-                actor_list = add_all_nodes_of_role(actor_list, role)
+                node_alias_list = add_all_nodes_of_role(node_alias_list, role)
         else:
             starting_roles = False
-    return actor_list
+    return node_alias_list
 
 
 def main():
-    actor_list = []
-    actor_list = start_singles(actor_list)
-    actor_list = start_roles(actor_list)
-    actor_list = sorted(list(set(actor_list)), key=lambda x: x.node.alias)
+    load_house.load_all()
+    node_alias_list = []
+    node_alias_list = start_singles(node_alias_list)
+    node_alias_list = start_roles(node_alias_list)
+    node_alias_list = sorted(list(set(node_alias_list)))
 
     print("About to start these actors:")
     print("")
-    for actor in actor_list:
-        print(actor.node.alias)
+    for alias in node_alias_list:
+        print(alias)
 
     time.sleep(4)
-    for actor in actor_list:
-        actor.start()
+
+    run_nodes_main(default_nodes=node_alias_list)
 
 
 if __name__ == "__main__":

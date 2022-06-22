@@ -1,4 +1,3 @@
-import time
 from typing import List, Optional
 
 import helpers
@@ -9,7 +8,7 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
 )
 
 from actors.actor_base import ActorBase
-from actors.utils import QOS, Subscription
+from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class HomeAlone(ActorBase):
@@ -48,4 +47,4 @@ class HomeAlone(ActorBase):
     def main(self):
         self._main_loop_running = True
         while self._main_loop_running is True:
-            time.sleep(1)
+            responsive_sleep(self, 1)

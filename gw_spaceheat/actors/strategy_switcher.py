@@ -21,9 +21,9 @@ switcher = {
 def strategy_from_node(node: ShNode):
     if not node.has_actor:
         return None
-    if node.actor_class not in list(switcher.keys()):
-        raise Exception(f"Missing implementation for {node.actor_class.value}!")
-    func = switcher[node.actor_class]
+    if node.actor_class.value not in [key.value for key in switcher]:
+        raise Exception(f"Missing implementation for class {node.actor_class.value}, node {node.alias}!")
+    func = switcher[ActorClass(node.actor_class.value)]
     return func
 
 
