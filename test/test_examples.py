@@ -10,7 +10,6 @@ from schema.gs.gs_dispatch import GsDispatch
 import schema.property_format
 import settings
 from actors.atn import Atn
-from actors.boolean_actuator import BooleanActuator
 from actors.cloud_ear import CloudEar
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
@@ -162,12 +161,12 @@ def test_temp_sensor_loop_time():
     )
     for node in tank_water_temp_sensor_nodes:
         sensor = SimpleSensor(node)
+        sensor._main_loop_running = True
         start = time.time()
         sensor.check_and_report_temp()
         end = time.time()
         loop_ms = 1000 * (end - start)
         assert loop_ms > 200
-    time.sleep(2)
 
 
 def test_async_power_metering_dag():

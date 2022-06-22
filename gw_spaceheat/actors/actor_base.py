@@ -41,7 +41,6 @@ class ActorBase(ABC):
         if self.logging_on:
             self.publish_client.on_log = self.on_log
             self.publish_client.enable_logger()
-        self.publish_client.connect(self.mqttBroker)
         self.consume_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.consume_client = mqtt.Client(self.consume_client_id)
         self.consume_client.username_pw_set(
@@ -55,7 +54,6 @@ class ActorBase(ABC):
         if self.logging_on:
             self.consume_client.on_log = self.on_log
             self.consume_client.enable_logger()
-        self.consume_client.connect(self.mqttBroker)
 
     def subscribe_consume_client(self):
         self.consume_client.subscribe(
@@ -140,6 +138,8 @@ class ActorBase(ABC):
         self._main_loop_running = False
 
     def start(self):
+        self.publish_client.connect(self.mqttBroker)
+        self.consume_client.connect(self.mqttBroker)
         self.publish_client.loop_start()
         self.consume_client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
@@ -148,10 +148,12 @@ class ActorBase(ABC):
 
     def stop(self):
         self.screen_print("Stopping ...")
-        self.consume_client.loop_stop()
         self.terminate_main_loop()
-        self.main_thread.join()
+        self.consume_client.disconnect()
+        self.publish_client.disconnect()
+        self.consume_client.loop_stop()
         self.publish_client.loop_stop()
+        self.main_thread.join()
         self.screen_print("Stopped")
 
     @abstractmethod

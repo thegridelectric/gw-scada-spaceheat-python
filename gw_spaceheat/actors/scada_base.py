@@ -1,4 +1,3 @@
-import threading
 import uuid
 from abc import abstractmethod
 
@@ -27,8 +26,6 @@ class ScadaBase(ActorBase):
         self.gw_publish_client.on_connect = self.on_gw_publish_connect
         self.gw_publish_client.on_connect_fail = self.on_gw_publish_connect_fail
         self.gw_publish_client.on_disconnect = self.on_gw_publish_disconnect
-        self.gw_publish_client.connect(self.gwMqttBroker)
-        self.gw_publish_client.loop_start()
         if self.logging_on:
             self.gw_publish_client.on_log = self.on_log
         self.gw_consume_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
@@ -40,7 +37,6 @@ class ScadaBase(ActorBase):
         self.gw_consume_client.on_connect = self.on_gw_consume_connect
         self.gw_consume_client.on_connect_fail = self.on_gw_consume_connect_fail
         self.gw_consume_client.on_disconnect = self.on_gw_consume_disconnect
-        self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
 
@@ -84,6 +80,7 @@ class ScadaBase(ActorBase):
         self.subscribe_gw_consume_client()
 
     # noinspection PyUnusedLocal
+
     def on_gw_consume_connect_fail(self, client, userdata, rc):
         self.mqtt_log_hack(
             [f"({helpers.log_time()}) GW Consume Connect fail! result code {str(rc)}"]
@@ -126,20 +123,13 @@ class ScadaBase(ActorBase):
         )
 
     def start(self):
-        self.publish_client.loop_start()
-        self.consume_client.loop_start()
-        self.gw_consume_client.loop_start()
-        self.gw_publish_client.loop_start()
-        self.main_thread = threading.Thread(target=self.main)
-        self.main_thread.start()
+        super().start()
+        self.gw_publish_client.connect(self.gwMqttBroker)
+        self.gw_consume_client.connect(self.gwMqttBroker)
         self.screen_print(f"Started {self.__class__}")
 
     def stop(self):
-        self.screen_print("Stopping ...")
-        self.consume_client.loop_stop()
+        super().stop()
         self.gw_consume_client.loop_stop()
-        self.terminate_main_loop()
-        self.main_thread.join()
-        self.publish_client.loop_stop()
         self.gw_publish_client.loop_stop()
-        self.screen_print("Stopped")
+        self.screen_print(f"Stopped {self.__class__}")

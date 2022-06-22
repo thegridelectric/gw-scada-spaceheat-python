@@ -8,7 +8,7 @@ from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
 from actors.actor_base import ActorBase
-from actors.utils import QOS, Subscription
+from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class BooleanActuator(ActorBase):
@@ -80,7 +80,7 @@ class BooleanActuator(ActorBase):
             if (time_of_read_s - check_start_s) > self.MAIN_LOOP_MIN_TIME_S:
                 return
             wait_time_s = self.MAIN_LOOP_MIN_TIME_S - (time_of_read_s - check_start_s)
-            time.sleep(wait_time_s)
+            responsive_sleep(self, wait_time_s)
 
     @property
     def next_sync_report_time_s(self) -> int:

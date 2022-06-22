@@ -15,7 +15,7 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
 
 
 from actors.cloud_base import CloudBase
-from actors.utils import QOS, Subscription
+from actors.utils import QOS, Subscription, responsive_sleep
 
 OUT_STUB = "output/status"
 
@@ -98,7 +98,7 @@ class CloudEar(CloudBase):
     def main(self):
         self._main_loop_running = True
         while self._main_loop_running is True:
-            time.sleep(10)
+            responsive_sleep(self, 10)
 
     def screen_print(self, note):
         header = "Cloud Ear: "
