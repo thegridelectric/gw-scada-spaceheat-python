@@ -1,5 +1,7 @@
 import time
 import typing
+import os
+import json
 from collections import defaultdict
 import settings
 import load_house
@@ -15,6 +17,7 @@ from actors.simple_sensor import SimpleSensor
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
+from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
@@ -84,9 +87,18 @@ def test_imports():
     # note: disable warnings about local imports
     import actors.strategy_switcher
     import load_house
-
     load_house.stickler()
     actors.strategy_switcher.stickler()
+
+
+def test_load_real_house():
+    real_atn_g_node_alias = "w.isone.nh.orange.1"
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(current_dir, '../gw_spaceheat/input_data/houses.json'), "r") as read_file:
+        input_data = json.load(read_file)
+    house_data = input_data[real_atn_g_node_alias]
+    for d in house_data["ShNodes"]:
+        GtShNode_Maker.dict_to_tuple(d)
 
 
 def test_load_house():
@@ -254,6 +266,7 @@ def test_scada_sends_status():
 )
 def test_run_nodes_main(aliases):
     """Test command_line_utils.run_nodes_main()"""
+    load_house.load_all()
     dbg = dict(actors={})
     try:
         run_nodes_main(
