@@ -162,23 +162,6 @@ def test_load_house():
 #     scada.stop()
 #     atn.stop()
 
-
-def test_temp_sensor_loop_time():
-    load_house.load_all()
-    all_nodes = list(ShNode.by_alias.values())
-    tank_water_temp_sensor_nodes = list(
-        filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
-    )
-    for node in tank_water_temp_sensor_nodes:
-        sensor = SimpleSensor(node)
-        sensor._main_loop_running = True
-        start = time.time()
-        sensor.check_and_report_telemetry()
-        end = time.time()
-        loop_ms = 1000 * (end - start)
-        assert loop_ms > 200
-
-
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
     load_house.load_all()
