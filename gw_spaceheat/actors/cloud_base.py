@@ -111,8 +111,9 @@ class CloudBase(ABC):
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
+        topic = f"{settings.ATN_G_NODE_ALIAS}/{payload.TypeAlias}"
         self.gw_publish_client.publish(
-            topic=f"{settings.ATN_G_NODE_ALIAS}/{payload.TypeAlias}",
+            topic=topic,
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,

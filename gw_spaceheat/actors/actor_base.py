@@ -127,8 +127,9 @@ class ActorBase(ABC):
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
+        topic = f"{self.node.alias}/{payload.TypeAlias}"
         self.publish_client.publish(
-            topic=f"{self.node.alias}/{payload.TypeAlias}",
+            topic=topic,
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,

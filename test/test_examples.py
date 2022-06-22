@@ -212,10 +212,17 @@ def test_scada_sends_status():
     scada.start()
     scada.terminate_main_loop()
     scada.main_thread.join()
+
+    assert scada.consume_client.is_connected()
+    assert scada.publish_client.is_connected()
+    assert scada.gw_consume_client.is_connected()
+    assert scada.gw_publish_client.is_connected()
     ear = EarRecorder()
     ear.start()
     ear.terminate_main_loop()
     ear.main_thread.join()
+    assert ear.gw_consume_client.is_connected()
+    assert ear.gw_publish_client.is_connected()
     thermo0_node = ShNode.by_alias["a.tank.temp0"]
 
     thermo0 = SimpleSensor(node=thermo0_node)
