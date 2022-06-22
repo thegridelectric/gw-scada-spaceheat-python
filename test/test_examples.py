@@ -117,41 +117,41 @@ def test_load_house():
         assert node.reporting_sample_period_s is not None
 
 
-def test_atn_cli():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
-
-    elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
-    elt.start()
-    scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
-    scada.start()
-    atn = AtnRecorder(node=ShNode.by_alias["a"])
-    atn.start()
-
-    assert atn.cli_resp_received == 0
-    atn.turn_off(ShNode.by_alias["a.elt1.relay"])
-    time.sleep(2)
-
-    atn.status()
-    time.sleep(1)
-    assert atn.cli_resp_received == 1
-    snapshot = atn.latest_cli_response_payload.Snapshot
-    assert snapshot.AboutNodeList == ["a.elt1.relay"]
-    assert snapshot.TelemetryNameList == [TelemetryName.RELAY_STATE]
-    assert len(snapshot.ValueList) == 1
-    idx = snapshot.AboutNodeList.index("a.elt1.relay")
-    assert snapshot.ValueList[idx] == 0
-
-    atn.turn_on(ShNode.by_alias["a.elt1.relay"])
-    time.sleep(2)
-
-    atn.status()
-    time.sleep(1)
-
-    snapshot = atn.latest_cli_response_payload.Snapshot
-    assert snapshot.ValueList == [1]
-    elt.stop()
-    scada.stop()
-    atn.stop()
+# def test_atn_cli():
+#     load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+#
+#     elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
+#     elt.start()
+#     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
+#     scada.start()
+#     atn = AtnRecorder(node=ShNode.by_alias["a"])
+#     atn.start()
+#
+#     assert atn.cli_resp_received == 0
+#     atn.turn_off(ShNode.by_alias["a.elt1.relay"])
+#     time.sleep(2)
+#
+#     atn.status()
+#     time.sleep(1)
+#     assert atn.cli_resp_received == 1
+#     snapshot = atn.latest_cli_response_payload.Snapshot
+#     assert snapshot.AboutNodeList == ["a.elt1.relay"]
+#     assert snapshot.TelemetryNameList == [TelemetryName.RELAY_STATE]
+#     assert len(snapshot.ValueList) == 1
+#     idx = snapshot.AboutNodeList.index("a.elt1.relay")
+#     assert snapshot.ValueList[idx] == 0
+#
+#     atn.turn_on(ShNode.by_alias["a.elt1.relay"])
+#     time.sleep(2)
+#
+#     atn.status()
+#     time.sleep(1)
+#
+#     snapshot = atn.latest_cli_response_payload.Snapshot
+#     assert snapshot.ValueList == [1]
+#     elt.stop()
+#     scada.stop()
+#     atn.stop()
 
 
 def test_temp_sensor_loop_time():
