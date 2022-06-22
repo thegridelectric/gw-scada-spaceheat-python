@@ -44,8 +44,8 @@ class SimpleSensor(ActorBase):
         # self.screen_print(f"{int(time_of_read_s * 1000)}")
 
     def is_time_to_report(self) -> bool:
-        """ Returns True if it is time to report, The sensor is supposed to report every 
-        self.config.reporting.SamplePeriodS seconds - that is, if this number is 5, then 
+        """ Returns True if it is time to report, The sensor is supposed to report every
+        self.config.reporting.SamplePeriodS seconds - that is, if this number is 5, then
         the report will happen ASAP after top of the hour, then again 5 seconds later, etc ).
          """
         now_s = time.time()

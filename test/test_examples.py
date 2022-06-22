@@ -214,6 +214,7 @@ def test_scada_sends_status():
     thermo0.main_thread.join()
     time.sleep(2)
     thermo0.update_telemetry_value()
+    assert thermo0.telemetry_value is not None
     thermo0.report_telemetry()
     time.sleep(.5)
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
@@ -274,3 +275,12 @@ def test_run_local():
         )
     ]
     test_run_nodes_main(aliases)
+
+
+def test_simple_sensor_value_update():
+    load_house.load_all()
+    thermo0 = SimpleSensor(ShNode.by_alias["a.tank.temp0"])
+    thermo0.start()
+    thermo0.terminate_main_loop()
+    thermo0.main_thread.join()
+    thermo0.update_telemetry_value()
