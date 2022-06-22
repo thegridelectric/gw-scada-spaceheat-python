@@ -266,7 +266,6 @@ def test_scada_sends_status():
 )
 def test_run_nodes_main(aliases):
     """Test command_line_utils.run_nodes_main()"""
-    load_house.load_all()
     dbg = dict(actors={})
     try:
         run_nodes_main(
