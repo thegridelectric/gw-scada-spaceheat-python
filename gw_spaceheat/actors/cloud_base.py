@@ -119,7 +119,6 @@ class CloudBase(ABC):
             qos=qos.value,
             retain=False,
         )
-        self.screen_print(f"published to {topic}")
 
     def terminate_main_loop(self):
         self._main_loop_running = False

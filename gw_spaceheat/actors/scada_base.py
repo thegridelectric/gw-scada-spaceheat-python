@@ -122,12 +122,14 @@ class ScadaBase(ActorBase):
             qos=qos.value,
             retain=False,
         )
-        self.screen_print(f"published to {topic}")
 
     def start(self):
         super().start()
+        self.screen_print("howdy")
         self.gw_publish_client.connect(self.gwMqttBroker)
         self.gw_consume_client.connect(self.gwMqttBroker)
+        self.gw_publish_client.loop_start()
+        self.gw_consume_client.loop_start()
         self.screen_print(f"Started {self.__class__} remote connections")
 
     def stop(self):
