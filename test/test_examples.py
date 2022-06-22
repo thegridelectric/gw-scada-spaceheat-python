@@ -1,7 +1,7 @@
 import time
 import typing
 from collections import defaultdict
-
+import settings
 import load_house
 import schema.property_format
 import settings
@@ -88,7 +88,7 @@ def test_imports():
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     all_nodes = list(ShNode.by_alias.values())
     assert len(all_nodes) == 24
     aliases = list(ShNode.by_alias.keys())
@@ -111,7 +111,7 @@ def test_load_house():
 
 
     def test_atn_cli():
-        load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+        load_house.load_all()
 
         elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
         elt.start()
@@ -148,7 +148,7 @@ def test_load_house():
 
 
 def test_temp_sensor_loop_time():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     all_nodes = list(ShNode.by_alias.values())
     tank_water_temp_sensor_nodes = list(
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
@@ -156,7 +156,7 @@ def test_temp_sensor_loop_time():
     for node in tank_water_temp_sensor_nodes:
         sensor = SimpleSensor(node)
         start = time.time()
-        sensor.check_and_report_temp()
+        sensor.check_and_report_telemetry()
         end = time.time()
         loop_ms = 1000 * (end - start)
         assert loop_ms > 200
@@ -165,7 +165,7 @@ def test_temp_sensor_loop_time():
 
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
@@ -191,7 +191,7 @@ def test_async_power_metering_dag():
 
 
 def test_scada_sends_status():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
     scada.terminate_main_loop()
@@ -231,7 +231,8 @@ def test_scada_sends_status():
     scada.send_status()
     time.sleep(1)
     assert ear.num_received > 0
-    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.sh.simple.status.100"] == 1
+    scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
+    assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
     assert isinstance(ear.latest_payload, GtShSimpleStatus)
     assert len(ear.latest_payload.SimpleSingleStatusList) == 2
     single_status = ear.latest_payload.SimpleSingleStatusList[0]

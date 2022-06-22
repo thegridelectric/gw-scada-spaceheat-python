@@ -3,6 +3,7 @@ from typing import Dict, Optional
 
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.cacs.pipe_flow_sensor_cac_base import PipeFlowSensorCacBase
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac import GtPipeFlowSensorCac
 
 
@@ -27,3 +28,7 @@ class PipeFlowSensorCac(PipeFlowSensorCacBase):
 
     def __repr__(self):
         return f"{self.make_model.value} {self.display_name}"
+
+    @property
+    def telemetry_name(self):
+        return TelemetryName.GALLONS_PER_MINUTE_TIMES_10

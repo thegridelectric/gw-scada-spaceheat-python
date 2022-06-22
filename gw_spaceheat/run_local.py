@@ -4,7 +4,7 @@ from schema.enums.role.role_map import Role
 from data_classes.sh_node import ShNode
 
 
-load_house.load_all(input_json_file="input_data/houses.json")
+load_house.load_all()
 all_nodes = list(ShNode.by_alias.values())
 local_nodes = list(filter(lambda x: (x.role != Role.ATN and x.has_actor), all_nodes))
 
