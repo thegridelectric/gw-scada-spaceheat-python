@@ -77,7 +77,6 @@ class ActorBase(ABC):
         self.mqtt_log_hack(
             [f"({helpers.log_time()}) Local Publish Connected flags {str(flags)} + result code {str(rc)}"]
         )
-        self.subscribe_consume_client()
 
     # noinspection PyUnusedLocal
     def on_publish_connect_fail(self, client, userdata):
@@ -92,6 +91,7 @@ class ActorBase(ABC):
         self.mqtt_log_hack(
             [f"({helpers.log_time()}) Local Consume Connected flags {str(flags)} + result code {str(rc)}"]
         )
+        self.subscribe_consume_client()
 
     # noinspection PyUnusedLocal
     def on_consume_connect_fail(self, client, userdata):
