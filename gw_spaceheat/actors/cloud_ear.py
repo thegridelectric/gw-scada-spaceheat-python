@@ -66,7 +66,7 @@ class CloudEar(CloudBase):
             self.log_status_csv(payload=payload)
 
     def gs_pwr_received(self, from_node: ShNode, payload: GsPwr):
-        self.screen_print(f"Got {payload} from {from_node}. Need to log!")
+        pass 
 
     def log_status_csv(self, payload: GtShSimpleStatus):
         new_readings = []
