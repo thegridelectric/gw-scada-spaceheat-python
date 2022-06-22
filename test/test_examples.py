@@ -230,7 +230,8 @@ def test_scada_sends_status():
     thermo0.terminate_main_loop()
     thermo0.main_thread.join()
     time.sleep(2)
-    thermo0.check_and_report_telemetry()
+    thermo0.update_telemetry_value()
+    thermo0.report_telemetry()
     time.sleep(.5)
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
     assert len(scada.recent_readings[thermo0_node]) > 0
