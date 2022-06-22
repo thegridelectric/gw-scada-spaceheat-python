@@ -126,7 +126,7 @@ class ScadaBase(ActorBase):
         super().start()
         self.gw_publish_client.connect(self.gwMqttBroker)
         self.gw_consume_client.connect(self.gwMqttBroker)
-        self.screen_print(f"Started {self.__class__}")
+        self.screen_print(f"Started {self.__class__} remote connections")
 
     def stop(self):
         super().stop()

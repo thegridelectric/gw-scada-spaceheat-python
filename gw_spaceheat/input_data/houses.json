@@ -143,8 +143,7 @@
                     "DisplayName": "Tank temp sensor temp0 (on top)",
                     "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
                     "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
-                    "ReportingSamplePeriodS": 5,
-                    "HasActor": true
+                    "ReportingSamplePeriodS": 5
                 },
                 {
                     "Alias": "a.tank.temp1",
@@ -446,8 +445,7 @@
                     "RoleGtEnumSymbol": "863e50d1",
                     "ActorClassGtEnumSymbol": "32d3d19f",
                     "DisplayName": "Little Orange House HomeAlone",
-                    "ShNodeId": "34470c9d-fa25-4077-909b-2f981a691d7e",
-                    "HasActor": true
+                    "ShNodeId": "34470c9d-fa25-4077-909b-2f981a691d7e"
                 },
                 {
                     "Alias": "a.s",
@@ -469,8 +467,7 @@
                     "RoleGtEnumSymbol": "57b788ee",
                     "DisplayName": "30A Relay for first boost element",
                     "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
-                    "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
-                    "HasActor": true
+                    "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca"
                 },
                 {
                     "Alias": "a.tank",
@@ -583,8 +580,7 @@
                     "DisplayName": "Tank temp sensor temp0 (on top)",
                     "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
                     "ComponentId": "2d4b3b73-fc58-4789-b15e-9881f0b4ff40",
-                    "ReportingSamplePeriodS": 5,
-                    "HasActor": true
+                    "ReportingSamplePeriodS": 5
                 },
                 {
                     "Alias": "a.tank.out.allradiators.garage.temp1",
