@@ -31,8 +31,6 @@ class CloudBase(ABC):
         if self.logging_on:
             self.gw_publish_client.on_log = self.on_log
             self.gw_publish_client.enable_logger()
-        self.gw_publish_client.connect(self.gwMqttBroker)
-        self.gw_publish_client.loop_start()
         self.gw_consume_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_consume_client = mqtt.Client(self.gw_consume_client_id)
         self.gw_consume_client.username_pw_set(
@@ -46,7 +44,6 @@ class CloudBase(ABC):
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
             self.gw_consume_client.enable_logger()
-        self.gw_consume_client.connect(self.gwMqttBroker)
 
     def subscribe_gw_consume_client(self):
         self.gw_consume_client.subscribe(
@@ -133,16 +130,20 @@ class CloudBase(ABC):
         raise NotImplementedError
 
     def start(self):
-        self.gw_consume_client.loop_start()
+        self.gw_publish_client.connect(self.gwMqttBroker)
         self.gw_publish_client.loop_start()
+        self.gw_consume_client.connect(self.gwMqttBroker)
+        self.gw_consume_client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f"Started {self.__class__}")
 
     def stop(self):
         self.screen_print("Stopping ...")
-        self.gw_consume_client.loop_stop()
         self.terminate_main_loop()
-        self.main_thread.join()
+        self.gw_consume_client.disconnect()
+        self.gw_publish_client.disconnect()
+        self.gw_consume_client.loop_stop()
         self.gw_publish_client.loop_stop()
+        self.main_thread.join()
         self.screen_print("Stopped")
