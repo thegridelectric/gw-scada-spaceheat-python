@@ -229,14 +229,18 @@ def test_scada_sends_status():
     thermo0.start()
     thermo0.terminate_main_loop()
     thermo0.main_thread.join()
-    time.sleep(2)
-    thermo0.check_and_report_telemetry()
-    time.sleep(.5)
+    known_sent = thermo0._last_sent_s
+    while thermo0._last_sent_s == known_sent:
+        time.sleep(.1)
+        thermo0.check_and_report_telemetry()
+    until = time.time() + 1
+    while time.time() < until:
+        if scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0:
+            break
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
     assert len(scada.recent_readings[thermo0_node]) > 0
     for unix_ms in scada.recent_reading_times_ms[thermo0_node]:
         assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
-
     single_status = scada.make_single_status(thermo0_node)
     assert isinstance(single_status, GtShSimpleSingleStatus)
     assert single_status.TelemetryName == scada.config[thermo0_node].reporting.TelemetryName
