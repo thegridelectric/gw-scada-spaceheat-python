@@ -110,7 +110,6 @@ class Atn(CloudBase):
     def status(self):
         payload = GtShCliAtnCmd_Maker(send_snapshot=True).tuple
         self.gw_publish(payload)
-        self.screen_print(f"Published {payload}")
 
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
