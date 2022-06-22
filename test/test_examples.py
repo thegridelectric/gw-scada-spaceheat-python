@@ -1,14 +1,14 @@
 import time
 import typing
+import os
+import json
 from collections import defaultdict
-
-import pytest
-
+import settings
 import load_house
+import pytest
 from command_line_utils import run_nodes_main
 from schema.gs.gs_dispatch import GsDispatch
 import schema.property_format
-import settings
 from actors.atn import Atn
 from actors.cloud_ear import CloudEar
 from actors.power_meter import PowerMeter
@@ -17,6 +17,7 @@ from actors.simple_sensor import SimpleSensor
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
+from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
@@ -86,15 +87,24 @@ def test_imports():
     # note: disable warnings about local imports
     import actors.strategy_switcher
     import load_house
-
     load_house.stickler()
     actors.strategy_switcher.stickler()
+
+
+def test_load_real_house():
+    real_atn_g_node_alias = "w.isone.nh.orange.1"
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    with open(os.path.join(current_dir, '../gw_spaceheat/input_data/houses.json'), "r") as read_file:
+        input_data = json.load(read_file)
+    house_data = input_data[real_atn_g_node_alias]
+    for d in house_data["ShNodes"]:
+        GtShNode_Maker.dict_to_tuple(d)
 
 
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     all_nodes = list(ShNode.by_alias.values())
     assert len(all_nodes) == 24
     aliases = list(ShNode.by_alias.keys())
@@ -154,7 +164,7 @@ def test_load_house():
 
 
 def test_temp_sensor_loop_time():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     all_nodes = list(ShNode.by_alias.values())
     tank_water_temp_sensor_nodes = list(
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
@@ -163,7 +173,7 @@ def test_temp_sensor_loop_time():
         sensor = SimpleSensor(node)
         sensor._main_loop_running = True
         start = time.time()
-        sensor.check_and_report_temp()
+        sensor.check_and_report_telemetry()
         end = time.time()
         loop_ms = 1000 * (end - start)
         assert loop_ms > 200
@@ -171,7 +181,7 @@ def test_temp_sensor_loop_time():
 
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
@@ -197,7 +207,7 @@ def test_async_power_metering_dag():
 
 
 def test_scada_sends_status():
-    load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+    load_house.load_all()
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     scada.start()
     scada.terminate_main_loop()
@@ -206,23 +216,16 @@ def test_scada_sends_status():
     ear.start()
     ear.terminate_main_loop()
     ear.main_thread.join()
-    time.sleep(2)
     thermo0_node = ShNode.by_alias["a.tank.temp0"]
-    thermo1_node = ShNode.by_alias["a.tank.temp1"]
 
     thermo0 = SimpleSensor(node=thermo0_node)
     thermo0.start()
-    thermo1 = SimpleSensor(node=thermo1_node)
-    thermo1.start()
-    time.sleep(1)
-    time.sleep(thermo0.node.reporting_sample_period_s)
     thermo0.terminate_main_loop()
     thermo0.main_thread.join()
-    thermo1.terminate_main_loop()
-    thermo1.main_thread.join()
-
+    time.sleep(2)
+    thermo0.check_and_report_telemetry()
+    time.sleep(.5)
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
-    assert scada.num_received_by_topic["a.tank.temp1/gt.telemetry.110"] > 0
     assert len(scada.recent_readings[thermo0_node]) > 0
     for unix_ms in scada.recent_reading_times_ms[thermo0_node]:
         assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
@@ -237,9 +240,10 @@ def test_scada_sends_status():
     scada.send_status()
     time.sleep(1)
     assert ear.num_received > 0
-    assert ear.num_received_by_topic["dw1.isone.nh.orange.1.ta.scada/gt.sh.simple.status.100"] == 1
+    scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
+    assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
     assert isinstance(ear.latest_payload, GtShSimpleStatus)
-    assert len(ear.latest_payload.SimpleSingleStatusList) == 2
+    assert len(ear.latest_payload.SimpleSingleStatusList) == 1
     single_status = ear.latest_payload.SimpleSingleStatusList[0]
     assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
     assert ear.latest_payload.ReportingPeriodS == 300
@@ -259,8 +263,7 @@ def test_run_nodes_main(aliases):
     try:
         run_nodes_main(
             argv=[
-                "-n", *aliases,
-                "-f", "../test/test_data/test_load_house.json"
+                "-n", *aliases
             ],
             dbg=dbg,
         )
@@ -270,13 +273,13 @@ def test_run_nodes_main(aliases):
             actor.stop()
 
 
-# def test_run_local():
-#     """Test the "run_local" script semantics"""
-#     load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
-#     aliases = [
-#         node.alias for node in filter(
-#             lambda x: (x.role != Role.ATN and x.has_actor),
-#             ShNode.by_alias.values()
-#         )
-#     ]
-#     test_run_nodes_main(aliases)
+def test_run_local():
+    """Test the "run_local" script semantics"""
+    load_house.load_all()
+    aliases = [
+        node.alias for node in filter(
+            lambda x: (x.role != Role.ATN and x.has_actor),
+            ShNode.by_alias.values()
+        )
+    ]
+    test_run_nodes_main(aliases)

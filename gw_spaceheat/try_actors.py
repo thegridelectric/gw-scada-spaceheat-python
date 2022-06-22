@@ -52,8 +52,6 @@ def get_y_n(response) -> Optional[bool]:
 
 
 def start_singles(node_alias_list: List) -> List:
-    load_house.load_all(input_json_file="input_data/houses.json")
-
     starting_singles = True
     while starting_singles:
         response = input("Start single node (y,n)? ")
@@ -93,6 +91,7 @@ def start_roles(node_alias_list: List) -> List:
 
 
 def main():
+    load_house.load_all()
     node_alias_list = []
     node_alias_list = start_singles(node_alias_list)
     node_alias_list = start_roles(node_alias_list)

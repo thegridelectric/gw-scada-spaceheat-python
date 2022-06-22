@@ -1,5 +1,6 @@
 import random
 import time
+from typing import Optional
 
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
@@ -26,7 +27,7 @@ class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
         read_delay_ms = typical_delay_ms + int(self.READ_TIME_FUZZ_MULTIPLIER * random.random())
         time.sleep(read_delay_ms / 1000)
 
-    def read_temp(self):
+    def read_telemetry_value(self) -> Optional[int]:
         self.cmd_delay()
         self._fake_temp_times_1000 += 250 - int(500 * random.random())
         return self._fake_temp_times_1000

@@ -1,6 +1,7 @@
 import random
 from typing import List
 
+from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 
@@ -11,6 +12,7 @@ from actors.utils import Subscription, responsive_sleep
 class PowerMeter(ActorBase):
     def __init__(self, node: ShNode, logging_on=False):
         super(PowerMeter, self).__init__(node=node, logging_on=logging_on)
+        self.config = NodeConfig(self.node)
         self.total_power_w = 4230
         self.screen_print(f"Initialized {self.__class__}")
 

@@ -3,7 +3,7 @@
 import os
 import platform
 import time
-
+from typing import Optional
 import schema.property_format as property_format
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
@@ -38,7 +38,7 @@ class Adafruit642_TempSensorDriver(TempSensorDriver):
         f.close()
         return lines
 
-    def read_temp(self) -> int:
+    def read_telemetry_value(self) -> Optional[int]:
         lines = self.read_temp_raw()
         while lines[0].strip()[-3:] != 'YES':
             time.sleep(0.2)

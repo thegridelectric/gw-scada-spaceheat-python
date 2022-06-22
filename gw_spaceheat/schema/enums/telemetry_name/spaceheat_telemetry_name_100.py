@@ -14,11 +14,15 @@ class TelemetryName(enum.Enum):
     WATER_FLOW_GPM_TIMES100 = "WaterFlowGpmTimes100"
     WATER_TEMP_C_TIMES1000 = "WaterTempCTimes1000"
     RELAY_STATE = "RelayState"
-    
+    GALLONS_PER_MINUTE_TIMES_10 = "GallonsPerMinuteTimes10"
+    POWER_W = "PowerW"
+
 
 class SpaceheatTelemetryName100GtEnum(ABC):
     symbols: List[str] = ["793505aa",
                           "d70cce28",
                           "c89d0ba1",
                           "5a71d4b3",
+                          "329a68c0",
+                          "af39eec9"
                           ]
