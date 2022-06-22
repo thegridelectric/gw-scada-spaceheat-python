@@ -216,23 +216,16 @@ def test_scada_sends_status():
     ear.start()
     ear.terminate_main_loop()
     ear.main_thread.join()
-    time.sleep(2)
     thermo0_node = ShNode.by_alias["a.tank.temp0"]
-    thermo1_node = ShNode.by_alias["a.tank.temp1"]
 
     thermo0 = SimpleSensor(node=thermo0_node)
     thermo0.start()
-    thermo1 = SimpleSensor(node=thermo1_node)
-    thermo1.start()
-    time.sleep(1)
-    time.sleep(thermo0.node.reporting_sample_period_s)
     thermo0.terminate_main_loop()
     thermo0.main_thread.join()
-    thermo1.terminate_main_loop()
-    thermo1.main_thread.join()
-
+    time.sleep(2)
+    thermo0.check_and_report_telemetry()
+    time.sleep(.5)
     assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
-    assert scada.num_received_by_topic["a.tank.temp1/gt.telemetry.110"] > 0
     assert len(scada.recent_readings[thermo0_node]) > 0
     for unix_ms in scada.recent_reading_times_ms[thermo0_node]:
         assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
@@ -250,7 +243,7 @@ def test_scada_sends_status():
     scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
     assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
     assert isinstance(ear.latest_payload, GtShSimpleStatus)
-    assert len(ear.latest_payload.SimpleSingleStatusList) == 2
+    assert len(ear.latest_payload.SimpleSingleStatusList) == 1
     single_status = ear.latest_payload.SimpleSingleStatusList[0]
     assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
     assert ear.latest_payload.ReportingPeriodS == 300
