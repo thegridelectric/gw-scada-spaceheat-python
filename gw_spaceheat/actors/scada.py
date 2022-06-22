@@ -32,7 +32,7 @@ from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 
 from actors.scada_base import ScadaBase
-from actors.utils import QOS, Subscription
+from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class Scada(ScadaBase):
@@ -249,7 +249,7 @@ class Scada(ScadaBase):
         while self._main_loop_running is True:
             if self.time_for_5_cron():
                 self.cron_every_5()
-            time.sleep(1)
+            responsive_sleep(self, 1)
             if int(time.time()) % 30 == 0:
                 self.screen_print(f"{pendulum.from_timestamp(int(time.time()))}")
                 self.screen_print(f"{self.next_5_cron_s - int(time.time())} seconds till status")

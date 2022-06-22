@@ -2,11 +2,14 @@ import time
 import typing
 from collections import defaultdict
 
+import pytest
+
 import load_house
+from command_line_utils import run_nodes_main
+from schema.gs.gs_dispatch import GsDispatch
 import schema.property_format
 import settings
 from actors.atn import Atn
-from actors.boolean_actuator import BooleanActuator
 from actors.cloud_ear import CloudEar
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
@@ -74,6 +77,9 @@ class ScadaRecorder(Scada):
         self.num_received_by_topic[message.topic] += 1
         super().on_mqtt_message(client, userdata, message)
 
+    def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
+        pass
+
 
 def test_imports():
     """Verify modules can be imported"""
@@ -110,41 +116,41 @@ def test_load_house():
         assert node.reporting_sample_period_s is not None
 
 
-    def test_atn_cli():
-        load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
-
-        elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
-        elt.start()
-        scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
-        scada.start()
-        atn = AtnRecorder(node=ShNode.by_alias["a"])
-        atn.start()
-
-        assert atn.cli_resp_received == 0
-        atn.turn_off(ShNode.by_alias["a.elt1.relay"])
-        time.sleep(2)
-
-        atn.status()
-        time.sleep(1)
-        assert atn.cli_resp_received == 1
-        snapshot = atn.latest_cli_response_payload.Snapshot
-        assert snapshot.AboutNodeList == ["a.elt1.relay"]
-        assert snapshot.TelemetryNameList == [TelemetryName.RELAY_STATE]
-        assert len(snapshot.ValueList) == 1
-        idx = snapshot.AboutNodeList.index("a.elt1.relay")
-        assert snapshot.ValueList[idx] == 0
-
-        atn.turn_on(ShNode.by_alias["a.elt1.relay"])
-        time.sleep(2)
-
-        atn.status()
-        time.sleep(1)
-
-        snapshot = atn.latest_cli_response_payload.Snapshot
-        assert snapshot.ValueList == [1]
-        elt.stop()
-        scada.stop()
-        atn.stop()
+# def test_atn_cli():
+#     load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+#
+#     elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
+#     elt.start()
+#     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
+#     scada.start()
+#     atn = AtnRecorder(node=ShNode.by_alias["a"])
+#     atn.start()
+#
+#     assert atn.cli_resp_received == 0
+#     atn.turn_off(ShNode.by_alias["a.elt1.relay"])
+#     time.sleep(2)
+#
+#     atn.status()
+#     time.sleep(1)
+#     assert atn.cli_resp_received == 1
+#     snapshot = atn.latest_cli_response_payload.Snapshot
+#     assert snapshot.AboutNodeList == ["a.elt1.relay"]
+#     assert snapshot.TelemetryNameList == [TelemetryName.RELAY_STATE]
+#     assert len(snapshot.ValueList) == 1
+#     idx = snapshot.AboutNodeList.index("a.elt1.relay")
+#     assert snapshot.ValueList[idx] == 0
+#
+#     atn.turn_on(ShNode.by_alias["a.elt1.relay"])
+#     time.sleep(2)
+#
+#     atn.status()
+#     time.sleep(1)
+#
+#     snapshot = atn.latest_cli_response_payload.Snapshot
+#     assert snapshot.ValueList == [1]
+#     elt.stop()
+#     scada.stop()
+#     atn.stop()
 
 
 def test_temp_sensor_loop_time():
@@ -155,12 +161,12 @@ def test_temp_sensor_loop_time():
     )
     for node in tank_water_temp_sensor_nodes:
         sensor = SimpleSensor(node)
+        sensor._main_loop_running = True
         start = time.time()
         sensor.check_and_report_temp()
         end = time.time()
         loop_ms = 1000 * (end - start)
         assert loop_ms > 200
-    time.sleep(2)
 
 
 def test_async_power_metering_dag():
@@ -237,3 +243,40 @@ def test_scada_sends_status():
     single_status = ear.latest_payload.SimpleSingleStatusList[0]
     assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
     assert ear.latest_payload.ReportingPeriodS == 300
+
+
+@pytest.mark.parametrize(
+    "aliases",
+    [
+        ["a.elt1.relay"],
+        ["a.s"],
+        ["a"],
+    ],
+)
+def test_run_nodes_main(aliases):
+    """Test command_line_utils.run_nodes_main()"""
+    dbg = dict(actors={})
+    try:
+        run_nodes_main(
+            argv=[
+                "-n", *aliases,
+                "-f", "../test/test_data/test_load_house.json"
+            ],
+            dbg=dbg,
+        )
+        assert len(dbg["actors"]) == len(aliases)
+    finally:
+        for actor in dbg["actors"].values():
+            actor.stop()
+
+
+# def test_run_local():
+#     """Test the "run_local" script semantics"""
+#     load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+#     aliases = [
+#         node.alias for node in filter(
+#             lambda x: (x.role != Role.ATN and x.has_actor),
+#             ShNode.by_alias.values()
+#         )
+#     ]
+#     test_run_nodes_main(aliases)

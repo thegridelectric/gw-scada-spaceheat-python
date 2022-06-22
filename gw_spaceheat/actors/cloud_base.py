@@ -28,10 +28,9 @@ class CloudBase(ABC):
             username=settings.GW_MQTT_USER_NAME,
             password=helpers.get_secret("GW_MQTT_PW"),
         )
-        self.gw_publish_client.connect(self.gwMqttBroker)
-        self.gw_publish_client.loop_start()
         if self.logging_on:
             self.gw_publish_client.on_log = self.on_log
+            self.gw_publish_client.enable_logger()
         self.gw_consume_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_consume_client = mqtt.Client(self.gw_consume_client_id)
         self.gw_consume_client.username_pw_set(
@@ -42,9 +41,11 @@ class CloudBase(ABC):
         self.gw_consume_client.on_connect = self.on_connect
         self.gw_consume_client.on_connect_fail = self.on_connect_fail
         self.gw_consume_client.on_disconnect = self.on_disconnect
-        self.gw_consume_client.connect(self.gwMqttBroker)
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
+            self.gw_consume_client.enable_logger()
+
+    def subscribe_gw_consume_client(self):
         self.gw_consume_client.subscribe(
             list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
         )
@@ -54,7 +55,6 @@ class CloudBase(ABC):
         load_house.load_all()
 
     def mqtt_log_hack(self, row):
-        self.screen_print(row[0])
         if self.logging_on:
             with open(self.log_csv, "a") as outfile:
                 write = csv.writer(outfile, delimiter=",")
@@ -71,10 +71,11 @@ class CloudBase(ABC):
                 f"({helpers.log_time()}) Publisher connected flags {str(flags)} + result code {str(rc)}"
             ]
         )
+        self.subscribe_gw_consume_client()
 
     # noinspection PyUnusedLocal
-    def on_connect_fail(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Connect fail! result code {str(rc)}"])
+    def on_connect_fail(self, client, userdata):
+        self.mqtt_log_hack([f"({helpers.log_time()}) Connect fail"])
 
     # noinspection PyUnusedLocal
     def on_disconnect(self, client, userdata, rc):
@@ -129,16 +130,20 @@ class CloudBase(ABC):
         raise NotImplementedError
 
     def start(self):
-        self.gw_consume_client.loop_start()
+        self.gw_publish_client.connect(self.gwMqttBroker)
         self.gw_publish_client.loop_start()
+        self.gw_consume_client.connect(self.gwMqttBroker)
+        self.gw_consume_client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f"Started {self.__class__}")
 
     def stop(self):
         self.screen_print("Stopping ...")
-        self.gw_consume_client.loop_stop()
         self.terminate_main_loop()
-        self.main_thread.join()
+        self.gw_consume_client.disconnect()
+        self.gw_publish_client.disconnect()
+        self.gw_consume_client.loop_stop()
         self.gw_publish_client.loop_stop()
+        self.main_thread.join()
         self.screen_print("Stopped")

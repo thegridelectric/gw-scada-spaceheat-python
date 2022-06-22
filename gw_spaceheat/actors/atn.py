@@ -1,4 +1,3 @@
-import time
 import uuid
 from typing import Dict, List, Optional
 
@@ -20,7 +19,7 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
 )
 
 from actors.cloud_base import CloudBase
-from actors.utils import QOS, Subscription
+from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class Atn(CloudBase):
@@ -126,7 +125,7 @@ class Atn(CloudBase):
     def main(self):
         self._main_loop_running = True
         while self._main_loop_running is True:
-            time.sleep(1)
+            responsive_sleep(self, 1)
 
     def screen_print(self, note):
         header = f"{self.node.alias}: "
