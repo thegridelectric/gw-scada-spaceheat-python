@@ -123,7 +123,8 @@
                 "ActorClassGtEnumSymbol": "dae4b2f0",
                 "DisplayName": "Flow Meter on distribution pipe out of tank",
                 "ShNodeId": "fcc8cc94-75eb-42e1-8ef1-024961b053b7",
-                "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709"
+                "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
+                "ReportingSamplePeriodS": 5
             },
             {
                 "Alias": "a.tank.out.temp1",
