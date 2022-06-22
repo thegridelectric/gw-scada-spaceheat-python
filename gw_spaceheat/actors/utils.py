@@ -13,11 +13,14 @@ class Subscription(NamedTuple):
     Topic: str
     Qos: QOS
 
+
 DEFAULT_STEP_DURATION = .1
+
+
 def responsive_sleep(
         obj,
-        seconds:float,
-        step_duration:float = DEFAULT_STEP_DURATION,
+        seconds: float,
+        step_duration: float = DEFAULT_STEP_DURATION,
         running_field_name: str = "_main_loop_running"
 ) -> bool:
     """Sleep in way that is more responsive to thread termination: sleep in step_duration increments up to

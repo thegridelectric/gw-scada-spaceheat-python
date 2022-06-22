@@ -40,12 +40,10 @@ class ScadaBase(ActorBase):
         if self.logging_on:
             self.gw_consume_client.on_log = self.on_log
 
-
     def subscribe_gw_consume_client(self):
         self.gw_consume_client.subscribe(
             list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
         )
-
 
     @abstractmethod
     def gw_subscriptions(self):
@@ -81,8 +79,8 @@ class ScadaBase(ActorBase):
         )
         self.subscribe_gw_consume_client()
 
-
     # noinspection PyUnusedLocal
+
     def on_gw_consume_connect_fail(self, client, userdata, rc):
         self.mqtt_log_hack(
             [f"({helpers.log_time()}) GW Consume Connect fail! result code {str(rc)}"]

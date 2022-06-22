@@ -18,10 +18,11 @@ class StopWatch(object):
         self.end = time.time()
         self.elapsed = self.end - self.start
 
+
 class StopMe:
     def __init__(
             self, running: bool = True,
-            step_duration:float = .1
+            step_duration: float = .1
     ):
         self.running = running
         self.step_duration = step_duration
@@ -46,6 +47,7 @@ class StopMe:
 
 
 MAX_DELAY = .01
+
 
 def test_responsive_sleep():
     sw = StopWatch()
