@@ -14,6 +14,7 @@ class Unit(enum.Enum):
     FAHRENHEIT = "Fahrenheit"
     W = "W"
     UNITLESS = "Unitless"
+    GPM = "Gpm"
     
 
 class SpaceheatUnit100GtEnum(ABC):
@@ -21,4 +22,5 @@ class SpaceheatUnit100GtEnum(ABC):
                           "7d8832f8",
                           "f459a9c3",
                           "ec972387",
+                          "b4580361"
                           ]

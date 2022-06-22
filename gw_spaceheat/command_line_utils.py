@@ -17,7 +17,6 @@ def parse_args(
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-l", "--log", action="store_true", help="Turn logging on.")
-    parser.add_argument("-f", "--house-file", default="input_data/houses.json", help="The json config file")
     parser.add_argument("-n", "--nodes", default=default_nodes or [], nargs="*", help="ShNode aliases to load.")
     return parser.parse_args(argv or sys.argv[1:])
 
@@ -66,5 +65,5 @@ def run_nodes_main(
     """Load and run the configured Nodes. If dbg is not None it will be populated with the actor objects."""
     args = parse_args(argv, default_nodes=default_nodes)
     setup_logging(args)
-    load_house.load_all(input_json_file=args.house_file)
+    load_house.load_all()
     run_nodes(args.nodes, logging_on=bool(args.log), dbg=dbg)

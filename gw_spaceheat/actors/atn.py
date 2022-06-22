@@ -32,6 +32,8 @@ class Atn(CloudBase):
                     x.role == Role.TANK_WATER_TEMP_SENSOR
                     or x.role == Role.BOOLEAN_ACTUATOR
                     or x.role == Role.PIPE_TEMP_SENSOR
+                    or x.role == Role.PIPE_FLOW_METER
+                    or x.role == Role.POWER_METER
                 ),
                 all_nodes,
             )
@@ -39,7 +41,7 @@ class Atn(CloudBase):
 
     @classmethod
     def local_nodes(cls) -> List[ShNode]:
-        load_house.load_all(input_json_file="input_data/houses.json")
+        load_house.load_all()
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: (x.role != Role.ATN and x.has_actor), all_nodes))
 

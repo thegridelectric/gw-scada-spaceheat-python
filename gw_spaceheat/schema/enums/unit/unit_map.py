@@ -29,11 +29,12 @@ class UnitMap():
         "ec14bd47": Unit.CELCIUS,
         "7d8832f8": Unit.FAHRENHEIT,
         "f459a9c3": Unit.W,
-        "ec972387": Unit.UNITLESS, }
+        "ec972387": Unit.UNITLESS,
+        "b4580361": Unit.GPM}
 
     local_to_gt_dict: Dict[Unit, str] = {
         Unit.CELCIUS: "ec14bd47",
         Unit.FAHRENHEIT: "7d8832f8",
         Unit.W: "f459a9c3",
         Unit.UNITLESS: "ec972387",
-        }
+        Unit.GPM: "b4580361"}

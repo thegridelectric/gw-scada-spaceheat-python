@@ -11,10 +11,7 @@ from schema.enums.role.role_map import Role
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
-from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import (
-    GtShCliAtnCmd,
-    GtShCliAtnCmd_Maker,
-)
+from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse_Maker,
 )
@@ -22,9 +19,7 @@ from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status_maker impor
     GtShSimpleSingleStatus,
     GtShSimpleSingleStatus_Maker,
 )
-from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
-    GtShSimpleStatus_Maker,
-)
+from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import GtShSimpleStatus_Maker
 from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
     GtShStatusSnapshot,
     GtShStatusSnapshot_Maker,
@@ -45,6 +40,8 @@ class Scada(ScadaBase):
                     x.role == Role.TANK_WATER_TEMP_SENSOR
                     or x.role == Role.BOOLEAN_ACTUATOR
                     or x.role == Role.PIPE_TEMP_SENSOR
+                    or x.role == Role.PIPE_FLOW_METER
+                    or x.role == Role.POWER_METER
                 ),
                 all_nodes,
             )
@@ -69,8 +66,7 @@ class Scada(ScadaBase):
         self.recent_reading_times_ms = {node: [] for node in self.my_sensors()}
 
     def set_node_configs(self):
-        all_nodes = list(ShNode.by_alias.values())
-        for node in all_nodes:
+        for node in self.my_sensors():
             self.config[node] = NodeConfig(node)
 
     ################################################
@@ -104,7 +100,6 @@ class Scada(ScadaBase):
     def gs_pwr_received(self, from_node: ShNode, payload: GsPwr):
         if from_node != ShNode.by_alias["a.m"]:
             raise Exception("Need to track all metering and make sure we have the sum")
-        self.screen_print(f"Got {payload}")
         self.total_power_w = payload.Power
         self.gw_publish(payload=payload)
 
