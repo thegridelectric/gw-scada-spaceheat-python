@@ -1,6 +1,6 @@
 """Base for gt.powermeter.reporting.config.100 """
 import json
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Optional
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import \
     GtEqReportingConfig
 
@@ -9,6 +9,7 @@ class GtPowermeterReportingConfigBase(NamedTuple):
     ReportingPeriodS: int     #
     PollPeriodMs: int  #
     EqReportingConfigList: List[GtEqReportingConfig]
+    HwUid: Optional[str]
     TypeAlias: str = 'gt.powermeter.reporting.config.100'
 
     def as_type(self):
@@ -19,6 +20,8 @@ class GtPowermeterReportingConfigBase(NamedTuple):
         eq_reporting_config_list = []
         for elt in self.EqReportingConfigList:
             eq_reporting_config_list.append(elt.asdict())
+        if d["HwUid"] is None:
+            del(d["HwUid"])
         d["EqReportingConfigList"] = eq_reporting_config_list
         return d
 
@@ -28,6 +31,9 @@ class GtPowermeterReportingConfigBase(NamedTuple):
             errors.append(f"ReportingPeriodS {self.ReportingPeriodS} must have type int.")
         if not isinstance(self.PollPeriodMs, int):
             errors.append(f"PollPeriodMs {self.PollPeriodMs} must have type int.")
+        if self.HwUid:
+            if not isinstance(self.HwUid, str):
+                errors.append(f"HwUid {self.HwUid} must have type str.")
         if not isinstance(self.EqReportingConfigList, list):
             errors.append(f"EqReportingConfigList {self.EqReportingConfigList} must have type list.")
         else:

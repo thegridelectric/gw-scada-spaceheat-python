@@ -14,6 +14,7 @@ class GtEqReportingConfig_Maker():
     type_alias = 'gt.eq.reporting.config.100'
 
     def __init__(self,
+                 sh_node_alias: str,
                  report_on_change: bool,
                  exponent: int,
                  sample_period_s: int,
@@ -21,7 +22,8 @@ class GtEqReportingConfig_Maker():
                  telemetry_name: TelemetryName,
                  async_report_threshold: Optional[float]):
 
-        tuple = GtEqReportingConfig(ReportOnChange=report_on_change,
+        tuple = GtEqReportingConfig(ShNodeAlias=sh_node_alias,
+                                    ReportOnChange=report_on_change,
                                     Exponent=exponent,
                                     Unit=unit,
                                     AsyncReportThreshold=async_report_threshold,
@@ -48,6 +50,8 @@ class GtEqReportingConfig_Maker():
 
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtEqReportingConfig:
+        if "ShNodeAlias" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing ShNodeAlias")
         if "ReportOnChange" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ReportOnChange")
         if "Exponent" not in d.keys():

@@ -1,11 +1,13 @@
 """Base for gt.eq.reporting.config.100"""
 import json
 from typing import List, Optional, NamedTuple
+import schema.property_format as property_format
 from schema.enums.unit.unit_map import Unit, UnitMap
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 
 
 class GtEqReportingConfigBase(NamedTuple):
+    ShNodeAlias: str
     ReportOnChange: bool     #
     Exponent: int     #
     SamplePeriodS: int     #
@@ -29,6 +31,10 @@ class GtEqReportingConfigBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
+        if not isinstance(self.ShNodeAlias, str):
+            errors.append(f"ShNodeAlias {self.ShNodeAlias} must have type str.")
+        if not property_format.is_lrd_alias_format(self.ShNodeAlias):
+            errors.append(f"ShNodeAlias {self.ShNodeAlias} must have property format lrd_alias_format")
         if not isinstance(self.ReportOnChange, bool):
             errors.append(f"ReportOnChange {self.ReportOnChange} must have type bool.")
         if not isinstance(self.Exponent, int):

@@ -267,7 +267,8 @@
             {
                 "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
                 "DisplayName": "Main power meter for Little orange house garage space heat",
-                "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1"
+                "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
+                "HwUid": "35941_308"
             }
         ],
         "PipeFlowSensorComponents": [
@@ -1181,7 +1182,8 @@
                 "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
                 "MakeModelGtEnumSymbol": "076da322",
                 "DisplayName": "Gridworks Pm1 Simulated Power Meter",
-                "SerialCommsMethodGtEnumSymbol": "efc144cd"
+                "LocalCommInterfaceGtEnumSymbol": "efc144cd",
+                "UpdatePeriodMs": 1000
             }
         ],
         "TempSensorCacs": [
@@ -1604,8 +1606,9 @@
             {
                 "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
                 "MakeModelGtEnumSymbol": "076da322",
-                "DisplayName": "GridWorks Pm1 Simulated Power Meter",
-                "SerialCommsMethodGtEnumSymbol": "efc144cd"
+                "DisplayName": "Gridworks Pm1 Simulated Power Meter",
+                "LocalCommInterfaceGtEnumSymbol": "efc144cd",
+                "UpdatePeriodMs": 1000
             }
         ],
         "TempSensorCacs": [

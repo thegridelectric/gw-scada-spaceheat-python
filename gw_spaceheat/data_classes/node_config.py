@@ -67,7 +67,8 @@ class NodeConfig():
     def set_electric_meter_config(self, component: ElectricMeterComponent):
         cac = component.cac
         eq_reporting_config_list = []
-        current_config = GtEqReportingConfig_Maker(report_on_change=True,
+        current_config = GtEqReportingConfig_Maker(sh_node_alias="a.elt1",
+                                                   report_on_change=True,
                                                    telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                                                    unit=Unit.AMPS_RMS,
                                                    exponent=6,
@@ -79,6 +80,7 @@ class NodeConfig():
         poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
         self.reporting = PowerConfigMaker(reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
                                           poll_period_ms=poll_period_ms,
+                                          hw_uid=component.hw_uid,
                                           eq_reporting_config_list=eq_reporting_config_list).tuple
 
         if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:

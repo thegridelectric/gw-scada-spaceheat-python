@@ -1,7 +1,7 @@
 """Makes gt.powermeter.reporting.config.100 type"""
 
 import json
-from typing import List
+from typing import List, Optional
 
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import \
     GtEqReportingConfig, GtEqReportingConfig_Maker
@@ -15,10 +15,12 @@ class GtPowermeterReportingConfig_Maker():
     def __init__(self,
                  reporting_period_s: int,
                  poll_period_ms: int,
+                 hw_uid: Optional[str],
                  eq_reporting_config_list: List[GtEqReportingConfig]):
 
         tuple = GtPowermeterReportingConfig(ReportingPeriodS=reporting_period_s,
                                             PollPeriodMs=poll_period_ms,
+                                            HwUid=hw_uid,
                                             EqReportingConfigList=eq_reporting_config_list,
                                             )
         tuple.check_for_errors()
@@ -45,6 +47,8 @@ class GtPowermeterReportingConfig_Maker():
             raise MpSchemaError(f"dict {d} missing ReportingPeriodS")
         if "PollPeriodMs" not in d.keys():
             raise MpSchemaError(f"dict {d} missing PollPeriodMs")
+        if "HwUid" not in d.keys():
+            d["HwUid"] = None
         if "EqReportingConfigList" not in d.keys():
             raise MpSchemaError(f"dict {d} missing EqReportingConfigList")
         eq_reporting_config_list = []
@@ -54,6 +58,7 @@ class GtPowermeterReportingConfig_Maker():
 
         tuple = GtPowermeterReportingConfig(ReportingPeriodS=d["ReportingPeriodS"],
                                             PollPeriodMs=d["PollPeriodMs"],
+                                            HwUid=d["HwUid"],
                                             EqReportingConfigList=d["EqReportingConfigList"],
                                             )
         tuple.check_for_errors()

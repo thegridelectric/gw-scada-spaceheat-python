@@ -10,5 +10,13 @@ class PowerMeterDriver(ABC):
         self.component = component
 
     @abstractmethod
+    def read_current_rms_micro_amps(self) -> int:
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_hw_uid(self) -> Optional[str]:
+        raise NotImplementedError
+
+    @abstractmethod
     def read_power_w(self) -> Optional[int]:
         raise NotImplementedError

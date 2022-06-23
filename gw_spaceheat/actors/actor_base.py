@@ -87,7 +87,7 @@ class ActorBase(ABC):
         from_node = ShNode.by_alias[from_alias]
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(
-                f"Type {type_alias} not recognized. Should be in TypeMkaerByAliasDict keys!"
+                f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
             )
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
         self.on_message(from_node=from_node, payload=payload_as_tuple)
@@ -101,12 +101,14 @@ class ActorBase(ABC):
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
+        topic = f"{self.node.alias}/{payload.TypeAlias}"
         self.client.publish(
-            topic=f"{self.node.alias}/{payload.TypeAlias}",
+            topic=topic,
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
         )
+        # self.screen_print(f"published to {topic}")
 
     def terminate_main_loop(self):
         self._main_loop_running = False

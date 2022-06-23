@@ -1,4 +1,4 @@
-"""Makes gt.sh.status.snapshot.100 type"""
+"""Makes gt.sh.status.snapshot.110 type"""
 
 import json
 from typing import List
@@ -9,17 +9,17 @@ from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, Teleme
 
 
 class GtShStatusSnapshot_Maker:
-    type_alias = 'gt.sh.status.snapshot.100'
+    type_alias = 'gt.sh.status.snapshot.110'
 
     def __init__(self,
-                 about_node_list: List[str],
-                 report_time_unix_s: int,
+                 about_node_alias_list: List[str],
+                 report_time_unix_ms: int,
                  value_list: List[int],
                  telemetry_name_list: List[TelemetryName]):
 
         tuple = GtShStatusSnapshot(TelemetryNameList=telemetry_name_list,
-                                   AboutNodeList=about_node_list,
-                                   ReportTimeUnixS=report_time_unix_s,
+                                   AboutNodeAliasList=about_node_alias_list,
+                                   ReportTimeUnixMs=report_time_unix_ms,
                                    ValueList=value_list,
                                    )
         tuple.check_for_errors()
@@ -42,10 +42,10 @@ class GtShStatusSnapshot_Maker:
 
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtShStatusSnapshot:
-        if "AboutNodeList" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing AboutNodeList")
-        if "ReportTimeUnixS" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ReportTimeUnixS")
+        if "AboutNodeAliasList" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing AboutNodeAliasList")
+        if "ReportTimeUnixMs" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing ReportTimeUnixMs")
         if "ValueList" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ValueList")
         if "TelemetryNameList" not in d.keys():
@@ -57,8 +57,8 @@ class GtShStatusSnapshot_Maker:
             d["TelemetryNameList"] = telemetry_name_list
 
         tuple = GtShStatusSnapshot(TelemetryNameList=d["TelemetryNameList"],
-                                   AboutNodeList=d["AboutNodeList"],
-                                   ReportTimeUnixS=d["ReportTimeUnixS"],
+                                   AboutNodeAliasList=d["AboutNodeAliasList"],
+                                   ReportTimeUnixMs=d["ReportTimeUnixMs"],
                                    ValueList=d["ValueList"],
                                    )
         tuple.check_for_errors()

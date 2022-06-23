@@ -14,5 +14,11 @@ class UnknownPowerMeterDriver(PowerMeterDriver):
     def __repr__(self):
         return "UnknownPowerMeterDriver"
 
+    def read_current_rms_micro_amps(self) -> Optional[int]:
+        return None
+
+    def read_hw_uid(self) -> Optional[str]:
+        return None
+
     def read_power_w(self) -> Optional[int]:
         return None

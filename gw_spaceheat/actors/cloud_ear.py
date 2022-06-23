@@ -13,6 +13,8 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
     GtShSimpleStatus,
 )
 
+from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker \
+    import GtShCliScadaResponse_Maker
 
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
@@ -48,17 +50,25 @@ class CloudEar(CloudBase):
                 Topic=f"{helpers.scada_g_node_alias()}/{GtShSimpleStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
+            Subscription(
+                Topic=f"{helpers.scada_g_node_alias()}/{GtShCliScadaResponse_Maker.type_alias}",
+                Qos=QOS.AtLeastOnce,
+            ),
         ]
 
     def on_gw_message(self, from_node: ShNode, payload):
         if from_node != ShNode.by_alias["a.s"]:
             raise Exception("gw messages must come from the Scada!")
+        self.send_to_kafka(payload=payload)
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GtShSimpleStatus):
             self.gt_sh_simple_status_received(from_node, payload)
-        else:
-            self.screen_print(f"{payload} subscription not implemented!")
+
+    def send_to_kafka(self, payload):
+        # topic = f"{helpers.scada_g_node_alias()}/{payload.TypeAlias}"
+        # publish payload.as_type() to topic in Kafka
+        pass
 
     def gt_sh_simple_status_received(self, from_node: ShNode, payload: GtShSimpleStatus):
         self.screen_print(f"Consider adding from_node {from_node} or its g node alias to log?")

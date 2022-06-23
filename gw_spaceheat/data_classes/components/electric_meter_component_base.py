@@ -29,6 +29,7 @@ class ElectricMeterComponentBase(Component):
                                              hw_uid=hw_uid)
         self.hw_uid = hw_uid
         self.component_attribute_class_id = component_attribute_class_id
+
     def update(self, type: GtElectricMeterComponent):
         self._check_immutability_constraints(type=type)
 
