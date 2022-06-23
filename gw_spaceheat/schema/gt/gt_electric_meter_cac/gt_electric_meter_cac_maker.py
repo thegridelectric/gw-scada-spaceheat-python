@@ -6,6 +6,7 @@ from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac import GtElectricMeterCac
 from schema.errors import MpSchemaError
+from schema.enums.local_comm_interface.local_comm_interface_map import LocalCommInterface, LocalCommInterfaceMap
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 
@@ -14,14 +15,18 @@ class GtElectricMeterCac_Maker():
 
     def __init__(self,
                  component_attribute_class_id: str,
+                 local_comm_interface: LocalCommInterface,
                  make_model: MakeModel,
-                 comms_method: Optional[str],
-                 display_name: Optional[str]):
+                 display_name: Optional[str],
+                 default_baud: Optional[int],
+                 update_period_ms: Optional[int]):
 
         tuple = GtElectricMeterCac(ComponentAttributeClassId=component_attribute_class_id,
-                                          CommsMethod=comms_method,
+                                          LocalCommInterface=local_comm_interface,
                                           MakeModel=make_model,
                                           DisplayName=display_name,
+                                          DefaultBaud=default_baud,
+                                          UpdatePeriodMs=update_period_ms,
                                           )
         tuple.check_for_errors()
         self.tuple: GtElectricMeterCac = tuple
@@ -45,18 +50,25 @@ class GtElectricMeterCac_Maker():
     def dict_to_tuple(cls, d: dict) ->  GtElectricMeterCac:
         if "ComponentAttributeClassId" not in d.keys():
             raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
+        if "LocalCommInterfaceGtEnumSymbol" not in d.keys():
+            raise MpSchemaError(f"dict {d} missing LocalCommInterfaceGtEnumSymbol")
+        d["LocalCommInterface"] = LocalCommInterfaceMap.gt_to_local(d["LocalCommInterfaceGtEnumSymbol"])
         if "MakeModelGtEnumSymbol" not in d.keys():
             raise MpSchemaError(f"dict {d} missing MakeModelGtEnumSymbol")
         d["MakeModel"] = MakeModelMap.gt_to_local(d["MakeModelGtEnumSymbol"])
-        if "CommsMethod" not in d.keys():
-            d["CommsMethod"] = None
         if "DisplayName" not in d.keys():
             d["DisplayName"] = None
+        if "DefaultBaud" not in d.keys():
+            d["DefaultBaud"] = None
+        if "UpdatePeriodMs" not in d.keys():
+            d["UpdatePeriodMs"] = None
 
         tuple = GtElectricMeterCac(ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          CommsMethod=d["CommsMethod"],
+                                          LocalCommInterface=d["LocalCommInterface"],
                                           MakeModel=d["MakeModel"],
                                           DisplayName=d["DisplayName"],
+                                          DefaultBaud=d["DefaultBaud"],
+                                          UpdatePeriodMs=d["UpdatePeriodMs"],
                                           )
         tuple.check_for_errors()
         return tuple
@@ -65,9 +77,10 @@ class GtElectricMeterCac_Maker():
     def tuple_to_dc(cls, t: GtElectricMeterCac) -> ElectricMeterCac:
         s = {
             'component_attribute_class_id': t.ComponentAttributeClassId,
-            'comms_method': t.CommsMethod,
             'display_name': t.DisplayName,
-            'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
+            'default_baud': t.DefaultBaud,
+            'update_period_ms': t.UpdatePeriodMs,
+            'local_comm_interface_gt_enum_symbol': LocalCommInterfaceMap.local_to_gt(t.LocalCommInterface),'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
         if s['component_attribute_class_id'] in ElectricMeterCac.by_id.keys():
             dc = ElectricMeterCac.by_id[s['component_attribute_class_id']]
         else:
@@ -79,9 +92,11 @@ class GtElectricMeterCac_Maker():
         if dc is None:
             return None
         t = GtElectricMeterCac(ComponentAttributeClassId=dc.component_attribute_class_id,
-                                            CommsMethod=dc.comms_method,
+                                            LocalCommInterface=dc.local_comm_interface,
                                             MakeModel=dc.make_model,
                                             DisplayName=dc.display_name,
+                                            DefaultBaud=dc.default_baud,
+                                            UpdatePeriodMs=dc.update_period_ms,
                                             )
         t.check_for_errors()
         return t

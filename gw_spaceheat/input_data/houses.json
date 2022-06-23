@@ -53,7 +53,7 @@
                 "ActorClassGtEnumSymbol": "2ea112b9",
                 "DisplayName": "Main Power Meter Little Orange House Test System",
                 "ShNodeId":"0dd8a803-4724-4f49-b845-14ff57bdb3e6",
-                "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e"
+                "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3"
             },
             {
                 "Alias": "a.tank.out",
@@ -265,10 +265,9 @@
         ],
         "ElectricMeterComponents": [
             {
-                "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
-                "DisplayName": "Main Power meter for Little orange house garage space heat",
-                "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "CommsMethod": "Unknown"
+                "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
+                "DisplayName": "Main power meter for Little orange house garage space heat",
+                "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1"
             }
         ],
         "PipeFlowSensorComponents": [
@@ -327,8 +326,12 @@
         ],
         "ElectricMeterCacs": [
             {
-                "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "MakeModelGtEnumSymbol": "b6a32d9b"
+                "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
+                "MakeModelGtEnumSymbol": "d300635e",
+                "DisplayName": "Schneider Electric Iem3455 Power Meter",
+                "LocalCommInterfaceGtEnumSymbol": "a6a4ac9f",
+                "UpdatePeriodMs": 1000,
+                "DefaultBaud": 9600
             }
         ],
         "TempSensorCacs": [
@@ -751,7 +754,10 @@
             "ElectricMeterCacs": [
                 {
                     "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                    "MakeModelGtEnumSymbol": "b6a32d9b"
+                    "MakeModelGtEnumSymbol": "076da322",
+                    "DisplayName": "Gridworks Pm1 Simulated Power Meter",
+                    "LocalCommInterfaceGtEnumSymbol": "efc144cd",
+                    "UpdatePeriodMs": 1000
                 }
             ],
             "TempSensorCacs": [
@@ -1114,8 +1120,7 @@
             {
                 "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
                 "DisplayName": "Main Power meter for Little orange house garage space heat",
-                "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "CommsMethod": "Unknown"
+                "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951"
             }
         ],
         "PipeFlowSensorComponents": [
@@ -1174,7 +1179,9 @@
         "ElectricMeterCacs": [
             {
                 "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "MakeModelGtEnumSymbol": "b6a32d9b"
+                "MakeModelGtEnumSymbol": "076da322",
+                "DisplayName": "Gridworks Pm1 Simulated Power Meter",
+                "SerialCommsMethodGtEnumSymbol": "efc144cd"
             }
         ],
         "TempSensorCacs": [
@@ -1537,8 +1544,7 @@
             {
                 "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
                 "DisplayName": "Main Power meter for Little orange house garage space heat",
-                "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "CommsMethod": "Unknown"
+                "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951"
             }
         ],
         "PipeFlowSensorComponents": [
@@ -1597,7 +1603,9 @@
         "ElectricMeterCacs": [
             {
                 "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "MakeModelGtEnumSymbol": "b6a32d9b"
+                "MakeModelGtEnumSymbol": "076da322",
+                "DisplayName": "GridWorks Pm1 Simulated Power Meter",
+                "SerialCommsMethodGtEnumSymbol": "efc144cd"
             }
         ],
         "TempSensorCacs": [

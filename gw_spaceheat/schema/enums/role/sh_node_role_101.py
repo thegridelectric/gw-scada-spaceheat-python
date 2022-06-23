@@ -5,7 +5,7 @@ from typing import List
 
 
 class Role(enum.Enum):
-    
+
     @classmethod
     def values(cls):
         return [elt.value for elt in cls]
