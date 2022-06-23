@@ -154,7 +154,8 @@ def test_load_house():
 def test_atn_cli():
     load_house.load_all()
 
-    elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
+    elt_node = ShNode.by_alias["a.elt1.relay"]
+    elt = BooleanActuator(elt_node)
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
     atn = AtnRecorder(node=ShNode.by_alias["a"])
 
@@ -164,7 +165,7 @@ def test_atn_cli():
         atn.start()
         assert atn.cli_resp_received == 0
         atn.turn_off(ShNode.by_alias["a.elt1.relay"])
-        time.sleep(1)
+        wait_for(lambda: scada.latest_reading[elt_node] is not None, 10, f"scada got elt reading {scada.summary_str()}")
         atn.status()
         wait_for(lambda: atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}")
         assert atn.cli_resp_received == 1
