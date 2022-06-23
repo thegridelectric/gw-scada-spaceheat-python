@@ -6,6 +6,8 @@ from collections import defaultdict
 import settings
 import load_house
 import pytest
+
+from actors.boolean_actuator import BooleanActuator
 from command_line_utils import run_nodes_main
 from schema.gs.gs_dispatch import GsDispatch
 import schema.property_format
@@ -22,6 +24,7 @@ from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
 from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import GtShSimpleStatus
+from utils import wait_for
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
@@ -29,11 +32,12 @@ GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
 
 class AtnRecorder(Atn):
     cli_resp_received: int
+    latest_cli_response_payload: typing.Optional[GtShCliScadaResponse]
 
-    def __init__(self, node: ShNode):
+    def __init__(self, node: ShNode, logging_on: bool = False):
         self.cli_resp_received = 0
         self.latest_cli_response_payload: typing.Optional[GtShCliScadaResponse] = None
-        super().__init__(node)
+        super().__init__(node, logging_on=logging_on)
 
     def on_gw_message(self, from_node: ShNode, payload):
         if isinstance(payload, GtShCliScadaResponse):
@@ -41,16 +45,24 @@ class AtnRecorder(Atn):
             self.latest_cli_response_payload = payload
         super().on_gw_message(from_node, payload)
 
+    def summary_str(self):
+        """Summarize results in a string"""
+        return (
+            f"AtnRecorder [{self.node.alias}] cli_resp_received: {self.cli_resp_received}  "
+            f"latest_cli_response_payload: {self.latest_cli_response_payload}"
+        )
+
 
 class EarRecorder(CloudEar):
     num_received: int
     num_received_by_topic: typing.Dict[str, int]
+    latest_payload: typing.Optional[typing.Any]
 
-    def __init__(self):
+    def __init__(self, logging_on: bool = False):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
         self.latest_payload = None
-        super().__init__(out_stub=None)
+        super().__init__(out_stub=None, logging_on=logging_on)
 
     def on_gw_mqtt_message(self, client, userdata, message):
         self.num_received += 1
@@ -61,6 +73,13 @@ class EarRecorder(CloudEar):
         self.latest_payload = payload
         super().on_gw_message(from_node, payload)
 
+    def summary_str(self):
+        """Summarize results in a string"""
+        s = f"EarRecorder  num_received: {self.num_received}  latest_payload: {self.latest_payload}"
+        for topic in sorted(self.num_received_by_topic):
+            s += f"\n\t{self.num_received_by_topic[topic]:3d}: [{topic}]"
+        return s
+
 
 class ScadaRecorder(Scada):
     """Record data about a PrimaryScada execution during test"""
@@ -68,10 +87,10 @@ class ScadaRecorder(Scada):
     num_received: int
     num_received_by_topic: typing.Dict[str, int]
 
-    def __init__(self, node: ShNode):
+    def __init__(self, node: ShNode, logging_on: bool = False):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
-        super().__init__(node)
+        super().__init__(node, logging_on=logging_on)
 
     def on_mqtt_message(self, client, userdata, message):
         self.num_received += 1
@@ -80,6 +99,13 @@ class ScadaRecorder(Scada):
 
     def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
         pass
+
+    def summary_str(self):
+        """Summarize results in a string"""
+        s = f"ScadaRecorder  {self.node.alias}  num_received: {self.num_received}"
+        for topic in sorted(self.num_received_by_topic):
+            s += f"\n\t{self.num_received_by_topic[topic]:3d}: [{topic}]"
+        return s
 
 
 def test_imports():
@@ -125,121 +151,151 @@ def test_load_house():
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
 
-
+# This test seems to be very sensitive to timing. It sometimes works locally but often fails in CI.
+# Changing time.sleep(1) to a wait_for() call failed (possibly because the wrong thing was waited on).
+# Changing the times.sleep(1) to time.sleep(5) made it fail later in the test.
+#
+# Commenting out for now.
+#
 # def test_atn_cli():
-#     load_house.load_all(input_json_file="../test/test_data/test_load_house.json")
+#     load_house.load_all()
 #
-#     elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"])
-#     elt.start()
+#     elt_node = ShNode.by_alias["a.elt1.relay"]
+#     elt = BooleanActuator(elt_node)
 #     scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
-#     scada.start()
 #     atn = AtnRecorder(node=ShNode.by_alias["a"])
-#     atn.start()
 #
-#     assert atn.cli_resp_received == 0
-#     atn.turn_off(ShNode.by_alias["a.elt1.relay"])
-#     time.sleep(2)
+#     try:
+#         elt.start()
+#         scada.start()
+#         atn.start()
+#         assert atn.cli_resp_received == 0
+#         atn.turn_off(ShNode.by_alias["a.elt1.relay"])
+#         time.sleep(1)
+#         atn.status()
+#         wait_for(lambda: atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}")
+#         assert atn.cli_resp_received == 1
+#         print(atn.latest_cli_response_payload)
+#         print(atn.latest_cli_response_payload.Snapshot)
+#         print(atn.latest_cli_response_payload.Snapshot.AboutNodeList)
+#         snapshot = atn.latest_cli_response_payload.Snapshot
+#         assert snapshot.AboutNodeList == ["a.elt1.relay"]
+#         assert snapshot.TelemetryNameList == [TelemetryName.RELAY_STATE]
+#         assert len(snapshot.ValueList) == 1
+#         idx = snapshot.AboutNodeList.index("a.elt1.relay")
+#         assert snapshot.ValueList[idx] == 0
 #
-#     atn.status()
-#     time.sleep(1)
-#     assert atn.cli_resp_received == 1
-#     snapshot = atn.latest_cli_response_payload.Snapshot
-#     assert snapshot.AboutNodeList == ["a.elt1.relay"]
-#     assert snapshot.TelemetryNameList == [TelemetryName.RELAY_STATE]
-#     assert len(snapshot.ValueList) == 1
-#     idx = snapshot.AboutNodeList.index("a.elt1.relay")
-#     assert snapshot.ValueList[idx] == 0
+#         atn.turn_on(ShNode.by_alias["a.elt1.relay"])
+#         wait_for(lambda: int(elt.relay_state) == 1, 10, f"Relay state {elt.relay_state}")
+#         atn.status()
+#         wait_for(lambda: atn.cli_resp_received > 1, 10, f"cli_resp_received <= 1 {atn.summary_str()}")
 #
-#     atn.turn_on(ShNode.by_alias["a.elt1.relay"])
-#     time.sleep(2)
-#
-#     atn.status()
-#     time.sleep(1)
-#
-#     snapshot = atn.latest_cli_response_payload.Snapshot
-#     assert snapshot.ValueList == [1]
-#     elt.stop()
-#     scada.stop()
-#     atn.stop()
+#         snapshot = atn.latest_cli_response_payload.Snapshot
+#         assert snapshot.ValueList == [1]
+#     finally:
+#         # noinspection PyBroadException
+#         try:
+#             elt.stop()
+#             scada.stop()
+#             atn.stop()
+#         except:
+#             pass
+
 
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
+    logging_on = False
     load_house.load_all()
     meter_node = ShNode.by_alias["a.m"]
     scada_node = ShNode.by_alias["a.s"]
     atn_node = ShNode.by_alias["a"]
-    atn = Atn(node=atn_node)
-    atn.start()
-    atn.terminate_main_loop()
-    atn.main_thread.join()
-    assert atn.total_power_w == 0
+    atn = AtnRecorder(node=atn_node, logging_on=logging_on)
     meter = PowerMeter(node=meter_node)
-    meter.start()
-    meter.terminate_main_loop()
-    meter.main_thread.join()
     scada = Scada(node=scada_node)
-    scada.start()
-    scada.terminate_main_loop()
-    scada.main_thread.join()
-    meter.total_power_w = 2100
-    payload = GsPwr_Maker(power=meter.total_power_w).tuple
-    meter.publish(payload=payload)
-    time.sleep(LOCAL_MQTT_MESSAGE_DELTA_S + GW_MQTT_MESSAGE_DELTA)
-    time.sleep(0.3)
-    assert atn.total_power_w == 2100
+    try:
+        atn.start()
+        atn.terminate_main_loop()
+        atn.main_thread.join()
+        assert atn.total_power_w == 0
+        meter.start()
+        meter.terminate_main_loop()
+        meter.main_thread.join()
+        scada.start()
+        scada.terminate_main_loop()
+        scada.main_thread.join()
+        meter.total_power_w = 2100
+        payload = GsPwr_Maker(power=meter.total_power_w).tuple
+        meter.publish(payload=payload)
+        wait_for(
+            lambda: atn.total_power_w == 2100,
+            10, f"Atn did not receive power message. atn.total_power_w:{atn.total_power_w}  {atn.summary_str()}"
+        )
+    finally:
+        # noinspection PyBroadException
+        try:
+            atn.stop()
+            meter.stop()
+            scada.stop()
+        except:
+            pass
 
 
 def test_scada_sends_status():
+    logging_on = False
     load_house.load_all()
-    scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
-    scada.start()
-    scada.terminate_main_loop()
-    scada.main_thread.join()
-
-    assert scada.consume_client.is_connected()
-    assert scada.publish_client.is_connected()
-    assert scada.gw_consume_client.is_connected()
-    assert scada.gw_publish_client.is_connected()
-    ear = EarRecorder()
-    ear.start()
-    ear.terminate_main_loop()
-    ear.main_thread.join()
-    assert ear.gw_consume_client.is_connected()
-    assert ear.gw_publish_client.is_connected()
+    scada = ScadaRecorder(node=ShNode.by_alias["a.s"], logging_on=logging_on)
+    ear = EarRecorder(logging_on=logging_on)
     thermo0_node = ShNode.by_alias["a.tank.temp0"]
+    thermo0 = SimpleSensor(node=thermo0_node, logging_on=logging_on)
+    try:
 
-    thermo0 = SimpleSensor(node=thermo0_node)
-    thermo0.start()
-    thermo0.terminate_main_loop()
-    thermo0.main_thread.join()
-    time.sleep(2)
-    thermo0.update_telemetry_value()
-    assert thermo0.telemetry_value is not None
-    thermo0.report_telemetry()
-    time.sleep(.5)
-    assert scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
-    assert len(scada.recent_readings[thermo0_node]) > 0
-    for unix_ms in scada.recent_reading_times_ms[thermo0_node]:
-        assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
+        scada.start()
+        scada.terminate_main_loop()
+        scada.main_thread.join()
+        wait_for(scada.client.is_connected, 1)
+        wait_for(scada.gw_client.is_connected, 1)
+        ear.start()
+        ear.terminate_main_loop()
+        ear.main_thread.join()
+        wait_for(ear.gw_client.is_connected, 1)
 
-    single_status = scada.make_single_status(thermo0_node)
-    assert isinstance(single_status, GtShSimpleSingleStatus)
-    assert single_status.TelemetryName == scada.config[thermo0_node].reporting.TelemetryName
-    assert single_status.ReadTimeUnixMsList == scada.recent_reading_times_ms[thermo0_node]
-    assert single_status.ValueList == scada.recent_readings[thermo0_node]
-    assert single_status.ShNodeAlias == thermo0_node.alias
+        thermo0.start()
+        thermo0.terminate_main_loop()
+        thermo0.main_thread.join()
+        thermo0.update_telemetry_value()
+        assert thermo0.telemetry_value is not None
+        thermo0.report_telemetry()
 
-    scada.send_status()
-    time.sleep(1)
-    assert ear.num_received > 0
-    scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
-    assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
-    assert isinstance(ear.latest_payload, GtShSimpleStatus)
-    assert len(ear.latest_payload.SimpleSingleStatusList) == 1
-    single_status = ear.latest_payload.SimpleSingleStatusList[0]
-    assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
-    assert ear.latest_payload.ReportingPeriodS == 300
+        def _scada_received_telemetry() -> bool:
+            return scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
+        wait_for(_scada_received_telemetry, 5)
+        for unix_ms in scada.recent_reading_times_ms[thermo0_node]:
+            assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
+        single_status = scada.make_single_status(thermo0_node)
+        assert isinstance(single_status, GtShSimpleSingleStatus)
+        assert single_status.TelemetryName == scada.config[thermo0_node].reporting.TelemetryName
+        assert single_status.ReadTimeUnixMsList == scada.recent_reading_times_ms[thermo0_node]
+        assert single_status.ValueList == scada.recent_readings[thermo0_node]
+        assert single_status.ShNodeAlias == thermo0_node.alias
 
+        scada.send_status()
+        time.sleep(1)
+        assert ear.num_received > 0
+        scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
+        assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
+        assert isinstance(ear.latest_payload, GtShSimpleStatus)
+        assert len(ear.latest_payload.SimpleSingleStatusList) == 1
+        single_status = ear.latest_payload.SimpleSingleStatusList[0]
+        assert single_status.TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
+        assert ear.latest_payload.ReportingPeriodS == 300
+    finally:
+        # noinspection PyBroadException
+        try:
+            scada.stop()
+            ear.stop()
+            thermo0.stop()
+        except:
+            pass
 
 @pytest.mark.parametrize(
     "aliases",
@@ -262,7 +318,11 @@ def test_run_nodes_main(aliases):
         assert len(dbg["actors"]) == len(aliases)
     finally:
         for actor in dbg["actors"].values():
-            actor.stop()
+            # noinspection PyBroadException
+            try:
+                actor.stop()
+            except:
+                pass
 
 
 def test_run_local():
@@ -280,7 +340,61 @@ def test_run_local():
 def test_simple_sensor_value_update():
     load_house.load_all()
     thermo0 = SimpleSensor(ShNode.by_alias["a.tank.temp0"])
-    thermo0.start()
-    thermo0.terminate_main_loop()
-    thermo0.main_thread.join()
-    thermo0.update_telemetry_value()
+    try:
+        thermo0.start()
+        thermo0.terminate_main_loop()
+        thermo0.main_thread.join()
+        thermo0.update_telemetry_value()
+    finally:
+        # noinspection PyBroadException
+        try:
+            thermo0.stop()
+        except:
+            pass
+
+
+def test_message_exchange(tmp_path, monkeypatch):
+    """Run various nodes and verify they send each other messages as expected"""
+    monkeypatch.chdir(tmp_path)
+    debug_logs_path = tmp_path / "output/debug_logs"
+    debug_logs_path.mkdir(parents=True, exist_ok=True)
+    load_house.load_all()
+    scada = ScadaRecorder(node=ShNode.by_alias["a.s"], logging_on=True)
+    atn = AtnRecorder(node=ShNode.by_alias["a"], logging_on=True)
+    ear = EarRecorder(logging_on=True)
+    elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"], logging_on=True)
+    meter = PowerMeter(node=ShNode.by_alias["a.m"], logging_on=True)
+    thermo = SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], logging_on=True)
+    actors = [scada, atn, ear, elt, meter, thermo]
+
+    try:
+        for actor in actors:
+            actor.start()
+        for actor in actors:
+            if hasattr(actor, "client"):
+                wait_for(actor.client.is_connected, 1, tag=f"ERROR waiting for {actor.node.alias} client connect")
+            if hasattr(actor, "qw_client"):
+                wait_for(actor.gw_client.is_connected, 1, f"ERROR waiting for {actor.node.alias} gw_client connect")
+        atn.turn_on(ShNode.by_alias["a.elt1.relay"])
+        atn.status()
+        wait_for(lambda: atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}")
+        wait_for(lambda: len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}")
+        wait_for(lambda: scada.num_received_by_topic["a.elt1.relay/gt.telemetry.110"] > 0,
+                 10, f"scada elt telemetry. {scada.summary_str()}"
+                 )
+        wait_for(lambda: scada.num_received_by_topic["a.m/p"] > 0, 10, f"scada power. {scada.summary_str()}")
+        wait_for(lambda: scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0,
+                 10, f"scada temperature. {scada.summary_str()}"
+                 )
+        wait_for(
+            lambda: scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0,
+            10, f"scada temperature. {scada.summary_str()}"
+        )
+        wait_for(lambda: int(elt.relay_state) == 1, 10, f"Relay state {elt.relay_state}")
+    finally:
+        for actor in actors:
+            # noinspection PyBroadException
+            try:
+                actor.stop()
+            except:
+                pass
