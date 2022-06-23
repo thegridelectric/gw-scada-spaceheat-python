@@ -225,7 +225,7 @@ def test_async_power_metering_dag():
         payload = GsPwr_Maker(power=meter.total_power_w).tuple
         meter.publish(payload=payload)
         wait_for(
-            lambda : atn.total_power_w == 2100,
+            lambda: atn.total_power_w == 2100,
             10, f"Atn did not receive power message. atn.total_power_w:{atn.total_power_w}  {atn.summary_str()}"
         )
     finally:
@@ -262,6 +262,7 @@ def test_scada_sends_status():
         thermo0.update_telemetry_value()
         assert thermo0.telemetry_value is not None
         thermo0.report_telemetry()
+
         def _scada_received_telemetry() -> bool:
             return scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0
         wait_for(_scada_received_telemetry, 5)
@@ -357,7 +358,7 @@ def test_message_exchange(tmp_path, monkeypatch):
     load_house.load_all()
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"], logging_on=True)
     atn = AtnRecorder(node=ShNode.by_alias["a"], logging_on=True)
-    ear  = EarRecorder(logging_on=True)
+    ear = EarRecorder(logging_on=True)
     elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"], logging_on=True)
     meter = PowerMeter(node=ShNode.by_alias["a.m"], logging_on=True)
     thermo = SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], logging_on=True)
@@ -373,17 +374,17 @@ def test_message_exchange(tmp_path, monkeypatch):
                 wait_for(actor.gw_client.is_connected, 1, f"ERROR waiting for {actor.node.alias} gw_client connect")
         atn.turn_on(ShNode.by_alias["a.elt1.relay"])
         atn.status()
-        wait_for(lambda : atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}")
-        wait_for(lambda : len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}")
-        wait_for(lambda : scada.num_received_by_topic["a.elt1.relay/gt.telemetry.110"] > 0,
-            10, f"scada elt telemetry. {scada.summary_str()}"
-        )
-        wait_for(lambda : scada.num_received_by_topic["a.m/p"] > 0, 10, f"scada power. {scada.summary_str()}")
-        wait_for(lambda : scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0,
-            10, f"scada temperature. {scada.summary_str()}"
-        )
+        wait_for(lambda: atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}")
+        wait_for(lambda: len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}")
+        wait_for(lambda: scada.num_received_by_topic["a.elt1.relay/gt.telemetry.110"] > 0,
+                 10, f"scada elt telemetry. {scada.summary_str()}"
+                 )
+        wait_for(lambda: scada.num_received_by_topic["a.m/p"] > 0, 10, f"scada power. {scada.summary_str()}")
+        wait_for(lambda: scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0,
+                 10, f"scada temperature. {scada.summary_str()}"
+                 )
         wait_for(
-            lambda : scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0,
+            lambda: scada.num_received_by_topic["a.tank.temp0/gt.telemetry.110"] > 0,
             10, f"scada temperature. {scada.summary_str()}"
         )
         wait_for(lambda: int(elt.relay_state) == 1, 10, f"Relay state {elt.relay_state}")
@@ -394,5 +395,3 @@ def test_message_exchange(tmp_path, monkeypatch):
                 actor.stop()
             except:
                 pass
-
-
