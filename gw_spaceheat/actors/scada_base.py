@@ -43,7 +43,7 @@ class ScadaBase(ActorBase):
     def on_gw_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
             [
-                f"({helpers.log_time()}) GW Consume Connected flags {str(flags)} + result code {str(rc)}"
+                f"({helpers.log_time()}) Cloud Mqtt client Connected flags {str(flags)} + result code {str(rc)}"
             ]
         )
         self.subscribe_gw()
@@ -51,13 +51,13 @@ class ScadaBase(ActorBase):
     # noinspection PyUnusedLocal
     def on_gw_connect_fail(self, client, userdata, rc):
         self.mqtt_log_hack(
-            [f"({helpers.log_time()}) GW Consume Connect fail! result code {str(rc)}"]
+            [f"({helpers.log_time()}) Cloud Mqtt client Connect fail! result code {str(rc)}"]
         )
 
     # noinspection PyUnusedLocal
     def on_gw_disconnect(self, client, userdata, rc):
         self.mqtt_log_hack(
-            [f"({helpers.log_time()}) GW Consume disconnected! result code {str(rc)}"]
+            [f"({helpers.log_time()}) Cloud Mqtt client disconnected! result code {str(rc)}"]
         )
 
     # noinspection PyUnusedLocal

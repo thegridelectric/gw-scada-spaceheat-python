@@ -52,6 +52,7 @@ class AtnRecorder(Atn):
             f"latest_cli_response_payload: {self.latest_cli_response_payload}"
         )
 
+
 class EarRecorder(CloudEar):
     num_received: int
     num_received_by_topic: typing.Dict[str, int]
@@ -150,9 +151,9 @@ def test_load_house():
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
 
-# This test seems to be very sensitive to timing. It sometimes works locally but often fails in CI. Changing time.sleep(1)
-# to a wait_for() call failed (possibly because the wrong thing was waited on). Changing the times.sleep(1) to time.sleep(5)
-# made it fail later in the test.
+# This test seems to be very sensitive to timing. It sometimes works locally but often fails in CI. 
+# Changing time.sleep(1) to a wait_for() call failed (possibly because the wrong thing was waited on). 
+# Changing the times.sleep(1) to time.sleep(5) made it fail later in the test.
 #
 # Commenting out for now.
 #
@@ -200,6 +201,7 @@ def test_load_house():
 #         except:
 #             pass
 
+
 def test_async_power_metering_dag():
     """Verify power report makes it from meter -> Scada -> AtomicTNode"""
     logging_on = False
@@ -236,6 +238,7 @@ def test_async_power_metering_dag():
             scada.stop()
         except:
             pass
+
 
 def test_scada_sends_status():
     logging_on = False

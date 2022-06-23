@@ -59,19 +59,19 @@ class CloudBase(ABC):
     def on_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
             [
-                f"({helpers.log_time()}) Publisher connected flags {str(flags)} + result code {str(rc)}"
+                f"({helpers.log_time()}) Mqtt client Connected flags {str(flags)} + result code {str(rc)}"
             ]
         )
         self.subscribe_gw()
 
     # noinspection PyUnusedLocal
     def on_connect_fail(self, client, userdata):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Connect fail"])
+        self.mqtt_log_hack([f"({helpers.log_time()}) Mqtt client Connect fail"])
 
     # noinspection PyUnusedLocal
     def on_disconnect(self, client, userdata, rc):
         self.mqtt_log_hack(
-            [f"({helpers.log_time()}) Publisher disconnected! result code {str(rc)}"]
+            [f"({helpers.log_time()}) Mqtt client disconnected! result code {str(rc)}"]
         )
 
     @abstractmethod
