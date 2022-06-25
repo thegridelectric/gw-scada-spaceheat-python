@@ -70,10 +70,12 @@ class PowerMeter(ActorBase):
             )
 
     def update_prev_and_latest_value_dicts(self):
-        self.prev_telemetry_value = self.latest_telemetry_value
-        self.latest_telemetry_value[
-            self.my_telemetry_tuple
-        ] = self.driver.read_current_rms_micro_amps()
+        for tt in self.my_telemetry_tuples():    
+            self.prev_telemetry_value[tt] = self.latest_telemetry_value[tt]
+            result = self.driver.read_current_rms_micro_amps()
+            if not isinstance(result, int):
+                raise Exception(f"{self.driver} returned {result}, expected int!")
+            self.latest_telemetry_value[tt] = result
 
     def report_sampled_telemetry_values(self, telemetry_sample_report_list: List[TelemetryTuple]):
         about_node_alias_list = list(map(lambda x: x.AboutNode.alias, telemetry_sample_report_list))
@@ -94,6 +96,10 @@ class PowerMeter(ActorBase):
             self._last_sampled_s[tt] = int(time.time())
 
     def value_exceeds_async_threshold(self, telemetry_tuple: TelemetryTuple) -> bool:
+        """This telemetry tuple is supposed to report asynchronously on change, with
+        the amount of change required (as a function of the absolute max value) determined
+        in the EqConfig.
+        """
         telemetry_reporting_config = self.eq_config[telemetry_tuple]
         prev_telemetry_value = self.prev_telemetry_value[telemetry_tuple]
         latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
@@ -105,14 +111,21 @@ class PowerMeter(ActorBase):
         return False
 
     def should_report_telemetry_reading(self, telemetry_tuple: TelemetryTuple) -> bool:
-        telemetry_reporting_config = self.eq_config[telemetry_tuple]
-        prev_telemetry_value = self.prev_telemetry_value[telemetry_tuple]
-        if prev_telemetry_value is None:
+        """The telemetry data should get reported synchronously once every SamplePeriodS, and also asynchronously
+        on a big enough change - both configured in the eq_config (eq for electrical quantity) config for this
+        telemetry tuple.
+
+        Note that SamplePeriodS will often be 300 seconds, which will also match the duration of each status message
+        the Scada sends up to the cloud (GtShSimpleStatus.ReportingPeriodS).  The Scada will likely do this at the
+        top of every 5 minutes - but not the power meter.. The point of the synchronous reporting is to
+        get at least one reading for this telemetry tuple in the Scada's status report; it does not need to be
+        at the beginning or end of the status report time period.
+        """
+        if self.latest_telemetry_value[telemetry_tuple] is None:
+            return False
+        if self._last_sampled_s[telemetry_tuple] is None:
             return True
-        last_sampled_s = self._last_sampled_s[telemetry_tuple]
-        if last_sampled_s is None:
-            return True
-        if time.time() - last_sampled_s > telemetry_reporting_config.SamplePeriodS:
+        if time.time() - self._last_sampled_s[telemetry_tuple] > self.eq_config[telemetry_tuple].SamplePeriodS:
             return True
         if self.value_exceeds_async_threshold(telemetry_tuple):
             return True

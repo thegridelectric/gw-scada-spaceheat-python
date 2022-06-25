@@ -480,20 +480,6 @@ def test_scada_small():
 # PowerMeter small tests
 ###################
 
-def test_power_meter_should_report_telemetry_reading_logic():
-
-    """        telemetry_reporting_config = self.eq_config[telemetry_tuple]
-        prev_telemetry_value = self.prev_telemetry_value[telemetry_tuple]
-        if prev_telemetry_value is None:
-            return True
-        last_sampled_s = self._last_sampled_s[telemetry_tuple]
-        if last_sampled_s is None:
-            return True
-        if time.time() - last_sampled_s > telemetry_reporting_config.SamplePeriodS:
-            return True
-        if self.value_exceeds_async_threshold(telemetry_tuple):
-            return True
-        return False"""
 
 def test_power_meter_small():
     load_house.load_all()
@@ -521,20 +507,27 @@ def test_power_meter_small():
     )
     assert tt in meter.my_telemetry_tuples()
     assert meter.latest_telemetry_value[tt] is None
+    assert meter.prev_telemetry_value[tt] is None
     meter.update_prev_and_latest_value_dicts()
     assert isinstance(meter.latest_telemetry_value[tt], int)
     meter.update_prev_and_latest_value_dicts()
-    assert meter.should_report_telemetry_reading(tt) is True
+    assert isinstance(meter.prev_telemetry_value[tt], int)
+
     assert meter.max_telemetry_value[tt] == 10**7
     meter.prev_telemetry_value[tt] = meter.latest_telemetry_value[tt]
+    assert meter.value_exceeds_async_threshold(tt) is False
     meter.latest_telemetry_value[tt] += (
-        0.1 * meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
+        int(0.1 * meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt])
     )
+    assert meter.value_exceeds_async_threshold(tt) is False
+    assert meter.should_report_telemetry_reading(tt)
+    meter.report_sampled_telemetry_values([tt])
     assert meter.should_report_telemetry_reading(tt) is False
+
     meter.latest_telemetry_value[tt] += (
-        meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
+        int(meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt])
     )
-    assert meter.should_report_telemetry_reading(tt) is True
+    assert meter.value_exceeds_async_threshold(tt) is True
 
 
 ###################
@@ -542,22 +535,34 @@ def test_power_meter_small():
 ####################
 
 
-# def test_electric_meter_cac():
-#     load_house.load_all()
-#     d = {
-#         "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
-#         "MakeModelGtEnumSymbol": "d300635e",
-#         "DisplayName": "Schneider Electric Iem3455 Power Meter",
-#         "LocalCommInterfaceGtEnumSymbol": "a6a4ac9f",
-#         "UpdatePeriodMs": 500,
-#         "DefaultBaud": 9600,
-#     }
+def test_electric_meter_cac():
+    load_house.load_all()
+    d = {
+            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+            "MakeModelGtEnumSymbol": "076da322",
+            "DisplayName": "Gridworks Pm1 Simulated Power Meter",
+            "LocalCommInterfaceGtEnumSymbol": "efc144cd",
+            "UpdatePeriodMs": 500
+        }
 
-#     meter_cac_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d)
-#     assert meter_cac_as_tuple.ComponentAttributeClassId in ElectricMeterCac.by_id.keys()
-#     meter_cac_as_dc = ElectricMeterCac.by_id[meter_cac_as_tuple.ComponentAttributeClassId]
-#     assert meter_cac_as_dc.update_period_ms == 1000
-#     assert meter_cac_as_tuple.UpdatePeriodMs == 500
+    meter_cac_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d)
+    assert meter_cac_as_tuple.ComponentAttributeClassId in ElectricMeterCac.by_id.keys()
+    meter_cac_as_dc = ElectricMeterCac.by_id[meter_cac_as_tuple.ComponentAttributeClassId]
+    assert meter_cac_as_dc.update_period_ms == 1000
+    assert meter_cac_as_tuple.UpdatePeriodMs == 500
 
-#     with pytest.raises(DcError):
-#         meter_cac_as_dc.update(gw_tuple=meter_cac_as_tuple)
+    with pytest.raises(DcError):
+        meter_cac_as_dc.update(gw_tuple=meter_cac_as_tuple)
+
+    d2 = {
+        "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+        "MakeModelGtEnumSymbol": "076da322",
+        "DisplayName": "Gridworks Pm1 Eletric Meter",
+        "LocalCommInterfaceGtEnumSymbol": "efc144cd",
+        "UpdatePeriodMs": 1000
+    }
+
+    meter_cac_2_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d2)
+    assert meter_cac_as_dc.display_name != meter_cac_2_as_tuple.DisplayName
+    meter_cac_as_dc.update(gw_tuple=meter_cac_2_as_tuple)
+
