@@ -54,7 +54,7 @@ class Scada(ScadaBase):
         )
 
     @classmethod
-    def my_multifunction_sensors(cls) -> List[ShNode]:
+    def my_multipurpose_sensors(cls) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
 
@@ -125,7 +125,7 @@ class Scada(ScadaBase):
                     Qos=QOS.AtLeastOnce,
                 )
             )
-        for node in self.my_multifunction_sensors():
+        for node in self.my_multipurpose_sensors():
             my_subscriptions.append(
                 Subscription(
                     Topic=f"{node.alias}/{GtShTelemetryFromMultipurposeSensor_Maker.type_alias}",
@@ -158,7 +158,7 @@ class Scada(ScadaBase):
     def gt_sh_telemetry_multifunction_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
     ):
-        if from_node in self.my_multifunction_sensors():
+        if from_node in self.my_multipurpose_sensors():
             about_node_alias_list = payload.AboutNodeAliasList
             for about_alias in about_node_alias_list:
                 if about_alias not in ShNode.by_alias.keys():

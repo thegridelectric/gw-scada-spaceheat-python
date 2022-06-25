@@ -93,8 +93,18 @@ class PowerMeter(ActorBase):
         for tt in telemetry_sample_report_list:
             self._last_sampled_s[tt] = int(time.time())
 
-    def should_report_telemetry_reading(self, telemetry_tuple: TelemetryTuple) -> bool:
+    def value_exceeds_async_threshold(self, telemetry_tuple: TelemetryTuple) -> bool:
+        telemetry_reporting_config = self.eq_config[telemetry_tuple]
+        prev_telemetry_value = self.prev_telemetry_value[telemetry_tuple]
+        latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
+        abs_telemetry_delta = abs(latest_telemetry_value - prev_telemetry_value)
+        max_telemetry_value = self.max_telemetry_value[telemetry_tuple]
+        change_ratio = abs_telemetry_delta / max_telemetry_value
+        if change_ratio > telemetry_reporting_config.AsyncReportThreshold:
+            return True
+        return False
 
+    def should_report_telemetry_reading(self, telemetry_tuple: TelemetryTuple) -> bool:
         telemetry_reporting_config = self.eq_config[telemetry_tuple]
         prev_telemetry_value = self.prev_telemetry_value[telemetry_tuple]
         if prev_telemetry_value is None:
@@ -104,13 +114,7 @@ class PowerMeter(ActorBase):
             return True
         if time.time() - last_sampled_s > telemetry_reporting_config.SamplePeriodS:
             return True
-
-        latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
-        abs_telemetry_delta = abs(latest_telemetry_value - prev_telemetry_value)
-        max_telemetry_value = self.max_telemetry_value[telemetry_tuple]
-        change_ratio = abs_telemetry_delta / max_telemetry_value
-
-        if change_ratio > telemetry_reporting_config.AsyncReportThreshold:
+        if self.value_exceeds_async_threshold(telemetry_tuple):
             return True
         return False
 

@@ -29,25 +29,35 @@ class ElectricMeterCacBase(ComponentAttributeClass):
                  ):
 
         super(ElectricMeterCacBase, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                                             display_name=display_name)
+                                                   display_name=display_name)
         self.default_baud = default_baud
         self.update_period_ms = update_period_ms
         self.local_comm_interface = LocalCommInterfaceMap.gt_to_local(local_comm_interface_gt_enum_symbol)
         self.make_model = MakeModelMap.gt_to_local(make_model_gt_enum_symbol)
 
-    def update(self, type: GtElectricMeterCac):
-        self._check_immutability_constraints(type=type)
+    def update(self, gw_tuple: GtElectricMeterCac):
+        self._check_immutability_constraints(gw_tuple=gw_tuple)
+        self._check_update_axioms(gw_tuple=gw_tuple)
 
-    def _check_immutability_constraints(self, type: GtElectricMeterCac):
-        if self.component_attribute_class_id != type.ComponentAttributeClassId:
+    def _check_immutability_constraints(self, gw_tuple: GtElectricMeterCac):
+        if self.component_attribute_class_id != gw_tuple.ComponentAttributeClassId:
             raise DcError(f'component_attribute_class_id must be immutable for {self}. '
-                          f'Got {type.ComponentAttributeClassId}')
-        if self.make_model != type.MakeModel:
+                          f'Got {gw_tuple.ComponentAttributeClassId}')
+        if self.make_model != gw_tuple.MakeModel:
             raise DcError(f'make_model must be immutable for {self}. '
-                          f'Got {type.MakeModel}')
+                          f'Got {gw_tuple.MakeModel}')
+        if self.local_comm_interface != gw_tuple.LocalCommInterface:
+            raise DcError(f'local_comm_interface must be immutable for {self}. '
+                          f'Got {gw_tuple.LocalCommInterface}')
+        if self.default_baud != gw_tuple.DefaultBaud:
+            raise DcError(f'default_baud must be immutable for {self}. '
+                          f'Got {gw_tuple.DefaultBaud}')
+        if self.update_period_ms != gw_tuple.UpdatePeriodMs:
+            raise DcError(f'update_period_ms must be immutable for {self}. '
+                          f'Got {gw_tuple.UpdatePeriodMs}')
 
     @abstractmethod
-    def _check_update_axioms(self, type: GtElectricMeterCac):
+    def _check_update_axioms(self, gw_tuple: GtElectricMeterCac):
         raise NotImplementedError
 
     @abstractmethod

@@ -1,35 +1,37 @@
+import json
+import os
 import time
 import typing
-import os
-import json
 from collections import defaultdict
-import settings
+
 import load_house
 import pytest
-
-from actors.boolean_actuator import BooleanActuator
-from command_line_utils import run_nodes_main
-from schema.gs.gs_dispatch import GsDispatch
 import schema.property_format
+import settings
 from actors.atn import Atn
+from actors.boolean_actuator import BooleanActuator
 from actors.cloud_ear import CloudEar
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.simple_sensor import SimpleSensor
+from command_line_utils import run_nodes_main
+from data_classes.cacs.electric_meter_cac import ElectricMeterCac
+from data_classes.errors import DcError
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
-
+from schema.gs.gs_dispatch import GsDispatch
+from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
+from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
 from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import GtShSimpleStatus
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
-
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
+
 from utils import wait_for
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
@@ -456,7 +458,7 @@ def test_scada_dict_keys():
 ###################
 
 
-def scada_small_tests():
+def test_scada_small():
     load_house.load_all()
     scada = Scada(node=ShNode.by_alias["a.s"])
 
@@ -464,20 +466,36 @@ def scada_small_tests():
     multi_function_topic_list = list(
         map(
             lambda x: f"{x.alias}/{GtShTelemetryFromMultipurposeSensor_Maker.type_alias}",
-            scada.my_multifunction_sensors(),
+            scada.my_multipurpose_sensors(),
         )
     )
-    assert multi_function_topic_list in local_topics
+    assert set(multi_function_topic_list) <= set(local_topics)
     simple_sensor_topic_list = list(
         map(lambda x: f"{x.alias}/{GtTelemetry_Maker.type_alias}", scada.my_simple_sensors())
     )
-    assert simple_sensor_topic_list in local_topics
+    assert set(simple_sensor_topic_list) <= set(local_topics)
 
 
 ###################
 # PowerMeter small tests
 ###################
-def power_meter_small_tests():
+
+def test_power_meter_should_report_telemetry_reading_logic():
+
+    """        telemetry_reporting_config = self.eq_config[telemetry_tuple]
+        prev_telemetry_value = self.prev_telemetry_value[telemetry_tuple]
+        if prev_telemetry_value is None:
+            return True
+        last_sampled_s = self._last_sampled_s[telemetry_tuple]
+        if last_sampled_s is None:
+            return True
+        if time.time() - last_sampled_s > telemetry_reporting_config.SamplePeriodS:
+            return True
+        if self.value_exceeds_async_threshold(telemetry_tuple):
+            return True
+        return False"""
+
+def test_power_meter_small():
     load_house.load_all()
     meter = PowerMeter(node=ShNode.by_alias["a.m"])
 
@@ -495,18 +513,51 @@ def power_meter_small_tests():
             all_eq_configs,
         )
     )
-    assert(len(amp_list)) == 1
+    assert (len(amp_list)) == 1
     tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"], TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS
+        AboutNode=ShNode.by_alias["a.elt1"],
+        SensorNode=meter.node,
+        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS
     )
+    assert tt in meter.my_telemetry_tuples()
     assert meter.latest_telemetry_value[tt] is None
     meter.update_prev_and_latest_value_dicts()
     assert isinstance(meter.latest_telemetry_value[tt], int)
     meter.update_prev_and_latest_value_dicts()
-    assert meter.should_report_telemetry_reading() is True
+    assert meter.should_report_telemetry_reading(tt) is True
     assert meter.max_telemetry_value[tt] == 10**7
     meter.prev_telemetry_value[tt] = meter.latest_telemetry_value[tt]
-    meter.latest_telemetry_value[tt] += 0.1 * meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
-    assert meter.should_report_telemetry_reading() is False
-    meter.latest_telemetry_value[tt] += meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
-    assert meter.should_report_telemetry_reading() is True
+    meter.latest_telemetry_value[tt] += (
+        0.1 * meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
+    )
+    assert meter.should_report_telemetry_reading(tt) is False
+    meter.latest_telemetry_value[tt] += (
+        meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
+    )
+    assert meter.should_report_telemetry_reading(tt) is True
+
+
+###################
+# Dataclass Tests
+####################
+
+
+# def test_electric_meter_cac():
+#     load_house.load_all()
+#     d = {
+#         "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
+#         "MakeModelGtEnumSymbol": "d300635e",
+#         "DisplayName": "Schneider Electric Iem3455 Power Meter",
+#         "LocalCommInterfaceGtEnumSymbol": "a6a4ac9f",
+#         "UpdatePeriodMs": 500,
+#         "DefaultBaud": 9600,
+#     }
+
+#     meter_cac_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d)
+#     assert meter_cac_as_tuple.ComponentAttributeClassId in ElectricMeterCac.by_id.keys()
+#     meter_cac_as_dc = ElectricMeterCac.by_id[meter_cac_as_tuple.ComponentAttributeClassId]
+#     assert meter_cac_as_dc.update_period_ms == 1000
+#     assert meter_cac_as_tuple.UpdatePeriodMs == 500
+
+#     with pytest.raises(DcError):
+#         meter_cac_as_dc.update(gw_tuple=meter_cac_as_tuple)

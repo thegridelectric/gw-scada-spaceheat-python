@@ -27,7 +27,7 @@ class ElectricMeterCac(ElectricMeterCacBase):
         ElectricMeterCac.by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
 
-    def _check_update_axioms(self, type: GtElectricMeterCac):
+    def _check_update_axioms(self, gw_tuple: GtElectricMeterCac):
         pass
 
     def __repr__(self):
