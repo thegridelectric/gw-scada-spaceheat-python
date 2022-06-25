@@ -538,12 +538,12 @@ def test_power_meter_small():
 def test_electric_meter_cac():
     load_house.load_all()
     d = {
-            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-            "MakeModelGtEnumSymbol": "076da322",
-            "DisplayName": "Gridworks Pm1 Simulated Power Meter",
-            "LocalCommInterfaceGtEnumSymbol": "efc144cd",
-            "UpdatePeriodMs": 500
-        }
+        "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+        "MakeModelGtEnumSymbol": "076da322",
+        "DisplayName": "Gridworks Pm1 Simulated Power Meter",
+        "LocalCommInterfaceGtEnumSymbol": "efc144cd",
+        "UpdatePeriodMs": 500
+    }
 
     meter_cac_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d)
     assert meter_cac_as_tuple.ComponentAttributeClassId in ElectricMeterCac.by_id.keys()
@@ -565,4 +565,3 @@ def test_electric_meter_cac():
     meter_cac_2_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d2)
     assert meter_cac_as_dc.display_name != meter_cac_2_as_tuple.DisplayName
     meter_cac_as_dc.update(gw_tuple=meter_cac_2_as_tuple)
-

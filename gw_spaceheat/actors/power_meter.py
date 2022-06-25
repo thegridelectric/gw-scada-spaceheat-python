@@ -70,7 +70,7 @@ class PowerMeter(ActorBase):
             )
 
     def update_prev_and_latest_value_dicts(self):
-        for tt in self.my_telemetry_tuples():    
+        for tt in self.my_telemetry_tuples():
             self.prev_telemetry_value[tt] = self.latest_telemetry_value[tt]
             result = self.driver.read_current_rms_micro_amps()
             if not isinstance(result, int):
