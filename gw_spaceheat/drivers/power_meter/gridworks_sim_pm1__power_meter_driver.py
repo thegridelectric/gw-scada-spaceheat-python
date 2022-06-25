@@ -19,7 +19,7 @@ class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
         return self._fake_current_rms_micro_amps
 
     def read_hw_uid(self) -> Optional[str]:
-        return None
+        return "1001ab"
 
     def read_power_w(self) -> Optional[int]:
         return None

@@ -27,6 +27,7 @@ class Role(enum.Enum):
     ATN = "Atn"
     HOME_ALONE = "HomeAlone"
     OUTDOORS = "Outdoors"
+    RADIATOR_FAN = "RadiatorFan"
     
 
 class ShNodeRole101GtEnum(ABC):
@@ -47,4 +48,5 @@ class ShNodeRole101GtEnum(ABC):
                           "6ddff83b",
                           "863e50d1",
                           "dd975b31",
+                          "6896109b"
                           ]

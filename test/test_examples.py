@@ -16,6 +16,7 @@ from actors.scada import Scada
 from actors.simple_sensor import SimpleSensor
 from command_line_utils import run_nodes_main
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
+from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.errors import DcError
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -23,6 +24,8 @@ from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
+from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker \
+    import GtElectricMeterComponent_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
@@ -136,12 +139,16 @@ def test_load_real_house():
     house_data = input_data[real_atn_g_node_alias]
     for d in house_data["ShNodes"]:
         GtShNode_Maker.dict_to_tuple(d)
+    for node in ShNode.by_alias.values():
+        print(node.parent)
 
 
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
     assert len(ShNode.by_alias) == 0
     load_house.load_all()
+    for node in ShNode.by_alias.values():
+        print(node.parent)
     all_nodes = list(ShNode.by_alias.values())
     assert len(all_nodes) == 24
     aliases = list(ShNode.by_alias.keys())
@@ -152,7 +159,7 @@ def test_load_house():
     nodes_w_components = list(
         filter(lambda x: x.component_id is not None, ShNode.by_alias.values())
     )
-    assert len(nodes_w_components) == 19
+    assert len(nodes_w_components) == 18
     actor_nodes_w_components = list(filter(lambda x: x.has_actor, nodes_w_components))
     assert len(actor_nodes_w_components) == 12
     tank_water_temp_sensor_nodes = list(
@@ -569,3 +576,22 @@ def test_electric_meter_cac():
     meter_cac_2_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d2)
     assert meter_cac_as_dc.display_name != meter_cac_2_as_tuple.DisplayName
     meter_cac_as_dc.update(gw_tuple=meter_cac_2_as_tuple)
+
+
+def test_electric_meter_component():
+    load_house.load_all()
+    d = {
+            "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
+            "DisplayName": "Main Power meter for Little orange house garage space heat",
+            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+            "HwUid": "9999"
+        }
+
+    gw_tuple = GtElectricMeterComponent_Maker.dict_to_tuple(d)
+    assert gw_tuple.ComponentId in ElectricMeterComponent.by_id.keys()
+    component_as_dc = ElectricMeterComponent.by_id[gw_tuple.ComponentId]
+    assert gw_tuple.HwUid == "9999"
+    assert component_as_dc.hw_uid == "1001ab"
+
+    with pytest.raises(DcError):
+        component_as_dc.update(gw_tuple=gw_tuple)
