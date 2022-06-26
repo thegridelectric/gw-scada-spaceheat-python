@@ -29,6 +29,7 @@ class ShNode(ShNodeBase):
                                              display_name=display_name,
                                              role_gt_enum_symbol=role_gt_enum_symbol,
                                              )
+
         ShNode.by_alias[self.alias] = self
         ShNode.by_id[self.sh_node_id] = self
 
@@ -68,15 +69,17 @@ class ShNode(ShNodeBase):
         return TempSensorComponent.by_id[self.component_id]
 
     @property
-    def parent(self) -> ShNodeBase:
+    def parent(self) -> "ShNode":
         alias_list = self.alias.split(".")
         alias_list.pop()
         if len(alias_list) == 0:
             return None
         else:
             parent_alias = ".".join(alias_list)
+            if parent_alias not in ShNode.by_alias.keys():
+                raise DataClassLoadingError(f"{self.alias} is missing parent {parent_alias}!")
             return ShNode.by_alias[parent_alias]
 
     @property
-    def descendants(self) -> List[ShNodeBase]:
+    def descendants(self) -> List["ShNode"]:
         return list(filter(lambda x: x.alias.startswith(self.alias), ShNode.by_alias.values()))

@@ -1,5 +1,6 @@
 
 
+from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 import settings
 from data_classes.sh_node import ShNode
 from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import \
@@ -12,6 +13,10 @@ from drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver import \
     UnknownPipeFlowSensorDriver
 from drivers.power_meter.unknown_power_meter_driver import \
     UnknownPowerMeterDriver
+from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import \
+    SchneiderElectricIem3455_PowerMeterDriver
+from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import \
+    GridworksSimPm1_PowerMeterDriver
 from drivers.temp_sensor.adafruit_642__temp_sensor_driver import \
     Adafruit642_TempSensorDriver
 from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import \
@@ -20,6 +25,10 @@ from drivers.temp_sensor.unknown_temp_sensor_driver import \
     UnknownTempSensorDriver
 from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker \
     import GtSensorReportingConfig_Maker as ConfigMaker
+from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker \
+    import GtEqReportingConfig_Maker
+from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker \
+    import GtPowermeterReportingConfig_Maker as PowerConfigMaker
 from schema.enums.unit.unit_map import Unit
 from schema.enums.make_model.make_model_map import MakeModel
 
@@ -31,6 +40,7 @@ from data_classes.components.temp_sensor_component import TempSensorComponent
 
 
 class NodeConfig():
+    FASTEST_POWER_METER_POLL_PERIOD_MS = 40
 
     def __init__(self, node: ShNode):
         self.node = node
@@ -56,15 +66,29 @@ class NodeConfig():
 
     def set_electric_meter_config(self, component: ElectricMeterComponent):
         cac = component.cac
-        self.reporting = ConfigMaker(report_on_change=True,
-                                     exponent=0,
-                                     reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
-                                     sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
-                                     telemetry_name=cac.telemetry_name,
-                                     unit=Unit.W,
-                                     async_report_threshold=0.1).tuple
+        eq_reporting_config_list = []
+        current_config = GtEqReportingConfig_Maker(sh_node_alias="a.elt1",
+                                                   report_on_change=True,
+                                                   telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+                                                   unit=Unit.AMPS_RMS,
+                                                   exponent=6,
+                                                   sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                                   async_report_threshold=0.2).tuple
+
+        eq_reporting_config_list.append(current_config)
+
+        poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
+        self.reporting = PowerConfigMaker(reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                                          poll_period_ms=poll_period_ms,
+                                          hw_uid=component.hw_uid,
+                                          eq_reporting_config_list=eq_reporting_config_list).tuple
+
         if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             self.driver = UnknownPowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
+            self.driver = SchneiderElectricIem3455_PowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
+            self.driver = GridworksSimPm1_PowerMeterDriver(component=component)
         else:
             raise NotImplementedError(f"No ElectricMeter driver yet for {cac.make_model}")
 
@@ -74,7 +98,7 @@ class NodeConfig():
             raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!")
         pass
         self.reporting = ConfigMaker(report_on_change=False,
-                                     exponent=0,
+                                     exponent=5,
                                      reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
                                      sample_period_s=self.node.reporting_sample_period_s,
                                      telemetry_name=cac.telemetry_name,

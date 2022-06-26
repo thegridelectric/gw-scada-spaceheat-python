@@ -19,7 +19,7 @@
     <xsl:template match="/">
         <FileSet>
             <FileSetFiles>
-                <xsl:for-each select="$airtable//GtEnums/GtEnum[(normalize-space(Alias) !='')]">
+                <xsl:for-each select="$airtable//GtEnums/GtEnum[(normalize-space(Alias) !='' and Status='Active')]">
                     <xsl:variable name="enum-alias" select="Alias" /> 
                     <xsl:variable name="enum-name-style" select="PythonEnumNameStyle" />  
                     <xsl:variable name="class-name">
@@ -53,6 +53,7 @@ from schema.enums.</xsl:text><xsl:value-of select="translate(LocalName,'.','_')"
 class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>GtEnum(</xsl:text>
 <xsl:value-of select="$class-name"/>
 <xsl:text>GtEnum):
+
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -112,7 +113,7 @@ class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>Map():
     <xsl:value-of select="Symbol"/><xsl:text>",
         </xsl:text>
     </xsl:for-each>
-    <xsl:text> }
+    <xsl:text>}
 </xsl:text>
 
 

@@ -27,6 +27,8 @@ class MakeModelMap():
 
     gt_to_local_dict: Dict[str, MakeModel] = {
         "f8b497e8": MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION,
+        "076da322": MakeModel.GRIDWORKS__SIMPM1,
+        "d300635e": MakeModel.SCHNEIDERELECTRIC__IEM3455,
         "e81d74a8": MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY,
         "acd93fb3": MakeModel.ADAFRUIT__642,
         "fabfa505": MakeModel.NCD__PR814SPST,
@@ -34,6 +36,8 @@ class MakeModelMap():
 
     local_to_gt_dict: Dict[MakeModel, str] = {
         MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION: "f8b497e8",
+        MakeModel.GRIDWORKS__SIMPM1: "076da322",
+        MakeModel.SCHNEIDERELECTRIC__IEM3455: "d300635e",
         MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY: "e81d74a8",
         MakeModel.ADAFRUIT__642: "acd93fb3",
         MakeModel.NCD__PR814SPST: "fabfa505",

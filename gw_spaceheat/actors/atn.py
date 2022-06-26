@@ -95,12 +95,12 @@ class Atn(CloudBase):
     def gt_sh_cli_scada_response_received(self, payload: GtShCliScadaResponse):
         snapshot = payload.Snapshot
         for node in self.my_sensors():
-            if node.alias not in snapshot.AboutNodeList:
+            if node.alias not in snapshot.AboutNodeAliasList:
                 self.screen_print(f"No data for {node.alias}")
 
-        for i in range(len(snapshot.AboutNodeList)):
+        for i in range(len(snapshot.AboutNodeAliasList)):
             print(
-                f"{snapshot.AboutNodeList[i]}: {snapshot.ValueList[i]} {snapshot.TelemetryNameList[i].value}"
+                f"{snapshot.AboutNodeAliasList[i]}: {snapshot.ValueList[i]} {snapshot.TelemetryNameList[i].value}"
             )
 
     ################################################

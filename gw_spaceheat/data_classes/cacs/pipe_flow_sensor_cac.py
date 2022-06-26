@@ -31,4 +31,4 @@ class PipeFlowSensorCac(PipeFlowSensorCacBase):
 
     @property
     def telemetry_name(self):
-        return TelemetryName.GALLONS_PER_MINUTE_TIMES_10
+        return TelemetryName.GALLONS_PER_MINUTE_TIMES10

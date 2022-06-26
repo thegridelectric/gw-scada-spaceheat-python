@@ -1,3 +1,6 @@
 -r base.in
 smbus2
+
+pymodbus
+pyserial
 #git+https://github.com/bivab/smbus-cffi.git  #used by i2c devices: NCD relay board

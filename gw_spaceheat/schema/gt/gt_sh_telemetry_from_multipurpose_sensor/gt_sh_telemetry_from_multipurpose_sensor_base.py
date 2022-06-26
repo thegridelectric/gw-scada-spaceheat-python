@@ -1,16 +1,16 @@
-"""Base for gt.sh.status.snapshot.110"""
+"""Base for gt.sh.telemetry.from.multipurpose.sensor.100"""
 import json
 from typing import List, NamedTuple
 import schema.property_format as property_format
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 
 
-class GtShStatusSnapshotBase(NamedTuple):
-    ReportTimeUnixMs: int
+class GtShTelemetryFromMultipurposeSensorBase(NamedTuple):
+    ScadaReadTimeUnixMs: int
     AboutNodeAliasList: List[str]
     ValueList: List[int]
     TelemetryNameList: List[TelemetryName]    #
-    TypeAlias: str = 'gt.sh.status.snapshot.110'
+    TypeAlias: str = 'gt.sh.telemetry.from.multipurpose.sensor.100'
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -35,10 +35,10 @@ class GtShStatusSnapshotBase(NamedTuple):
                 if not property_format.is_lrd_alias_format(elt):
                     errors.append(f"elt {elt} of AboutNodeAliasList "
                                   " must have format LrdAliasFormat")
-        if not isinstance(self.ReportTimeUnixMs, int):
-            errors.append(f"ReportTimeUnixMs {self.ReportTimeUnixMs} must have type int.")
-        if not property_format.is_reasonable_unix_time_ms(self.ReportTimeUnixMs):
-            errors.append(f"ReportTimeUnixMs {self.ReportTimeUnixMs}"
+        if not isinstance(self.ScadaReadTimeUnixMs, int):
+            errors.append(f"ScadaReadTimeUnixMs {self.ScadaReadTimeUnixMs} must have type int.")
+        if not property_format.is_reasonable_unix_time_ms(self.ScadaReadTimeUnixMs):
+            errors.append(f"ScadaReadTimeUnixMs {self.ScadaReadTimeUnixMs}"
                           " must have format ReasonableUnixTimeMs")
         if not isinstance(self.ValueList, list):
             errors.append(f"ValueList {self.ValueList} must have type list.")
@@ -52,7 +52,8 @@ class GtShStatusSnapshotBase(NamedTuple):
             for elt in self.TelemetryNameList:
                 if not isinstance(elt, TelemetryName):
                     errors.append(f"elt {elt} of TelemetryNameList must have type TelemetryName!")
-        if self.TypeAlias != 'gt.sh.status.snapshot.110':
-            errors.append(f"Type requires TypeAlias of gt.sh.status.snapshot.110, not {self.TypeAlias}.")
+        if self.TypeAlias != 'gt.sh.telemetry.from.multipurpose.sensor.100':
+            errors.append("Type requires TypeAlias of gt.sh.telemetry.from.multipurpose.sensor.100,"
+                          f" not {self.TypeAlias}.")
 
         return errors

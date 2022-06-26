@@ -19,7 +19,7 @@
     <xsl:template match="/">
         <FileSet>
             <FileSetFiles>
-                <xsl:for-each select="$airtable//GtEnums/GtEnum[(normalize-space(Alias) !='')]">
+                <xsl:for-each select="$airtable//GtEnums/GtEnum[(normalize-space(Alias) !='' and Status='Active')]">
                     <xsl:variable name="enum-alias" select="Alias" />  
                     <xsl:variable name="enum-name-style" select="PythonEnumNameStyle" /> 
                     <xsl:variable name="class-name">
@@ -50,6 +50,11 @@ from typing import List
 
 class </xsl:text><xsl:value-of select="$local-class-name"/>
 <xsl:text>(enum.Enum):
+
+    @classmethod
+    def values(cls):
+        return [elt.value for elt in cls]
+
     </xsl:text> 
 
 <xsl:for-each select="$airtable//EnumSymbols/EnumSymbol[(Enum = $enum-id)]">

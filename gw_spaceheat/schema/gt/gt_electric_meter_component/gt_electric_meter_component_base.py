@@ -16,8 +16,6 @@ class GtElectricMeterComponentBase(NamedTuple):
 
     def asdict(self):
         d = self._asdict()
-        if d["ComponentAttributeClass"] is None:
-            del d["ComponentAttributeClass"]
         if d["DisplayName"] is None:
             del d["DisplayName"]
         if d["HwUid"] is None:

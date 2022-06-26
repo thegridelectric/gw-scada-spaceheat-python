@@ -12,18 +12,22 @@ class ElectricMeterCac(ElectricMeterCacBase):
 
     def __init__(self, component_attribute_class_id: str,
                  make_model_gt_enum_symbol: str,
-                 comms_method: Optional[str] = None,
+                 local_comm_interface_gt_enum_symbol: str,
+                 update_period_ms: int,
+                 default_baud: int,
                  display_name: Optional[str] = None,
                  ):
         super(self.__class__, self).__init__(component_attribute_class_id=component_attribute_class_id,
-                                             comms_method=comms_method,
-                                             display_name=display_name,
                                              make_model_gt_enum_symbol=make_model_gt_enum_symbol,
+                                             local_comm_interface_gt_enum_symbol=local_comm_interface_gt_enum_symbol,
+                                             update_period_ms=update_period_ms,
+                                             default_baud=default_baud,
+                                             display_name=display_name,
                                              )
         ElectricMeterCac.by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
 
-    def _check_update_axioms(self, type: GtElectricMeterCac):
+    def _check_update_axioms(self, gw_tuple: GtElectricMeterCac):
         pass
 
     def __repr__(self):
