@@ -15,17 +15,11 @@ from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.simple_sensor import SimpleSensor
 from command_line_utils import run_nodes_main
-from data_classes.cacs.electric_meter_cac import ElectricMeterCac
-from data_classes.components.electric_meter_component import ElectricMeterComponent
-from data_classes.errors import DcError
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_dispatch import GsDispatch
-from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker \
-    import GtElectricMeterComponent_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
@@ -145,7 +139,6 @@ def test_load_real_house():
 
 def test_load_house():
     """Verify that load_house() successfully loads test objects"""
-    assert len(ShNode.by_alias) == 0
     load_house.load_all()
     for node in ShNode.by_alias.values():
         print(node.parent)
@@ -514,7 +507,7 @@ def test_power_meter_small():
     tt = TelemetryTuple(
         AboutNode=ShNode.by_alias["a.elt1"],
         SensorNode=meter.node,
-        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS
+        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
     assert tt in meter.my_telemetry_tuples()
     assert meter.latest_telemetry_value[tt] is None
@@ -527,71 +520,15 @@ def test_power_meter_small():
     assert meter.max_telemetry_value[tt] == 10**7
     meter.prev_telemetry_value[tt] = meter.latest_telemetry_value[tt]
     assert meter.value_exceeds_async_threshold(tt) is False
-    meter.latest_telemetry_value[tt] += (
-        int(0.1 * meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt])
+    meter.latest_telemetry_value[tt] += int(
+        0.1 * meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
     )
     assert meter.value_exceeds_async_threshold(tt) is False
     assert meter.should_report_telemetry_reading(tt)
     meter.report_sampled_telemetry_values([tt])
     assert meter.should_report_telemetry_reading(tt) is False
 
-    meter.latest_telemetry_value[tt] += (
-        int(meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt])
+    meter.latest_telemetry_value[tt] += int(
+        meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
     )
     assert meter.value_exceeds_async_threshold(tt) is True
-
-
-###################
-# Dataclass Tests
-####################
-
-
-def test_electric_meter_cac():
-    load_house.load_all()
-    d = {
-        "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-        "MakeModelGtEnumSymbol": "076da322",
-        "DisplayName": "Gridworks Pm1 Simulated Power Meter",
-        "LocalCommInterfaceGtEnumSymbol": "efc144cd",
-        "UpdatePeriodMs": 500
-    }
-
-    meter_cac_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d)
-    assert meter_cac_as_tuple.ComponentAttributeClassId in ElectricMeterCac.by_id.keys()
-    meter_cac_as_dc = ElectricMeterCac.by_id[meter_cac_as_tuple.ComponentAttributeClassId]
-    assert meter_cac_as_dc.update_period_ms == 1000
-    assert meter_cac_as_tuple.UpdatePeriodMs == 500
-
-    with pytest.raises(DcError):
-        meter_cac_as_dc.update(gw_tuple=meter_cac_as_tuple)
-
-    d2 = {
-        "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-        "MakeModelGtEnumSymbol": "076da322",
-        "DisplayName": "Gridworks Pm1 Eletric Meter",
-        "LocalCommInterfaceGtEnumSymbol": "efc144cd",
-        "UpdatePeriodMs": 1000
-    }
-
-    meter_cac_2_as_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d2)
-    assert meter_cac_as_dc.display_name != meter_cac_2_as_tuple.DisplayName
-    meter_cac_as_dc.update(gw_tuple=meter_cac_2_as_tuple)
-
-
-def test_electric_meter_component():
-    load_house.load_all()
-    d = {
-            "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
-            "DisplayName": "Main Power meter for Little orange house garage space heat",
-            "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-            "HwUid": "9999"
-        }
-
-    gw_tuple = GtElectricMeterComponent_Maker.dict_to_tuple(d)
-    assert gw_tuple.ComponentId in ElectricMeterComponent.by_id.keys()
-    component_as_dc = ElectricMeterComponent.by_id[gw_tuple.ComponentId]
-    assert gw_tuple.HwUid == "9999"
-    assert component_as_dc.hw_uid == "1001ab"
-
-    with pytest.raises(DcError):
-        component_as_dc.update(gw_tuple=gw_tuple)

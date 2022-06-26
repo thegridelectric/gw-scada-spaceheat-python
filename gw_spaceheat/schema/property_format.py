@@ -13,9 +13,9 @@ def is_bit(candidate):
 
 def is_64_bit_hex(candidate):
     if len(candidate) != 8:
-        raise Exception(f"Wrong number of bits for 64 bit hex! {candidate}")
+        return False
     if not all(c in string.hexdigits for c in candidate):
-        raise Exception(f"All digits must be hex! {candidate}")
+        return False
     return True
 
 
@@ -24,7 +24,7 @@ def is_lrd_alias_format(candidate: str):
     significant word to the left.  I.e. `dw1.ne` is the child of `dw1`. """
     try:
         x = candidate.split('.')
-    except AttributeError:
+    except:
         return False
     for word in x:
         if not word.isalnum():

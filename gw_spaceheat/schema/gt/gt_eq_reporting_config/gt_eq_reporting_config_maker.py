@@ -67,7 +67,8 @@ class GtEqReportingConfig_Maker():
         if "AsyncReportThreshold" not in d.keys():
             d["AsyncReportThreshold"] = None
 
-        tuple = GtEqReportingConfig(ReportOnChange=d["ReportOnChange"],
+        tuple = GtEqReportingConfig(ShNodeAlias=d["ShNodeAlias"],
+                                    ReportOnChange=d["ReportOnChange"],
                                     Exponent=d["Exponent"],
                                     Unit=d["Unit"],
                                     AsyncReportThreshold=d["AsyncReportThreshold"],
