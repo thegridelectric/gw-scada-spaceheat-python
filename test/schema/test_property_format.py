@@ -1,14 +1,6 @@
-import json
 import uuid
-
 import pendulum
-import pytest
 import schema.property_format
-import settings
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.enums.unit.unit_map import Unit
-from schema.errors import MpSchemaError
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import GtEqReportingConfig_Maker
 
 
 def test_property_format():
@@ -65,41 +57,3 @@ def test_property_format():
     assert not schema.property_format.is_uuid_canonical_textual(fail6)
     fail7 = "d4be12d5-33ba-4f1f-b9e5-2582fe41241"
     assert not schema.property_format.is_uuid_canonical_textual(fail7)
-
-
-def test_gt_eq_reporting_config():
-
-    config_tuple = GtEqReportingConfig_Maker(
-        sh_node_alias="a.elt1",
-        report_on_change=True,
-        telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-        unit=Unit.AMPS_RMS,
-        exponent=6,
-        sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
-        async_report_threshold=0.2,
-    ).tuple
-
-    config_dict = {
-        "ShNodeAlias": "a.elt1",
-        "ReportOnChange": True,
-        "Exponent": 6,
-        "SamplePeriodS": 300,
-        "AsyncReportThreshold": 0.2,
-        "TypeAlias": "gt.eq.reporting.config.100",
-        "UnitGtEnumSymbol": "a969ac7c",
-        "TelemetryNameGtEnumSymbol": "ad19e79c",
-    }
-
-    config_type = json.dumps(config_dict)
-    assert GtEqReportingConfig_Maker.type_to_tuple(config_type) == config_tuple
-    assert GtEqReportingConfig_Maker.tuple_to_type(config_tuple) == config_type
-
-    del config_dict["ShNodeAlias"]
-    with pytest.raises(MpSchemaError):
-        GtEqReportingConfig_Maker.dict_to_tuple(config_dict)
-    config_dict["ShNodeAlias"] = 5
-    with pytest.raises(MpSchemaError):
-        GtEqReportingConfig_Maker.dict_to_tuple(config_dict)
-    config_dict["ShNodeAlias"] = "5.a-h"
-    with pytest.raises(MpSchemaError):
-        GtEqReportingConfig_Maker.dict_to_tuple(config_dict)

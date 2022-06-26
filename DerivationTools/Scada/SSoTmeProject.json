@@ -176,6 +176,17 @@
       "Name": "XmlXsltTransform",
       "RelativePath": "/DataClass/Component/ComponentBase",
       "CommandLine": "codee42/xml-xslt-transform -i ../../../SSoT/Airtable.xml -i DeriveComponentBases.xslt -i ../../../ScadaCommon.xslt -i ../../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "b555ca66-c6d4-400d-809b-bbe346c5ed6f",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Schema/SchemaTest",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveSchemaTests.xslt -i ../../ScadaCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
     }
   ]
 }
