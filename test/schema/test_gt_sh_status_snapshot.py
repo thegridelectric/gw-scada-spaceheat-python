@@ -74,6 +74,13 @@ def test_gt_sh_status_snapshot():
         Maker(about_node_alias_list=gw_tuple.AboutNodeAliasList,
               report_time_unix_ms=gw_tuple.ReportTimeUnixMs,
               value_list=gw_tuple.ValueList,
+              telemetry_name_list="This string is not a list",
+              )
+
+    with pytest.raises(MpSchemaError):
+        Maker(about_node_alias_list=gw_tuple.AboutNodeAliasList,
+              report_time_unix_ms=gw_tuple.ReportTimeUnixMs,
+              value_list=gw_tuple.ValueList,
               telemetry_name_list=["This is not a TelemetryName Enum."],
               )
 
@@ -83,7 +90,7 @@ def test_gt_sh_status_snapshot():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["AboutNodeAliasList"] = [42]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
+        Maker.dict_to_tuple(gw_dict) 
     gw_dict["AboutNodeAliasList"] = orig_value
 
     orig_value = gw_dict["ReportTimeUnixMs"]
@@ -98,7 +105,7 @@ def test_gt_sh_status_snapshot():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ValueList"] = [1.1]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
+        Maker.dict_to_tuple(gw_dict) 
     gw_dict["ValueList"] = orig_value
 
     ######################################
@@ -112,7 +119,7 @@ def test_gt_sh_status_snapshot():
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
-
+    
     gw_dict["AboutNodeAliasList"] = ["a.b-h"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
