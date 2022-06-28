@@ -1,4 +1,4 @@
-"""Tests gt.sh.status.snapshot type"""
+"""Tests gt.sh.status.snapshot.110 type"""
 import json
 
 import pytest
@@ -16,7 +16,7 @@ def test_gt_sh_status_snapshot():
         "AboutNodeAliasList": ["a.elt1.relay", "a.tank.temp0"],
         "ReportTimeUnixMs": 1656363448000,
         "ValueList": [1, 66086],
-        "TypeAlias": "gt.eq.reporting.config.100",
+        "TypeAlias": "gt.sh.status.snapshot.110",
     }
 
     with pytest.raises(MpSchemaError):
@@ -86,8 +86,8 @@ def test_gt_sh_status_snapshot():
     gw_dict["ReportTimeUnixMs"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReportTimeUnixMsGtEnumSymbol"] = orig_value
-    
+    gw_dict["ReportTimeUnixMs"] = orig_value
+
     orig_value = gw_dict["ValueList"]
     gw_dict["ValueList"] = "This string is not a list."
     with pytest.raises(MpSchemaError):
@@ -97,6 +97,14 @@ def test_gt_sh_status_snapshot():
         Maker.dict_to_tuple(gw_dict) 
     gw_dict["ValueList"] = orig_value
     
+    ######################################
+    # MpSchemaError raised if TypeAlias is incorrect
+    ######################################
+
+    gw_dict["TypeAlias"] = "not the type alias"
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################

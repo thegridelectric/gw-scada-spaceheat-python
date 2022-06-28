@@ -54,6 +54,8 @@ class GtEqReportingConfig_Maker():
         for key in d.keys():
             new_d[key] = d[key]
 
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
         if "ShNodeAlias" not in d.keys():
             raise MpSchemaError(f"dict {new_d} missing ShNodeAlias")
         if "ReportOnChange" not in new_d.keys():
@@ -78,6 +80,7 @@ class GtEqReportingConfig_Maker():
                                     AsyncReportThreshold=new_d["AsyncReportThreshold"],
                                     SamplePeriodS=new_d["SamplePeriodS"],
                                     TelemetryName=new_d["TelemetryName"],
+                                    TypeAlias=new_d["TypeAlias"],
                                     )
         tuple.check_for_errors()
         return tuple

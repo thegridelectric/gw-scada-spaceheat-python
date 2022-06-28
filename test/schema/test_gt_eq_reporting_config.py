@@ -1,11 +1,14 @@
-"""Tests gt.eq.reporting.config type"""
+"""Tests gt.eq.reporting.config.100 type"""
 import json
 
 import pytest
 
 from schema.errors import MpSchemaError
+from schema.enums.unit.unit_map import UnitMap
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryNameMap
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig_Maker as Maker,
+    GtEqReportingConfig as GwTuple,
 )
 
 
@@ -75,7 +78,6 @@ def test_gt_eq_reporting_config():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TelemetryNameGtEnumSymbol"] = orig_value
 
-    
     ######################################
     # Optional attributes can be removed from type
     ######################################
@@ -95,44 +97,62 @@ def test_gt_eq_reporting_config():
     gw_dict["ReportOnChange"] = "This string is not a boolean."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReportOnChangeGtEnumSymbol"] = orig_value
-    
+    gw_dict["ReportOnChange"] = orig_value
+
     orig_value = gw_dict["Exponent"]
     gw_dict["Exponent"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ExponentGtEnumSymbol"] = orig_value
-    
-    orig_value = gw_dict["UnitGtEnumSymbol"]
-    gw_dict["UnitGtEnumSymbol"] = "This string is not a UnitGtEnumSymbol."
+    gw_dict["Exponent"] = orig_value
+
+    gw_tuple = GwTuple(ReportOnChange=True,
+                       Exponent=6,
+                       ShNodeAlias="a.elt1",
+                       AsyncReportThreshold=0.2,
+                       SamplePeriodS=300,
+                       Unit="This is not a Unit Enum.",
+                       TelemetryName=TelemetryNameMap.gt_to_local("ad19e79c"),
+                       )
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["UnitGtEnumSymbol"] = orig_value
-    
+        gw_tuple.check_for_errors()
+
     orig_value = gw_dict["ShNodeAlias"]
     gw_dict["ShNodeAlias"] = 42
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAliasGtEnumSymbol"] = orig_value
-    
+    gw_dict["ShNodeAlias"] = orig_value
+
     orig_value = gw_dict["AsyncReportThreshold"]
     gw_dict["AsyncReportThreshold"] = "This string is not a float."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["AsyncReportThresholdGtEnumSymbol"] = orig_value
-    
+    gw_dict["AsyncReportThreshold"] = orig_value
+
     orig_value = gw_dict["SamplePeriodS"]
     gw_dict["SamplePeriodS"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["SamplePeriodSGtEnumSymbol"] = orig_value
-    
-    orig_value = gw_dict["TelemetryNameGtEnumSymbol"]
-    gw_dict["TelemetryNameGtEnumSymbol"] = "This string is not a TelemetryNameGtEnumSymbol."
+    gw_dict["SamplePeriodS"] = orig_value
+
+    gw_tuple = GwTuple(ReportOnChange=True,
+                       Exponent=6,
+                       ShNodeAlias="a.elt1",
+                       AsyncReportThreshold=0.2,
+                       SamplePeriodS=300,
+                       Unit=UnitMap.gt_to_local("a969ac7c"),
+                       TelemetryName="This is not a TelemetryName Enum.",
+                       )
+    with pytest.raises(MpSchemaError):
+        gw_tuple.check_for_errors()
+
+    ######################################
+    # MpSchemaError raised if TypeAlias is incorrect
+    ######################################
+
+    gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TelemetryNameGtEnumSymbol"] = orig_value
-    
+
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
