@@ -57,14 +57,14 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:text>
         "</xsl:text><xsl:value-of select="Value"  />
         <xsl:text>": </xsl:text>
-        <xsl:value-of select="TestValue"/>
+        <xsl:value-of select="normalize-space(TestValue)"/>
         <xsl:text>,</xsl:text>
         </xsl:for-each>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsEnum = 'true') and not (IsList = 'true')]">
         <xsl:text>
         "</xsl:text><xsl:value-of select="Value"  />
         <xsl:text>GtEnumSymbol": </xsl:text>
-        <xsl:value-of select="TestValue"/>
+        <xsl:value-of select="normalize-space(TestValue)"/>
             <xsl:text>,</xsl:text>
         </xsl:for-each>
     <xsl:text>
@@ -310,29 +310,29 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     gw_dict["</xsl:text>
     <xsl:value-of select="Value"/>
     <xsl:text>"] = </xsl:text>
-    <xsl:value-of select="PrimitiveFormatFail1"/><xsl:text>
+    <xsl:value-of select="normalize-space(PrimitiveFormatFail1)"/><xsl:text>
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["</xsl:text><xsl:value-of select="Value"/><xsl:text>"] = </xsl:text>
-    <xsl:value-of select="TestValue"/>
+    <xsl:value-of select="normalize-space(TestValue)"/>
     </xsl:if>
 
     <xsl:if test="(IsList='true')">
     <xsl:text>
-    
+
     gw_dict["</xsl:text>
     <xsl:value-of select="Value"/>
     <xsl:text>"] = [</xsl:text>
-    <xsl:value-of select="PrimitiveFormatFail1"/><xsl:text>]
+    <xsl:value-of select="normalize-space(PrimitiveFormatFail1)"/><xsl:text>]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["</xsl:text><xsl:value-of select="Value"/><xsl:text>"] = </xsl:text>
-    <xsl:value-of select="TestValue"/>
+    <xsl:value-of select="normalize-space(TestValue)"/>
     </xsl:if>
     </xsl:for-each>
 
-    <xsl:text> 
-    
+    <xsl:text>
+
     # End of Test
 </xsl:text>
 
