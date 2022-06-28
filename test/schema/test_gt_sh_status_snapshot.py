@@ -36,6 +36,12 @@ def test_gt_sh_status_snapshot():
     # MpSchemaError raised if missing a required attribute
     ######################################
 
+    orig_value = gw_dict["TypeAlias"]
+    del gw_dict["TypeAlias"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["TypeAlias"] = orig_value
+
     orig_value = gw_dict["TelemetryNameList"]
     del gw_dict["TelemetryNameList"]
     with pytest.raises(MpSchemaError):
@@ -64,14 +70,12 @@ def test_gt_sh_status_snapshot():
     # MpSchemaError raised if attributes have incorrect type
     ######################################
 
-    orig_value = gw_dict["TelemetryNameList"]
-    gw_dict["TelemetryNameList"] = "This string is not a list."
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TelemetryNameList"] = ["This string is not a TelemetryNameGtEnumSymbol."]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TelemetryNameList"] = orig_value
+        Maker(about_node_alias_list=gw_tuple.AboutNodeAliasList,
+              report_time_unix_ms=gw_tuple.ReportTimeUnixMs,
+              value_list=gw_tuple.ValueList,
+              telemetry_name_list=["This is not a TelemetryName Enum."],
+              )
 
     orig_value = gw_dict["AboutNodeAliasList"]
     gw_dict["AboutNodeAliasList"] = "This string is not a list."
