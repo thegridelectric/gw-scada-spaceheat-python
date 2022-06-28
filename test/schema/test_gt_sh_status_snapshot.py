@@ -74,6 +74,13 @@ def test_gt_sh_status_snapshot():
         Maker(about_node_alias_list=gw_tuple.AboutNodeAliasList,
               report_time_unix_ms=gw_tuple.ReportTimeUnixMs,
               value_list=gw_tuple.ValueList,
+              telemetry_name_list="This string is not a list",
+              )
+
+    with pytest.raises(MpSchemaError):
+        Maker(about_node_alias_list=gw_tuple.AboutNodeAliasList,
+              report_time_unix_ms=gw_tuple.ReportTimeUnixMs,
+              value_list=gw_tuple.ValueList,
               telemetry_name_list=["This is not a TelemetryName Enum."],
               )
 
@@ -122,3 +129,5 @@ def test_gt_sh_status_snapshot():
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ReportTimeUnixMs"] = 1656363448000
+
+    # End of Test
