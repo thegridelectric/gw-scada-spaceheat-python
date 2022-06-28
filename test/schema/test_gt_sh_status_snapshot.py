@@ -71,10 +71,10 @@ def test_gt_sh_status_snapshot():
     ######################################
 
     with pytest.raises(MpSchemaError):
-        Maker(AboutNodeAliasList=gw_tuple.AboutNodeAliasList,
-              ReportTimeUnixMs=gw_tuple.ReportTimeUnixMs,
-              ValueList=gw_tuple.ValueList,
-              TelemetryNameList=["This is not a TelemetryName Enum."],
+        Maker(about_node_alias_list=gw_tuple.AboutNodeAliasList,
+              report_time_unix_ms=gw_tuple.ReportTimeUnixMs,
+              value_list=gw_tuple.ValueList,
+              telemetry_name_list=["This is not a TelemetryName Enum."],
               )
 
     orig_value = gw_dict["AboutNodeAliasList"]

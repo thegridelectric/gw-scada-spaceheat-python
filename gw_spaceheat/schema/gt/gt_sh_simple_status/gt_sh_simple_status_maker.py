@@ -44,25 +44,31 @@ class GtShSimpleStatus_Maker():
 
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtShSimpleStatus:
-        if "AboutGNodeAlias" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing AboutGNodeAlias")
-        if "SlotStartUnixS" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing SlotStartUnixS")
-        if "ReportingPeriodS" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ReportingPeriodS")
-        if "SimpleSingleStatusList" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing SimpleSingleStatusList")
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "AboutGNodeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing AboutGNodeAlias")
+        if "SlotStartUnixS" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing SlotStartUnixS")
+        if "ReportingPeriodS" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ReportingPeriodS")
+        if "SimpleSingleStatusList" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing SimpleSingleStatusList")
         if not isinstance(d["SimpleSingleStatusList"], list):
-            raise MpSchemaError(f"d['SimpleSingleStatusList'] {d['SimpleSingleStatusList']} must be a list!")
+            raise MpSchemaError(f"d['SimpleSingleStatusList'] {new_d['SimpleSingleStatusList']} must be a list!")
         sh_simple_single_status_list = []
-        for simple_single_status in d["SimpleSingleStatusList"]:
+        for simple_single_status in new_d["SimpleSingleStatusList"]:
             sh_simple_single_status_list.append(GtShSimpleSingleStatus_Maker.dict_to_tuple(simple_single_status))
-        d["SimpleSingleStatusList"] = sh_simple_single_status_list
+        new_d["SimpleSingleStatusList"] = sh_simple_single_status_list
 
-        tuple = GtShSimpleStatus(AboutGNodeAlias=d["AboutGNodeAlias"],
-                                 SlotStartUnixS=d["SlotStartUnixS"],
-                                 ReportingPeriodS=d["ReportingPeriodS"],
-                                 SimpleSingleStatusList=d["SimpleSingleStatusList"],
+        tuple = GtShSimpleStatus(AboutGNodeAlias=new_d["AboutGNodeAlias"],
+                                 SlotStartUnixS=new_d["SlotStartUnixS"],
+                                 ReportingPeriodS=new_d["ReportingPeriodS"],
+                                 SimpleSingleStatusList=new_d["SimpleSingleStatusList"],
+                                 TypeAlias=new_d["TypeAlias"],
                                  )
         tuple.check_for_errors()
         return tuple
