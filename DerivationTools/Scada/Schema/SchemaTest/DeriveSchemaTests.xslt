@@ -236,7 +236,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
                 </xsl:if>
             </xsl:if>
         <xsl:text>with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict) 
+        Maker.dict_to_tuple(gw_dict)
     gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = orig_value
 
     </xsl:text>
@@ -331,7 +331,10 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     </xsl:if>
     </xsl:for-each>
 
-
+    <xsl:text> 
+    
+    # End of Test
+</xsl:text>
 
 
                         </xsl:element>
