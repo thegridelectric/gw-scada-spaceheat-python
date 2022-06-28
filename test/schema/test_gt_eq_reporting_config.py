@@ -161,6 +161,6 @@ def test_gt_eq_reporting_config():
     gw_dict["ShNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = "a.elt1" 
-    
+    gw_dict["ShNodeAlias"] = "a.elt1"
+
     # End of Test
