@@ -50,30 +50,37 @@ class GtEqReportingConfig_Maker():
 
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtEqReportingConfig:
-        if "ShNodeAlias" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ShNodeAlias")
-        if "ReportOnChange" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ReportOnChange")
-        if "Exponent" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing Exponent")
-        if "SamplePeriodS" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing SamplePeriodS")
-        if "UnitGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing UnitGtEnumSymbol")
-        d["Unit"] = UnitMap.gt_to_local(d["UnitGtEnumSymbol"])
-        if "TelemetryNameGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing TelemetryNameGtEnumSymbol")
-        d["TelemetryName"] = TelemetryNameMap.gt_to_local(d["TelemetryNameGtEnumSymbol"])
-        if "AsyncReportThreshold" not in d.keys():
-            d["AsyncReportThreshold"] = None
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
 
-        tuple = GtEqReportingConfig(ShNodeAlias=d["ShNodeAlias"],
-                                    ReportOnChange=d["ReportOnChange"],
-                                    Exponent=d["Exponent"],
-                                    Unit=d["Unit"],
-                                    AsyncReportThreshold=d["AsyncReportThreshold"],
-                                    SamplePeriodS=d["SamplePeriodS"],
-                                    TelemetryName=d["TelemetryName"],
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "ShNodeAlias" not in d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ShNodeAlias")
+        if "ReportOnChange" not in new_d.keys():
+            raise MpSchemaError(f"dict {d} missing ReportOnChange")
+        if "Exponent" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing Exponent")
+        if "SamplePeriodS" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing SamplePeriodS")
+        if "UnitGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing UnitGtEnumSymbol")
+        new_d["Unit"] = UnitMap.gt_to_local(new_d["UnitGtEnumSymbol"])
+        if "TelemetryNameGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TelemetryNameGtEnumSymbol")
+        new_d["TelemetryName"] = TelemetryNameMap.gt_to_local(new_d["TelemetryNameGtEnumSymbol"])
+        if "AsyncReportThreshold" not in new_d.keys():
+            new_d["AsyncReportThreshold"] = None
+
+        tuple = GtEqReportingConfig(ShNodeAlias=new_d["ShNodeAlias"],
+                                    ReportOnChange=new_d["ReportOnChange"],
+                                    Exponent=new_d["Exponent"],
+                                    Unit=new_d["Unit"],
+                                    AsyncReportThreshold=new_d["AsyncReportThreshold"],
+                                    SamplePeriodS=new_d["SamplePeriodS"],
+                                    TelemetryName=new_d["TelemetryName"],
+                                    TypeAlias=new_d["TypeAlias"],
                                     )
         tuple.check_for_errors()
         return tuple
