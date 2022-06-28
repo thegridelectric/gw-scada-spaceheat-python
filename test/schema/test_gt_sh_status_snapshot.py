@@ -90,7 +90,7 @@ def test_gt_sh_status_snapshot():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["AboutNodeAliasList"] = [42]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict) 
+        Maker.dict_to_tuple(gw_dict)
     gw_dict["AboutNodeAliasList"] = orig_value
 
     orig_value = gw_dict["ReportTimeUnixMs"]
@@ -105,7 +105,7 @@ def test_gt_sh_status_snapshot():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ValueList"] = [1.1]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict) 
+        Maker.dict_to_tuple(gw_dict)
     gw_dict["ValueList"] = orig_value
 
     ######################################
@@ -119,7 +119,7 @@ def test_gt_sh_status_snapshot():
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
-    
+
     gw_dict["AboutNodeAliasList"] = ["a.b-h"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
