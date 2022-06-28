@@ -70,37 +70,37 @@ def test_gt_sh_status_snapshot():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TelemetryNameList"] = ["This string is not a TelemetryNameGtEnumSymbol."]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict) 
+        Maker.dict_to_tuple(gw_dict)
     gw_dict["TelemetryNameList"] = orig_value
-    
+
     orig_value = gw_dict["AboutNodeAliasList"]
     gw_dict["AboutNodeAliasList"] = "This string is not a list."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["AboutNodeAliasList"] = [42]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict) 
+        Maker.dict_to_tuple(gw_dict)
     gw_dict["AboutNodeAliasList"] = orig_value
-    
+
     orig_value = gw_dict["ReportTimeUnixMs"]
     gw_dict["ReportTimeUnixMs"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ReportTimeUnixMsGtEnumSymbol"] = orig_value
-    
+
     orig_value = gw_dict["ValueList"]
     gw_dict["ValueList"] = "This string is not a list."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ValueList"] = [1.1]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict) 
+        Maker.dict_to_tuple(gw_dict)
     gw_dict["ValueList"] = orig_value
-    
+
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
-    
+
     gw_dict["AboutNodeAliasList"] = ["a.b-h"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
