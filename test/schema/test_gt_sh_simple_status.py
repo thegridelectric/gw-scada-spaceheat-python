@@ -15,7 +15,22 @@ def test_gt_sh_simple_status():
         "AboutGNodeAlias": "dwjess.isone.nh.orange.1.ta",
         "SlotStartUnixS": 1656443700,
         "ReportingPeriodS": 300,
-        "SimpleSingleStatusList": [{"ReadTimeUnixMsList": [1656443705023], "ShNodeAlias": "a.elt1.relay", "ValueList": [0], "TypeAlias": "gt.sh.simple.single.status.100", "TelemetryNameGtEnumSymbol": "5a71d4b3"}, {"ReadTimeUnixMsList": [1656443704662, 1656443709089], "ShNodeAlias": "a.tank.temp0", "ValueList": [66238, 66514], "TypeAlias": "gt.sh.simple.single.status.100", "TelemetryNameGtEnumSymbol": "793505aa"}],
+        "SimpleSingleStatusList": [
+            {
+                "ReadTimeUnixMsList": [1656443705023],
+                "ShNodeAlias": "a.elt1.relay",
+                "ValueList": [0],
+                "TypeAlias": "gt.sh.simple.single.status.100",
+                "TelemetryNameGtEnumSymbol": "5a71d4b3",
+            },
+            {
+                "ReadTimeUnixMsList": [1656443704662, 1656443709089],
+                "ShNodeAlias": "a.tank.temp0",
+                "ValueList": [66238, 66514],
+                "TypeAlias": "gt.sh.simple.single.status.100",
+                "TelemetryNameGtEnumSymbol": "793505aa",
+            },
+        ],
         "TypeAlias": "gt.sh.simple.status.100",
     }
 
@@ -105,10 +120,12 @@ def test_gt_sh_simple_status():
     gw_dict["SimpleSingleStatusList"] = orig_value
 
     with pytest.raises(MpSchemaError):
-        Maker(about_g_node_alias=gw_dict["AboutGNodeAlias"],
-              slot_start_unix_s=gw_dict["SlotStartUnixS"],
-              reporting_period_s=gw_dict["ReportingPeriodS"],
-              simple_single_status_list=["Not a GtShSimpleSingleStatus100"])
+        Maker(
+            about_g_node_alias=gw_dict["AboutGNodeAlias"],
+            slot_start_unix_s=gw_dict["SlotStartUnixS"],
+            reporting_period_s=gw_dict["ReportingPeriodS"],
+            simple_single_status_list=["Not a GtShSimpleSingleStatus100"],
+        )
 
     ######################################
     # MpSchemaError raised if TypeAlias is incorrect

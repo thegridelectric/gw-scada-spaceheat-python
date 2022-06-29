@@ -109,14 +109,15 @@ def test_gt_eq_reporting_config():
     gw_dict["Exponent"] = orig_value
 
     with pytest.raises(MpSchemaError):
-        Maker(report_on_change=gw_tuple.ReportOnChange,
-              exponent=gw_tuple.Exponent,
-              sh_node_alias=gw_tuple.ShNodeAlias,
-              async_report_threshold=gw_tuple.AsyncReportThreshold,
-              sample_period_s=gw_tuple.SamplePeriodS,
-              telemetry_name=gw_tuple.TelemetryName,
-              unit="This is not a Unit Enum.",
-              )
+        Maker(
+            report_on_change=gw_tuple.ReportOnChange,
+            exponent=gw_tuple.Exponent,
+            sh_node_alias=gw_tuple.ShNodeAlias,
+            async_report_threshold=gw_tuple.AsyncReportThreshold,
+            sample_period_s=gw_tuple.SamplePeriodS,
+            telemetry_name=gw_tuple.TelemetryName,
+            unit="This is not a Unit Enum.",
+        )
 
     orig_value = gw_dict["ShNodeAlias"]
     gw_dict["ShNodeAlias"] = 42
@@ -137,14 +138,15 @@ def test_gt_eq_reporting_config():
     gw_dict["SamplePeriodS"] = orig_value
 
     with pytest.raises(MpSchemaError):
-        Maker(report_on_change=gw_tuple.ReportOnChange,
-              exponent=gw_tuple.Exponent,
-              unit=gw_tuple.Unit,
-              sh_node_alias=gw_tuple.ShNodeAlias,
-              async_report_threshold=gw_tuple.AsyncReportThreshold,
-              sample_period_s=gw_tuple.SamplePeriodS,
-              telemetry_name="This is not a TelemetryName Enum.",
-              )
+        Maker(
+            report_on_change=gw_tuple.ReportOnChange,
+            exponent=gw_tuple.Exponent,
+            unit=gw_tuple.Unit,
+            sh_node_alias=gw_tuple.ShNodeAlias,
+            async_report_threshold=gw_tuple.AsyncReportThreshold,
+            sample_period_s=gw_tuple.SamplePeriodS,
+            telemetry_name="This is not a TelemetryName Enum.",
+        )
 
     ######################################
     # MpSchemaError raised if TypeAlias is incorrect

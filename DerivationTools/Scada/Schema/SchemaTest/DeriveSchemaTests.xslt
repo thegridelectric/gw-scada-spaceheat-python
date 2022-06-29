@@ -161,7 +161,8 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = orig_value
 
     with pytest.raises(MpSchemaError):
-        Maker(</xsl:text>
+        Maker(
+            </xsl:text>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
@@ -169,7 +170,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:text>=gw_tuple.</xsl:text>
         <xsl:value-of select="Value"/>
         <xsl:text>,
-              </xsl:text>
+            </xsl:text>
         </xsl:for-each>
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="$attribute"  />
@@ -177,7 +178,8 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:text>="Not a </xsl:text>
         <xsl:call-template name="nt-case">
                     <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
-                </xsl:call-template><xsl:text>")
+                </xsl:call-template><xsl:text>",
+        )
 
     </xsl:text>
     </xsl:if>
@@ -211,7 +213,8 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     <xsl:if test = "not (IsList = 'true') and IsEnum = 'true'">
     
     <xsl:text>with pytest.raises(MpSchemaError):
-        Maker(</xsl:text>
+        Maker(
+            </xsl:text>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
@@ -219,7 +222,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:text>=gw_tuple.</xsl:text>
         <xsl:value-of select="Value"/>
         <xsl:text>,
-              </xsl:text>
+            </xsl:text>
         </xsl:for-each>
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="$attribute"  />
@@ -228,8 +231,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:call-template name="nt-case">
             <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
         </xsl:call-template><xsl:text> Enum.",
-              </xsl:text>
-        <xsl:text>)
+        )
 
     </xsl:text>
     
@@ -254,7 +256,8 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = orig_value
 
     with pytest.raises(MpSchemaError):
-        Maker(</xsl:text>
+        Maker(
+            </xsl:text>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
@@ -262,7 +265,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:text>=gw_dict["</xsl:text>
         <xsl:value-of select="Value"/>
         <xsl:text>"],
-              </xsl:text>
+            </xsl:text>
         </xsl:for-each>
             <xsl:call-template name="python-case">
                 <xsl:with-param name="camel-case-text" select="$attribute"  />
@@ -271,7 +274,8 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
                 <xsl:call-template name="nt-case">
                     <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
                 </xsl:call-template>
-                <xsl:text>"])
+                <xsl:text>"],
+        )
 
     </xsl:text>
         </xsl:if>
@@ -317,7 +321,8 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     <xsl:if test = "(IsList = 'true') and (IsEnum= 'true')">
 
     <xsl:text>with pytest.raises(MpSchemaError):
-        Maker(</xsl:text>
+        Maker(
+            </xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
     <xsl:call-template name="python-case">
         <xsl:with-param name="camel-case-text" select="Value"  />
@@ -325,17 +330,17 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     <xsl:text>=gw_tuple.</xsl:text>
     <xsl:value-of select="Value"/>
     <xsl:text>,
-              </xsl:text>
+            </xsl:text>
     </xsl:for-each>
     <xsl:call-template name="python-case">
         <xsl:with-param name="camel-case-text" select="$attribute"  />
     </xsl:call-template>
     <xsl:text>="This string is not a list",
-              </xsl:text>
-    <xsl:text>)
+        )
 
     with pytest.raises(MpSchemaError):
-        Maker(</xsl:text>
+        Maker(
+            </xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
     <xsl:call-template name="python-case">
         <xsl:with-param name="camel-case-text" select="Value"  />
@@ -343,7 +348,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     <xsl:text>=gw_tuple.</xsl:text>
     <xsl:value-of select="Value"/>
     <xsl:text>,
-              </xsl:text>
+            </xsl:text>
     </xsl:for-each>
     <xsl:call-template name="python-case">
         <xsl:with-param name="camel-case-text" select="$attribute"  />
@@ -352,8 +357,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     <xsl:call-template name="nt-case">
         <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
     </xsl:call-template><xsl:text> Enum."],
-              </xsl:text>
-    <xsl:text>)
+        )
 
     </xsl:text>
     </xsl:if>
