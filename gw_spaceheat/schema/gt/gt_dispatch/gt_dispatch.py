@@ -1,11 +1,10 @@
-"""gt.dispatch type"""
+"""gt.dispatch.100 type"""
 
 from schema.errors import MpSchemaError
 from schema.gt.gt_dispatch.gt_dispatch_base import GtDispatchBase
 
 
 class GtDispatch(GtDispatchBase):
-
     def check_for_errors(self):
         errors = self.derived_errors() + self.hand_coded_errors()
         if len(errors) > 0:

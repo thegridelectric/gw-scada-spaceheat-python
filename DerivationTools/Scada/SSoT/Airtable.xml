@@ -1114,7 +1114,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <TestValue>False</TestValue>
+      <TestValue>True</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec8i1VAK2sgrnBWW</SchemaAttributeId>
@@ -1365,6 +1365,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>.05</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recGRNEh1iK0tu10N</SchemaAttributeId>
@@ -1953,6 +1954,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
+      <TestValue>"a.elt1.relay"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recbRDhEoGNs9jYEB</SchemaAttributeId>
@@ -2121,7 +2123,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itr0fFQY9h4UEirjz/recgqtFKFWYqHsb0q</SchemaAttribute>
+    <SchemaAttribute>itrCwHHR11HqUTzCn/recgqtFKFWYqHsb0q</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rechYoiSzlYAU1ZWD</SchemaAttributeId>
       <createdTime>2022-06-20T13:16:57Z</createdTime>
@@ -2277,6 +2279,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>2</PrimitiveFormatFail1>
+      <TestValue>0</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reclinqE3CjESK6LE</SchemaAttributeId>
@@ -2739,7 +2742,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <TestValue>5</TestValue>
+      <TestValue>60</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reczovvHr0jpI0nE1</SchemaAttributeId>
