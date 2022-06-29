@@ -43,7 +43,7 @@ class PowerMeter(ActorBase):
         self.screen_print(f"Initialized {self.__class__}")
 
     def initialize_eq_config(self):
-        all_eq_configs = self.config.reporting.EqReportingConfigList
+        all_eq_configs = self.config.reporting.ElectricalQuantityReportingConfigList
         amp_list = list(
             filter(
                 lambda x: x.TelemetryName == TelemetryName.CURRENT_RMS_MICRO_AMPS
