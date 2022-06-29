@@ -127,6 +127,14 @@ def test_gt_sh_simple_status():
             simple_single_status_list=["Not a GtShSimpleSingleStatus100"],
         )
 
+    with pytest.raises(MpSchemaError):
+        Maker(
+            about_g_node_alias=gw_tuple.AboutGNodeAlias,
+            slot_start_unix_s=gw_tuple.SlotStartUnixS,
+            reporting_period_s=gw_tuple.ReportingPeriodS,
+            simple_single_status_list="This string is not a list",
+        )
+
     ######################################
     # MpSchemaError raised if TypeAlias is incorrect
     ######################################

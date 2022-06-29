@@ -277,6 +277,24 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
                 <xsl:text>"],
         )
 
+    with pytest.raises(MpSchemaError):
+        Maker(
+            </xsl:text>
+    <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
+    <xsl:call-template name="python-case">
+        <xsl:with-param name="camel-case-text" select="Value"  />
+    </xsl:call-template>
+    <xsl:text>=gw_tuple.</xsl:text>
+    <xsl:value-of select="Value"/>
+    <xsl:text>,
+            </xsl:text>
+    </xsl:for-each>
+    <xsl:call-template name="python-case">
+        <xsl:with-param name="camel-case-text" select="$attribute"  />
+    </xsl:call-template>
+    <xsl:text>="This string is not a list",
+        )
+
     </xsl:text>
         </xsl:if>
     <xsl:if test = "(IsList = 'true') and (IsPrimitive = 'true')">
