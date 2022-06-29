@@ -115,6 +115,7 @@ def test_gt_sh_status_snapshot():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
+    gw_dict["TypeAlias"] = "gt.sh.status.snapshot.110"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format

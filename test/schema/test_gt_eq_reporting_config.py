@@ -153,6 +153,7 @@ def test_gt_eq_reporting_config():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
+    gw_dict["TypeAlias"] = "gt.eq.reporting.config.100"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format

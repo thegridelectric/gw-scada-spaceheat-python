@@ -148,6 +148,39 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
 
     </xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id)]">
+    <xsl:variable name="attribute"><xsl:value-of select="Value"/></xsl:variable>
+    <xsl:if test= "not(IsList = 'true') and (IsType='true') ">
+    <xsl:text>orig_value = gw_dict["</xsl:text>
+    <xsl:value-of  select="Value"/><xsl:text>"]
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = "Not a </xsl:text>
+    <xsl:call-template name="nt-case">
+        <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
+    </xsl:call-template><xsl:text>." 
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = orig_value
+
+    with pytest.raises(MpSchemaError):
+        Maker(</xsl:text>
+        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
+        <xsl:call-template name="python-case">
+            <xsl:with-param name="camel-case-text" select="Value"  />
+        </xsl:call-template>
+        <xsl:text>=gw_tuple.</xsl:text>
+        <xsl:value-of select="Value"/>
+        <xsl:text>,
+              </xsl:text>
+        </xsl:for-each>
+        <xsl:call-template name="python-case">
+            <xsl:with-param name="camel-case-text" select="$attribute"  />
+        </xsl:call-template>
+        <xsl:text>="Not a </xsl:text>
+        <xsl:call-template name="nt-case">
+                    <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
+                </xsl:call-template><xsl:text>")
+
+    </xsl:text>
+    </xsl:if>
     <xsl:if test= "not(IsList = 'true') and (IsPrimitive='true') ">
    
     <xsl:text>orig_value = gw_dict["</xsl:text>
@@ -176,7 +209,6 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     </xsl:text>
     </xsl:if>
     <xsl:if test = "not (IsList = 'true') and IsEnum = 'true'">
-    <xsl:variable name="attribute"><xsl:value-of select="Value"/></xsl:variable>
     
     <xsl:text>with pytest.raises(MpSchemaError):
         Maker(</xsl:text>
@@ -202,6 +234,47 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     </xsl:text>
     
     </xsl:if>
+    <xsl:if test= "(IsList = 'true') and (IsType='true') ">
+    <xsl:text>orig_value = gw_dict["</xsl:text>
+    <xsl:value-of  select="Value"/><xsl:text>"]
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = "Not a list."
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = orig_value
+
+    orig_value = gw_dict["</xsl:text>
+    <xsl:value-of  select="Value"/><xsl:text>"]
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = ["Not even a dict"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = [{"Failed": "Not a GtSimpleSingleStatus"}]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = orig_value
+
+    with pytest.raises(MpSchemaError):
+        Maker(</xsl:text>
+        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
+        <xsl:call-template name="python-case">
+            <xsl:with-param name="camel-case-text" select="Value"  />
+        </xsl:call-template>
+        <xsl:text>=gw_dict["</xsl:text>
+        <xsl:value-of select="Value"/>
+        <xsl:text>"],
+              </xsl:text>
+        </xsl:for-each>
+            <xsl:call-template name="python-case">
+                <xsl:with-param name="camel-case-text" select="$attribute"  />
+            </xsl:call-template>
+              <xsl:text>=["Not a </xsl:text>
+                <xsl:call-template name="nt-case">
+                    <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
+                </xsl:call-template>
+                <xsl:text>"])
+
+    </xsl:text>
+        </xsl:if>
     <xsl:if test = "(IsList = 'true') and (IsPrimitive = 'true')">
         <xsl:text>orig_value = gw_dict["</xsl:text>
         <xsl:value-of  select="Value"/><xsl:text>"]
@@ -242,7 +315,6 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     </xsl:text>
     </xsl:if>
     <xsl:if test = "(IsList = 'true') and (IsEnum= 'true')">
-    <xsl:variable name="attribute"><xsl:value-of select="Value"/></xsl:variable>
 
     <xsl:text>with pytest.raises(MpSchemaError):
         Maker(</xsl:text>
@@ -295,6 +367,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
+    gw_dict["TypeAlias"] = "</xsl:text><xsl:value-of select="$alias"/><xsl:text>"
 
     </xsl:text>    
     <xsl:if test="count($airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (normalize-space(PrimitiveFormatFail1) != '')]) > 0">

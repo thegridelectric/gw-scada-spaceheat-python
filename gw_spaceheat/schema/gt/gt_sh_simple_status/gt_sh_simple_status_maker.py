@@ -61,6 +61,9 @@ class GtShSimpleStatus_Maker():
             raise MpSchemaError(f"d['SimpleSingleStatusList'] {new_d['SimpleSingleStatusList']} must be a list!")
         sh_simple_single_status_list = []
         for simple_single_status in new_d["SimpleSingleStatusList"]:
+            if not isinstance(simple_single_status, dict):
+                raise MpSchemaError(f"elt {simple_single_status} of SimpleSingleStatusList must be "
+                                    "GtShSimpleSingleStatus but not even a dict!")
             sh_simple_single_status_list.append(GtShSimpleSingleStatus_Maker.dict_to_tuple(simple_single_status))
         new_d["SimpleSingleStatusList"] = sh_simple_single_status_list
 
