@@ -1,8 +1,6 @@
 """Makes gt.telemetry.110 type"""
 
 import json
-from typing import Dict, Optional
-
 
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.errors import MpSchemaError
@@ -35,7 +33,7 @@ class GtTelemetry_Maker:
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError(f"Type must be string or bytes!")
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)

@@ -1934,6 +1934,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>True</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recZSLryoaKbh719a</SchemaAttributeId>
@@ -1969,6 +1970,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
+      <TestValue>{"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "gt.sh.status.snapshot.110"}</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recbVc2FnRaPtSZBS</SchemaAttributeId>
@@ -2126,7 +2128,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itrQY17xFieZCIjwD/recgqtFKFWYqHsb0q</SchemaAttribute>
+    <SchemaAttribute>itrZ0TasxA54FaTkG/recgqtFKFWYqHsb0q</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rechYoiSzlYAU1ZWD</SchemaAttributeId>
       <createdTime>2022-06-20T13:16:57Z</createdTime>
