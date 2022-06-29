@@ -3,20 +3,26 @@
 import json
 from typing import List, Optional
 
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import \
-    GtEqReportingConfig, GtEqReportingConfig_Maker
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config import GtPowermeterReportingConfig
+from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
+    GtEqReportingConfig,
+    GtEqReportingConfig_Maker,
+)
+from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config import (
+    GtPowermeterReportingConfig,
+)
 from schema.errors import MpSchemaError
 
 
-class GtPowermeterReportingConfig_Maker():
-    type_alias = 'gt.powermeter.reporting.config.100'
+class GtPowermeterReportingConfig_Maker:
+    type_alias = "gt.powermeter.reporting.config.100"
 
-    def __init__(self,
-                 reporting_period_s: int,
-                 poll_period_ms: int,
-                 hw_uid: Optional[str],
-                 electrical_quantity_reporting_config_list: List[GtEqReportingConfig]):
+    def __init__(
+        self,
+        reporting_period_s: int,
+        poll_period_ms: int,
+        hw_uid: Optional[str],
+        electrical_quantity_reporting_config_list: List[GtEqReportingConfig],
+    ):
 
         tuple = GtPowermeterReportingConfig(
             ReportingPeriodS=reporting_period_s,
@@ -37,7 +43,7 @@ class GtPowermeterReportingConfig_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError('Type must be string or bytes!')
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
@@ -61,9 +67,13 @@ class GtPowermeterReportingConfig_Maker():
         electrical_quantity_reporting_config_list = []
         for eq_reporting_config in new_d["ElectricalQuantityReportingConfigList"]:
             if not isinstance(eq_reporting_config, dict):
-                raise MpSchemaError(f"elt {eq_reporting_config} of ElectricalQuantityReportingConfigList must be "
-                                    "EqReportingConfig but not even a dict!")
-            electrical_quantity_reporting_config_list.append(GtEqReportingConfig_Maker.dict_to_tuple(eq_reporting_config))
+                raise MpSchemaError(
+                    f"elt {eq_reporting_config} of ElectricalQuantityReportingConfigList must be "
+                    "EqReportingConfig but not even a dict!"
+                )
+            electrical_quantity_reporting_config_list.append(
+                GtEqReportingConfig_Maker.dict_to_tuple(eq_reporting_config)
+            )
         new_d["ElectricalQuantityReportingConfigList"] = electrical_quantity_reporting_config_list
 
         tuple = GtPowermeterReportingConfig(

@@ -10,26 +10,29 @@ from schema.enums.unit.unit_map import Unit, UnitMap
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 
 
-class GtEqReportingConfig_Maker():
-    type_alias = 'gt.eq.reporting.config.100'
+class GtEqReportingConfig_Maker:
+    type_alias = "gt.eq.reporting.config.100"
 
-    def __init__(self,
-                 sh_node_alias: str,
-                 report_on_change: bool,
-                 exponent: int,
-                 sample_period_s: int,
-                 unit: Unit,
-                 telemetry_name: TelemetryName,
-                 async_report_threshold: Optional[float]):
+    def __init__(
+        self,
+        sh_node_alias: str,
+        report_on_change: bool,
+        exponent: int,
+        sample_period_s: int,
+        unit: Unit,
+        telemetry_name: TelemetryName,
+        async_report_threshold: Optional[float],
+    ):
 
-        tuple = GtEqReportingConfig(ShNodeAlias=sh_node_alias,
-                                    ReportOnChange=report_on_change,
-                                    Exponent=exponent,
-                                    Unit=unit,
-                                    AsyncReportThreshold=async_report_threshold,
-                                    SamplePeriodS=sample_period_s,
-                                    TelemetryName=telemetry_name,
-                                    )
+        tuple = GtEqReportingConfig(
+            ShNodeAlias=sh_node_alias,
+            ReportOnChange=report_on_change,
+            Exponent=exponent,
+            Unit=unit,
+            AsyncReportThreshold=async_report_threshold,
+            SamplePeriodS=sample_period_s,
+            TelemetryName=telemetry_name,
+        )
         tuple.check_for_errors()
         self.tuple = tuple
 
@@ -43,7 +46,7 @@ class GtEqReportingConfig_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError('Type must be string or bytes!')
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
@@ -73,14 +76,15 @@ class GtEqReportingConfig_Maker():
         if "AsyncReportThreshold" not in new_d.keys():
             new_d["AsyncReportThreshold"] = None
 
-        tuple = GtEqReportingConfig(ShNodeAlias=new_d["ShNodeAlias"],
-                                    ReportOnChange=new_d["ReportOnChange"],
-                                    Exponent=new_d["Exponent"],
-                                    Unit=new_d["Unit"],
-                                    AsyncReportThreshold=new_d["AsyncReportThreshold"],
-                                    SamplePeriodS=new_d["SamplePeriodS"],
-                                    TelemetryName=new_d["TelemetryName"],
-                                    TypeAlias=new_d["TypeAlias"],
-                                    )
+        tuple = GtEqReportingConfig(
+            ShNodeAlias=new_d["ShNodeAlias"],
+            ReportOnChange=new_d["ReportOnChange"],
+            Exponent=new_d["Exponent"],
+            Unit=new_d["Unit"],
+            AsyncReportThreshold=new_d["AsyncReportThreshold"],
+            SamplePeriodS=new_d["SamplePeriodS"],
+            TelemetryName=new_d["TelemetryName"],
+            TypeAlias=new_d["TypeAlias"],
+        )
         tuple.check_for_errors()
         return tuple

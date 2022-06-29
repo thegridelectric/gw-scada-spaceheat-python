@@ -1114,18 +1114,19 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>False</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec8i1VAK2sgrnBWW</SchemaAttributeId>
       <createdTime>2022-06-29T11:05:08Z</createdTime>
-      <TypeCheck>1</TypeCheck>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
-      <GtSchema>recUrIRjO9EYJRQhG</GtSchema>
       <Value>HwUid</Value>
+      <GtSchema>recUrIRjO9EYJRQhG</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <TestValue>"1001ab"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec9E6HTIAJLoh9wW</SchemaAttributeId>
@@ -1171,10 +1172,10 @@
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>300</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <TestValue>300</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recAy1MJ6WTkJC2Bt</SchemaAttributeId>
@@ -1189,6 +1190,7 @@
       <EnumRoot>spaceheat.telemetry.name</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"793505aa"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recB5TxUpNgNtBoCz</SchemaAttributeId>
@@ -1338,6 +1340,7 @@
       <EnumRoot>spaceheat.unit</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"7d8832f8"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recFfaru1gmnzHcg3</SchemaAttributeId>
@@ -1623,6 +1626,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>3</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recMirwvdQxO5qyAY</SchemaAttributeId>
@@ -2003,11 +2007,11 @@
       <SubTypeFormat>rec1E12bdSXOtQ9qP</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
+      <TestValue> [{"ShNodeAlias": "a.elt1", "ReportOnChange": True, "Exponent": 6, "SamplePeriodS": 5, "AsyncReportThreshold": 0.05, "TypeAlias": "gt.eq.reporting.config.100", "UnitGtEnumSymbol": "a969ac7c", "TelemetryNameGtEnumSymbol": "ad19e79c"}]</TestValue>
       <SubMessageFormatAlias>gt.eq.reporting.config.100</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
-      <TestValue> [{"ShNodeAlias": "a.elt1", "ReportOnChange": True, "Exponent": 6, "SamplePeriodS": 5, "AsyncReportThreshold": 0.05, "TypeAlias": "gt.eq.reporting.config.100", "UnitGtEnumSymbol": "a969ac7c", "TelemetryNameGtEnumSymbol": "ad19e79c"}]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reccTfzFazDviUeXp</SchemaAttributeId>
@@ -2117,7 +2121,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itrsu8hwuXczDeua3/recgqtFKFWYqHsb0q</SchemaAttribute>
+    <SchemaAttribute>itr0fFQY9h4UEirjz/recgqtFKFWYqHsb0q</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rechYoiSzlYAU1ZWD</SchemaAttributeId>
       <createdTime>2022-06-20T13:16:57Z</createdTime>
@@ -2364,6 +2368,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>300</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recn2CJw74mLLQ8tr</SchemaAttributeId>
@@ -2471,10 +2476,10 @@
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>1000</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <TestValue>1000</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recqGEAWc6ioKwYCv</SchemaAttributeId>
@@ -2734,6 +2739,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>5</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reczovvHr0jpI0nE1</SchemaAttributeId>
