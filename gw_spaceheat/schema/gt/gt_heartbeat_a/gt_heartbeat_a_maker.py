@@ -1,8 +1,6 @@
-"""Makes gt.heartbeat.a type"""
+"""Makes gt.heartbeat.a.100 type"""
 
 import json
-from typing import Dict, Optional
-
 
 from schema.gt.gt_heartbeat_a.gt_heartbeat_a import GtHeartbeatA
 from schema.errors import MpSchemaError
@@ -27,14 +25,22 @@ class GtHeartbeatA_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError(f'Type must be string or bytes!')
+            raise MpSchemaError('Type must be string or bytes!')
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) ->  GtHeartbeatA:
+    def dict_to_tuple(cls, d: dict) -> GtHeartbeatA:
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
 
-        tuple = GtHeartbeatA()
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+
+        tuple = GtHeartbeatA(
+            TypeAlias=new_d["TypeAlias"],
+        )
         tuple.check_for_errors()
         return tuple

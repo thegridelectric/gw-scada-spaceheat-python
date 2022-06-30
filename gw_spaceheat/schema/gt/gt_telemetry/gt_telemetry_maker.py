@@ -1,28 +1,25 @@
-"""Makes gt.telemetry type"""
+"""Makes gt.telemetry.110 type"""
 
 import json
-from typing import Dict, Optional
-
 
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.errors import MpSchemaError
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
 
 
-class GtTelemetry_Maker():
-    type_alias = 'gt.telemetry.110'
+class GtTelemetry_Maker:
+    type_alias = "gt.telemetry.110"
 
-    def __init__(self,
-                    scada_read_time_unix_ms: int,
-                    value: int,
-                    exponent: int,
-                    name: TelemetryName):
+    def __init__(
+        self, scada_read_time_unix_ms: int, value: int, exponent: int, name: TelemetryName
+    ):
 
-        tuple = GtTelemetry(ScadaReadTimeUnixMs=scada_read_time_unix_ms,
-                                            Value=value,
-                                            Name=name,
-                                            Exponent=exponent,
-                                            )
+        tuple = GtTelemetry(
+            ScadaReadTimeUnixMs=scada_read_time_unix_ms,
+            Value=value,
+            Name=name,
+            Exponent=exponent,
+        )
         tuple.check_for_errors()
         self.tuple = tuple
 
@@ -36,27 +33,35 @@ class GtTelemetry_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError(f'Type must be string or bytes!')
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) ->  GtTelemetry:
-        if "ScadaReadTimeUnixMs" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ScadaReadTimeUnixMs")
-        if "Value" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing Value")
-        if "Exponent" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing Exponent")
-        if "NameGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing NameGtEnumSymbol")
-        d["Name"] = TelemetryNameMap.gt_to_local(d["NameGtEnumSymbol"])
+    def dict_to_tuple(cls, d: dict) -> GtTelemetry:
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
 
-        tuple = GtTelemetry(ScadaReadTimeUnixMs=d["ScadaReadTimeUnixMs"],
-                                            Value=d["Value"],
-                                            Name=d["Name"],
-                                            Exponent=d["Exponent"],
-                                            )
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "ScadaReadTimeUnixMs" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ScadaReadTimeUnixMs")
+        if "Value" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing Value")
+        if "Exponent" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing Exponent")
+        if "NameGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing NameGtEnumSymbol")
+        new_d["Name"] = TelemetryNameMap.gt_to_local(new_d["NameGtEnumSymbol"])
+
+        tuple = GtTelemetry(
+            TypeAlias=new_d["TypeAlias"],
+            ScadaReadTimeUnixMs=new_d["ScadaReadTimeUnixMs"],
+            Value=new_d["Value"],
+            Name=new_d["Name"],
+            Exponent=new_d["Exponent"],
+        )
         tuple.check_for_errors()
         return tuple
