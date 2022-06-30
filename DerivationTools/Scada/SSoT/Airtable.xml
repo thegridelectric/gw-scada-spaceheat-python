@@ -867,6 +867,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
+      <TestValue>["a.elt1"]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec0TXOlI0XZGRLxJ</SchemaAttributeId>
@@ -972,6 +973,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
+      <TestValue>[1656443705023]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec2k6vwhh6cSgwse</SchemaAttributeId>
@@ -1355,6 +1357,7 @@
       <EnumRoot>spaceheat.telemetry.name</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"5a71d4b3"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recG11eY47BNnI8gt</SchemaAttributeId>
@@ -1363,7 +1366,7 @@
       <GtSchema>rece1suo3h3SqfW4M</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Number</PrimitiveType>
-      <TestValue>.05</TestValue>
+      <TestValue>0.05</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -1380,6 +1383,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>[18000]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recGXMXqUz6rHqVzg</SchemaAttributeId>
@@ -1521,6 +1525,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
+      <TestValue>"a.elt1.relay"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recKwPBxJr8R55KlB</SchemaAttributeId>
@@ -1670,6 +1675,22 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recP42BiKvu4xhepH</SchemaAttributeId>
+      <createdTime>2022-06-30T11:10:01Z</createdTime>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <Value>ScadaReadTimeUnixMs</Value>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
+      <IsRequired>true</IsRequired>
+      <GtSchema>recx3kwLemvtMaT0t</GtSchema>
+      <TestValue>1656587343297</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recPuhtbcBHZR6Qai</SchemaAttributeId>
@@ -1931,10 +1952,10 @@
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Boolean</PrimitiveType>
+      <TestValue>True</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <TestValue>True</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recZSLryoaKbh719a</SchemaAttributeId>
@@ -1966,11 +1987,11 @@
       <GtSchema>recAyAxneWaDdakQ6</GtSchema>
       <SubTypeFormat>recyuopIDguUgR1mI</SubTypeFormat>
       <IsRequired>true</IsRequired>
+      <TestValue>{"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "gt.sh.status.snapshot.110"}</TestValue>
       <SubMessageFormatAlias>gt.sh.status.snapshot.110</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
-      <TestValue>{"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "gt.sh.status.snapshot.110"}</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recbVc2FnRaPtSZBS</SchemaAttributeId>
@@ -2104,6 +2125,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>[0]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recgGXDzQHPSfoIYU</SchemaAttributeId>
@@ -2117,6 +2139,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
+    <SchemaAttribute>itretVmcNLnC3FpSp/recgGXDzQHPSfoIYU</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recgqtFKFWYqHsb0q</SchemaAttributeId>
       <createdTime>2022-06-20T11:30:11Z</createdTime>
@@ -2128,7 +2151,6 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itrZ0TasxA54FaTkG/recgqtFKFWYqHsb0q</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rechYoiSzlYAU1ZWD</SchemaAttributeId>
       <createdTime>2022-06-20T13:16:57Z</createdTime>
@@ -2575,6 +2597,13 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recs23KNy4WIx9N79</SchemaAttributeId>
+      <createdTime>2022-06-30T11:13:09Z</createdTime>
+      <TypeCheck>0</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recsZD75bQDFRNQt2</SchemaAttributeId>
       <createdTime>2022-06-20T13:16:49Z</createdTime>
       <Value>ReportTimeUnixMs</Value>
@@ -2708,6 +2737,7 @@
       <EnumRoot>spaceheat.telemetry.name</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>["ad19e79c"]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recyiS4OAWw4Xe5dF</SchemaAttributeId>
@@ -2783,8 +2813,8 @@
       <Description>PollPeriodMs must be less than ReportingPeriodMs. PollPeriodMs is how frequently data is polled from the meter. ReportingPeriodMs is the synchronous report to the scada.</Description>
       <SchemaId>recUrIRjO9EYJRQhG</SchemaId>
       <LocalName>PollMoreThanReporting</LocalName>
-      <SchemaAlias>gt.powermeter.reporting.config.100</SchemaAlias>
       <Name>gt.powermeter.reporting.config.100__PollMoreThanReporting</Name>
+      <SchemaAlias>gt.powermeter.reporting.config.100</SchemaAlias>
     </SchemaAxiom>
     <SchemaAxiom>
       <SchemaAxiomId>recsymqeqSBbr9R9o</SchemaAxiomId>
@@ -2792,8 +2822,8 @@
       <Description>TelemetryNameList, AboutNodeList, ValueList must all be lists of the same length</Description>
       <SchemaId>recyuopIDguUgR1mI</SchemaId>
       <LocalName>ListLengthConsistency</LocalName>
-      <SchemaAlias>gt.sh.status.snapshot.110</SchemaAlias>
       <Name>gt.sh.status.snapshot.110__ListLengthConsistency</Name>
+      <SchemaAlias>gt.sh.status.snapshot.110</SchemaAlias>
     </SchemaAxiom>
   </SchemaAxioms>
   <PropertyFormats>
@@ -2864,6 +2894,7 @@
       <MpSchemaAttributes>recicAZCWCo8hSu2t</MpSchemaAttributes>
       <MpSchemaAttributes>rec2ERXNwEH6jyyHv</MpSchemaAttributes>
       <MpSchemaAttributes>recsZD75bQDFRNQt2</MpSchemaAttributes>
+      <MpSchemaAttributes>recP42BiKvu4xhepH</MpSchemaAttributes>
       <DefaultFail1>1656245000</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -2891,8 +2922,8 @@
       <SchemaAttributes>recJ3u86m6sh2vNWk</SchemaAttributes>
       <UsedAsSubMessagein>recbw5AyGqRuPCnlj</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.eq.reporting.config.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>rec23C6am0WIH9veT</SchemaId>
@@ -2905,8 +2936,8 @@
       <SchemaAttributes>recmUBXrUigX4SFIe</SchemaAttributes>
       <SchemaAttributes>recqTlmb22FCbFzaQ</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.simple.status.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>rec4u5c6FO198haBK</SchemaId>
@@ -2923,8 +2954,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>PipeFlowSensorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.pipe.flow.sensor.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>rec8CoTLGyxAXh6TD</SchemaId>
@@ -2941,8 +2972,8 @@
       <SemanticEnd>110</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ShNode</DataClass>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.node.110</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recAMM4MM8wzs10u8</SchemaId>
@@ -2959,8 +2990,8 @@
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ShNode</DataClass>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.node.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recAyAxneWaDdakQ6</SchemaId>
@@ -2970,8 +3001,8 @@
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>recbRDhEoGNs9jYEB</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.cli.scada.response.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recEdlcUTBfQ9Hy6D</SchemaId>
@@ -2988,8 +3019,8 @@
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>Component</DataClass>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recHrNVLHcDTTqaCq</SchemaId>
@@ -3006,8 +3037,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>TempSensorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.temp.sensor.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recK21HSqZTAjGvlG</SchemaId>
@@ -3017,8 +3048,8 @@
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>recZ6Qnf2ivCfWkSG</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.cli.atn.cmd.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recK5H9Pt9ZpF6hgi</SchemaId>
@@ -3032,8 +3063,8 @@
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ComponentAttributeClass</DataClass>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.component.attribute.class.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recKVkCs5ktwXS3Bu</SchemaId>
@@ -3051,8 +3082,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>PipeFlowSensorCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.pipe.flow.sensor.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recLc7QnBdk9iPdHI</SchemaId>
@@ -3066,8 +3097,8 @@
       <SchemaAttributes>rec2ERXNwEH6jyyHv</SchemaAttributes>
       <UsedAsSubMessagein>recqTlmb22FCbFzaQ</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.simple.single.status.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recT6312S7LckLHZ9</SchemaId>
@@ -3084,8 +3115,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricHeaterComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.heater.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recUrIRjO9EYJRQhG</SchemaId>
@@ -3099,8 +3130,8 @@
       <SchemaAttributes>rec8i1VAK2sgrnBWW</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <SchemaAxioms>rec29eq9Lc6OGIhYk</SchemaAxioms>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.powermeter.reporting.config.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recVNiapT0HIufahj</SchemaId>
@@ -3109,8 +3140,8 @@
       <Status>Active</Status>
       <ProtocolType>Json</ProtocolType>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.heartbeat.a.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recc5qGcZNQPmktbe</SchemaId>
@@ -3121,8 +3152,8 @@
       <SchemaAttributes>recw4w4kyKb5qsTUd</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <SendAlias>p</SendAlias>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gs.pwr.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>reccc96DDf5Ue9FmA</SchemaId>
@@ -3142,8 +3173,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricMeterCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.meter.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recdbl99ZoQqyOhS7</SchemaId>
@@ -3161,8 +3192,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>BooleanActuatorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.boolean.actuator.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>rece1suo3h3SqfW4M</SchemaId>
@@ -3179,8 +3210,8 @@
       <SchemaAttributes>recF5JRJR6AVkfQsK</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <DataClass>SensorReportingConfig</DataClass>
-      <ConsistencyCheck>0</ConsistencyCheck>
       <Alias>gt.sensor.reporting.config.100</Alias>
+      <ConsistencyCheck>0</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>rechZ9OTpGxuT8xWl</SchemaId>
@@ -3197,8 +3228,8 @@
       <SchemaAttributes>reccTfzFazDviUeXp</SchemaAttributes>
       <SchemaAttributes>recn2CJw74mLLQ8tr</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.power.sync.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recjhHMNWpqOA9zhW</SchemaId>
@@ -3209,8 +3240,8 @@
       <SchemaAttributes>reckbdPijd806F8LT</SchemaAttributes>
       <SchemaAttributes>recazWVfmVGIXktTn</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.dispatch.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recjwzTYeT77Cq7NZ</SchemaId>
@@ -3227,8 +3258,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricHeaterCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.heater.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recnOen6KenxkwQtB</SchemaId>
@@ -3242,8 +3273,8 @@
       <SemanticEnd>100</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ThermalEdge</DataClass>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.thermal.edge.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recpr0byizj3PmqXi</SchemaId>
@@ -3260,8 +3291,8 @@
       <SemanticEnd>120</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ShNode</DataClass>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.node.120</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recqVHqZ5DQVdVgby</SchemaId>
@@ -3271,8 +3302,8 @@
       <ProtocolType>Json</ProtocolType>
       <Enums>rec2HyLffy6QK9QId</Enums>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.telemetry.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recrNYtQoRa7YhqI4</SchemaId>
@@ -3294,8 +3325,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>TempSensorCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.temp.sensor.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recsMoh2JkG2YPR8u</SchemaId>
@@ -3312,8 +3343,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ElectricMeterComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.electric.meter.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recvoY8JOncNeQjYF</SchemaId>
@@ -3336,21 +3367,22 @@
       <SchemaAttributes>rec6F0YzYq2cynuBc</SchemaAttributes>
       <SchemaAttributes>recyiS4OAWw4Xe5dF</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.spaceheat.house.config.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recx3kwLemvtMaT0t</SchemaId>
       <createdTime>2022-06-24T20:28:53Z</createdTime>
-      <AliasRoot>gt.sh.telemetry.multipurpose</AliasRoot>
+      <AliasRoot>gt.sh.telemetry.from.multipurpose.sensor</AliasRoot>
       <Status>Active</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>rec0EFbgjuaALp5xv</SchemaAttributes>
       <SchemaAttributes>recydLuwKpW0ptMyj</SchemaAttributes>
       <SchemaAttributes>recGRNEh1iK0tu10N</SchemaAttributes>
+      <SchemaAttributes>recP42BiKvu4xhepH</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
+      <Alias>gt.sh.telemetry.from.multipurpose.sensor.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
-      <Alias>gt.sh.telemetry.multipurpose.100</Alias>
     </Schema>
     <Schema>
       <SchemaId>recx4EL5mDebUhtzp</SchemaId>
@@ -3363,8 +3395,8 @@
       <SchemaAttributes>recKwPBxJr8R55KlB</SchemaAttributes>
       <SchemaAttributes>recfMyBibCC1lqTy1</SchemaAttributes>
       <SemanticEnd>110</SemanticEnd>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.telemetry.110</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recy2lAURQitTqKTR</SchemaId>
@@ -3382,8 +3414,8 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>BooleanActuatorCac</DataClass>
       <IsCac>true</IsCac>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.boolean.actuator.cac.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recyuopIDguUgR1mI</SchemaId>
@@ -3398,8 +3430,8 @@
       <UsedAsSubMessagein>recbRDhEoGNs9jYEB</UsedAsSubMessagein>
       <SemanticEnd>110</SemanticEnd>
       <SchemaAxioms>recsymqeqSBbr9R9o</SchemaAxioms>
-      <ConsistencyCheck>1</ConsistencyCheck>
       <Alias>gt.sh.status.snapshot.110</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
   </Schemas>
   <ShNodes>

@@ -63,5 +63,3 @@ def test_gt_sh_cli_atn_cmd():
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = "gt.sh.cli.atn.cmd.100"
-
-    # End of Test

@@ -1,7 +1,6 @@
-"""Base for gt.heartbeat.a"""
+"""Base for gt.heartbeat.a.100"""
 import json
-from typing import List, Optional, NamedTuple
-import schema.property_format as property_format
+from typing import List, NamedTuple
 
 
 class GtHeartbeatABase(NamedTuple):

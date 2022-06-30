@@ -144,5 +144,3 @@ def test_gt_powermeter_reporting_config():
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = "gt.powermeter.reporting.config.100"
-
-    # End of Test

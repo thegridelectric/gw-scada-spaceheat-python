@@ -1,25 +1,18 @@
-"""Tests gt.sh.cli.scada.response.100 type"""
+"""Tests gt.heartbeat.a.100 type"""
 import json
 
 import pytest
 
 from schema.errors import MpSchemaError
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
-    GtShCliScadaResponse_Maker as Maker,
+from schema.gt.gt_heartbeat_a.gt_heartbeat_a_maker import (
+    GtHeartbeatA_Maker as Maker,
 )
 
 
-def test_gt_sh_cli_scada_response():
+def test_gt_heartbeat_a():
 
     gw_dict = {
-        "Snapshot": {
-            "TelemetryNameList": ["5a71d4b3"],
-            "AboutNodeAliasList": ["a.elt1.relay"],
-            "ReportTimeUnixMs": 1656363448000,
-            "ValueList": [1],
-            "TypeAlias": "gt.sh.status.snapshot.110",
-        },
-        "TypeAlias": "gt.sh.cli.scada.response.100",
+        "TypeAlias": "gt.heartbeat.a.100",
     }
 
     with pytest.raises(MpSchemaError):
@@ -45,26 +38,9 @@ def test_gt_sh_cli_scada_response():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = orig_value
 
-    orig_value = gw_dict["Snapshot"]
-    del gw_dict["Snapshot"]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["Snapshot"] = orig_value
-
     ######################################
     # MpSchemaError raised if attributes have incorrect type
     ######################################
-
-    orig_value = gw_dict["Snapshot"]
-    gw_dict["Snapshot"] = "Not a GtShStatusSnapshot110."
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["Snapshot"] = orig_value
-
-    with pytest.raises(MpSchemaError):
-        Maker(
-            snapshot="Not a GtShStatusSnapshot110",
-        )
 
     ######################################
     # MpSchemaError raised if TypeAlias is incorrect
@@ -73,4 +49,4 @@ def test_gt_sh_cli_scada_response():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.sh.cli.scada.response.100"
+    gw_dict["TypeAlias"] = "gt.heartbeat.a.100"

@@ -156,5 +156,3 @@ def test_gt_sensor_reporting_config():
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = "gt.sensor.reporting.config.100"
-
-    # End of Test

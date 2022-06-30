@@ -155,7 +155,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = "Not a </xsl:text>
     <xsl:call-template name="nt-case">
         <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
-    </xsl:call-template><xsl:text>." 
+    </xsl:call-template><xsl:text>."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = orig_value
@@ -390,14 +390,14 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = "</xsl:text><xsl:value-of select="$alias"/><xsl:text>"
-
-    </xsl:text>    
+</xsl:text>    
     <xsl:if test="count($airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (normalize-space(PrimitiveFormatFail1) != '')]) > 0">
 
-    <xsl:text>######################################
+<xsl:text>
+    ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################</xsl:text>
-</xsl:if>
+
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (normalize-space(PrimitiveFormatFail1) != '')]">
     <xsl:if test="not (IsList='true')">
     <xsl:text>
@@ -430,7 +430,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
 
     # End of Test
 </xsl:text>
-
+</xsl:if>
 
                         </xsl:element>
                      </FileSetFile>

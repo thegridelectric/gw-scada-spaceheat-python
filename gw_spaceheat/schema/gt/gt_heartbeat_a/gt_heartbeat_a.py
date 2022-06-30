@@ -1,4 +1,4 @@
-"""gt.heartbeat.a type"""
+"""gt.heartbeat.a.100 type"""
 
 from schema.errors import MpSchemaError
 from schema.gt.gt_heartbeat_a.gt_heartbeat_a_base import GtHeartbeatABase
