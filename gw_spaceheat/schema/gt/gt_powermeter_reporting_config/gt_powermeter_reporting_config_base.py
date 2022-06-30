@@ -1,28 +1,27 @@
 """Base for gt.powermeter.reporting.config.100 """
 import json
 from typing import List, NamedTuple, Optional
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import \
-    GtEqReportingConfig
+from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import GtEqReportingConfig
 
 
 class GtPowermeterReportingConfigBase(NamedTuple):
-    ReportingPeriodS: int     #
+    ReportingPeriodS: int  #
     PollPeriodMs: int  #
-    EqReportingConfigList: List[GtEqReportingConfig]
+    ElectricalQuantityReportingConfigList: List[GtEqReportingConfig]
     HwUid: Optional[str]
-    TypeAlias: str = 'gt.powermeter.reporting.config.100'
+    TypeAlias: str = "gt.powermeter.reporting.config.100"
 
     def as_type(self):
         return json.dumps(self.asdict())
 
     def asdict(self):
         d = self._asdict()
-        eq_reporting_config_list = []
-        for elt in self.EqReportingConfigList:
-            eq_reporting_config_list.append(elt.asdict())
+        electrical_quantity_reporting_config_list = []
+        for elt in self.ElectricalQuantityReportingConfigList:
+            electrical_quantity_reporting_config_list.append(elt.asdict())
         if d["HwUid"] is None:
-            del(d["HwUid"])
-        d["EqReportingConfigList"] = eq_reporting_config_list
+            del d["HwUid"]
+        d["ElectricalQuantityReportingConfigList"] = electrical_quantity_reporting_config_list
         return d
 
     def derived_errors(self) -> List[str]:
@@ -34,13 +33,19 @@ class GtPowermeterReportingConfigBase(NamedTuple):
         if self.HwUid:
             if not isinstance(self.HwUid, str):
                 errors.append(f"HwUid {self.HwUid} must have type str.")
-        if not isinstance(self.EqReportingConfigList, list):
-            errors.append(f"EqReportingConfigList {self.EqReportingConfigList} must have type list.")
+        if not isinstance(self.ElectricalQuantityReportingConfigList, list):
+            errors.append(
+                f"ElectricalQuantityReportingConfigList {self.ElectricalQuantityReportingConfigList} must have type list."
+            )
         else:
-            for elt in self.EqReportingConfigList:
+            for elt in self.ElectricalQuantityReportingConfigList:
                 if not isinstance(elt, GtEqReportingConfig):
-                    errors.append(f"{elt} of self.EqReportingConfigList must have typeGtEqReportingConfig")
-        if self.TypeAlias != 'gt.powermeter.reporting.config.100':
-            errors.append(f"Type requires TypeAlias of gt.powermeter.reporting.config.100, not {self.TypeAlias}.")
+                    errors.append(
+                        f"{elt} of self.ElectricalQuantityReportingConfigList must have typeGtEqReportingConfig"
+                    )
+        if self.TypeAlias != "gt.powermeter.reporting.config.100":
+            errors.append(
+                f"Type requires TypeAlias of gt.powermeter.reporting.config.100, not {self.TypeAlias}."
+            )
 
         return errors

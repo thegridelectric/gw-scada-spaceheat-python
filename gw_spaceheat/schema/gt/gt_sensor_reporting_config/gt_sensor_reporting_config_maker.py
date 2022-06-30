@@ -1,7 +1,7 @@
-"""Makes gt.sensor.reporting.config type"""
+"""Makes gt.sensor.reporting.config.100 type"""
 
 import json
-from typing import Dict, Optional
+from typing import Optional
 
 
 from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config import GtSensorReportingConfig
@@ -10,26 +10,29 @@ from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, Teleme
 from schema.enums.unit.unit_map import Unit, UnitMap
 
 
-class GtSensorReportingConfig_Maker():
-    type_alias = 'gt.sensor.reporting.config.100'
+class GtSensorReportingConfig_Maker:
+    type_alias = "gt.sensor.reporting.config.100"
 
-    def __init__(self,
-                    report_on_change: bool,
-                    exponent: int,
-                    reporting_period_s: int,
-                    sample_period_s: int,
-                    telemetry_name: TelemetryName,
-                    unit: Unit,
-                    async_report_threshold: Optional[float]):
+    def __init__(
+        self,
+        report_on_change: bool,
+        exponent: int,
+        reporting_period_s: int,
+        sample_period_s: int,
+        telemetry_name: TelemetryName,
+        unit: Unit,
+        async_report_threshold: Optional[float],
+    ):
 
-        tuple = GtSensorReportingConfig(ReportOnChange=report_on_change,
-                                            TelemetryName=telemetry_name,
-                                            Unit=unit,
-                                            AsyncReportThreshold=async_report_threshold,
-                                            Exponent=exponent,
-                                            ReportingPeriodS=reporting_period_s,
-                                            SamplePeriodS=sample_period_s,
-                                            )
+        tuple = GtSensorReportingConfig(
+            ReportOnChange=report_on_change,
+            TelemetryName=telemetry_name,
+            Unit=unit,
+            AsyncReportThreshold=async_report_threshold,
+            Exponent=exponent,
+            ReportingPeriodS=reporting_period_s,
+            SamplePeriodS=sample_period_s,
+        )
         tuple.check_for_errors()
         self.tuple = tuple
 
@@ -43,37 +46,45 @@ class GtSensorReportingConfig_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError(f'Type must be string or bytes!')
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) ->  GtSensorReportingConfig:
-        if "ReportOnChange" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ReportOnChange")
-        if "Exponent" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing Exponent")
-        if "ReportingPeriodS" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ReportingPeriodS")
-        if "SamplePeriodS" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing SamplePeriodS")
-        if "TelemetryNameGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing TelemetryNameGtEnumSymbol")
-        d["TelemetryName"] = TelemetryNameMap.gt_to_local(d["TelemetryNameGtEnumSymbol"])
-        if "UnitGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing UnitGtEnumSymbol")
-        d["Unit"] = UnitMap.gt_to_local(d["UnitGtEnumSymbol"])
-        if "AsyncReportThreshold" not in d.keys():
-            d["AsyncReportThreshold"] = None
+    def dict_to_tuple(cls, d: dict) -> GtSensorReportingConfig:
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
 
-        tuple = GtSensorReportingConfig(ReportOnChange=d["ReportOnChange"],
-                                            TelemetryName=d["TelemetryName"],
-                                            Unit=d["Unit"],
-                                            AsyncReportThreshold=d["AsyncReportThreshold"],
-                                            Exponent=d["Exponent"],
-                                            ReportingPeriodS=d["ReportingPeriodS"],
-                                            SamplePeriodS=d["SamplePeriodS"],
-                                            )
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "ReportOnChange" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ReportOnChange")
+        if "Exponent" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing Exponent")
+        if "ReportingPeriodS" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ReportingPeriodS")
+        if "SamplePeriodS" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing SamplePeriodS")
+        if "TelemetryNameGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TelemetryNameGtEnumSymbol")
+        new_d["TelemetryName"] = TelemetryNameMap.gt_to_local(new_d["TelemetryNameGtEnumSymbol"])
+        if "UnitGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing UnitGtEnumSymbol")
+        new_d["Unit"] = UnitMap.gt_to_local(new_d["UnitGtEnumSymbol"])
+        if "AsyncReportThreshold" not in new_d.keys():
+            new_d["AsyncReportThreshold"] = None
+
+        tuple = GtSensorReportingConfig(
+            TypeAlias=new_d["TypeAlias"],
+            ReportOnChange=new_d["ReportOnChange"],
+            TelemetryName=new_d["TelemetryName"],
+            Unit=new_d["Unit"],
+            AsyncReportThreshold=new_d["AsyncReportThreshold"],
+            Exponent=new_d["Exponent"],
+            ReportingPeriodS=new_d["ReportingPeriodS"],
+            SamplePeriodS=new_d["SamplePeriodS"],
+        )
         tuple.check_for_errors()
         return tuple

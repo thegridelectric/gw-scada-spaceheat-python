@@ -81,7 +81,7 @@ class NodeConfig():
         self.reporting = PowerConfigMaker(reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
                                           poll_period_ms=poll_period_ms,
                                           hw_uid=component.hw_uid,
-                                          eq_reporting_config_list=eq_reporting_config_list).tuple
+                                          electrical_quantity_reporting_config_list=eq_reporting_config_list).tuple
 
         if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             self.driver = UnknownPowerMeterDriver(component=component)

@@ -42,24 +42,30 @@ class GtShStatusSnapshot_Maker:
 
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtShStatusSnapshot:
-        if "AboutNodeAliasList" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing AboutNodeAliasList")
-        if "ReportTimeUnixMs" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ReportTimeUnixMs")
-        if "ValueList" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ValueList")
-        if "TelemetryNameList" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing TelemetryNameList")
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "AboutNodeAliasList" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing AboutNodeAliasList")
+        if "ReportTimeUnixMs" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ReportTimeUnixMs")
+        if "ValueList" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ValueList")
+        if "TelemetryNameList" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TelemetryNameList")
         else:
             telemetry_name_list = []
-            for elt in d["TelemetryNameList"]:
+            for elt in new_d["TelemetryNameList"]:
                 telemetry_name_list.append(TelemetryNameMap.gt_to_local(elt))
-            d["TelemetryNameList"] = telemetry_name_list
+            new_d["TelemetryNameList"] = telemetry_name_list
 
-        tuple = GtShStatusSnapshot(TelemetryNameList=d["TelemetryNameList"],
-                                   AboutNodeAliasList=d["AboutNodeAliasList"],
-                                   ReportTimeUnixMs=d["ReportTimeUnixMs"],
-                                   ValueList=d["ValueList"],
+        tuple = GtShStatusSnapshot(TelemetryNameList=new_d["TelemetryNameList"],
+                                   AboutNodeAliasList=new_d["AboutNodeAliasList"],
+                                   ReportTimeUnixMs=new_d["ReportTimeUnixMs"],
+                                   ValueList=new_d["ValueList"],
+                                   TypeAlias=new_d["TypeAlias"],
                                    )
         tuple.check_for_errors()
         return tuple

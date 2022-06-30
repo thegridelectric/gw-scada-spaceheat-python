@@ -135,7 +135,6 @@ class Scada(ScadaBase):
         return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
-        self.screen_print("GOT TO on_message")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GsDispatch):

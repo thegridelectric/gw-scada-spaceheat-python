@@ -495,7 +495,7 @@ def test_power_meter_small():
     assert list(meter.eq_config.keys()) == meter.my_telemetry_tuples()
     assert list(meter._last_sampled_s.keys()) == meter.my_telemetry_tuples()
 
-    all_eq_configs = meter.config.reporting.EqReportingConfigList
+    all_eq_configs = meter.config.reporting.ElectricalQuantityReportingConfigList
     amp_list = list(
         filter(
             lambda x: x.TelemetryName == TelemetryName.CURRENT_RMS_MICRO_AMPS
