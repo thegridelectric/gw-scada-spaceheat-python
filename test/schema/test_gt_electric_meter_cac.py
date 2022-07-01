@@ -42,6 +42,7 @@ def test_gt_electric_meter_cac():
         display_name=gw_tuple.DisplayName,
         default_baud=gw_tuple.DefaultBaud,
         update_period_ms=gw_tuple.UpdatePeriodMs,
+        #
     ).tuple
     assert t == gw_tuple
 

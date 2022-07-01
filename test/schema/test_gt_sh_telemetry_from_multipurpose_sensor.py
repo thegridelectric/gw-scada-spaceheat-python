@@ -38,6 +38,7 @@ def test_gt_sh_telemetry_from_multipurpose_sensor():
         value_list=gw_tuple.ValueList,
         scada_read_time_unix_ms=gw_tuple.ScadaReadTimeUnixMs,
         telemetry_name_list=gw_tuple.TelemetryNameList,
+        #
     ).tuple
     assert t == gw_tuple
 

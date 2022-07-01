@@ -16,6 +16,8 @@ class GtHeartbeatABase(NamedTuple):
     def derived_errors(self) -> List[str]:
         errors = []
         if self.TypeAlias != "gt.heartbeat.a.100":
-            errors.append(f"Type requires TypeAlias of gt.heartbeat.a.100, not {self.TypeAlias}.")
+            errors.append(
+                f"Type requires TypeAlias of gt.heartbeat.a.100, not {self.TypeAlias}."
+            )
 
         return errors

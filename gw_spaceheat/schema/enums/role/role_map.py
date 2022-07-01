@@ -1,9 +1,12 @@
 from typing import Dict
 from schema.errors import MpSchemaError
-from schema.enums.role.sh_node_role_101 import Role, ShNodeRole101GtEnum
+from schema.enums.role.sh_node_role_110 import (
+    Role,
+    ShNodeRole110GtEnum,
+)
 
 
-class RoleGtEnum(ShNodeRole101GtEnum):
+class RoleGtEnum(ShNodeRole110GtEnum):
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -15,7 +18,9 @@ class RoleMap:
     @classmethod
     def gt_to_local(cls, symbol):
         if not RoleGtEnum.is_symbol(symbol):
-            raise MpSchemaError(f"{symbol} must belong to key of {RoleMap.gt_to_local_dict}")
+            raise MpSchemaError(
+                f"{symbol} must belong to key of {RoleMap.gt_to_local_dict}"
+            )
         return cls.gt_to_local_dict[symbol]
 
     @classmethod
@@ -33,6 +38,7 @@ class RoleMap:
         "fe3cbdd5": Role.HYDRONIC_PIPE,
         "c480f612": Role.PIPE_TEMP_SENSOR,
         "05fdd645": Role.BASEBOARD_RADIATOR,
+        "6896109b": Role.RADIATOR_FAN,
         "b0eaf2ba": Role.CIRCULATOR_PUMP,
         "73308a1f": Role.TANK_WATER_TEMP_SENSOR,
         "fec74958": Role.ROOM_TEMP_SENSOR,
@@ -42,7 +48,6 @@ class RoleMap:
         "6ddff83b": Role.ATN,
         "863e50d1": Role.HOME_ALONE,
         "dd975b31": Role.OUTDOORS,
-        "6896109b": Role.RADIATOR_FAN,
     }
 
     local_to_gt_dict: Dict[Role, str] = {
@@ -54,6 +59,7 @@ class RoleMap:
         Role.HYDRONIC_PIPE: "fe3cbdd5",
         Role.PIPE_TEMP_SENSOR: "c480f612",
         Role.BASEBOARD_RADIATOR: "05fdd645",
+        Role.RADIATOR_FAN: "6896109b",
         Role.CIRCULATOR_PUMP: "b0eaf2ba",
         Role.TANK_WATER_TEMP_SENSOR: "73308a1f",
         Role.ROOM_TEMP_SENSOR: "fec74958",
@@ -63,5 +69,5 @@ class RoleMap:
         Role.ATN: "6ddff83b",
         Role.HOME_ALONE: "863e50d1",
         Role.OUTDOORS: "dd975b31",
-        Role.RADIATOR_FAN: "6896109b",
+        #
     }

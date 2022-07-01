@@ -44,6 +44,7 @@ def test_gt_sh_node():
         reporting_sample_period_s=gw_tuple.ReportingSamplePeriodS,
         sh_node_id=gw_tuple.ShNodeId,
         alias=gw_tuple.Alias,
+        #
     ).tuple
     assert t == gw_tuple
 

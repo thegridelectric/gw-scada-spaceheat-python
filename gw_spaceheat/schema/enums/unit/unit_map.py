@@ -1,6 +1,9 @@
 from typing import Dict
 from schema.errors import MpSchemaError
-from schema.enums.unit.spaceheat_unit_100 import Unit, SpaceheatUnit100GtEnum
+from schema.enums.unit.spaceheat_unit_100 import (
+    Unit,
+    SpaceheatUnit100GtEnum,
+)
 
 
 class UnitGtEnum(SpaceheatUnit100GtEnum):
@@ -15,7 +18,9 @@ class UnitMap:
     @classmethod
     def gt_to_local(cls, symbol):
         if not UnitGtEnum.is_symbol(symbol):
-            raise MpSchemaError(f"{symbol} must belong to key of {UnitMap.gt_to_local_dict}")
+            raise MpSchemaError(
+                f"{symbol} must belong to key of {UnitMap.gt_to_local_dict}"
+            )
         return cls.gt_to_local_dict[symbol]
 
     @classmethod
@@ -40,4 +45,5 @@ class UnitMap:
         Unit.FAHRENHEIT: "7d8832f8",
         Unit.W: "f459a9c3",
         Unit.UNITLESS: "ec972387",
+        #
     }

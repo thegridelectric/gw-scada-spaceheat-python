@@ -38,6 +38,7 @@ def test_gt_pipe_flow_sensor_component():
         display_name=gw_tuple.DisplayName,
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
         hw_uid=gw_tuple.HwUid,
+        #
     ).tuple
     assert t == gw_tuple
 

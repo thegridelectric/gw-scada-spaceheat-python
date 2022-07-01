@@ -1,6 +1,9 @@
 from typing import Dict
 from schema.errors import MpSchemaError
-from schema.enums.actor_class.sh_actor_class_100 import ActorClass, ShActorClass100GtEnum
+from schema.enums.actor_class.sh_actor_class_100 import (
+    ActorClass,
+    ShActorClass100GtEnum,
+)
 
 
 class ActorClassGtEnum(ShActorClass100GtEnum):
@@ -15,7 +18,9 @@ class ActorClassMap:
     @classmethod
     def gt_to_local(cls, symbol):
         if not ActorClassGtEnum.is_symbol(symbol):
-            raise MpSchemaError(f"{symbol} must belong to key of {ActorClassMap.gt_to_local_dict}")
+            raise MpSchemaError(
+                f"{symbol} must belong to key of {ActorClassMap.gt_to_local_dict}"
+            )
         return cls.gt_to_local_dict[symbol]
 
     @classmethod
@@ -42,4 +47,5 @@ class ActorClassMap:
         ActorClass.ATN: "b103058f",
         ActorClass.SIMPLE_SENSOR: "dae4b2f0",
         ActorClass.NONE: "99a5f20d",
+        #
     }

@@ -38,6 +38,7 @@ def test_gt_pipe_flow_sensor_cac():
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
         comms_method=gw_tuple.CommsMethod,
         make_model=gw_tuple.MakeModel,
+        #
     ).tuple
     assert t == gw_tuple
 

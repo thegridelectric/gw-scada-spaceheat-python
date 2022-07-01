@@ -45,15 +45,17 @@
 from schema.errors import MpSchemaError
 from schema.enums.</xsl:text><xsl:value-of select="translate(LocalName,'.','_')"/>
 <xsl:text>.</xsl:text><xsl:value-of select="translate(Alias,'.','_')"/>
-<xsl:text> import </xsl:text><xsl:value-of select="$local-class-name"/>
-<xsl:text>, </xsl:text><xsl:value-of select="$class-name"/>
-<xsl:text>GtEnum
+<xsl:text> import (
+    </xsl:text><xsl:value-of select="$local-class-name"/>
+<xsl:text>,
+    </xsl:text><xsl:value-of select="$class-name"/>
+<xsl:text>GtEnum,
+)
 
 
 class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>GtEnum(</xsl:text>
 <xsl:value-of select="$class-name"/>
 <xsl:text>GtEnum):
-
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -61,12 +63,14 @@ class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>GtEnum(</xs
         return False
 
 
-class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>Map():
+class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>Map:
     @classmethod
     def gt_to_local(cls, symbol):
         if not </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>GtEnum.is_symbol(symbol):
-            raise MpSchemaError(f"{symbol} must belong to key of {</xsl:text><xsl:value-of select="$local-class-name"/>
-                <xsl:text>Map.gt_to_local_dict}")
+            raise MpSchemaError(
+                f"{symbol} must belong to key of {</xsl:text><xsl:value-of select="$local-class-name"/>
+                <xsl:text>Map.gt_to_local_dict}"
+            )
         return cls.gt_to_local_dict[symbol]
 
     @classmethod
@@ -95,7 +99,8 @@ class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>Map():
         </xsl:if>
     <xsl:text>,</xsl:text>
     </xsl:for-each>
-    <xsl:text> }
+    <xsl:text>
+    }
 
     local_to_gt_dict: Dict[</xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>, str] = {
         </xsl:text>
@@ -113,7 +118,8 @@ class </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>Map():
     <xsl:value-of select="Symbol"/><xsl:text>",
         </xsl:text>
     </xsl:for-each>
-    <xsl:text>}
+    <xsl:text>#
+    }
 </xsl:text>
 
 

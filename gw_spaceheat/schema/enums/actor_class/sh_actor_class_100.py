@@ -1,6 +1,6 @@
 """sh.actor.class.100 definition"""
-from abc import ABC
 import enum
+from abc import ABC
 from typing import List
 
 
@@ -16,6 +16,7 @@ class ActorClass(enum.Enum):
     ATN = "Atn"
     SIMPLE_SENSOR = "SimpleSensor"
     NONE = "None"
+    #
 
 
 class ShActorClass100GtEnum(ABC):
@@ -27,4 +28,5 @@ class ShActorClass100GtEnum(ABC):
         "b103058f",
         "dae4b2f0",
         "99a5f20d",
+        #
     ]

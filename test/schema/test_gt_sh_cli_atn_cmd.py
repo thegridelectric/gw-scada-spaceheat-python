@@ -32,6 +32,7 @@ def test_gt_sh_cli_atn_cmd():
     # test Maker init
     t = Maker(
         send_snapshot=gw_tuple.SendSnapshot,
+        #
     ).tuple
     assert t == gw_tuple
 

@@ -1,12 +1,12 @@
 """Base for gt.electric.meter.component.100"""
 import json
-from typing import List, Optional, NamedTuple
+from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
 
 
 class GtElectricMeterComponentBase(NamedTuple):
-    ComponentId: str  #
     ComponentAttributeClassId: str
+    ComponentId: str  #
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
     TypeAlias: str = "gt.electric.meter.component.100"
@@ -24,18 +24,6 @@ class GtElectricMeterComponentBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
-        if self.DisplayName:
-            if not isinstance(self.DisplayName, str):
-                errors.append(f"DisplayName {self.DisplayName} must have type str.")
-        if not isinstance(self.ComponentId, str):
-            errors.append(f"ComponentId {self.ComponentId} must have type str.")
-        if not property_format.is_uuid_canonical_textual(self.ComponentId):
-            errors.append(
-                f"ComponentId {self.ComponentId}" " must have format UuidCanonicalTextual"
-            )
-        if self.HwUid:
-            if not isinstance(self.HwUid, str):
-                errors.append(f"HwUid {self.HwUid} must have type str.")
         if not isinstance(self.ComponentAttributeClassId, str):
             errors.append(
                 f"ComponentAttributeClassId {self.ComponentAttributeClassId} must have type str."
@@ -45,6 +33,25 @@ class GtElectricMeterComponentBase(NamedTuple):
                 f"ComponentAttributeClassId {self.ComponentAttributeClassId}"
                 " must have format UuidCanonicalTextual"
             )
+        if self.DisplayName:
+            if not isinstance(self.DisplayName, str):
+                errors.append(
+                    f"DisplayName {self.DisplayName} must have type str."
+                )
+        if not isinstance(self.ComponentId, str):
+            errors.append(
+                f"ComponentId {self.ComponentId} must have type str."
+            )
+        if not property_format.is_uuid_canonical_textual(self.ComponentId):
+            errors.append(
+                f"ComponentId {self.ComponentId}"
+                " must have format UuidCanonicalTextual"
+            )
+        if self.HwUid:
+            if not isinstance(self.HwUid, str):
+                errors.append(
+                    f"HwUid {self.HwUid} must have type str."
+                )
         if self.TypeAlias != "gt.electric.meter.component.100":
             errors.append(
                 f"Type requires TypeAlias of gt.electric.meter.component.100, not {self.TypeAlias}."

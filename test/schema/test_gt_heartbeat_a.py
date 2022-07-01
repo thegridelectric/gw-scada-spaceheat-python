@@ -29,7 +29,9 @@ def test_gt_heartbeat_a():
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
     # test Maker init
-    t = Maker().tuple
+    t = Maker(
+        #
+    ).tuple
     assert t == gw_tuple
 
     ######################################

@@ -1,4 +1,4 @@
-"""gt.powermeter.reporting.config type"""
+"""gt.powermeter.reporting.config.100 type"""
 
 from schema.errors import MpSchemaError
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_base import (

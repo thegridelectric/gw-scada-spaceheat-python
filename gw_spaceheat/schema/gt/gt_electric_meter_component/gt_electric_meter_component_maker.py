@@ -1,34 +1,30 @@
-"""Makes gt.electric.meter.component type"""
-
+"""Makes gt.electric.meter.component.100 type"""
 import json
 from typing import Optional
-
 from data_classes.components.electric_meter_component import ElectricMeterComponent
+
+from schema.gt.gt_electric_meter_component.gt_electric_meter_component import GtElectricMeterComponent
 from schema.errors import MpSchemaError
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component import (
-    GtElectricMeterComponent,
-)
 
 
 class GtElectricMeterComponent_Maker:
     type_alias = "gt.electric.meter.component.100"
 
-    def __init__(
-        self,
-        component_id: str,
-        component_attribute_class_id: str,
-        display_name: Optional[str],
-        hw_uid: Optional[str],
-    ):
+    def __init__(self,
+                 component_attribute_class_id: str,
+                 component_id: str,
+                 display_name: Optional[str],
+                 hw_uid: Optional[str]):
 
-        tuple = GtElectricMeterComponent(
+        gw_tuple = GtElectricMeterComponent(
+            ComponentAttributeClassId=component_attribute_class_id,
             DisplayName=display_name,
             ComponentId=component_id,
             HwUid=hw_uid,
-            ComponentAttributeClassId=component_attribute_class_id,
+            #
         )
-        tuple.check_for_errors()
-        self.tuple: GtElectricMeterComponent = tuple
+        gw_tuple.check_for_errors()
+        self.tuple = gw_tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtElectricMeterComponent) -> str:
@@ -50,27 +46,27 @@ class GtElectricMeterComponent_Maker:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
-
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
-        if "ComponentId" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing ComponentId")
         if "ComponentAttributeClassId" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ComponentAttributeClassId")
         if "DisplayName" not in new_d.keys():
             new_d["DisplayName"] = None
+        if "ComponentId" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ComponentId")
         if "HwUid" not in new_d.keys():
             new_d["HwUid"] = None
 
-        tuple = GtElectricMeterComponent(
+        gw_tuple = GtElectricMeterComponent(
             TypeAlias=new_d["TypeAlias"],
+            ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
             DisplayName=new_d["DisplayName"],
             ComponentId=new_d["ComponentId"],
             HwUid=new_d["HwUid"],
-            ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
+            #
         )
-        tuple.check_for_errors()
-        return tuple
+        gw_tuple.check_for_errors()
+        return gw_tuple
 
     @classmethod
     def tuple_to_dc(cls, t: GtElectricMeterComponent) -> ElectricMeterComponent:
@@ -79,6 +75,7 @@ class GtElectricMeterComponent_Maker:
             "component_id": t.ComponentId,
             "hw_uid": t.HwUid,
             "component_attribute_class_id": t.ComponentAttributeClassId,
+            #
         }
         if s["component_id"] in ElectricMeterComponent.by_id.keys():
             dc = ElectricMeterComponent.by_id[s["component_id"]]
@@ -95,6 +92,7 @@ class GtElectricMeterComponent_Maker:
             ComponentId=dc.component_id,
             HwUid=dc.hw_uid,
             ComponentAttributeClassId=dc.component_attribute_class_id,
+            #
         )
         t.check_for_errors()
         return t

@@ -14,18 +14,7 @@ def test_gt_powermeter_reporting_config():
     gw_dict = {
         "HwUid": "1001ab",
         "ReportingPeriodS": 300,
-        "ElectricalQuantityReportingConfigList": [
-            {
-                "ShNodeAlias": "a.elt1",
-                "ReportOnChange": True,
-                "Exponent": 6,
-                "SamplePeriodS": 5,
-                "AsyncReportThreshold": 0.05,
-                "TypeAlias": "gt.eq.reporting.config.100",
-                "UnitGtEnumSymbol": "a969ac7c",
-                "TelemetryNameGtEnumSymbol": "ad19e79c",
-            }
-        ],
+        "ElectricalQuantityReportingConfigList": [{"ShNodeAlias": "a.elt1", "ReportOnChange": True, "Exponent": 6, "SamplePeriodS": 5, "AsyncReportThreshold": 0.05, "TypeAlias": "gt.eq.reporting.config.100", "UnitGtEnumSymbol": "a969ac7c", "TelemetryNameGtEnumSymbol": "ad19e79c"}],
         "PollPeriodMs": 1000,
         "TypeAlias": "gt.powermeter.reporting.config.100",
     }
@@ -49,6 +38,7 @@ def test_gt_powermeter_reporting_config():
         reporting_period_s=gw_tuple.ReportingPeriodS,
         electrical_quantity_reporting_config_list=gw_tuple.ElectricalQuantityReportingConfigList,
         poll_period_ms=gw_tuple.PollPeriodMs,
+        #
     ).tuple
     assert t == gw_tuple
 
@@ -128,7 +118,7 @@ def test_gt_powermeter_reporting_config():
             hw_uid=gw_dict["HwUid"],
             reporting_period_s=gw_dict["ReportingPeriodS"],
             poll_period_ms=gw_dict["PollPeriodMs"],
-            electrical_quantity_reporting_config_list=["Not a GtEqReportingConfig100"],
+            electrical_quantity_reporting_config_list=["Not a GtEqReportingConfig"],
         )
 
     with pytest.raises(MpSchemaError):

@@ -1,37 +1,33 @@
 """Makes gt.powermeter.reporting.config.100 type"""
-
 import json
 from typing import List, Optional
 
+from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config import GtPowermeterReportingConfig
+from schema.errors import MpSchemaError
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig,
     GtEqReportingConfig_Maker,
 )
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config import (
-    GtPowermeterReportingConfig,
-)
-from schema.errors import MpSchemaError
 
 
 class GtPowermeterReportingConfig_Maker:
     type_alias = "gt.powermeter.reporting.config.100"
 
-    def __init__(
-        self,
-        reporting_period_s: int,
-        poll_period_ms: int,
-        hw_uid: Optional[str],
-        electrical_quantity_reporting_config_list: List[GtEqReportingConfig],
-    ):
+    def __init__(self,
+                 reporting_period_s: int,
+                 electrical_quantity_reporting_config_list: List[GtEqReportingConfig],
+                 poll_period_ms: int,
+                 hw_uid: Optional[str]):
 
-        tuple = GtPowermeterReportingConfig(
-            ReportingPeriodS=reporting_period_s,
-            PollPeriodMs=poll_period_ms,
+        gw_tuple = GtPowermeterReportingConfig(
             HwUid=hw_uid,
+            ReportingPeriodS=reporting_period_s,
             ElectricalQuantityReportingConfigList=electrical_quantity_reporting_config_list,
+            PollPeriodMs=poll_period_ms,
+            #
         )
-        tuple.check_for_errors()
-        self.tuple = tuple
+        gw_tuple.check_for_errors()
+        self.tuple = gw_tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtPowermeterReportingConfig) -> str:
@@ -53,35 +49,35 @@ class GtPowermeterReportingConfig_Maker:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
-
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
-        if "ReportingPeriodS" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing ReportingPeriodS")
-        if "PollPeriodMs" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing PollPeriodMs")
         if "HwUid" not in new_d.keys():
             new_d["HwUid"] = None
+        if "ReportingPeriodS" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ReportingPeriodS")
         if "ElectricalQuantityReportingConfigList" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ElectricalQuantityReportingConfigList")
         electrical_quantity_reporting_config_list = []
-        for eq_reporting_config in new_d["ElectricalQuantityReportingConfigList"]:
-            if not isinstance(eq_reporting_config, dict):
+        for elt in new_d["ElectricalQuantityReportingConfigList"]:
+            if not isinstance(elt, dict):
                 raise MpSchemaError(
-                    f"elt {eq_reporting_config} of ElectricalQuantityReportingConfigList must be "
-                    "EqReportingConfig but not even a dict!"
+                    f"elt {elt} of ElectricalQuantityReportingConfigList must be "
+                    "GtEqReportingConfig but not even a dict!"
                 )
             electrical_quantity_reporting_config_list.append(
-                GtEqReportingConfig_Maker.dict_to_tuple(eq_reporting_config)
+                GtEqReportingConfig_Maker.dict_to_tuple(elt)
             )
         new_d["ElectricalQuantityReportingConfigList"] = electrical_quantity_reporting_config_list
+        if "PollPeriodMs" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing PollPeriodMs")
 
-        tuple = GtPowermeterReportingConfig(
+        gw_tuple = GtPowermeterReportingConfig(
             TypeAlias=new_d["TypeAlias"],
-            ReportingPeriodS=new_d["ReportingPeriodS"],
-            PollPeriodMs=new_d["PollPeriodMs"],
             HwUid=new_d["HwUid"],
+            ReportingPeriodS=new_d["ReportingPeriodS"],
             ElectricalQuantityReportingConfigList=new_d["ElectricalQuantityReportingConfigList"],
+            PollPeriodMs=new_d["PollPeriodMs"],
+            #
         )
-        tuple.check_for_errors()
-        return tuple
+        gw_tuple.check_for_errors()
+        return gw_tuple

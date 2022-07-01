@@ -1,32 +1,33 @@
 """Makes gt.sh.simple.single.status.100 type"""
-
 import json
 from typing import List
 
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
 from schema.errors import MpSchemaError
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
+from schema.enums.telemetry_name.telemetry_name_map import (
+    TelemetryName,
+    TelemetryNameMap,
+)
 
 
 class GtShSimpleSingleStatus_Maker:
     type_alias = "gt.sh.simple.single.status.100"
 
-    def __init__(
-        self,
-        read_time_unix_ms_list: List[int],
-        sh_node_alias: str,
-        value_list: List[int],
-        telemetry_name: TelemetryName,
-    ):
+    def __init__(self,
+                 read_time_unix_ms_list: List[int],
+                 telemetry_name: TelemetryName,
+                 sh_node_alias: str,
+                 value_list: List[int]):
 
-        tuple = GtShSimpleSingleStatus(
+        gw_tuple = GtShSimpleSingleStatus(
             ReadTimeUnixMsList=read_time_unix_ms_list,
             TelemetryName=telemetry_name,
             ShNodeAlias=sh_node_alias,
             ValueList=value_list,
+            #
         )
-        tuple.check_for_errors()
-        self.tuple: GtShSimpleSingleStatus = tuple
+        gw_tuple.check_for_errors()
+        self.tuple = gw_tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtShSimpleSingleStatus) -> str:
@@ -48,25 +49,25 @@ class GtShSimpleSingleStatus_Maker:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
-
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
         if "ReadTimeUnixMsList" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ReadTimeUnixMsList")
+        if "TelemetryNameGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TelemetryNameGtEnumSymbol")
+        new_d["TelemetryName"] = TelemetryNameMap.gt_to_local(new_d["TelemetryNameGtEnumSymbol"])
         if "ShNodeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ShNodeAlias")
         if "ValueList" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ValueList")
-        if "TelemetryNameGtEnumSymbol" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing TelemetryNameGtEnumSymbol")
-        new_d["TelemetryName"] = TelemetryNameMap.gt_to_local(new_d["TelemetryNameGtEnumSymbol"])
 
-        tuple = GtShSimpleSingleStatus(
+        gw_tuple = GtShSimpleSingleStatus(
             TypeAlias=new_d["TypeAlias"],
             ReadTimeUnixMsList=new_d["ReadTimeUnixMsList"],
             TelemetryName=new_d["TelemetryName"],
             ShNodeAlias=new_d["ShNodeAlias"],
             ValueList=new_d["ValueList"],
+            #
         )
-        tuple.check_for_errors()
-        return tuple
+        gw_tuple.check_for_errors()
+        return gw_tuple

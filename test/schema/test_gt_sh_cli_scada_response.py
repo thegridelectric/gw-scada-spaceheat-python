@@ -12,13 +12,7 @@ from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
 def test_gt_sh_cli_scada_response():
 
     gw_dict = {
-        "Snapshot": {
-            "TelemetryNameList": ["5a71d4b3"],
-            "AboutNodeAliasList": ["a.elt1.relay"],
-            "ReportTimeUnixMs": 1656363448000,
-            "ValueList": [1],
-            "TypeAlias": "gt.sh.status.snapshot.110",
-        },
+        "Snapshot": {"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "gt.sh.status.snapshot.110"},
         "TypeAlias": "gt.sh.cli.scada.response.100",
     }
 
@@ -38,6 +32,7 @@ def test_gt_sh_cli_scada_response():
     # test Maker init
     t = Maker(
         snapshot=gw_tuple.Snapshot,
+        #
     ).tuple
     assert t == gw_tuple
 
@@ -62,14 +57,14 @@ def test_gt_sh_cli_scada_response():
     ######################################
 
     orig_value = gw_dict["Snapshot"]
-    gw_dict["Snapshot"] = "Not a GtShStatusSnapshot110."
+    gw_dict["Snapshot"] = "Not a GtShStatusSnapshot."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["Snapshot"] = orig_value
 
     with pytest.raises(MpSchemaError):
         Maker(
-            snapshot="Not a GtShStatusSnapshot110",
+            snapshot="Not a GtShStatusSnapshot",
         )
 
     ######################################

@@ -17,7 +17,9 @@ class GtShCliAtnCmdBase(NamedTuple):
     def derived_errors(self) -> List[str]:
         errors = []
         if not isinstance(self.SendSnapshot, bool):
-            errors.append(f"SendSnapshot {self.SendSnapshot} must have type bool.")
+            errors.append(
+                f"SendSnapshot {self.SendSnapshot} must have type bool."
+            )
         if self.TypeAlias != "gt.sh.cli.atn.cmd.100":
             errors.append(
                 f"Type requires TypeAlias of gt.sh.cli.atn.cmd.100, not {self.TypeAlias}."

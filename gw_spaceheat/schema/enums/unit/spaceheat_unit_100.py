@@ -1,6 +1,6 @@
 """spaceheat.unit.100 definition"""
-from abc import ABC
 import enum
+from abc import ABC
 from typing import List
 
 
@@ -15,6 +15,7 @@ class Unit(enum.Enum):
     FAHRENHEIT = "Fahrenheit"
     W = "W"
     UNITLESS = "Unitless"
+    #
 
 
 class SpaceheatUnit100GtEnum(ABC):
@@ -25,4 +26,5 @@ class SpaceheatUnit100GtEnum(ABC):
         "7d8832f8",
         "f459a9c3",
         "ec972387",
+        #
     ]

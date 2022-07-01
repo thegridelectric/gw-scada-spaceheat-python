@@ -1,6 +1,6 @@
 """local.comm.interface.100 definition"""
-from abc import ABC
 import enum
+from abc import ABC
 from typing import List
 
 
@@ -18,6 +18,7 @@ class LocalCommInterface(enum.Enum):
     ETHERNET = "Ethernet"
     ONEWIRE = "OneWire"
     RS485 = "RS485"
+    #
 
 
 class LocalCommInterface100GtEnum(ABC):
@@ -31,4 +32,5 @@ class LocalCommInterface100GtEnum(ABC):
         "c1e7a955",
         "ae2d4cd8",
         "a6a4ac9f",
+        #
     ]

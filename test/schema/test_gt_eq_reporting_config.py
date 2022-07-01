@@ -44,6 +44,7 @@ def test_gt_eq_reporting_config():
         async_report_threshold=gw_tuple.AsyncReportThreshold,
         sample_period_s=gw_tuple.SamplePeriodS,
         telemetry_name=gw_tuple.TelemetryName,
+        #
     ).tuple
     assert t == gw_tuple
 

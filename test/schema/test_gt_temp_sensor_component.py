@@ -38,6 +38,7 @@ def test_gt_temp_sensor_component():
         component_id=gw_tuple.ComponentId,
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
         hw_uid=gw_tuple.HwUid,
+        #
     ).tuple
     assert t == gw_tuple
 

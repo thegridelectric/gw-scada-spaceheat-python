@@ -1,7 +1,6 @@
 """Base for gt.electric.heater.component.100"""
 import json
 from typing import List, NamedTuple, Optional
-
 import schema.property_format as property_format
 
 
@@ -27,15 +26,22 @@ class GtElectricHeaterComponentBase(NamedTuple):
         errors = []
         if self.HwUid:
             if not isinstance(self.HwUid, str):
-                errors.append(f"HwUid {self.HwUid} must have type str.")
+                errors.append(
+                    f"HwUid {self.HwUid} must have type str."
+                )
         if self.DisplayName:
             if not isinstance(self.DisplayName, str):
-                errors.append(f"DisplayName {self.DisplayName} must have type str.")
+                errors.append(
+                    f"DisplayName {self.DisplayName} must have type str."
+                )
         if not isinstance(self.ComponentId, str):
-            errors.append(f"ComponentId {self.ComponentId} must have type str.")
+            errors.append(
+                f"ComponentId {self.ComponentId} must have type str."
+            )
         if not property_format.is_uuid_canonical_textual(self.ComponentId):
             errors.append(
-                f"ComponentId {self.ComponentId}" " must have format UuidCanonicalTextual"
+                f"ComponentId {self.ComponentId}"
+                " must have format UuidCanonicalTextual"
             )
         if not isinstance(self.ComponentAttributeClassId, str):
             errors.append(

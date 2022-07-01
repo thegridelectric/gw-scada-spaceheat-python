@@ -40,6 +40,7 @@ def test_gt_boolean_actuator_component():
         component_id=gw_tuple.ComponentId,
         gpio=gw_tuple.Gpio,
         hw_uid=gw_tuple.HwUid,
+        #
     ).tuple
     assert t == gw_tuple
 

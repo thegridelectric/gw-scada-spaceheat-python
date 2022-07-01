@@ -46,6 +46,7 @@ def test_gt_temp_sensor_cac():
         exponent=gw_tuple.Exponent,
         comms_method=gw_tuple.CommsMethod,
         typical_response_time_ms=gw_tuple.TypicalResponseTimeMs,
+        #
     ).tuple
     assert t == gw_tuple
 

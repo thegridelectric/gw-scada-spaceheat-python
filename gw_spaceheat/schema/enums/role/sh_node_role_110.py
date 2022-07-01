@@ -1,6 +1,6 @@
-"""sh.node.role.101 definition"""
-from abc import ABC
+"""sh.node.role.110 definition"""
 import enum
+from abc import ABC
 from typing import List
 
 
@@ -17,6 +17,7 @@ class Role(enum.Enum):
     HYDRONIC_PIPE = "HydronicPipe"
     PIPE_TEMP_SENSOR = "PipeTempSensor"
     BASEBOARD_RADIATOR = "BaseboardRadiator"
+    RADIATOR_FAN = "RadiatorFan"
     CIRCULATOR_PUMP = "CirculatorPump"
     TANK_WATER_TEMP_SENSOR = "TankWaterTempSensor"
     ROOM_TEMP_SENSOR = "RoomTempSensor"
@@ -26,10 +27,10 @@ class Role(enum.Enum):
     ATN = "Atn"
     HOME_ALONE = "HomeAlone"
     OUTDOORS = "Outdoors"
-    RADIATOR_FAN = "RadiatorFan"
+    #
 
 
-class ShNodeRole101GtEnum(ABC):
+class ShNodeRole110GtEnum(ABC):
     symbols: List[str] = [
         "99c5f326",
         "ece3b600",
@@ -39,6 +40,7 @@ class ShNodeRole101GtEnum(ABC):
         "fe3cbdd5",
         "c480f612",
         "05fdd645",
+        "6896109b",
         "b0eaf2ba",
         "73308a1f",
         "fec74958",
@@ -48,5 +50,5 @@ class ShNodeRole101GtEnum(ABC):
         "6ddff83b",
         "863e50d1",
         "dd975b31",
-        "6896109b",
+        #
     ]

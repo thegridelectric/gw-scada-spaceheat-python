@@ -1,23 +1,26 @@
 """Makes gt.sh.cli.scada.response.100 type"""
-
 import json
 
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import GtShCliScadaResponse
+from schema.errors import MpSchemaError
 from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
     GtShStatusSnapshot,
     GtShStatusSnapshot_Maker,
 )
-from schema.errors import MpSchemaError
 
 
 class GtShCliScadaResponse_Maker:
     type_alias = "gt.sh.cli.scada.response.100"
 
-    def __init__(self, snapshot: GtShStatusSnapshot):
+    def __init__(self,
+                 snapshot: GtShStatusSnapshot):
 
-        tuple = GtShCliScadaResponse(Snapshot=snapshot)
-        tuple.check_for_errors()
-        self.tuple = tuple
+        gw_tuple = GtShCliScadaResponse(
+            Snapshot=snapshot,
+            #
+        )
+        gw_tuple.check_for_errors()
+        self.tuple = gw_tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtShCliScadaResponse) -> str:
@@ -39,7 +42,6 @@ class GtShCliScadaResponse_Maker:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
-
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
         if "Snapshot" not in new_d.keys():
@@ -48,6 +50,11 @@ class GtShCliScadaResponse_Maker:
             raise MpSchemaError(f"d['Snapshot'] {new_d['Snapshot']} must be a GtShStatusSnapshot!")
         snapshot = GtShStatusSnapshot_Maker.dict_to_tuple(new_d["Snapshot"])
         new_d["Snapshot"] = snapshot
-        tuple = GtShCliScadaResponse(TypeAlias=new_d["TypeAlias"], Snapshot=new_d["Snapshot"])
-        tuple.check_for_errors()
-        return tuple
+
+        gw_tuple = GtShCliScadaResponse(
+            TypeAlias=new_d["TypeAlias"],
+            Snapshot=new_d["Snapshot"],
+            #
+        )
+        gw_tuple.check_for_errors()
+        return gw_tuple
