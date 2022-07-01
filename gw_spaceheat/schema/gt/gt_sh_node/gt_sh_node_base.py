@@ -22,8 +22,8 @@ class GtShNodeBase(NamedTuple):
 
     def asdict(self):
         d = self._asdict()
-        if d["Component"] is None:
-            del d["Component"]
+        if d["ComponentId"] is None:
+            del d["ComponentId"]
         if d["DisplayName"] is None:
             del d["DisplayName"]
         if d["ReportingSamplePeriodS"] is None:
@@ -36,6 +36,10 @@ class GtShNodeBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
+        if not isinstance(self.ShNodeId, str):
+            errors.append(f"ShNodeId {self.ShNodeId} must have type str.")
+        if not property_format.is_uuid_canonical_textual(self.ShNodeId):
+            errors.append(f"ShNodeId {self.ShNodeId} must have format UUidCanonicalTextual")
         if self.DisplayName:
             if not isinstance(self.DisplayName, str):
                 errors.append(f"DisplayName {self.DisplayName} must have type str.")

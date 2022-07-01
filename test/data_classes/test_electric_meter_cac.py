@@ -11,6 +11,7 @@ def test_electric_meter_cac():
         "DisplayName": "Gridworks Pm1 Simulated Power Meter",
         "LocalCommInterfaceGtEnumSymbol": "efc144cd",
         "UpdatePeriodMs": 1000,
+        "TypeAlias": "gt.electric.meter.cac.100"
     }
 
     gw_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d)

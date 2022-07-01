@@ -1,27 +1,32 @@
-"""Makes gt.electric.heater.component type"""
+"""Makes gt.electric.heater.component.100 type"""
 
 import json
-from typing import Dict, Optional
+from typing import Optional
+
 from data_classes.components.electric_heater_component import ElectricHeaterComponent
-
-from schema.gt.gt_electric_heater_component.gt_electric_heater_component import GtElectricHeaterComponent
 from schema.errors import MpSchemaError
+from schema.gt.gt_electric_heater_component.gt_electric_heater_component import (
+    GtElectricHeaterComponent,
+)
 
 
-class GtElectricHeaterComponent_Maker():
-    type_alias = 'gt.electric.heater.component.100'
+class GtElectricHeaterComponent_Maker:
+    type_alias = "gt.electric.heater.component.100"
 
-    def __init__(self,
-                 component_id: str,
-                 component_attribute_class_id: str,
-                 hw_uid: Optional[str],
-                 display_name: Optional[str]):
+    def __init__(
+        self,
+        component_id: str,
+        component_attribute_class_id: str,
+        hw_uid: Optional[str],
+        display_name: Optional[str],
+    ):
 
-        tuple = GtElectricHeaterComponent(HwUid=hw_uid,
-                                          DisplayName=display_name,
-                                          ComponentId=component_id,
-                                          ComponentAttributeClassId=component_attribute_class_id,
-                                          )
+        tuple = GtElectricHeaterComponent(
+            HwUid=hw_uid,
+            DisplayName=display_name,
+            ComponentId=component_id,
+            ComponentAttributeClassId=component_attribute_class_id,
+        )
         tuple.check_for_errors()
         self.tuple: GtElectricHeaterComponent = tuple
 
@@ -35,40 +40,48 @@ class GtElectricHeaterComponent_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError(f'Type must be string or bytes!')
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) ->  GtElectricHeaterComponent:
-        if "ComponentId" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ComponentId")
-        if "ComponentAttributeClassId" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
-        if "HwUid" not in d.keys():
-            d["HwUid"] = None
-        if "DisplayName" not in d.keys():
-            d["DisplayName"] = None
+    def dict_to_tuple(cls, d: dict) -> GtElectricHeaterComponent:
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
 
-        tuple = GtElectricHeaterComponent(HwUid=d["HwUid"],
-                                          DisplayName=d["DisplayName"],
-                                          ComponentId=d["ComponentId"],
-                                          ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          )
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "ComponentId" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ComponentId")
+        if "ComponentAttributeClassId" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ComponentAttributeClassId")
+        if "HwUid" not in new_d.keys():
+            new_d["HwUid"] = None
+        if "DisplayName" not in new_d.keys():
+            new_d["DisplayName"] = None
+
+        tuple = GtElectricHeaterComponent(
+            TypeAlias=new_d["TypeAlias"],
+            HwUid=new_d["HwUid"],
+            DisplayName=new_d["DisplayName"],
+            ComponentId=new_d["ComponentId"],
+            ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
+        )
         tuple.check_for_errors()
         return tuple
 
     @classmethod
     def tuple_to_dc(cls, t: GtElectricHeaterComponent) -> ElectricHeaterComponent:
         s = {
-            'hw_uid': t.HwUid,
-            'display_name': t.DisplayName,
-            'component_id': t.ComponentId,
-            'component_attribute_class_id': t.ComponentAttributeClassId,
-            }
-        if s['component_id'] in ElectricHeaterComponent.by_id.keys():
-            dc = ElectricHeaterComponent.by_id[s['component_id']]
+            "hw_uid": t.HwUid,
+            "display_name": t.DisplayName,
+            "component_id": t.ComponentId,
+            "component_attribute_class_id": t.ComponentAttributeClassId,
+        }
+        if s["component_id"] in ElectricHeaterComponent.by_id.keys():
+            dc = ElectricHeaterComponent.by_id[s["component_id"]]
         else:
             dc = ElectricHeaterComponent(**s)
         return dc
@@ -77,11 +90,12 @@ class GtElectricHeaterComponent_Maker():
     def dc_to_tuple(cls, dc: ElectricHeaterComponent) -> GtElectricHeaterComponent:
         if dc is None:
             return None
-        t = GtElectricHeaterComponent(HwUid=dc.hw_uid,
-                                            DisplayName=dc.display_name,
-                                            ComponentId=dc.component_id,
-                                            ComponentAttributeClassId=dc.component_attribute_class_id,
-                                            )
+        t = GtElectricHeaterComponent(
+            HwUid=dc.hw_uid,
+            DisplayName=dc.display_name,
+            ComponentId=dc.component_id,
+            ComponentAttributeClassId=dc.component_attribute_class_id,
+        )
         t.check_for_errors()
         return t
 

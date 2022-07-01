@@ -862,12 +862,12 @@
       <IsList>true</IsList>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TestValue>["a.elt1"]</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
-      <TestValue>["a.elt1"]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec0TXOlI0XZGRLxJ</SchemaAttributeId>
@@ -888,6 +888,8 @@
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
       <SubTypeDataClass>ElectricMeterCac</SubTypeDataClass>
+      <TestValue>"a3d298fb-a4ef-427a-939d-02cc9c9689c1"</TestValue>
+      <IsRequired>true</IsRequired>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec0jyQjtqhV69IU6</SchemaAttributeId>
@@ -895,15 +897,12 @@
       <Value>Component</Value>
       <GtSchema>recpr0byizj3PmqXi</GtSchema>
       <SubTypeFormat>recEdlcUTBfQ9Hy6D</SubTypeFormat>
-      <PrimitiveType>String</PrimitiveType>
-      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
       <SubMessageFormatAlias>gt.component.100</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
-      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
       <SubTypeDataClass>Component</SubTypeDataClass>
-      <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+      <TestValue>"a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec0yzwyCWxtaJQJF</SchemaAttributeId>
@@ -933,6 +932,7 @@
       <EnumRoot>spaceheat.telemetry.name</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"793505aa"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec1lT7lfuqohFuY2</SchemaAttributeId>
@@ -954,6 +954,7 @@
       <GtSchema>recdbl99ZoQqyOhS7</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
+      <TestValue>"relay for first elt in tank"</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -968,12 +969,12 @@
       <IsList>true</IsList>
       <PrimitiveType>Integer</PrimitiveType>
       <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <TestValue>[1656443705023]</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
-      <TestValue>[1656443705023]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec2k6vwhh6cSgwse</SchemaAttributeId>
@@ -985,6 +986,7 @@
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"cf1f2587-7462-4701-b962-d2b264744c1d"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -1097,6 +1099,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Simulated GridWorks high precision water temp sensor"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec86i7GzBPoqtRjP</SchemaAttributeId>
@@ -1139,6 +1142,7 @@
       <IsRequired>true</IsRequired>
       <Enum>recLQWqTvGwSz2GcN</Enum>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"e81d74a8"</TestValue>
       <TypeCheck>1</TypeCheck>
       <EnumLocalName>make.model</EnumLocalName>
       <EnumRoot>spaceheat.make.model</EnumRoot>
@@ -1219,6 +1223,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Main power meter for Little orange house garage space heat"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recD4VpikwJAaTf0c</SchemaAttributeId>
@@ -1230,6 +1235,7 @@
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"69f101fc-22e4-4caa-8103-50b8aeb66028"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -1269,6 +1275,7 @@
       <IsRequired>true</IsRequired>
       <PrimitiveType>String</PrimitiveType>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"69f101fc-22e4-4caa-8103-50b8aeb66028"</TestValue>
       <SubMessageFormatAlias>gt.boolean.actuator.cac.100</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
@@ -1297,6 +1304,7 @@
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>400</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -1316,6 +1324,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+      <TestValue>"04ceb282-d7e8-4293-80b5-72455e1a5db3"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recEwx1N4X1KFrH7d</SchemaAttributeId>
@@ -1352,12 +1361,12 @@
       <GtSchema>recLc7QnBdk9iPdHI</GtSchema>
       <IsRequired>true</IsRequired>
       <Enum>rec2HyLffy6QK9QId</Enum>
+      <TestValue>"5a71d4b3"</TestValue>
       <TypeCheck>1</TypeCheck>
       <EnumLocalName>telemetry.name</EnumLocalName>
       <EnumRoot>spaceheat.telemetry.name</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
-      <TestValue>"5a71d4b3"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recG11eY47BNnI8gt</SchemaAttributeId>
@@ -1380,10 +1389,10 @@
       <IsPrimitive>true</IsPrimitive>
       <IsList>true</IsList>
       <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>[18000]</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <TestValue>[18000]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recGXMXqUz6rHqVzg</SchemaAttributeId>
@@ -1393,6 +1402,7 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"Fake HwUid"</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -1407,6 +1417,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Temp Sensor on distribution pipe out of tank"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recH7ddbJqijWO0lA</SchemaAttributeId>
@@ -1423,6 +1434,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+      <TestValue>"a3d298fb-a4ef-427a-939d-02cc9c9689c1"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recHyghQ3390tN8LF</SchemaAttributeId>
@@ -1441,6 +1453,7 @@
       <GtSchema>recT6312S7LckLHZ9</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
+      <TestValue>"First 4.5 kW boost in tank"</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -1455,6 +1468,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Temp sensor on pipe out of tank"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recIu6hGiK3PDyJrn</SchemaAttributeId>
@@ -1471,6 +1485,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+      <TestValue>"2ca9e65a-5e85-4eaa-811b-901e940f8d09"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recJ3u86m6sh2vNWk</SchemaAttributeId>
@@ -1498,6 +1513,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Some pipe flow sensor"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recJW4Tmdi1HStfwy</SchemaAttributeId>
@@ -1520,12 +1536,12 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TestValue>"a.elt1.relay"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
-      <TestValue>"a.elt1.relay"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recKwPBxJr8R55KlB</SchemaAttributeId>
@@ -1552,6 +1568,7 @@
       <EnumRoot>spaceheat.unit</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"7d8832f8"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recLEgdBdPefcBiyE</SchemaAttributeId>
@@ -1601,6 +1618,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"35941_308"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recM6VoWcVRIgmS54</SchemaAttributeId>
@@ -1614,6 +1632,7 @@
       <EnumRoot>sh.actor.class</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"dae4b2f0"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recMCfVSnEOXaVMZK</SchemaAttributeId>
@@ -1643,11 +1662,13 @@
       <GtSchema>reccc96DDf5Ue9FmA</GtSchema>
       <IsRequired>true</IsRequired>
       <Enum>rec7Ck8y72m0NytYa</Enum>
+      <ImmutableInDc>true</ImmutableInDc>
       <TypeCheck>1</TypeCheck>
       <EnumLocalName>local.comm.interface</EnumLocalName>
       <EnumRoot>local.comm.interface</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"a6a4ac9f"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recNXTWA84HMF94XV</SchemaAttributeId>
@@ -1670,6 +1691,7 @@
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"798fe14a-4073-41eb-bce2-075906aee6bb"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -1679,18 +1701,18 @@
     <SchemaAttribute>
       <SchemaAttributeId>recP42BiKvu4xhepH</SchemaAttributeId>
       <createdTime>2022-06-30T11:10:01Z</createdTime>
-      <TypeCheck>1</TypeCheck>
-      <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
       <Value>ScadaReadTimeUnixMs</Value>
+      <GtSchema>recx3kwLemvtMaT0t</GtSchema>
+      <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
       <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
-      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
-      <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
-      <IsRequired>true</IsRequired>
-      <GtSchema>recx3kwLemvtMaT0t</GtSchema>
       <TestValue>1656587343297</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recPuhtbcBHZR6Qai</SchemaAttributeId>
@@ -1699,6 +1721,7 @@
       <GtSchema>recdbl99ZoQqyOhS7</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>0</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -1730,6 +1753,7 @@
       <EnumRoot>spaceheat.make.model</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"f8b497e8"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recRZgdQmFjV6kIrY</SchemaAttributeId>
@@ -1746,6 +1770,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+      <TestValue>"14e7105a-e797-485a-a304-328ecc85cd98"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recS3mo0DDavgOszj</SchemaAttributeId>
@@ -1767,6 +1792,14 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recT7boZrdxNcBwdW</SchemaAttributeId>
+      <createdTime>2022-07-01T17:04:51Z</createdTime>
+      <TypeCheck>0</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <Value>ShNodeId</Value>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recThSkVs5p5LvmOD</SchemaAttributeId>
       <createdTime>2022-06-20T11:30:08Z</createdTime>
       <Value>Role</Value>
@@ -1779,6 +1812,7 @@
       <EnumRoot>sh.node.role</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue> "c480f612"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recULYzX6MQbnGbeu</SchemaAttributeId>
@@ -1823,6 +1857,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+      <TestValue>"8a1a1538-ed2d-4829-9c03-f9be1c9f9c83"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recVdAiysaXLvmg8u</SchemaAttributeId>
@@ -1865,6 +1900,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+      <TestValue>"dd5ac673-91a8-40e2-a233-b67479cec709"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recVsS10EII3fL0zm</SchemaAttributeId>
@@ -1891,6 +1927,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>-3</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recWJDdHiEzC7KYss</SchemaAttributeId>
@@ -1927,6 +1964,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"SassyMQ"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recYD7KpGFv86yleu</SchemaAttributeId>
@@ -2013,6 +2051,7 @@
       <IsRequired>true</IsRequired>
       <Enum>recLQWqTvGwSz2GcN</Enum>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"b6a32d9b"</TestValue>
       <TypeCheck>1</TypeCheck>
       <EnumLocalName>make.model</EnumLocalName>
       <EnumRoot>spaceheat.make.model</EnumRoot>
@@ -2083,6 +2122,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Flow meter on pipe out of tank"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rece76qbENBm5shvn</SchemaAttributeId>
@@ -2097,6 +2137,7 @@
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
       <SubTypeDataClass>TempSensorCac</SubTypeDataClass>
+      <TestValue>"43564cd2-0e78-41a2-8b67-ad80c02161e8"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recfMyBibCC1lqTy1</SchemaAttributeId>
@@ -2122,11 +2163,12 @@
       <IsPrimitive>true</IsPrimitive>
       <IsList>true</IsList>
       <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>[0]</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <TestValue>[0]</TestValue>
     </SchemaAttribute>
+    <SchemaAttribute>itrKERWoiNxaEhkaH/recg8JNR1e1aZk41L</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recgGXDzQHPSfoIYU</SchemaAttributeId>
       <createdTime>2022-05-12T01:48:57Z</createdTime>
@@ -2139,7 +2181,6 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itretVmcNLnC3FpSp/recgGXDzQHPSfoIYU</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recgqtFKFWYqHsb0q</SchemaAttributeId>
       <createdTime>2022-06-20T11:30:11Z</createdTime>
@@ -2150,6 +2191,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>60</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rechYoiSzlYAU1ZWD</SchemaAttributeId>
@@ -2190,6 +2232,7 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"FakeHwUid"</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -2201,6 +2244,7 @@
       <GtSchema>recy2lAURQitTqKTR</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
+      <TestValue>"Gridworks Simulated Boolean Actuator"</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -2218,6 +2262,7 @@
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
       <SubTypeDataClass>PipeFlowSensorCac</SubTypeDataClass>
+      <TestValue>"14e7105a-e797-485a-a304-328ecc85cd98"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recicAZCWCo8hSu2t</SchemaAttributeId>
@@ -2246,6 +2291,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Fake HwUid"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recjhPIPtr6UXppHQ</SchemaAttributeId>
@@ -2275,6 +2321,7 @@
       <EnumRoot>spaceheat.make.model</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"d300635e"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reck9BEiMHH9yeWew</SchemaAttributeId>
@@ -2286,6 +2333,7 @@
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"80f95280-e999-49e0-a0e4-a7faf3b5b3bd"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -2425,6 +2473,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Schneider Electric Iem3455 Power Meter"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recnVh3bX9GSsAkr3</SchemaAttributeId>
@@ -2453,11 +2502,28 @@
       <createdTime>2022-06-04T19:18:34Z</createdTime>
       <Value>CommsMethod</Value>
       <GtSchema>recKVkCs5ktwXS3Bu</GtSchema>
-      <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"Remove this Comms Method"</TestValue>
+      <IsPrimitive>true</IsPrimitive>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recoBjlyHgao1lKtI</SchemaAttributeId>
+      <createdTime>2022-07-01T17:04:58Z</createdTime>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>recpr0byizj3PmqXi</GtSchema>
+      <Value>ShNodeId</Value>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
+      <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
+      <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
+      <TestValue>"66a4a5e7-f160-424a-8ad5-f6554bf9a99a"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recoPn9xJOxqb6ifT</SchemaAttributeId>
@@ -2483,6 +2549,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"00033ffe"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recpqHev4KGlcd4q4</SchemaAttributeId>
@@ -2522,6 +2589,7 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>880</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recqIhKpky5FrUJul</SchemaAttributeId>
@@ -2531,6 +2599,7 @@
       <SubTypeFormat>recjwzTYeT77Cq7NZ</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <ImmutableInDc>true</ImmutableInDc>
+      <TestValue>"cf1f2587-7462-4701-b962-d2b264744c1d"</TestValue>
       <SubMessageFormatAlias>gt.electric.heater.cac.100</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
@@ -2573,6 +2642,7 @@
       <EnumRoot>spaceheat.make.model</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+      <TestValue>"b6a32d9b"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recrpGZFYeoLlFiGW</SchemaAttributeId>
@@ -2581,6 +2651,7 @@
       <GtSchema>recjwzTYeT77Cq7NZ</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
+      <TestValue>"Fake Boost Element"</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -2592,9 +2663,11 @@
       <GtSchema>reccc96DDf5Ue9FmA</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <ImmutableInDc>true</ImmutableInDc>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>9600</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recs23KNy4WIx9N79</SchemaAttributeId>
@@ -2633,9 +2706,11 @@
       <GtSchema>reccc96DDf5Ue9FmA</GtSchema>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
+      <ImmutableInDc>true</ImmutableInDc>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+      <TestValue>1000</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recvu5jsnE4pgxC49</SchemaAttributeId>
@@ -2651,6 +2726,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
+      <TestValue>"a.tank.out.temp1"</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recw4w4kyKb5qsTUd</SchemaAttributeId>
@@ -2732,12 +2808,12 @@
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
       <Enum>rec2HyLffy6QK9QId</Enum>
+      <TestValue>["ad19e79c"]</TestValue>
       <TypeCheck>1</TypeCheck>
       <EnumLocalName>telemetry.name</EnumLocalName>
       <EnumRoot>spaceheat.telemetry.name</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
-      <TestValue>["ad19e79c"]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recyiS4OAWw4Xe5dF</SchemaAttributeId>
@@ -2851,7 +2927,7 @@
       <MpSchemaAttributes>recIu6hGiK3PDyJrn</MpSchemaAttributes>
       <MpSchemaAttributes>rec9jK6ONtXBpXevt</MpSchemaAttributes>
       <MpSchemaAttributes>recmAJ31xoOq5qTHU</MpSchemaAttributes>
-      <MpSchemaAttributes>rec0jyQjtqhV69IU6</MpSchemaAttributes>
+      <MpSchemaAttributes>recoBjlyHgao1lKtI</MpSchemaAttributes>
       <DefaultFail1>"d4be12d5-33ba-4f1f-b9e5"</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -3265,16 +3341,15 @@
       <SchemaId>recnOen6KenxkwQtB</SchemaId>
       <createdTime>2022-06-14T10:41:17Z</createdTime>
       <AliasRoot>gt.thermal.edge</AliasRoot>
-      <Status>Active</Status>
+      <Status>Pending</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>recHyghQ3390tN8LF</SchemaAttributes>
       <SchemaAttributes>recnVh3bX9GSsAkr3</SchemaAttributes>
       <UsedAsSubMessagein>rechikfSomM4gopMG</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
-      <MakeDataClass>true</MakeDataClass>
       <DataClass>ThermalEdge</DataClass>
       <Alias>gt.thermal.edge.100</Alias>
-      <ConsistencyCheck>1</ConsistencyCheck>
+      <ConsistencyCheck>0</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recpr0byizj3PmqXi</SchemaId>
@@ -3288,6 +3363,7 @@
       <SchemaAttributes>recM6VoWcVRIgmS54</SchemaAttributes>
       <SchemaAttributes>recThSkVs5p5LvmOD</SchemaAttributes>
       <SchemaAttributes>recgqtFKFWYqHsb0q</SchemaAttributes>
+      <SchemaAttributes>recoBjlyHgao1lKtI</SchemaAttributes>
       <SemanticEnd>120</SemanticEnd>
       <MakeDataClass>true</MakeDataClass>
       <DataClass>ShNode</DataClass>
