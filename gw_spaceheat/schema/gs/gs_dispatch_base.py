@@ -7,14 +7,14 @@ import schema.property_format as property_format
 
 class GsDispatchBase(NamedTuple):
     RelayState: int
-    TypeAlias: str = 'd'
+    TypeAlias: str = "d"
 
     def as_type(self) -> bytes:
         return struct.pack("<h", self.RelayState)
 
     def derived_errors(self) -> List[str]:
         errors = []
-        if self.TypeAlias != 'd':
+        if self.TypeAlias != "d":
             errors.append(f"Payload requires TypeAlias of d, not {self.TypeAlias}.")
         if not isinstance(self.RelayState, int):
             errors.append(f"Name {self.RelayState} must have type int")

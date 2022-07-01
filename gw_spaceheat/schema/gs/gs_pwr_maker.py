@@ -3,10 +3,10 @@ import struct
 from schema.gs.gs_pwr import GsPwr
 
 
-class GsPwr_Maker():
-    type_alias = 'p'
-    
-    def __init__(self,power):
+class GsPwr_Maker:
+    type_alias = "p"
+
+    def __init__(self, power):
         tuple = GsPwr(Power=power)
         tuple.check_for_errors()
         self.tuple = tuple
