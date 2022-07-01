@@ -53,31 +53,38 @@ class GtShNode_Maker:
 
     @classmethod
     def dict_to_tuple(cls, d: dict) -> GtShNode:
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
+
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
         if "ShNodeId" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ShNodeId")
-        if "Alias" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing Alias")
-        if "ActorClassGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ActorClassGtEnumSymbol")
-        d["ActorClass"] = ActorClassMap.gt_to_local(d["ActorClassGtEnumSymbol"])
-        if "RoleGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing RoleGtEnumSymbol")
-        d["Role"] = RoleMap.gt_to_local(d["RoleGtEnumSymbol"])
-        if "DisplayName" not in d.keys():
-            d["DisplayName"] = None
-        if "ReportingSamplePeriodS" not in d.keys():
-            d["ReportingSamplePeriodS"] = None
-        if "ComponentId" not in d.keys():
-            d["ComponentId"] = None
+            raise MpSchemaError(f"dict {new_d} missing ShNodeId")
+        if "Alias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing Alias")
+        if "ActorClassGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ActorClassGtEnumSymbol")
+        new_d["ActorClass"] = ActorClassMap.gt_to_local(new_d["ActorClassGtEnumSymbol"])
+        if "RoleGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing RoleGtEnumSymbol")
+        new_d["Role"] = RoleMap.gt_to_local(new_d["RoleGtEnumSymbol"])
+        if "DisplayName" not in new_d.keys():
+            new_d["DisplayName"] = None
+        if "ReportingSamplePeriodS" not in new_d.keys():
+            new_d["ReportingSamplePeriodS"] = None
+        if "ComponentId" not in new_d.keys():
+            new_d["ComponentId"] = None
 
         tuple = GtShNode(
-            ShNodeId=d["ShNodeId"],
-            DisplayName=d["DisplayName"],
-            ActorClass=d["ActorClass"],
-            Role=d["Role"],
-            ReportingSamplePeriodS=d["ReportingSamplePeriodS"],
-            Alias=d["Alias"],
-            ComponentId=d["ComponentId"],
+            TypeAlias=new_d["TypeAlias"],
+            ShNodeId=new_d["ShNodeId"],
+            DisplayName=new_d["DisplayName"],
+            ActorClass=new_d["ActorClass"],
+            Role=new_d["Role"],
+            ReportingSamplePeriodS=new_d["ReportingSamplePeriodS"],
+            Alias=new_d["Alias"],
+            ComponentId=new_d["ComponentId"],
         )
         tuple.check_for_errors()
         return tuple

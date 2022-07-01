@@ -1,4 +1,4 @@
-"""Base for gt.temp.sensor.cac"""
+"""Base for gt.temp.sensor.cac.100"""
 import json
 from typing import List, Optional, NamedTuple
 import schema.property_format as property_format

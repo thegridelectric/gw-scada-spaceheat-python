@@ -19,7 +19,7 @@
     <xsl:template match="/">
         <FileSet>
             <FileSetFiles>
-                <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and not (MakeDataClass='true')  and (Status = 'Active') and (ProtocolType = 'Json')]">
+                <xsl:for-each select="$airtable//Schemas/Schema[(normalize-space(Alias) !='') and (Status = 'Active') and (ProtocolType = 'Json')]">
                 <xsl:variable name="alias" select="Alias"/>
                 <xsl:variable name="local-alias" select="AliasRoot" />
                 <xsl:variable name="schema-id" select="SchemaId" />  
@@ -53,7 +53,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
 <xsl:text>():
 
     gw_dict = {</xsl:text>
-        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (not (IsEnum = 'true') or (IsList = 'true'))]">
+        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and ((not (IsEnum = 'true') and normalize-space(SubTypeDataClass) = '') or (IsList = 'true'))]">
         <xsl:text>
         "</xsl:text><xsl:value-of select="Value"  />
         <xsl:text>": </xsl:text>
@@ -66,6 +66,14 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:text>GtEnumSymbol": </xsl:text>
         <xsl:value-of select="normalize-space(TestValue)"/>
             <xsl:text>,</xsl:text>
+        </xsl:for-each>
+
+        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (normalize-space(SubTypeDataClass) != '')and  not (IsList = 'true')]">
+        <xsl:text>
+        "</xsl:text><xsl:value-of select="Value"  />
+        <xsl:text>Id": </xsl:text>
+        <xsl:value-of select="normalize-space(TestValue)"/>
+        <xsl:text>,</xsl:text>
         </xsl:for-each>
     <xsl:text>
         "TypeAlias": "</xsl:text><xsl:value-of select="$alias"/><xsl:text>",
@@ -96,7 +104,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
 
     </xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and (IsRequired='true') ]">
-    <xsl:if test = "(not (IsEnum = 'true') or (IsList = 'true'))">
+    <xsl:if test = "((not (IsEnum = 'true') and normalize-space(SubTypeDataClass) = '') or (IsList = 'true'))">
     <xsl:text>orig_value = gw_dict["</xsl:text>
     <xsl:value-of  select="Value"/><xsl:text>"]
     del gw_dict["</xsl:text>
@@ -120,6 +128,19 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
 
     </xsl:text>
     </xsl:if>
+    <xsl:if test = "((normalize-space(SubTypeDataClass) != '') and not (IsList = 'true'))">
+    <xsl:text>orig_value = gw_dict["</xsl:text>
+    <xsl:value-of  select="Value"/><xsl:text>Id"]
+    del gw_dict["</xsl:text>
+    <xsl:value-of  select="Value"/><xsl:text>Id"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/>
+    <xsl:text>Id"] = orig_value
+
+    </xsl:text>
+    </xsl:if>
+    
     </xsl:for-each>
 
     <xsl:if test="count($airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not (IsRequired='true')]) > 0">
@@ -129,6 +150,20 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
 
     </xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not (IsRequired='true')]">
+    <xsl:if test= "(normalize-space(SubTypeDataClass) != '')">
+    <xsl:text>orig_value = gw_dict["</xsl:text>
+    <xsl:value-of  select="Value"/><xsl:text>Id"]
+    del gw_dict["</xsl:text>
+    <xsl:value-of  select="Value"/><xsl:text>Id"]
+    gw_type = json.dumps(gw_dict)
+    gw_tuple = Maker.type_to_tuple(gw_type)
+    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/>
+    <xsl:text>Id"] = orig_value
+
+    </xsl:text>
+    </xsl:if>
+    <xsl:if  test= "(normalize-space(SubTypeDataClass) = '')">
     <xsl:text>orig_value = gw_dict["</xsl:text>
     <xsl:value-of  select="Value"/><xsl:text>"]
     del gw_dict["</xsl:text>
@@ -140,6 +175,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     <xsl:text>"] = orig_value
 
     </xsl:text>
+    </xsl:if>
     </xsl:for-each>
     </xsl:if>
     <xsl:text>######################################
@@ -149,7 +185,18 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     </xsl:text>
     <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id)]">
     <xsl:variable name="attribute"><xsl:value-of select="Value"/></xsl:variable>
-    <xsl:if test= "not(IsList = 'true') and (IsType='true') ">
+
+    <xsl:if test = "(normalize-space(SubTypeDataClass) != '')">
+        <xsl:text>orig_value = gw_dict["</xsl:text>
+        <xsl:value-of  select="Value"/><xsl:text>Id"]
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>Id"] = "Not a dataclass id"
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>Id"] = orig_value
+
+    </xsl:text>
+    </xsl:if>
+    <xsl:if test= "not(IsList = 'true') and (IsType='true') and (normalize-space(SubTypeDataClass) = '') ">
     <xsl:text>orig_value = gw_dict["</xsl:text>
     <xsl:value-of  select="Value"/><xsl:text>"]
     gw_dict["</xsl:text><xsl:value-of  select="Value"/><xsl:text>"] = "Not a </xsl:text>
@@ -164,6 +211,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         Maker(
             </xsl:text>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
+        <xsl:if test="(normalize-space(SubTypeDataClass) = '') ">
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template>
@@ -171,6 +219,16 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:value-of select="Value"/>
         <xsl:text>,
             </xsl:text>
+        </xsl:if>
+        <xsl:if test="(normalize-space(SubTypeDataClass) != '') ">
+        <xsl:call-template name="python-case">
+            <xsl:with-param name="camel-case-text" select="Value"  />
+        </xsl:call-template>
+        <xsl:text>_id=gw_tuple.</xsl:text>
+        <xsl:value-of select="Value"/>
+        <xsl:text>Id,
+            </xsl:text>
+        </xsl:if>
         </xsl:for-each>
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="$attribute"  />
@@ -216,6 +274,7 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         Maker(
             </xsl:text>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id) and not(Value=$attribute)]">
+        <xsl:if test="(normalize-space(SubTypeDataClass) = '') ">
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="Value"  />
         </xsl:call-template>
@@ -223,6 +282,16 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:value-of select="Value"/>
         <xsl:text>,
             </xsl:text>
+        </xsl:if>
+        <xsl:if test="(normalize-space(SubTypeDataClass) != '') ">
+        <xsl:call-template name="python-case">
+            <xsl:with-param name="camel-case-text" select="Value"  />
+        </xsl:call-template>
+        <xsl:text>_id=gw_tuple.</xsl:text>
+        <xsl:value-of select="Value"/>
+        <xsl:text>Id,
+            </xsl:text>
+        </xsl:if>
         </xsl:for-each>
         <xsl:call-template name="python-case">
             <xsl:with-param name="camel-case-text" select="$attribute"  />

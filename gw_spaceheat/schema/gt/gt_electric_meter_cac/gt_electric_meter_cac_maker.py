@@ -1,33 +1,39 @@
-"""Makes gt.electric.meter.cac type"""
+"""Makes gt.electric.meter.cac.100 type"""
 
 import json
-from typing import Dict, Optional
+from typing import Optional
+
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
-
-from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac import GtElectricMeterCac
-from schema.errors import MpSchemaError
-from schema.enums.local_comm_interface.local_comm_interface_map import LocalCommInterface, LocalCommInterfaceMap
+from schema.enums.local_comm_interface.local_comm_interface_map import (
+    LocalCommInterface,
+    LocalCommInterfaceMap,
+)
 from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
+from schema.errors import MpSchemaError
+from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac import GtElectricMeterCac
 
 
-class GtElectricMeterCac_Maker():
-    type_alias = 'gt.electric.meter.cac.100'
+class GtElectricMeterCac_Maker:
+    type_alias = "gt.electric.meter.cac.100"
 
-    def __init__(self,
-                 component_attribute_class_id: str,
-                 local_comm_interface: LocalCommInterface,
-                 make_model: MakeModel,
-                 display_name: Optional[str],
-                 default_baud: Optional[int],
-                 update_period_ms: Optional[int]):
+    def __init__(
+        self,
+        component_attribute_class_id: str,
+        local_comm_interface: LocalCommInterface,
+        make_model: MakeModel,
+        display_name: Optional[str],
+        default_baud: Optional[int],
+        update_period_ms: Optional[int],
+    ):
 
-        tuple = GtElectricMeterCac(ComponentAttributeClassId=component_attribute_class_id,
-                                          LocalCommInterface=local_comm_interface,
-                                          MakeModel=make_model,
-                                          DisplayName=display_name,
-                                          DefaultBaud=default_baud,
-                                          UpdatePeriodMs=update_period_ms,
-                                          )
+        tuple = GtElectricMeterCac(
+            ComponentAttributeClassId=component_attribute_class_id,
+            LocalCommInterface=local_comm_interface,
+            MakeModel=make_model,
+            DisplayName=display_name,
+            DefaultBaud=default_baud,
+            UpdatePeriodMs=update_period_ms,
+        )
         tuple.check_for_errors()
         self.tuple: GtElectricMeterCac = tuple
 
@@ -41,48 +47,62 @@ class GtElectricMeterCac_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError(f'Type must be string or bytes!')
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) ->  GtElectricMeterCac:
-        if "ComponentAttributeClassId" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing ComponentAttributeClassId")
-        if "LocalCommInterfaceGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing LocalCommInterfaceGtEnumSymbol")
-        d["LocalCommInterface"] = LocalCommInterfaceMap.gt_to_local(d["LocalCommInterfaceGtEnumSymbol"])
-        if "MakeModelGtEnumSymbol" not in d.keys():
-            raise MpSchemaError(f"dict {d} missing MakeModelGtEnumSymbol")
-        d["MakeModel"] = MakeModelMap.gt_to_local(d["MakeModelGtEnumSymbol"])
-        if "DisplayName" not in d.keys():
-            d["DisplayName"] = None
-        if "DefaultBaud" not in d.keys():
-            d["DefaultBaud"] = None
-        if "UpdatePeriodMs" not in d.keys():
-            d["UpdatePeriodMs"] = None
+    def dict_to_tuple(cls, d: dict) -> GtElectricMeterCac:
+        new_d = {}
+        for key in d.keys():
+            new_d[key] = d[key]
 
-        tuple = GtElectricMeterCac(ComponentAttributeClassId=d["ComponentAttributeClassId"],
-                                          LocalCommInterface=d["LocalCommInterface"],
-                                          MakeModel=d["MakeModel"],
-                                          DisplayName=d["DisplayName"],
-                                          DefaultBaud=d["DefaultBaud"],
-                                          UpdatePeriodMs=d["UpdatePeriodMs"],
-                                          )
+        if "TypeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "ComponentAttributeClassId" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ComponentAttributeClassId")
+        if "LocalCommInterfaceGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing LocalCommInterfaceGtEnumSymbol")
+        new_d["LocalCommInterface"] = LocalCommInterfaceMap.gt_to_local(
+            new_d["LocalCommInterfaceGtEnumSymbol"]
+        )
+        if "MakeModelGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing MakeModelGtEnumSymbol")
+        new_d["MakeModel"] = MakeModelMap.gt_to_local(new_d["MakeModelGtEnumSymbol"])
+        if "DisplayName" not in new_d.keys():
+            new_d["DisplayName"] = None
+        if "DefaultBaud" not in new_d.keys():
+            new_d["DefaultBaud"] = None
+        if "UpdatePeriodMs" not in new_d.keys():
+            new_d["UpdatePeriodMs"] = None
+
+        tuple = GtElectricMeterCac(
+            TypeAlias=new_d["TypeAlias"],
+            ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
+            LocalCommInterface=new_d["LocalCommInterface"],
+            MakeModel=new_d["MakeModel"],
+            DisplayName=new_d["DisplayName"],
+            DefaultBaud=new_d["DefaultBaud"],
+            UpdatePeriodMs=new_d["UpdatePeriodMs"],
+        )
         tuple.check_for_errors()
         return tuple
 
     @classmethod
     def tuple_to_dc(cls, t: GtElectricMeterCac) -> ElectricMeterCac:
         s = {
-            'component_attribute_class_id': t.ComponentAttributeClassId,
-            'display_name': t.DisplayName,
-            'default_baud': t.DefaultBaud,
-            'update_period_ms': t.UpdatePeriodMs,
-            'local_comm_interface_gt_enum_symbol': LocalCommInterfaceMap.local_to_gt(t.LocalCommInterface),'make_model_gt_enum_symbol': MakeModelMap.local_to_gt(t.MakeModel),}
-        if s['component_attribute_class_id'] in ElectricMeterCac.by_id.keys():
-            dc = ElectricMeterCac.by_id[s['component_attribute_class_id']]
+            "component_attribute_class_id": t.ComponentAttributeClassId,
+            "display_name": t.DisplayName,
+            "default_baud": t.DefaultBaud,
+            "update_period_ms": t.UpdatePeriodMs,
+            "local_comm_interface_gt_enum_symbol": LocalCommInterfaceMap.local_to_gt(
+                t.LocalCommInterface
+            ),
+            "make_model_gt_enum_symbol": MakeModelMap.local_to_gt(t.MakeModel),
+        }
+        if s["component_attribute_class_id"] in ElectricMeterCac.by_id.keys():
+            dc = ElectricMeterCac.by_id[s["component_attribute_class_id"]]
         else:
             dc = ElectricMeterCac(**s)
         return dc
@@ -91,13 +111,14 @@ class GtElectricMeterCac_Maker():
     def dc_to_tuple(cls, dc: ElectricMeterCac) -> GtElectricMeterCac:
         if dc is None:
             return None
-        t = GtElectricMeterCac(ComponentAttributeClassId=dc.component_attribute_class_id,
-                                            LocalCommInterface=dc.local_comm_interface,
-                                            MakeModel=dc.make_model,
-                                            DisplayName=dc.display_name,
-                                            DefaultBaud=dc.default_baud,
-                                            UpdatePeriodMs=dc.update_period_ms,
-                                            )
+        t = GtElectricMeterCac(
+            ComponentAttributeClassId=dc.component_attribute_class_id,
+            LocalCommInterface=dc.local_comm_interface,
+            MakeModel=dc.make_model,
+            DisplayName=dc.display_name,
+            DefaultBaud=dc.default_baud,
+            UpdatePeriodMs=dc.update_period_ms,
+        )
         t.check_for_errors()
         return t
 
