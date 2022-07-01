@@ -275,7 +275,9 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         <xsl:call-template name="nt-case">
                     <xsl:with-param name="mp-schema-text" select="SubMessageFormatAlias" />
                 </xsl:call-template><xsl:text>",
-        )</xsl:text>
+        )
+
+    </xsl:text>
     </xsl:if>
     <xsl:if test= "not(IsList = 'true') and (IsPrimitive='true') ">
    

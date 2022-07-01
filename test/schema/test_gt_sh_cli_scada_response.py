@@ -71,6 +71,8 @@ def test_gt_sh_cli_scada_response():
         Maker(
             snapshot="Not a GtShStatusSnapshot110",
         )
+
+    ######################################
     # MpSchemaError raised if TypeAlias is incorrect
     ######################################
 
