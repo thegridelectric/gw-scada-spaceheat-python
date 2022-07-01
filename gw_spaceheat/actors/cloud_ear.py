@@ -13,8 +13,9 @@ from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
     GtShSimpleStatus,
 )
 
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker \
-    import GtShCliScadaResponse_Maker
+from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
+    GtShCliScadaResponse_Maker,
+)
 
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
@@ -76,7 +77,7 @@ class CloudEar(CloudBase):
             self.log_status_csv(payload=payload)
 
     def gs_pwr_received(self, from_node: ShNode, payload: GsPwr):
-        pass 
+        pass
 
     def log_status_csv(self, payload: GtShSimpleStatus):
         new_readings = []

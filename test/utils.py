@@ -3,11 +3,11 @@ from typing import Callable
 
 
 def wait_for(
-        f: Callable[[], bool],
-        timeout: float,
-        tag: str = "",
-        raise_timeout: bool = True,
-        retry_duration: float = 0.1,
+    f: Callable[[], bool],
+    timeout: float,
+    tag: str = "",
+    raise_timeout: bool = True,
+    retry_duration: float = 0.1,
 ) -> bool:
     """Call function f() until it returns True or a timeout is reached. retry_duration specified the sleep time between
     calls. If the timeout is reached before f return True, the function will either raise a ValueError (the default),
@@ -27,8 +27,6 @@ def wait_for(
             time.sleep(min(retry_duration, until - now))
             now = time.time()
     if raise_timeout:
-        raise ValueError(
-            f"ERROR. Function {f} timed out after {timeout} seconds. {tag}"
-        )
+        raise ValueError(f"ERROR. Function {f} timed out after {timeout} seconds. {tag}")
     else:
         return False

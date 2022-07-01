@@ -6,7 +6,9 @@ from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorCom
 class PipeFlowSensorDriver(ABC):
     def __init__(self, component: PipeFlowSensorComponent):
         if not isinstance(component, PipeFlowSensorComponent):
-            raise Exception(f"PipeFlowSensorDriver requires PipeFlowSensorComponent. Got {component}")
+            raise Exception(
+                f"PipeFlowSensorDriver requires PipeFlowSensorComponent. Got {component}"
+            )
         self.component = component
 
     @abstractmethod

@@ -5,7 +5,6 @@ from typing import List
 
 
 class TelemetryName(enum.Enum):
-
     @classmethod
     def values(cls):
         return [elt.value for elt in cls]
@@ -17,14 +16,15 @@ class TelemetryName(enum.Enum):
     WATER_TEMP_C_TIMES1000 = "WaterTempCTimes1000"
     RELAY_STATE = "RelayState"
     CURRENT_RMS_MICRO_AMPS = "CurrentRmsMicroAmps"
-    
+
 
 class SpaceheatTelemetryName100GtEnum(ABC):
-    symbols: List[str] = ["af39eec9",
-                          "793505aa",
-                          "329a68c0",
-                          "d70cce28",
-                          "c89d0ba1",
-                          "5a71d4b3",
-                          "ad19e79c",
-                          ]
+    symbols: List[str] = [
+        "af39eec9",
+        "793505aa",
+        "329a68c0",
+        "d70cce28",
+        "c89d0ba1",
+        "5a71d4b3",
+        "ad19e79c",
+    ]

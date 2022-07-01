@@ -2,7 +2,6 @@ import json
 
 
 class StreamlinedSerializerMixin:
-
     @property
     def streamlined_serialize(self):
         output = {}

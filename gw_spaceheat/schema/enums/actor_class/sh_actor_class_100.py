@@ -5,7 +5,6 @@ from typing import List
 
 
 class ActorClass(enum.Enum):
-
     @classmethod
     def values(cls):
         return [elt.value for elt in cls]
@@ -17,14 +16,15 @@ class ActorClass(enum.Enum):
     ATN = "Atn"
     SIMPLE_SENSOR = "SimpleSensor"
     NONE = "None"
-    
+
 
 class ShActorClass100GtEnum(ABC):
-    symbols: List[str] = ["6d37aa41",
-                          "32d3d19f",
-                          "fddd0064",
-                          "2ea112b9",
-                          "b103058f",
-                          "dae4b2f0",
-                          "99a5f20d",
-                          ]
+    symbols: List[str] = [
+        "6d37aa41",
+        "32d3d19f",
+        "fddd0064",
+        "2ea112b9",
+        "b103058f",
+        "dae4b2f0",
+        "99a5f20d",
+    ]

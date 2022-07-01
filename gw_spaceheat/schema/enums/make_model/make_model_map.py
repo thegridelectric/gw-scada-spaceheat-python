@@ -4,7 +4,6 @@ from schema.enums.make_model.spaceheat_make_model_100 import MakeModel, Spacehea
 
 
 class MakeModelGtEnum(SpaceheatMakeModel100GtEnum):
-
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -12,7 +11,7 @@ class MakeModelGtEnum(SpaceheatMakeModel100GtEnum):
         return False
 
 
-class MakeModelMap():
+class MakeModelMap:
     @classmethod
     def gt_to_local(cls, symbol):
         if not MakeModelGtEnum.is_symbol(symbol):
@@ -32,7 +31,8 @@ class MakeModelMap():
         "e81d74a8": MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY,
         "acd93fb3": MakeModel.ADAFRUIT__642,
         "fabfa505": MakeModel.NCD__PR814SPST,
-        "b6a32d9b": MakeModel.UNKNOWNMAKE__UNKNOWNMODEL, }
+        "b6a32d9b": MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
+    }
 
     local_to_gt_dict: Dict[MakeModel, str] = {
         MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION: "f8b497e8",
@@ -42,4 +42,4 @@ class MakeModelMap():
         MakeModel.ADAFRUIT__642: "acd93fb3",
         MakeModel.NCD__PR814SPST: "fabfa505",
         MakeModel.UNKNOWNMAKE__UNKNOWNMODEL: "b6a32d9b",
-        }
+    }

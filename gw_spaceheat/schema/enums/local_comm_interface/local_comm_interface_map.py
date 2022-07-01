@@ -1,10 +1,12 @@
 from typing import Dict
 from schema.errors import MpSchemaError
-from schema.enums.local_comm_interface.local_comm_interface_100 import LocalCommInterface, LocalCommInterface100GtEnum
+from schema.enums.local_comm_interface.local_comm_interface_100 import (
+    LocalCommInterface,
+    LocalCommInterface100GtEnum,
+)
 
 
 class LocalCommInterfaceGtEnum(LocalCommInterface100GtEnum):
-
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -12,11 +14,13 @@ class LocalCommInterfaceGtEnum(LocalCommInterface100GtEnum):
         return False
 
 
-class LocalCommInterfaceMap():
+class LocalCommInterfaceMap:
     @classmethod
     def gt_to_local(cls, symbol):
         if not LocalCommInterfaceGtEnum.is_symbol(symbol):
-            raise MpSchemaError(f"{symbol} must belong to key of {LocalCommInterfaceMap.gt_to_local_dict}")
+            raise MpSchemaError(
+                f"{symbol} must belong to key of {LocalCommInterfaceMap.gt_to_local_dict}"
+            )
         return cls.gt_to_local_dict[symbol]
 
     @classmethod
@@ -34,7 +38,8 @@ class LocalCommInterfaceMap():
         "829549d1": LocalCommInterface.UNKNOWN,
         "c1e7a955": LocalCommInterface.ETHERNET,
         "ae2d4cd8": LocalCommInterface.ONEWIRE,
-        "a6a4ac9f": LocalCommInterface.RS485, }
+        "a6a4ac9f": LocalCommInterface.RS485,
+    }
 
     local_to_gt_dict: Dict[LocalCommInterface, str] = {
         LocalCommInterface.ANALOG_4_20_MA: "653c73b8",
@@ -46,4 +51,4 @@ class LocalCommInterfaceMap():
         LocalCommInterface.ETHERNET: "c1e7a955",
         LocalCommInterface.ONEWIRE: "ae2d4cd8",
         LocalCommInterface.RS485: "a6a4ac9f",
-        }
+    }

@@ -7,18 +7,20 @@ from schema.enums.role.role_map import RoleMap
 from schema.enums.actor_class.actor_class_map import ActorClassMap, ActorClass
 
 
-class ShNode():
+class ShNode:
     by_id: Dict[str, "ShNode"] = {}
     by_alias: Dict[str, "ShNode"] = {}
 
-    def __init__(self, sh_node_id: str,
-                 alias: str,
-                 actor_class_gt_enum_symbol: str,
-                 role_gt_enum_symbol: str,
-                 reporting_sample_period_s: Optional[int] = None,
-                 component_id: Optional[str] = None,
-                 display_name: Optional[str] = None,
-                 ):
+    def __init__(
+        self,
+        sh_node_id: str,
+        alias: str,
+        actor_class_gt_enum_symbol: str,
+        role_gt_enum_symbol: str,
+        reporting_sample_period_s: Optional[int] = None,
+        component_id: Optional[str] = None,
+        display_name: Optional[str] = None,
+    ):
         self.sh_node_id = sh_node_id
         self.alias = alias
         self.component_id = component_id
@@ -31,11 +33,11 @@ class ShNode():
         ShNode.by_id[self.sh_node_id] = self
 
     def __repr__(self):
-        rs = f'ShNode {self.display_name} => {self.role.value} {self.alias}, '
+        rs = f"ShNode {self.display_name} => {self.role.value} {self.alias}, "
         if self.has_actor:
-            rs += ' (has actor)'
+            rs += " (has actor)"
         else:
-            rs += ' (passive, no actor)'
+            rs += " (passive, no actor)"
         return rs
 
     @property

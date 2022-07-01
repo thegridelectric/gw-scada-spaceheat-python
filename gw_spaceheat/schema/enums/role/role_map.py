@@ -4,7 +4,6 @@ from schema.enums.role.sh_node_role_101 import Role, ShNodeRole101GtEnum
 
 
 class RoleGtEnum(ShNodeRole101GtEnum):
-
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -12,7 +11,7 @@ class RoleGtEnum(ShNodeRole101GtEnum):
         return False
 
 
-class RoleMap():
+class RoleMap:
     @classmethod
     def gt_to_local(cls, symbol):
         if not RoleGtEnum.is_symbol(symbol):
@@ -43,7 +42,8 @@ class RoleMap():
         "6ddff83b": Role.ATN,
         "863e50d1": Role.HOME_ALONE,
         "dd975b31": Role.OUTDOORS,
-        "6896109b": Role.RADIATOR_FAN}
+        "6896109b": Role.RADIATOR_FAN,
+    }
 
     local_to_gt_dict: Dict[Role, str] = {
         Role.BOOST_ELEMENT: "99c5f326",
@@ -63,5 +63,5 @@ class RoleMap():
         Role.ATN: "6ddff83b",
         Role.HOME_ALONE: "863e50d1",
         Role.OUTDOORS: "dd975b31",
-        Role.RADIATOR_FAN: "6896109b"
-        }
+        Role.RADIATOR_FAN: "6896109b",
+    }

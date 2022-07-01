@@ -3,13 +3,12 @@ from pymodbus.client.sync import ModbusSerialClient
 import serial.rs485
 import numpy as np
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from data_classes.components.electric_meter_component import \
-    ElectricMeterComponent
+from data_classes.components.electric_meter_component import ElectricMeterComponent
 
 from schema.enums.make_model.make_model_map import MakeModel
 
 
-PORT = '/dev/ttyUSB0'
+PORT = "/dev/ttyUSB0"
 BAUD = 9600
 
 
@@ -23,25 +22,24 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
             raise Exception(f"Expected {MakeModel.SCHNEIDERELECTRIC__IEM3455}, got {component.cac}")
         self.component = component
         self.current_rms_micro_amps: int = None
-        serial_connection = serial.rs485.RS485(port=PORT,
-                                               baudrate=BAUD)
-        serial_connection.rs485_mode = serial.rs485.RS485Settings(rts_level_for_tx=False,
-                                                                  rts_level_for_rx=True,
-                                                                  delay_before_tx=0.0,
-                                                                  delay_before_rx=-0.0)
-        self.client = ModbusSerialClient(method='rtu')
+        serial_connection = serial.rs485.RS485(port=PORT, baudrate=BAUD)
+        serial_connection.rs485_mode = serial.rs485.RS485Settings(
+            rts_level_for_tx=False, rts_level_for_rx=True, delay_before_tx=0.0, delay_before_rx=-0.0
+        )
+        self.client = ModbusSerialClient(method="rtu")
         self.client.socket = serial_connection
         self.client.connect()
 
     def close_conn(self, interface):
         self.client.close()
 
-    def read_register_raw(self, reg_addr, bytes_to_read=2, dtype=np.uint16) -> Tuple[np.uint32, np.uint16]:
-        result = self.client.read_holding_registers(address=reg_addr - 1,
-                                                    count=bytes_to_read,
-                                                    unit=12)
-        data_bytes = np.array([result.registers[1],
-                               result.registers[0]], dtype=dtype)
+    def read_register_raw(
+        self, reg_addr, bytes_to_read=2, dtype=np.uint16
+    ) -> Tuple[np.uint32, np.uint16]:
+        result = self.client.read_holding_registers(
+            address=reg_addr - 1, count=bytes_to_read, unit=12
+        )
+        data_bytes = np.array([result.registers[1], result.registers[0]], dtype=dtype)
         return data_bytes
 
     def read_register_exp_6(self, reg_addr) -> int:

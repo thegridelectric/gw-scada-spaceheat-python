@@ -17,7 +17,7 @@ class BooleanActuator(ActorBase):
     def __init__(self, node: ShNode, logging_on=False):
         super(BooleanActuator, self).__init__(node=node, logging_on=logging_on)
         now = int(time.time())
-        self._last_sync_report_time_s = (now - (now % 300) - 60)
+        self._last_sync_report_time_s = now - (now % 300) - 60
         self.relay_state: Optional[int] = None
         self.config = NodeConfig(self.node)
         self.screen_print(f"Initialized {self.__class__}")
@@ -27,7 +27,9 @@ class BooleanActuator(ActorBase):
     ###############################################
 
     def subscriptions(self) -> List[Subscription]:
-        my_subscriptions = [Subscription(Topic=f'a.s/{GtDispatch_Maker.type_alias}', Qos=QOS.AtMostOnce)]
+        my_subscriptions = [
+            Subscription(Topic=f"a.s/{GtDispatch_Maker.type_alias}", Qos=QOS.AtMostOnce)
+        ]
         return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
@@ -37,7 +39,7 @@ class BooleanActuator(ActorBase):
             self.screen_print(f"{payload} subscription not implemented!")
 
     def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatch):
-        if from_node != ShNode.by_alias['a.s']:
+        if from_node != ShNode.by_alias["a.s"]:
             raise Exception(f"Only responds to dispatch from Scada. Got dispatch from {from_node}")
         if payload.ShNodeAlias == self.node.alias:
             old_state = self.relay_state
@@ -54,17 +56,21 @@ class BooleanActuator(ActorBase):
         if self.relay_state != new_state:
             self.relay_state = new_state
             self.screen_print(f"Relay: {self.relay_state}")
-            payload = GtTelemetry_Maker(name=self.config.reporting.TelemetryName,
-                                        value=int(self.relay_state),
-                                        exponent=self.config.reporting.Exponent,
-                                        scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+            payload = GtTelemetry_Maker(
+                name=self.config.reporting.TelemetryName,
+                value=int(self.relay_state),
+                exponent=self.config.reporting.Exponent,
+                scada_read_time_unix_ms=int(time.time() * 1000),
+            ).tuple
             self.publish(payload)
 
     def sync_report(self):
-        payload = GtTelemetry_Maker(name=self.config.reporting.TelemetryName,
-                                    value=int(self.relay_state),
-                                    exponent=self.config.reporting.Exponent,
-                                    scada_read_time_unix_ms=int(time.time() * 1000)).tuple
+        payload = GtTelemetry_Maker(
+            name=self.config.reporting.TelemetryName,
+            value=int(self.relay_state),
+            exponent=self.config.reporting.Exponent,
+            scada_read_time_unix_ms=int(time.time() * 1000),
+        ).tuple
         self.publish(payload)
         self._last_sync_report_time_s = time.time()
 

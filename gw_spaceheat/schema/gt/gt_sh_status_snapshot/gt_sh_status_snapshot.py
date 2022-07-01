@@ -5,7 +5,6 @@ from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_base import GtShStatu
 
 
 class GtShStatusSnapshot(GtShStatusSnapshotBase):
-
     def check_for_errors(self):
         errors = self.derived_errors() + self.hand_coded_errors()
         if len(errors) > 0:

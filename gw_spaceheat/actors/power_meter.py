@@ -125,7 +125,10 @@ class PowerMeter(ActorBase):
             return False
         if self._last_sampled_s[telemetry_tuple] is None:
             return True
-        if time.time() - self._last_sampled_s[telemetry_tuple] > self.eq_config[telemetry_tuple].SamplePeriodS:
+        if (
+            time.time() - self._last_sampled_s[telemetry_tuple]
+            > self.eq_config[telemetry_tuple].SamplePeriodS
+        ):
             return True
         if self.value_exceeds_async_threshold(telemetry_tuple):
             return True

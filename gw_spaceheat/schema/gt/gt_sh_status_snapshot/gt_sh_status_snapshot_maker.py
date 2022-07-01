@@ -9,19 +9,22 @@ from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, Teleme
 
 
 class GtShStatusSnapshot_Maker:
-    type_alias = 'gt.sh.status.snapshot.110'
+    type_alias = "gt.sh.status.snapshot.110"
 
-    def __init__(self,
-                 about_node_alias_list: List[str],
-                 report_time_unix_ms: int,
-                 value_list: List[int],
-                 telemetry_name_list: List[TelemetryName]):
+    def __init__(
+        self,
+        about_node_alias_list: List[str],
+        report_time_unix_ms: int,
+        value_list: List[int],
+        telemetry_name_list: List[TelemetryName],
+    ):
 
-        tuple = GtShStatusSnapshot(TelemetryNameList=telemetry_name_list,
-                                   AboutNodeAliasList=about_node_alias_list,
-                                   ReportTimeUnixMs=report_time_unix_ms,
-                                   ValueList=value_list,
-                                   )
+        tuple = GtShStatusSnapshot(
+            TelemetryNameList=telemetry_name_list,
+            AboutNodeAliasList=about_node_alias_list,
+            ReportTimeUnixMs=report_time_unix_ms,
+            ValueList=value_list,
+        )
         tuple.check_for_errors()
         self.tuple = tuple
 
@@ -35,7 +38,7 @@ class GtShStatusSnapshot_Maker:
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError('Type must be string or bytes!')
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
@@ -61,11 +64,12 @@ class GtShStatusSnapshot_Maker:
                 telemetry_name_list.append(TelemetryNameMap.gt_to_local(elt))
             new_d["TelemetryNameList"] = telemetry_name_list
 
-        tuple = GtShStatusSnapshot(TelemetryNameList=new_d["TelemetryNameList"],
-                                   AboutNodeAliasList=new_d["AboutNodeAliasList"],
-                                   ReportTimeUnixMs=new_d["ReportTimeUnixMs"],
-                                   ValueList=new_d["ValueList"],
-                                   TypeAlias=new_d["TypeAlias"],
-                                   )
+        tuple = GtShStatusSnapshot(
+            TelemetryNameList=new_d["TelemetryNameList"],
+            AboutNodeAliasList=new_d["AboutNodeAliasList"],
+            ReportTimeUnixMs=new_d["ReportTimeUnixMs"],
+            ValueList=new_d["ValueList"],
+            TypeAlias=new_d["TypeAlias"],
+        )
         tuple.check_for_errors()
         return tuple

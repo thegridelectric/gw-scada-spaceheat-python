@@ -12,7 +12,9 @@ class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
     READ_TIME_FUZZ_MULTIPLIER = 6
 
     def __init__(self, component: TempSensorComponent):
-        super(GridworksWaterTempSensorHighPrecision_TempSensorDriver, self).__init__(component=component)
+        super(GridworksWaterTempSensorHighPrecision_TempSensorDriver, self).__init__(
+            component=component
+        )
         if component.cac.make_model != MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             raise Exception(f"Expected GridWorks__WaterTempHighPrecision, got {component.cac}")
         if component.cac.temp_unit == Unit.FAHRENHEIT:

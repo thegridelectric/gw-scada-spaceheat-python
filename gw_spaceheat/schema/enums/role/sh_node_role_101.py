@@ -5,7 +5,6 @@ from typing import List
 
 
 class Role(enum.Enum):
-
     @classmethod
     def values(cls):
         return [elt.value for elt in cls]
@@ -28,25 +27,26 @@ class Role(enum.Enum):
     HOME_ALONE = "HomeAlone"
     OUTDOORS = "Outdoors"
     RADIATOR_FAN = "RadiatorFan"
-    
+
 
 class ShNodeRole101GtEnum(ABC):
-    symbols: List[str] = ["99c5f326",
-                          "ece3b600",
-                          "9ac68b6e",
-                          "65725f44",
-                          "d0afb424",
-                          "fe3cbdd5",
-                          "c480f612",
-                          "05fdd645",
-                          "b0eaf2ba",
-                          "73308a1f",
-                          "fec74958",
-                          "3ecfe9b8",
-                          "5938bf1f",
-                          "57b788ee",
-                          "6ddff83b",
-                          "863e50d1",
-                          "dd975b31",
-                          "6896109b"
-                          ]
+    symbols: List[str] = [
+        "99c5f326",
+        "ece3b600",
+        "9ac68b6e",
+        "65725f44",
+        "d0afb424",
+        "fe3cbdd5",
+        "c480f612",
+        "05fdd645",
+        "b0eaf2ba",
+        "73308a1f",
+        "fec74958",
+        "3ecfe9b8",
+        "5938bf1f",
+        "57b788ee",
+        "6ddff83b",
+        "863e50d1",
+        "dd975b31",
+        "6896109b",
+    ]

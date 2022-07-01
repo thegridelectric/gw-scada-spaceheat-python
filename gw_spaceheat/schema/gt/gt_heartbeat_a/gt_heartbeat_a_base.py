@@ -4,7 +4,7 @@ from typing import List, NamedTuple
 
 
 class GtHeartbeatABase(NamedTuple):
-    TypeAlias: str = 'gt.heartbeat.a.100'
+    TypeAlias: str = "gt.heartbeat.a.100"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -15,7 +15,7 @@ class GtHeartbeatABase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
-        if self.TypeAlias != 'gt.heartbeat.a.100':
+        if self.TypeAlias != "gt.heartbeat.a.100":
             errors.append(f"Type requires TypeAlias of gt.heartbeat.a.100, not {self.TypeAlias}.")
-        
+
         return errors

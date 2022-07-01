@@ -15,24 +15,26 @@ Frequency_addr = 3110
 
 
 def init_logging(enable_serial):
-    if(enable_serial):
+    if enable_serial:
         import logging
+
         logging.basicConfig()
         log = logging.getLogger()
         log.setLevel(logging.DEBUG)
 
 
 def init_modbus():
-    Port = '/dev/ttyUSB0'
+    Port = "/dev/ttyUSB0"
     Baud = 9600
     ser = serial.rs485.RS485(port=Port, baudrate=Baud)
     ser.rs485_mode = serial.rs485.RS485Settings(
-        rts_level_for_tx=False, rts_level_for_rx=True, delay_before_tx=0.0, delay_before_rx=-0.0)
+        rts_level_for_tx=False, rts_level_for_rx=True, delay_before_tx=0.0, delay_before_rx=-0.0
+    )
     return ser
 
 
 def connect_modbus(interface):
-    client = ModbusSerialClient(method='rtu')
+    client = ModbusSerialClient(method="rtu")
     client.socket = interface
     client.connect()
     return client
@@ -43,11 +45,8 @@ def close_conn(interface):
 
 
 def read_register_raw(client, reg_addr, bytes_to_read=2, dtype=np.uint16):
-    result = client.read_holding_registers(address=reg_addr - 1,
-                                           count=bytes_to_read,
-                                           unit=12)
-    data_bytes = np.array([result.registers[1],
-                           result.registers[0]], dtype=dtype)
+    result = client.read_holding_registers(address=reg_addr - 1, count=bytes_to_read, unit=12)
+    data_bytes = np.array([result.registers[1], result.registers[0]], dtype=dtype)
     return data_bytes
 
 
@@ -71,7 +70,7 @@ if __name__ == "__main__":
         interface = init_modbus()
         client = connect_modbus(interface)
 
-        while(True):
+        while True:
             # Read the registers
             CurrentRmsA = read_register(client, CURRENT_RMS_MICRO_A_ADDR)
             VoltageRmsV = read_register(client, VoltageRmsV_addr)

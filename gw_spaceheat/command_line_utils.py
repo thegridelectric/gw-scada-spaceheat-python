@@ -11,13 +11,15 @@ LOGGING_FORMAT = "%(asctime)s %(message)s"
 
 
 def parse_args(
-        argv: Optional[Sequence[str]] = None,
-        default_nodes: Optional[Sequence[str]] = None,
+    argv: Optional[Sequence[str]] = None,
+    default_nodes: Optional[Sequence[str]] = None,
 ) -> argparse.Namespace:
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-l", "--log", action="store_true", help="Turn logging on.")
-    parser.add_argument("-n", "--nodes", default=default_nodes or [], nargs="*", help="ShNode aliases to load.")
+    parser.add_argument(
+        "-n", "--nodes", default=default_nodes or [], nargs="*", help="ShNode aliases to load."
+    )
     return parser.parse_args(argv or sys.argv[1:])
 
 
@@ -27,10 +29,7 @@ def setup_logging(args: argparse.Namespace) -> None:
         level = "DEBUG"
     else:
         level = "INFO"
-    logging.basicConfig(
-        level=level,
-        format=LOGGING_FORMAT
-    )
+    logging.basicConfig(level=level, format=LOGGING_FORMAT)
 
 
 def run_nodes(aliases: Sequence[str], logging_on: bool = False, dbg: Optional[Dict] = None) -> None:
@@ -46,9 +45,7 @@ def run_nodes(aliases: Sequence[str], logging_on: bool = False, dbg: Optional[Di
             raise ValueError(f"ERROR. Node alias [{alias}] has no strategy")
         actor_constructors.append((node, actor_function))
 
-    actors = [
-        constructor(node, logging_on=logging_on) for node, constructor in actor_constructors
-    ]
+    actors = [constructor(node, logging_on=logging_on) for node, constructor in actor_constructors]
 
     for actor in actors:
         actor.start()
@@ -58,9 +55,9 @@ def run_nodes(aliases: Sequence[str], logging_on: bool = False, dbg: Optional[Di
 
 
 def run_nodes_main(
-        argv: Optional[Sequence[str]] = None,
-        default_nodes: Optional[Sequence[str]] = None,
-        dbg: Optional[Dict] = None,
+    argv: Optional[Sequence[str]] = None,
+    default_nodes: Optional[Sequence[str]] = None,
+    dbg: Optional[Dict] = None,
 ) -> None:
     """Load and run the configured Nodes. If dbg is not None it will be populated with the actor objects."""
     args = parse_args(argv, default_nodes=default_nodes)

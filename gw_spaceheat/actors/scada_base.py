@@ -14,7 +14,6 @@ from actors.utils import QOS
 
 
 class ScadaBase(ActorBase):
-
     def __init__(self, node: ShNode, logging_on=False):
         super(ScadaBase, self).__init__(node=node, logging_on=logging_on)
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS

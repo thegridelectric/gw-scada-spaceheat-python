@@ -8,15 +8,15 @@ from schema.enums.make_model.make_model_map import MakeModel, MakeModelMap
 
 
 class GtTempSensorCacBase(NamedTuple):
-    ComponentAttributeClassId: str     #
-    Exponent: int     #
-    TypicalResponseTimeMs: int     #
-    TelemetryName: TelemetryName     #
-    TempUnit: Unit     #
-    MakeModel: MakeModel     #
+    ComponentAttributeClassId: str  #
+    Exponent: int  #
+    TypicalResponseTimeMs: int  #
+    TelemetryName: TelemetryName  #
+    TempUnit: Unit  #
+    MakeModel: MakeModel  #
     DisplayName: Optional[str] = None
     CommsMethod: Optional[str] = None
-    TypeAlias: str = 'gt.temp.sensor.cac.100'
+    TypeAlias: str = "gt.temp.sensor.cac.100"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -27,11 +27,11 @@ class GtTempSensorCacBase(NamedTuple):
             del d["DisplayName"]
         if d["CommsMethod"] is None:
             del d["CommsMethod"]
-        del(d["TelemetryName"])
+        del d["TelemetryName"]
         d["TelemetryNameGtEnumSymbol"] = TelemetryNameMap.local_to_gt(self.TelemetryName)
-        del(d["TempUnit"])
+        del d["TempUnit"]
         d["TempUnitGtEnumSymbol"] = UnitMap.local_to_gt(self.TempUnit)
-        del(d["MakeModel"])
+        del d["MakeModel"]
         d["MakeModelGtEnumSymbol"] = MakeModelMap.local_to_gt(self.MakeModel)
         return d
 
@@ -41,10 +41,14 @@ class GtTempSensorCacBase(NamedTuple):
             if not isinstance(self.DisplayName, str):
                 errors.append(f"DisplayName {self.DisplayName} must have type str.")
         if not isinstance(self.ComponentAttributeClassId, str):
-            errors.append(f"ComponentAttributeClassId {self.ComponentAttributeClassId} must have type str.")
+            errors.append(
+                f"ComponentAttributeClassId {self.ComponentAttributeClassId} must have type str."
+            )
         if not property_format.is_uuid_canonical_textual(self.ComponentAttributeClassId):
-            errors.append(f"ComponentAttributeClassId {self.ComponentAttributeClassId}"
-                          " must have format UuidCanonicalTextual")
+            errors.append(
+                f"ComponentAttributeClassId {self.ComponentAttributeClassId}"
+                " must have format UuidCanonicalTextual"
+            )
         if not isinstance(self.Exponent, int):
             errors.append(f"Exponent {self.Exponent} must have type int.")
         if self.CommsMethod:
@@ -58,7 +62,9 @@ class GtTempSensorCacBase(NamedTuple):
             errors.append(f"TempUnit {self.TempUnit} must have type {Unit}.")
         if not isinstance(self.MakeModel, MakeModel):
             errors.append(f"MakeModel {self.MakeModel} must have type {MakeModel}.")
-        if self.TypeAlias != 'gt.temp.sensor.cac.100':
-            errors.append(f"Type requires TypeAlias of gt.temp.sensor.cac.100, not {self.TypeAlias}.")
-        
+        if self.TypeAlias != "gt.temp.sensor.cac.100":
+            errors.append(
+                f"Type requires TypeAlias of gt.temp.sensor.cac.100, not {self.TypeAlias}."
+            )
+
         return errors

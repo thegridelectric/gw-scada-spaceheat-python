@@ -6,8 +6,8 @@ from schema.gt.gt_heartbeat_a.gt_heartbeat_a import GtHeartbeatA
 from schema.errors import MpSchemaError
 
 
-class GtHeartbeatA_Maker():
-    type_alias = 'gt.heartbeat.a.100'
+class GtHeartbeatA_Maker:
+    type_alias = "gt.heartbeat.a.100"
 
     def __init__(self):
 
@@ -25,7 +25,7 @@ class GtHeartbeatA_Maker():
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError('Type must be string or bytes!')
+            raise MpSchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
             raise MpSchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)

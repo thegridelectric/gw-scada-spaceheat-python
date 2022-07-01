@@ -61,7 +61,9 @@ class ActorBase(ABC):
     # noinspection PyUnusedLocal
     def on_connect(self, client, userdata, flags, rc):
         self.mqtt_log_hack(
-            [f"({helpers.log_time()}) Local Mqtt client Connected flags {str(flags)} + result code {str(rc)}"]
+            [
+                f"({helpers.log_time()}) Local Mqtt client Connected flags {str(flags)} + result code {str(rc)}"
+            ]
         )
         self.subscribe()
 
@@ -71,7 +73,9 @@ class ActorBase(ABC):
 
     # noinspection PyUnusedLocal
     def on_disconnect(self, client, userdata, rc):
-        self.mqtt_log_hack([f"({helpers.log_time()}) Local Mqtt client Disconnected! result code {str(rc)}"])
+        self.mqtt_log_hack(
+            [f"({helpers.log_time()}) Local Mqtt client Disconnected! result code {str(rc)}"]
+        )
 
     @abstractmethod
     def subscriptions(self) -> List[Subscription]:

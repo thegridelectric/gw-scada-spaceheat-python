@@ -1,13 +1,11 @@
 from typing import Optional
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from data_classes.components.electric_meter_component import \
-    ElectricMeterComponent
+from data_classes.components.electric_meter_component import ElectricMeterComponent
 
 from schema.enums.make_model.make_model_map import MakeModel
 
 
 class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
-
     def __init__(self, component: ElectricMeterComponent):
         super(GridworksSimPm1_PowerMeterDriver, self).__init__(component=component)
         if component.cac.make_model != MakeModel.GRIDWORKS__SIMPM1:

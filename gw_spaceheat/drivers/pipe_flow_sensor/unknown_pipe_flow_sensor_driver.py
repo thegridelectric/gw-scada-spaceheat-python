@@ -5,7 +5,6 @@ from schema.enums.make_model.make_model_map import MakeModel
 
 
 class UnknownPipeFlowSensorDriver(PipeFlowSensorDriver):
-
     def __init__(self, component: PipeFlowSensorComponent):
         super(UnknownPipeFlowSensorDriver, self).__init__(component=component)
         if component.cac.make_model != MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:

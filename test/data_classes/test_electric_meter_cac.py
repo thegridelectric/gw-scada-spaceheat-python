@@ -11,11 +11,11 @@ def test_electric_meter_cac():
         "DisplayName": "Gridworks Pm1 Simulated Power Meter",
         "LocalCommInterfaceGtEnumSymbol": "efc144cd",
         "UpdatePeriodMs": 1000,
-        "TypeAlias": "gt.electric.meter.cac.100"
+        "TypeAlias": "gt.electric.meter.cac.100",
     }
 
     gw_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d)
     assert gw_tuple.ComponentAttributeClassId in ElectricMeterCac.by_id.keys()
     dc = ElectricMeterCac.by_id[gw_tuple.ComponentAttributeClassId]
 
-    assert dc.__repr__() == 'Gridworks__SimPm1 Gridworks Pm1 Simulated Power Meter'
+    assert dc.__repr__() == "Gridworks__SimPm1 Gridworks Pm1 Simulated Power Meter"

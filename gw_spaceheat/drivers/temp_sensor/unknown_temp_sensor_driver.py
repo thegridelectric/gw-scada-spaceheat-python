@@ -5,7 +5,6 @@ from schema.enums.make_model.make_model_map import MakeModel
 
 
 class UnknownTempSensorDriver(TempSensorDriver):
-
     def __init__(self, component: TempSensorComponent):
         super(UnknownTempSensorDriver, self).__init__(component=component)
         if component.cac.make_model != MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:

@@ -4,7 +4,6 @@ from schema.enums.unit.spaceheat_unit_100 import Unit, SpaceheatUnit100GtEnum
 
 
 class UnitGtEnum(SpaceheatUnit100GtEnum):
-
     @classmethod
     def is_symbol(cls, candidate) -> bool:
         if candidate in cls.symbols:
@@ -12,7 +11,7 @@ class UnitGtEnum(SpaceheatUnit100GtEnum):
         return False
 
 
-class UnitMap():
+class UnitMap:
     @classmethod
     def gt_to_local(cls, symbol):
         if not UnitGtEnum.is_symbol(symbol):
@@ -31,7 +30,8 @@ class UnitMap():
         "b4580361": Unit.GPM,
         "7d8832f8": Unit.FAHRENHEIT,
         "f459a9c3": Unit.W,
-        "ec972387": Unit.UNITLESS, }
+        "ec972387": Unit.UNITLESS,
+    }
 
     local_to_gt_dict: Dict[Unit, str] = {
         Unit.CELCIUS: "ec14bd47",
@@ -40,4 +40,4 @@ class UnitMap():
         Unit.FAHRENHEIT: "7d8832f8",
         Unit.W: "f459a9c3",
         Unit.UNITLESS: "ec972387",
-        }
+    }

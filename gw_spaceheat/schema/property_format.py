@@ -21,9 +21,9 @@ def is_64_bit_hex(candidate):
 
 def is_lrd_alias_format(candidate: str):
     """AlphanumericStrings separated by periods, with most
-    significant word to the left.  I.e. `dw1.ne` is the child of `dw1`. """
+    significant word to the left.  I.e. `dw1.ne` is the child of `dw1`."""
     try:
-        x = candidate.split('.')
+        x = candidate.split(".")
     except:
         return False
     for word in x:
@@ -68,7 +68,7 @@ def is_short_integer(candidate):
 
 def is_uuid_canonical_textual(candidate):
     try:
-        x = candidate.split('-')
+        x = candidate.split("-")
     except AttributeError:
         return False
     if len(x) != 5:

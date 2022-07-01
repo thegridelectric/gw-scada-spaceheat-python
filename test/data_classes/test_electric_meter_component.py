@@ -12,7 +12,7 @@ def test_electric_meter_component():
         "DisplayName": "Main Power meter for Little orange house garage space heat",
         "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
         "HwUid": "9999",
-        "TypeAlias": "gt.electric.meter.component.100"
+        "TypeAlias": "gt.electric.meter.component.100",
     }
 
     gw_tuple = GtElectricMeterComponent_Maker.dict_to_tuple(d)

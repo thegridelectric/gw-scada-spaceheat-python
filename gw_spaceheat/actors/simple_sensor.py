@@ -26,28 +26,29 @@ class SimpleSensor(ActorBase):
         pass
 
     def report_telemetry(self):
-        """ Publish the telemetry value, using exponent and telemetry_name from
-        self.config.reporting """
+        """Publish the telemetry value, using exponent and telemetry_name from
+        self.config.reporting"""
         if self.telemetry_value is None:
             return
         telemetry_name = self.config.reporting.TelemetryName
         exponent = self.config.reporting.Exponent
         now_s = time.time()
-        payload = GtTelemetry_Maker(name=telemetry_name,
-                                    value=int(self.telemetry_value),
-                                    exponent=exponent,
-                                    scada_read_time_unix_ms=int(now_s * 1000),
-                                    ).tuple
+        payload = GtTelemetry_Maker(
+            name=telemetry_name,
+            value=int(self.telemetry_value),
+            exponent=exponent,
+            scada_read_time_unix_ms=int(now_s * 1000),
+        ).tuple
         self.publish(payload)
         self._last_sent_s = int(now_s)
         self.screen_print(f"{payload.Value} {telemetry_name.value}")
         # self.screen_print(f"{int(time_of_read_s * 1000)}")
 
     def is_time_to_report(self) -> bool:
-        """ Returns True if it is time to report, The sensor is supposed to report every
+        """Returns True if it is time to report, The sensor is supposed to report every
         self.config.reporting.SamplePeriodS seconds - that is, if this number is 5, then
         the report will happen ASAP after top of the hour, then again 5 seconds later, etc ).
-         """
+        """
         now_s = time.time()
         if int(now_s) == self._last_sent_s:
             return False
@@ -57,7 +58,7 @@ class SimpleSensor(ActorBase):
             return False
 
     def update_telemetry_value(self):
-        """ Updates self.telemetry_value, using the config.driver """
+        """Updates self.telemetry_value, using the config.driver"""
         self.telemetry_value = self.config.driver.read_telemetry_value()
 
     def main(self):

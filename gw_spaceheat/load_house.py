@@ -72,7 +72,7 @@ def load_nodes(house_data):
 
 def load_all(atn_g_node_alias=settings.ATN_G_NODE_ALIAS):
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    with open(os.path.join(current_dir, 'input_data/houses.json'), "r") as read_file:
+    with open(os.path.join(current_dir, "input_data/houses.json"), "r") as read_file:
         input_data = json.load(read_file)
     if atn_g_node_alias not in input_data.keys():
         raise Exception(f"{atn_g_node_alias} house data missing from input_data/houses.json")
