@@ -34,6 +34,25 @@ def test_gt_electric_meter_cac():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+        local_comm_interface=gw_tuple.LocalCommInterface,
+        make_model=gw_tuple.MakeModel,
+        display_name=gw_tuple.DisplayName,
+        default_baud=gw_tuple.DefaultBaud,
+        update_period_ms=gw_tuple.UpdatePeriodMs,
+    ).tuple
+    assert t == gw_tuple
+
+    ######################################
+    # Dataclass related tests
+    ######################################
+
+    dc = Maker.tuple_to_dc(gw_tuple)
+    assert gw_tuple == Maker.dc_to_tuple(dc)
+    assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################

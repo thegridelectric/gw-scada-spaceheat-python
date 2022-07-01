@@ -702,7 +702,8 @@
                 "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-                "TypeAlias": "gt.electric.heater.component.100"    
+                "TypeAlias": "gt.electric.heater.component.100",
+                "HwUid": "aaaa2222"
             }],
         "BooleanActuatorComponents": [
             {
@@ -710,7 +711,8 @@
                 "DisplayName": "relay for first elt in tank",
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 0,
-                "TypeAlias": "gt.boolean.actuator.component.100"
+                "TypeAlias": "gt.boolean.actuator.component.100",
+                "HwUid": "abc123"
             },
             {
                 "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
@@ -796,7 +798,8 @@
                 "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
                 "DisplayName": "Flow meter on pipe out of tank",
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
-                "TypeAlias": "gt.pipe.flow.sensor.component.100"
+                "TypeAlias": "gt.pipe.flow.sensor.component.100",
+                "HwUid": "1234"
             }
         ],
         "OtherComponents": [
@@ -830,6 +833,7 @@
             {
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "MakeModelGtEnumSymbol": "b6a32d9b",
+                "DisplayName": "Fake Boost Element",
                 "TypeAlias": "gt.electric.heater.cac.100"
             }
         ],
@@ -838,6 +842,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "MakeModelGtEnumSymbol": "e81d74a8",
                 "TypicalResponseTimeMs": 400,
+                "DisplayName": "Gridworks Simulated Boolean Actuator",
                 "TypeAlias": "gt.boolean.actuator.cac.100"
             }
         ],
@@ -845,6 +850,8 @@
             {
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
                 "MakeModelGtEnumSymbol": "b6a32d9b",
+                "CommsMethod": "Remove this Comms Method",
+                "DisplayName": "Some pipe flow sensor",
                 "TypeAlias": "gt.pipe.flow.sensor.cac.100"
             }
         ],
@@ -1181,7 +1188,8 @@
                 "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-                "TypeAlias": "gt.electric.heater.component.100"    
+                "TypeAlias": "gt.electric.heater.component.100",
+                "HwUid": "aaaa2222"
             }],
         "BooleanActuatorComponents": [
             {
@@ -1189,7 +1197,8 @@
                 "DisplayName": "relay for first elt in tank",
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 0,
-                "TypeAlias": "gt.boolean.actuator.component.100"
+                "TypeAlias": "gt.boolean.actuator.component.100",
+                "HwUid": "abc123"
             },
             {
                 "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
@@ -1275,7 +1284,8 @@
                 "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
                 "DisplayName": "Flow meter on pipe out of tank",
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
-                "TypeAlias": "gt.pipe.flow.sensor.component.100"
+                "TypeAlias": "gt.pipe.flow.sensor.component.100",
+                "HwUid": "1234"
             }
         ],
         "OtherComponents": [
@@ -1309,6 +1319,7 @@
             {
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "MakeModelGtEnumSymbol": "b6a32d9b",
+                "DisplayName": "Fake Boost Element",
                 "TypeAlias": "gt.electric.heater.cac.100"
             }
         ],
@@ -1317,6 +1328,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "MakeModelGtEnumSymbol": "e81d74a8",
                 "TypicalResponseTimeMs": 400,
+                "DisplayName": "Gridworks Simulated Boolean Actuator",
                 "TypeAlias": "gt.boolean.actuator.cac.100"
             }
         ],
@@ -1324,6 +1336,8 @@
             {
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
                 "MakeModelGtEnumSymbol": "b6a32d9b",
+                "CommsMethod": "Remove this Comms Method",
+                "DisplayName": "Some pipe flow sensor",
                 "TypeAlias": "gt.pipe.flow.sensor.cac.100"
             }
         ],
@@ -1660,7 +1674,8 @@
                 "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-                "TypeAlias": "gt.electric.heater.component.100"    
+                "TypeAlias": "gt.electric.heater.component.100",
+                "HwUid": "aaaa2222"
             }],
         "BooleanActuatorComponents": [
             {
@@ -1668,7 +1683,8 @@
                 "DisplayName": "relay for first elt in tank",
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 0,
-                "TypeAlias": "gt.boolean.actuator.component.100"
+                "TypeAlias": "gt.boolean.actuator.component.100",
+                "HwUid": "abc123"
             },
             {
                 "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
@@ -1754,7 +1770,8 @@
                 "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
                 "DisplayName": "Flow meter on pipe out of tank",
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
-                "TypeAlias": "gt.pipe.flow.sensor.component.100"
+                "TypeAlias": "gt.pipe.flow.sensor.component.100",
+                "HwUid": "1234"
             }
         ],
         "OtherComponents": [
@@ -1788,6 +1805,7 @@
             {
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "MakeModelGtEnumSymbol": "b6a32d9b",
+                "DisplayName": "Fake Boost Element",
                 "TypeAlias": "gt.electric.heater.cac.100"
             }
         ],
@@ -1796,6 +1814,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "MakeModelGtEnumSymbol": "e81d74a8",
                 "TypicalResponseTimeMs": 400,
+                "DisplayName": "Gridworks Simulated Boolean Actuator",
                 "TypeAlias": "gt.boolean.actuator.cac.100"
             }
         ],
@@ -1803,6 +1822,8 @@
             {
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
                 "MakeModelGtEnumSymbol": "b6a32d9b",
+                "CommsMethod": "Remove this Comms Method",
+                "DisplayName": "Some pipe flow sensor",
                 "TypeAlias": "gt.pipe.flow.sensor.cac.100"
             }
         ],

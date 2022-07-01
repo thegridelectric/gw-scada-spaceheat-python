@@ -15,7 +15,7 @@ def test_gt_boolean_actuator_component():
         "DisplayName": "relay for first elt in tank",
         "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
         "Gpio": 0,
-        "HwUid": "FakeHwUid",
+        "HwUid": "abc123",
         "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
         "TypeAlias": "gt.boolean.actuator.component.100",
     }
@@ -32,6 +32,24 @@ def test_gt_boolean_actuator_component():
 
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+
+    # test Maker init
+    t = Maker(
+        display_name=gw_tuple.DisplayName,
+        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+        component_id=gw_tuple.ComponentId,
+        gpio=gw_tuple.Gpio,
+        hw_uid=gw_tuple.HwUid,
+    ).tuple
+    assert t == gw_tuple
+
+    ######################################
+    # Dataclass related tests
+    ######################################
+
+    dc = Maker.tuple_to_dc(gw_tuple)
+    assert gw_tuple == Maker.dc_to_tuple(dc)
+    assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
 
     ######################################
     # MpSchemaError raised if missing a required attribute

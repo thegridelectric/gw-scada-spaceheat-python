@@ -32,6 +32,15 @@ def test_gt_telemetry():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        scada_read_time_unix_ms=gw_tuple.ScadaReadTimeUnixMs,
+        value=gw_tuple.Value,
+        name=gw_tuple.Name,
+        exponent=gw_tuple.Exponent,
+    ).tuple
+    assert t == gw_tuple
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################

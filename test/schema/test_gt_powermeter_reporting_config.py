@@ -43,6 +43,15 @@ def test_gt_powermeter_reporting_config():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        hw_uid=gw_tuple.HwUid,
+        reporting_period_s=gw_tuple.ReportingPeriodS,
+        electrical_quantity_reporting_config_list=gw_tuple.ElectricalQuantityReportingConfigList,
+        poll_period_ms=gw_tuple.PollPeriodMs,
+    ).tuple
+    assert t == gw_tuple
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################

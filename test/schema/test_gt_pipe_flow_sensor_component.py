@@ -14,7 +14,7 @@ def test_gt_pipe_flow_sensor_component():
     gw_dict = {
         "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
         "DisplayName": "Flow meter on pipe out of tank",
-        "HwUid": "Fake HwUid",
+        "HwUid": "1234",
         "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
         "TypeAlias": "gt.pipe.flow.sensor.component.100",
     }
@@ -31,6 +31,23 @@ def test_gt_pipe_flow_sensor_component():
 
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+
+    # test Maker init
+    t = Maker(
+        component_id=gw_tuple.ComponentId,
+        display_name=gw_tuple.DisplayName,
+        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+        hw_uid=gw_tuple.HwUid,
+    ).tuple
+    assert t == gw_tuple
+
+    ######################################
+    # Dataclass related tests
+    ######################################
+
+    dc = Maker.tuple_to_dc(gw_tuple)
+    assert gw_tuple == Maker.dc_to_tuple(dc)
+    assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
 
     ######################################
     # MpSchemaError raised if missing a required attribute

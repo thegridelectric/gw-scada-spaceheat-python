@@ -29,6 +29,12 @@ def test_gt_sh_cli_atn_cmd():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        send_snapshot=gw_tuple.SendSnapshot,
+    ).tuple
+    assert t == gw_tuple
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################

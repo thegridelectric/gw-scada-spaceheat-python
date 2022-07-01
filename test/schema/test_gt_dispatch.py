@@ -30,6 +30,13 @@ def test_gt_dispatch():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        sh_node_alias=gw_tuple.ShNodeAlias,
+        relay_state=gw_tuple.RelayState,
+    ).tuple
+    assert t == gw_tuple
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################
