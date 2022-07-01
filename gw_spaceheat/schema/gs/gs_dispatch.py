@@ -4,7 +4,6 @@ from schema.gs.gs_dispatch_base import GsDispatchBase
 
 
 class GsDispatch(GsDispatchBase):
-
     def check_for_errors(self):
         errors = self.derived_errors() + self.hand_coded_errors()
         if len(errors) > 0:

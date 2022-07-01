@@ -3,8 +3,8 @@ import struct
 from schema.gs.gs_dispatch import GsDispatch
 
 
-class GsDispatch_Maker():
-    type_alias = 'd'
+class GsDispatch_Maker:
+    type_alias = "d"
 
     def __init__(self, relay_state):
         tuple = GsDispatch(RelayState=relay_state)
@@ -22,5 +22,3 @@ class GsDispatch_Maker():
         tuple = GsDispatch(RelayState=relay_state)
         tuple.check_for_errors
         return tuple
-
-    
