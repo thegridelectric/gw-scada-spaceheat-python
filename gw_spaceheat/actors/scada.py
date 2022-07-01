@@ -144,7 +144,7 @@ class Scada(ScadaBase):
         elif isinstance(payload, GtTelemetry):
             self.gt_telemetry_received(from_node, payload),
         elif isinstance(payload, GtShTelemetryFromMultipurposeSensor):
-            self.gt_sh_telemetry_multifunction_received(from_node, payload)
+            self.gt_sh_telemetry_from_multipurpose_sensor_received(from_node, payload)
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
@@ -154,7 +154,7 @@ class Scada(ScadaBase):
         self.total_power_w = payload.Power
         self.gw_publish(payload=payload)
 
-    def gt_sh_telemetry_multifunction_received(
+    def gt_sh_telemetry_from_multipurpose_sensor_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
     ):
         if from_node in self.my_multipurpose_sensors():
@@ -171,8 +171,7 @@ class Scada(ScadaBase):
                     TelemetryName=payload.TelemetryNameList[idx],
                 )
                 if tt not in self.my_telemetry_tuples():
-                    self.screen_print(f"Not tracking telemetry tuple {tt}!")
-                    return
+                    raise Exception(f"Scada not tracking telemetry tuple {tt}!")
                 self.recent_values_from_multifunction_sensor[tt].append(payload.ValueList[idx])
                 self.recent_read_times_unix_ms_from_multifunction_sensor[tt].append(
                     payload.ScadaReadTimeUnixMs
@@ -185,7 +184,7 @@ class Scada(ScadaBase):
             self.recent_simple_read_times_unix_ms[from_node].append(payload.ScadaReadTimeUnixMs)
             self.latest_simple_value[from_node] = payload.Value
         else:
-            self.screen_print(f"Not tracking readings from {from_node}!")
+            raise Exception(f"Scada not tracking SimpleSensor readings from {from_node}!")
 
     def gw_subscriptions(self) -> List[Subscription]:
         return [
@@ -291,7 +290,9 @@ class Scada(ScadaBase):
         else:
             return None
 
-    def make_single_status_for_fancy(self, tt: TelemetryTuple) -> Optional[GtShSimpleSingleStatus]:
+    def make_single_status_for_multipurpose(
+        self, tt: TelemetryTuple
+    ) -> Optional[GtShSimpleSingleStatus]:
         if tt in self.my_telemetry_tuples():
             if len(self.recent_values_from_multifunction_sensor[tt]) == 0:
                 return None
@@ -314,7 +315,7 @@ class Scada(ScadaBase):
             if single_status:
                 simple_single_status_list.append(single_status)
         for tt in self.my_telemetry_tuples():
-            single_status = self.make_single_status_for_fancy(tt)
+            single_status = self.make_single_status_for_multipurpose(tt)
             if single_status:
                 simple_single_status_list.append(single_status)
 

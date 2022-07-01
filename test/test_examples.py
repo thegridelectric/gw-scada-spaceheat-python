@@ -20,6 +20,7 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_dispatch import GsDispatch
+from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
@@ -467,18 +468,88 @@ def test_scada_small():
     scada = Scada(node=ShNode.by_alias["a.s"])
 
     local_topics = list(map(lambda x: x.Topic, scada.subscriptions()))
-    multi_function_topic_list = list(
+    multipurpose_topic_list = list(
         map(
             lambda x: f"{x.alias}/{GtShTelemetryFromMultipurposeSensor_Maker.type_alias}",
             scada.my_multipurpose_sensors(),
         )
     )
-    assert set(multi_function_topic_list) <= set(local_topics)
+    assert set(multipurpose_topic_list) <= set(local_topics)
     simple_sensor_topic_list = list(
         map(lambda x: f"{x.alias}/{GtTelemetry_Maker.type_alias}", scada.my_simple_sensors())
     )
     assert set(simple_sensor_topic_list) <= set(local_topics)
 
+    with pytest.raises(Exception):
+        boost = ShNode.by_alias['a.elt1.relay']
+        payload = GsPwr_Maker(power=2100)
+        scada.gs_pwr_received(from_node=boost, payload=payload)
+
+    s = scada.make_single_status_for_simple(node='garbage')
+    assert s is None
+
+    tt = TelemetryTuple(
+        AboutNode=ShNode.by_alias["a.elt1"],
+        SensorNode=ShNode.by_alias["a.m"],
+        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+    )
+    scada.recent_values_from_multifunction_sensor[tt] = [72000]
+    scada.recent_read_times_unix_ms_from_multifunction_sensor[tt] = [int(time.time() * 1000)]
+    s = scada.make_single_status_for_multipurpose(tt=tt)
+    assert isinstance(s, GtShSimpleSingleStatus)
+    s = scada.make_single_status_for_multipurpose(tt='garbage')
+    assert s is None
+
+    scada._last_5_cron_s = int(time.time() - 400)
+    assert scada.time_for_5_cron() is True
+
+    meter = ShNode.by_alias['a.m']
+
+    payload = GtShTelemetryFromMultipurposeSensor_Maker(
+        about_node_alias_list=['a.unknown'],
+        scada_read_time_unix_ms=int(time.time() * 1000),
+        value_list=[17000],
+        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS]
+    )
+
+    # throws error if AboutNode is unknown
+    with pytest.raises(Exception):
+        scada.gt_sh_telemetry_from_multipurpose_sensor_received(
+            from_node=meter,
+            payload=payload
+        )
+
+    payload = GtShTelemetryFromMultipurposeSensor_Maker(
+        about_node_alias_list=['a.tank'],
+        scada_read_time_unix_ms=int(time.time() * 1000),
+        value_list=[17000],
+        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS]
+    )
+
+    # throws error if it does not track the telemetry tuple. In this
+    # example, the telemetry tuple would have the electric meter
+    # as the sensor node, reading amps for a water tank
+    with pytest.raises(Exception):
+        scada.gt_sh_telemetry_from_multipurpose_sensor_received(
+            from_node=meter,
+            payload=payload
+        )
+
+    payload = GtTelemetry_Maker(
+        scada_read_time_unix_ms=int(time.time() * 1000),
+        value=67000,
+        exponent=3,
+        name=TelemetryName.WATER_TEMP_F_TIMES1000
+    )
+
+    # throws error if it receives a GtTelemetry reading
+    # from a sensor which is not in its simple sensor list
+    # - for example, like the multipurpose electricity meter
+    with pytest.raises(Exception):
+        scada.gt_telemetry_received(
+            from_node=meter,
+            payload=payload
+        )
 
 ###################
 # PowerMeter small tests
