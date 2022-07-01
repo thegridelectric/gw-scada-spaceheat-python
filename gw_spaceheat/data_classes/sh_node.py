@@ -2,14 +2,12 @@
 from typing import Dict, List, Optional
 
 from data_classes.component import Component
-from data_classes.components.temp_sensor_component import TempSensorComponent
 from data_classes.errors import DataClassLoadingError
-from data_classes.sh_node_base import ShNodeBase
-from schema.gt.gt_sh_node.gt_sh_node import GtShNode
-from schema.enums.actor_class.actor_class_map import ActorClass
+from schema.enums.role.role_map import RoleMap
+from schema.enums.actor_class.actor_class_map import ActorClassMap, ActorClass
 
 
-class ShNode(ShNodeBase):
+class ShNode():
     by_id: Dict[str, "ShNode"] = {}
     by_alias: Dict[str, "ShNode"] = {}
 
@@ -21,20 +19,16 @@ class ShNode(ShNodeBase):
                  component_id: Optional[str] = None,
                  display_name: Optional[str] = None,
                  ):
-        super(self.__class__, self).__init__(sh_node_id=sh_node_id,
-                                             alias=alias,
-                                             actor_class_gt_enum_symbol=actor_class_gt_enum_symbol,
-                                             reporting_sample_period_s=reporting_sample_period_s,
-                                             component_id=component_id,
-                                             display_name=display_name,
-                                             role_gt_enum_symbol=role_gt_enum_symbol,
-                                             )
+        self.sh_node_id = sh_node_id
+        self.alias = alias
+        self.component_id = component_id
+        self.reporting_sample_period_s = reporting_sample_period_s
+        self.display_name = display_name
+        self.actor_class = ActorClassMap.gt_to_local(actor_class_gt_enum_symbol)
+        self.role = RoleMap.gt_to_local(role_gt_enum_symbol)
 
         ShNode.by_alias[self.alias] = self
         ShNode.by_id[self.sh_node_id] = self
-
-    def _check_update_axioms(self, type: GtShNode):
-        pass
 
     def __repr__(self):
         rs = f'ShNode {self.display_name} => {self.role.value} {self.alias}, '
@@ -57,16 +51,6 @@ class ShNode(ShNodeBase):
         if self.component_id not in Component.by_id.keys():
             raise DataClassLoadingError(f"{self.alias} component {self.component_id} not loaded!")
         return Component.by_id[self.component_id]
-
-    @property
-    def temp_sensor_component(self) -> Optional[TempSensorComponent]:
-        if self.component_id is None:
-            return None
-        if self.component_id not in Component.by_id.keys():
-            raise DataClassLoadingError(f"{self.alias}  component {self.component_id} not loaded!")
-        if self.component_id not in TempSensorComponent.by_id.keys():
-            return None
-        return TempSensorComponent.by_id[self.component_id]
 
     @property
     def parent(self) -> "ShNode":
