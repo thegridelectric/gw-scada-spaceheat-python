@@ -36,6 +36,27 @@ def test_gt_temp_sensor_cac():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        telemetry_name=gw_tuple.TelemetryName,
+        display_name=gw_tuple.DisplayName,
+        temp_unit=gw_tuple.TempUnit,
+        make_model=gw_tuple.MakeModel,
+        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+        exponent=gw_tuple.Exponent,
+        comms_method=gw_tuple.CommsMethod,
+        typical_response_time_ms=gw_tuple.TypicalResponseTimeMs,
+    ).tuple
+    assert t == gw_tuple
+
+    ######################################
+    # Dataclass related tests
+    ######################################
+
+    dc = Maker.tuple_to_dc(gw_tuple)
+    assert gw_tuple == Maker.dc_to_tuple(dc)
+    assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################

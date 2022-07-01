@@ -12,7 +12,7 @@ from schema.gt.gt_electric_heater_component.gt_electric_heater_component_maker i
 def test_gt_electric_heater_component():
 
     gw_dict = {
-        "HwUid": "Fake HwUid",
+        "HwUid": "aaaa2222",
         "DisplayName": "First 4.5 kW boost in tank",
         "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
         "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
@@ -31,6 +31,23 @@ def test_gt_electric_heater_component():
 
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+
+    # test Maker init
+    t = Maker(
+        hw_uid=gw_tuple.HwUid,
+        display_name=gw_tuple.DisplayName,
+        component_id=gw_tuple.ComponentId,
+        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+    ).tuple
+    assert t == gw_tuple
+
+    ######################################
+    # Dataclass related tests
+    ######################################
+
+    dc = Maker.tuple_to_dc(gw_tuple)
+    assert gw_tuple == Maker.dc_to_tuple(dc)
+    assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
 
     ######################################
     # MpSchemaError raised if missing a required attribute

@@ -32,6 +32,15 @@ def test_gt_sh_telemetry_from_multipurpose_sensor():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        about_node_alias_list=gw_tuple.AboutNodeAliasList,
+        value_list=gw_tuple.ValueList,
+        scada_read_time_unix_ms=gw_tuple.ScadaReadTimeUnixMs,
+        telemetry_name_list=gw_tuple.TelemetryNameList,
+    ).tuple
+    assert t == gw_tuple
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################

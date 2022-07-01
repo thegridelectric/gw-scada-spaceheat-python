@@ -35,6 +35,26 @@ def test_gt_sh_node():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        component_id=gw_tuple.ComponentId,
+        display_name=gw_tuple.DisplayName,
+        actor_class=gw_tuple.ActorClass,
+        role=gw_tuple.Role,
+        reporting_sample_period_s=gw_tuple.ReportingSamplePeriodS,
+        sh_node_id=gw_tuple.ShNodeId,
+        alias=gw_tuple.Alias,
+    ).tuple
+    assert t == gw_tuple
+
+    ######################################
+    # Dataclass related tests
+    ######################################
+
+    dc = Maker.tuple_to_dc(gw_tuple)
+    assert gw_tuple == Maker.dc_to_tuple(dc)
+    assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################

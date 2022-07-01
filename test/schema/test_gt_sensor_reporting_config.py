@@ -35,6 +35,18 @@ def test_gt_sensor_reporting_config():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        report_on_change=gw_tuple.ReportOnChange,
+        telemetry_name=gw_tuple.TelemetryName,
+        unit=gw_tuple.Unit,
+        async_report_threshold=gw_tuple.AsyncReportThreshold,
+        exponent=gw_tuple.Exponent,
+        reporting_period_s=gw_tuple.ReportingPeriodS,
+        sample_period_s=gw_tuple.SamplePeriodS,
+    ).tuple
+    assert t == gw_tuple
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################

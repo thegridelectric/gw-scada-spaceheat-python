@@ -92,7 +92,45 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        </xsl:text>
+        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(GtSchema = $schema-id)]">
+        <xsl:if test="(normalize-space(SubTypeDataClass) = '') ">
+        <xsl:call-template name="python-case">
+            <xsl:with-param name="camel-case-text" select="Value"  />
+        </xsl:call-template>
+        <xsl:text>=gw_tuple.</xsl:text>
+        <xsl:value-of select="Value"/>
+        <xsl:text>,
+        </xsl:text>
+        </xsl:if>
+        <xsl:if test="(normalize-space(SubTypeDataClass) != '') ">
+        <xsl:call-template name="python-case">
+            <xsl:with-param name="camel-case-text" select="Value"  />
+        </xsl:call-template>
+        <xsl:text>_id=gw_tuple.</xsl:text>
+        <xsl:value-of select="Value"/>
+        <xsl:text>Id,
+        </xsl:text>
+        </xsl:if>
+        </xsl:for-each>
+        <xsl:text>).tuple
+    assert t == gw_tuple
+
+    </xsl:text>
+    <xsl:if test="MakeDataClass='true'">
+    <xsl:text>######################################
+    # Dataclass related tests
     ######################################
+
+    dc = Maker.tuple_to_dc(gw_tuple)
+    assert gw_tuple == Maker.dc_to_tuple(dc)
+    assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
+
+    </xsl:text>
+    </xsl:if>
+    <xsl:text>######################################
     # MpSchemaError raised if missing a required attribute
     ######################################
 

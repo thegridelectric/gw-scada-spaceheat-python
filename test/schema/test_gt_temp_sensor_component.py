@@ -32,6 +32,23 @@ def test_gt_temp_sensor_component():
     # test type_to_tuple and tuple_to_type maps
     assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
 
+    # test Maker init
+    t = Maker(
+        display_name=gw_tuple.DisplayName,
+        component_id=gw_tuple.ComponentId,
+        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+        hw_uid=gw_tuple.HwUid,
+    ).tuple
+    assert t == gw_tuple
+
+    ######################################
+    # Dataclass related tests
+    ######################################
+
+    dc = Maker.tuple_to_dc(gw_tuple)
+    assert gw_tuple == Maker.dc_to_tuple(dc)
+    assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
+
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################
