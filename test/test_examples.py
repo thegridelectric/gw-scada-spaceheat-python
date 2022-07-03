@@ -12,7 +12,7 @@ from actors.atn import Atn
 from actors.boolean_actuator import BooleanActuator
 from actors.cloud_ear import CloudEar
 from actors.power_meter import PowerMeter
-from actors.scada import Scada
+from actors.scada import Scada, ScadaCmdDiagnostic
 from actors.simple_sensor import SimpleSensor
 from command_line_utils import run_nodes_main
 from data_classes.sh_node import ShNode
@@ -383,10 +383,10 @@ def test_message_exchange(tmp_path, monkeypatch):
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"], logging_on=True)
     atn = AtnRecorder(node=ShNode.by_alias["a"], logging_on=True)
     ear = EarRecorder(logging_on=True)
-    elt = BooleanActuator(ShNode.by_alias["a.elt1.relay"], logging_on=True)
+    elt_relay = BooleanActuator(ShNode.by_alias["a.elt1.relay"], logging_on=True)
     meter = PowerMeter(node=ShNode.by_alias["a.m"], logging_on=True)
     thermo = SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], logging_on=True)
-    actors = [scada, atn, ear, elt, meter, thermo]
+    actors = [scada, atn, ear, elt_relay, meter, thermo]
 
     try:
         for actor in actors:
@@ -405,6 +405,7 @@ def test_message_exchange(tmp_path, monkeypatch):
                     f"ERROR waiting for {actor.node.alias} gw_client connect",
                 )
         atn.turn_on(ShNode.by_alias["a.elt1.relay"])
+        wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
         atn.status()
         wait_for(
             lambda: atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}"
@@ -427,7 +428,10 @@ def test_message_exchange(tmp_path, monkeypatch):
             10,
             f"scada temperature. {scada.summary_str()}",
         )
-        wait_for(lambda: int(elt.relay_state) == 1, 10, f"Relay state {elt.relay_state}")
+
+        atn.turn_off(ShNode.by_alias["a.elt1.relay"])
+        wait_for(lambda: int(elt_relay.relay_state) == 0, 10, f"Relay state {elt_relay.relay_state}")
+
     finally:
         for actor in actors:
             # noinspection PyBroadException
@@ -435,24 +439,6 @@ def test_message_exchange(tmp_path, monkeypatch):
                 actor.stop()
             except:
                 pass
-
-
-def test_scada_dict_keys():
-    load_house.load_all()
-    scada = ScadaRecorder(node=ShNode.by_alias["a.s"])
-    scada.start()
-    scada.terminate_main_loop()
-    scada.main_thread.join()
-    assert list(scada.latest_simple_value.keys()) == scada.my_simple_sensors()
-    assert list(scada.recent_simple_values.keys()) == scada.my_simple_sensors()
-    assert list(scada.recent_simple_read_times_unix_ms.keys()) == scada.my_simple_sensors()
-    assert list(scada.latest_value_from_multifunction_sensor.keys()) == scada.my_telemetry_tuples()
-    assert list(scada.recent_values_from_multifunction_sensor.keys()) == scada.my_telemetry_tuples()
-    assert (
-        list(scada.recent_read_times_unix_ms_from_multifunction_sensor.keys())
-        == scada.my_telemetry_tuples()
-    )
-
 
 ###################
 # Small Tests
@@ -466,6 +452,16 @@ def test_scada_dict_keys():
 def test_scada_small():
     load_house.load_all()
     scada = Scada(node=ShNode.by_alias["a.s"])
+    meter_node = ShNode.by_alias["a.m"]
+    assert list(scada.latest_simple_value.keys()) == scada.my_simple_sensors()
+    assert list(scada.recent_simple_values.keys()) == scada.my_simple_sensors()
+    assert list(scada.recent_simple_read_times_unix_ms.keys()) == scada.my_simple_sensors()
+    assert list(scada.latest_value_from_multifunction_sensor.keys()) == scada.my_telemetry_tuples()
+    assert list(scada.recent_values_from_multifunction_sensor.keys()) == scada.my_telemetry_tuples()
+    assert (
+        list(scada.recent_read_times_unix_ms_from_multifunction_sensor.keys())
+        == scada.my_telemetry_tuples()
+    )
 
     local_topics = list(map(lambda x: x.Topic, scada.subscriptions()))
     multipurpose_topic_list = list(
@@ -479,6 +475,18 @@ def test_scada_small():
         map(lambda x: f"{x.alias}/{GtTelemetry_Maker.type_alias}", scada.my_simple_sensors())
     )
     assert set(simple_sensor_topic_list) <= set(local_topics)
+
+    # Test on_message raises exception if it gets a payload that it does not recognize.
+    # All of these messages will come via local broker by actors in the SCADA code
+    # and so we have control over what they are.
+
+    with pytest.raises(Exception):
+        scada.on_message(from_node=meter_node, payload='garbage')
+
+    # Test on_gw_message getting a payload it does not recognize
+
+    res = scada.on_gw_message(payload='garbage')
+    assert res == ScadaCmdDiagnostic.PAYLOAD_NOT_IMPLEMENTED
 
     with pytest.raises(Exception):
         boost = ShNode.by_alias['a.elt1.relay']
@@ -503,8 +511,6 @@ def test_scada_small():
     scada._last_5_cron_s = int(time.time() - 400)
     assert scada.time_for_5_cron() is True
 
-    meter = ShNode.by_alias['a.m']
-
     payload = GtShTelemetryFromMultipurposeSensor_Maker(
         about_node_alias_list=['a.unknown'],
         scada_read_time_unix_ms=int(time.time() * 1000),
@@ -515,7 +521,7 @@ def test_scada_small():
     # throws error if AboutNode is unknown
     with pytest.raises(Exception):
         scada.gt_sh_telemetry_from_multipurpose_sensor_received(
-            from_node=meter,
+            from_node=meter_node,
             payload=payload
         )
 
@@ -531,7 +537,7 @@ def test_scada_small():
     # as the sensor node, reading amps for a water tank
     with pytest.raises(Exception):
         scada.gt_sh_telemetry_from_multipurpose_sensor_received(
-            from_node=meter,
+            from_node=meter_node,
             payload=payload
         )
 
@@ -547,7 +553,7 @@ def test_scada_small():
     # - for example, like the multipurpose electricity meter
     with pytest.raises(Exception):
         scada.gt_telemetry_received(
-            from_node=meter,
+            from_node=meter_node,
             payload=payload
         )
 

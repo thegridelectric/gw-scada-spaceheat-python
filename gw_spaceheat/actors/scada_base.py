@@ -67,14 +67,13 @@ class ScadaBase(ActorBase):
             raise Exception("topic must be of format A/B")
         if from_alias != settings.ATN_G_NODE_ALIAS:
             raise Exception(f"alias {from_alias} not my AtomicTNode!")
-        from_node = ShNode.by_alias["a"]
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
-        self.on_gw_message(from_node=from_node, payload=payload_as_tuple)
+        self.on_gw_message(payload=payload_as_tuple)
 
     @abstractmethod
-    def on_gw_message(self, from_node: ShNode, payload):
+    def on_gw_message(self, payload):
         raise NotImplementedError
 
     def gw_publish(self, payload):
