@@ -11,7 +11,7 @@ class GtPipeFlowSensorComponent(GtPipeFlowSensorComponentBase):
         errors = self.derived_errors() + self.hand_coded_errors()
         if len(errors) > 0:
             raise MpSchemaError(
-                f" Errors making making gt.pipe.flow.sensor.component for {self}: {errors}"
+                f" Errors making making gt.pipe.flow.sensor.component.100 for {self}: {errors}"
             )
 
     def hand_coded_errors(self):

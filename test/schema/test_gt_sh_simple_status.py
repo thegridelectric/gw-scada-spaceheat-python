@@ -53,6 +53,7 @@ def test_gt_sh_simple_status():
         slot_start_unix_s=gw_tuple.SlotStartUnixS,
         reporting_period_s=gw_tuple.ReportingPeriodS,
         simple_single_status_list=gw_tuple.SimpleSingleStatusList,
+        #
     ).tuple
     assert t == gw_tuple
 
@@ -133,7 +134,7 @@ def test_gt_sh_simple_status():
             about_g_node_alias=gw_dict["AboutGNodeAlias"],
             slot_start_unix_s=gw_dict["SlotStartUnixS"],
             reporting_period_s=gw_dict["ReportingPeriodS"],
-            simple_single_status_list=["Not a GtShSimpleSingleStatus100"],
+            simple_single_status_list=["Not a GtShSimpleSingleStatus"],
         )
 
     with pytest.raises(MpSchemaError):

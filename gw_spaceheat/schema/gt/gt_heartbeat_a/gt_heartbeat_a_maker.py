@@ -1,5 +1,4 @@
 """Makes gt.heartbeat.a.100 type"""
-
 import json
 
 from schema.gt.gt_heartbeat_a.gt_heartbeat_a import GtHeartbeatA
@@ -11,9 +10,11 @@ class GtHeartbeatA_Maker:
 
     def __init__(self):
 
-        tuple = GtHeartbeatA()
-        tuple.check_for_errors()
-        self.tuple = tuple
+        gw_tuple = GtHeartbeatA(
+            #
+        )
+        gw_tuple.check_for_errors()
+        self.tuple = gw_tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtHeartbeatA) -> str:
@@ -35,12 +36,12 @@ class GtHeartbeatA_Maker:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
-
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
 
-        tuple = GtHeartbeatA(
+        gw_tuple = GtHeartbeatA(
             TypeAlias=new_d["TypeAlias"],
+            #
         )
-        tuple.check_for_errors()
-        return tuple
+        gw_tuple.check_for_errors()
+        return gw_tuple

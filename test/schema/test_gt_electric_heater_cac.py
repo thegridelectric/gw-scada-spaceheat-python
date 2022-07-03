@@ -36,6 +36,7 @@ def test_gt_electric_heater_cac():
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
         make_model=gw_tuple.MakeModel,
         display_name=gw_tuple.DisplayName,
+        #
     ).tuple
     assert t == gw_tuple
 

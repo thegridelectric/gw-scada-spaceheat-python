@@ -38,6 +38,7 @@ def test_gt_sh_simple_single_status():
         telemetry_name=gw_tuple.TelemetryName,
         sh_node_alias=gw_tuple.ShNodeAlias,
         value_list=gw_tuple.ValueList,
+        #
     ).tuple
     assert t == gw_tuple
 

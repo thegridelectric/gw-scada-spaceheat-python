@@ -38,6 +38,7 @@ def test_gt_sh_cli_scada_response():
     # test Maker init
     t = Maker(
         snapshot=gw_tuple.Snapshot,
+        #
     ).tuple
     assert t == gw_tuple
 
@@ -62,14 +63,14 @@ def test_gt_sh_cli_scada_response():
     ######################################
 
     orig_value = gw_dict["Snapshot"]
-    gw_dict["Snapshot"] = "Not a GtShStatusSnapshot110."
+    gw_dict["Snapshot"] = "Not a GtShStatusSnapshot."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["Snapshot"] = orig_value
 
     with pytest.raises(MpSchemaError):
         Maker(
-            snapshot="Not a GtShStatusSnapshot110",
+            snapshot="Not a GtShStatusSnapshot",
         )
 
     ######################################

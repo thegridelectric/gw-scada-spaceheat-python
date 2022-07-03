@@ -1,4 +1,5 @@
 import time
+import enum
 from typing import Dict, List, Optional
 
 import helpers
@@ -35,6 +36,11 @@ from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_M
 
 from actors.scada_base import ScadaBase
 from actors.utils import QOS, Subscription, responsive_sleep
+
+
+class ScadaCmdDiagnostic(enum.Enum):
+    SUCCESS = "Success"
+    PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
 
 
 class Scada(ScadaBase):
@@ -146,7 +152,7 @@ class Scada(ScadaBase):
         elif isinstance(payload, GtShTelemetryFromMultipurposeSensor):
             self.gt_sh_telemetry_from_multipurpose_sensor_received(from_node, payload)
         else:
-            self.screen_print(f"{payload} subscription not implemented!")
+            raise Exception(f"{payload} subscription not implemented!")
 
     def gs_pwr_received(self, from_node: ShNode, payload: GsPwr):
         if from_node != ShNode.by_alias["a.m"]:
@@ -198,17 +204,21 @@ class Scada(ScadaBase):
             ),
         ]
 
-    def on_gw_message(self, from_node: ShNode, payload):
-        if from_node != ShNode.by_alias["a"]:
-            raise Exception("gw messages must come from the remote AtomicTNode!")
+    def on_gw_message(self, payload) -> ScadaCmdDiagnostic:
+        from_node = ShNode.by_alias["a"]
+
         if isinstance(payload, GsDispatch):
             self.gs_dispatch_received(from_node, payload)
+            return ScadaCmdDiagnostic.SUCCESS
         elif isinstance(payload, GtDispatch):
             self.gt_dispatch_received(from_node, payload)
+            return ScadaCmdDiagnostic.SUCCESS
         elif isinstance(payload, GtShCliAtnCmd):
             self.gt_sh_cli_atn_cmd_received(payload)
+            return ScadaCmdDiagnostic.SUCCESS
         else:
             self.screen_print(f"{payload} subscription not implemented!")
+            return ScadaCmdDiagnostic.PAYLOAD_NOT_IMPLEMENTED
 
     def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
         raise NotImplementedError

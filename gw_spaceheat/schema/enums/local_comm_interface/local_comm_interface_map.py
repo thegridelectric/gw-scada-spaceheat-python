@@ -51,4 +51,5 @@ class LocalCommInterfaceMap:
         LocalCommInterface.ETHERNET: "c1e7a955",
         LocalCommInterface.ONEWIRE: "ae2d4cd8",
         LocalCommInterface.RS485: "a6a4ac9f",
+        #
     }

@@ -38,6 +38,7 @@ def test_gt_electric_heater_component():
         display_name=gw_tuple.DisplayName,
         component_id=gw_tuple.ComponentId,
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+        #
     ).tuple
     assert t == gw_tuple
 

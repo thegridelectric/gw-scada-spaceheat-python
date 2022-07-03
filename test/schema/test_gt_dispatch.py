@@ -34,6 +34,7 @@ def test_gt_dispatch():
     t = Maker(
         sh_node_alias=gw_tuple.ShNodeAlias,
         relay_state=gw_tuple.RelayState,
+        #
     ).tuple
     assert t == gw_tuple
 

@@ -1,5 +1,4 @@
 """Makes gt.sh.cli.atn.cmd.100 type"""
-
 import json
 
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd import GtShCliAtnCmd
@@ -9,13 +8,15 @@ from schema.errors import MpSchemaError
 class GtShCliAtnCmd_Maker:
     type_alias = "gt.sh.cli.atn.cmd.100"
 
-    def __init__(self, send_snapshot: bool):
+    def __init__(self,
+                 send_snapshot: bool):
 
-        tuple = GtShCliAtnCmd(
+        gw_tuple = GtShCliAtnCmd(
             SendSnapshot=send_snapshot,
+            #
         )
-        tuple.check_for_errors()
-        self.tuple = tuple
+        gw_tuple.check_for_errors()
+        self.tuple = gw_tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtShCliAtnCmd) -> str:
@@ -37,15 +38,15 @@ class GtShCliAtnCmd_Maker:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
-
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
         if "SendSnapshot" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing SendSnapshot")
 
-        tuple = GtShCliAtnCmd(
+        gw_tuple = GtShCliAtnCmd(
             TypeAlias=new_d["TypeAlias"],
             SendSnapshot=new_d["SendSnapshot"],
+            #
         )
-        tuple.check_for_errors()
-        return tuple
+        gw_tuple.check_for_errors()
+        return gw_tuple

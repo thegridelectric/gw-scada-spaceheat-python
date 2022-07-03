@@ -49,6 +49,7 @@ def test_gt_powermeter_reporting_config():
         reporting_period_s=gw_tuple.ReportingPeriodS,
         electrical_quantity_reporting_config_list=gw_tuple.ElectricalQuantityReportingConfigList,
         poll_period_ms=gw_tuple.PollPeriodMs,
+        #
     ).tuple
     assert t == gw_tuple
 
@@ -128,7 +129,7 @@ def test_gt_powermeter_reporting_config():
             hw_uid=gw_dict["HwUid"],
             reporting_period_s=gw_dict["ReportingPeriodS"],
             poll_period_ms=gw_dict["PollPeriodMs"],
-            electrical_quantity_reporting_config_list=["Not a GtEqReportingConfig100"],
+            electrical_quantity_reporting_config_list=["Not a GtEqReportingConfig"],
         )
 
     with pytest.raises(MpSchemaError):

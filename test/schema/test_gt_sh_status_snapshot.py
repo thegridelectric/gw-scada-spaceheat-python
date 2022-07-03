@@ -38,6 +38,7 @@ def test_gt_sh_status_snapshot():
         about_node_alias_list=gw_tuple.AboutNodeAliasList,
         report_time_unix_ms=gw_tuple.ReportTimeUnixMs,
         value_list=gw_tuple.ValueList,
+        #
     ).tuple
     assert t == gw_tuple
 

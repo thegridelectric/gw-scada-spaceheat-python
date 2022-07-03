@@ -38,6 +38,7 @@ def test_gt_telemetry():
         value=gw_tuple.Value,
         name=gw_tuple.Name,
         exponent=gw_tuple.Exponent,
+        #
     ).tuple
     assert t == gw_tuple
 

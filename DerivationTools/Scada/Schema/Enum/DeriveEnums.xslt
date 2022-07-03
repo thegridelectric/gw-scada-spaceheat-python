@@ -43,14 +43,13 @@
 
    
 <xsl:text>"""</xsl:text><xsl:value-of select="$enum-alias"/><xsl:text> definition"""
-from abc import ABC
 import enum
+from abc import ABC
 from typing import List
 
 
 class </xsl:text><xsl:value-of select="$local-class-name"/>
 <xsl:text>(enum.Enum):
-
     @classmethod
     def values(cls):
         return [elt.value for elt in cls]
@@ -70,16 +69,19 @@ class </xsl:text><xsl:value-of select="$local-class-name"/>
     <xsl:value-of select="LocalValue"/><xsl:text>"
     </xsl:text>
 </xsl:for-each>
-<xsl:text>
+<xsl:text>#
+
 
 class </xsl:text><xsl:value-of select="$class-name"/>
 <xsl:text>GtEnum(ABC):
-    symbols: List[str] = [</xsl:text>
+    symbols: List[str] = [
+        </xsl:text>
     <xsl:for-each select="$airtable//EnumSymbols/EnumSymbol[(Enum = $enum-id)]">
     <xsl:text>"</xsl:text><xsl:value-of select="Symbol"/><xsl:text>",
-                          </xsl:text>
+        </xsl:text>
 </xsl:for-each>
-<xsl:text>]
+<xsl:text>#
+    ]
 </xsl:text>
 
 

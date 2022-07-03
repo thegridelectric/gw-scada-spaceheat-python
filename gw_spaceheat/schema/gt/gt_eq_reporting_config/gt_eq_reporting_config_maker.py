@@ -1,40 +1,43 @@
 """Makes gt.eq.reporting.config.100 type"""
-
 import json
 from typing import Optional
 
-
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
 from schema.errors import MpSchemaError
-from schema.enums.unit.unit_map import Unit, UnitMap
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName, TelemetryNameMap
+from schema.enums.unit.unit_map import (
+    Unit,
+    UnitMap,
+)
+from schema.enums.telemetry_name.telemetry_name_map import (
+    TelemetryName,
+    TelemetryNameMap,
+)
 
 
 class GtEqReportingConfig_Maker:
     type_alias = "gt.eq.reporting.config.100"
 
-    def __init__(
-        self,
-        sh_node_alias: str,
-        report_on_change: bool,
-        exponent: int,
-        sample_period_s: int,
-        unit: Unit,
-        telemetry_name: TelemetryName,
-        async_report_threshold: Optional[float],
-    ):
+    def __init__(self,
+                 report_on_change: bool,
+                 exponent: int,
+                 unit: Unit,
+                 sh_node_alias: str,
+                 sample_period_s: int,
+                 telemetry_name: TelemetryName,
+                 async_report_threshold: Optional[float]):
 
-        tuple = GtEqReportingConfig(
-            ShNodeAlias=sh_node_alias,
+        gw_tuple = GtEqReportingConfig(
             ReportOnChange=report_on_change,
             Exponent=exponent,
             Unit=unit,
+            ShNodeAlias=sh_node_alias,
             AsyncReportThreshold=async_report_threshold,
             SamplePeriodS=sample_period_s,
             TelemetryName=telemetry_name,
+            #
         )
-        tuple.check_for_errors()
-        self.tuple = tuple
+        gw_tuple.check_for_errors()
+        self.tuple = gw_tuple
 
     @classmethod
     def tuple_to_type(cls, tuple: GtEqReportingConfig) -> str:
@@ -56,35 +59,35 @@ class GtEqReportingConfig_Maker:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
-
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
-        if "ShNodeAlias" not in d.keys():
-            raise MpSchemaError(f"dict {new_d} missing ShNodeAlias")
         if "ReportOnChange" not in new_d.keys():
-            raise MpSchemaError(f"dict {d} missing ReportOnChange")
+            raise MpSchemaError(f"dict {new_d} missing ReportOnChange")
         if "Exponent" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing Exponent")
-        if "SamplePeriodS" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing SamplePeriodS")
         if "UnitGtEnumSymbol" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing UnitGtEnumSymbol")
         new_d["Unit"] = UnitMap.gt_to_local(new_d["UnitGtEnumSymbol"])
+        if "ShNodeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ShNodeAlias")
+        if "AsyncReportThreshold" not in new_d.keys():
+            new_d["AsyncReportThreshold"] = None
+        if "SamplePeriodS" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing SamplePeriodS")
         if "TelemetryNameGtEnumSymbol" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TelemetryNameGtEnumSymbol")
         new_d["TelemetryName"] = TelemetryNameMap.gt_to_local(new_d["TelemetryNameGtEnumSymbol"])
-        if "AsyncReportThreshold" not in new_d.keys():
-            new_d["AsyncReportThreshold"] = None
 
-        tuple = GtEqReportingConfig(
-            ShNodeAlias=new_d["ShNodeAlias"],
+        gw_tuple = GtEqReportingConfig(
+            TypeAlias=new_d["TypeAlias"],
             ReportOnChange=new_d["ReportOnChange"],
             Exponent=new_d["Exponent"],
             Unit=new_d["Unit"],
+            ShNodeAlias=new_d["ShNodeAlias"],
             AsyncReportThreshold=new_d["AsyncReportThreshold"],
             SamplePeriodS=new_d["SamplePeriodS"],
             TelemetryName=new_d["TelemetryName"],
-            TypeAlias=new_d["TypeAlias"],
+            #
         )
-        tuple.check_for_errors()
-        return tuple
+        gw_tuple.check_for_errors()
+        return gw_tuple

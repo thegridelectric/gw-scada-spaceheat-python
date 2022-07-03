@@ -885,7 +885,7 @@
       <IsRequired>true</IsRequired>
       <ImmutableInDc>true</ImmutableInDc>
       <TestValue>"a3d298fb-a4ef-427a-939d-02cc9c9689c1"</TestValue>
-      <SubMessageFormatAlias>gt.electric.meter.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.electric.meter.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -898,7 +898,7 @@
       <GtSchema>recpr0byizj3PmqXi</GtSchema>
       <SubTypeFormat>recEdlcUTBfQ9Hy6D</SubTypeFormat>
       <TestValue>"a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e"</TestValue>
-      <SubMessageFormatAlias>gt.component.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.component</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1041,7 +1041,7 @@
       <SubTypeFormat>recrNYtQoRa7YhqI4</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.temp.sensor.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.temp.sensor.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1207,7 +1207,7 @@
       <SubTypeFormat>recHrNVLHcDTTqaCq</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.temp.sensor.component.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.temp.sensor.component</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1276,7 +1276,7 @@
       <PrimitiveType>String</PrimitiveType>
       <ImmutableInDc>true</ImmutableInDc>
       <TestValue>"69f101fc-22e4-4caa-8103-50b8aeb66028"</TestValue>
-      <SubMessageFormatAlias>gt.boolean.actuator.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.boolean.actuator.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1290,7 +1290,7 @@
       <SubTypeFormat>recdbl99ZoQqyOhS7</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.boolean.actuator.component.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.boolean.actuator.component</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1590,7 +1590,7 @@
       <GtSchema>recEdlcUTBfQ9Hy6D</GtSchema>
       <SubTypeFormat>recK5H9Pt9ZpF6hgi</SubTypeFormat>
       <IsRequired>true</IsRequired>
-      <SubMessageFormatAlias>gt.component.attribute.class.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.component.attribute.class</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1822,7 +1822,7 @@
       <SubTypeFormat>recEdlcUTBfQ9Hy6D</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.component.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.component</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1836,7 +1836,7 @@
       <SubTypeFormat>rec4u5c6FO198haBK</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.pipe.flow.sensor.component.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.pipe.flow.sensor.component</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1879,7 +1879,7 @@
       <SubTypeFormat>recsMoh2JkG2YPR8u</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.electric.meter.component.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.electric.meter.component</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -1910,7 +1910,7 @@
       <SubTypeFormat>recAMM4MM8wzs10u8</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.sh.node.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.sh.node</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2026,7 +2026,7 @@
       <SubTypeFormat>recyuopIDguUgR1mI</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <TestValue>{"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "gt.sh.status.snapshot.110"}</TestValue>
-      <SubMessageFormatAlias>gt.sh.status.snapshot.110</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.sh.status.snapshot</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2074,7 +2074,7 @@
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
       <TestValue> [{"ShNodeAlias": "a.elt1", "ReportOnChange": True, "Exponent": 6, "SamplePeriodS": 5, "AsyncReportThreshold": 0.05, "TypeAlias": "gt.eq.reporting.config.100", "UnitGtEnumSymbol": "a969ac7c", "TelemetryNameGtEnumSymbol": "ad19e79c"}]</TestValue>
-      <SubMessageFormatAlias>gt.eq.reporting.config.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.eq.reporting.config</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2099,7 +2099,7 @@
       <SubTypeFormat>recy2lAURQitTqKTR</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.boolean.actuator.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.boolean.actuator.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2133,7 +2133,7 @@
       <IsRequired>true</IsRequired>
       <ImmutableInDc>true</ImmutableInDc>
       <TestValue>"43564cd2-0e78-41a2-8b67-ad80c02161e8"</TestValue>
-      <SubMessageFormatAlias>gt.temp.sensor.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.temp.sensor.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2168,7 +2168,7 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itrbCMh9aobzLQWST/recg8JNR1e1aZk41L</SchemaAttribute>
+    <SchemaAttribute>itrxaHS5LrkJrnN1p/recg8JNR1e1aZk41L</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recgGXDzQHPSfoIYU</SchemaAttributeId>
       <createdTime>2022-05-12T01:48:57Z</createdTime>
@@ -2218,7 +2218,7 @@
       <SubTypeFormat>recnOen6KenxkwQtB</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.thermal.edge.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.thermal.edge</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2258,7 +2258,7 @@
       <IsRequired>true</IsRequired>
       <ImmutableInDc>true</ImmutableInDc>
       <TestValue>"14e7105a-e797-485a-a304-328ecc85cd98"</TestValue>
-      <SubMessageFormatAlias>gt.pipe.flow.sensor.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.pipe.flow.sensor.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2386,7 +2386,7 @@
       <SubTypeFormat>reccc96DDf5Ue9FmA</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.electric.meter.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.electric.meter.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2400,7 +2400,7 @@
       <SubTypeFormat>recEdlcUTBfQ9Hy6D</SubTypeFormat>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>rec24qjC90m0f4Kvl</PrimitiveFormatId>
-      <SubMessageFormatAlias>gt.component.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.component</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>UuidCanonicalTextual</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -2416,7 +2416,7 @@
       <SubTypeFormat>recKVkCs5ktwXS3Bu</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.pipe.flow.sensor.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.pipe.flow.sensor.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2559,7 +2559,7 @@
       <SubTypeFormat>recjwzTYeT77Cq7NZ</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.electric.heater.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.electric.heater.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2600,7 +2600,7 @@
       <IsRequired>true</IsRequired>
       <ImmutableInDc>true</ImmutableInDc>
       <TestValue>"cf1f2587-7462-4701-b962-d2b264744c1d"</TestValue>
-      <SubMessageFormatAlias>gt.electric.heater.cac.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.electric.heater.cac</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2624,7 +2624,7 @@
    "ValueList": [66238, 66514],
    "TypeAlias": "gt.sh.simple.single.status.100",
    "TelemetryNameGtEnumSymbol": "793505aa"}]</TestValue>
-      <SubMessageFormatAlias>gt.sh.simple.single.status.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.sh.simple.single.status</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2751,7 +2751,7 @@
       <SubTypeFormat>recT6312S7LckLHZ9</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.electric.heater.component.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.electric.heater.component</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
@@ -2823,7 +2823,7 @@
       <SubTypeFormat>recK5H9Pt9ZpF6hgi</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <SubMessageFormatAlias>gt.component.attribute.class.100</SubMessageFormatAlias>
+      <SubMessageFormatAlias>gt.component.attribute.class</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>

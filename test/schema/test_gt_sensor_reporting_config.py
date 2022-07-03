@@ -44,6 +44,7 @@ def test_gt_sensor_reporting_config():
         exponent=gw_tuple.Exponent,
         reporting_period_s=gw_tuple.ReportingPeriodS,
         sample_period_s=gw_tuple.SamplePeriodS,
+        #
     ).tuple
     assert t == gw_tuple
 

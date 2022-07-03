@@ -38,6 +38,7 @@ def test_gt_boolean_actuator_cac():
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
         typical_response_time_ms=gw_tuple.TypicalResponseTimeMs,
         display_name=gw_tuple.DisplayName,
+        #
     ).tuple
     assert t == gw_tuple
 

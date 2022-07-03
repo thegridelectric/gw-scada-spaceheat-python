@@ -1,6 +1,9 @@
 from typing import Dict
 from schema.errors import MpSchemaError
-from schema.enums.make_model.spaceheat_make_model_100 import MakeModel, SpaceheatMakeModel100GtEnum
+from schema.enums.make_model.spaceheat_make_model_100 import (
+    MakeModel,
+    SpaceheatMakeModel100GtEnum,
+)
 
 
 class MakeModelGtEnum(SpaceheatMakeModel100GtEnum):
@@ -15,7 +18,9 @@ class MakeModelMap:
     @classmethod
     def gt_to_local(cls, symbol):
         if not MakeModelGtEnum.is_symbol(symbol):
-            raise MpSchemaError(f"{symbol} must belong to key of {MakeModelMap.gt_to_local_dict}")
+            raise MpSchemaError(
+                f"{symbol} must belong to key of {MakeModelMap.gt_to_local_dict}"
+            )
         return cls.gt_to_local_dict[symbol]
 
     @classmethod
@@ -42,4 +47,5 @@ class MakeModelMap:
         MakeModel.ADAFRUIT__642: "acd93fb3",
         MakeModel.NCD__PR814SPST: "fabfa505",
         MakeModel.UNKNOWNMAKE__UNKNOWNMODEL: "b6a32d9b",
+        #
     }

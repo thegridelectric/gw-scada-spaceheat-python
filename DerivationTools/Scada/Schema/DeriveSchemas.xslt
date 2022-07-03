@@ -31,16 +31,18 @@
                                 <xsl:value-of select="translate($local-alias,'.','_')"/><xsl:text>/</xsl:text>
                                 <xsl:value-of select="translate($local-alias,'.','_')"/><xsl:text>.py</xsl:text></xsl:element>
 
-                        <OverwriteMode>Always</OverwriteMode>
+                        <OverwriteMode>Never</OverwriteMode>
                         <xsl:element name="FileContents">
 
    
-<xsl:text>"""</xsl:text><xsl:value-of select="$local-alias"/><xsl:text> type"""
+<xsl:text>"""</xsl:text><xsl:value-of select="Alias"/><xsl:text> type"""
 
 from schema.errors import MpSchemaError
 from schema.gt.</xsl:text> <xsl:value-of select="translate($local-alias,'.','_')"/>
 <xsl:text>.</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
-<xsl:text>_base import </xsl:text><xsl:value-of select="$class-name"/><xsl:text>Base
+<xsl:text>_base import (
+    </xsl:text><xsl:value-of select="$class-name"/><xsl:text>Base,
+)
 
 
 class </xsl:text>
@@ -48,13 +50,14 @@ class </xsl:text>
 <xsl:text>(</xsl:text>
 <xsl:value-of select="$class-name"/>
 <xsl:text>Base):
-
     def check_for_errors(self):
         errors = self.derived_errors() + self.hand_coded_errors()
         if len(errors) > 0:
-            raise MpSchemaError(f" Errors making making </xsl:text>
-            <xsl:value-of select="$local-alias"/>
-            <xsl:text> for {self}: {errors}")
+            raise MpSchemaError(
+                f" Errors making making </xsl:text>
+            <xsl:value-of select="Alias"/>
+            <xsl:text> for {self}: {errors}"
+            )
 
     def hand_coded_errors(self):
         return []

@@ -115,7 +115,8 @@ def test_</xsl:text><xsl:value-of select="translate($local-alias,'.','_')"/>
         </xsl:text>
         </xsl:if>
         </xsl:for-each>
-        <xsl:text>).tuple
+        <xsl:text>#
+    ).tuple
     assert t == gw_tuple
 
     </xsl:text>

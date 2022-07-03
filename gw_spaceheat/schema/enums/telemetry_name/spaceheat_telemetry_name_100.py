@@ -1,6 +1,6 @@
 """spaceheat.telemetry.name.100 definition"""
-from abc import ABC
 import enum
+from abc import ABC
 from typing import List
 
 
@@ -16,6 +16,7 @@ class TelemetryName(enum.Enum):
     WATER_TEMP_C_TIMES1000 = "WaterTempCTimes1000"
     RELAY_STATE = "RelayState"
     CURRENT_RMS_MICRO_AMPS = "CurrentRmsMicroAmps"
+    #
 
 
 class SpaceheatTelemetryName100GtEnum(ABC):
@@ -27,4 +28,5 @@ class SpaceheatTelemetryName100GtEnum(ABC):
         "c89d0ba1",
         "5a71d4b3",
         "ad19e79c",
+        #
     ]
