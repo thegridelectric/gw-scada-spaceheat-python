@@ -1,4 +1,4 @@
-"""Makes gt.dispatch.100 type"""
+"""Makes gt.dispatch.110 type"""
 import json
 
 from schema.gt.gt_dispatch.gt_dispatch import GtDispatch
@@ -6,14 +6,16 @@ from schema.errors import MpSchemaError
 
 
 class GtDispatch_Maker:
-    type_alias = "gt.dispatch.100"
+    type_alias = "gt.dispatch.110"
 
     def __init__(self,
                  sh_node_alias: str,
+                 send_time_unix_ms: int,
                  relay_state: int):
 
         gw_tuple = GtDispatch(
             ShNodeAlias=sh_node_alias,
+            SendTimeUnixMs=send_time_unix_ms,
             RelayState=relay_state,
             #
         )
@@ -44,12 +46,15 @@ class GtDispatch_Maker:
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
         if "ShNodeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ShNodeAlias")
+        if "SendTimeUnixMs" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing SendTimeUnixMs")
         if "RelayState" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing RelayState")
 
         gw_tuple = GtDispatch(
             TypeAlias=new_d["TypeAlias"],
             ShNodeAlias=new_d["ShNodeAlias"],
+            SendTimeUnixMs=new_d["SendTimeUnixMs"],
             RelayState=new_d["RelayState"],
             #
         )

@@ -1,4 +1,4 @@
-"""Tests gt.dispatch.100 type"""
+"""Tests gt.dispatch.110 type"""
 import json
 
 import pytest
@@ -13,8 +13,9 @@ def test_gt_dispatch():
 
     gw_dict = {
         "ShNodeAlias": "a.elt1.relay",
+        "SendTimeUnixMs": 1656869326597,
         "RelayState": 0,
-        "TypeAlias": "gt.dispatch.100",
+        "TypeAlias": "gt.dispatch.110",
     }
 
     with pytest.raises(MpSchemaError):
@@ -33,6 +34,7 @@ def test_gt_dispatch():
     # test Maker init
     t = Maker(
         sh_node_alias=gw_tuple.ShNodeAlias,
+        send_time_unix_ms=gw_tuple.SendTimeUnixMs,
         relay_state=gw_tuple.RelayState,
         #
     ).tuple
@@ -54,6 +56,12 @@ def test_gt_dispatch():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = orig_value
 
+    orig_value = gw_dict["SendTimeUnixMs"]
+    del gw_dict["SendTimeUnixMs"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["SendTimeUnixMs"] = orig_value
+
     orig_value = gw_dict["RelayState"]
     del gw_dict["RelayState"]
     with pytest.raises(MpSchemaError):
@@ -70,6 +78,12 @@ def test_gt_dispatch():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = orig_value
 
+    orig_value = gw_dict["SendTimeUnixMs"]
+    gw_dict["SendTimeUnixMs"] = 1.1
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["SendTimeUnixMs"] = orig_value
+
     orig_value = gw_dict["RelayState"]
     gw_dict["RelayState"] = 1.1
     with pytest.raises(MpSchemaError):
@@ -83,7 +97,7 @@ def test_gt_dispatch():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.dispatch.100"
+    gw_dict["TypeAlias"] = "gt.dispatch.110"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
@@ -93,6 +107,11 @@ def test_gt_dispatch():
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = "a.elt1.relay"
+
+    gw_dict["SendTimeUnixMs"] = 1656245000
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["SendTimeUnixMs"] = 1656869326597
 
     gw_dict["RelayState"] = 2
     with pytest.raises(MpSchemaError):

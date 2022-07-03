@@ -41,6 +41,7 @@ from actors.utils import QOS, Subscription, responsive_sleep
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
     PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
+    DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR = "DispatchNodeNotBooleanActuator"
 
 
 class Scada(ScadaBase):
@@ -234,10 +235,8 @@ class Scada(ScadaBase):
             return
         if payload.RelayState == 1:
             self.turn_on(ba)
-            self.screen_print(f"Dispatched {ba.alias}  on")
         else:
             self.turn_off(ba)
-            self.screen_print(f"Dispatched {ba.alias} off")
 
     def make_status_snapshot(self) -> GtShStatusSnapshot:
         about_node_alias_list = []
@@ -272,17 +271,27 @@ class Scada(ScadaBase):
     # Primary functions
     ###############################################
 
-    def turn_on(self, ba: ShNode):
+    def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
         if not isinstance(ba.component, BooleanActuatorComponent):
-            raise Exception(f"{ba} must be a BooleanActuator!")
-        dispatch_payload = GtDispatch_Maker(relay_state=1, sh_node_alias=ba.alias).tuple
+            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+        dispatch_payload = GtDispatch_Maker(
+            relay_state=1,
+            sh_node_alias=ba.alias,
+            send_time_unix_ms=int(time.time() * 1000)).tuple
         self.publish(payload=dispatch_payload)
+        self.screen_print(f"Dispatched {ba.alias}  on")
+        return ScadaCmdDiagnostic.SUCCESS
 
     def turn_off(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
-            raise Exception(f"{ba} must be a BooleanActuator!")
-        dispatch_payload = GtDispatch_Maker(relay_state=0, sh_node_alias=ba.alias).tuple
+            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+        dispatch_payload = GtDispatch_Maker(
+            relay_state=0,
+            sh_node_alias=ba.alias,
+            send_time_unix_ms=int(time.time() * 1000)).tuple
         self.publish(payload=dispatch_payload)
+        self.screen_print(f"Dispatched {ba.alias} off")
+        return ScadaCmdDiagnostic.SUCCESS
 
     def make_single_status_for_simple(self, node: ShNode) -> Optional[GtShSimpleSingleStatus]:
         if node in self.my_simple_sensors():

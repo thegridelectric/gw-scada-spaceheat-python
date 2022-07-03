@@ -3,9 +3,10 @@ import os
 import time
 import typing
 from collections import defaultdict
-
+import helpers
 import load_house
 import pytest
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
 import schema.property_format
 import settings
 from actors.atn import Atn
@@ -257,7 +258,7 @@ def test_load_house():
 #             pass
 
 
-def test_scada_sends_status():
+def test_scada_ear_connection():
     logging_on = False
     load_house.load_all()
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"], logging_on=logging_on)
@@ -300,6 +301,8 @@ def test_scada_sends_status():
 
         scada.send_status()
         time.sleep(1)
+        # why doesn't this work??
+        # wait_for(ear.num_received > 0, 5)
         assert ear.num_received > 0
         scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
         assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
@@ -312,6 +315,7 @@ def test_scada_sends_status():
         telemetry_name_list = list(map(lambda x: x.TelemetryName, single_status_list))
         assert telemetry_name_list[thermo0_idx] == TelemetryName.WATER_TEMP_F_TIMES1000
         assert ear.latest_payload.ReportingPeriodS == 300
+
     finally:
         # noinspection PyBroadException
         try:
@@ -410,9 +414,18 @@ def test_message_exchange(tmp_path, monkeypatch):
         wait_for(
             lambda: atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}"
         )
+
         wait_for(
             lambda: len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}"
         )
+
+        topic = f"{helpers.atn_g_node_alias()}/{GtDispatch_Maker.type_alias}"
+        print(topic)
+        wait_for(
+            lambda: ear.num_received_by_topic[topic] > 0, 10, f"ear receipt. {ear.summary_str()}"
+        )
+        assert ear.num_received_by_topic[topic] > 0
+
         wait_for(
             lambda: scada.num_received_by_topic["a.elt1.relay/gt.telemetry.110"] > 0,
             10,

@@ -17,6 +17,11 @@ from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse_Maker,
 )
 
+from schema.gt.gt_dispatch.gt_dispatch_maker import (
+    GtDispatch,
+    GtDispatch_Maker
+)
+
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
 
@@ -39,7 +44,9 @@ class CloudEar(CloudBase):
             self.screen_print(f"writing output headers ending in {adder}")
             with open(self.out_telemetry, "w") as outfile:
                 write = csv.writer(outfile, delimiter=",")
-                write.writerow(["TimeUtc", "TimeUnixS", "Ms", "Alias", "Value", "TelemetryName"])
+                write.writerow(["TimeUtc", "TimeUnixS", "Ms",
+                                "Alias", "Value", "TelemetryName",
+                                "RelayCmd", "CmdFromNode"])
         self.screen_print(f"Initialized {self.__class__}")
 
     def gw_subscriptions(self) -> List[Subscription]:
@@ -55,21 +62,46 @@ class CloudEar(CloudBase):
                 Topic=f"{helpers.scada_g_node_alias()}/{GtShCliScadaResponse_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
+            Subscription(
+                Topic=f"{helpers.atn_g_node_alias()}/{GtDispatch_Maker.type_alias}",
+                Qos=QOS.AtLeastOnce,
+            ),
         ]
 
     def on_gw_message(self, from_node: ShNode, payload):
-        if from_node != ShNode.by_alias["a.s"]:
-            raise Exception("gw messages must come from the Scada!")
         self.send_to_kafka(payload=payload)
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GtShSimpleStatus):
             self.gt_sh_simple_status_received(from_node, payload)
+        elif isinstance(payload, GtDispatch):
+            self.gt_dispatch_received(from_node, payload)
 
     def send_to_kafka(self, payload):
         # topic = f"{helpers.scada_g_node_alias()}/{payload.TypeAlias}"
         # publish payload.as_type() to topic in Kafka
         pass
+
+    def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatch):
+        if self.write_to_csv:
+            self.log_dispatch_cmds_to_csv(from_node, payload)
+
+    def log_dispatch_cmds_to_csv(self, from_node: ShNode, payload: GtDispatch):
+        time_unix_ms = payload.SendTimeUnixMs
+        int_time_unix_s = int(time_unix_ms / 1000)
+        ms = int(time_unix_ms) % 1000
+        time_utc = pendulum.from_timestamp(int_time_unix_s)
+        row = [time_utc.strftime("%Y-%m-%d %H:%M:%S"),
+               int_time_unix_s,
+               ms,
+               payload.ShNodeAlias,
+               '',
+               '',
+               payload.RelayState,
+               from_node.alias]
+        with open(self.out_telemetry, "a") as outfile:
+            write = csv.writer(outfile, delimiter=",")
+            write.writerow(row)
 
     def gt_sh_simple_status_received(self, from_node: ShNode, payload: GtShSimpleStatus):
         self.screen_print(f"Consider adding from_node {from_node} or its g node alias to log?")

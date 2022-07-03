@@ -1,6 +1,6 @@
 import uuid
 from typing import Dict, List, Optional
-
+import time
 import helpers
 import load_house
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
@@ -74,6 +74,7 @@ class Atn(CloudBase):
         ]
 
     def on_gw_message(self, from_node: ShNode, payload):
+        self.payload = payload
         if from_node != ShNode.by_alias["a.s"]:
             raise Exception("gw messages must come from the Scada!")
         if isinstance(payload, GsPwr):
@@ -114,13 +115,19 @@ class Atn(CloudBase):
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
-        payload = GtDispatch_Maker(relay_state=1, sh_node_alias=ba.alias).tuple
+        payload = GtDispatch_Maker(
+            relay_state=1,
+            sh_node_alias=ba.alias,
+            send_time_unix_ms=int(time.time() * 1000)).tuple
         self.gw_publish(payload)
 
     def turn_off(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
-        payload = GtDispatch_Maker(relay_state=0, sh_node_alias=ba.alias).tuple
+        payload = GtDispatch_Maker(
+            relay_state=0, 
+            sh_node_alias=ba.alias,
+            send_time_unix_ms=int(time.time() * 1000)).tuple
         self.gw_publish(payload)
 
     def main(self):

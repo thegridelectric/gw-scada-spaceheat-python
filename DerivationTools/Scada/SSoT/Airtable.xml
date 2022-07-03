@@ -1135,6 +1135,22 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>rec96i0QHA47Ra3SD</SchemaAttributeId>
+      <createdTime>2022-07-03T17:29:17Z</createdTime>
+      <Value>ShNodeAlias</Value>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TestValue>"a.elt1.relay"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
+      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>rec9E6HTIAJLoh9wW</SchemaAttributeId>
       <createdTime>2022-06-03T21:41:59Z</createdTime>
       <Value>MakeModel</Value>
@@ -1699,6 +1715,22 @@
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recP1RBCr64M0yHV5</SchemaAttributeId>
+      <createdTime>2022-07-03T17:28:24Z</createdTime>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
+      <Value>SendTimeUnixMs</Value>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <TestValue>1656869326597</TestValue>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recP42BiKvu4xhepH</SchemaAttributeId>
       <createdTime>2022-06-30T11:10:01Z</createdTime>
       <Value>ScadaReadTimeUnixMs</Value>
@@ -2139,6 +2171,15 @@
       <IsType>true</IsType>
       <SubTypeDataClass>TempSensorCac</SubTypeDataClass>
     </SchemaAttribute>
+    <SchemaAttribute>itr83g6VG8xcejGO1/rece76qbENBm5shvn</SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recf9v3KlIm5T9qzS</SchemaAttributeId>
+      <createdTime>2022-07-03T17:28:09Z</createdTime>
+      <TypeCheck>0</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <Value>ScadaSendTimeUnixMs</Value>
+    </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recfMyBibCC1lqTy1</SchemaAttributeId>
       <createdTime>2022-05-11T18:23:36Z</createdTime>
@@ -2168,7 +2209,6 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
-    <SchemaAttribute>itrxaHS5LrkJrnN1p/recg8JNR1e1aZk41L</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recgGXDzQHPSfoIYU</SchemaAttributeId>
       <createdTime>2022-05-12T01:48:57Z</createdTime>
@@ -2248,6 +2288,22 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reciVyeMslNHUJKN8</SchemaAttributeId>
+      <createdTime>2022-07-03T17:29:19Z</createdTime>
+      <Value>RelayState</Value>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recLyqFB0L7XFIp6C</PrimitiveFormatId>
+      <TestValue>0</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>Bit</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>2</PrimitiveFormatFail1>
+      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recibIy1C38bRpg0P</SchemaAttributeId>
@@ -2936,6 +2992,7 @@
       <Name>Bit</Name>
       <Description>0 or 1</Description>
       <MpSchemaAttributes>reckbdPijd806F8LT</MpSchemaAttributes>
+      <MpSchemaAttributes>reciVyeMslNHUJKN8</MpSchemaAttributes>
       <DefaultFail1>2</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -2952,6 +3009,7 @@
       <MpSchemaAttributes>rechYoiSzlYAU1ZWD</MpSchemaAttributes>
       <MpSchemaAttributes>rec0EFbgjuaALp5xv</MpSchemaAttributes>
       <MpSchemaAttributes>recJ3u86m6sh2vNWk</MpSchemaAttributes>
+      <MpSchemaAttributes>rec96i0QHA47Ra3SD</MpSchemaAttributes>
       <DefaultFail1>"a.b-h"</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -2971,6 +3029,7 @@
       <MpSchemaAttributes>rec2ERXNwEH6jyyHv</MpSchemaAttributes>
       <MpSchemaAttributes>recsZD75bQDFRNQt2</MpSchemaAttributes>
       <MpSchemaAttributes>recP42BiKvu4xhepH</MpSchemaAttributes>
+      <MpSchemaAttributes>recP1RBCr64M0yHV5</MpSchemaAttributes>
       <DefaultFail1>1656245000</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -3311,7 +3370,7 @@
       <SchemaId>recjhHMNWpqOA9zhW</SchemaId>
       <createdTime>2022-06-18T16:59:48Z</createdTime>
       <AliasRoot>gt.dispatch</AliasRoot>
-      <Status>Active</Status>
+      <Status>Deprecated</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>reckbdPijd806F8LT</SchemaAttributes>
       <SchemaAttributes>recazWVfmVGIXktTn</SchemaAttributes>
@@ -3350,6 +3409,19 @@
       <DataClass>ThermalEdge</DataClass>
       <Alias>gt.thermal.edge.100</Alias>
       <ConsistencyCheck>0</ConsistencyCheck>
+    </Schema>
+    <Schema>
+      <SchemaId>recnUzSx1WgKUdTZO</SchemaId>
+      <createdTime>2022-07-03T17:26:39Z</createdTime>
+      <ConsistencyCheck>1</ConsistencyCheck>
+      <Alias>gt.dispatch.110</Alias>
+      <AliasRoot>gt.dispatch</AliasRoot>
+      <SemanticEnd>110</SemanticEnd>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recP1RBCr64M0yHV5</SchemaAttributes>
+      <SchemaAttributes>reciVyeMslNHUJKN8</SchemaAttributes>
+      <SchemaAttributes>rec96i0QHA47Ra3SD</SchemaAttributes>
     </Schema>
     <Schema>
       <SchemaId>recpr0byizj3PmqXi</SchemaId>
