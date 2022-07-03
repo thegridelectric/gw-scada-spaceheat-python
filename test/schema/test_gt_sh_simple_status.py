@@ -15,7 +15,22 @@ def test_gt_sh_simple_status():
         "AboutGNodeAlias": "dwjess.isone.nh.orange.1.ta",
         "SlotStartUnixS": 1656443700,
         "ReportingPeriodS": 300,
-        "SimpleSingleStatusList": [{"ReadTimeUnixMsList": [1656443705023], "ShNodeAlias": "a.elt1.relay", "ValueList": [0], "TypeAlias": "gt.sh.simple.single.status.100", "TelemetryNameGtEnumSymbol": "5a71d4b3"}, {"ReadTimeUnixMsList": [1656443704662, 1656443709089], "ShNodeAlias": "a.tank.temp0", "ValueList": [66238, 66514], "TypeAlias": "gt.sh.simple.single.status.100", "TelemetryNameGtEnumSymbol": "793505aa"}],
+        "SimpleSingleStatusList": [
+            {
+                "ReadTimeUnixMsList": [1656443705023],
+                "ShNodeAlias": "a.elt1.relay",
+                "ValueList": [0],
+                "TypeAlias": "gt.sh.simple.single.status.100",
+                "TelemetryNameGtEnumSymbol": "5a71d4b3",
+            },
+            {
+                "ReadTimeUnixMsList": [1656443704662, 1656443709089],
+                "ShNodeAlias": "a.tank.temp0",
+                "ValueList": [66238, 66514],
+                "TypeAlias": "gt.sh.simple.single.status.100",
+                "TelemetryNameGtEnumSymbol": "793505aa",
+            },
+        ],
         "TypeAlias": "gt.sh.simple.status.100",
     }
 

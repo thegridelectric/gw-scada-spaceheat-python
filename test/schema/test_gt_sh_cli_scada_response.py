@@ -12,7 +12,13 @@ from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
 def test_gt_sh_cli_scada_response():
 
     gw_dict = {
-        "Snapshot": {"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "gt.sh.status.snapshot.110"},
+        "Snapshot": {
+            "TelemetryNameList": ["5a71d4b3"],
+            "AboutNodeAliasList": ["a.elt1.relay"],
+            "ReportTimeUnixMs": 1656363448000,
+            "ValueList": [1],
+            "TypeAlias": "gt.sh.status.snapshot.110",
+        },
         "TypeAlias": "gt.sh.cli.scada.response.100",
     }
 
