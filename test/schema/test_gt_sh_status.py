@@ -12,25 +12,34 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import (
 def test_gt_sh_status():
 
     gw_dict = {
-        "BooleanactuatorCmdList": [],
+        "BooleanactuatorCmdList": [
+            {
+                "ShNodeAlias": "a.elt1.relay",
+                "RelayStateCommandList": [1],
+                "CommandTimeUnixMsList": [1656945413464],
+                "TypeAlias": "gt.sh.booleanactuator.cmd.status.100",
+            }
+        ],
         "SimpleTelemetryList": [
             {
-                "ReadTimeUnixMsList": [1656443705023],
+                "ValueList": [0, 1],
+                "ReadTimeUnixMsList": [1656945400527, 1656945414270],
                 "ShNodeAlias": "a.elt1.relay",
-                "ValueList": [0],
                 "TypeAlias": "gt.sh.simple.telemetry.status.100",
                 "TelemetryNameGtEnumSymbol": "5a71d4b3",
-            },
-            {
-                "ReadTimeUnixMsList": [1656443704662, 1656443709089],
-                "ShNodeAlias": "a.tank.temp0",
-                "ValueList": [66238, 66514],
-                "TypeAlias": "gt.sh.simple.telemetry.status.100",
-                "TelemetryNameGtEnumSymbol": "793505aa",
-            },
+            }
         ],
-        "MultipurposeTelemetryList": [],
-        "SlotStartUnixS": 1656443700,
+        "MultipurposeTelemetryList": [
+            {
+                "AboutNodeAlias": "a.elt1",
+                "ValueList": [18000],
+                "ReadTimeUnixMsList": [1656945390152],
+                "SensorNodeAlias": "a.m",
+                "TypeAlias": "gt.sh.multipurpose.telemetry.status.100",
+                "TelemetryNameGtEnumSymbol": "ad19e79c",
+            }
+        ],
+        "SlotStartUnixS": 1656945300,
         "AboutGNodeAlias": "dwjess.isone.nh.orange.1.ta",
         "ReportingPeriodS": 300,
         "TypeAlias": "gt.sh.status.100",
@@ -253,7 +262,7 @@ def test_gt_sh_status():
     gw_dict["SlotStartUnixS"] = 32503683600
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["SlotStartUnixS"] = 1656443700
+    gw_dict["SlotStartUnixS"] = 1656945300
 
     gw_dict["AboutGNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
