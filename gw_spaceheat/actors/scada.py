@@ -238,7 +238,7 @@ class Scada(ScadaBase):
         """ The boolean actuator actor reports when it has sent an actuation command
         to its driver. We add this to information to be sent up in the 5 minute status 
         package.
-   
+
         This is different than reporting a _reading_ of the state of the
         actuator. Note that a reading of the state of the actuator may not mean the relay
         is in the read position. For example, the NCD relay requires two power sources - one
