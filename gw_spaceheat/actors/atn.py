@@ -13,9 +13,10 @@ from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse,
     GtShCliScadaResponse_Maker,
 )
-from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import (
-    GtShSimpleStatus,
-    GtShSimpleStatus_Maker,
+
+from schema.gt.gt_sh_status.gt_sh_status_maker import (
+    GtShStatus,
+    GtShStatus_Maker,
 )
 
 from actors.cloud_base import CloudBase
@@ -52,7 +53,7 @@ class Atn(CloudBase):
         self.power_nodes = list(filter(lambda x: x.role == Role.BOOST_ELEMENT, self.local_nodes()))
         for node in self.power_nodes:
             self.latest_power_w[node] = None
-        self.latest_status: Optional[GtShSimpleStatus] = None
+        self.latest_status: Optional[GtShStatus] = None
         self.log_csv = f"output/debug_logs/atn_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.total_power_w = 0
         self.screen_print(f"Initialized {self.__class__}")
@@ -64,7 +65,7 @@ class Atn(CloudBase):
                 Qos=QOS.AtMostOnce,
             ),
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtShSimpleStatus_Maker.type_alias}",
+                Topic=f"{helpers.scada_g_node_alias()}/{GtShStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
@@ -81,8 +82,8 @@ class Atn(CloudBase):
             self.gs_pwr_received(payload)
         elif isinstance(payload, GtShCliScadaResponse):
             self.gt_sh_cli_scada_response_received(payload)
-        elif isinstance(payload, GtShSimpleStatus):
-            self.gt_sh_simple_status_received(payload)
+        elif isinstance(payload, GtShStatus):
+            self.gt_sh_status_received(payload)
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
@@ -90,7 +91,7 @@ class Atn(CloudBase):
         self.latest_power_w = payload.Power
         self.total_power_w = self.latest_power_w
 
-    def gt_sh_simple_status_received(self, payload: GtShSimpleStatus):
+    def gt_sh_status_received(self, payload: GtShStatus):
         self.latest_status = payload
 
     def gt_sh_cli_scada_response_received(self, payload: GtShCliScadaResponse):
@@ -116,18 +117,16 @@ class Atn(CloudBase):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         payload = GtDispatch_Maker(
-            relay_state=1,
-            sh_node_alias=ba.alias,
-            send_time_unix_ms=int(time.time() * 1000)).tuple
+            relay_state=1, sh_node_alias=ba.alias, send_time_unix_ms=int(time.time() * 1000)
+        ).tuple
         self.gw_publish(payload)
 
     def turn_off(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         payload = GtDispatch_Maker(
-            relay_state=0, 
-            sh_node_alias=ba.alias,
-            send_time_unix_ms=int(time.time() * 1000)).tuple
+            relay_state=0, sh_node_alias=ba.alias, send_time_unix_ms=int(time.time() * 1000)
+        ).tuple
         self.gw_publish(payload)
 
     def main(self):

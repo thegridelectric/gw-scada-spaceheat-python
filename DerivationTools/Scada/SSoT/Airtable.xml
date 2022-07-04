@@ -149,6 +149,8 @@
       <SchemaAttributes>rec367deUgDqEaq89</SchemaAttributes>
       <SchemaAttributes>recjhPIPtr6UXppHQ</SchemaAttributes>
       <SchemaAttributes>recydLuwKpW0ptMyj</SchemaAttributes>
+      <SchemaAttributes>rec6fCUex0HlMSbTR</SchemaAttributes>
+      <SchemaAttributes>recjuJ8RaGljvo9ZZ</SchemaAttributes>
       <AliasRoot>spaceheat.telemetry.name</AliasRoot>
       <SemanticEnd>100</SemanticEnd>
       <LocalName>telemetry.name</LocalName>
@@ -870,6 +872,20 @@
       <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>rec0SCL5wm4k2QtCO</SchemaAttributeId>
+      <createdTime>2022-07-03T22:29:19Z</createdTime>
+      <Value>ValueList</Value>
+      <GtSchema>recwcEF6jm0pivW8K</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <IsList>true</IsList>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>[0]</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>rec0TXOlI0XZGRLxJ</SchemaAttributeId>
       <createdTime>2022-06-26T10:37:51Z</createdTime>
       <TypeCheck>0</TypeCheck>
@@ -994,6 +1010,22 @@
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>rec2l6jE1FMj92czA</SchemaAttributeId>
+      <createdTime>2022-07-03T22:30:52Z</createdTime>
+      <Value>AboutNodeAlias</Value>
+      <GtSchema>recCGkiwasshpUQnL</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TestValue>"a.elt1"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>rec367deUgDqEaq89</SchemaAttributeId>
       <createdTime>2022-06-20T13:18:30Z</createdTime>
       <Value>TelemetryNameList</Value>
@@ -1046,6 +1078,20 @@
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
       <SubTypeDataClass>TempSensorCac</SubTypeDataClass>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rec6fCUex0HlMSbTR</SchemaAttributeId>
+      <createdTime>2022-07-03T22:31:08Z</createdTime>
+      <Value>TelemetryName</Value>
+      <GtSchema>recCGkiwasshpUQnL</GtSchema>
+      <IsRequired>true</IsRequired>
+      <Enum>rec2HyLffy6QK9QId</Enum>
+      <TestValue>"af39eec9"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>telemetry.name</EnumLocalName>
+      <EnumRoot>spaceheat.telemetry.name</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec6nH5gOkhOLmbYf</SchemaAttributeId>
@@ -1138,6 +1184,7 @@
       <SchemaAttributeId>rec96i0QHA47Ra3SD</SchemaAttributeId>
       <createdTime>2022-07-03T17:29:17Z</createdTime>
       <Value>ShNodeAlias</Value>
+      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
@@ -1148,7 +1195,6 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
-      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rec9E6HTIAJLoh9wW</SchemaAttributeId>
@@ -1199,6 +1245,22 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recAHDR5VnUrRann9</SchemaAttributeId>
+      <createdTime>2022-07-03T22:36:14Z</createdTime>
+      <Value>ShNodeAlias</Value>
+      <GtSchema>recNH5aI7c5Latl1K</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TestValue>"a.elt1.relay"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recAy1MJ6WTkJC2Bt</SchemaAttributeId>
@@ -1265,6 +1327,34 @@
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recE2H3ffos4Ujqq7</SchemaAttributeId>
+      <createdTime>2022-07-03T22:24:23Z</createdTime>
+      <Value>BooleanactuatorCmdList</Value>
+      <GtSchema>recbeBI4t64CBVq2v</GtSchema>
+      <SubTypeFormat>recNH5aI7c5Latl1K</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <TestValue>[]</TestValue>
+      <SubMessageFormatAlias>gt.sh.booleanactuator.cmd.status</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recE3gvDLm8Zvz5AD</SchemaAttributeId>
+      <createdTime>2022-07-03T22:31:12Z</createdTime>
+      <Value>ValueList</Value>
+      <GtSchema>recCGkiwasshpUQnL</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <IsList>true</IsList>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>[0]</TestValue>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
@@ -1637,6 +1727,13 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recLvp7T6FU64b8RL</SchemaAttributeId>
+      <createdTime>2022-07-03T22:29:03Z</createdTime>
+      <TypeCheck>0</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recM6VoWcVRIgmS54</SchemaAttributeId>
       <createdTime>2022-06-20T11:30:07Z</createdTime>
       <Value>ActorClass</Value>
@@ -1687,6 +1784,23 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recNIuEg4dFDhi9Yn</SchemaAttributeId>
+      <createdTime>2022-07-03T22:36:18Z</createdTime>
+      <Value>RelayStateCommandList</Value>
+      <GtSchema>recNH5aI7c5Latl1K</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <IsList>true</IsList>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recLyqFB0L7XFIp6C</PrimitiveFormatId>
+      <TestValue>[0]</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>Bit</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>2</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recNXTWA84HMF94XV</SchemaAttributeId>
       <createdTime>2022-06-14T23:02:56Z</createdTime>
       <Value>DisplayName</Value>
@@ -1715,19 +1829,33 @@
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
-      <SchemaAttributeId>recP1RBCr64M0yHV5</SchemaAttributeId>
-      <createdTime>2022-07-03T17:28:24Z</createdTime>
+      <SchemaAttributeId>recOWeL6PoLldCrop</SchemaAttributeId>
+      <createdTime>2022-07-03T22:10:56Z</createdTime>
+      <Value>SimpleTelemetryList</Value>
+      <GtSchema>recbeBI4t64CBVq2v</GtSchema>
+      <SubTypeFormat>recwcEF6jm0pivW8K</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <SubMessageFormatAlias>gt.sh.simple.telemetry.status</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
-      <IsType>false</IsType>
-      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
+      <IsType>true</IsType>
+      <TestValue>[{"ReadTimeUnixMsList": [1656443705023],   "ShNodeAlias": "a.elt1.relay",   "ValueList": [0],   "TypeAlias": "gt.sh.simple.telemetry.status.100",   "TelemetryNameGtEnumSymbol": "5a71d4b3"},  {"ReadTimeUnixMsList": [1656443704662, 1656443709089],   "ShNodeAlias": "a.tank.temp0",   "ValueList": [66238, 66514],   "TypeAlias": "gt.sh.simple.telemetry.status.100",   "TelemetryNameGtEnumSymbol": "793505aa"}]</TestValue>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recP1RBCr64M0yHV5</SchemaAttributeId>
+      <createdTime>2022-07-03T17:28:24Z</createdTime>
       <Value>SendTimeUnixMs</Value>
+      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
-      <TestValue>1656869326597</TestValue>
       <PrimitiveType>Integer</PrimitiveType>
       <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <TestValue>1656869326597</TestValue>
+      <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
       <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
@@ -1740,6 +1868,23 @@
       <PrimitiveType>Integer</PrimitiveType>
       <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
       <TestValue>1656587343297</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recPF2sGh74G7KL7C</SchemaAttributeId>
+      <createdTime>2022-07-03T22:36:22Z</createdTime>
+      <Value>CommandTimeUnixMsList</Value>
+      <GtSchema>recNH5aI7c5Latl1K</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <IsList>true</IsList>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <TestValue>[1656443704800]</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -1892,6 +2037,13 @@
       <PrimitiveFormatFail1>"d4be12d5-33ba-4f1f-b9e5"</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recVWEvca4HtIB3MX</SchemaAttributeId>
+      <createdTime>2022-07-03T21:26:55Z</createdTime>
+      <TypeCheck>0</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recVdAiysaXLvmg8u</SchemaAttributeId>
       <createdTime>2022-05-12T01:42:43Z</createdTime>
       <Value>SlotDurationS</Value>
@@ -2028,6 +2180,21 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recZOVb1cq9Dq3Oi5</SchemaAttributeId>
+      <createdTime>2022-07-03T22:23:41Z</createdTime>
+      <Value>MultipurposeTelemetryList</Value>
+      <GtSchema>recbeBI4t64CBVq2v</GtSchema>
+      <SubTypeFormat>recCGkiwasshpUQnL</SubTypeFormat>
+      <IsRequired>true</IsRequired>
+      <IsList>true</IsList>
+      <TestValue>[]</TestValue>
+      <SubMessageFormatAlias>gt.sh.multipurpose.telemetry.status</SubMessageFormatAlias>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>true</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>itrteaRtx2MR6t5N1/recZOVb1cq9Dq3Oi5</SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recZSLryoaKbh719a</SchemaAttributeId>
       <createdTime>2022-06-24T16:25:58Z</createdTime>
       <TypeCheck>0</TypeCheck>
@@ -2105,11 +2272,11 @@
       <SubTypeFormat>rec1E12bdSXOtQ9qP</SubTypeFormat>
       <IsRequired>true</IsRequired>
       <IsList>true</IsList>
-      <TestValue> [{"ShNodeAlias": "a.elt1", "ReportOnChange": True, "Exponent": 6, "SamplePeriodS": 5, "AsyncReportThreshold": 0.05, "TypeAlias": "gt.eq.reporting.config.100", "UnitGtEnumSymbol": "a969ac7c", "TelemetryNameGtEnumSymbol": "ad19e79c"}]</TestValue>
       <SubMessageFormatAlias>gt.eq.reporting.config</SubMessageFormatAlias>
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
+      <TestValue>[{"ShNodeAlias": "a.elt1", "ReportOnChange": True, "Exponent": 6, "SamplePeriodS": 5, "AsyncReportThreshold": 0.05, "TypeAlias": "gt.eq.reporting.config.100", "UnitGtEnumSymbol": "a969ac7c", "TelemetryNameGtEnumSymbol": "ad19e79c"}]</TestValue>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reccTfzFazDviUeXp</SchemaAttributeId>
@@ -2136,6 +2303,22 @@
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
       <SubTypeDataClass>BooleanActuatorCac</SubTypeDataClass>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>reccl6zfh9EN32iFD</SchemaAttributeId>
+      <createdTime>2022-07-03T22:10:51Z</createdTime>
+      <Value>SlotStartUnixS</Value>
+      <GtSchema>recbeBI4t64CBVq2v</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>rec13dujLuXXSf5L3</PrimitiveFormatId>
+      <TestValue>1656443700</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ReasonableUnixTimeS</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>32503683600</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reccrVfEXRGWHkyx2</SchemaAttributeId>
@@ -2171,14 +2354,13 @@
       <IsType>true</IsType>
       <SubTypeDataClass>TempSensorCac</SubTypeDataClass>
     </SchemaAttribute>
-    <SchemaAttribute>itr83g6VG8xcejGO1/rece76qbENBm5shvn</SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recf9v3KlIm5T9qzS</SchemaAttributeId>
       <createdTime>2022-07-03T17:28:09Z</createdTime>
+      <Value>ScadaSendTimeUnixMs</Value>
       <TypeCheck>0</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
-      <Value>ScadaSendTimeUnixMs</Value>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recfMyBibCC1lqTy1</SchemaAttributeId>
@@ -2194,6 +2376,22 @@
       <EnumRoot>spaceheat.telemetry.name</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recfnCI6bJWG4n4xR</SchemaAttributeId>
+      <createdTime>2022-07-03T22:10:39Z</createdTime>
+      <Value>AboutGNodeAlias</Value>
+      <GtSchema>recbeBI4t64CBVq2v</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TestValue>"dwjess.isone.nh.orange.1.ta"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recg8JNR1e1aZk41L</SchemaAttributeId>
@@ -2222,6 +2420,23 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recgVLpaOczJX5BCi</SchemaAttributeId>
+      <createdTime>2022-07-03T22:29:24Z</createdTime>
+      <Value>ReadTimeUnixMsList</Value>
+      <GtSchema>recwcEF6jm0pivW8K</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <IsList>true</IsList>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <TestValue>[1656443705023]</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recgqtFKFWYqHsb0q</SchemaAttributeId>
       <createdTime>2022-06-20T11:30:11Z</createdTime>
       <Value>ReportingSamplePeriodS</Value>
@@ -2232,6 +2447,22 @@
       <TypeCheck>1</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rech7EAFuj56GsPDR</SchemaAttributeId>
+      <createdTime>2022-07-03T21:26:56Z</createdTime>
+      <Value>RelayState</Value>
+      <GtSchema>recdmZpmDC9qq3Wz5</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recLyqFB0L7XFIp6C</PrimitiveFormatId>
+      <TestValue>0</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>Bit</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>2</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>rechYoiSzlYAU1ZWD</SchemaAttributeId>
@@ -2293,6 +2524,7 @@
       <SchemaAttributeId>reciVyeMslNHUJKN8</SchemaAttributeId>
       <createdTime>2022-07-03T17:29:19Z</createdTime>
       <Value>RelayState</Value>
+      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
       <IsRequired>true</IsRequired>
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>Integer</PrimitiveType>
@@ -2303,7 +2535,6 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>2</PrimitiveFormatFail1>
-      <GtSchema>recnUzSx1WgKUdTZO</GtSchema>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recibIy1C38bRpg0P</SchemaAttributeId>
@@ -2350,6 +2581,22 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recjdjO1e7eWo3j8T</SchemaAttributeId>
+      <createdTime>2022-07-03T21:26:50Z</createdTime>
+      <Value>ShNodeAlias</Value>
+      <GtSchema>recdmZpmDC9qq3Wz5</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TestValue>"a.elt1.relay"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recjhPIPtr6UXppHQ</SchemaAttributeId>
       <createdTime>2022-06-23T18:40:11Z</createdTime>
       <Value>TelemetryName</Value>
@@ -2376,6 +2623,20 @@
       <TypeCheck>1</TypeCheck>
       <EnumLocalName>make.model</EnumLocalName>
       <EnumRoot>spaceheat.make.model</EnumRoot>
+      <IsEnum>true</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recjuJ8RaGljvo9ZZ</SchemaAttributeId>
+      <createdTime>2022-07-03T22:29:15Z</createdTime>
+      <Value>TelemetryName</Value>
+      <GtSchema>recwcEF6jm0pivW8K</GtSchema>
+      <IsRequired>true</IsRequired>
+      <Enum>rec2HyLffy6QK9QId</Enum>
+      <TestValue>"5a71d4b3"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <EnumLocalName>telemetry.name</EnumLocalName>
+      <EnumRoot>spaceheat.telemetry.name</EnumRoot>
       <IsEnum>true</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
@@ -2411,6 +2672,19 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>2</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recl1CjNX7CBI77Cf</SchemaAttributeId>
+      <createdTime>2022-07-03T22:10:47Z</createdTime>
+      <Value>ReportingPeriodS</Value>
+      <GtSchema>recbeBI4t64CBVq2v</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <TestValue>300</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>reclinqE3CjESK6LE</SchemaAttributeId>
@@ -2501,6 +2775,13 @@
       <PrimitiveType>Integer</PrimitiveType>
       <TestValue>300</TestValue>
       <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recmh0t0EeEM97hT4</SchemaAttributeId>
+      <createdTime>2022-07-03T22:29:05Z</createdTime>
+      <TypeCheck>0</TypeCheck>
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
     </SchemaAttribute>
@@ -2608,6 +2889,22 @@
       <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
+      <SchemaAttributeId>recpnxWC9ATaBFzMB</SchemaAttributeId>
+      <createdTime>2022-07-03T22:28:18Z</createdTime>
+      <Value>ShNodeAlias</Value>
+      <GtSchema>recwcEF6jm0pivW8K</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
+      <TestValue>"a.elt1.relay"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>"a.b-h"</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
       <SchemaAttributeId>recpqHev4KGlcd4q4</SchemaAttributeId>
       <createdTime>2022-06-14T10:52:41Z</createdTime>
       <Value>ElectricHeaterCacs</Value>
@@ -2661,6 +2958,23 @@
       <IsEnum>false</IsEnum>
       <IsType>true</IsType>
       <SubTypeDataClass>ElectricHeaterCac</SubTypeDataClass>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recqQXSGmEMh3lnTf</SchemaAttributeId>
+      <createdTime>2022-07-03T22:31:16Z</createdTime>
+      <Value>ReadTimeUnixMsList</Value>
+      <GtSchema>recCGkiwasshpUQnL</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <IsList>true</IsList>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <TestValue>[1656443705023]</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recqTlmb22FCbFzaQ</SchemaAttributeId>
@@ -2747,6 +3061,35 @@
       <IsEnum>false</IsEnum>
       <IsType>false</IsType>
       <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>recsyCaWjc5Ii5DrU</SchemaAttributeId>
+      <createdTime>2022-07-03T21:32:08Z</createdTime>
+      <Value>CommandTimeUnixMs</Value>
+      <GtSchema>recdmZpmDC9qq3Wz5</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>Integer</PrimitiveType>
+      <PrimitiveFormatId>recqSXVzLo8RtEjlH</PrimitiveFormatId>
+      <TestValue>1656869326637</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <PrimitiveFormat>ReasonableUnixTimeMs</PrimitiveFormat>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
+      <PrimitiveFormatFail1>1656245000</PrimitiveFormatFail1>
+    </SchemaAttribute>
+    <SchemaAttribute>
+      <SchemaAttributeId>rectMt3G7nhz2ujs5</SchemaAttributeId>
+      <createdTime>2022-07-03T22:31:55Z</createdTime>
+      <Value>SensorNodeAlias</Value>
+      <GtSchema>recCGkiwasshpUQnL</GtSchema>
+      <IsRequired>true</IsRequired>
+      <IsPrimitive>true</IsPrimitive>
+      <PrimitiveType>String</PrimitiveType>
+      <TestValue>"a.m"</TestValue>
+      <TypeCheck>1</TypeCheck>
+      <IsEnum>false</IsEnum>
+      <IsType>false</IsType>
     </SchemaAttribute>
     <SchemaAttribute>
       <SchemaAttributeId>recu20L98RSiZfLsJ</SchemaAttributeId>
@@ -2964,6 +3307,7 @@
       <createdTime>2022-06-20T13:19:41Z</createdTime>
       <Name>ReasonableUnixTimeS</Name>
       <Description>Integer reflecting unix time seconds between 1970 and 3000</Description>
+      <MpSchemaAttributes>reccl6zfh9EN32iFD</MpSchemaAttributes>
       <DefaultFail1>32503683600</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -2993,6 +3337,8 @@
       <Description>0 or 1</Description>
       <MpSchemaAttributes>reckbdPijd806F8LT</MpSchemaAttributes>
       <MpSchemaAttributes>reciVyeMslNHUJKN8</MpSchemaAttributes>
+      <MpSchemaAttributes>rech7EAFuj56GsPDR</MpSchemaAttributes>
+      <MpSchemaAttributes>recNIuEg4dFDhi9Yn</MpSchemaAttributes>
       <DefaultFail1>2</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -3010,6 +3356,11 @@
       <MpSchemaAttributes>rec0EFbgjuaALp5xv</MpSchemaAttributes>
       <MpSchemaAttributes>recJ3u86m6sh2vNWk</MpSchemaAttributes>
       <MpSchemaAttributes>rec96i0QHA47Ra3SD</MpSchemaAttributes>
+      <MpSchemaAttributes>recjdjO1e7eWo3j8T</MpSchemaAttributes>
+      <MpSchemaAttributes>recpnxWC9ATaBFzMB</MpSchemaAttributes>
+      <MpSchemaAttributes>rec2l6jE1FMj92czA</MpSchemaAttributes>
+      <MpSchemaAttributes>recAHDR5VnUrRann9</MpSchemaAttributes>
+      <MpSchemaAttributes>recfnCI6bJWG4n4xR</MpSchemaAttributes>
       <DefaultFail1>"a.b-h"</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -3030,6 +3381,10 @@
       <MpSchemaAttributes>recsZD75bQDFRNQt2</MpSchemaAttributes>
       <MpSchemaAttributes>recP42BiKvu4xhepH</MpSchemaAttributes>
       <MpSchemaAttributes>recP1RBCr64M0yHV5</MpSchemaAttributes>
+      <MpSchemaAttributes>recsyCaWjc5Ii5DrU</MpSchemaAttributes>
+      <MpSchemaAttributes>recgVLpaOczJX5BCi</MpSchemaAttributes>
+      <MpSchemaAttributes>recqQXSGmEMh3lnTf</MpSchemaAttributes>
+      <MpSchemaAttributes>recPF2sGh74G7KL7C</MpSchemaAttributes>
       <DefaultFail1>1656245000</DefaultFail1>
     </PropertyFormat>
     <PropertyFormat>
@@ -3064,7 +3419,7 @@
       <SchemaId>rec23C6am0WIH9veT</SchemaId>
       <createdTime>2022-06-15T22:55:39Z</createdTime>
       <AliasRoot>gt.sh.simple.status</AliasRoot>
-      <Status>Active</Status>
+      <Status>Deprecated</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>recYD7KpGFv86yleu</SchemaAttributes>
       <SchemaAttributes>recoPn9xJOxqb6ifT</SchemaAttributes>
@@ -3137,6 +3492,22 @@
       <SchemaAttributes>recbRDhEoGNs9jYEB</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <Alias>gt.sh.cli.scada.response.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
+    </Schema>
+    <Schema>
+      <SchemaId>recCGkiwasshpUQnL</SchemaId>
+      <createdTime>2022-07-03T22:18:03Z</createdTime>
+      <AliasRoot>gt.sh.multipurpose.telemetry.status</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>rec2l6jE1FMj92czA</SchemaAttributes>
+      <SchemaAttributes>rec6fCUex0HlMSbTR</SchemaAttributes>
+      <SchemaAttributes>recE3gvDLm8Zvz5AD</SchemaAttributes>
+      <SchemaAttributes>recqQXSGmEMh3lnTf</SchemaAttributes>
+      <SchemaAttributes>rectMt3G7nhz2ujs5</SchemaAttributes>
+      <UsedAsSubMessagein>recZOVb1cq9Dq3Oi5</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <Alias>gt.sh.multipurpose.telemetry.status.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
@@ -3224,7 +3595,7 @@
       <SchemaId>recLc7QnBdk9iPdHI</SchemaId>
       <createdTime>2022-06-15T22:49:36Z</createdTime>
       <AliasRoot>gt.sh.simple.single.status</AliasRoot>
-      <Status>Active</Status>
+      <Status>Deprecated</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>recFfaru1gmnzHcg3</SchemaAttributes>
       <SchemaAttributes>recK1YHQ9c8LbBJ0q</SchemaAttributes>
@@ -3233,6 +3604,20 @@
       <UsedAsSubMessagein>recqTlmb22FCbFzaQ</UsedAsSubMessagein>
       <SemanticEnd>100</SemanticEnd>
       <Alias>gt.sh.simple.single.status.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
+    </Schema>
+    <Schema>
+      <SchemaId>recNH5aI7c5Latl1K</SchemaId>
+      <createdTime>2022-07-03T22:18:20Z</createdTime>
+      <AliasRoot>gt.sh.booleanactuator.cmd.status</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recAHDR5VnUrRann9</SchemaAttributes>
+      <SchemaAttributes>recNIuEg4dFDhi9Yn</SchemaAttributes>
+      <SchemaAttributes>recPF2sGh74G7KL7C</SchemaAttributes>
+      <UsedAsSubMessagein>recE2H3ffos4Ujqq7</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <Alias>gt.sh.booleanactuator.cmd.status.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
@@ -3276,6 +3661,22 @@
       <ProtocolType>Json</ProtocolType>
       <SemanticEnd>100</SemanticEnd>
       <Alias>gt.heartbeat.a.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
+    </Schema>
+    <Schema>
+      <SchemaId>recbeBI4t64CBVq2v</SchemaId>
+      <createdTime>2022-07-03T22:09:49Z</createdTime>
+      <AliasRoot>gt.sh.status</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recfnCI6bJWG4n4xR</SchemaAttributes>
+      <SchemaAttributes>recl1CjNX7CBI77Cf</SchemaAttributes>
+      <SchemaAttributes>reccl6zfh9EN32iFD</SchemaAttributes>
+      <SchemaAttributes>recOWeL6PoLldCrop</SchemaAttributes>
+      <SchemaAttributes>recZOVb1cq9Dq3Oi5</SchemaAttributes>
+      <SchemaAttributes>recE2H3ffos4Ujqq7</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <Alias>gt.sh.status.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
@@ -3328,6 +3729,19 @@
       <DataClass>BooleanActuatorComponent</DataClass>
       <IsComponent>true</IsComponent>
       <Alias>gt.boolean.actuator.component.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
+    </Schema>
+    <Schema>
+      <SchemaId>recdmZpmDC9qq3Wz5</SchemaId>
+      <createdTime>2022-07-03T21:26:12Z</createdTime>
+      <AliasRoot>gt.driver.booleanactuator.cmd</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recjdjO1e7eWo3j8T</SchemaAttributes>
+      <SchemaAttributes>rech7EAFuj56GsPDR</SchemaAttributes>
+      <SchemaAttributes>recsyCaWjc5Ii5DrU</SchemaAttributes>
+      <SemanticEnd>100</SemanticEnd>
+      <Alias>gt.driver.booleanactuator.cmd.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
@@ -3413,15 +3827,15 @@
     <Schema>
       <SchemaId>recnUzSx1WgKUdTZO</SchemaId>
       <createdTime>2022-07-03T17:26:39Z</createdTime>
-      <ConsistencyCheck>1</ConsistencyCheck>
-      <Alias>gt.dispatch.110</Alias>
       <AliasRoot>gt.dispatch</AliasRoot>
-      <SemanticEnd>110</SemanticEnd>
       <Status>Active</Status>
       <ProtocolType>Json</ProtocolType>
       <SchemaAttributes>recP1RBCr64M0yHV5</SchemaAttributes>
       <SchemaAttributes>reciVyeMslNHUJKN8</SchemaAttributes>
       <SchemaAttributes>rec96i0QHA47Ra3SD</SchemaAttributes>
+      <SemanticEnd>110</SemanticEnd>
+      <Alias>gt.dispatch.110</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
       <SchemaId>recpr0byizj3PmqXi</SchemaId>
@@ -3516,6 +3930,21 @@
       <SchemaAttributes>recyiS4OAWw4Xe5dF</SchemaAttributes>
       <SemanticEnd>100</SemanticEnd>
       <Alias>gt.spaceheat.house.config.100</Alias>
+      <ConsistencyCheck>1</ConsistencyCheck>
+    </Schema>
+    <Schema>
+      <SchemaId>recwcEF6jm0pivW8K</SchemaId>
+      <createdTime>2022-07-03T22:15:16Z</createdTime>
+      <AliasRoot>gt.sh.simple.telemetry.status</AliasRoot>
+      <Status>Active</Status>
+      <ProtocolType>Json</ProtocolType>
+      <SchemaAttributes>recpnxWC9ATaBFzMB</SchemaAttributes>
+      <SchemaAttributes>recjuJ8RaGljvo9ZZ</SchemaAttributes>
+      <SchemaAttributes>rec0SCL5wm4k2QtCO</SchemaAttributes>
+      <SchemaAttributes>recgVLpaOczJX5BCi</SchemaAttributes>
+      <UsedAsSubMessagein>recOWeL6PoLldCrop</UsedAsSubMessagein>
+      <SemanticEnd>100</SemanticEnd>
+      <Alias>gt.sh.simple.telemetry.status.100</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>

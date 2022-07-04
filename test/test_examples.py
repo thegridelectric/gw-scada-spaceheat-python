@@ -24,8 +24,10 @@ from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
-from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
-from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import GtShSimpleStatus
+from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import GtShSimpleTelemetryStatus
+from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker \
+    import GtShMultipurposeTelemetryStatus
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
@@ -290,8 +292,8 @@ def test_scada_ear_connection():
         wait_for(_scada_received_telemetry, 5)
         for unix_ms in scada.recent_simple_read_times_unix_ms[thermo0_node]:
             assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
-        single_status = scada.make_single_status_for_simple(thermo0_node)
-        assert isinstance(single_status, GtShSimpleSingleStatus)
+        single_status = scada.make_simple_telemetry_status(thermo0_node)
+        assert isinstance(single_status, GtShSimpleTelemetryStatus)
         assert single_status.TelemetryName == scada.config[thermo0_node].reporting.TelemetryName
         assert (
             single_status.ReadTimeUnixMsList == scada.recent_simple_read_times_unix_ms[thermo0_node]
@@ -305,14 +307,14 @@ def test_scada_ear_connection():
         # wait_for(ear.num_received > 0, 5)
         assert ear.num_received > 0
         scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
-        assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
-        assert isinstance(ear.latest_payload, GtShSimpleStatus)
-        single_status_list = ear.latest_payload.SimpleSingleStatusList
-        assert len(single_status_list) > 0
-        node_alias_list = list(map(lambda x: x.ShNodeAlias, single_status_list))
+        assert ear.num_received_by_topic[f"{scada_g_node_alias}/{GtShStatus_Maker.type_alias}"] == 1
+        assert isinstance(ear.latest_payload, GtShStatus)
+        simple_telemetry_list = ear.latest_payload.SimpleTelemetryList
+        assert len(simple_telemetry_list) > 0
+        node_alias_list = list(map(lambda x: x.ShNodeAlias, simple_telemetry_list))
         assert "a.tank.temp0" in node_alias_list
         thermo0_idx = node_alias_list.index("a.tank.temp0")
-        telemetry_name_list = list(map(lambda x: x.TelemetryName, single_status_list))
+        telemetry_name_list = list(map(lambda x: x.TelemetryName, simple_telemetry_list))
         assert telemetry_name_list[thermo0_idx] == TelemetryName.WATER_TEMP_F_TIMES1000
         assert ear.latest_payload.ReportingPeriodS == 300
 
@@ -402,11 +404,11 @@ def test_message_exchange(tmp_path, monkeypatch):
                     1,
                     tag=f"ERROR waiting for {actor.node.alias} client connect",
                 )
-            if hasattr(actor, "qw_client"):
+            if hasattr(actor, "gw_client"):
                 wait_for(
                     actor.gw_client.is_connected,
                     1,
-                    f"ERROR waiting for {actor.node.alias} gw_client connect",
+                    "ERROR waiting for gw_client connect",
                 )
         atn.turn_on(ShNode.by_alias["a.elt1.relay"])
         wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
@@ -469,10 +471,10 @@ def test_scada_small():
     assert list(scada.latest_simple_value.keys()) == scada.my_simple_sensors()
     assert list(scada.recent_simple_values.keys()) == scada.my_simple_sensors()
     assert list(scada.recent_simple_read_times_unix_ms.keys()) == scada.my_simple_sensors()
-    assert list(scada.latest_value_from_multifunction_sensor.keys()) == scada.my_telemetry_tuples()
-    assert list(scada.recent_values_from_multifunction_sensor.keys()) == scada.my_telemetry_tuples()
+    assert list(scada.latest_value_from_multipurpose_sensor.keys()) == scada.my_telemetry_tuples()
+    assert list(scada.recent_values_from_multipurpose_sensor.keys()) == scada.my_telemetry_tuples()
     assert (
-        list(scada.recent_read_times_unix_ms_from_multifunction_sensor.keys())
+        list(scada.recent_read_times_unix_ms_from_multipurpose_sensor.keys())
         == scada.my_telemetry_tuples()
     )
 
@@ -506,7 +508,7 @@ def test_scada_small():
         payload = GsPwr_Maker(power=2100)
         scada.gs_pwr_received(from_node=boost, payload=payload)
 
-    s = scada.make_single_status_for_simple(node='garbage')
+    s = scada.make_simple_telemetry_status(node='garbage')
     assert s is None
 
     tt = TelemetryTuple(
@@ -514,11 +516,11 @@ def test_scada_small():
         SensorNode=ShNode.by_alias["a.m"],
         TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
-    scada.recent_values_from_multifunction_sensor[tt] = [72000]
-    scada.recent_read_times_unix_ms_from_multifunction_sensor[tt] = [int(time.time() * 1000)]
-    s = scada.make_single_status_for_multipurpose(tt=tt)
-    assert isinstance(s, GtShSimpleSingleStatus)
-    s = scada.make_single_status_for_multipurpose(tt='garbage')
+    scada.recent_values_from_multipurpose_sensor[tt] = [72000]
+    scada.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [int(time.time() * 1000)]
+    s = scada.make_multipurpose_telemetry_status(tt=tt)
+    assert isinstance(s, GtShMultipurposeTelemetryStatus)
+    s = scada.make_multipurpose_telemetry_status(tt='garbage')
     assert s is None
 
     scada._last_5_cron_s = int(time.time() - 400)

@@ -4,6 +4,10 @@ from typing import List, Optional
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 
+from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
+    GtDriverBooleanactuatorCmd_Maker,
+)
+
 from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
@@ -38,17 +42,26 @@ class BooleanActuator(ActorBase):
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
+    def dispatch_relay(self, relay_state: int):
+        if relay_state not in [0, 1]:
+            raise Exception("expects relay_state of 0 or 1")
+        payload = GtDriverBooleanactuatorCmd_Maker(
+            relay_state=relay_state,
+            command_time_unix_ms=int(time.time() * 1000),
+            sh_node_alias=self.node.alias,
+        ).tuple
+        self.publish(payload)
+        if relay_state == 0:
+            self.config.driver.turn_off()
+        if relay_state == 1:
+            self.config.driver.turn_on()
+
     def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatch):
         if from_node != ShNode.by_alias["a.s"]:
             raise Exception(f"Only responds to dispatch from Scada. Got dispatch from {from_node}")
         if payload.ShNodeAlias == self.node.alias:
-            old_state = self.relay_state
-            new_state = payload.RelayState
-            if payload.RelayState == 0:
-                self.config.driver.turn_off()
-            elif payload.RelayState == 1:
-                self.config.driver.turn_on()
-            if old_state != new_state:
+            self.dispatch_relay(payload.RelayState)
+            if self.relay_state != payload.RelayState:
                 self.update_and_report_state_change()
 
     def update_and_report_state_change(self):

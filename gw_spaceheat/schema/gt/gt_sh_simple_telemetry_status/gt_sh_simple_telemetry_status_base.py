@@ -1,4 +1,4 @@
-"""Base for gt.sh.simple.single.status.100"""
+"""Base for gt.sh.simple.telemetry.status.100"""
 import json
 from typing import List, NamedTuple
 import schema.property_format as property_format
@@ -8,12 +8,12 @@ from schema.enums.telemetry_name.telemetry_name_map import (
 )
 
 
-class GtShSimpleSingleStatusBase(NamedTuple):
+class GtShSimpleTelemetryStatusBase(NamedTuple):
+    ValueList: List[int]
     ReadTimeUnixMsList: List[int]
     TelemetryName: TelemetryName  #
     ShNodeAlias: str  #
-    ValueList: List[int]
-    TypeAlias: str = "gt.sh.simple.single.status.100"
+    TypeAlias: str = "gt.sh.simple.telemetry.status.100"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -26,6 +26,16 @@ class GtShSimpleSingleStatusBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
+        if not isinstance(self.ValueList, list):
+            errors.append(
+                f"ValueList {self.ValueList} must have type list."
+            )
+        else:
+            for elt in self.ValueList:
+                if not isinstance(elt, int):
+                    errors.append(
+                        f"elt {elt} of ValueList must have type int."
+                    )
         if not isinstance(self.ReadTimeUnixMsList, list):
             errors.append(
                 f"ReadTimeUnixMsList {self.ReadTimeUnixMsList} must have type list."
@@ -53,19 +63,9 @@ class GtShSimpleSingleStatusBase(NamedTuple):
                 f"ShNodeAlias {self.ShNodeAlias}"
                 " must have format LrdAliasFormat"
             )
-        if not isinstance(self.ValueList, list):
+        if self.TypeAlias != "gt.sh.simple.telemetry.status.100":
             errors.append(
-                f"ValueList {self.ValueList} must have type list."
-            )
-        else:
-            for elt in self.ValueList:
-                if not isinstance(elt, int):
-                    errors.append(
-                        f"elt {elt} of ValueList must have type int."
-                    )
-        if self.TypeAlias != "gt.sh.simple.single.status.100":
-            errors.append(
-                f"Type requires TypeAlias of gt.sh.simple.single.status.100, not {self.TypeAlias}."
+                f"Type requires TypeAlias of gt.sh.simple.telemetry.status.100, not {self.TypeAlias}."
             )
 
         return errors
