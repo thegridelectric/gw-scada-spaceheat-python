@@ -9,6 +9,7 @@ import pytest
 from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
 from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
     GtShBooleanactuatorCmdStatus_Maker,
+    GtShBooleanactuatorCmdStatus,
 )
 import schema.property_format
 import settings
@@ -477,6 +478,8 @@ def test_scada_small():
     load_house.load_all()
     scada = Scada(node=ShNode.by_alias["a.s"])
     meter_node = ShNode.by_alias["a.m"]
+    relay_node = ShNode.by_alias["a.elt1.relay"]
+    temp_node = ShNode.by_alias["a.tank.temp0"]
     assert list(scada.recent_ba_cmds.keys()) == scada.my_boolean_actuators()
     assert list(scada.recent_ba_cmd_times_unix_ms.keys()) == scada.my_boolean_actuators()
     assert list(scada.latest_simple_value.keys()) == scada.my_simple_sensors()
@@ -514,28 +517,16 @@ def test_scada_small():
     res = scada.on_gw_message(payload="garbage")
     assert res == ScadaCmdDiagnostic.PAYLOAD_NOT_IMPLEMENTED
 
+    #################################
+    # Testing messages received locally
+    #################################
+
     with pytest.raises(Exception):
         boost = ShNode.by_alias["a.elt1.relay"]
         payload = GsPwr_Maker(power=2100)
         scada.gs_pwr_received(from_node=boost, payload=payload)
 
-    s = scada.make_simple_telemetry_status(node="garbage")
-    assert s is None
-
-    tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
-        SensorNode=ShNode.by_alias["a.m"],
-        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-    )
-    scada.recent_values_from_multipurpose_sensor[tt] = [72000]
-    scada.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [int(time.time() * 1000)]
-    s = scada.make_multipurpose_telemetry_status(tt=tt)
-    assert isinstance(s, GtShMultipurposeTelemetryStatus)
-    s = scada.make_multipurpose_telemetry_status(tt="garbage")
-    assert s is None
-
-    scada._last_5_cron_s = int(time.time() - 400)
-    assert scada.time_for_5_cron() is True
+    # Testing gt_sh_telemetry_from_multipurpose_sensor_received
 
     payload = GtShTelemetryFromMultipurposeSensor_Maker(
         about_node_alias_list=["a.unknown"],
@@ -550,9 +541,7 @@ def test_scada_small():
             from_node=meter_node, payload=payload
         )
 
-    payload = GtShBooleanactuatorCmdStatus_Maker(
-        sh_node_alias="a.m", relay_state_command_list=[], command_time_unix_ms_list=[]
-    ).tuple
+    # Testing gt_driver_booleanactuator_cmd_record_received
 
     # throws error if it gets a GtDriverBooleanactuatorCmd from
     # a node that is NOT a boolean actuator
@@ -577,6 +566,7 @@ def test_scada_small():
     # throws error if it does not track the telemetry tuple. In this
     # example, the telemetry tuple would have the electric meter
     # as the sensor node, reading amps for a water tank
+
     with pytest.raises(Exception):
         scada.gt_sh_telemetry_from_multipurpose_sensor_received(
             from_node=meter_node, payload=payload
@@ -594,6 +584,71 @@ def test_scada_small():
     # - for example, like the multipurpose electricity meter
     with pytest.raises(Exception):
         scada.gt_telemetry_received(from_node=meter_node, payload=payload)
+
+    ###########################################
+    # Testing making status messages
+    ###########################################
+
+    s = scada.make_simple_telemetry_status(node="garbage")
+    assert s is None
+
+    scada.recent_simple_read_times_unix_ms[temp_node] = [int(time.time() * 1000)]
+    scada.recent_simple_values[temp_node] = [63000]
+    s = scada.make_simple_telemetry_status(temp_node)
+    assert isinstance(s, GtShSimpleTelemetryStatus)
+
+    tt = TelemetryTuple(
+        AboutNode=ShNode.by_alias["a.elt1"],
+        SensorNode=ShNode.by_alias["a.m"],
+        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+    )
+    scada.recent_values_from_multipurpose_sensor[tt] = [72000]
+    scada.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [int(time.time() * 1000)]
+    s = scada.make_multipurpose_telemetry_status(tt=tt)
+    assert isinstance(s, GtShMultipurposeTelemetryStatus)
+    s = scada.make_multipurpose_telemetry_status(tt="garbage")
+    assert s is None
+
+    scada.recent_ba_cmds[relay_node] = []
+    scada.recent_ba_cmd_times_unix_ms[relay_node] = []
+
+    # returns None if asked make boolean actuator status for
+    # a node that is not a boolean actuator
+
+    s = scada.make_booleanactuator_cmd_status(meter_node)
+    assert s is None
+
+    s = scada.make_booleanactuator_cmd_status(relay_node)
+    assert s is None
+
+    scada.recent_ba_cmds[relay_node] = [0]
+    scada.recent_ba_cmd_times_unix_ms[relay_node] = [int(time.time() * 1000)]
+    s = scada.make_booleanactuator_cmd_status(relay_node)
+    assert isinstance(s, GtShBooleanactuatorCmdStatus)
+
+    payload = GtShBooleanactuatorCmdStatus_Maker(
+        sh_node_alias="a.m", relay_state_command_list=[], command_time_unix_ms_list=[]
+    ).tuple
+
+    scada.send_status()
+
+    ##################################
+    # Testing actuation
+    ##################################
+
+    # test that turn_on and turn_off only work for boolean actuator nodes
+
+    result = scada.turn_on(meter_node)
+    assert result == ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+    result = scada.turn_off(meter_node)
+    assert result == ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+
+    #################################
+    # Other SCADA small tests
+    ##################################
+
+    scada._last_5_cron_s = int(time.time() - 400)
+    assert scada.time_for_5_cron() is True
 
 
 ###################
