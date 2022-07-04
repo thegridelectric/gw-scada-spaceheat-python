@@ -7,6 +7,8 @@ import helpers
 import load_house
 import pytest
 from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
+from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker \
+    import GtShBooleanactuatorCmdStatus, GtShBooleanactuatorCmdStatus_Maker
 import schema.property_format
 import settings
 from actors.atn import Atn
@@ -468,6 +470,8 @@ def test_scada_small():
     load_house.load_all()
     scada = Scada(node=ShNode.by_alias["a.s"])
     meter_node = ShNode.by_alias["a.m"]
+    assert list(scada.recent_ba_cmds.keys()) == scada.my_boolean_actuators()
+    assert list(scada.recent_ba_cmd_times_unix_ms.keys()) == scada.my_boolean_actuators()
     assert list(scada.latest_simple_value.keys()) == scada.my_simple_sensors()
     assert list(scada.recent_simple_values.keys()) == scada.my_simple_sensors()
     assert list(scada.recent_simple_read_times_unix_ms.keys()) == scada.my_simple_sensors()
@@ -527,11 +531,11 @@ def test_scada_small():
     assert scada.time_for_5_cron() is True
 
     payload = GtShTelemetryFromMultipurposeSensor_Maker(
-        about_node_alias_list=['a.unknown'],
+        about_node_alias_list=["a.unknown"],
         scada_read_time_unix_ms=int(time.time() * 1000),
         value_list=[17000],
         telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS]
-    )
+    ).tuple
 
     # throws error if AboutNode is unknown
     with pytest.raises(Exception):
@@ -539,6 +543,25 @@ def test_scada_small():
             from_node=meter_node,
             payload=payload
         )
+
+    payload = GtShBooleanactuatorCmdStatus_Maker(
+        sh_node_alias="a.m",
+        relay_state_command_list=[],
+        command_time_unix_ms_list=[]
+    ).tuple
+
+    # throws error if it gets a GtDriverBooleanactuatorCmd from
+    # a node that is NOT a boolean actuator
+
+    with pytest.raises(Exception):
+        scada.gt_driver_booleanactuator_cmd_record_received(meter_node, payload)
+
+    elt_relay_node = ShNode.by_alias['a.elt1.relay']
+
+    # Throws error if the ShNodeAlias is not equal to the from_node.
+
+    with pytest.raises(Exception):
+        scada.gt_driver_booleanactuator_cmd_record_received(elt_relay_node, payload)
 
     payload = GtShTelemetryFromMultipurposeSensor_Maker(
         about_node_alias_list=['a.tank'],

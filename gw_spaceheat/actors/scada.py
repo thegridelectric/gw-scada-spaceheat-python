@@ -235,6 +235,26 @@ class Scada(ScadaBase):
     def gt_driver_booleanactuator_cmd_record_received(
         self, from_node: ShNode, payload: GtDriverBooleanactuatorCmd
     ):
+        """ The boolean actuator actor reports when it has sent an actuation command
+        to its driver. We add this to information to be sent up in the 5 minute status 
+        package.
+   
+        This is different than reporting a _reading_ of the state of the
+        actuator. Note that a reading of the state of the actuator may not mean the relay
+        is in the read position. For example, the NCD relay requires two power sources - one
+        from the Pi and one a lowish DC voltage from another plug (12 or 24V). If the second
+        power source is off, the relay will still report being on when it is actually off.
+
+        Note also that the thing getting actuated (for example the boost element in the water
+        tank) may not be getting any power because of another relay in series. For example, we
+        can throw a large 240V breaker in the test garage and the NCD relay will actuate without
+        the boost element turning on. Or the element could be burned out.
+
+        So measuring the current and/or power of the thing getting
+        actuated is really the best test.  """
+
+        if from_node not in self.my_boolean_actuators():
+            raise Exception("boolean actuator command records must come from boolean actuator")
         if from_node.alias != payload.ShNodeAlias:
             raise Exception("Command record must come from the boolean actuator actor")
         self.recent_ba_cmds[from_node].append(payload.RelayState)
