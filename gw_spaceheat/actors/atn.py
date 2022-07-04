@@ -125,7 +125,7 @@ class Atn(CloudBase):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
         payload = GtDispatch_Maker(
-            relay_state=0, 
+            relay_state=0,
             sh_node_alias=ba.alias,
             send_time_unix_ms=int(time.time() * 1000)).tuple
         self.gw_publish(payload)
