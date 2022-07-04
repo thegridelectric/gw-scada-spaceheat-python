@@ -7,8 +7,9 @@ import helpers
 import load_house
 import pytest
 from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker \
-    import GtShBooleanactuatorCmdStatus, GtShBooleanactuatorCmdStatus_Maker
+from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
+    GtShBooleanactuatorCmdStatus_Maker,
+)
 import schema.property_format
 import settings
 from actors.atn import Atn
@@ -26,9 +27,12 @@ from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import GtShSimpleTelemetryStatus
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker \
-    import GtShMultipurposeTelemetryStatus
+from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
+    GtShSimpleTelemetryStatus,
+)
+from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
+    GtShMultipurposeTelemetryStatus,
+)
 from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor_Maker,
@@ -447,7 +451,9 @@ def test_message_exchange(tmp_path, monkeypatch):
         )
 
         atn.turn_off(ShNode.by_alias["a.elt1.relay"])
-        wait_for(lambda: int(elt_relay.relay_state) == 0, 10, f"Relay state {elt_relay.relay_state}")
+        wait_for(
+            lambda: int(elt_relay.relay_state) == 0, 10, f"Relay state {elt_relay.relay_state}"
+        )
 
     finally:
         for actor in actors:
@@ -456,6 +462,7 @@ def test_message_exchange(tmp_path, monkeypatch):
                 actor.stop()
             except:
                 pass
+
 
 ###################
 # Small Tests
@@ -500,19 +507,19 @@ def test_scada_small():
     # and so we have control over what they are.
 
     with pytest.raises(Exception):
-        scada.on_message(from_node=meter_node, payload='garbage')
+        scada.on_message(from_node=meter_node, payload="garbage")
 
     # Test on_gw_message getting a payload it does not recognize
 
-    res = scada.on_gw_message(payload='garbage')
+    res = scada.on_gw_message(payload="garbage")
     assert res == ScadaCmdDiagnostic.PAYLOAD_NOT_IMPLEMENTED
 
     with pytest.raises(Exception):
-        boost = ShNode.by_alias['a.elt1.relay']
+        boost = ShNode.by_alias["a.elt1.relay"]
         payload = GsPwr_Maker(power=2100)
         scada.gs_pwr_received(from_node=boost, payload=payload)
 
-    s = scada.make_simple_telemetry_status(node='garbage')
+    s = scada.make_simple_telemetry_status(node="garbage")
     assert s is None
 
     tt = TelemetryTuple(
@@ -524,7 +531,7 @@ def test_scada_small():
     scada.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [int(time.time() * 1000)]
     s = scada.make_multipurpose_telemetry_status(tt=tt)
     assert isinstance(s, GtShMultipurposeTelemetryStatus)
-    s = scada.make_multipurpose_telemetry_status(tt='garbage')
+    s = scada.make_multipurpose_telemetry_status(tt="garbage")
     assert s is None
 
     scada._last_5_cron_s = int(time.time() - 400)
@@ -534,20 +541,17 @@ def test_scada_small():
         about_node_alias_list=["a.unknown"],
         scada_read_time_unix_ms=int(time.time() * 1000),
         value_list=[17000],
-        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS]
+        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS],
     ).tuple
 
     # throws error if AboutNode is unknown
     with pytest.raises(Exception):
         scada.gt_sh_telemetry_from_multipurpose_sensor_received(
-            from_node=meter_node,
-            payload=payload
+            from_node=meter_node, payload=payload
         )
 
     payload = GtShBooleanactuatorCmdStatus_Maker(
-        sh_node_alias="a.m",
-        relay_state_command_list=[],
-        command_time_unix_ms_list=[]
+        sh_node_alias="a.m", relay_state_command_list=[], command_time_unix_ms_list=[]
     ).tuple
 
     # throws error if it gets a GtDriverBooleanactuatorCmd from
@@ -556,7 +560,7 @@ def test_scada_small():
     with pytest.raises(Exception):
         scada.gt_driver_booleanactuator_cmd_record_received(meter_node, payload)
 
-    elt_relay_node = ShNode.by_alias['a.elt1.relay']
+    elt_relay_node = ShNode.by_alias["a.elt1.relay"]
 
     # Throws error if the ShNodeAlias is not equal to the from_node.
 
@@ -564,10 +568,10 @@ def test_scada_small():
         scada.gt_driver_booleanactuator_cmd_record_received(elt_relay_node, payload)
 
     payload = GtShTelemetryFromMultipurposeSensor_Maker(
-        about_node_alias_list=['a.tank'],
+        about_node_alias_list=["a.tank"],
         scada_read_time_unix_ms=int(time.time() * 1000),
         value_list=[17000],
-        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS]
+        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS],
     )
 
     # throws error if it does not track the telemetry tuple. In this
@@ -575,25 +579,22 @@ def test_scada_small():
     # as the sensor node, reading amps for a water tank
     with pytest.raises(Exception):
         scada.gt_sh_telemetry_from_multipurpose_sensor_received(
-            from_node=meter_node,
-            payload=payload
+            from_node=meter_node, payload=payload
         )
 
     payload = GtTelemetry_Maker(
         scada_read_time_unix_ms=int(time.time() * 1000),
         value=67000,
         exponent=3,
-        name=TelemetryName.WATER_TEMP_F_TIMES1000
+        name=TelemetryName.WATER_TEMP_F_TIMES1000,
     )
 
     # throws error if it receives a GtTelemetry reading
     # from a sensor which is not in its simple sensor list
     # - for example, like the multipurpose electricity meter
     with pytest.raises(Exception):
-        scada.gt_telemetry_received(
-            from_node=meter_node,
-            payload=payload
-        )
+        scada.gt_telemetry_received(from_node=meter_node, payload=payload)
+
 
 ###################
 # PowerMeter small tests
