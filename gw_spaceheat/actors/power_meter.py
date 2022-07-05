@@ -1,17 +1,16 @@
 import time
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
 
+from actors.actor_base import ActorBase
+from actors.utils import Subscription, responsive_sleep
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
+from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
-
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
-from actors.actor_base import ActorBase
-from actors.utils import Subscription, responsive_sleep
 
 
 class PowerMeter(ActorBase):

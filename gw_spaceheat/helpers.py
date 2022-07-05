@@ -5,9 +5,6 @@ import time
 import pendulum
 from dotenv import load_dotenv
 
-import settings
-
-
 snake_add_underscore_to_camel_pattern = re.compile(r"(?<!^)(?=[A-Z])")
 
 
@@ -23,18 +20,6 @@ def get_secret(key):
     elif value == "None":
         return None
     return value
-
-
-def atn_g_node_alias():
-    return settings.ATN_G_NODE_ALIAS
-
-
-def scada_g_node_alias():
-    return f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
-
-
-def ta_g_node_alias():
-    return f"{settings.ATN_G_NODE_ALIAS}.ta"
 
 
 def log_time() -> str:

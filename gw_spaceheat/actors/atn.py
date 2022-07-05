@@ -1,26 +1,21 @@
+import time
 import uuid
 from typing import Dict, List, Optional
-import time
-import helpers
+
 import load_house
+from actors.cloud_base import CloudBase
+from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
+from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse,
     GtShCliScadaResponse_Maker,
 )
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import (
-    GtShStatus,
-    GtShStatus_Maker,
-)
-
-from actors.cloud_base import CloudBase
-from actors.utils import QOS, Subscription, responsive_sleep
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 
 
 class Atn(CloudBase):
@@ -61,15 +56,15 @@ class Atn(CloudBase):
     def gw_subscriptions(self) -> List[Subscription]:
         return [
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GsPwr_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GsPwr_Maker.type_alias}",
                 Qos=QOS.AtMostOnce,
             ),
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtShStatus_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GtShStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtShCliScadaResponse_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GtShCliScadaResponse_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
         ]
@@ -110,22 +105,36 @@ class Atn(CloudBase):
     ################################################
 
     def status(self):
-        payload = GtShCliAtnCmd_Maker(send_snapshot=True).tuple
+        payload = GtShCliAtnCmd_Maker(
+            from_g_node_alias=self.atn_g_node_alias,
+            from_g_node_id=self.atn_g_node_id,
+            send_snapshot=True,
+        ).tuple
         self.gw_publish(payload)
 
     def turn_on(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
-        payload = GtDispatch_Maker(
-            relay_state=1, sh_node_alias=ba.alias, send_time_unix_ms=int(time.time() * 1000)
+        payload = GtDispatchBoolean_Maker(
+            to_g_node_alias=self.scada_g_node_alias,
+            from_g_node_alias=self.atn_g_node_alias,
+            from_g_node_id=self.atn_g_node_id,
+            about_node_alias=ba.alias,
+            relay_state=1,
+            send_time_unix_ms=int(time.time() * 1000),
         ).tuple
         self.gw_publish(payload)
 
     def turn_off(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
             raise Exception(f"{ba} must be a BooleanActuator!")
-        payload = GtDispatch_Maker(
-            relay_state=0, sh_node_alias=ba.alias, send_time_unix_ms=int(time.time() * 1000)
+        payload = GtDispatchBoolean_Maker(
+            to_g_node_alias=self.scada_g_node_alias,
+            from_g_node_alias=self.atn_g_node_alias,
+            from_g_node_id=self.atn_g_node_id,
+            about_node_alias=ba.alias,
+            relay_state=0,
+            send_time_unix_ms=int(time.time() * 1000),
         ).tuple
         self.gw_publish(payload)
 

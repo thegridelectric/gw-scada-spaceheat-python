@@ -1,18 +1,19 @@
 import time
 from typing import List, Optional
 
+from actors.actor_base import ActorBase
+from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
+    GtDispatchBooleanLocal,
+    GtDispatchBooleanLocal_Maker,
+)
 
 from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
     GtDriverBooleanactuatorCmd_Maker,
 )
-
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
-
-from actors.actor_base import ActorBase
-from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class BooleanActuator(ActorBase):
@@ -32,13 +33,13 @@ class BooleanActuator(ActorBase):
 
     def subscriptions(self) -> List[Subscription]:
         my_subscriptions = [
-            Subscription(Topic=f"a.s/{GtDispatch_Maker.type_alias}", Qos=QOS.AtMostOnce)
+            Subscription(Topic=f"a.s/{GtDispatchBooleanLocal_Maker.type_alias}", Qos=QOS.AtMostOnce)
         ]
         return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
-        if isinstance(payload, GtDispatch):
-            self.gt_dispatch_received(from_node, payload)
+        if isinstance(payload, GtDispatchBooleanLocal):
+            self.gt_dispatch_boolean_local_received(from_node, payload)
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
@@ -56,10 +57,12 @@ class BooleanActuator(ActorBase):
         if relay_state == 1:
             self.config.driver.turn_on()
 
-    def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatch):
+    def gt_dispatch_boolean_local_received(
+        self, from_node: ShNode, payload: GtDispatchBooleanLocal
+    ):
         if from_node != ShNode.by_alias["a.s"]:
             raise Exception(f"Only responds to dispatch from Scada. Got dispatch from {from_node}")
-        if payload.ShNodeAlias == self.node.alias:
+        if payload.AboutNodeAlias == self.node.alias:
             self.dispatch_relay(payload.RelayState)
             if self.relay_state != payload.RelayState:
                 self.update_and_report_state_change()

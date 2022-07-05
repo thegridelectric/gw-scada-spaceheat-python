@@ -1,14 +1,9 @@
 from typing import List, Optional
 
-import helpers
-from data_classes.sh_node import ShNode
-from schema.gt.gt_sh_status.gt_sh_status_maker import (
-    GtShStatus,
-    GtShStatus_Maker,
-)
-
 from actors.actor_base import ActorBase
 from actors.utils import QOS, Subscription, responsive_sleep
+from data_classes.sh_node import ShNode
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 
 
 class HomeAlone(ActorBase):
@@ -22,7 +17,7 @@ class HomeAlone(ActorBase):
     def subscriptions(self) -> List[Subscription]:
         my_subscriptions = [
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtShStatus_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GtShStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             )
         ]

@@ -1,16 +1,16 @@
 import uuid
 from abc import abstractmethod
 
-import helpers
 import paho.mqtt.client as mqtt
+
+import helpers
 import settings
+from actors.actor_base import ActorBase
+from actors.utils import QOS
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
-
-from actors.actor_base import ActorBase
-from actors.utils import QOS
 
 
 class ScadaBase(ActorBase):
@@ -65,7 +65,7 @@ class ScadaBase(ActorBase):
             (from_alias, type_alias) = message.topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if from_alias != settings.ATN_G_NODE_ALIAS:
+        if from_alias != self.atn_g_node_alias:
             raise Exception(f"alias {from_alias} not my AtomicTNode!")
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
@@ -82,7 +82,7 @@ class ScadaBase(ActorBase):
         else:
             qos = QOS.AtLeastOnce
         self.gw_client.publish(
-            topic=f"{helpers.scada_g_node_alias()}/{payload.TypeAlias}",
+            topic=f"{self.scada_g_node_alias}/{payload.TypeAlias}",
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,

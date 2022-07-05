@@ -1,12 +1,11 @@
 import time
 from typing import List
 
+from actors.actor_base import ActorBase
+from actors.utils import Subscription, responsive_sleep
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
-
-from actors.actor_base import ActorBase
-from actors.utils import Subscription, responsive_sleep
 
 
 class SimpleSensor(ActorBase):

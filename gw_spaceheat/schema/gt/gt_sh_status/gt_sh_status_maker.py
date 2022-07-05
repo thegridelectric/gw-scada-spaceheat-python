@@ -1,16 +1,16 @@
-"""Makes gt.sh.status.100 type"""
+"""Makes gt.sh.status.110 type"""
 import json
 from typing import List
 
 from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
 from schema.errors import MpSchemaError
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
-    GtShBooleanactuatorCmdStatus,
-    GtShBooleanactuatorCmdStatus_Maker,
-)
 from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
     GtShSimpleTelemetryStatus,
     GtShSimpleTelemetryStatus_Maker,
+)
+from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
+    GtShBooleanactuatorCmdStatus,
+    GtShBooleanactuatorCmdStatus_Maker,
 )
 from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
     GtShMultipurposeTelemetryStatus,
@@ -19,22 +19,28 @@ from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_
 
 
 class GtShStatus_Maker:
-    type_alias = "gt.sh.status.100"
+    type_alias = "gt.sh.status.110"
 
     def __init__(self,
-                 booleanactuator_cmd_list: List[GtShBooleanactuatorCmdStatus],
-                 simple_telemetry_list: List[GtShSimpleTelemetryStatus],
-                 multipurpose_telemetry_list: List[GtShMultipurposeTelemetryStatus],
                  slot_start_unix_s: int,
+                 simple_telemetry_list: List[GtShSimpleTelemetryStatus],
                  about_g_node_alias: str,
+                 booleanactuator_cmd_list: List[GtShBooleanactuatorCmdStatus],
+                 from_g_node_alias: str,
+                 multipurpose_telemetry_list: List[GtShMultipurposeTelemetryStatus],
+                 from_g_node_id: str,
+                 status_uid: str,
                  reporting_period_s: int):
 
         gw_tuple = GtShStatus(
-            BooleanactuatorCmdList=booleanactuator_cmd_list,
-            SimpleTelemetryList=simple_telemetry_list,
-            MultipurposeTelemetryList=multipurpose_telemetry_list,
             SlotStartUnixS=slot_start_unix_s,
+            SimpleTelemetryList=simple_telemetry_list,
             AboutGNodeAlias=about_g_node_alias,
+            BooleanactuatorCmdList=booleanactuator_cmd_list,
+            FromGNodeAlias=from_g_node_alias,
+            MultipurposeTelemetryList=multipurpose_telemetry_list,
+            FromGNodeId=from_g_node_id,
+            StatusUid=status_uid,
             ReportingPeriodS=reporting_period_s,
             #
         )
@@ -63,19 +69,8 @@ class GtShStatus_Maker:
             new_d[key] = d[key]
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
-        if "BooleanactuatorCmdList" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing BooleanactuatorCmdList")
-        booleanactuator_cmd_list = []
-        for elt in new_d["BooleanactuatorCmdList"]:
-            if not isinstance(elt, dict):
-                raise MpSchemaError(
-                    f"elt {elt} of BooleanactuatorCmdList must be "
-                    "GtShBooleanactuatorCmdStatus but not even a dict!"
-                )
-            booleanactuator_cmd_list.append(
-                GtShBooleanactuatorCmdStatus_Maker.dict_to_tuple(elt)
-            )
-        new_d["BooleanactuatorCmdList"] = booleanactuator_cmd_list
+        if "SlotStartUnixS" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing SlotStartUnixS")
         if "SimpleTelemetryList" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing SimpleTelemetryList")
         simple_telemetry_list = []
@@ -89,6 +84,23 @@ class GtShStatus_Maker:
                 GtShSimpleTelemetryStatus_Maker.dict_to_tuple(elt)
             )
         new_d["SimpleTelemetryList"] = simple_telemetry_list
+        if "AboutGNodeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing AboutGNodeAlias")
+        if "BooleanactuatorCmdList" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing BooleanactuatorCmdList")
+        booleanactuator_cmd_list = []
+        for elt in new_d["BooleanactuatorCmdList"]:
+            if not isinstance(elt, dict):
+                raise MpSchemaError(
+                    f"elt {elt} of BooleanactuatorCmdList must be "
+                    "GtShBooleanactuatorCmdStatus but not even a dict!"
+                )
+            booleanactuator_cmd_list.append(
+                GtShBooleanactuatorCmdStatus_Maker.dict_to_tuple(elt)
+            )
+        new_d["BooleanactuatorCmdList"] = booleanactuator_cmd_list
+        if "FromGNodeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing FromGNodeAlias")
         if "MultipurposeTelemetryList" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing MultipurposeTelemetryList")
         multipurpose_telemetry_list = []
@@ -102,20 +114,23 @@ class GtShStatus_Maker:
                 GtShMultipurposeTelemetryStatus_Maker.dict_to_tuple(elt)
             )
         new_d["MultipurposeTelemetryList"] = multipurpose_telemetry_list
-        if "SlotStartUnixS" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing SlotStartUnixS")
-        if "AboutGNodeAlias" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing AboutGNodeAlias")
+        if "FromGNodeId" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing FromGNodeId")
+        if "StatusUid" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing StatusUid")
         if "ReportingPeriodS" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ReportingPeriodS")
 
         gw_tuple = GtShStatus(
             TypeAlias=new_d["TypeAlias"],
-            BooleanactuatorCmdList=new_d["BooleanactuatorCmdList"],
-            SimpleTelemetryList=new_d["SimpleTelemetryList"],
-            MultipurposeTelemetryList=new_d["MultipurposeTelemetryList"],
             SlotStartUnixS=new_d["SlotStartUnixS"],
+            SimpleTelemetryList=new_d["SimpleTelemetryList"],
             AboutGNodeAlias=new_d["AboutGNodeAlias"],
+            BooleanactuatorCmdList=new_d["BooleanactuatorCmdList"],
+            FromGNodeAlias=new_d["FromGNodeAlias"],
+            MultipurposeTelemetryList=new_d["MultipurposeTelemetryList"],
+            FromGNodeId=new_d["FromGNodeId"],
+            StatusUid=new_d["StatusUid"],
             ReportingPeriodS=new_d["ReportingPeriodS"],
             #
         )

@@ -1,4 +1,4 @@
-"""Makes gt.sh.cli.scada.response.100 type"""
+"""Makes gt.sh.cli.scada.response.110 type"""
 import json
 
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import GtShCliScadaResponse
@@ -10,12 +10,16 @@ from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
 
 
 class GtShCliScadaResponse_Maker:
-    type_alias = "gt.sh.cli.scada.response.100"
+    type_alias = "gt.sh.cli.scada.response.110"
 
     def __init__(self,
+                 from_g_node_alias: str,
+                 from_g_node_id: str,
                  snapshot: GtShStatusSnapshot):
 
         gw_tuple = GtShCliScadaResponse(
+            FromGNodeAlias=from_g_node_alias,
+            FromGNodeId=from_g_node_id,
             Snapshot=snapshot,
             #
         )
@@ -44,6 +48,10 @@ class GtShCliScadaResponse_Maker:
             new_d[key] = d[key]
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "FromGNodeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing FromGNodeAlias")
+        if "FromGNodeId" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing FromGNodeId")
         if "Snapshot" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing Snapshot")
         if not isinstance(new_d["Snapshot"], dict):
@@ -53,6 +61,8 @@ class GtShCliScadaResponse_Maker:
 
         gw_tuple = GtShCliScadaResponse(
             TypeAlias=new_d["TypeAlias"],
+            FromGNodeAlias=new_d["FromGNodeAlias"],
+            FromGNodeId=new_d["FromGNodeId"],
             Snapshot=new_d["Snapshot"],
             #
         )

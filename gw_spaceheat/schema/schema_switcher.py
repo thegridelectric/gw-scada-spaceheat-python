@@ -2,7 +2,10 @@ from typing import Dict, List
 
 from schema.gs.gs_dispatch_maker import GsDispatch_Maker
 from schema.gs.gs_pwr_maker import GsPwr_Maker
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
+from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker \
+    import GtDispatchBoolean_Maker
+from schema. gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker \
+    import GtDispatchBooleanLocal_Maker
 from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker \
     import GtDriverBooleanactuatorCmd_Maker
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
@@ -23,7 +26,8 @@ TypeMakerByAliasDict: Dict[str, GtTelemetry_Maker] = {}
 schema_makers: List[GtTelemetry_Maker] = [
     GsDispatch_Maker,
     GsPwr_Maker,
-    GtDispatch_Maker,
+    GtDispatchBoolean_Maker,
+    GtDispatchBooleanLocal_Maker,
     GtDriverBooleanactuatorCmd_Maker,
     GtShCliAtnCmd_Maker,
     GtShCliScadaResponse_Maker,

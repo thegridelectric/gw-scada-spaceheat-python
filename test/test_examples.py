@@ -3,14 +3,11 @@ import os
 import time
 import typing
 from collections import defaultdict
-import helpers
-import load_house
+
 import pytest
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
-    GtShBooleanactuatorCmdStatus_Maker,
-    GtShBooleanactuatorCmdStatus,
-)
+from utils import wait_for
+
+import load_house
 import schema.property_format
 import settings
 from actors.atn import Atn
@@ -26,21 +23,24 @@ from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr_Maker
+from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
+from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
+    GtShBooleanactuatorCmdStatus,
+    GtShBooleanactuatorCmdStatus_Maker,
+)
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
+from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
+    GtShMultipurposeTelemetryStatus,
+)
 from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
 from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
     GtShSimpleTelemetryStatus,
-)
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
-    GtShMultipurposeTelemetryStatus,
 )
 from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
-
-from utils import wait_for
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
@@ -78,7 +78,7 @@ class EarRecorder(CloudEar):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
         self.latest_payload = None
-        super().__init__(out_stub=None, logging_on=logging_on)
+        super().__init__(logging_on=logging_on)
 
     def on_gw_mqtt_message(self, client, userdata, message):
         self.num_received += 1
@@ -135,13 +135,13 @@ def test_imports():
 
 
 def test_load_real_house():
-    real_atn_g_node_alias = "w.isone.nh.orange.1"
+    real_world_root_alias = "w"
     current_dir = os.path.dirname(os.path.realpath(__file__))
     with open(
         os.path.join(current_dir, "../gw_spaceheat/input_data/houses.json"), "r"
     ) as read_file:
         input_data = json.load(read_file)
-    house_data = input_data[real_atn_g_node_alias]
+    house_data = input_data[real_world_root_alias]
     for d in house_data["ShNodes"]:
         GtShNode_Maker.dict_to_tuple(d)
     for node in ShNode.by_alias.values():
@@ -313,7 +313,7 @@ def test_scada_ear_connection():
         # why doesn't this work??
         # wait_for(ear.num_received > 0, 5)
         assert ear.num_received > 0
-        scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
+        scada_g_node_alias = scada.scada_g_node_alias
         assert ear.num_received_by_topic[f"{scada_g_node_alias}/{GtShStatus_Maker.type_alias}"] == 1
         assert isinstance(ear.latest_payload, GtShStatus)
         simple_telemetry_list = ear.latest_payload.SimpleTelemetryList
@@ -428,7 +428,7 @@ def test_message_exchange(tmp_path, monkeypatch):
             lambda: len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}"
         )
 
-        topic = f"{helpers.atn_g_node_alias()}/{GtDispatch_Maker.type_alias}"
+        topic = f"{scada.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"
         print(topic)
         wait_for(
             lambda: ear.num_received_by_topic[topic] > 0, 10, f"ear receipt. {ear.summary_str()}"

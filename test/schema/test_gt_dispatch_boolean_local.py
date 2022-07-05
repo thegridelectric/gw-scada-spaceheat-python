@@ -1,21 +1,22 @@
-"""Tests gt.dispatch.110 type"""
+"""Tests gt.dispatch.boolean.local.100 type"""
 import json
 
 import pytest
 
 from schema.errors import MpSchemaError
-from schema.gt.gt_dispatch.gt_dispatch_maker import (
-    GtDispatch_Maker as Maker,
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
+    GtDispatchBooleanLocal_Maker as Maker,
 )
 
 
-def test_gt_dispatch():
+def test_gt_dispatch_boolean_local():
 
     gw_dict = {
-        "ShNodeAlias": "a.elt1.relay",
-        "SendTimeUnixMs": 1656869326597,
-        "RelayState": 0,
-        "TypeAlias": "gt.dispatch.110",
+        "SendTimeUnixMs": 1657025211851,
+        "FromNodeAlias": "a.s",
+        "AboutNodeAlias": "a.elt1.relay",
+        "RelayState": 1,
+        "TypeAlias": "gt.dispatch.boolean.local.100",
     }
 
     with pytest.raises(MpSchemaError):
@@ -33,8 +34,9 @@ def test_gt_dispatch():
 
     # test Maker init
     t = Maker(
-        sh_node_alias=gw_tuple.ShNodeAlias,
         send_time_unix_ms=gw_tuple.SendTimeUnixMs,
+        from_node_alias=gw_tuple.FromNodeAlias,
+        about_node_alias=gw_tuple.AboutNodeAlias,
         relay_state=gw_tuple.RelayState,
         #
     ).tuple
@@ -50,17 +52,23 @@ def test_gt_dispatch():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = orig_value
 
-    orig_value = gw_dict["ShNodeAlias"]
-    del gw_dict["ShNodeAlias"]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = orig_value
-
     orig_value = gw_dict["SendTimeUnixMs"]
     del gw_dict["SendTimeUnixMs"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["SendTimeUnixMs"] = orig_value
+
+    orig_value = gw_dict["FromNodeAlias"]
+    del gw_dict["FromNodeAlias"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["FromNodeAlias"] = orig_value
+
+    orig_value = gw_dict["AboutNodeAlias"]
+    del gw_dict["AboutNodeAlias"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["AboutNodeAlias"] = orig_value
 
     orig_value = gw_dict["RelayState"]
     del gw_dict["RelayState"]
@@ -72,17 +80,23 @@ def test_gt_dispatch():
     # MpSchemaError raised if attributes have incorrect type
     ######################################
 
-    orig_value = gw_dict["ShNodeAlias"]
-    gw_dict["ShNodeAlias"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = orig_value
-
     orig_value = gw_dict["SendTimeUnixMs"]
     gw_dict["SendTimeUnixMs"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["SendTimeUnixMs"] = orig_value
+
+    orig_value = gw_dict["FromNodeAlias"]
+    gw_dict["FromNodeAlias"] = 42
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["FromNodeAlias"] = orig_value
+
+    orig_value = gw_dict["AboutNodeAlias"]
+    gw_dict["AboutNodeAlias"] = 42
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["AboutNodeAlias"] = orig_value
 
     orig_value = gw_dict["RelayState"]
     gw_dict["RelayState"] = 1.1
@@ -97,25 +111,30 @@ def test_gt_dispatch():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.dispatch.110"
+    gw_dict["TypeAlias"] = "gt.dispatch.boolean.local.100"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["ShNodeAlias"] = "a.b-h"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = "a.elt1.relay"
-
     gw_dict["SendTimeUnixMs"] = 1656245000
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["SendTimeUnixMs"] = 1656869326597
+    gw_dict["SendTimeUnixMs"] = 1657025211851
+
+    gw_dict["FromNodeAlias"] = "a.b-h"
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["FromNodeAlias"] = "a.s"
+
+    gw_dict["AboutNodeAlias"] = "a.b-h"
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["AboutNodeAlias"] = "a.elt1.relay"
 
     gw_dict["RelayState"] = 2
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["RelayState"] = 0
+    gw_dict["RelayState"] = 1
 
     # End of Test

@@ -1,12 +1,11 @@
-from data_classes.sh_node import ShNode
-from schema.enums.actor_class.actor_class_map import ActorClass
-
 from actors.atn import Atn
 from actors.boolean_actuator import BooleanActuator
 from actors.home_alone import HomeAlone
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.simple_sensor import SimpleSensor
+from data_classes.sh_node import ShNode
+from schema.enums.actor_class.actor_class_map import ActorClass
 
 switcher = {
     ActorClass.ATN: Atn,

@@ -2,9 +2,11 @@ import enum
 import time
 from typing import Dict, List, Optional
 
-import helpers
+import uuid
 import pendulum
 import settings
+from actors.scada_base import ScadaBase
+from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
@@ -13,31 +15,37 @@ from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
+from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
+    GtDispatchBoolean,
+    GtDispatchBoolean_Maker,
+)
+
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
+    GtDispatchBooleanLocal_Maker,
+    GtDispatchBooleanLocal,
+)
+
 from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
     GtDriverBooleanactuatorCmd,
     GtDriverBooleanactuatorCmd_Maker,
 )
 from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
-    GtShBooleanactuatorCmdStatus_Maker,
     GtShBooleanactuatorCmdStatus,
+    GtShBooleanactuatorCmdStatus_Maker,
 )
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
-    GtShMultipurposeTelemetryStatus_Maker,
-    GtShMultipurposeTelemetryStatus,
-)
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse_Maker,
 )
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
-
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
-    GtShSimpleTelemetryStatus_Maker,
-    GtShSimpleTelemetryStatus,
+from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
+    GtShMultipurposeTelemetryStatus,
+    GtShMultipurposeTelemetryStatus_Maker,
 )
-
+from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
+    GtShSimpleTelemetryStatus,
+    GtShSimpleTelemetryStatus_Maker,
+)
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker, GtShStatus
 from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
     GtShStatusSnapshot,
     GtShStatusSnapshot_Maker,
@@ -47,9 +55,6 @@ from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_mul
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
-
-from actors.scada_base import ScadaBase
-from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class ScadaCmdDiagnostic(enum.Enum):
@@ -88,6 +93,12 @@ class Scada(ScadaBase):
         super(Scada, self).__init__(node=node, logging_on=logging_on)
         now = int(time.time())
         self._last_5_cron_s = now - (now % 300)
+
+        # status_to_store is a placeholder Dict of GtShStatus
+        # objects by StatusUid key that we want to store
+        # (probably about 3 weeks worth) and access on restart
+
+        self.status_to_store: Dict[str:GtShStatus] = {}
         self.power = 0
         self.total_power_w = 0
         self.config: Dict[ShNode, NodeConfig] = {}
@@ -183,8 +194,8 @@ class Scada(ScadaBase):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GsDispatch):
             self.gs_dispatch_received(from_node, payload)
-        elif isinstance(payload, GtDispatch):
-            self.gt_dispatch_received(from_node, payload)
+        elif isinstance(payload, GtDispatchBooleanLocal):
+            self.gt_dispatch_boolean_local_received(from_node, payload)
         elif isinstance(payload, GtTelemetry):
             self.gt_telemetry_received(from_node, payload),
         elif isinstance(payload, GtShTelemetryFromMultipurposeSensor):
@@ -199,6 +210,11 @@ class Scada(ScadaBase):
             raise Exception("Need to track all metering and make sure we have the sum")
         self.total_power_w = payload.Power
         self.gw_publish(payload=payload)
+
+    def gt_dispatch_boolean_local_received(self, payload: GtDispatchBooleanLocal):
+        """This will be a message from HomeAlone, honored when the DispatchContract
+        with the Atn is not live."""
+        raise NotImplementedError
 
     def gt_sh_telemetry_from_multipurpose_sensor_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
@@ -263,11 +279,11 @@ class Scada(ScadaBase):
     def gw_subscriptions(self) -> List[Subscription]:
         return [
             Subscription(
-                Topic=f"{settings.ATN_G_NODE_ALIAS}/{GtDispatch_Maker.type_alias}",
+                Topic=f"{self.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{settings.ATN_G_NODE_ALIAS}/{GtShCliAtnCmd_Maker.type_alias}",
+                Topic=f"{self.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
         ]
@@ -278,8 +294,8 @@ class Scada(ScadaBase):
         if isinstance(payload, GsDispatch):
             self.gs_dispatch_received(from_node, payload)
             return ScadaCmdDiagnostic.SUCCESS
-        elif isinstance(payload, GtDispatch):
-            self.gt_dispatch_received(from_node, payload)
+        elif isinstance(payload, GtDispatchBoolean):
+            self.gt_dispatch_boolean_received(payload)
             return ScadaCmdDiagnostic.SUCCESS
         elif isinstance(payload, GtShCliAtnCmd):
             self.gt_sh_cli_atn_cmd_received(payload)
@@ -291,12 +307,14 @@ class Scada(ScadaBase):
     def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
         raise NotImplementedError
 
-    def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatch):
-        self.screen_print(f"received {payload} from {from_node}")
-        if payload.ShNodeAlias not in ShNode.by_alias.keys():
-            self.screen_print(f"dispatch received for unknnown sh_node {payload.ShNodeAlias}")
+    def gt_dispatch_boolean_received(self, payload: GtDispatchBoolean):
+        """This is a dispatch message received from the atn. It is
+        honored whenever DispatchContract is live."""
+
+        if payload.AboutNodeAlias not in ShNode.by_alias.keys():
+            self.screen_print(f"dispatch received for unknnown sh_node {payload.AboutNodeAlias}")
             return
-        ba = ShNode.by_alias[payload.ShNodeAlias]
+        ba = ShNode.by_alias[payload.AboutNodeAlias]
         if not isinstance(ba.component, BooleanActuatorComponent):
             self.screen_print(f"{ba} must be a BooleanActuator!")
             return
@@ -331,7 +349,11 @@ class Scada(ScadaBase):
             return
 
         snapshot = self.make_status_snapshot()
-        payload = GtShCliScadaResponse_Maker(snapshot=snapshot).tuple
+        payload = GtShCliScadaResponse_Maker(
+            from_g_node_alias=self.scada_g_node_alias,
+            from_g_node_id=self.scada_g_node_id,
+            snapshot=snapshot,
+        ).tuple
         self.gw_publish(payload=payload)
 
     ################################################
@@ -341,8 +363,11 @@ class Scada(ScadaBase):
     def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
-        dispatch_payload = GtDispatch_Maker(
-            relay_state=1, sh_node_alias=ba.alias, send_time_unix_ms=int(time.time() * 1000)
+        dispatch_payload = GtDispatchBooleanLocal_Maker(
+            from_node_alias=self.node.alias,
+            about_node_alias=ba.alias,
+            relay_state=1,
+            send_time_unix_ms=int(time.time() * 1000),
         ).tuple
         self.publish(payload=dispatch_payload)
         self.gw_publish(payload=dispatch_payload)
@@ -352,8 +377,11 @@ class Scada(ScadaBase):
     def turn_off(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
-        dispatch_payload = GtDispatch_Maker(
-            relay_state=0, sh_node_alias=ba.alias, send_time_unix_ms=int(time.time() * 1000)
+        dispatch_payload = GtDispatchBooleanLocal_Maker(
+            from_node_alias=self.node.alias,
+            about_node_alias=ba.alias,
+            relay_state=0,
+            send_time_unix_ms=int(time.time() * 1000),
         ).tuple
         self.publish(payload=dispatch_payload)
         self.gw_publish(payload=dispatch_payload)
@@ -426,16 +454,19 @@ class Scada(ScadaBase):
                 booleanactuator_cmd_list.append(status)
 
         slot_start_unix_s = self._last_5_cron_s
-        payload = GtShStatus_Maker(
-            about_g_node_alias=helpers.ta_g_node_alias(),
+        status = GtShStatus_Maker(
+            from_g_node_alias=self.scada_g_node_alias,
+            from_g_node_id=self.scada_g_node_id,
+            status_uid=str(uuid.uuid4()),
+            about_g_node_alias=self.terminal_asset_g_node_alias,
             slot_start_unix_s=slot_start_unix_s,
             reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
             booleanactuator_cmd_list=booleanactuator_cmd_list,
             multipurpose_telemetry_list=multipurpose_telemetry_list,
             simple_telemetry_list=simple_telemetry_list,
         ).tuple
-        self.payload = payload
-        self.gw_publish(payload)
+        self.status_to_store[status.StatusUid] = status
+        self.gw_publish(status)
         self.flush_latest_readings()
 
     def cron_every_5(self):
