@@ -10,7 +10,11 @@ from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
+
+from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
+    GtDispatchBoolean,
+    GtDispatchBoolean_Maker,
+)
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse_Maker,
 )
@@ -65,11 +69,7 @@ class CloudEar(CloudBase):
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{self.scada_g_node_alias}/{GtDispatch_Maker.type_alias}",
-                Qos=QOS.AtLeastOnce,
-            ),
-            Subscription(
-                Topic=f"{self.atn_g_node_alias}/{GtDispatch_Maker.type_alias}",
+                Topic=f"{self.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
         ]
@@ -80,7 +80,7 @@ class CloudEar(CloudBase):
             self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GtShStatus):
             self.gt_sh_status_received(from_node, payload)
-        elif isinstance(payload, GtDispatch):
+        elif isinstance(payload, GtDispatchBoolean):
             self.gt_dispatch_received(from_node, payload)
 
     def send_to_kafka(self, payload):
@@ -88,11 +88,11 @@ class CloudEar(CloudBase):
         # publish payload.as_type() to topic in Kafka
         pass
 
-    def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatch):
+    def gt_dispatch_received(self, from_node: ShNode, payload: GtDispatchBoolean):
         if self.write_to_csv:
             self.log_dispatch_cmds_to_csv(from_node, payload)
 
-    def log_dispatch_cmds_to_csv(self, from_node: ShNode, payload: GtDispatch):
+    def log_dispatch_cmds_to_csv(self, from_node: ShNode, payload: GtDispatchBoolean):
         time_unix_ms = payload.SendTimeUnixMs
         int_time_unix_s = int(time_unix_ms / 1000)
         ms = int(time_unix_ms) % 1000

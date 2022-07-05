@@ -23,7 +23,7 @@ from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr_Maker
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
+from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
 from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
     GtShBooleanactuatorCmdStatus,
     GtShBooleanactuatorCmdStatus_Maker,
@@ -428,7 +428,7 @@ def test_message_exchange(tmp_path, monkeypatch):
             lambda: len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}"
         )
 
-        topic = f"{scada.atn_g_node_alias}/{GtDispatch_Maker.type_alias}"
+        topic = f"{scada.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"
         print(topic)
         wait_for(
             lambda: ear.num_received_by_topic[topic] > 0, 10, f"ear receipt. {ear.summary_str()}"

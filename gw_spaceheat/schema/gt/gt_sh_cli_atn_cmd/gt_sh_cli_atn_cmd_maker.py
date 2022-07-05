@@ -1,4 +1,4 @@
-"""Makes gt.sh.cli.atn.cmd.100 type"""
+"""Makes gt.sh.cli.atn.cmd.110 type"""
 import json
 
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd import GtShCliAtnCmd
@@ -6,13 +6,17 @@ from schema.errors import MpSchemaError
 
 
 class GtShCliAtnCmd_Maker:
-    type_alias = "gt.sh.cli.atn.cmd.100"
+    type_alias = "gt.sh.cli.atn.cmd.110"
 
     def __init__(self,
-                 send_snapshot: bool):
+                 from_g_node_alias: str,
+                 send_snapshot: bool,
+                 from_g_node_id: str):
 
         gw_tuple = GtShCliAtnCmd(
+            FromGNodeAlias=from_g_node_alias,
             SendSnapshot=send_snapshot,
+            FromGNodeId=from_g_node_id,
             #
         )
         gw_tuple.check_for_errors()
@@ -40,12 +44,18 @@ class GtShCliAtnCmd_Maker:
             new_d[key] = d[key]
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
+        if "FromGNodeAlias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing FromGNodeAlias")
         if "SendSnapshot" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing SendSnapshot")
+        if "FromGNodeId" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing FromGNodeId")
 
         gw_tuple = GtShCliAtnCmd(
             TypeAlias=new_d["TypeAlias"],
+            FromGNodeAlias=new_d["FromGNodeAlias"],
             SendSnapshot=new_d["SendSnapshot"],
+            FromGNodeId=new_d["FromGNodeId"],
             #
         )
         gw_tuple.check_for_errors()

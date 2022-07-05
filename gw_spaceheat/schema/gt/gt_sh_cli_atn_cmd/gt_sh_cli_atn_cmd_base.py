@@ -1,11 +1,14 @@
-"""Base for gt.sh.cli.atn.cmd.100"""
+"""Base for gt.sh.cli.atn.cmd.110"""
 import json
 from typing import List, NamedTuple
+import schema.property_format as property_format
 
 
 class GtShCliAtnCmdBase(NamedTuple):
+    FromGNodeAlias: str  #
     SendSnapshot: bool  #
-    TypeAlias: str = "gt.sh.cli.atn.cmd.100"
+    FromGNodeId: str  #
+    TypeAlias: str = "gt.sh.cli.atn.cmd.110"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -16,13 +19,31 @@ class GtShCliAtnCmdBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
+        if not isinstance(self.FromGNodeAlias, str):
+            errors.append(
+                f"FromGNodeAlias {self.FromGNodeAlias} must have type str."
+            )
+        if not property_format.is_lrd_alias_format(self.FromGNodeAlias):
+            errors.append(
+                f"FromGNodeAlias {self.FromGNodeAlias}"
+                " must have format LrdAliasFormat"
+            )
         if not isinstance(self.SendSnapshot, bool):
             errors.append(
                 f"SendSnapshot {self.SendSnapshot} must have type bool."
             )
-        if self.TypeAlias != "gt.sh.cli.atn.cmd.100":
+        if not isinstance(self.FromGNodeId, str):
             errors.append(
-                f"Type requires TypeAlias of gt.sh.cli.atn.cmd.100, not {self.TypeAlias}."
+                f"FromGNodeId {self.FromGNodeId} must have type str."
+            )
+        if not property_format.is_uuid_canonical_textual(self.FromGNodeId):
+            errors.append(
+                f"FromGNodeId {self.FromGNodeId}"
+                " must have format UuidCanonicalTextual"
+            )
+        if self.TypeAlias != "gt.sh.cli.atn.cmd.110":
+            errors.append(
+                f"Type requires TypeAlias of gt.sh.cli.atn.cmd.110, not {self.TypeAlias}."
             )
 
         return errors

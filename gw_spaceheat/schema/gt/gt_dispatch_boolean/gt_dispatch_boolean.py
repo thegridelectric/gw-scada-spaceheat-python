@@ -1,17 +1,17 @@
-"""gt.dispatch.110 type"""
+"""gt.dispatch.boolean.100 type"""
 
 from schema.errors import MpSchemaError
-from schema.gt.gt_dispatch.gt_dispatch_base import (
-    GtDispatchBase,
+from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_base import (
+    GtDispatchBooleanBase,
 )
 
 
-class GtDispatch(GtDispatchBase):
+class GtDispatchBoolean(GtDispatchBooleanBase):
     def check_for_errors(self):
         errors = self.derived_errors() + self.hand_coded_errors()
         if len(errors) > 0:
             raise MpSchemaError(
-                f" Errors making making gt.dispatch.110 for {self}: {errors}"
+                f" Errors making making gt.dispatch.boolean.100 for {self}: {errors}"
             )
 
     def hand_coded_errors(self):
