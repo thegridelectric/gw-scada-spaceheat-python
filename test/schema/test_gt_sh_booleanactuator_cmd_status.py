@@ -1,21 +1,21 @@
-"""Tests gt.dispatch.110 type"""
+"""Tests gt.sh.booleanactuator.cmd.status.100 type"""
 import json
 
 import pytest
 
 from schema.errors import MpSchemaError
-from schema.gt.gt_dispatch.gt_dispatch_maker import (
-    GtDispatch_Maker as Maker,
+from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
+    GtShBooleanactuatorCmdStatus_Maker as Maker,
 )
 
 
-def test_gt_dispatch():
+def test_gt_sh_booleanactuator_cmd_status():
 
     gw_dict = {
         "ShNodeAlias": "a.elt1.relay",
-        "SendTimeUnixMs": 1656869326597,
-        "RelayState": 0,
-        "TypeAlias": "gt.dispatch.110",
+        "RelayStateCommandList": [0],
+        "CommandTimeUnixMsList": [1656443704800],
+        "TypeAlias": "gt.sh.booleanactuator.cmd.status.100",
     }
 
     with pytest.raises(MpSchemaError):
@@ -34,8 +34,8 @@ def test_gt_dispatch():
     # test Maker init
     t = Maker(
         sh_node_alias=gw_tuple.ShNodeAlias,
-        send_time_unix_ms=gw_tuple.SendTimeUnixMs,
-        relay_state=gw_tuple.RelayState,
+        relay_state_command_list=gw_tuple.RelayStateCommandList,
+        command_time_unix_ms_list=gw_tuple.CommandTimeUnixMsList,
         #
     ).tuple
     assert t == gw_tuple
@@ -56,17 +56,17 @@ def test_gt_dispatch():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = orig_value
 
-    orig_value = gw_dict["SendTimeUnixMs"]
-    del gw_dict["SendTimeUnixMs"]
+    orig_value = gw_dict["RelayStateCommandList"]
+    del gw_dict["RelayStateCommandList"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["SendTimeUnixMs"] = orig_value
+    gw_dict["RelayStateCommandList"] = orig_value
 
-    orig_value = gw_dict["RelayState"]
-    del gw_dict["RelayState"]
+    orig_value = gw_dict["CommandTimeUnixMsList"]
+    del gw_dict["CommandTimeUnixMsList"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["RelayState"] = orig_value
+    gw_dict["CommandTimeUnixMsList"] = orig_value
 
     ######################################
     # MpSchemaError raised if attributes have incorrect type
@@ -78,17 +78,23 @@ def test_gt_dispatch():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = orig_value
 
-    orig_value = gw_dict["SendTimeUnixMs"]
-    gw_dict["SendTimeUnixMs"] = 1.1
+    orig_value = gw_dict["RelayStateCommandList"]
+    gw_dict["RelayStateCommandList"] = "This string is not a list."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["SendTimeUnixMs"] = orig_value
+    gw_dict["RelayStateCommandList"] = [1.1]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["RelayStateCommandList"] = orig_value
 
-    orig_value = gw_dict["RelayState"]
-    gw_dict["RelayState"] = 1.1
+    orig_value = gw_dict["CommandTimeUnixMsList"]
+    gw_dict["CommandTimeUnixMsList"] = "This string is not a list."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["RelayState"] = orig_value
+    gw_dict["CommandTimeUnixMsList"] = [1.1]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["CommandTimeUnixMsList"] = orig_value
 
     ######################################
     # MpSchemaError raised if TypeAlias is incorrect
@@ -97,7 +103,7 @@ def test_gt_dispatch():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.dispatch.110"
+    gw_dict["TypeAlias"] = "gt.sh.booleanactuator.cmd.status.100"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
@@ -108,14 +114,14 @@ def test_gt_dispatch():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = "a.elt1.relay"
 
-    gw_dict["SendTimeUnixMs"] = 1656245000
+    gw_dict["RelayStateCommandList"] = [2]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["SendTimeUnixMs"] = 1656869326597
+    gw_dict["RelayStateCommandList"] = [0]
 
-    gw_dict["RelayState"] = 2
+    gw_dict["CommandTimeUnixMsList"] = [1656245000]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["RelayState"] = 0
+    gw_dict["CommandTimeUnixMsList"] = [1656443704800]
 
     # End of Test

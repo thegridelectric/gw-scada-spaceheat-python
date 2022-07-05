@@ -83,9 +83,12 @@ class CloudBase(ABC):
             (from_alias, type_alias) = message.topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if from_alias != helpers.scada_g_node_alias():
-            raise Exception(f"alias {from_alias} not my Scada!")
-        from_node = ShNode.by_alias["a.s"]
+        if from_alias != helpers.scada_g_node_alias() and from_alias != helpers.atn_g_node_alias():
+            raise Exception(f"alias {from_alias} not my Scada or Atn!")
+        if from_alias == helpers.scada_g_node_alias():
+            from_node = ShNode.by_alias["a.s"]
+        else:
+            from_node = ShNode.by_alias["a"]
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"

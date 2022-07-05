@@ -3,9 +3,14 @@ import os
 import time
 import typing
 from collections import defaultdict
-
+import helpers
 import load_house
 import pytest
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch_Maker
+from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
+    GtShBooleanactuatorCmdStatus_Maker,
+    GtShBooleanactuatorCmdStatus,
+)
 import schema.property_format
 import settings
 from actors.atn import Atn
@@ -23,8 +28,13 @@ from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import GtShCliScadaResponse
 from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
-from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status import GtShSimpleSingleStatus
-from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import GtShSimpleStatus
+from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
+    GtShSimpleTelemetryStatus,
+)
+from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
+    GtShMultipurposeTelemetryStatus,
+)
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
@@ -257,7 +267,7 @@ def test_load_house():
 #             pass
 
 
-def test_scada_sends_status():
+def test_scada_ear_connection():
     logging_on = False
     load_house.load_all()
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"], logging_on=logging_on)
@@ -289,8 +299,8 @@ def test_scada_sends_status():
         wait_for(_scada_received_telemetry, 5)
         for unix_ms in scada.recent_simple_read_times_unix_ms[thermo0_node]:
             assert schema.property_format.is_reasonable_unix_time_ms(unix_ms)
-        single_status = scada.make_single_status_for_simple(thermo0_node)
-        assert isinstance(single_status, GtShSimpleSingleStatus)
+        single_status = scada.make_simple_telemetry_status(thermo0_node)
+        assert isinstance(single_status, GtShSimpleTelemetryStatus)
         assert single_status.TelemetryName == scada.config[thermo0_node].reporting.TelemetryName
         assert (
             single_status.ReadTimeUnixMsList == scada.recent_simple_read_times_unix_ms[thermo0_node]
@@ -300,18 +310,21 @@ def test_scada_sends_status():
 
         scada.send_status()
         time.sleep(1)
+        # why doesn't this work??
+        # wait_for(ear.num_received > 0, 5)
         assert ear.num_received > 0
         scada_g_node_alias = f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
-        assert ear.num_received_by_topic[f"{scada_g_node_alias}/gt.sh.simple.status.100"] == 1
-        assert isinstance(ear.latest_payload, GtShSimpleStatus)
-        single_status_list = ear.latest_payload.SimpleSingleStatusList
-        assert len(single_status_list) > 0
-        node_alias_list = list(map(lambda x: x.ShNodeAlias, single_status_list))
+        assert ear.num_received_by_topic[f"{scada_g_node_alias}/{GtShStatus_Maker.type_alias}"] == 1
+        assert isinstance(ear.latest_payload, GtShStatus)
+        simple_telemetry_list = ear.latest_payload.SimpleTelemetryList
+        assert len(simple_telemetry_list) > 0
+        node_alias_list = list(map(lambda x: x.ShNodeAlias, simple_telemetry_list))
         assert "a.tank.temp0" in node_alias_list
         thermo0_idx = node_alias_list.index("a.tank.temp0")
-        telemetry_name_list = list(map(lambda x: x.TelemetryName, single_status_list))
+        telemetry_name_list = list(map(lambda x: x.TelemetryName, simple_telemetry_list))
         assert telemetry_name_list[thermo0_idx] == TelemetryName.WATER_TEMP_F_TIMES1000
         assert ear.latest_payload.ReportingPeriodS == 300
+
     finally:
         # noinspection PyBroadException
         try:
@@ -398,11 +411,11 @@ def test_message_exchange(tmp_path, monkeypatch):
                     1,
                     tag=f"ERROR waiting for {actor.node.alias} client connect",
                 )
-            if hasattr(actor, "qw_client"):
+            if hasattr(actor, "gw_client"):
                 wait_for(
                     actor.gw_client.is_connected,
                     1,
-                    f"ERROR waiting for {actor.node.alias} gw_client connect",
+                    "ERROR waiting for gw_client connect",
                 )
         atn.turn_on(ShNode.by_alias["a.elt1.relay"])
         wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
@@ -410,9 +423,18 @@ def test_message_exchange(tmp_path, monkeypatch):
         wait_for(
             lambda: atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}"
         )
+
         wait_for(
             lambda: len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}"
         )
+
+        topic = f"{helpers.atn_g_node_alias()}/{GtDispatch_Maker.type_alias}"
+        print(topic)
+        wait_for(
+            lambda: ear.num_received_by_topic[topic] > 0, 10, f"ear receipt. {ear.summary_str()}"
+        )
+        assert ear.num_received_by_topic[topic] > 0
+
         wait_for(
             lambda: scada.num_received_by_topic["a.elt1.relay/gt.telemetry.110"] > 0,
             10,
@@ -430,7 +452,9 @@ def test_message_exchange(tmp_path, monkeypatch):
         )
 
         atn.turn_off(ShNode.by_alias["a.elt1.relay"])
-        wait_for(lambda: int(elt_relay.relay_state) == 0, 10, f"Relay state {elt_relay.relay_state}")
+        wait_for(
+            lambda: int(elt_relay.relay_state) == 0, 10, f"Relay state {elt_relay.relay_state}"
+        )
 
     finally:
         for actor in actors:
@@ -439,6 +463,7 @@ def test_message_exchange(tmp_path, monkeypatch):
                 actor.stop()
             except:
                 pass
+
 
 ###################
 # Small Tests
@@ -453,13 +478,17 @@ def test_scada_small():
     load_house.load_all()
     scada = Scada(node=ShNode.by_alias["a.s"])
     meter_node = ShNode.by_alias["a.m"]
+    relay_node = ShNode.by_alias["a.elt1.relay"]
+    temp_node = ShNode.by_alias["a.tank.temp0"]
+    assert list(scada.recent_ba_cmds.keys()) == scada.my_boolean_actuators()
+    assert list(scada.recent_ba_cmd_times_unix_ms.keys()) == scada.my_boolean_actuators()
     assert list(scada.latest_simple_value.keys()) == scada.my_simple_sensors()
     assert list(scada.recent_simple_values.keys()) == scada.my_simple_sensors()
     assert list(scada.recent_simple_read_times_unix_ms.keys()) == scada.my_simple_sensors()
-    assert list(scada.latest_value_from_multifunction_sensor.keys()) == scada.my_telemetry_tuples()
-    assert list(scada.recent_values_from_multifunction_sensor.keys()) == scada.my_telemetry_tuples()
+    assert list(scada.latest_value_from_multipurpose_sensor.keys()) == scada.my_telemetry_tuples()
+    assert list(scada.recent_values_from_multipurpose_sensor.keys()) == scada.my_telemetry_tuples()
     assert (
-        list(scada.recent_read_times_unix_ms_from_multifunction_sensor.keys())
+        list(scada.recent_read_times_unix_ms_from_multipurpose_sensor.keys())
         == scada.my_telemetry_tuples()
     )
 
@@ -481,81 +510,146 @@ def test_scada_small():
     # and so we have control over what they are.
 
     with pytest.raises(Exception):
-        scada.on_message(from_node=meter_node, payload='garbage')
+        scada.on_message(from_node=meter_node, payload="garbage")
 
     # Test on_gw_message getting a payload it does not recognize
 
-    res = scada.on_gw_message(payload='garbage')
+    res = scada.on_gw_message(payload="garbage")
     assert res == ScadaCmdDiagnostic.PAYLOAD_NOT_IMPLEMENTED
 
+    #################################
+    # Testing messages received locally
+    #################################
+
     with pytest.raises(Exception):
-        boost = ShNode.by_alias['a.elt1.relay']
+        boost = ShNode.by_alias["a.elt1.relay"]
         payload = GsPwr_Maker(power=2100)
         scada.gs_pwr_received(from_node=boost, payload=payload)
 
-    s = scada.make_single_status_for_simple(node='garbage')
-    assert s is None
-
-    tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
-        SensorNode=ShNode.by_alias["a.m"],
-        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-    )
-    scada.recent_values_from_multifunction_sensor[tt] = [72000]
-    scada.recent_read_times_unix_ms_from_multifunction_sensor[tt] = [int(time.time() * 1000)]
-    s = scada.make_single_status_for_multipurpose(tt=tt)
-    assert isinstance(s, GtShSimpleSingleStatus)
-    s = scada.make_single_status_for_multipurpose(tt='garbage')
-    assert s is None
-
-    scada._last_5_cron_s = int(time.time() - 400)
-    assert scada.time_for_5_cron() is True
+    # Testing gt_sh_telemetry_from_multipurpose_sensor_received
 
     payload = GtShTelemetryFromMultipurposeSensor_Maker(
-        about_node_alias_list=['a.unknown'],
+        about_node_alias_list=["a.unknown"],
         scada_read_time_unix_ms=int(time.time() * 1000),
         value_list=[17000],
-        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS]
-    )
+        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS],
+    ).tuple
 
     # throws error if AboutNode is unknown
     with pytest.raises(Exception):
         scada.gt_sh_telemetry_from_multipurpose_sensor_received(
-            from_node=meter_node,
-            payload=payload
+            from_node=meter_node, payload=payload
         )
 
+    # Testing gt_driver_booleanactuator_cmd_record_received
+
+    # throws error if it gets a GtDriverBooleanactuatorCmd from
+    # a node that is NOT a boolean actuator
+
+    with pytest.raises(Exception):
+        scada.gt_driver_booleanactuator_cmd_record_received(meter_node, payload)
+
+    elt_relay_node = ShNode.by_alias["a.elt1.relay"]
+
+    # Throws error if the ShNodeAlias is not equal to the from_node.
+
+    with pytest.raises(Exception):
+        scada.gt_driver_booleanactuator_cmd_record_received(elt_relay_node, payload)
+
     payload = GtShTelemetryFromMultipurposeSensor_Maker(
-        about_node_alias_list=['a.tank'],
+        about_node_alias_list=["a.tank"],
         scada_read_time_unix_ms=int(time.time() * 1000),
         value_list=[17000],
-        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS]
+        telemetry_name_list=[TelemetryName.CURRENT_RMS_MICRO_AMPS],
     )
 
     # throws error if it does not track the telemetry tuple. In this
     # example, the telemetry tuple would have the electric meter
     # as the sensor node, reading amps for a water tank
+
     with pytest.raises(Exception):
         scada.gt_sh_telemetry_from_multipurpose_sensor_received(
-            from_node=meter_node,
-            payload=payload
+            from_node=meter_node, payload=payload
         )
 
     payload = GtTelemetry_Maker(
         scada_read_time_unix_ms=int(time.time() * 1000),
         value=67000,
         exponent=3,
-        name=TelemetryName.WATER_TEMP_F_TIMES1000
+        name=TelemetryName.WATER_TEMP_F_TIMES1000,
     )
 
     # throws error if it receives a GtTelemetry reading
     # from a sensor which is not in its simple sensor list
     # - for example, like the multipurpose electricity meter
     with pytest.raises(Exception):
-        scada.gt_telemetry_received(
-            from_node=meter_node,
-            payload=payload
-        )
+        scada.gt_telemetry_received(from_node=meter_node, payload=payload)
+
+    ###########################################
+    # Testing making status messages
+    ###########################################
+
+    s = scada.make_simple_telemetry_status(node="garbage")
+    assert s is None
+
+    scada.recent_simple_read_times_unix_ms[temp_node] = [int(time.time() * 1000)]
+    scada.recent_simple_values[temp_node] = [63000]
+    s = scada.make_simple_telemetry_status(temp_node)
+    assert isinstance(s, GtShSimpleTelemetryStatus)
+
+    tt = TelemetryTuple(
+        AboutNode=ShNode.by_alias["a.elt1"],
+        SensorNode=ShNode.by_alias["a.m"],
+        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+    )
+    scada.recent_values_from_multipurpose_sensor[tt] = [72000]
+    scada.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [int(time.time() * 1000)]
+    s = scada.make_multipurpose_telemetry_status(tt=tt)
+    assert isinstance(s, GtShMultipurposeTelemetryStatus)
+    s = scada.make_multipurpose_telemetry_status(tt="garbage")
+    assert s is None
+
+    scada.recent_ba_cmds[relay_node] = []
+    scada.recent_ba_cmd_times_unix_ms[relay_node] = []
+
+    # returns None if asked make boolean actuator status for
+    # a node that is not a boolean actuator
+
+    s = scada.make_booleanactuator_cmd_status(meter_node)
+    assert s is None
+
+    s = scada.make_booleanactuator_cmd_status(relay_node)
+    assert s is None
+
+    scada.recent_ba_cmds[relay_node] = [0]
+    scada.recent_ba_cmd_times_unix_ms[relay_node] = [int(time.time() * 1000)]
+    s = scada.make_booleanactuator_cmd_status(relay_node)
+    assert isinstance(s, GtShBooleanactuatorCmdStatus)
+
+    payload = GtShBooleanactuatorCmdStatus_Maker(
+        sh_node_alias="a.m", relay_state_command_list=[], command_time_unix_ms_list=[]
+    ).tuple
+
+    scada.send_status()
+
+    ##################################
+    # Testing actuation
+    ##################################
+
+    # test that turn_on and turn_off only work for boolean actuator nodes
+
+    result = scada.turn_on(meter_node)
+    assert result == ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+    result = scada.turn_off(meter_node)
+    assert result == ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+
+    #################################
+    # Other SCADA small tests
+    ##################################
+
+    scada._last_5_cron_s = int(time.time() - 400)
+    assert scada.time_for_5_cron() is True
+
 
 ###################
 # PowerMeter small tests

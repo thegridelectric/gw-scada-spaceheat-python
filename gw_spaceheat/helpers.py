@@ -25,6 +25,10 @@ def get_secret(key):
     return value
 
 
+def atn_g_node_alias():
+    return settings.ATN_G_NODE_ALIAS
+
+
 def scada_g_node_alias():
     return f"{settings.ATN_G_NODE_ALIAS}.ta.scada"
 

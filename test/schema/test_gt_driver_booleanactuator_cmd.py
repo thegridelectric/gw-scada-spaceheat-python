@@ -1,22 +1,21 @@
-"""Tests gt.sh.simple.single.status.100 type"""
+"""Tests gt.driver.booleanactuator.cmd.100 type"""
 import json
 
 import pytest
 
 from schema.errors import MpSchemaError
-from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status_maker import (
-    GtShSimpleSingleStatus_Maker as Maker,
+from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
+    GtDriverBooleanactuatorCmd_Maker as Maker,
 )
 
 
-def test_gt_sh_simple_single_status():
+def test_gt_driver_booleanactuator_cmd():
 
     gw_dict = {
-        "ReadTimeUnixMsList": [1656443705023],
+        "RelayState": 0,
         "ShNodeAlias": "a.elt1.relay",
-        "ValueList": [0],
-        "TelemetryNameGtEnumSymbol": "5a71d4b3",
-        "TypeAlias": "gt.sh.simple.single.status.100",
+        "CommandTimeUnixMs": 1656869326637,
+        "TypeAlias": "gt.driver.booleanactuator.cmd.100",
     }
 
     with pytest.raises(MpSchemaError):
@@ -34,10 +33,9 @@ def test_gt_sh_simple_single_status():
 
     # test Maker init
     t = Maker(
-        read_time_unix_ms_list=gw_tuple.ReadTimeUnixMsList,
-        telemetry_name=gw_tuple.TelemetryName,
+        relay_state=gw_tuple.RelayState,
         sh_node_alias=gw_tuple.ShNodeAlias,
-        value_list=gw_tuple.ValueList,
+        command_time_unix_ms=gw_tuple.CommandTimeUnixMs,
         #
     ).tuple
     assert t == gw_tuple
@@ -52,17 +50,11 @@ def test_gt_sh_simple_single_status():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = orig_value
 
-    orig_value = gw_dict["ReadTimeUnixMsList"]
-    del gw_dict["ReadTimeUnixMsList"]
+    orig_value = gw_dict["RelayState"]
+    del gw_dict["RelayState"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReadTimeUnixMsList"] = orig_value
-
-    orig_value = gw_dict["TelemetryNameGtEnumSymbol"]
-    del gw_dict["TelemetryNameGtEnumSymbol"]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TelemetryNameGtEnumSymbol"] = orig_value
+    gw_dict["RelayState"] = orig_value
 
     orig_value = gw_dict["ShNodeAlias"]
     del gw_dict["ShNodeAlias"]
@@ -70,32 +62,21 @@ def test_gt_sh_simple_single_status():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = orig_value
 
-    orig_value = gw_dict["ValueList"]
-    del gw_dict["ValueList"]
+    orig_value = gw_dict["CommandTimeUnixMs"]
+    del gw_dict["CommandTimeUnixMs"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ValueList"] = orig_value
+    gw_dict["CommandTimeUnixMs"] = orig_value
 
     ######################################
     # MpSchemaError raised if attributes have incorrect type
     ######################################
 
-    orig_value = gw_dict["ReadTimeUnixMsList"]
-    gw_dict["ReadTimeUnixMsList"] = "This string is not a list."
+    orig_value = gw_dict["RelayState"]
+    gw_dict["RelayState"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReadTimeUnixMsList"] = [1.1]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReadTimeUnixMsList"] = orig_value
-
-    with pytest.raises(MpSchemaError):
-        Maker(
-            read_time_unix_ms_list=gw_tuple.ReadTimeUnixMsList,
-            sh_node_alias=gw_tuple.ShNodeAlias,
-            value_list=gw_tuple.ValueList,
-            telemetry_name="This is not a TelemetryName Enum.",
-        )
+    gw_dict["RelayState"] = orig_value
 
     orig_value = gw_dict["ShNodeAlias"]
     gw_dict["ShNodeAlias"] = 42
@@ -103,14 +84,11 @@ def test_gt_sh_simple_single_status():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = orig_value
 
-    orig_value = gw_dict["ValueList"]
-    gw_dict["ValueList"] = "This string is not a list."
+    orig_value = gw_dict["CommandTimeUnixMs"]
+    gw_dict["CommandTimeUnixMs"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ValueList"] = [1.1]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ValueList"] = orig_value
+    gw_dict["CommandTimeUnixMs"] = orig_value
 
     ######################################
     # MpSchemaError raised if TypeAlias is incorrect
@@ -119,20 +97,25 @@ def test_gt_sh_simple_single_status():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.sh.simple.single.status.100"
+    gw_dict["TypeAlias"] = "gt.driver.booleanactuator.cmd.100"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["ReadTimeUnixMsList"] = [1656245000]
+    gw_dict["RelayState"] = 2
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReadTimeUnixMsList"] = [1656443705023]
+    gw_dict["RelayState"] = 0
 
     gw_dict["ShNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ShNodeAlias"] = "a.elt1.relay"
+
+    gw_dict["CommandTimeUnixMs"] = 1656245000
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["CommandTimeUnixMs"] = 1656869326637
 
     # End of Test

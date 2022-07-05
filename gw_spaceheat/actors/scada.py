@@ -1,5 +1,5 @@
-import time
 import enum
+import time
 from typing import Dict, List, Optional
 
 import helpers
@@ -14,23 +14,37 @@ from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
+from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
+    GtDriverBooleanactuatorCmd,
+    GtDriverBooleanactuatorCmd_Maker,
+)
+from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
+    GtShBooleanactuatorCmdStatus_Maker,
+    GtShBooleanactuatorCmdStatus,
+)
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
+from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
+    GtShMultipurposeTelemetryStatus_Maker,
+    GtShMultipurposeTelemetryStatus,
+)
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse_Maker,
 )
-from schema.gt.gt_sh_simple_single_status.gt_sh_simple_single_status_maker import (
-    GtShSimpleSingleStatus,
-    GtShSimpleSingleStatus_Maker,
-)
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
-    GtShTelemetryFromMultipurposeSensor_Maker,
-    GtShTelemetryFromMultipurposeSensor,
+
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
+
+from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
+    GtShSimpleTelemetryStatus_Maker,
+    GtShSimpleTelemetryStatus,
 )
 
-from schema.gt.gt_sh_simple_status.gt_sh_simple_status_maker import GtShSimpleStatus_Maker
 from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
     GtShStatusSnapshot,
     GtShStatusSnapshot_Maker,
+)
+from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
+    GtShTelemetryFromMultipurposeSensor,
+    GtShTelemetryFromMultipurposeSensor_Maker,
 )
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 
@@ -41,9 +55,15 @@ from actors.utils import QOS, Subscription, responsive_sleep
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
     PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
+    DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR = "DispatchNodeNotBooleanActuator"
 
 
 class Scada(ScadaBase):
+    @classmethod
+    def my_boolean_actuators(cls) -> List[ShNode]:
+        all_nodes = list(ShNode.by_alias.values())
+        return list(filter(lambda x: (x.role == Role.BOOLEAN_ACTUATOR), all_nodes))
+
     @classmethod
     def my_simple_sensors(cls) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
@@ -82,15 +102,21 @@ class Scada(ScadaBase):
             node: [] for node in self.my_simple_sensors()
         }
 
-        self.latest_value_from_multifunction_sensor: Dict[TelemetryTuple, int] = {
+        self.latest_value_from_multipurpose_sensor: Dict[TelemetryTuple, int] = {
             tt: None for tt in self.my_telemetry_tuples()
         }
-        self.recent_values_from_multifunction_sensor: Dict[TelemetryTuple, List] = {
+        self.recent_values_from_multipurpose_sensor: Dict[TelemetryTuple, List] = {
             tt: [] for tt in self.my_telemetry_tuples()
         }
-        self.recent_read_times_unix_ms_from_multifunction_sensor: Dict[TelemetryTuple, List] = {
+        self.recent_read_times_unix_ms_from_multipurpose_sensor: Dict[TelemetryTuple, List] = {
             tt: [] for tt in self.my_telemetry_tuples()
         }
+        self.recent_ba_cmds: Dict[ShNode, List] = {node: [] for node in self.my_boolean_actuators()}
+
+        self.recent_ba_cmd_times_unix_ms: Dict[ShNode, List] = {
+            node: [] for node in self.my_boolean_actuators()
+        }
+
         self.flush_latest_readings()
         self.screen_print(f"Initialized {self.__class__}")
 
@@ -98,10 +124,13 @@ class Scada(ScadaBase):
         self.recent_simple_values = {node: [] for node in self.my_simple_sensors()}
         self.recent_simple_read_times_unix_ms = {node: [] for node in self.my_simple_sensors()}
 
-        self.recent_values_from_multifunction_sensor = {tt: [] for tt in self.my_telemetry_tuples()}
-        self.recent_read_times_unix_ms_from_multifunction_sensor = {
+        self.recent_values_from_multipurpose_sensor = {tt: [] for tt in self.my_telemetry_tuples()}
+        self.recent_read_times_unix_ms_from_multipurpose_sensor = {
             tt: [] for tt in self.my_telemetry_tuples()
         }
+
+        self.recent_ba_cmds = {node: [] for node in self.my_boolean_actuators()}
+        self.recent_ba_cmd_times_unix_ms = {node: [] for node in self.my_boolean_actuators()}
 
     def init_node_configs(self):
         for node in self.my_simple_sensors():
@@ -138,6 +167,15 @@ class Scada(ScadaBase):
                     Qos=QOS.AtLeastOnce,
                 )
             )
+
+        for node in self.my_boolean_actuators():
+            my_subscriptions.append(
+                Subscription(
+                    Topic=f"{node.alias}/{GtDriverBooleanactuatorCmd_Maker.type_alias}",
+                    Qos=QOS.AtLeastOnce,
+                )
+            )
+
         return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
@@ -151,6 +189,8 @@ class Scada(ScadaBase):
             self.gt_telemetry_received(from_node, payload),
         elif isinstance(payload, GtShTelemetryFromMultipurposeSensor):
             self.gt_sh_telemetry_from_multipurpose_sensor_received(from_node, payload)
+        elif isinstance(payload, GtDriverBooleanactuatorCmd):
+            self.gt_driver_booleanactuator_cmd_record_received(from_node, payload)
         else:
             raise Exception(f"{payload} subscription not implemented!")
 
@@ -178,11 +218,11 @@ class Scada(ScadaBase):
                 )
                 if tt not in self.my_telemetry_tuples():
                     raise Exception(f"Scada not tracking telemetry tuple {tt}!")
-                self.recent_values_from_multifunction_sensor[tt].append(payload.ValueList[idx])
-                self.recent_read_times_unix_ms_from_multifunction_sensor[tt].append(
+                self.recent_values_from_multipurpose_sensor[tt].append(payload.ValueList[idx])
+                self.recent_read_times_unix_ms_from_multipurpose_sensor[tt].append(
                     payload.ScadaReadTimeUnixMs
                 )
-                self.latest_value_from_multifunction_sensor[tt] = payload.ValueList[idx]
+                self.latest_value_from_multipurpose_sensor[tt] = payload.ValueList[idx]
 
     def gt_telemetry_received(self, from_node: ShNode, payload: GtTelemetry):
         if from_node in self.my_simple_sensors():
@@ -191,6 +231,34 @@ class Scada(ScadaBase):
             self.latest_simple_value[from_node] = payload.Value
         else:
             raise Exception(f"Scada not tracking SimpleSensor readings from {from_node}!")
+
+    def gt_driver_booleanactuator_cmd_record_received(
+        self, from_node: ShNode, payload: GtDriverBooleanactuatorCmd
+    ):
+        """The boolean actuator actor reports when it has sent an actuation command
+        to its driver. We add this to information to be sent up in the 5 minute status
+        package.
+
+        This is different than reporting a _reading_ of the state of the
+        actuator. Note that a reading of the state of the actuator may not mean the relay
+        is in the read position. For example, the NCD relay requires two power sources - one
+        from the Pi and one a lowish DC voltage from another plug (12 or 24V). If the second
+        power source is off, the relay will still report being on when it is actually off.
+
+        Note also that the thing getting actuated (for example the boost element in the water
+        tank) may not be getting any power because of another relay in series. For example, we
+        can throw a large 240V breaker in the test garage and the NCD relay will actuate without
+        the boost element turning on. Or the element could be burned out.
+
+        So measuring the current and/or power of the thing getting
+        actuated is really the best test."""
+
+        if from_node not in self.my_boolean_actuators():
+            raise Exception("boolean actuator command records must come from boolean actuator")
+        if from_node.alias != payload.ShNodeAlias:
+            raise Exception("Command record must come from the boolean actuator actor")
+        self.recent_ba_cmds[from_node].append(payload.RelayState)
+        self.recent_ba_cmd_times_unix_ms[from_node].append(payload.CommandTimeUnixMs)
 
     def gw_subscriptions(self) -> List[Subscription]:
         return [
@@ -234,10 +302,8 @@ class Scada(ScadaBase):
             return
         if payload.RelayState == 1:
             self.turn_on(ba)
-            self.screen_print(f"Dispatched {ba.alias}  on")
         else:
             self.turn_off(ba)
-            self.screen_print(f"Dispatched {ba.alias} off")
 
     def make_status_snapshot(self) -> GtShStatusSnapshot:
         about_node_alias_list = []
@@ -249,9 +315,9 @@ class Scada(ScadaBase):
                 value_list.append(self.latest_simple_value[node])
                 telemetry_name_list.append(self.config[node].reporting.TelemetryName)
         for tt in self.my_telemetry_tuples():
-            if self.latest_value_from_multifunction_sensor[tt] is not None:
+            if self.latest_value_from_multipurpose_sensor[tt] is not None:
                 about_node_alias_list.append(tt.AboutNode.alias)
-                value_list.append(self.latest_value_from_multifunction_sensor[tt])
+                value_list.append(self.latest_value_from_multipurpose_sensor[tt])
                 telemetry_name_list.append(tt.TelemetryName)
         return GtShStatusSnapshot_Maker(
             about_node_alias_list=about_node_alias_list,
@@ -272,26 +338,36 @@ class Scada(ScadaBase):
     # Primary functions
     ###############################################
 
-    def turn_on(self, ba: ShNode):
+    def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
         if not isinstance(ba.component, BooleanActuatorComponent):
-            raise Exception(f"{ba} must be a BooleanActuator!")
-        dispatch_payload = GtDispatch_Maker(relay_state=1, sh_node_alias=ba.alias).tuple
+            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+        dispatch_payload = GtDispatch_Maker(
+            relay_state=1, sh_node_alias=ba.alias, send_time_unix_ms=int(time.time() * 1000)
+        ).tuple
         self.publish(payload=dispatch_payload)
+        self.gw_publish(payload=dispatch_payload)
+        self.screen_print(f"Dispatched {ba.alias}  on")
+        return ScadaCmdDiagnostic.SUCCESS
 
     def turn_off(self, ba: ShNode):
         if not isinstance(ba.component, BooleanActuatorComponent):
-            raise Exception(f"{ba} must be a BooleanActuator!")
-        dispatch_payload = GtDispatch_Maker(relay_state=0, sh_node_alias=ba.alias).tuple
+            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+        dispatch_payload = GtDispatch_Maker(
+            relay_state=0, sh_node_alias=ba.alias, send_time_unix_ms=int(time.time() * 1000)
+        ).tuple
         self.publish(payload=dispatch_payload)
+        self.gw_publish(payload=dispatch_payload)
+        self.screen_print(f"Dispatched {ba.alias} off")
+        return ScadaCmdDiagnostic.SUCCESS
 
-    def make_single_status_for_simple(self, node: ShNode) -> Optional[GtShSimpleSingleStatus]:
+    def make_simple_telemetry_status(self, node: ShNode) -> Optional[GtShSimpleTelemetryStatus]:
         if node in self.my_simple_sensors():
             if len(self.recent_simple_values[node]) == 0:
                 return None
             read_time_unix_ms_list = self.recent_simple_read_times_unix_ms[node]
             value_list = self.recent_simple_values[node]
             telemetry_name = self.config[node].reporting.TelemetryName
-            return GtShSimpleSingleStatus_Maker(
+            return GtShSimpleTelemetryStatus_Maker(
                 sh_node_alias=node.alias,
                 telemetry_name=telemetry_name,
                 value_list=value_list,
@@ -300,16 +376,17 @@ class Scada(ScadaBase):
         else:
             return None
 
-    def make_single_status_for_multipurpose(
+    def make_multipurpose_telemetry_status(
         self, tt: TelemetryTuple
-    ) -> Optional[GtShSimpleSingleStatus]:
+    ) -> Optional[GtShMultipurposeTelemetryStatus]:
         if tt in self.my_telemetry_tuples():
-            if len(self.recent_values_from_multifunction_sensor[tt]) == 0:
+            if len(self.recent_values_from_multipurpose_sensor[tt]) == 0:
                 return None
-            read_time_unix_ms_list = self.recent_read_times_unix_ms_from_multifunction_sensor[tt]
-            value_list = self.recent_values_from_multifunction_sensor[tt]
-            return GtShSimpleSingleStatus_Maker(
-                sh_node_alias=tt.AboutNode.alias,
+            read_time_unix_ms_list = self.recent_read_times_unix_ms_from_multipurpose_sensor[tt]
+            value_list = self.recent_values_from_multipurpose_sensor[tt]
+            return GtShMultipurposeTelemetryStatus_Maker(
+                about_node_alias=tt.AboutNode.alias,
+                sensor_node_alias=tt.SensorNode.alias,
                 telemetry_name=tt.TelemetryName,
                 value_list=value_list,
                 read_time_unix_ms_list=read_time_unix_ms_list,
@@ -317,26 +394,47 @@ class Scada(ScadaBase):
         else:
             return None
 
+    def make_booleanactuator_cmd_status(
+        self, node: ShNode
+    ) -> Optional[GtShBooleanactuatorCmdStatus]:
+        if node not in self.my_boolean_actuators():
+            return None
+        if len(self.recent_ba_cmds[node]) == 0:
+            return None
+        return GtShBooleanactuatorCmdStatus_Maker(
+            sh_node_alias=node.alias,
+            relay_state_command_list=self.recent_ba_cmds[node],
+            command_time_unix_ms_list=self.recent_ba_cmd_times_unix_ms[node],
+        ).tuple
+
     def send_status(self):
         self.screen_print("Should send status")
-        simple_single_status_list = []
+        simple_telemetry_list = []
+        multipurpose_telemetry_list = []
+        booleanactuator_cmd_list = []
         for node in self.my_simple_sensors():
-            single_status = self.make_single_status_for_simple(node)
-            if single_status:
-                simple_single_status_list.append(single_status)
+            status = self.make_simple_telemetry_status(node)
+            if status:
+                simple_telemetry_list.append(status)
         for tt in self.my_telemetry_tuples():
-            single_status = self.make_single_status_for_multipurpose(tt)
-            if single_status:
-                simple_single_status_list.append(single_status)
+            status = self.make_multipurpose_telemetry_status(tt)
+            if status:
+                multipurpose_telemetry_list.append(status)
+        for node in self.my_boolean_actuators():
+            status = self.make_booleanactuator_cmd_status(node)
+            if status:
+                booleanactuator_cmd_list.append(status)
 
         slot_start_unix_s = self._last_5_cron_s
-        payload = GtShSimpleStatus_Maker(
+        payload = GtShStatus_Maker(
             about_g_node_alias=helpers.ta_g_node_alias(),
             slot_start_unix_s=slot_start_unix_s,
             reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
-            simple_single_status_list=simple_single_status_list,
+            booleanactuator_cmd_list=booleanactuator_cmd_list,
+            multipurpose_telemetry_list=multipurpose_telemetry_list,
+            simple_telemetry_list=simple_telemetry_list,
         ).tuple
-
+        self.payload = payload
         self.gw_publish(payload)
         self.flush_latest_readings()
 
