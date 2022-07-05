@@ -3,24 +3,18 @@ import time
 import uuid
 from typing import List
 
-import helpers
 import pendulum
+
 import settings
+from actors.cloud_base import CloudBase
+from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import (
-    GtShStatus,
-    GtShStatus_Maker,
-)
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse_Maker,
 )
-
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
-
-from actors.cloud_base import CloudBase
-from actors.utils import QOS, Subscription, responsive_sleep
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 
 OUT_STUB = "output/status"
 
@@ -60,22 +54,22 @@ class CloudEar(CloudBase):
     def gw_subscriptions(self) -> List[Subscription]:
         return [
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GsPwr_Maker.type_alias}", Qos=QOS.AtMostOnce
+                Topic=f"{self.scada_g_node_alias}/{GsPwr_Maker.type_alias}", Qos=QOS.AtMostOnce
             ),
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtShStatus_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GtShStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtShCliScadaResponse_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GtShCliScadaResponse_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtDispatch_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GtDispatch_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{helpers.atn_g_node_alias()}/{GtDispatch_Maker.type_alias}",
+                Topic=f"{self.atn_g_node_alias}/{GtDispatch_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
         ]
@@ -90,7 +84,7 @@ class CloudEar(CloudBase):
             self.gt_dispatch_received(from_node, payload)
 
     def send_to_kafka(self, payload):
-        # topic = f"{helpers.scada_g_node_alias()}/{payload.TypeAlias}"
+        # topic = f"{self.scada_g_node_alias}/{payload.TypeAlias}"
         # publish payload.as_type() to topic in Kafka
         pass
 

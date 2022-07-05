@@ -1,18 +1,15 @@
 import time
 from typing import List, Optional
 
+from actors.actor_base import ActorBase
+from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
-
+from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
 from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
     GtDriverBooleanactuatorCmd_Maker,
 )
-
-from schema.gt.gt_dispatch.gt_dispatch_maker import GtDispatch, GtDispatch_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
-
-from actors.actor_base import ActorBase
-from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class BooleanActuator(ActorBase):

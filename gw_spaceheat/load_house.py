@@ -70,13 +70,13 @@ def load_nodes(house_data):
         GtShNode_Maker.dict_to_dc(d)
 
 
-def load_all(atn_g_node_alias=settings.ATN_G_NODE_ALIAS):
+def load_all(world_root_alias=settings.WORLD_ROOT_ALIAS):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(current_dir, "input_data/houses.json"), "r") as read_file:
         input_data = json.load(read_file)
-    if atn_g_node_alias not in input_data.keys():
-        raise Exception(f"{atn_g_node_alias} house data missing from input_data/houses.json")
-    house_data = input_data[atn_g_node_alias]
+    if world_root_alias not in input_data.keys():
+        raise Exception(f"{world_root_alias} house data missing from input_data/houses.json")
+    house_data = input_data[world_root_alias]
     load_cacs(house_data=house_data)
     load_components(house_data=house_data)
     load_nodes(house_data=house_data)

@@ -1,21 +1,73 @@
 import csv
+import json
+import os
 import threading
 import uuid
 from abc import ABC, abstractmethod
+from functools import cached_property
 from typing import List
+
+import paho.mqtt.client as mqtt
 
 import helpers
 import load_house
-import paho.mqtt.client as mqtt
 import settings
+from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
-from actors.utils import QOS, Subscription
 
 
 class CloudBase(ABC):
+    @cached_property
+    def atn_g_node_alias(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        return my_atn_as_dict["Alias"]
+
+    @cached_property
+    def atn_g_node_id(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        return my_atn_as_dict["GNodeId"]
+
+    @cached_property
+    def terminal_asset_g_node_alias(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        return my_atn_as_dict["Alias"]
+
+    @cached_property
+    def terminal_asset_g_node_id(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        return my_atn_as_dict["GNodeId"]
+
+    @cached_property
+    def scada_g_node_alias(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        return my_scada_as_dict["Alias"]
+
+    @cached_property
+    def scada_g_node_id(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        return my_scada_as_dict["GNodeId"]
+
     def __init__(self, logging_on=False):
         self._main_loop_running = False
         self.main_thread = None
@@ -83,9 +135,9 @@ class CloudBase(ABC):
             (from_alias, type_alias) = message.topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if from_alias != helpers.scada_g_node_alias() and from_alias != helpers.atn_g_node_alias():
+        if from_alias != self.scada_g_node_alias and from_alias != self.atn_g_node_alias:
             raise Exception(f"alias {from_alias} not my Scada or Atn!")
-        if from_alias == helpers.scada_g_node_alias():
+        if from_alias == self.scada_g_node_alias:
             from_node = ShNode.by_alias["a.s"]
         else:
             from_node = ShNode.by_alias["a"]
@@ -106,7 +158,7 @@ class CloudBase(ABC):
         else:
             qos = QOS.AtLeastOnce
         self.gw_client.publish(
-            topic=f"{settings.ATN_G_NODE_ALIAS}/{payload.TypeAlias}",
+            topic=f"{self.atn_g_node_alias}/{payload.TypeAlias}",
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,

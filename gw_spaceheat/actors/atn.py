@@ -1,8 +1,11 @@
+import time
 import uuid
 from typing import Dict, List, Optional
-import time
+
 import helpers
 import load_house
+from actors.cloud_base import CloudBase
+from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
@@ -13,14 +16,7 @@ from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse,
     GtShCliScadaResponse_Maker,
 )
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import (
-    GtShStatus,
-    GtShStatus_Maker,
-)
-
-from actors.cloud_base import CloudBase
-from actors.utils import QOS, Subscription, responsive_sleep
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 
 
 class Atn(CloudBase):
@@ -61,15 +57,15 @@ class Atn(CloudBase):
     def gw_subscriptions(self) -> List[Subscription]:
         return [
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GsPwr_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GsPwr_Maker.type_alias}",
                 Qos=QOS.AtMostOnce,
             ),
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtShStatus_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GtShStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{helpers.scada_g_node_alias()}/{GtShCliScadaResponse_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{GtShCliScadaResponse_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
         ]

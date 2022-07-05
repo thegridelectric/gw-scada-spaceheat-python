@@ -2,9 +2,11 @@ import enum
 import time
 from typing import Dict, List, Optional
 
-import helpers
 import pendulum
+
 import settings
+from actors.scada_base import ScadaBase
+from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
@@ -19,25 +21,22 @@ from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker
     GtDriverBooleanactuatorCmd_Maker,
 )
 from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
-    GtShBooleanactuatorCmdStatus_Maker,
     GtShBooleanactuatorCmdStatus,
+    GtShBooleanactuatorCmdStatus_Maker,
 )
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
-    GtShMultipurposeTelemetryStatus_Maker,
-    GtShMultipurposeTelemetryStatus,
-)
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
     GtShCliScadaResponse_Maker,
 )
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
-
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
-    GtShSimpleTelemetryStatus_Maker,
-    GtShSimpleTelemetryStatus,
+from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
+    GtShMultipurposeTelemetryStatus,
+    GtShMultipurposeTelemetryStatus_Maker,
 )
-
+from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
+    GtShSimpleTelemetryStatus,
+    GtShSimpleTelemetryStatus_Maker,
+)
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
 from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
     GtShStatusSnapshot,
     GtShStatusSnapshot_Maker,
@@ -47,9 +46,6 @@ from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_mul
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
-
-from actors.scada_base import ScadaBase
-from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class ScadaCmdDiagnostic(enum.Enum):
@@ -263,11 +259,11 @@ class Scada(ScadaBase):
     def gw_subscriptions(self) -> List[Subscription]:
         return [
             Subscription(
-                Topic=f"{settings.ATN_G_NODE_ALIAS}/{GtDispatch_Maker.type_alias}",
+                Topic=f"{self.atn_g_node_alias}/{GtDispatch_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{settings.ATN_G_NODE_ALIAS}/{GtShCliAtnCmd_Maker.type_alias}",
+                Topic=f"{self.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
         ]
@@ -427,7 +423,7 @@ class Scada(ScadaBase):
 
         slot_start_unix_s = self._last_5_cron_s
         payload = GtShStatus_Maker(
-            about_g_node_alias=helpers.ta_g_node_alias(),
+            about_g_node_alias=self.terminal_asset_g_node_alias,
             slot_start_unix_s=slot_start_unix_s,
             reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
             booleanactuator_cmd_list=booleanactuator_cmd_list,

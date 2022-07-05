@@ -1,21 +1,72 @@
 import csv
+import json
+import os
 import threading
 import uuid
 from abc import ABC, abstractmethod
+from functools import cached_property
 from typing import List
 
-import helpers
 import paho.mqtt.client as mqtt
+
+import helpers
 import settings
+from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
-from actors.utils import QOS, Subscription
-
 
 class ActorBase(ABC):
+    @cached_property
+    def atn_g_node_alias(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        return my_atn_as_dict["Alias"]
+
+    @cached_property
+    def atn_g_node_id(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        return my_atn_as_dict["GNodeId"]
+
+    @cached_property
+    def terminal_asset_g_node_alias(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        return my_atn_as_dict["Alias"]
+
+    @cached_property
+    def terminal_asset_g_node_id(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        return my_atn_as_dict["GNodeId"]
+
+    @cached_property
+    def scada_g_node_alias(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        return my_scada_as_dict["Alias"]
+
+    @cached_property
+    def scada_g_node_id(cls):
+        current_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
+            input_data = json.load(read_file)
+        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        return my_scada_as_dict["GNodeId"]
+
     def __init__(self, node: ShNode, logging_on=False):
         self._main_loop_running = False
         self.main_thread = None
