@@ -11,7 +11,7 @@
 
 
  - Use python 3.8.6
-- .gitignore includes gw_platform_django/venv for virtualenv so from gw_platform_django directory:
+- .gitignore includes gw_spaceheat/venv for virtualenv so from gw_spaceheat directory:
   - `python -m venv venv`  
   - `source venv/bin/activate`
   - `pip install -r requirements/dev.txt` 
