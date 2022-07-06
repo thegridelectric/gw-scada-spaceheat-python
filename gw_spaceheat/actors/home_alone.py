@@ -7,6 +7,11 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Mak
 
 
 class HomeAlone(ActorBase):
+    """HomeAlone is the offline degraded imitator of the AtomicTNode. It dispatches the 
+    SCADA actor whenever the SCADA's DispatchContract with its AtomicTNode is not alive.
+    The primary (but not only) reason for this will be loss of communications (i.e. router
+    down or cellular service down) between the home and the cloud. """
+
     MAIN_LOOP_MIN_TIME_S = 5
 
     def __init__(self, node: ShNode, logging_on=False):
