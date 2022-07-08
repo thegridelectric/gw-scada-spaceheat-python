@@ -45,6 +45,7 @@ def wait_for(
     else:
         return False
 
+
 class AtnRecorder(Atn):
     cli_resp_received: int
     latest_cli_response_payload: Optional[GtShCliScadaResponse]

@@ -7,6 +7,7 @@ from command_line_utils import run_nodes_main
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 
+
 @pytest.mark.parametrize(
     "aliases",
     [
@@ -41,8 +42,3 @@ def test_run_local():
         for node in filter(lambda x: (x.role != Role.ATN and x.has_actor), ShNode.by_alias.values())
     ]
     test_run_nodes_main(aliases)
-
-
-
-
-
