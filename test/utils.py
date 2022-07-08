@@ -24,6 +24,7 @@ from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import (
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
 
+
 class Brokers(enum.Enum):
     invalid = "invalid"
     gw = "gw"
