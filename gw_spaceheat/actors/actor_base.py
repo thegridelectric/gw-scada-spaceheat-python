@@ -80,6 +80,7 @@ class ActorBase(ABC):
                 write.writerow(row)
             self.screen_print(f"log csv is {self.log_csv}")
         self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
+        self.mqttBrokerPort = getattr(settings, "LOCAL_MQTT_BROKER_PORT", 1883)
         self.client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.client = mqtt.Client(self.client_id)
         self.client.username_pw_set(
@@ -169,7 +170,7 @@ class ActorBase(ABC):
         self._main_loop_running = False
 
     def start(self):
-        self.client.connect(self.mqttBroker)
+        self.client.connect(self.mqttBroker, port=self.mqttBrokerPort)
         self.client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()

@@ -11,6 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Start 'Local' Mosquitto
+        uses: namoshek/mosquitto-github-action@v1
+        with:
+          version: '1.6'
+          ports: '1883:1883 8883:8883'
+          config: ${{ github.workspace }}/test/local_mosquitto.conf
+          container-name: 'local-mqtt'
+      - name: Start 'GridWorks' Mosquitto
+        uses: namoshek/mosquitto-github-action@v1
+        with:
+          version: '1.6'
+          ports: '18831:18831'
+          config: ${{ github.workspace }}/test/gw_mosquitto.conf
+          container-name: 'gw-mqtt'
       - name: Install Python 3
         uses: actions/setup-python@v2
         with:
