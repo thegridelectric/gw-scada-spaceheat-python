@@ -32,7 +32,7 @@ from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import Gt
 from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
     GtShMultipurposeTelemetryStatus,
 )
-from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
+from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
     GtShSimpleTelemetryStatus,
 )
@@ -143,7 +143,7 @@ def test_load_real_house():
         input_data = json.load(read_file)
     house_data = input_data[real_world_root_alias]
     for d in house_data["ShNodes"]:
-        GtShNode_Maker.dict_to_tuple(d)
+        SpaceheatNodeGt_Maker.dict_to_tuple(d)
     for node in ShNode.by_alias.values():
         print(node.parent)
 

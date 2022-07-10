@@ -1,22 +1,23 @@
-"""Tests gt.electric.heater.component.100 type"""
+"""Tests resistive.heater.cac.gt.100 type"""
 import json
 
 import pytest
 
 from schema.errors import MpSchemaError
-from schema.gt.gt_electric_heater_component.gt_electric_heater_component_maker import (
-    GtElectricHeaterComponent_Maker as Maker,
+from schema.gt.resistive_heater_cac_gt.resistive_heater_cac_gt_maker import (
+    ResistiveHeaterCacGt_Maker as Maker,
 )
 
 
-def test_gt_electric_heater_component():
+def test_resistive_heater_cac_gt():
 
     gw_dict = {
-        "HwUid": "aaaa2222",
-        "DisplayName": "First 4.5 kW boost in tank",
-        "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
+        "RatedVoltageV": 240,
+        "DisplayName": "Fake Boost Element",
+        "NameplateMaxPowerW": 4500,
         "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-        "TypeAlias": "gt.electric.heater.component.100",
+        "MakeModelGtEnumSymbol": "b6a32d9b",
+        "TypeAlias": "resistive.heater.cac.gt.100",
     }
 
     with pytest.raises(MpSchemaError):
@@ -34,9 +35,10 @@ def test_gt_electric_heater_component():
 
     # test Maker init
     t = Maker(
-        hw_uid=gw_tuple.HwUid,
+        make_model=gw_tuple.MakeModel,
+        rated_voltage_v=gw_tuple.RatedVoltageV,
         display_name=gw_tuple.DisplayName,
-        component_id=gw_tuple.ComponentId,
+        nameplate_max_power_w=gw_tuple.NameplateMaxPowerW,
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
         #
     ).tuple
@@ -60,11 +62,23 @@ def test_gt_electric_heater_component():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = orig_value
 
-    orig_value = gw_dict["ComponentId"]
-    del gw_dict["ComponentId"]
+    orig_value = gw_dict["MakeModelGtEnumSymbol"]
+    del gw_dict["MakeModelGtEnumSymbol"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = orig_value
+    gw_dict["MakeModelGtEnumSymbol"] = orig_value
+
+    orig_value = gw_dict["RatedVoltageV"]
+    del gw_dict["RatedVoltageV"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["RatedVoltageV"] = orig_value
+
+    orig_value = gw_dict["NameplateMaxPowerW"]
+    del gw_dict["NameplateMaxPowerW"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(gw_dict)
+    gw_dict["NameplateMaxPowerW"] = orig_value
 
     orig_value = gw_dict["ComponentAttributeClassId"]
     del gw_dict["ComponentAttributeClassId"]
@@ -75,13 +89,6 @@ def test_gt_electric_heater_component():
     ######################################
     # Optional attributes can be removed from type
     ######################################
-
-    orig_value = gw_dict["HwUid"]
-    del gw_dict["HwUid"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["HwUid"] = orig_value
 
     orig_value = gw_dict["DisplayName"]
     del gw_dict["DisplayName"]
@@ -94,11 +101,20 @@ def test_gt_electric_heater_component():
     # MpSchemaError raised if attributes have incorrect type
     ######################################
 
-    orig_value = gw_dict["HwUid"]
-    gw_dict["HwUid"] = 42
+    with pytest.raises(MpSchemaError):
+        Maker(
+            rated_voltage_v=gw_tuple.RatedVoltageV,
+            display_name=gw_tuple.DisplayName,
+            nameplate_max_power_w=gw_tuple.NameplateMaxPowerW,
+            component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+            make_model="This is not a MakeModel Enum.",
+        )
+
+    orig_value = gw_dict["RatedVoltageV"]
+    gw_dict["RatedVoltageV"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["HwUid"] = orig_value
+    gw_dict["RatedVoltageV"] = orig_value
 
     orig_value = gw_dict["DisplayName"]
     gw_dict["DisplayName"] = 42
@@ -106,14 +122,14 @@ def test_gt_electric_heater_component():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["DisplayName"] = orig_value
 
-    orig_value = gw_dict["ComponentId"]
-    gw_dict["ComponentId"] = 42
+    orig_value = gw_dict["NameplateMaxPowerW"]
+    gw_dict["NameplateMaxPowerW"] = 1.1
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = orig_value
+    gw_dict["NameplateMaxPowerW"] = orig_value
 
     orig_value = gw_dict["ComponentAttributeClassId"]
-    gw_dict["ComponentAttributeClassId"] = "Not a dataclass id"
+    gw_dict["ComponentAttributeClassId"] = 42
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ComponentAttributeClassId"] = orig_value
@@ -125,15 +141,15 @@ def test_gt_electric_heater_component():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.electric.heater.component.100"
+    gw_dict["TypeAlias"] = "resistive.heater.cac.gt.100"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["ComponentId"] = "d4be12d5-33ba-4f1f-b9e5"
+    gw_dict["ComponentAttributeClassId"] = "d4be12d5-33ba-4f1f-b9e5"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = "80f95280-e999-49e0-a0e4-a7faf3b5b3bd"
+    gw_dict["ComponentAttributeClassId"] = "cf1f2587-7462-4701-b962-d2b264744c1d"
 
     # End of Test

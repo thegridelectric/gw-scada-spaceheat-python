@@ -14,18 +14,7 @@ def test_gt_powermeter_reporting_config():
     gw_dict = {
         "HwUid": "1001ab",
         "ReportingPeriodS": 300,
-        "ElectricalQuantityReportingConfigList": [
-            {
-                "ShNodeAlias": "a.elt1",
-                "ReportOnChange": True,
-                "Exponent": 6,
-                "SamplePeriodS": 5,
-                "AsyncReportThreshold": 0.05,
-                "TypeAlias": "gt.eq.reporting.config.100",
-                "UnitGtEnumSymbol": "a969ac7c",
-                "TelemetryNameGtEnumSymbol": "ad19e79c",
-            }
-        ],
+        "ElectricalQuantityReportingConfigList": [{"ShNodeAlias": "a.elt1", "ReportOnChange": True, "Exponent": 6, "SamplePeriodS": 5, "AsyncReportThreshold": 0.05, "TypeAlias": "gt.eq.reporting.config.100", "UnitGtEnumSymbol": "a969ac7c", "TelemetryNameGtEnumSymbol": "ad19e79c"}],
         "PollPeriodMs": 1000,
         "TypeAlias": "gt.powermeter.reporting.config.100",
     }

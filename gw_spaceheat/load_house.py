@@ -11,10 +11,12 @@ from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac_maker import (
 from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component_maker import (
     GtBooleanActuatorComponent_Maker,
 )
-from schema.gt.gt_electric_heater_cac.gt_electric_heater_cac_maker import GtElectricHeaterCac_Maker
-from schema.gt.gt_electric_heater_component.gt_electric_heater_component_maker import (
-    GtElectricHeaterComponent_Maker,
+
+from schema.gt.resistive_heater_cac_gt.resistive_heater_cac_gt_maker import ResistiveHeaterCacGt_Maker
+from schema.gt.resistive_heater_component_gt.resistive_heater_component_gt_maker import (
+    ResistiveHeaterComponentGt_Maker,
 )
+
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
 from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker import (
     GtElectricMeterComponent_Maker,
@@ -25,7 +27,7 @@ from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac_maker import (
 from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_maker import (
     GtPipeFlowSensorComponent_Maker,
 )
-from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
+from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac_maker import GtTempSensorCac_Maker
 from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_maker import (
     GtTempSensorComponent_Maker,
@@ -37,8 +39,8 @@ INPUT_JSON_FILE = "input_data/houses.json"
 def load_cacs(house_data):
     for d in house_data["BooleanActuatorCacs"]:
         GtBooleanActuatorCac_Maker.dict_to_dc(d)
-    for d in house_data["ElectricHeaterCacs"]:
-        GtElectricHeaterCac_Maker.dict_to_dc(d)
+    for d in house_data["ResistiveHeaterCacs"]:
+        ResistiveHeaterCacGt_Maker.dict_to_dc(d)
     for d in house_data["ElectricMeterCacs"]:
         GtElectricMeterCac_Maker.dict_to_dc(d)
     for d in house_data["PipeFlowSensorCacs"]:
@@ -52,8 +54,8 @@ def load_cacs(house_data):
 def load_components(house_data):
     for d in house_data["BooleanActuatorComponents"]:
         GtBooleanActuatorComponent_Maker.dict_to_dc(d)
-    for d in house_data["ElectricHeaterComponents"]:
-        GtElectricHeaterComponent_Maker.dict_to_dc(d)
+    for d in house_data["ResistiveHeaterComponents"]:
+        ResistiveHeaterComponentGt_Maker.dict_to_dc(d)
     for d in house_data["ElectricMeterComponents"]:
         GtElectricMeterComponent_Maker.dict_to_dc(d)
     for d in house_data["PipeFlowSensorComponents"]:
@@ -67,7 +69,7 @@ def load_components(house_data):
 
 def load_nodes(house_data):
     for d in house_data["ShNodes"]:
-        GtShNode_Maker.dict_to_dc(d)
+        SpaceheatNodeGt_Maker.dict_to_dc(d)
 
 
 def load_all(world_root_alias=settings.WORLD_ROOT_ALIAS):
