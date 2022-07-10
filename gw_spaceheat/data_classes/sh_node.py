@@ -17,6 +17,8 @@ class ShNode:
         alias: str,
         actor_class_gt_enum_symbol: str,
         role_gt_enum_symbol: str,
+        rated_voltage_v: Optional[int] = None,
+        typical_voltage_v: Optional[int] = None,
         reporting_sample_period_s: Optional[int] = None,
         component_id: Optional[str] = None,
         display_name: Optional[str] = None,
@@ -25,6 +27,8 @@ class ShNode:
         self.alias = alias
         self.component_id = component_id
         self.reporting_sample_period_s = reporting_sample_period_s
+        self.rated_voltage_v = rated_voltage_v
+        self.typical_voltage_v = typical_voltage_v
         self.display_name = display_name
         self.actor_class = ActorClassMap.gt_to_local(actor_class_gt_enum_symbol)
         self.role = RoleMap.gt_to_local(role_gt_enum_symbol)
