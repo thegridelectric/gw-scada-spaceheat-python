@@ -1,30 +1,25 @@
 import enum
 import time
+import uuid
 from typing import Dict, List, Optional
 
-import uuid
 import pendulum
 import settings
-from actors.scada_base import ScadaBase
-from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
-from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
     GtDispatchBoolean,
     GtDispatchBoolean_Maker,
 )
-
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
-    GtDispatchBooleanLocal_Maker,
     GtDispatchBooleanLocal,
+    GtDispatchBooleanLocal_Maker,
 )
-
 from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
     GtDriverBooleanactuatorCmd,
     GtDriverBooleanactuatorCmd_Maker,
@@ -45,7 +40,7 @@ from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker
     GtShSimpleTelemetryStatus,
     GtShSimpleTelemetryStatus_Maker,
 )
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker, GtShStatus
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
     GtShStatusSnapshot,
     GtShStatusSnapshot_Maker,
@@ -56,14 +51,24 @@ from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_mul
 )
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
 
+from actors.scada_base import ScadaBase
+from actors.utils import QOS, Subscription, responsive_sleep
+
 
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
     PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
+    BAD_FROM_NODE = "BadFromNode"
     DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR = "DispatchNodeNotBooleanActuator"
+    UNKNOWN_DISPATCH_NODE = "UnknownDispatchNode"
+    IGNORING_HOMEALONE_DISPATCH = "IgnoringHomealoneDispatch"
+    IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
 
 class Scada(ScadaBase):
+    MAX_POWER_W = 4500
+    ASYNC_POWER_REPORT_THRESHOLD = 0.05
+
     @classmethod
     def my_boolean_actuators(cls) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
@@ -86,11 +91,24 @@ class Scada(ScadaBase):
 
     @classmethod
     def my_multipurpose_sensors(cls) -> List[ShNode]:
+        """This will be a list of all sensing devices that either measure more
+        than one ShNode or measure more than one physical quantity type (or both).
+        This includes power meters, but may also include other roles like thermostats
+        and heat pumps."""
+        all_nodes = list(ShNode.by_alias.values())
+        return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
+
+    @classmethod
+    def my_power_meters(cls) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
 
     def __init__(self, node: ShNode, logging_on=False):
         super(Scada, self).__init__(node=node, logging_on=logging_on)
+
+        # hack before dispatch contract is implemented
+        self._scada_atn_fast_dispatch_contract_is_alive_stub = False
+
         now = int(time.time())
         self._last_5_cron_s = now - (now % 300)
 
@@ -99,8 +117,10 @@ class Scada(ScadaBase):
         # (probably about 3 weeks worth) and access on restart
 
         self.status_to_store: Dict[str:GtShStatus] = {}
-        self.power = 0
-        self.total_power_w = 0
+
+        self.power_w_by_meter: Dict[ShNode, int] = {node: None for node in self.my_power_meters()}
+        self.latest_reported_total_power_w: Optional[int] = None
+
         self.config: Dict[ShNode, NodeConfig] = {}
         self.init_node_configs()
         self.latest_simple_value: Dict[ShNode, int] = {
@@ -131,6 +151,33 @@ class Scada(ScadaBase):
         self.flush_latest_readings()
         self.screen_print(f"Initialized {self.__class__}")
 
+    @property
+    def scada_atn_fast_dispatch_contract_is_alive(self):
+        """
+        TO IMPLEMENT:
+
+         False if:
+           - no contract exists
+           - interactive polling between atn and scada is down
+           - scada sent dispatch command with more than 6 seconds before response
+           as measured by power meter (requires a lot of clarification)
+           - average time for response to dispatch commands in last 50 dispatches
+           exceeds 3 seconds
+           - Scada has not sent in daily attestion that power metering is
+           working and accurate
+           - Scada requests local control
+           - Atn requests local control
+
+           Otherwise true
+
+           Note that typically, the contract will not be alive because of house to
+           cloud comms failure. But not always. There will be significant and important
+           times (like when testing home alone perforamance) where we will want to send
+           status messages etc up to the cloud even when the dispatch contract is not
+           alive.
+        """
+        return self._scada_atn_fast_dispatch_contract_is_alive_stub
+
     def flush_latest_readings(self):
         self.recent_simple_values = {node: [] for node in self.my_simple_sensors()}
         self.recent_simple_read_times_unix_ms = {node: [] for node in self.my_simple_sensors()}
@@ -156,6 +203,12 @@ class Scada(ScadaBase):
         )
         my_tuples.append(example_tuple)
         return my_tuples
+
+    @property
+    def total_power_w(self):
+        if None in self.power_w_by_meter.values():
+            return None
+        return sum(list(self.power_w_by_meter.values()))
 
     ################################################
     # Receiving messages
@@ -191,30 +244,50 @@ class Scada(ScadaBase):
 
     def on_message(self, from_node: ShNode, payload):
         if isinstance(payload, GsPwr):
-            self.gs_pwr_received(from_node, payload)
-        elif isinstance(payload, GsDispatch):
-            self.gs_dispatch_received(from_node, payload)
+            if from_node in self.my_power_meters():
+                self.gs_pwr_received(from_node, payload)
         elif isinstance(payload, GtDispatchBooleanLocal):
-            self.gt_dispatch_boolean_local_received(from_node, payload)
+            if from_node == ShNode.by_alias["a.home"]:
+                self.local_boolean_dispatch_received(from_node, payload)
         elif isinstance(payload, GtTelemetry):
-            self.gt_telemetry_received(from_node, payload),
+            if from_node in self.my_simple_sensors():
+                self.gt_telemetry_received(from_node, payload),
         elif isinstance(payload, GtShTelemetryFromMultipurposeSensor):
-            self.gt_sh_telemetry_from_multipurpose_sensor_received(from_node, payload)
+            if from_node in self.my_multipurpose_sensors():
+                self.gt_sh_telemetry_from_multipurpose_sensor_received(from_node, payload)
         elif isinstance(payload, GtDriverBooleanactuatorCmd):
-            self.gt_driver_booleanactuator_cmd_record_received(from_node, payload)
+            if from_node in self.my_boolean_actuators():
+                self.gt_driver_booleanactuator_cmd_record_received(from_node, payload)
         else:
             raise Exception(f"{payload} subscription not implemented!")
 
     def gs_pwr_received(self, from_node: ShNode, payload: GsPwr):
-        if from_node != ShNode.by_alias["a.m"]:
-            raise Exception("Need to track all metering and make sure we have the sum")
-        self.total_power_w = payload.Power
-        self.gw_publish(payload=payload)
+        """The highest priority of the SCADA, from the perspective of the electric grid,
+        is to report power changes as quickly as possible (i.e. milliseconds matter) on
+        any asynchronous change more than x% (probably 2%).
 
-    def gt_dispatch_boolean_local_received(self, payload: GtDispatchBooleanLocal):
-        """This will be a message from HomeAlone, honored when the DispatchContract
-        with the Atn is not live."""
-        raise NotImplementedError
+        Note that this is different than allocating the power accurately to each large
+        power using device (relays and heat pumps). There might be a single power meter
+        that relays both a boost element and a heat pump - in which case it will report
+        their sum for the fast message and the multipurpose sensor message needs to be
+        inspected to figure out the allocation."""
+
+        self.power_w_by_meter[from_node] = payload.Power
+        if self.total_power_w is None:
+            """Not all the meters have provided a power reading yet"""
+            return
+        if self.latest_reported_total_power_w is None:
+            """All the meters have provided an initial power reading, but no
+            power has been reported in a GsPwr message yet"""
+            self.gw_publish(GsPwr_Maker(power=self.total_power_w).tuple)
+            self.latest_reported_total_power_w = self.total_power_w
+            return
+
+        abs_power_delta = abs(self.total_power_w - self.latest_reported_total_power_w)
+        change_ratio = abs_power_delta / self.MAX_POWER_W
+        if change_ratio > self.ASYNC_POWER_REPORT_THRESHOLD:
+            self.gw_publish(GsPwr_Maker(power=self.total_power_w).tuple)
+            self.latest_reported_total_power_w = self.total_power_w
 
     def gt_sh_telemetry_from_multipurpose_sensor_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
@@ -289,13 +362,9 @@ class Scada(ScadaBase):
         ]
 
     def on_gw_message(self, payload) -> ScadaCmdDiagnostic:
-        from_node = ShNode.by_alias["a"]
-
-        if isinstance(payload, GsDispatch):
-            self.gs_dispatch_received(from_node, payload)
-            return ScadaCmdDiagnostic.SUCCESS
-        elif isinstance(payload, GtDispatchBoolean):
-            self.gt_dispatch_boolean_received(payload)
+        self.payload = payload
+        if isinstance(payload, GtDispatchBoolean):
+            self.boolean_dispatch_received(payload)
             return ScadaCmdDiagnostic.SUCCESS
         elif isinstance(payload, GtShCliAtnCmd):
             self.gt_sh_cli_atn_cmd_received(payload)
@@ -304,24 +373,40 @@ class Scada(ScadaBase):
             self.screen_print(f"{payload} subscription not implemented!")
             return ScadaCmdDiagnostic.PAYLOAD_NOT_IMPLEMENTED
 
-    def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
-        raise NotImplementedError
-
-    def gt_dispatch_boolean_received(self, payload: GtDispatchBoolean):
-        """This is a dispatch message received from the atn. It is
-        honored whenever DispatchContract is live."""
-
+    def process_boolean_dispatch(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
         if payload.AboutNodeAlias not in ShNode.by_alias.keys():
-            self.screen_print(f"dispatch received for unknnown sh_node {payload.AboutNodeAlias}")
-            return
+            self.screen_print(f"dispatch received for unknown sh_node {payload.AboutNodeAlias}")
+            return ScadaCmdDiagnostic.UNKNOWN_DISPATCH_NODE
         ba = ShNode.by_alias[payload.AboutNodeAlias]
         if not isinstance(ba.component, BooleanActuatorComponent):
             self.screen_print(f"{ba} must be a BooleanActuator!")
-            return
+            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         if payload.RelayState == 1:
             self.turn_on(ba)
         else:
             self.turn_off(ba)
+        return ScadaCmdDiagnostic.SUCCESS
+
+    def local_boolean_dispatch_received(
+        self, from_node: ShNode, payload: GtDispatchBooleanLocal
+    ) -> ScadaCmdDiagnostic:
+
+        """This will be a message from HomeAlone, honored when the DispatchContract
+        with the Atn is not live."""
+        if from_node != ShNode.by_alias["a.home"]:
+            return ScadaCmdDiagnostic.BAD_FROM_NODE
+        if self.scada_atn_fast_dispatch_contract_is_alive:
+            return ScadaCmdDiagnostic.IGNORING_HOMEALONE_DISPATCH
+        return self.process_boolean_dispatch(payload)
+
+    def boolean_dispatch_received(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
+
+        """This is a dispatch message received from the atn. It is
+        honored whenever DispatchContract with the Atn is live."""
+        if not self.scada_atn_fast_dispatch_contract_is_alive:
+            self.screen_print("Ignoring atn dispatch because DispatchContract not alive")
+            return ScadaCmdDiagnostic.IGNORING_ATN_DISPATCH
+        return self.process_boolean_dispatch(payload)
 
     def make_status_snapshot(self) -> GtShStatusSnapshot:
         about_node_alias_list = []

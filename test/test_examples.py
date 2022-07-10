@@ -417,6 +417,8 @@ def test_message_exchange(tmp_path, monkeypatch):
                     1,
                     "ERROR waiting for gw_client connect",
                 )
+
+        scada._scada_atn_fast_dispatch_contract_is_alive_stub = True
         atn.turn_on(ShNode.by_alias["a.elt1.relay"])
         wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
         atn.status()
@@ -688,7 +690,7 @@ def test_power_meter_small():
     meter.update_prev_and_latest_value_dicts()
     assert isinstance(meter.prev_telemetry_value[tt], int)
 
-    assert meter.max_telemetry_value[tt] == 10**7
+    assert meter.max_telemetry_value[tt] == 18750000
     meter.prev_telemetry_value[tt] = meter.latest_telemetry_value[tt]
     assert meter.value_exceeds_async_threshold(tt) is False
     meter.latest_telemetry_value[tt] += int(
