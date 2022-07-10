@@ -390,7 +390,6 @@ class Scada(ScadaBase):
     def local_boolean_dispatch_received(
         self, from_node: ShNode, payload: GtDispatchBooleanLocal
     ) -> ScadaCmdDiagnostic:
-
         """This will be a message from HomeAlone, honored when the DispatchContract
         with the Atn is not live."""
         if from_node != ShNode.by_alias["a.home"]:
@@ -400,7 +399,6 @@ class Scada(ScadaBase):
         return self.process_boolean_dispatch(payload)
 
     def boolean_dispatch_received(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
-
         """This is a dispatch message received from the atn. It is
         honored whenever DispatchContract with the Atn is live."""
         if not self.scada_atn_fast_dispatch_contract_is_alive:
