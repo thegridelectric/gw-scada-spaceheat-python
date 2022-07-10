@@ -17,6 +17,7 @@ class ScadaBase(ActorBase):
     def __init__(self, node: ShNode, logging_on=False):
         super(ScadaBase, self).__init__(node=node, logging_on=logging_on)
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
+        self.gwMqttBrokerPort = getattr(settings, "GW_MQTT_BROKER_PORT", 1883)
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(
@@ -90,7 +91,7 @@ class ScadaBase(ActorBase):
 
     def start(self):
         super().start()
-        self.gw_client.connect(self.gwMqttBroker)
+        self.gw_client.connect(self.gwMqttBroker, port=self.gwMqttBrokerPort)
         self.gw_client.loop_start()
         self.screen_print(f"Started {self.__class__} remote connections")
 

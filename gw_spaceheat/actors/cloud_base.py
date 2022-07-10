@@ -74,6 +74,7 @@ class CloudBase(ABC):
         self.logging_on = logging_on
         self.log_csv = f"output/debug_logs/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
+        self.gwMqttBrokerPort = getattr(settings, "GW_MQTT_BROKER_PORT", 1883)
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(
@@ -176,7 +177,7 @@ class CloudBase(ABC):
         raise NotImplementedError
 
     def start(self):
-        self.gw_client.connect(self.gwMqttBroker)
+        self.gw_client.connect(self.gwMqttBroker, port=self.gwMqttBrokerPort)
         self.gw_client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()

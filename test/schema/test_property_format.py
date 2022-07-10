@@ -1,6 +1,6 @@
 import uuid
 import pendulum
-import schema.property_format
+import schema
 
 
 def test_property_format():

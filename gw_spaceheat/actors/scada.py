@@ -246,9 +246,13 @@ class Scada(ScadaBase):
         if isinstance(payload, GsPwr):
             if from_node in self.my_power_meters():
                 self.gs_pwr_received(from_node, payload)
+            else:
+                raise Exception(f"from_node {from_node} must be in {self.my_power_meters} for GsPwr message")
         elif isinstance(payload, GtDispatchBooleanLocal):
             if from_node == ShNode.by_alias["a.home"]:
                 self.local_boolean_dispatch_received(from_node, payload)
+            else:
+                raise Exception("from_node must be a.home for GsDispatchBooleanLocal message")
         elif isinstance(payload, GtTelemetry):
             if from_node in self.my_simple_sensors():
                 self.gt_telemetry_received(from_node, payload),
