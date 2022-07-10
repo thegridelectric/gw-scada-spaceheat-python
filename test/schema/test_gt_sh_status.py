@@ -13,11 +13,35 @@ def test_gt_sh_status():
 
     gw_dict = {
         "SlotStartUnixS": 1656945300,
-        "SimpleTelemetryList": [{"ValueList": [0, 1], "ReadTimeUnixMsList": [1656945400527, 1656945414270], "ShNodeAlias": "a.elt1.relay", "TypeAlias": "gt.sh.simple.telemetry.status.100", "TelemetryNameGtEnumSymbol": "5a71d4b3"}],
+        "SimpleTelemetryList": [
+            {
+                "ValueList": [0, 1],
+                "ReadTimeUnixMsList": [1656945400527, 1656945414270],
+                "ShNodeAlias": "a.elt1.relay",
+                "TypeAlias": "gt.sh.simple.telemetry.status.100",
+                "TelemetryNameGtEnumSymbol": "5a71d4b3",
+            }
+        ],
         "AboutGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta",
-        "BooleanactuatorCmdList": [{"ShNodeAlias": "a.elt1.relay","RelayStateCommandList": [1], "CommandTimeUnixMsList": [1656945413464],"TypeAlias": "gt.sh.booleanactuator.cmd.status.100"}],
+        "BooleanactuatorCmdList": [
+            {
+                "ShNodeAlias": "a.elt1.relay",
+                "RelayStateCommandList": [1],
+                "CommandTimeUnixMsList": [1656945413464],
+                "TypeAlias": "gt.sh.booleanactuator.cmd.status.100",
+            }
+        ],
         "FromGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta.scada",
-        "MultipurposeTelemetryList": [{"AboutNodeAlias": "a.elt1", "ValueList": [18000], "ReadTimeUnixMsList": [1656945390152], "SensorNodeAlias": "a.m", "TypeAlias": "gt.sh.multipurpose.telemetry.status.100", "TelemetryNameGtEnumSymbol": "ad19e79c"}],
+        "MultipurposeTelemetryList": [
+            {
+                "AboutNodeAlias": "a.elt1",
+                "ValueList": [18000],
+                "ReadTimeUnixMsList": [1656945390152],
+                "SensorNodeAlias": "a.m",
+                "TypeAlias": "gt.sh.multipurpose.telemetry.status.100",
+                "TelemetryNameGtEnumSymbol": "ad19e79c",
+            }
+        ],
         "FromGNodeId": "0384ef21-648b-4455-b917-58a1172d7fc1",
         "StatusUid": "dedc25c2-8276-4b25-abd6-f53edc79b62b",
         "ReportingPeriodS": 300,

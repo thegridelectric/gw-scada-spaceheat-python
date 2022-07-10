@@ -14,7 +14,13 @@ def test_gt_sh_cli_scada_response():
     gw_dict = {
         "FromGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta.scada",
         "FromGNodeId": "0384ef21-648b-4455-b917-58a1172d7fc1",
-        "Snapshot": {"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "gt.sh.status.snapshot.110"},
+        "Snapshot": {
+            "TelemetryNameList": ["5a71d4b3"],
+            "AboutNodeAliasList": ["a.elt1.relay"],
+            "ReportTimeUnixMs": 1656363448000,
+            "ValueList": [1],
+            "TypeAlias": "gt.sh.status.snapshot.110",
+        },
         "TypeAlias": "gt.sh.cli.scada.response.110",
     }
 

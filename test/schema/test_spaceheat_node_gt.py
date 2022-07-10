@@ -21,7 +21,7 @@ def test_spaceheat_node_gt():
         "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
         "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
         "ReportingSamplePeriodS": 5,
-        "TypeAlias": "spaceheat.node.gt.100"
+        "TypeAlias": "spaceheat.node.gt.100",
     }
 
     gw_type_1 = json.dumps(gw_dict_1)
