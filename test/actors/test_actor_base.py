@@ -1,6 +1,6 @@
-from test.utils import AbstractActor
+from test.utils import AbstractActor, flush_all
 from data_classes.sh_node import ShNode
-import flush_house
+
 import pytest
 
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
@@ -19,7 +19,7 @@ from schema.enums.make_model.make_model_map import MakeModel
 def test_abstract_actor():
 
     # Testing unknown meter driver
-    flush_house.flush_all()
+    flush_all()
     unknown_electric_meter_cac_dict = {
         "ComponentAttributeClassId": "c1f17330-6269-4bc5-aa4b-82e939e9b70c",
         "MakeModelGtEnumSymbol": "b6a32d9b",
@@ -57,7 +57,7 @@ def test_abstract_actor():
 
     abstract_actor = AbstractActor(node=ShNode.by_alias["a.m"])
     assert isinstance(abstract_actor.power_meter_driver(), UnknownPowerMeterDriver)
-    flush_house.flush_all()
+    flush_all()
 
     # Testing faulty meter driver (set to temp sensor)
     faulty_electric_meter_cac_dict = {
@@ -95,4 +95,4 @@ def test_abstract_actor():
     with pytest.raises(Exception):
         abstract_actor.power_meter_driver()
 
-    flush_house.flush_all()
+    flush_all()

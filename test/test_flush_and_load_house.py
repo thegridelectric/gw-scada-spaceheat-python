@@ -3,7 +3,7 @@
 import json
 import os
 
-import flush_house
+from test.utils import flush_all
 import load_house
 
 from data_classes.component import Component
@@ -51,7 +51,7 @@ def test_load_real_house():
 def test_flush_and_load_house():
     """Verify that flush_house() successfully removes all dictionary data from relevant dataclasses, and
     load_house() successfully loads test objects"""
-    flush_house.flush_all()
+    flush_all()
 
     unknown_electric_meter_cac_dict = {
         "ComponentAttributeClassId": "c1f17330-6269-4bc5-aa4b-82e939e9b70c",
@@ -84,7 +84,7 @@ def test_flush_and_load_house():
 
     SpaceheatNodeGt_Maker.dict_to_dc(meter_node_dict)
     assert ShNode.by_alias["a.m"].sh_node_id == "c9456f5b-5a39-4a48-bb91-742a9fdc461d"
-    flush_house.flush_all()
+    flush_all()
 
     load_house.load_all()
     assert ShNode.by_alias["a.m"].sh_node_id == "0dd8a803-4724-4f49-b845-14ff57bdb3e6"
@@ -110,7 +110,7 @@ def test_flush_and_load_house():
     for node in tank_water_temp_sensor_nodes:
         assert node.reporting_sample_period_s is not None
 
-    flush_house.flush_all()
+    flush_all()
     assert BooleanActuatorComponent.by_id == {}
     assert ElectricMeterComponent.by_id == {}
     assert PipeFlowSensorComponent.by_id == {}
