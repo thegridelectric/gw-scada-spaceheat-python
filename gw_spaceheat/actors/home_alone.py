@@ -9,7 +9,6 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Mak
 
 from actors.actor_base import ActorBase
 from actors.utils import QOS, Subscription, responsive_sleep
-from schema.enums.role.role_map import Role
 
 
 class HomeAlone(ActorBase):
@@ -18,19 +17,13 @@ class HomeAlone(ActorBase):
     The primary (but not only) reason for this will be loss of communications (i.e. router
     down or cellular service down) between the home and the cloud."""
 
-    @classmethod
-    def my_scada(cls) -> ShNode:
-        """Returns the primary scada of the house configuration. There will alwaus be
-        exactly one of these."""
-        all_nodes = list(ShNode.by_alias.values())
-        scadas = list(filter(lambda x: (x.role == Role.SCADA), all_nodes))
-        return scadas[0]
-
     MAIN_LOOP_MIN_TIME_S = 5
 
     def __init__(self, node: ShNode, logging_on=False):
         super(HomeAlone, self).__init__(node=node, logging_on=logging_on)
 
+        if self.node != self.home_alone_node():
+            raise Exception(f"node for HomeAlone must be {self.home_alone_node}, not {self.node}")
         # outrageous stub for tracking the state of the dispatch contract
         self.scada_atn_dispatch_contract_is_alive = False
         self.latest_status: Optional[GtShStatus] = None
@@ -39,7 +32,7 @@ class HomeAlone(ActorBase):
     def subscriptions(self) -> List[Subscription]:
         my_subscriptions = [
             Subscription(
-                Topic=f"{self.my_scada().alias}/{GtShStatus_Maker.type_alias}",
+                Topic=f"{self.scada_node().alias}/{GtShStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             )
         ]
@@ -48,10 +41,10 @@ class HomeAlone(ActorBase):
     def on_message(self, from_node: ShNode, payload):
         self.screen_print("Got message")
         if isinstance(payload, GtShStatus):
-            if from_node is self.my_scada():
+            if from_node is self.scada_node():
                 self.gt_sh_status_received(payload)
             else:
-                raise Exception(f"Status messages come from {self.my_scada()}")
+                raise Exception(f"Status messages come from {self.scada_node()}")
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 

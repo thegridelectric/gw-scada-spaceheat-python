@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 
 import settings
 from actors.atn import Atn
+from actors.actor_base import ActorBase
 from actors.cloud_ear import CloudEar
 from actors.home_alone import HomeAlone
 from actors.scada import Scada
@@ -94,6 +95,20 @@ def wait_for(
         raise ValueError(f"ERROR. Function {f} timed out after {timeout} seconds. {tag}")
     else:
         return False
+
+
+class AbstractActor(ActorBase):
+    def __init__(self, node: ShNode, logging_on: bool = False):
+        super().__init__(node, logging_on=logging_on)
+
+    def subscriptions(self):
+        return []
+
+    def on_message(self, from_node: ShNode, payload):
+        pass
+
+    def main(self):
+        pass
 
 
 class AtnRecorder(Atn):

@@ -10,7 +10,6 @@ from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.role.role_map import Role
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
     GtDispatchBoolean,
@@ -100,7 +99,8 @@ class Scada(ScadaBase):
 
     def __init__(self, node: ShNode, logging_on=False):
         super(Scada, self).__init__(node=node, logging_on=logging_on)
-
+        if self.node != self.scada_node():
+            raise Exception(f"The node for Scada must be {self.scada_node()}, not {self.node}!")
         # hack before dispatch contract is implemented
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
 
@@ -157,8 +157,10 @@ class Scada(ScadaBase):
            exceeds 3 seconds
            - Scada has not sent in daily attestion that power metering is
            working and accurate
-           - Scada requests local control
-           - Atn requests local control
+           - Scada requests local control and Atn has agreed
+           - Atn requests that Scada tale local control and Scada has agreed
+           - Scada has not sent in an attestion that metering is good in the
+           previous 24 hours
 
            Otherwise true
 
