@@ -1,19 +1,19 @@
 import time
 from typing import List, Optional
 
-from actors.actor_base import ActorBase
-from actors.utils import QOS, Subscription, responsive_sleep
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
     GtDispatchBooleanLocal,
     GtDispatchBooleanLocal_Maker,
 )
-
 from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
     GtDriverBooleanactuatorCmd_Maker,
 )
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
+
+from actors.actor_base import ActorBase
+from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class BooleanActuator(ActorBase):
@@ -39,9 +39,12 @@ class BooleanActuator(ActorBase):
 
     def on_message(self, from_node: ShNode, payload):
         if isinstance(payload, GtDispatchBooleanLocal):
-            self.gt_dispatch_boolean_local_received(from_node, payload)
+            if from_node is self.scada_node():
+                self.gt_dispatch_boolean_local_received(from_node, payload)
+            else:
+                raise Exception(f"from_node must be {self.scada_node()}")
         else:
-            self.screen_print(f"{payload} subscription not implemented!")
+            raise Exception(f"{payload} subscription not implemented!")
 
     def dispatch_relay(self, relay_state: int):
         if relay_state not in [0, 1]:
