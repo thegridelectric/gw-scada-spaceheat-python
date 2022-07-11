@@ -1,6 +1,7 @@
 """Test PowerMeter actor"""
 
 import load_house
+import pytest
 from actors.power_meter import PowerMeter
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -52,6 +53,11 @@ from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryNa
 
 def test_power_meter_small():
     load_house.load_all()
+
+    # Raise exception if initiating node is anything except the unique power meter node
+    with pytest.raises(Exception):
+        meter = PowerMeter(node=ShNode.by_alias["a.s"])
+
     meter = PowerMeter(node=ShNode.by_alias["a.m"])
 
     assert set(meter.nameplate_telemetry_value.keys()) == set(
@@ -64,7 +70,15 @@ def test_power_meter_small():
     assert set(meter.eq_reporting_config.keys()) == set(meter.all_power_meter_telemetry_tuples())
     assert set(meter._last_sampled_s.keys()) == set(meter.all_power_meter_telemetry_tuples())
 
+    # Only get resistive heater nameplate attributes if node role is boost element
+    with pytest.raises(Exception):
+        meter.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.tank.temp0"])
+
+    with pytest.raises(Exception):
+        meter.get_resistive_heater_nameplate_current_amps(ShNode.by_alias["a.tank.temp0"])
+
     all_eq_configs = meter.reporting_config.ElectricalQuantityReportingConfigList
+
     amp_list = list(
         filter(
             lambda x: x.TelemetryName == TelemetryName.CURRENT_RMS_MICRO_AMPS
@@ -110,3 +124,31 @@ def test_power_meter_small():
     meter.report_sampled_telemetry_values([tt])
     assert meter.last_reported_telemetry_value[tt] == 1018000
     assert meter.should_report_telemetry_reading(tt) is False
+
+    assert meter.last_reported_agg_power_w is None
+    assert meter.latest_agg_power_w == 0
+    assert meter.should_report_aggregated_power()
+    meter.report_aggregated_power_w()
+    assert not meter.should_report_aggregated_power()
+
+    nameplate_pwr_w_1 = meter.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.elt1"])
+    nameplate_pwr_w_2 = meter.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.elt2"])
+    assert nameplate_pwr_w_1 == 4500
+    assert nameplate_pwr_w_2 == 4500
+    assert meter.nameplate_agg_power_w == 9000
+    power_reporting_threshold_ratio = meter.DEFAULT_ASYNC_REPORTING_THRESHOLD
+    assert power_reporting_threshold_ratio == 0.05
+    power_reporting_threshold_w = power_reporting_threshold_ratio * meter.nameplate_agg_power_w
+    assert power_reporting_threshold_w == 450
+
+    tt = TelemetryTuple(
+        AboutNode=ShNode.by_alias["a.elt1"],
+        SensorNode=meter.node,
+        TelemetryName=TelemetryName.POWER_W,
+    )
+    meter.latest_telemetry_value[tt] += 300
+    assert not meter.should_report_aggregated_power()
+    meter.latest_telemetry_value[tt] += 200
+    assert meter.should_report_aggregated_power()
+    meter.report_aggregated_power_w()
+    assert meter.latest_agg_power_w == 500

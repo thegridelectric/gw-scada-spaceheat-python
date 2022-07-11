@@ -43,7 +43,7 @@ class PowerMeter(ActorBase):
     DEFAULT_ASYNC_REPORTING_THRESHOLD = 0.05
 
     @classmethod
-    def get_resistive_element_nameplate_power_w(cls, node: ShNode) -> int:
+    def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
         if node.role != Role.BOOST_ELEMENT:
             raise Exception("This function should only be called for nodes that are boost elements")
         component: ResistiveHeaterComponent = node.component
@@ -158,7 +158,7 @@ class PowerMeter(ActorBase):
             power_tt = TelemetryTuple(
                 AboutNode=about_node, SensorNode=self.node, TelemetryName=TelemetryName.POWER_W
             )
-            nameplate_power_w = self.get_resistive_element_nameplate_power_w(node=about_node)
+            nameplate_power_w = self.get_resistive_heater_nameplate_power_w(node=about_node)
             response_dict[power_tt] = int(nameplate_power_w)
         return response_dict
 
