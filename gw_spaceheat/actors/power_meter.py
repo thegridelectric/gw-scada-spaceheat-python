@@ -14,46 +14,70 @@ from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_mul
 
 
 class PowerMeter(ActorBase):
+
+    """PowerMetering operates independently of dispatch. That is, polling the
+    power readings occurs frequently (e.g. every 40 ms to every second) and independently
+    of dispatch instructions. Power is reported asynchronously on change.
+
+    Other electrical quantities (frequency, current, voltage) are reported according
+    to configuration."""
+
+    ELT1_MAX_POWER = 4500
+
     def __init__(self, node: ShNode, logging_on=False):
         super(PowerMeter, self).__init__(node=node, logging_on=logging_on)
-        self.my_telemetry_tuple = TelemetryTuple(
+        self.hack_current = TelemetryTuple(
             AboutNode=ShNode.by_alias["a.elt1"],
             SensorNode=self.node,
             TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+        )
+        self.hack_power = TelemetryTuple(
+            AboutNode=ShNode.by_alias["a.elt1"],
+            SensorNode=self.node,
+            TelemetryName=TelemetryName.POWER_W,
         )
         self.config = NodeConfig(self.node)
         self.driver = self.config.driver
         self.check_hw_uid()
 
         self.max_telemetry_value: Dict[TelemetryTuple, Optional[int]] = {
-            self.my_telemetry_tuple: 10**7
+            self.hack_current: int(self.ELT1_MAX_POWER * 10**6 / 240),
+            self.hack_power: self.ELT1_MAX_POWER,
         }
 
         self.prev_telemetry_value: Dict[TelemetryTuple, Optional[int]] = {
-            self.my_telemetry_tuple: None
+            self.hack_current: None,
+            self.hack_power: None,
         }
         self.latest_telemetry_value: Dict[TelemetryTuple, Optional[int]] = {
-            self.my_telemetry_tuple: None
+            self.hack_current: None,
+            self.hack_power: None,
         }
         self.eq_config: Dict[TelemetryTuple, GtEqReportingConfig] = {}
         self.initialize_eq_config()
-        self._last_sampled_s: Dict[TelemetryTuple, Optional[int]] = {self.my_telemetry_tuple: None}
+        self._last_sampled_s: Dict[TelemetryTuple, Optional[int]] = {
+            self.hack_current: None,
+            self.hack_power: None,
+        }
 
         self.screen_print(f"Initialized {self.__class__}")
 
     def initialize_eq_config(self):
         all_eq_configs = self.config.reporting.ElectricalQuantityReportingConfigList
-        amp_list = list(
-            filter(
-                lambda x: x.TelemetryName == TelemetryName.CURRENT_RMS_MICRO_AMPS
-                and x.ShNodeAlias == "a.elt1",
-                all_eq_configs,
+        for tt in self.my_telemetry_tuples():
+            tt_list = list(
+                filter(
+                    lambda x: x.TelemetryName == tt.TelemetryName
+                    and x.ShNodeAlias == tt.AboutNode.alias,
+                    all_eq_configs,
+                )
             )
-        )
-        self.eq_config[self.my_telemetry_tuple] = amp_list[0]
+            if len(tt_list) != 1:
+                raise Exception(f"Missing config for {tt}!")
+            self.eq_config[tt] = tt_list[0]
 
     def my_telemetry_tuples(self) -> List[TelemetryTuple]:
-        return [self.my_telemetry_tuple]
+        return [self.hack_current, self.hack_power]
 
     def subscriptions(self) -> List[Subscription]:
         return []
@@ -145,9 +169,9 @@ class PowerMeter(ActorBase):
             if len(telemetry_tuple_report_list) > 0:
                 self.report_sampled_telemetry_values(telemetry_tuple_report_list)
                 self.screen_print(
-                    f"{self.my_telemetry_tuple.TelemetryName.value} for "
-                    f" {self.my_telemetry_tuple.AboutNode.alias} is "
-                    f"{self.latest_telemetry_value[self.my_telemetry_tuple]}"
+                    f"{self.hack_current.TelemetryName.value} for "
+                    f" {self.hack_current.AboutNode.alias} is "
+                    f"{self.latest_telemetry_value[self.hack_current]}"
                 )
             delta_ms = 1000 * (time.time() - start_s)
             if delta_ms < self.config.reporting.PollPeriodMs:

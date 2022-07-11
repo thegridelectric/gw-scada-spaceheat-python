@@ -6,7 +6,7 @@ import os
 import load_house
 from data_classes.sh_node import ShNode
 from schema.enums.role.sh_node_role_110 import Role
-from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
+from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 
 
 def test_load_real_house():
@@ -18,7 +18,7 @@ def test_load_real_house():
         input_data = json.load(read_file)
     house_data = input_data[real_world_root_alias]
     for d in house_data["ShNodes"]:
-        GtShNode_Maker.dict_to_tuple(d)
+        SpaceheatNodeGt_Maker.dict_to_tuple(d)
     for node in ShNode.by_alias.values():
         print(node.parent)
 

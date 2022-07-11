@@ -18,6 +18,8 @@ from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status impor
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import \
     GtShTelemetryFromMultipurposeSensor_Maker
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import \
+    GtDispatchBooleanLocal_Maker
 
 
 def test_scada_small():
@@ -70,8 +72,16 @@ def test_scada_small():
     boost = ShNode.by_alias["a.elt1.relay"]
     payload = GsPwr_Maker(power=2100).tuple
     with pytest.raises(Exception):
-        scada.gs_pwr_received(from_node=boost, payload=payload)
+        scada.on_message(from_node=boost, payload=payload)
 
+    payload = GtDispatchBooleanLocal_Maker(
+        send_time_unix_ms=int(time.time() * 1000),
+        from_node_alias="a.home",
+        about_node_alias="a.elt1.relay",
+        relay_state=0
+    ).tuple
+    with pytest.raises(Exception):
+        scada.on_message(from_node=boost, payload=payload)
     # Testing gt_sh_telemetry_from_multipurpose_sensor_received
 
     payload = GtShTelemetryFromMultipurposeSensor_Maker(

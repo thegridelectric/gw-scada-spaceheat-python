@@ -39,6 +39,7 @@ def test_message_exchange(tmp_path, monkeypatch):
                     1,
                     "ERROR waiting for gw_client connect",
                 )
+        scada._scada_atn_fast_dispatch_contract_is_alive_stub = True
         atn.turn_on(ShNode.by_alias["a.elt1.relay"])
         wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
         atn.status()
