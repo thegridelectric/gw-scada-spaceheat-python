@@ -1,13 +1,30 @@
 import time
 from typing import Dict, List, Optional
+import settings
 
 from actors.actor_base import ActorBase
 from actors.utils import Subscription, responsive_sleep
-from data_classes.node_config import NodeConfig
+
 from data_classes.sh_node import ShNode
+from data_classes.components.electric_meter_component import ElectricMeterComponent
+from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
+from drivers.power_meter.power_meter_driver import PowerMeterDriver
+
 from named_tuples.telemetry_tuple import TelemetryTuple
+
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
+from schema.enums.role.role_map import Role
+from schema.enums.unit.unit_map import Unit
+from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
+    GtEqReportingConfig,
+    GtEqReportingConfig_Maker,
+)
+from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
+    GtPowermeterReportingConfig as ReportingConfig,
+    GtPowermeterReportingConfig_Maker as ReportingConfig_Maker,
+)
+
+from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
@@ -22,62 +39,139 @@ class PowerMeter(ActorBase):
     Other electrical quantities (frequency, current, voltage) are reported according
     to configuration."""
 
-    ELT1_MAX_POWER = 4500
+    FASTEST_POWER_METER_POLL_PERIOD_MS = 40
+    DEFAULT_ASYNC_REPORTING_THRESHOLD = 0.05
+
+    @classmethod
+    def get_resistive_element_nameplate_power_w(cls, node: ShNode) -> int:
+        if node.role != Role.BOOST_ELEMENT:
+            raise Exception("This function should only be called for nodes that are boost elements")
+        component: ResistiveHeaterComponent = node.component
+        cac = component.cac
+        return cac.nameplate_max_power_w
+
+    @classmethod
+    def get_resistive_heater_nameplate_current_amps(cls, node: ShNode) -> float:
+        """Note that all ShNodes of role BOOST_ELEMENT must have a non-zero RatedVoltageV and have a component
+        of type ResistiveHeaterComponent.  Likewise, all ResistiveHeaterCacs have a positive NamePlateMaxPower.
+        This is enforced by schema and not checked here."""
+        if node.role != Role.BOOST_ELEMENT:
+            raise Exception("This function should only be called for nodes that are boost elements")
+        component: ResistiveHeaterComponent = node.component
+        cac = component.cac
+        return cac.nameplate_max_power_w / node.rated_voltage_v
 
     def __init__(self, node: ShNode, logging_on=False):
         super(PowerMeter, self).__init__(node=node, logging_on=logging_on)
-        self.hack_current = TelemetryTuple(
-            AboutNode=ShNode.by_alias["a.elt1"],
-            SensorNode=self.node,
-            TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-        )
-        self.hack_power = TelemetryTuple(
-            AboutNode=ShNode.by_alias["a.elt1"],
-            SensorNode=self.node,
-            TelemetryName=TelemetryName.POWER_W,
-        )
-        self.config = NodeConfig(self.node)
-        self.driver = self.config.driver
-        self.check_hw_uid()
+        if self.node != self.power_meter_node():
+            raise Exception(
+                f"PowerMeter node must be the unique Spaceheat Node of role PowerMeter! Not {self.node}"
+            )
 
-        self.max_telemetry_value: Dict[TelemetryTuple, Optional[int]] = {
-            self.hack_current: int(self.ELT1_MAX_POWER * 10**6 / 240),
-            self.hack_power: self.ELT1_MAX_POWER,
-        }
+        self.eq_reporting_config: Dict[TelemetryTuple, GtEqReportingConfig] = {}
+        self.reporting_config: ReportingConfig = self.set_reporting_config(
+            component=self.node.component
+        )
+        self.driver: PowerMeterDriver = self.power_meter_driver()
 
-        self.prev_telemetry_value: Dict[TelemetryTuple, Optional[int]] = {
-            self.hack_current: None,
-            self.hack_power: None,
+        self.nameplate_telemetry_value: Dict[
+            TelemetryTuple, int
+        ] = self.get_nameplate_telemetry_value()
+
+        self.last_reported_agg_power_w: Optional[int] = None
+
+        self.last_reported_telemetry_value: Dict[TelemetryTuple, Optional[int]] = {
+            tt: None for tt in self.all_power_meter_telemetry_tuples()
         }
         self.latest_telemetry_value: Dict[TelemetryTuple, Optional[int]] = {
-            self.hack_current: None,
-            self.hack_power: None,
-        }
-        self.eq_config: Dict[TelemetryTuple, GtEqReportingConfig] = {}
-        self.initialize_eq_config()
-        self._last_sampled_s: Dict[TelemetryTuple, Optional[int]] = {
-            self.hack_current: None,
-            self.hack_power: None,
+            tt: None for tt in self.all_power_meter_telemetry_tuples()
         }
 
+        self._last_sampled_s: Dict[TelemetryTuple, Optional[int]] = {
+            tt: None for tt in self.all_power_meter_telemetry_tuples()
+        }
+
+        # self.check_hw_uid()
         self.screen_print(f"Initialized {self.__class__}")
 
-    def initialize_eq_config(self):
-        all_eq_configs = self.config.reporting.ElectricalQuantityReportingConfigList
-        for tt in self.my_telemetry_tuples():
-            tt_list = list(
-                filter(
-                    lambda x: x.TelemetryName == tt.TelemetryName
-                    and x.ShNodeAlias == tt.AboutNode.alias,
-                    all_eq_configs,
-                )
-            )
-            if len(tt_list) != 1:
-                raise Exception(f"Missing config for {tt}!")
-            self.eq_config[tt] = tt_list[0]
+    ###################################
+    # Initializing configuration
+    ###################################
 
-    def my_telemetry_tuples(self) -> List[TelemetryTuple]:
-        return [self.hack_current, self.hack_power]
+    def set_reporting_config(self, component: ElectricMeterComponent) -> ReportingConfig:
+        cac = component.cac
+        eq_reporting_config_list = []
+        for about_node in self.all_metered_nodes():
+            current_config = GtEqReportingConfig_Maker(
+                sh_node_alias=about_node.alias,
+                report_on_change=True,
+                telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+                unit=Unit.AMPS_RMS,
+                exponent=6,
+                sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
+            ).tuple
+            tt = TelemetryTuple(
+                AboutNode=about_node,
+                SensorNode=self.node,
+                TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+            )
+            eq_reporting_config_list.append(current_config)
+            self.eq_reporting_config[tt] = current_config
+
+            power_config = GtEqReportingConfig_Maker(
+                sh_node_alias=about_node.alias,
+                report_on_change=True,
+                telemetry_name=TelemetryName.POWER_W,
+                unit=Unit.W,
+                exponent=0,
+                sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
+            ).tuple
+            eq_reporting_config_list.append(power_config)
+            tt = TelemetryTuple(
+                AboutNode=about_node, SensorNode=self.node, TelemetryName=TelemetryName.POWER_W
+            )
+            self.eq_reporting_config[tt] = power_config
+
+        poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
+        return ReportingConfig_Maker(
+            reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+            poll_period_ms=poll_period_ms,
+            hw_uid=component.hw_uid,
+            electrical_quantity_reporting_config_list=eq_reporting_config_list,
+        ).tuple
+
+    def get_nameplate_telemetry_value(self) -> Dict[TelemetryTuple, int]:
+        response_dict: Dict[TelemetryTuple, int] = {}
+        for about_node in self.all_resistive_heaters():
+            current_tt = TelemetryTuple(
+                AboutNode=about_node,
+                SensorNode=self.node,
+                TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+            )
+            nameplate_current_amps = self.get_resistive_heater_nameplate_current_amps(
+                node=about_node
+            )
+            response_dict[current_tt] = int(10**6 * nameplate_current_amps)
+
+            power_tt = TelemetryTuple(
+                AboutNode=about_node, SensorNode=self.node, TelemetryName=TelemetryName.POWER_W
+            )
+            nameplate_power_w = self.get_resistive_element_nameplate_power_w(node=about_node)
+            response_dict[power_tt] = int(nameplate_power_w)
+        return response_dict
+
+    def check_hw_uid(self):
+        if self.reporting_config.HwUid != self.driver.read_hw_uid():
+            raise Exception(
+                f"HwUid associated to component {self.reporting_config.HwUid} "
+                f"does not match HwUid read by driver {self.driver.read_hw_uid()}"
+            )
+
+    ###############################
+    # Stubs for receiving MQTT messages
+    ################################
 
     def subscriptions(self) -> List[Subscription]:
         return []
@@ -85,20 +179,13 @@ class PowerMeter(ActorBase):
     def on_message(self, from_node: ShNode, payload):
         pass
 
-    def check_hw_uid(self):
-        if self.config.reporting.HwUid != self.driver.read_hw_uid():
-            raise Exception(
-                f"HwUid associated to component {self.config.reporting.HwUid} "
-                f"does not match HwUid read by driver {self.driver.read_hw_uid()}"
-            )
+    ###############################
+    # Core functions
+    ################################
 
-    def update_prev_and_latest_value_dicts(self):
-        for tt in self.my_telemetry_tuples():
-            self.prev_telemetry_value[tt] = self.latest_telemetry_value[tt]
-            result = self.driver.read_current_rms_micro_amps()
-            if not isinstance(result, int):
-                raise Exception(f"{self.driver} returned {result}, expected int!")
-            self.latest_telemetry_value[tt] = result
+    def update_latest_value_dicts(self):
+        for tt in self.all_power_meter_telemetry_tuples():
+            self.latest_telemetry_value[tt] = self.driver.read_telemetry_value(tt.TelemetryName)
 
     def report_sampled_telemetry_values(self, telemetry_sample_report_list: List[TelemetryTuple]):
         about_node_alias_list = list(map(lambda x: x.AboutNode.alias, telemetry_sample_report_list))
@@ -106,7 +193,6 @@ class PowerMeter(ActorBase):
         value_list = list(
             map(lambda x: self.latest_telemetry_value[x], telemetry_sample_report_list)
         )
-
         payload = GtShTelemetryFromMultipurposeSensor_Maker(
             about_node_alias_list=about_node_alias_list,
             value_list=value_list,
@@ -114,20 +200,20 @@ class PowerMeter(ActorBase):
             scada_read_time_unix_ms=int(1000 * time.time()),
         ).tuple
         self.publish(payload)
-        self.payload = payload
         for tt in telemetry_sample_report_list:
             self._last_sampled_s[tt] = int(time.time())
+            self.last_reported_telemetry_value[tt] = self.latest_telemetry_value[tt]
 
     def value_exceeds_async_threshold(self, telemetry_tuple: TelemetryTuple) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
         """
-        telemetry_reporting_config = self.eq_config[telemetry_tuple]
-        prev_telemetry_value = self.prev_telemetry_value[telemetry_tuple]
+        telemetry_reporting_config = self.eq_reporting_config[telemetry_tuple]
+        last_reported_value = self.last_reported_telemetry_value[telemetry_tuple]
         latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
-        abs_telemetry_delta = abs(latest_telemetry_value - prev_telemetry_value)
-        max_telemetry_value = self.max_telemetry_value[telemetry_tuple]
+        abs_telemetry_delta = abs(latest_telemetry_value - last_reported_value)
+        max_telemetry_value = self.nameplate_telemetry_value[telemetry_tuple]
         change_ratio = abs_telemetry_delta / max_telemetry_value
         if change_ratio > telemetry_reporting_config.AsyncReportThreshold:
             return True
@@ -146,14 +232,51 @@ class PowerMeter(ActorBase):
         """
         if self.latest_telemetry_value[telemetry_tuple] is None:
             return False
-        if self._last_sampled_s[telemetry_tuple] is None:
+        if (
+            self._last_sampled_s[telemetry_tuple] is None
+            or self.last_reported_telemetry_value[telemetry_tuple] is None
+        ):
             return True
         if (
             time.time() - self._last_sampled_s[telemetry_tuple]
-            > self.eq_config[telemetry_tuple].SamplePeriodS
+            > self.eq_reporting_config[telemetry_tuple].SamplePeriodS
         ):
             return True
         if self.value_exceeds_async_threshold(telemetry_tuple):
+            return True
+        return False
+
+    @property
+    def latest_agg_power_w(self) -> Optional[int]:
+        """Tracks the sum of the power of the all the nodes whose power is getting measured by the power meter"""
+        latest_power_list = [
+            v for k, v in self.latest_telemetry_value.items() if k in self.all_power_tuples()
+        ]
+        if None in latest_power_list:
+            return None
+        return int(sum(latest_power_list))
+
+    @property
+    def nameplate_agg_power_w(self) -> int:
+        nameplate_power_list = [
+            v for k, v in self.nameplate_telemetry_value.items() if k in self.all_power_tuples()
+        ]
+        return int(sum(nameplate_power_list))
+
+    def report_aggregated_power_w(self):
+        self.publish(GsPwr_Maker(power=self.latest_agg_power_w).tuple)
+        self.last_reported_agg_power_w = self.latest_agg_power_w
+
+    def should_report_aggregated_power(self) -> bool:
+        """Aggregated power is sent up asynchronously on change via a GsPwr message, and the last aggregated
+        power sent up is recorded in self.last_reported_agg_power_w."""
+        if self.latest_agg_power_w is None:
+            return False
+        if self.last_reported_agg_power_w is None:
+            return True
+        abs_power_delta = abs(self.latest_agg_power_w - self.last_reported_agg_power_w)
+        change_ratio = abs_power_delta / self.nameplate_agg_power_w
+        if change_ratio > self.DEFAULT_ASYNC_REPORTING_THRESHOLD:
             return True
         return False
 
@@ -161,19 +284,22 @@ class PowerMeter(ActorBase):
         self._main_loop_running = True
         while self._main_loop_running is True:
             start_s = time.time()
-            self.update_prev_and_latest_value_dicts()
+            self.update_latest_value_dicts()
+            if self.should_report_aggregated_power():
+                self.report_aggregated_power_w()
             telemetry_tuple_report_list: List[TelemetryTuple] = []
-            for telemetry_tuple in self.my_telemetry_tuples():
+            for telemetry_tuple in self.all_power_meter_telemetry_tuples():
                 if self.should_report_telemetry_reading(telemetry_tuple):
                     telemetry_tuple_report_list.append(telemetry_tuple)
             if len(telemetry_tuple_report_list) > 0:
                 self.report_sampled_telemetry_values(telemetry_tuple_report_list)
-                self.screen_print(
-                    f"{self.hack_current.TelemetryName.value} for "
-                    f" {self.hack_current.AboutNode.alias} is "
-                    f"{self.latest_telemetry_value[self.hack_current]}"
-                )
+                for tt in telemetry_tuple_report_list:
+                    self.screen_print(
+                        f"{tt.TelemetryName.value} for "
+                        f"{tt.AboutNode.alias} is "
+                        f"{self.latest_telemetry_value[tt]}"
+                    )
             delta_ms = 1000 * (time.time() - start_s)
-            if delta_ms < self.config.reporting.PollPeriodMs:
-                sleep_time_ms = self.config.reporting.PollPeriodMs - delta_ms
+            if delta_ms < self.reporting_config.PollPeriodMs:
+                sleep_time_ms = self.reporting_config.PollPeriodMs - delta_ms
             responsive_sleep(self, sleep_time_ms / 1000)

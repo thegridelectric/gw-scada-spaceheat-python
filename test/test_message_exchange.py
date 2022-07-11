@@ -6,7 +6,7 @@ from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from data_classes.sh_node import ShNode
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
-from test.utils import ScadaRecorder, AtnRecorder, EarRecorder, wait_for
+from test.utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, EarRecorder, wait_for
 
 
 def test_message_exchange(tmp_path, monkeypatch):
@@ -18,10 +18,11 @@ def test_message_exchange(tmp_path, monkeypatch):
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"], logging_on=True)
     atn = AtnRecorder(node=ShNode.by_alias["a"], logging_on=True)
     ear = EarRecorder(logging_on=True)
+    home_alone = HomeAloneRecorder(node=ShNode.by_alias["a.home"], logging_on=True)
     elt_relay = BooleanActuator(ShNode.by_alias["a.elt1.relay"], logging_on=True)
     meter = PowerMeter(node=ShNode.by_alias["a.m"], logging_on=True)
     thermo = SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], logging_on=True)
-    actors = [scada, atn, ear, elt_relay, meter, thermo]
+    actors = [scada, atn, ear, home_alone, elt_relay, meter, thermo]
 
     try:
         for actor in actors:
@@ -77,6 +78,14 @@ def test_message_exchange(tmp_path, monkeypatch):
         atn.turn_off(ShNode.by_alias["a.elt1.relay"])
         wait_for(
             lambda: int(elt_relay.relay_state) == 0, 10, f"Relay state {elt_relay.relay_state}"
+        )
+
+        scada.send_status()
+        wait_for(lambda: atn.status_received > 0, 10, f"atn summary. {atn.summary_str()}")
+        wait_for(
+            lambda: home_alone.status_received > 0,
+            10,
+            f"home alone summary. {home_alone.summary_str()}",
         )
 
     finally:

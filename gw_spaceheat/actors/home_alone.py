@@ -9,6 +9,7 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Mak
 
 from actors.actor_base import ActorBase
 from actors.utils import QOS, Subscription, responsive_sleep
+from schema.enums.role.role_map import Role
 
 
 class HomeAlone(ActorBase):
@@ -16,6 +17,14 @@ class HomeAlone(ActorBase):
     SCADA actor whenever the SCADA's DispatchContract with its AtomicTNode is not alive.
     The primary (but not only) reason for this will be loss of communications (i.e. router
     down or cellular service down) between the home and the cloud."""
+
+    @classmethod
+    def my_scada(cls) -> ShNode:
+        """Returns the primary scada of the house configuration. There will alwaus be
+        exactly one of these."""
+        all_nodes = list(ShNode.by_alias.values())
+        scadas = list(filter(lambda x: (x.role == Role.SCADA), all_nodes))
+        return scadas[0]
 
     MAIN_LOOP_MIN_TIME_S = 5
 
@@ -30,26 +39,28 @@ class HomeAlone(ActorBase):
     def subscriptions(self) -> List[Subscription]:
         my_subscriptions = [
             Subscription(
-                Topic=f"{self.scada_g_node_alias}/{GtShStatus_Maker.type_alias}",
+                Topic=f"{self.my_scada().alias}/{GtShStatus_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             )
         ]
         return my_subscriptions
 
     def on_message(self, from_node: ShNode, payload):
+        self.screen_print("Got message")
         if isinstance(payload, GtShStatus):
-            self.gt_sh_status_received(from_node, payload)
+            if from_node is self.my_scada():
+                self.gt_sh_status_received(payload)
+            else:
+                raise Exception(f"Status messages come from {self.my_scada()}")
         else:
             self.screen_print(f"{payload} subscription not implemented!")
 
-    def gt_sh_status_received(self, from_node: ShNode, payload: GtShStatus):
+    def gt_sh_status_received(self, payload: GtShStatus):
         """Home alone collects and processes the status information. In combination
         with the time and information about prices and weather it uses the processed
         status data from the last two weeks to make a decision about how to dispatch the
         scada."""
-        self.screen_print("Got status!")
-        if from_node != ShNode.by_alias["a.s"]:
-            raise Exception(f"Got status from {from_node}! Expected a.s!")
+
         self.latest_status = payload
 
     ################################################

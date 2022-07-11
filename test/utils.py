@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 import settings
 from actors.atn import Atn
 from actors.cloud_ear import CloudEar
+from actors.home_alone import HomeAlone
 from actors.scada import Scada
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch import GsDispatch
@@ -19,6 +20,10 @@ from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
 )
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import (
     GtShCliScadaResponse,
+)
+
+from schema.gt.gt_sh_status.gt_sh_status import (
+    GtShStatus,
 )
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
@@ -60,6 +65,7 @@ class CommEvent:
             param_str = param_str[:max_param_width] + "..."
         return f"{self.timestamp.isoformat()}  {self.broker.value:5s}  {self.event.value:23s}  {param_str}"
 
+
 def wait_for(
     f: Callable[[], bool],
     timeout: float,
@@ -85,33 +91,63 @@ def wait_for(
             time.sleep(min(retry_duration, until - now))
             now = time.time()
     if raise_timeout:
-        raise ValueError(
-            f"ERROR. Function {f} timed out after {timeout} seconds. {tag}"
-        )
+        raise ValueError(f"ERROR. Function {f} timed out after {timeout} seconds. {tag}")
     else:
         return False
 
 
 class AtnRecorder(Atn):
     cli_resp_received: int
+    status_received: int
     latest_cli_response_payload: Optional[GtShCliScadaResponse]
+    latest_status_payload: Optional[GtShStatus]
 
     def __init__(self, node: ShNode, logging_on: bool = False):
         self.cli_resp_received = 0
+        self.status_received = 0
         self.latest_cli_response_payload: Optional[GtShCliScadaResponse] = None
+        self.latest_status_payload: Optional[GtShStatus] = None
         super().__init__(node, logging_on=logging_on)
 
     def on_gw_message(self, from_node: ShNode, payload):
         if isinstance(payload, GtShCliScadaResponse):
             self.cli_resp_received += 1
             self.latest_cli_response_payload = payload
+        if isinstance(payload, GtShStatus):
+            self.status_received += 1
+            self.latest_status_payload = payload
         super().on_gw_message(from_node, payload)
 
     def summary_str(self):
         """Summarize results in a string"""
         return (
             f"AtnRecorder [{self.node.alias}] cli_resp_received: {self.cli_resp_received}  "
-            f"latest_cli_response_payload: {self.latest_cli_response_payload}"
+            f"latest_cli_response_payload: {self.latest_cli_response_payload}\n"
+            f"status_received: {self.status_received}  "
+            f"latest_status_payload: {self.latest_status_payload}"
+        )
+
+
+class HomeAloneRecorder(HomeAlone):
+    status_received: int
+    latest_status_payload: Optional[GtShStatus]
+
+    def __init__(self, node: ShNode, logging_on: bool = False):
+        self.status_received = 0
+        self.latest_status_payload: Optional[GtShStatus] = None
+        super().__init__(node, logging_on=logging_on)
+
+    def on_message(self, from_node: ShNode, payload):
+        if isinstance(payload, GtShStatus):
+            self.status_received += 1
+            self.latest_status_payload = payload
+        super().on_message(from_node, payload)
+
+    def summary_str(self):
+        """Summarize results in a string"""
+        return (
+            f"HomeAloneRecorder [{self.node.alias}] status_received: {self.status_received}  "
+            f"latest_status_payload: {self.latest_status_payload}"
         )
 
 
@@ -171,9 +207,7 @@ class ScadaRecorder(Scada):
     def _record_comm_event(self, broker: Brokers, event: CommEvents, *params: Any):
         self.comm_event_counts[event] += 1
         self.comm_events.append(
-            CommEvent(
-                datetime.datetime.now(), broker=broker, event=event, params=list(params)
-            )
+            CommEvent(datetime.datetime.now(), broker=broker, event=event, params=list(params))
         )
 
     @classmethod
@@ -211,9 +245,7 @@ class ScadaRecorder(Scada):
         self._record_comm_event(Brokers.gw, CommEvents.publish, userdata, mid)
 
     def on_gw_subscribe(self, _, userdata, mid, granted_qos):
-        self._record_comm_event(
-            Brokers.gw, CommEvents.subscribe, userdata, mid, granted_qos
-        )
+        self._record_comm_event(Brokers.gw, CommEvents.subscribe, userdata, mid, granted_qos)
 
     def on_gw_unsubscribe(self, _, userdata, mid):
         self._record_comm_event(Brokers.gw, CommEvents.unsubscribe, userdata, mid)

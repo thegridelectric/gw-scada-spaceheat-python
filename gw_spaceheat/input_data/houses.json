@@ -529,6 +529,26 @@
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
+                "Alias": "a.elt2",
+                "RoleGtEnumSymbol": "99c5f326",
+                "ActorClassGtEnumSymbol": "99a5f20d",
+                "DisplayName": "Second boost element",
+                "ShNodeId":"ad51bb8f-f1bb-4a16-8652-76ed699c6a19",
+                "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
+                "RatedVoltageV": 240,
+                "TypicalVoltageV": 225,
+                "TypeAlias": "spaceheat.node.gt.100"
+            },
+            {
+                "Alias": "a.elt2.relay",
+                "RoleGtEnumSymbol": "57b788ee",
+                "ActorClassGtEnumSymbol": "fddd0064",
+                "DisplayName": "30A Relay for second boost element",
+                "ShNodeId": "d2eb5c93-ba1c-4f2c-a7ad-4dee995eb811",
+                "ComponentId": "58c4ad4f-6b1a-4fbf-80dd-d269f31e5ba5",
+                "TypeAlias": "spaceheat.node.gt.100"
+            },
+            {
                 "Alias": "a.tank",
                 "RoleGtEnumSymbol": "3ecfe9b8",
                 "ActorClassGtEnumSymbol": "99a5f20d",
@@ -757,8 +777,18 @@
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "HwUid": "aaaa2222"
-            }],
+                "HwUid": "aaaa2222",
+                "TestedMaxColdMilliOhms": 14500,
+                "TestedMaxHotMilliOhms": 13714
+            },
+            {
+                "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
+                "DisplayName": "Second 4.5 kW boost in tank",
+                "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
+                "TypeAlias": "resistive.heater.component.gt.100",
+                "HwUid": "bbbb2222"
+            }
+        ],
         "BooleanActuatorComponents": [
             {
                 "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
@@ -774,6 +804,14 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 1,
                 "TypeAlias": "gt.boolean.actuator.component.100"
+            },
+            {
+                "ComponentId": "58c4ad4f-6b1a-4fbf-80dd-d269f31e5ba5",
+                "DisplayName": "relay for second elt in tank",
+                "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
+                "Gpio": 2,
+                "TypeAlias": "gt.boolean.actuator.component.100",
+                "HwUid": "ddd321"
             }
         ],
         "TempSensorComponents": [
@@ -973,26 +1011,25 @@
     },
     "dwandy":
     {
-        "MyAtomicTNodeGNode":
-        {
-            "GNodeId": "4ba1d7b2-f0df-4c89-9cc3-0ff421c2e628",
-            "Alias":  "dwandy.isone.ct.newhaven.orange1",
-            "DisplayName": "Little Orange House Garage Heating System Atomic TNode",
+        "MyAtomicTNodeGNode":{
+            "GNodeId": "c4c9a280-453f-4c36-a081-970a3774b3ed",
+            "Alias": "dwjess.isone.ct.newhaven.orange1",
+            "DisplayName": "Little Orange House Garage Heating System AtomicTNode",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "AtomicTNode"
         },
         "MyTerminalAssetGNode": 
         {
-            "GNodeId": "9c70f83a-f4bf-46c0-992e-73d5e60bfa1a",
-            "Alias":  "dwandy.isone.ct.newhaven.orange1.ta",
+            "GNodeId": "e250a99c-7b7f-469a-8f54-96ea83e95112",
+            "Alias":  "dwjess.isone.ct.newhaven.orange1.ta",
             "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "TerminalAsset"
         },
-        "MyScadaGNode": 
+        "MyScadaGNode":
         {
-            "GNodeId": "e76f771b-4cc7-403c-8355-c293745eb559",
-            "Alias": "dwandy.isone.ct.newhaven.orange1.ta.scada",
+            "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
+            "Alias":  "dwjess.isone.ct.newhaven.orange1.ta.scada",
             "DisplayName": "Little Orange House Garage Heating System SCADA",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "Scada"
@@ -1040,6 +1077,26 @@
                 "DisplayName": "30A Relay for first boost element",
                 "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
                 "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
+                "TypeAlias": "spaceheat.node.gt.100"
+            },
+            {
+                "Alias": "a.elt2",
+                "RoleGtEnumSymbol": "99c5f326",
+                "ActorClassGtEnumSymbol": "99a5f20d",
+                "DisplayName": "Second boost element",
+                "ShNodeId":"ad51bb8f-f1bb-4a16-8652-76ed699c6a19",
+                "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
+                "RatedVoltageV": 240,
+                "TypicalVoltageV": 225,
+                "TypeAlias": "spaceheat.node.gt.100"
+            },
+            {
+                "Alias": "a.elt2.relay",
+                "RoleGtEnumSymbol": "57b788ee",
+                "ActorClassGtEnumSymbol": "fddd0064",
+                "DisplayName": "30A Relay for second boost element",
+                "ShNodeId": "d2eb5c93-ba1c-4f2c-a7ad-4dee995eb811",
+                "ComponentId": "58c4ad4f-6b1a-4fbf-80dd-d269f31e5ba5",
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
@@ -1271,8 +1328,18 @@
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "HwUid": "aaaa2222"
-            }],
+                "HwUid": "aaaa2222",
+                "TestedMaxColdMilliOhms": 14500,
+                "TestedMaxHotMilliOhms": 13714
+            },
+            {
+                "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
+                "DisplayName": "Second 4.5 kW boost in tank",
+                "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
+                "TypeAlias": "resistive.heater.component.gt.100",
+                "HwUid": "bbbb2222"
+            }
+        ],
         "BooleanActuatorComponents": [
             {
                 "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
@@ -1288,6 +1355,14 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 1,
                 "TypeAlias": "gt.boolean.actuator.component.100"
+            },
+            {
+                "ComponentId": "58c4ad4f-6b1a-4fbf-80dd-d269f31e5ba5",
+                "DisplayName": "relay for second elt in tank",
+                "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
+                "Gpio": 2,
+                "TypeAlias": "gt.boolean.actuator.component.100",
+                "HwUid": "ddd321"
             }
         ],
         "TempSensorComponents": [
@@ -1487,26 +1562,25 @@
     },
     "dwtest":
     {
-        "MyAtomicTNodeGNode":
-        {
-            "GNodeId": "e7f7d6cc-08b0-4b36-bbbb-0a1f8447fd32",
-            "Alias":  "dwtest.isone.ct.newhaven.orange1",
+        "MyAtomicTNodeGNode":{
+            "GNodeId": "c4c9a280-453f-4c36-a081-970a3774b3ed",
+            "Alias": "dwjess.isone.ct.newhaven.orange1",
             "DisplayName": "Little Orange House Garage Heating System AtomicTNode",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "AtomicTNode"
         },
         "MyTerminalAssetGNode": 
         {
-            "GNodeId": "851670de-3ddf-407e-a1ff-3d366ee57f61",
-            "Alias":  "dwtest.isone.ct.newhaven.orange1.ta",
+            "GNodeId": "e250a99c-7b7f-469a-8f54-96ea83e95112",
+            "Alias":  "dwjess.isone.ct.newhaven.orange1.ta",
             "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "TerminalAsset"
         },
         "MyScadaGNode":
         {
-            "GNodeId": "0384ef21-648b-4455-b917-58a1172d7fc1",
-            "Alias": "dwtest.isone.ct.newhaven.orange1.ta.scada",
+            "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
+            "Alias":  "dwjess.isone.ct.newhaven.orange1.ta.scada",
             "DisplayName": "Little Orange House Garage Heating System SCADA",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "Scada"
@@ -1554,6 +1628,26 @@
                 "DisplayName": "30A Relay for first boost element",
                 "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
                 "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
+                "TypeAlias": "spaceheat.node.gt.100"
+            },
+            {
+                "Alias": "a.elt2",
+                "RoleGtEnumSymbol": "99c5f326",
+                "ActorClassGtEnumSymbol": "99a5f20d",
+                "DisplayName": "Second boost element",
+                "ShNodeId":"ad51bb8f-f1bb-4a16-8652-76ed699c6a19",
+                "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
+                "RatedVoltageV": 240,
+                "TypicalVoltageV": 225,
+                "TypeAlias": "spaceheat.node.gt.100"
+            },
+            {
+                "Alias": "a.elt2.relay",
+                "RoleGtEnumSymbol": "57b788ee",
+                "ActorClassGtEnumSymbol": "fddd0064",
+                "DisplayName": "30A Relay for second boost element",
+                "ShNodeId": "d2eb5c93-ba1c-4f2c-a7ad-4dee995eb811",
+                "ComponentId": "58c4ad4f-6b1a-4fbf-80dd-d269f31e5ba5",
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
@@ -1785,10 +1879,18 @@
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "TestedMaxHotMilliOhms": 13714,
+                "HwUid": "aaaa2222",
                 "TestedMaxColdMilliOhms": 14500,
-                "HwUid": "aaaa2222"
-            }],
+                "TestedMaxHotMilliOhms": 13714
+            },
+            {
+                "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
+                "DisplayName": "Second 4.5 kW boost in tank",
+                "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
+                "TypeAlias": "resistive.heater.component.gt.100",
+                "HwUid": "bbbb2222"
+            }
+        ],
         "BooleanActuatorComponents": [
             {
                 "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
@@ -1804,6 +1906,14 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 1,
                 "TypeAlias": "gt.boolean.actuator.component.100"
+            },
+            {
+                "ComponentId": "58c4ad4f-6b1a-4fbf-80dd-d269f31e5ba5",
+                "DisplayName": "relay for second elt in tank",
+                "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
+                "Gpio": 2,
+                "TypeAlias": "gt.boolean.actuator.component.100",
+                "HwUid": "ddd321"
             }
         ],
         "TempSensorComponents": [

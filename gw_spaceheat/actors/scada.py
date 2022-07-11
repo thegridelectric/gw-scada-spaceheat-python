@@ -66,7 +66,7 @@ class ScadaCmdDiagnostic(enum.Enum):
 
 
 class Scada(ScadaBase):
-    MAX_POWER_W = 4500
+    GS_PWR_MULTIPLIER = 1
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
 
     @classmethod
@@ -93,13 +93,8 @@ class Scada(ScadaBase):
     def my_multipurpose_sensors(cls) -> List[ShNode]:
         """This will be a list of all sensing devices that either measure more
         than one ShNode or measure more than one physical quantity type (or both).
-        This includes power meters, but may also include other roles like thermostats
+        This includes the (unique) power meter, but may also include other roles like thermostats
         and heat pumps."""
-        all_nodes = list(ShNode.by_alias.values())
-        return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
-
-    @classmethod
-    def my_power_meters(cls) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
 
@@ -115,11 +110,8 @@ class Scada(ScadaBase):
         # status_to_store is a placeholder Dict of GtShStatus
         # objects by StatusUid key that we want to store
         # (probably about 3 weeks worth) and access on restart
-
+        self.latest_total_power_w: Optional[int] = None
         self.status_to_store: Dict[str:GtShStatus] = {}
-
-        self.power_w_by_meter: Dict[ShNode, int] = {node: None for node in self.my_power_meters()}
-        self.latest_reported_total_power_w: Optional[int] = None
 
         self.config: Dict[ShNode, NodeConfig] = {}
         self.init_node_configs()
@@ -195,20 +187,9 @@ class Scada(ScadaBase):
             self.config[node] = NodeConfig(node)
 
     def my_telemetry_tuples(self) -> List[TelemetryTuple]:
-        my_tuples = []
-        example_tuple = TelemetryTuple(
-            AboutNode=ShNode.by_alias["a.elt1"],
-            SensorNode=ShNode.by_alias["a.m"],
-            TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-        )
-        my_tuples.append(example_tuple)
-        return my_tuples
-
-    @property
-    def total_power_w(self):
-        if None in self.power_w_by_meter.values():
-            return None
-        return sum(list(self.power_w_by_meter.values()))
+        """This will include telemetry tuples from all the multipurpose sensors, the most
+        important of which is the power meter."""
+        return self.all_power_meter_telemetry_tuples()
 
     ################################################
     # Receiving messages
@@ -244,10 +225,12 @@ class Scada(ScadaBase):
 
     def on_message(self, from_node: ShNode, payload):
         if isinstance(payload, GsPwr):
-            if from_node in self.my_power_meters():
+            if from_node is self.power_meter_node():
                 self.gs_pwr_received(from_node, payload)
             else:
-                raise Exception(f"from_node {from_node} must be in {self.my_power_meters} for GsPwr message")
+                raise Exception(
+                    f"from_node {from_node} must be from {self.power_meter_node()} for GsPwr message"
+                )
         elif isinstance(payload, GtDispatchBooleanLocal):
             if from_node == ShNode.by_alias["a.home"]:
                 self.local_boolean_dispatch_received(from_node, payload)
@@ -270,28 +253,16 @@ class Scada(ScadaBase):
         is to report power changes as quickly as possible (i.e. milliseconds matter) on
         any asynchronous change more than x% (probably 2%).
 
-        Note that this is different than allocating the power accurately to each large
-        power using device (relays and heat pumps). There might be a single power meter
-        that relays both a boost element and a heat pump - in which case it will report
-        their sum for the fast message and the multipurpose sensor message needs to be
-        inspected to figure out the allocation."""
+        There is a single meter measuring all power getting reported - this is in fact
+        what is Atomic (i.e. cannot be divided further) about the AtomicTNode. The
+        asynchronous change calculation is already made in the power meter code. This
+        function just passes through the result.
 
-        self.power_w_by_meter[from_node] = payload.Power
-        if self.total_power_w is None:
-            """Not all the meters have provided a power reading yet"""
-            return
-        if self.latest_reported_total_power_w is None:
-            """All the meters have provided an initial power reading, but no
-            power has been reported in a GsPwr message yet"""
-            self.gw_publish(GsPwr_Maker(power=self.total_power_w).tuple)
-            self.latest_reported_total_power_w = self.total_power_w
-            return
+        The allocation to separate metered nodes is done ex-poste using the multipurpose
+        telemetry data."""
 
-        abs_power_delta = abs(self.total_power_w - self.latest_reported_total_power_w)
-        change_ratio = abs_power_delta / self.MAX_POWER_W
-        if change_ratio > self.ASYNC_POWER_REPORT_THRESHOLD:
-            self.gw_publish(GsPwr_Maker(power=self.total_power_w).tuple)
-            self.latest_reported_total_power_w = self.total_power_w
+        self.gw_publish(payload)
+        self.latest_total_power_w = self.GS_PWR_MULTIPLIER * payload.Power
 
     def gt_sh_telemetry_from_multipurpose_sensor_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
@@ -554,6 +525,7 @@ class Scada(ScadaBase):
         ).tuple
         self.status_to_store[status.StatusUid] = status
         self.gw_publish(status)
+        self.publish(status)
         self.flush_latest_readings()
 
     def cron_every_5(self):

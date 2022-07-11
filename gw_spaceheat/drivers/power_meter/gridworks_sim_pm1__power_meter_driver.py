@@ -1,8 +1,9 @@
-from typing import Optional
+from typing import Optional, List
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 
 from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 
 
 class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
@@ -20,4 +21,7 @@ class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
         return "1001ab"
 
     def read_power_w(self) -> Optional[int]:
-        return None
+        return 0
+
+    def additional_telemetry_name_list(self) -> List[TelemetryName]:
+        return [TelemetryName.CURRENT_RMS_MICRO_AMPS]

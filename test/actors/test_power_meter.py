@@ -54,13 +54,17 @@ def test_power_meter_small():
     load_house.load_all()
     meter = PowerMeter(node=ShNode.by_alias["a.m"])
 
-    assert list(meter.max_telemetry_value.keys()) == meter.my_telemetry_tuples()
-    assert list(meter.prev_telemetry_value.keys()) == meter.my_telemetry_tuples()
-    assert list(meter.latest_telemetry_value.keys()) == meter.my_telemetry_tuples()
-    assert list(meter.eq_config.keys()) == meter.my_telemetry_tuples()
-    assert list(meter._last_sampled_s.keys()) == meter.my_telemetry_tuples()
+    assert set(meter.nameplate_telemetry_value.keys()) == set(
+        meter.all_power_meter_telemetry_tuples()
+    )
+    assert set(meter.last_reported_telemetry_value.keys()) == set(
+        meter.all_power_meter_telemetry_tuples()
+    )
+    assert set(meter.latest_telemetry_value.keys()) == set(meter.all_power_meter_telemetry_tuples())
+    assert set(meter.eq_reporting_config.keys()) == set(meter.all_power_meter_telemetry_tuples())
+    assert set(meter._last_sampled_s.keys()) == set(meter.all_power_meter_telemetry_tuples())
 
-    all_eq_configs = meter.config.reporting.ElectricalQuantityReportingConfigList
+    all_eq_configs = meter.reporting_config.ElectricalQuantityReportingConfigList
     amp_list = list(
         filter(
             lambda x: x.TelemetryName == TelemetryName.CURRENT_RMS_MICRO_AMPS
@@ -74,26 +78,35 @@ def test_power_meter_small():
         SensorNode=meter.node,
         TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
-    assert tt in meter.my_telemetry_tuples()
+    assert tt in meter.all_power_meter_telemetry_tuples()
+    assert meter.last_reported_telemetry_value[tt] is None
     assert meter.latest_telemetry_value[tt] is None
-    assert meter.prev_telemetry_value[tt] is None
-    meter.update_prev_and_latest_value_dicts()
-    assert isinstance(meter.latest_telemetry_value[tt], int)
-    meter.update_prev_and_latest_value_dicts()
-    assert isinstance(meter.prev_telemetry_value[tt], int)
 
-    assert meter.max_telemetry_value[tt] == 18750000
-    meter.prev_telemetry_value[tt] = meter.latest_telemetry_value[tt]
-    assert meter.value_exceeds_async_threshold(tt) is False
-    meter.latest_telemetry_value[tt] += int(
-        0.1 * meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
-    )
-    assert meter.value_exceeds_async_threshold(tt) is False
+    # If latest_telemetry_value is None, should not report reading
+    assert meter.should_report_telemetry_reading(tt) is False
+    meter.update_latest_value_dicts()
+    assert isinstance(meter.latest_telemetry_value[tt], int)
+    assert meter.last_reported_telemetry_value[tt] is None
+
+    # If last_reported_telemetry_value exists, but last_reported is None, should report
     assert meter.should_report_telemetry_reading(tt)
     meter.report_sampled_telemetry_values([tt])
-    assert meter.should_report_telemetry_reading(tt) is False
 
-    meter.latest_telemetry_value[tt] += int(
-        meter.eq_config[tt].AsyncReportThreshold * meter.max_telemetry_value[tt]
-    )
+    assert meter.last_reported_telemetry_value[tt] == meter.latest_telemetry_value[tt]
+
+    meter.last_reported_telemetry_value[tt] = meter.latest_telemetry_value[tt]
+
+    assert meter.value_exceeds_async_threshold(tt) is False
+    report_threshold_ratio = meter.eq_reporting_config[tt].AsyncReportThreshold
+    assert report_threshold_ratio == 0.05
+    report_threshold_microamps = meter.nameplate_telemetry_value[tt] * 0.05
+    assert report_threshold_microamps == 937500
+
+    meter.latest_telemetry_value[tt] += 900000
+    assert meter.value_exceeds_async_threshold(tt) is False
+
+    meter.latest_telemetry_value[tt] += 100000
     assert meter.value_exceeds_async_threshold(tt) is True
+    meter.report_sampled_telemetry_values([tt])
+    assert meter.last_reported_telemetry_value[tt] == 1018000
+    assert meter.should_report_telemetry_reading(tt) is False

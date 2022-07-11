@@ -29,7 +29,7 @@ def test_load_house():
     for node in ShNode.by_alias.values():
         print(node.parent)
     all_nodes = list(ShNode.by_alias.values())
-    assert len(all_nodes) == 24
+    assert len(all_nodes) == 26
     aliases = list(ShNode.by_alias.keys())
     for i in range(len(aliases)):
         alias = aliases[i]
@@ -38,9 +38,9 @@ def test_load_house():
     nodes_w_components = list(
         filter(lambda x: x.component_id is not None, ShNode.by_alias.values())
     )
-    assert len(nodes_w_components) == 18
+    assert len(nodes_w_components) == 20
     actor_nodes_w_components = list(filter(lambda x: x.has_actor, nodes_w_components))
-    assert len(actor_nodes_w_components) == 12
+    assert len(actor_nodes_w_components) == 13
     tank_water_temp_sensor_nodes = list(
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
     )
