@@ -33,7 +33,7 @@
                             <xsl:element name="RelativePath"><xsl:text>../../../../test/schema/test_</xsl:text>
                             <xsl:value-of select="translate($local-alias,'.','_')"/><xsl:text>.py</xsl:text></xsl:element>
 
-                    <OverwriteMode>Always</OverwriteMode>
+                    <OverwriteMode>Never</OverwriteMode>
                     <xsl:element name="FileContents">
 
 <xsl:text>"""Tests </xsl:text><xsl:value-of select="$alias"/><xsl:text> type"""

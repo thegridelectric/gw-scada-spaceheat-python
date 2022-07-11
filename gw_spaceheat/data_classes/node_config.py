@@ -39,6 +39,12 @@ from data_classes.components.temp_sensor_component import TempSensorComponent
 
 
 class NodeConfig:
+    """Much of the state data here should eventually be set by a reporting contract with the
+    AtomicTNode; with the values here being default values. However, some of the values are
+    physical characteristics of nodes - e.g., the max value of power for a boost element. These
+    come from houses.json
+    """
+
     FASTEST_POWER_METER_POLL_PERIOD_MS = 40
 
     def __init__(self, node: ShNode):
@@ -73,11 +79,22 @@ class NodeConfig:
             unit=Unit.AMPS_RMS,
             exponent=6,
             sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
-            async_report_threshold=0.2,
+            async_report_threshold=0.02,
         ).tuple
 
         eq_reporting_config_list.append(current_config)
 
+        power_config = GtEqReportingConfig_Maker(
+            sh_node_alias="a.elt1",
+            report_on_change=True,
+            telemetry_name=TelemetryName.POWER_W,
+            unit=Unit.W,
+            exponent=0,
+            sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
+            async_report_threshold=0.02,
+        ).tuple
+
+        eq_reporting_config_list.append(power_config)
         poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
         self.reporting = PowerConfigMaker(
             reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
