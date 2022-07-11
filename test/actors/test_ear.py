@@ -7,7 +7,9 @@ from actors.simple_sensor import SimpleSensor
 from data_classes.sh_node import ShNode
 from schema import property_format
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status import GtShSimpleTelemetryStatus
+from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status import (
+    GtShSimpleTelemetryStatus,
+)
 from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
 from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
 from test.utils import wait_for, ScadaRecorder, EarRecorder

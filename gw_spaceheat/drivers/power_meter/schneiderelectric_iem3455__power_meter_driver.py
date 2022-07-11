@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from pymodbus.client.sync import ModbusSerialClient
 import serial.rs485
 import numpy as np
@@ -6,6 +6,7 @@ from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 
 from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 
 
 PORT = "/dev/ttyUSB0"
@@ -57,3 +58,6 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
 
     def read_power_w(self) -> Optional[int]:
         return None
+
+    def additional_telemetry_name_list(self) -> List[TelemetryName]:
+        return [TelemetryName.CURRENT_RMS_MICRO_AMPS]

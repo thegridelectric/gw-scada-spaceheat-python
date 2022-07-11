@@ -32,6 +32,14 @@ def is_lrd_alias_format(candidate: str):
     return True
 
 
+def is_positive_integer(candidate):
+    if not isinstance(candidate, int):
+        return False
+    if candidate <= 0:
+        return False
+    return True
+
+
 def is_reasonable_unix_time_ms(candidate):
     if pendulum.parse("2000-01-01T00:00:00Z").int_timestamp * 1000 > candidate:
         return False

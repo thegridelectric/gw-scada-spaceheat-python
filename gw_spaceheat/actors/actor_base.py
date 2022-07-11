@@ -13,12 +13,95 @@ import helpers
 import settings
 from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
+from data_classes.components.electric_meter_component import ElectricMeterComponent
+from drivers.power_meter.power_meter_driver import PowerMeterDriver
+from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
+    GridworksSimPm1_PowerMeterDriver,
+)
+from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
+    SchneiderElectricIem3455_PowerMeterDriver,
+)
+from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
+from named_tuples.telemetry_tuple import TelemetryTuple
+from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums.role.role_map import Role
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 
 class ActorBase(ABC):
+    @classmethod
+    def all_power_tuples(cls) -> List[TelemetryTuple]:
+        telemetry_tuples = []
+        for node in cls.all_metered_nodes():
+            telemetry_tuples += [
+                TelemetryTuple(
+                    AboutNode=node,
+                    SensorNode=cls.power_meter_node(),
+                    TelemetryName=TelemetryName.POWER_W,
+                )
+            ]
+        return telemetry_tuples
+
+    @classmethod
+    def all_power_meter_telemetry_tuples(cls) -> List[TelemetryTuple]:
+        telemetry_tuples = cls.all_power_tuples()
+        for about_node in cls.all_metered_nodes():
+            for telemetry_name in cls.power_meter_driver().additional_telemetry_name_list():
+                telemetry_tuples.append(
+                    TelemetryTuple(
+                        AboutNode=about_node,
+                        SensorNode=cls.power_meter_node(),
+                        TelemetryName=telemetry_name,
+                    )
+                )
+
+        return telemetry_tuples
+
+    @classmethod
+    def all_metered_nodes(cls) -> List[ShNode]:
+        """All nodes whose power level is metered and included in power reporting by the Scada"""
+        return cls.all_resistive_heaters()
+
+    @classmethod
+    def all_resistive_heaters(cls) -> List[ShNode]:
+        all_nodes = list(ShNode.by_alias.values())
+        return list(filter(lambda x: (x.role == Role.BOOST_ELEMENT), all_nodes))
+
+    @classmethod
+    def power_meter_driver(cls) -> PowerMeterDriver:
+        component: ElectricMeterComponent = cls.power_meter_node().component
+        cac = component.cac
+        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            driver = UnknownPowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
+            driver = SchneiderElectricIem3455_PowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
+            driver = GridworksSimPm1_PowerMeterDriver(component=component)
+        else:
+            raise NotImplementedError(f"No ElectricMeter driver yet for {cac.make_model}")
+        return driver
+
+    @classmethod
+    def power_meter_node(cls) -> ShNode:
+        """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
+        nodes = list(filter(lambda x: x.role == Role.POWER_METER, ShNode.by_alias.values()))
+        return nodes[0]
+
+    @classmethod
+    def scada_node(cls) -> ShNode:
+        """Schema for input data enforces exactly one Spaceheat Node with role Scada"""
+        nodes = list(filter(lambda x: x.role == Role.SCADA, ShNode.by_alias.values()))
+        return nodes[0]
+
+    @classmethod
+    def home_alone_node(cls) -> ShNode:
+        """Schema for input data enforces exactly one Spaceheat Node with role HomeAlone"""
+        nodes = list(filter(lambda x: x.role == Role.HOME_ALONE, ShNode.by_alias.values()))
+        return nodes[0]
+
     @cached_property
     def atn_g_node_alias(cls):
         current_dir = os.path.dirname(os.path.realpath(__file__))

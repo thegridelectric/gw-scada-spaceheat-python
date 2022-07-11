@@ -1,52 +1,56 @@
-"""Makes gt.sh.node.120 type"""
+"""Makes spaceheat.node.gt.100 type"""
 import json
 from typing import Optional
 from data_classes.sh_node import ShNode
 
-from schema.gt.gt_sh_node.gt_sh_node import GtShNode
+from schema.gt.spaceheat_node_gt.spaceheat_node_gt import SpaceheatNodeGt
 from schema.errors import MpSchemaError
-from schema.enums.actor_class.actor_class_map import (
-    ActorClass,
-    ActorClassMap,
-)
 from schema.enums.role.role_map import (
     Role,
     RoleMap,
 )
+from schema.enums.actor_class.actor_class_map import (
+    ActorClass,
+    ActorClassMap,
+)
 
 
-class GtShNode_Maker:
-    type_alias = "gt.sh.node.120"
+class SpaceheatNodeGt_Maker:
+    type_alias = "spaceheat.node.gt.100"
 
     def __init__(self,
-                 actor_class: ActorClass,
-                 role: Role,
-                 sh_node_id: str,
                  alias: str,
+                 role: Role,
+                 actor_class: ActorClass,
+                 sh_node_id: str,
+                 reporting_sample_period_s: Optional[int],
                  component_id: Optional[str],
+                 rated_voltage_v: Optional[int],
                  display_name: Optional[str],
-                 reporting_sample_period_s: Optional[int]):
+                 typical_voltage_v: Optional[int]):
 
-        gw_tuple = GtShNode(
-            ComponentId=component_id,
-            DisplayName=display_name,
-            ActorClass=actor_class,
-            Role=role,
-            ReportingSamplePeriodS=reporting_sample_period_s,
-            ShNodeId=sh_node_id,
+        gw_tuple = SpaceheatNodeGt(
             Alias=alias,
+            ReportingSamplePeriodS=reporting_sample_period_s,
+            Role=role,
+            ComponentId=component_id,
+            RatedVoltageV=rated_voltage_v,
+            ActorClass=actor_class,
+            ShNodeId=sh_node_id,
+            DisplayName=display_name,
+            TypicalVoltageV=typical_voltage_v,
             #
         )
         gw_tuple.check_for_errors()
         self.tuple = gw_tuple
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtShNode) -> str:
+    def tuple_to_type(cls, tuple: SpaceheatNodeGt) -> str:
         tuple.check_for_errors()
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtShNode:
+    def type_to_tuple(cls, t: str) -> SpaceheatNodeGt:
         try:
             d = json.loads(t)
         except TypeError:
@@ -56,53 +60,61 @@ class GtShNode_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) -> GtShNode:
+    def dict_to_tuple(cls, d: dict) -> SpaceheatNodeGt:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
         if "TypeAlias" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
-        if "ComponentId" not in new_d.keys():
-            new_d["ComponentId"] = None
-        if "DisplayName" not in new_d.keys():
-            new_d["DisplayName"] = None
-        if "ActorClassGtEnumSymbol" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing ActorClassGtEnumSymbol")
-        new_d["ActorClass"] = ActorClassMap.gt_to_local(new_d["ActorClassGtEnumSymbol"])
+        if "Alias" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing Alias")
+        if "ReportingSamplePeriodS" not in new_d.keys():
+            new_d["ReportingSamplePeriodS"] = None
         if "RoleGtEnumSymbol" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing RoleGtEnumSymbol")
         new_d["Role"] = RoleMap.gt_to_local(new_d["RoleGtEnumSymbol"])
-        if "ReportingSamplePeriodS" not in new_d.keys():
-            new_d["ReportingSamplePeriodS"] = None
+        if "ComponentId" not in new_d.keys():
+            new_d["ComponentId"] = None
+        if "RatedVoltageV" not in new_d.keys():
+            new_d["RatedVoltageV"] = None
+        if "ActorClassGtEnumSymbol" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ActorClassGtEnumSymbol")
+        new_d["ActorClass"] = ActorClassMap.gt_to_local(new_d["ActorClassGtEnumSymbol"])
         if "ShNodeId" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ShNodeId")
-        if "Alias" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing Alias")
+        if "DisplayName" not in new_d.keys():
+            new_d["DisplayName"] = None
+        if "TypicalVoltageV" not in new_d.keys():
+            new_d["TypicalVoltageV"] = None
 
-        gw_tuple = GtShNode(
+        gw_tuple = SpaceheatNodeGt(
             TypeAlias=new_d["TypeAlias"],
-            ComponentId=new_d["ComponentId"],
-            DisplayName=new_d["DisplayName"],
-            ActorClass=new_d["ActorClass"],
-            Role=new_d["Role"],
-            ReportingSamplePeriodS=new_d["ReportingSamplePeriodS"],
-            ShNodeId=new_d["ShNodeId"],
             Alias=new_d["Alias"],
+            ReportingSamplePeriodS=new_d["ReportingSamplePeriodS"],
+            Role=new_d["Role"],
+            ComponentId=new_d["ComponentId"],
+            RatedVoltageV=new_d["RatedVoltageV"],
+            ActorClass=new_d["ActorClass"],
+            ShNodeId=new_d["ShNodeId"],
+            DisplayName=new_d["DisplayName"],
+            TypicalVoltageV=new_d["TypicalVoltageV"],
             #
         )
         gw_tuple.check_for_errors()
         return gw_tuple
 
     @classmethod
-    def tuple_to_dc(cls, t: GtShNode) -> ShNode:
+    def tuple_to_dc(cls, t: SpaceheatNodeGt) -> ShNode:
         s = {
-            "display_name": t.DisplayName,
-            "reporting_sample_period_s": t.ReportingSamplePeriodS,
-            "sh_node_id": t.ShNodeId,
             "alias": t.Alias,
+            "reporting_sample_period_s": t.ReportingSamplePeriodS,
+            "rated_voltage_v": t.RatedVoltageV,
+            "sh_node_id": t.ShNodeId,
+            "display_name": t.DisplayName,
+            "typical_voltage_v": t.TypicalVoltageV,
             "component_id": t.ComponentId,
-            "actor_class_gt_enum_symbol": ActorClassMap.local_to_gt(t.ActorClass),
             "role_gt_enum_symbol": RoleMap.local_to_gt(t.Role),
+            "actor_class_gt_enum_symbol": ActorClassMap.local_to_gt(t.ActorClass),
             #
         }
         if s["sh_node_id"] in ShNode.by_id.keys():
@@ -112,16 +124,18 @@ class GtShNode_Maker:
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: ShNode) -> GtShNode:
+    def dc_to_tuple(cls, dc: ShNode) -> SpaceheatNodeGt:
         if dc is None:
             return None
-        t = GtShNode(
-            DisplayName=dc.display_name,
-            ActorClass=dc.actor_class,
-            Role=dc.role,
-            ReportingSamplePeriodS=dc.reporting_sample_period_s,
-            ShNodeId=dc.sh_node_id,
+        t = SpaceheatNodeGt(
             Alias=dc.alias,
+            ReportingSamplePeriodS=dc.reporting_sample_period_s,
+            Role=dc.role,
+            RatedVoltageV=dc.rated_voltage_v,
+            ActorClass=dc.actor_class,
+            ShNodeId=dc.sh_node_id,
+            DisplayName=dc.display_name,
+            TypicalVoltageV=dc.typical_voltage_v,
             ComponentId=dc.component_id,
             #
         )

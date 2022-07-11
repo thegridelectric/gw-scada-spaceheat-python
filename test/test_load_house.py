@@ -6,7 +6,7 @@ import os
 import load_house
 from data_classes.sh_node import ShNode
 from schema.enums.role.sh_node_role_110 import Role
-from schema.gt.gt_sh_node.gt_sh_node_maker import GtShNode_Maker
+from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 
 
 def test_load_real_house():
@@ -18,7 +18,7 @@ def test_load_real_house():
         input_data = json.load(read_file)
     house_data = input_data[real_world_root_alias]
     for d in house_data["ShNodes"]:
-        GtShNode_Maker.dict_to_tuple(d)
+        SpaceheatNodeGt_Maker.dict_to_tuple(d)
     for node in ShNode.by_alias.values():
         print(node.parent)
 
@@ -29,7 +29,7 @@ def test_load_house():
     for node in ShNode.by_alias.values():
         print(node.parent)
     all_nodes = list(ShNode.by_alias.values())
-    assert len(all_nodes) == 24
+    assert len(all_nodes) == 26
     aliases = list(ShNode.by_alias.keys())
     for i in range(len(aliases)):
         alias = aliases[i]
@@ -38,9 +38,9 @@ def test_load_house():
     nodes_w_components = list(
         filter(lambda x: x.component_id is not None, ShNode.by_alias.values())
     )
-    assert len(nodes_w_components) == 18
+    assert len(nodes_w_components) == 20
     actor_nodes_w_components = list(filter(lambda x: x.has_actor, nodes_w_components))
-    assert len(actor_nodes_w_components) == 12
+    assert len(actor_nodes_w_components) == 13
     tank_water_temp_sensor_nodes = list(
         filter(lambda x: x.role == Role.TANK_WATER_TEMP_SENSOR, all_nodes)
     )
