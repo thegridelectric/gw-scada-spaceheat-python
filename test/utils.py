@@ -5,26 +5,40 @@ import socket
 import textwrap
 import time
 from collections import defaultdict
-from typing import Callable, Optional, Dict, Any, List
 from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
 
 import settings
+
+from actors.actor_base import ActorBase
 from actors.atn import Atn
 from actors.cloud_ear import CloudEar
 from actors.home_alone import HomeAlone
 from actors.scada import Scada
+from data_classes.component import Component
+from data_classes.component_attribute_class import ComponentAttributeClass
+from data_classes.components.boolean_actuator_component import (
+    BooleanActuatorCac,
+    BooleanActuatorComponent,
+)
+from data_classes.components.electric_meter_component import (
+    ElectricMeterCac,
+    ElectricMeterComponent,
+)
+from data_classes.components.pipe_flow_sensor_component import (
+    PipeFlowSensorCac,
+    PipeFlowSensorComponent,
+)
+from data_classes.components.resistive_heater_component import (
+    ResistiveHeaterCac,
+    ResistiveHeaterComponent,
+)
+from data_classes.components.temp_sensor_component import TempSensorCac, TempSensorComponent
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch import GsDispatch
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
-    GtDispatchBooleanLocal,
-)
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import (
-    GtShCliScadaResponse,
-)
-
-from schema.gt.gt_sh_status.gt_sh_status import (
-    GtShStatus,
-)
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import GtDispatchBooleanLocal
+from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import GtShCliScadaResponse
+from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
 
 LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
 GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
@@ -94,6 +108,49 @@ def wait_for(
         raise ValueError(f"ERROR. Function {f} timed out after {timeout} seconds. {tag}")
     else:
         return False
+
+
+def flush_components():
+    BooleanActuatorComponent.by_id = {}
+    ElectricMeterComponent.by_id = {}
+    PipeFlowSensorComponent.by_id = {}
+    ResistiveHeaterComponent.by_id = {}
+    TempSensorComponent.by_id = {}
+    Component.by_id = {}
+
+
+def flush_cacs():
+    BooleanActuatorCac.by_id = {}
+    ElectricMeterCac.by_id = {}
+    PipeFlowSensorCac.by_id = {}
+    ResistiveHeaterCac.by_id = {}
+    TempSensorCac.by_id = {}
+    ComponentAttributeClass.by_id = {}
+
+
+def flush_spaceheat_nodes():
+    ShNode.by_id = {}
+    ShNode.by_alias = {}
+
+
+def flush_all():
+    flush_components()
+    flush_cacs()
+    flush_spaceheat_nodes()
+
+
+class AbstractActor(ActorBase):
+    def __init__(self, node: ShNode, logging_on: bool = False):
+        super().__init__(node, logging_on=logging_on)
+
+    def subscriptions(self):
+        return []
+
+    def on_message(self, from_node: ShNode, payload):
+        pass
+
+    def main(self):
+        pass
 
 
 class AtnRecorder(Atn):

@@ -31,6 +31,8 @@ from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import 
 
 def test_scada_small():
     load_house.load_all()
+    with pytest.raises(Exception):
+        scada = Scada(node=ShNode.by_alias["a"])
     scada = Scada(node=ShNode.by_alias["a.s"])
     meter_node = ShNode.by_alias["a.m"]
     relay_node = ShNode.by_alias["a.elt1.relay"]

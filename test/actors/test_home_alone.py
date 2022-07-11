@@ -11,6 +11,8 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
 
 def test_homealone_small():
     load_house.load_all()
+    with pytest.raises(Exception):
+        home_alone = HomeAlone(node=ShNode.by_alias["a"])
     home_alone = HomeAlone(node=ShNode.by_alias["a.home"])
     status_dict = {
         "SlotStartUnixS": 1656945300,
@@ -57,4 +59,4 @@ def test_homealone_small():
     with pytest.raises(Exception):
         home_alone.on_message(from_node=ShNode.by_alias["a.elt1"], payload=status_payload)
 
-    home_alone.on_message(from_node=home_alone.my_scada(), payload=status_payload)
+    home_alone.on_message(from_node=home_alone.scada_node(), payload=status_payload)

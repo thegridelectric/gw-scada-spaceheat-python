@@ -83,7 +83,7 @@
                 "RoleGtEnumSymbol": "9ac68b6e",
                 "ActorClassGtEnumSymbol": "2ea112b9",
                 "DisplayName": "Main Power Meter Little Orange House Test System",
-                "ShNodeId":"55cecbdb-8a47-4160-a1d6-f3617a6279b4",
+                "ShNodeId": "55cecbdb-8a47-4160-a1d6-f3617a6279b4",
                 "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
                 "TypeAlias": "spaceheat.node.gt.100"
             },
