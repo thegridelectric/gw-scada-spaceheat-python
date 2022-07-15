@@ -25,8 +25,8 @@ def test_mqtt_client_settings():
     assert settings.port == port
     assert settings.password.get_secret_value() == password
 
-
-def test_scada_settings_defaults(no_scada_vars):
+@pytest.mark.parametrize("clean_scada_env", [("",)], indirect=True)
+def test_scada_settings_defaults(clean_scada_env):
     """Test ScadaSettings defaults"""
 
     # world_root_alias required
@@ -41,6 +41,7 @@ def test_scada_settings_defaults(no_scada_vars):
         local_mqtt=MQTTClient().dict(),
         gridworks_mqtt=MQTTClient().dict(),
         seconds_per_report=300,
+        logging_on=False,
     )
     assert settings.world_root_alias == "foo"
     assert settings.dict() == exp
@@ -48,9 +49,9 @@ def test_scada_settings_defaults(no_scada_vars):
     assert settings.local_mqtt.username is None
     assert settings.local_mqtt.password.get_secret_value() == ""
 
-
-def test_scada_settings_from_env(monkeypatch, no_scada_vars):
+def test_scada_settings_from_env(monkeypatch):
     """Verify settings loaded from env as expected. """
+    monkeypatch.delenv("SCADA_WORLD_ROOT_ALIAS")
     assert "SCADA_WORLD_ROOT_ALIAS" not in os.environ
     with pytest.raises(pydantic.error_wrappers.ValidationError):
         ScadaSettings()
@@ -79,9 +80,9 @@ def test_scada_settings_from_env(monkeypatch, no_scada_vars):
     assert settings.gridworks_mqtt.host == exp["SCADA_GRIDWORKS_MQTT__HOST"]
     assert settings.gridworks_mqtt.password.get_secret_value() == exp["SCADA_GRIDWORKS_MQTT__PASSWORD"]
 
-
-def test_scada_settings_from_dotenv(monkeypatch, no_scada_vars, tmp_path):
+def test_scada_settings_from_dotenv(monkeypatch, tmp_path):
     """Verify settings loaded from .env file as expected. """
+    monkeypatch.delenv("SCADA_WORLD_ROOT_ALIAS")
     env_file = Path(tmp_path) / ".env"
     settings = ScadaSettings(world_root_alias="1", _env_file=env_file)
     assert settings.seconds_per_report == 300
@@ -111,8 +112,7 @@ def test_scada_settings_from_dotenv(monkeypatch, no_scada_vars, tmp_path):
     assert settings.local_mqtt.host == host
     assert settings.local_mqtt.password.get_secret_value() == password
 
-
-def test_scada_settings_from_env_and_dotenv(monkeypatch, no_scada_vars, tmp_path):
+def test_scada_settings_from_env_and_dotenv(monkeypatch, tmp_path):
     """Verify settings loaded from both environment variables and .env and as expected - environment variables
     take precedence"""
     env = dict(

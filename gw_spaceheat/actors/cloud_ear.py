@@ -1,5 +1,6 @@
 from typing import List
 
+from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
@@ -13,8 +14,8 @@ from actors.utils import QOS, Subscription, responsive_sleep
 
 
 class CloudEar(CloudBase):
-    def __init__(self, logging_on=False):
-        super(CloudEar, self).__init__(logging_on=logging_on)
+    def __init__(self, settings: ScadaSettings):
+        super(CloudEar, self).__init__(settings=settings)
 
         self.screen_print(f"Initialized {self.__class__}")
 

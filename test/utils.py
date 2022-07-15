@@ -13,6 +13,7 @@ from actors.atn import Atn
 from actors.cloud_ear import CloudEar
 from actors.home_alone import HomeAlone
 from actors.scada import Scada
+from config import ScadaSettings
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.components.boolean_actuator_component import (
@@ -134,8 +135,8 @@ def flush_all():
 
 
 class AbstractActor(ActorBase):
-    def __init__(self, node: ShNode, logging_on: bool = False):
-        super().__init__(node, logging_on=logging_on)
+    def __init__(self, node: ShNode, settings:ScadaSettings):
+        super().__init__(node, settings=settings)
 
     def subscriptions(self):
         return []
@@ -153,12 +154,12 @@ class AtnRecorder(Atn):
     latest_cli_response_payload: Optional[GtShCliScadaResponse]
     latest_status_payload: Optional[GtShStatus]
 
-    def __init__(self, node: ShNode, logging_on: bool = False):
+    def __init__(self, node: ShNode, settings: ScadaSettings):
         self.cli_resp_received = 0
         self.status_received = 0
         self.latest_cli_response_payload: Optional[GtShCliScadaResponse] = None
         self.latest_status_payload: Optional[GtShStatus] = None
-        super().__init__(node, logging_on=logging_on)
+        super().__init__(node, settings=settings)
 
     def on_gw_message(self, from_node: ShNode, payload):
         if isinstance(payload, GtShCliScadaResponse):
@@ -183,10 +184,10 @@ class HomeAloneRecorder(HomeAlone):
     status_received: int
     latest_status_payload: Optional[GtShStatus]
 
-    def __init__(self, node: ShNode, logging_on: bool = False):
+    def __init__(self, node: ShNode, settings: ScadaSettings):
         self.status_received = 0
         self.latest_status_payload: Optional[GtShStatus] = None
-        super().__init__(node, logging_on=logging_on)
+        super().__init__(node, settings=settings)
 
     def on_message(self, from_node: ShNode, payload):
         if isinstance(payload, GtShStatus):
@@ -207,11 +208,11 @@ class EarRecorder(CloudEar):
     num_received_by_topic: Dict[str, int]
     latest_payload: Optional[Any]
 
-    def __init__(self, logging_on: bool = False):
+    def __init__(self, settings: ScadaSettings):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
         self.latest_payload = None
-        super().__init__(logging_on=logging_on)
+        super().__init__(settings=settings)
 
     def on_gw_mqtt_message(self, client, userdata, message):
         self.num_received += 1
@@ -237,11 +238,11 @@ class ScadaRecorder(Scada):
     comm_events: List[CommEvent]
     comm_event_counts: Dict[CommEvents, int]
 
-    def __init__(self, node: ShNode, logging_on: bool = False):
+    def __init__(self, node: ShNode, settings: ScadaSettings):
         self.num_received_by_topic = defaultdict(int)
         self.comm_events = []
         self.comm_event_counts = defaultdict(int)
-        super().__init__(node, logging_on=logging_on)
+        super().__init__(node, settings=settings)
         self.gw_client.on_subscribe = self.on_gw_subscribe
         self.gw_client.on_publish = self.on_gw_publish
         self.gw_client.on_unsubscribe = self.on_gw_unsubscribe

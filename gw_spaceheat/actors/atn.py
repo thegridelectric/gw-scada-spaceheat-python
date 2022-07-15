@@ -2,9 +2,9 @@ import time
 import uuid
 from typing import Dict, List, Optional
 
-import load_house
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
+from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
@@ -35,17 +35,16 @@ class Atn(CloudBase):
             )
         )
 
-    @classmethod
-    def local_nodes(cls) -> List[ShNode]:
-        load_house.load_all()
-        all_nodes = list(ShNode.by_alias.values())
-        return list(filter(lambda x: (x.role != Role.ATN and x.has_actor), all_nodes))
-
-    def __init__(self, node: ShNode, logging_on=False):
-        super(Atn, self).__init__(logging_on=logging_on)
+    def __init__(self, node: ShNode, settings: ScadaSettings):
+        super(Atn, self).__init__(settings=settings)
         self.node = node
         self.latest_power_w: Dict[ShNode, Optional[int]] = {}
-        self.power_nodes = list(filter(lambda x: x.role == Role.BOOST_ELEMENT, self.local_nodes()))
+        self.power_nodes = list(
+            filter(
+                lambda x: x.role == Role.BOOST_ELEMENT and x.has_actor,
+                ShNode.by_alias.values()
+            )
+        )
         for node in self.power_nodes:
             self.latest_power_w[node] = None
         self.latest_status: Optional[GtShStatus] = None

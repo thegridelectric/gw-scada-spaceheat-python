@@ -1,7 +1,6 @@
 """Settings for the GridWorks Scada, readable from environment and/or from env files."""
 from typing import Optional
 
-import dotenv
 from pydantic import BaseModel, BaseSettings, SecretStr
 
 DEFAULT_ENV_FILE = ".env"
@@ -25,9 +24,8 @@ class ScadaSettings(BaseSettings):
     gridworks_mqtt: MQTTClient = MQTTClient()
     output_dir: str = "output"
     seconds_per_report: int = 300
+    logging_on: bool = False
 
     class Config:
         env_prefix = "SCADA_"
         env_nested_delimiter = "__"
-
-settings = ScadaSettings(_env_file=dotenv.find_dotenv(DEFAULT_ENV_FILE))

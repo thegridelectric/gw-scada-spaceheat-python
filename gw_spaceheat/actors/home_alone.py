@@ -1,6 +1,7 @@
 import time
 from typing import List, Optional
 
+from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
     GtDispatchBooleanLocal_Maker,
@@ -19,8 +20,8 @@ class HomeAlone(ActorBase):
 
     MAIN_LOOP_MIN_TIME_S = 5
 
-    def __init__(self, node: ShNode, logging_on=False):
-        super(HomeAlone, self).__init__(node=node, logging_on=logging_on)
+    def __init__(self, node: ShNode, settings: ScadaSettings):
+        super(HomeAlone, self).__init__(node=node, settings=settings)
 
         if self.node != self.home_alone_node():
             raise Exception(f"node for HomeAlone must be {self.home_alone_node}, not {self.node}")

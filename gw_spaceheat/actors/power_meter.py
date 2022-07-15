@@ -1,6 +1,7 @@
 import time
+import typing
 from typing import Dict, List, Optional
-from config import settings
+from config import ScadaSettings
 
 from actors.actor_base import ActorBase
 from actors.utils import Subscription, responsive_sleep
@@ -46,7 +47,7 @@ class PowerMeter(ActorBase):
     def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
         if node.role != Role.BOOST_ELEMENT:
             raise Exception("This function should only be called for nodes that are boost elements")
-        component: ResistiveHeaterComponent = node.component
+        component: ResistiveHeaterComponent = typing.cast(ResistiveHeaterComponent, node.component)
         cac = component.cac
         return cac.nameplate_max_power_w
 
@@ -57,12 +58,12 @@ class PowerMeter(ActorBase):
         This is enforced by schema and not checked here."""
         if node.role != Role.BOOST_ELEMENT:
             raise Exception("This function should only be called for nodes that are boost elements")
-        component: ResistiveHeaterComponent = node.component
+        component: ResistiveHeaterComponent = typing.cast(ResistiveHeaterComponent, node.component)
         cac = component.cac
         return cac.nameplate_max_power_w / node.rated_voltage_v
 
-    def __init__(self, node: ShNode, logging_on=False):
-        super(PowerMeter, self).__init__(node=node, logging_on=logging_on)
+    def __init__(self, node: ShNode, settings: ScadaSettings):
+        super(PowerMeter, self).__init__(node=node, settings=settings)
         if self.node != self.power_meter_node():
             raise Exception(
                 f"PowerMeter node must be the unique Spaceheat Node of role PowerMeter! Not {self.node}"
@@ -70,7 +71,7 @@ class PowerMeter(ActorBase):
 
         self.eq_reporting_config: Dict[TelemetryTuple, GtEqReportingConfig] = {}
         self.reporting_config: ReportingConfig = self.set_reporting_config(
-            component=self.node.component
+            component=typing.cast(ElectricMeterComponent, self.node.component)
         )
         self.driver: PowerMeterDriver = self.power_meter_driver()
 
@@ -108,7 +109,7 @@ class PowerMeter(ActorBase):
                 telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 unit=Unit.AMPS_RMS,
                 exponent=6,
-                sample_period_s=settings.seconds_per_report,
+                sample_period_s=self.settings.seconds_per_report,
                 async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
             ).tuple
             tt = TelemetryTuple(
@@ -125,7 +126,7 @@ class PowerMeter(ActorBase):
                 telemetry_name=TelemetryName.POWER_W,
                 unit=Unit.W,
                 exponent=0,
-                sample_period_s=settings.seconds_per_report,
+                sample_period_s=self.settings.seconds_per_report,
                 async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
             ).tuple
             eq_reporting_config_list.append(power_config)
@@ -136,7 +137,7 @@ class PowerMeter(ActorBase):
 
         poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
         return ReportingConfig_Maker(
-            reporting_period_s=settings.seconds_per_report,
+            reporting_period_s=self.settings.seconds_per_report,
             poll_period_ms=poll_period_ms,
             hw_uid=component.hw_uid,
             electrical_quantity_reporting_config_list=eq_reporting_config_list,
@@ -299,7 +300,8 @@ class PowerMeter(ActorBase):
                         f"{tt.AboutNode.alias} is "
                         f"{self.latest_telemetry_value[tt]}"
                     )
+            sleep_time_ms = self.reporting_config.PollPeriodMs
             delta_ms = 1000 * (time.time() - start_s)
             if delta_ms < self.reporting_config.PollPeriodMs:
-                sleep_time_ms = self.reporting_config.PollPeriodMs - delta_ms
+                 sleep_time_ms -= delta_ms
             responsive_sleep(self, sleep_time_ms / 1000)

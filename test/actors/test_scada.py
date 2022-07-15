@@ -7,6 +7,7 @@ import pytest
 
 import load_house
 from actors.scada import Scada, ScadaCmdDiagnostic
+from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
@@ -30,10 +31,11 @@ from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import 
 
 
 def test_scada_small():
-    load_house.load_all()
+    settings = ScadaSettings()
+    load_house.load_all(settings.world_root_alias)
     with pytest.raises(Exception):
-        scada = Scada(node=ShNode.by_alias["a"])
-    scada = Scada(node=ShNode.by_alias["a.s"])
+        Scada(node=ShNode.by_alias["a"], settings=settings)
+    scada = Scada(node=ShNode.by_alias["a.s"], settings=settings)
     meter_node = ShNode.by_alias["a.m"]
     relay_node = ShNode.by_alias["a.elt1.relay"]
     temp_node = ShNode.by_alias["a.tank.temp0"]

@@ -1,8 +1,12 @@
+import sys
 import time
 from typing import List, Optional
 
+import dotenv
+
 import load_house
-from command_line_utils import run_nodes_main
+from command_line_utils import run_nodes_main, parse_args
+from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 
@@ -91,7 +95,9 @@ def start_roles(node_alias_list: List) -> List:
 
 
 def main():
-    load_house.load_all()
+    args = parse_args(sys.argv[:1])
+    settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
+    load_house.load_all(settings.world_root_alias)
     node_alias_list = []
     node_alias_list = start_singles(node_alias_list)
     node_alias_list = start_roles(node_alias_list)

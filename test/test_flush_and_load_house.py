@@ -3,6 +3,7 @@
 import json
 import os
 
+from config import ScadaSettings
 from test.utils import flush_all
 import load_house
 
@@ -86,7 +87,7 @@ def test_flush_and_load_house():
     assert ShNode.by_alias["a.m"].sh_node_id == "c9456f5b-5a39-4a48-bb91-742a9fdc461d"
     flush_all()
 
-    load_house.load_all()
+    load_house.load_all(ScadaSettings().world_root_alias)
     assert ShNode.by_alias["a.m"].sh_node_id == "0dd8a803-4724-4f49-b845-14ff57bdb3e6"
     for node in ShNode.by_alias.values():
         print(node.parent)

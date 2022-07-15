@@ -4,7 +4,7 @@ import uuid
 from typing import Dict, List, Optional
 
 import pendulum
-from config import settings
+from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
@@ -97,8 +97,8 @@ class Scada(ScadaBase):
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
 
-    def __init__(self, node: ShNode, logging_on=False):
-        super(Scada, self).__init__(node=node, logging_on=logging_on)
+    def __init__(self, node: ShNode, settings: ScadaSettings):
+        super(Scada, self).__init__(node=node, settings=settings)
         if self.node != self.scada_node():
             raise Exception(f"The node for Scada must be {self.scada_node()}, not {self.node}!")
         # hack before dispatch contract is implemented
@@ -186,7 +186,7 @@ class Scada(ScadaBase):
 
     def init_node_configs(self):
         for node in self.my_simple_sensors():
-            self.config[node] = NodeConfig(node)
+            self.config[node] = NodeConfig(node, self.settings)
 
     def my_telemetry_tuples(self) -> List[TelemetryTuple]:
         """This will include telemetry tuples from all the multipurpose sensors, the most
@@ -339,7 +339,6 @@ class Scada(ScadaBase):
         ]
 
     def on_gw_message(self, payload) -> ScadaCmdDiagnostic:
-        self.payload = payload
         if isinstance(payload, GtDispatchBoolean):
             self.boolean_dispatch_received(payload)
             return ScadaCmdDiagnostic.SUCCESS
@@ -520,7 +519,7 @@ class Scada(ScadaBase):
             status_uid=str(uuid.uuid4()),
             about_g_node_alias=self.terminal_asset_g_node_alias,
             slot_start_unix_s=slot_start_unix_s,
-            reporting_period_s=settings.seconds_per_report,
+            reporting_period_s=self.settings.seconds_per_report,
             booleanactuator_cmd_list=booleanactuator_cmd_list,
             multipurpose_telemetry_list=multipurpose_telemetry_list,
             simple_telemetry_list=simple_telemetry_list,

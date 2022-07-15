@@ -10,8 +10,7 @@ from typing import List
 import paho.mqtt.client as mqtt
 
 import helpers
-import load_house
-from config import settings
+from config import ScadaSettings
 from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
@@ -21,60 +20,59 @@ from schema.schema_switcher import TypeMakerByAliasDict
 
 class CloudBase(ABC):
     @cached_property
-    def atn_g_node_alias(cls):
+    def atn_g_node_alias(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.world_root_alias]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyAtomicTNodeGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
-    def atn_g_node_id(cls):
+    def atn_g_node_id(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.world_root_alias]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyAtomicTNodeGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
-    def terminal_asset_g_node_alias(cls):
+    def terminal_asset_g_node_alias(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.world_root_alias]["MyTerminalAssetGNode"]
+        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyTerminalAssetGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
-    def terminal_asset_g_node_id(cls):
+    def terminal_asset_g_node_id(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.world_root_alias]["MyTerminalAssetGNode"]
+        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyTerminalAssetGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
-    def scada_g_node_alias(cls):
+    def scada_g_node_alias(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_scada_as_dict = input_data[settings.world_root_alias]["MyScadaGNode"]
+        my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["Alias"]
 
+
     @cached_property
-    def scada_g_node_id(cls):
+    def scada_g_node_id(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_scada_as_dict = input_data[settings.world_root_alias]["MyScadaGNode"]
+        my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["GNodeId"]
 
-    def __init__(self, logging_on=False):
+    def __init__(self, settings: ScadaSettings):
         self._main_loop_running = False
         self.main_thread = None
-        self.logging_on = logging_on
-        self.log_csv = f"output/debug_logs/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
-        self.gwMqttBroker = settings.gridworks_mqtt.host
-        self.gwMqttBrokerPort = settings.gridworks_mqtt.port
+        self.settings = settings
+        self.log_csv = f"{self.settings.output_dir}/debug_logs/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(
@@ -85,7 +83,7 @@ class CloudBase(ABC):
         self.gw_client.on_connect = self.on_connect
         self.gw_client.on_connect_fail = self.on_connect_fail
         self.gw_client.on_disconnect = self.on_disconnect
-        if self.logging_on:
+        if self.settings.logging_on:
             self.gw_client.on_log = self.on_log
             self.gw_client.enable_logger()
 
@@ -94,12 +92,8 @@ class CloudBase(ABC):
             list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
         )
 
-    @classmethod
-    def load_sh_nodes(cls):
-        load_house.load_all()
-
     def mqtt_log_hack(self, row):
-        if self.logging_on:
+        if self.settings.logging_on:
             with open(self.log_csv, "a") as outfile:
                 write = csv.writer(outfile, delimiter=",")
                 write.writerow(row)
@@ -177,7 +171,10 @@ class CloudBase(ABC):
         raise NotImplementedError
 
     def start(self):
-        self.gw_client.connect(self.gwMqttBroker, port=self.gwMqttBrokerPort)
+        self.gw_client.connect(
+            self.settings.gridworks_mqtt.host,
+            port=self.settings.gridworks_mqtt.port
+        )
         self.gw_client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()

@@ -3,6 +3,7 @@
 import load_house
 import pytest
 from actors.power_meter import PowerMeter
+from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
@@ -52,13 +53,14 @@ from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryNa
 
 
 def test_power_meter_small():
-    load_house.load_all()
+    settings = ScadaSettings()
+    load_house.load_all(settings.world_root_alias)
 
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        meter = PowerMeter(node=ShNode.by_alias["a.s"])
+        PowerMeter(node=ShNode.by_alias["a.s"], settings=settings)
 
-    meter = PowerMeter(node=ShNode.by_alias["a.m"])
+    meter = PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
 
     assert set(meter.nameplate_telemetry_value.keys()) == set(
         meter.all_power_meter_telemetry_tuples()

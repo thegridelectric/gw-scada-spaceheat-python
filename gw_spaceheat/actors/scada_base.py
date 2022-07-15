@@ -4,7 +4,7 @@ from abc import abstractmethod
 import paho.mqtt.client as mqtt
 
 import helpers
-from config import settings
+from config import ScadaSettings
 from actors.actor_base import ActorBase
 from actors.utils import QOS
 from data_classes.sh_node import ShNode
@@ -14,21 +14,19 @@ from schema.schema_switcher import TypeMakerByAliasDict
 
 
 class ScadaBase(ActorBase):
-    def __init__(self, node: ShNode, logging_on=False):
-        super(ScadaBase, self).__init__(node=node, logging_on=logging_on)
-        self.gwMqttBroker = settings.gridworks_mqtt.host
-        self.gwMqttBrokerPort = settings.gridworks_mqtt.port
+    def __init__(self, node: ShNode, settings: ScadaSettings):
+        super(ScadaBase, self).__init__(node=node, settings=settings)
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(
-            username=settings.gridworks_mqtt.username,
-            password=settings.gridworks_mqtt.password.get_secret_value(),
+            username=self.settings.gridworks_mqtt.username,
+            password=self.settings.gridworks_mqtt.password.get_secret_value(),
         )
         self.gw_client.on_message = self.on_gw_mqtt_message
         self.gw_client.on_connect = self.on_gw_connect
         self.gw_client.on_connect_fail = self.on_gw_connect_fail
         self.gw_client.on_disconnect = self.on_gw_disconnect
-        if self.logging_on:
+        if self.settings.logging_on:
             self.gw_client.on_log = self.on_log
 
     def subscribe_gw(self):
@@ -92,7 +90,10 @@ class ScadaBase(ActorBase):
 
     def start(self):
         super().start()
-        self.gw_client.connect(self.gwMqttBroker, port=self.gwMqttBrokerPort)
+        self.gw_client.connect(
+            self.settings.gridworks_mqtt.host,
+            port=self.settings.gridworks_mqtt.port
+        )
         self.gw_client.loop_start()
         self.screen_print(f"Started {self.__class__} remote connections")
 
