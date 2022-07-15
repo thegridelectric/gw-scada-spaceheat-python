@@ -23,6 +23,7 @@ class NoScadaVars:
                     m.delenv(env_var)
             yield m
 
+
 @pytest.fixture
 def no_scada_vars(prefix: str = ScadaSettings.Config.env_prefix) -> Generator[NoScadaVars, None, None]:
     yield NoScadaVars(prefix=prefix)

@@ -10,6 +10,7 @@ from pydantic import SecretStr
 
 from config import MQTTClient, ScadaSettings
 
+
 def test_mqtt_client_settings():
     """Test MQTTClient"""
     password = "d"
@@ -23,6 +24,7 @@ def test_mqtt_client_settings():
         assert getattr(settings, k) == v
     assert settings.port == port
     assert settings.password.get_secret_value() == password
+
 
 def test_scada_settings_defaults(no_scada_vars):
     """Test ScadaSettings defaults"""
@@ -46,6 +48,7 @@ def test_scada_settings_defaults(no_scada_vars):
     assert settings.local_mqtt.username is None
     assert settings.local_mqtt.password.get_secret_value() == ""
 
+
 def test_scada_settings_from_env(monkeypatch, no_scada_vars):
     """Verify settings loaded from env as expected. """
     assert "SCADA_WORLD_ROOT_ALIAS" not in os.environ
@@ -65,7 +68,7 @@ def test_scada_settings_from_env(monkeypatch, no_scada_vars):
         SCADA_LOCAL_MQTT__HOST="foo",
         SCADA_LOCAL_MQTT__PASSWORD="a",
         SCADA_GRIDWORKS_MQTT__HOST="b",
-        SCADA_GRIDWORKS_MQTT__PASSWORD= "c",
+        SCADA_GRIDWORKS_MQTT__PASSWORD="c",
     )
     for k, v in exp.items():
         monkeypatch.setenv(k, v)
@@ -75,6 +78,7 @@ def test_scada_settings_from_env(monkeypatch, no_scada_vars):
     assert settings.local_mqtt.password.get_secret_value() == exp["SCADA_LOCAL_MQTT__PASSWORD"]
     assert settings.gridworks_mqtt.host == exp["SCADA_GRIDWORKS_MQTT__HOST"]
     assert settings.gridworks_mqtt.password.get_secret_value() == exp["SCADA_GRIDWORKS_MQTT__PASSWORD"]
+
 
 def test_scada_settings_from_dotenv(monkeypatch, no_scada_vars, tmp_path):
     """Verify settings loaded from .env file as expected. """
@@ -106,6 +110,7 @@ def test_scada_settings_from_dotenv(monkeypatch, no_scada_vars, tmp_path):
     assert settings.seconds_per_report == seconds_per_report
     assert settings.local_mqtt.host == host
     assert settings.local_mqtt.password.get_secret_value() == password
+
 
 def test_scada_settings_from_env_and_dotenv(monkeypatch, no_scada_vars, tmp_path):
     """Verify settings loaded from both environment variables and .env and as expected - environment variables
