@@ -8,8 +8,6 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
-import settings
-
 from actors.actor_base import ActorBase
 from actors.atn import Atn
 from actors.cloud_ear import CloudEar
@@ -39,10 +37,6 @@ from schema.gs.gs_dispatch import GsDispatch
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import GtDispatchBooleanLocal
 from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import GtShCliScadaResponse
 from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
-
-LOCAL_MQTT_MESSAGE_DELTA_S = settings.LOCAL_MQTT_MESSAGE_DELTA_S
-GW_MQTT_MESSAGE_DELTA = settings.GW_MQTT_MESSAGE_DELTA
-
 
 class Brokers(enum.Enum):
     invalid = "invalid"
