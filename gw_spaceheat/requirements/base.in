@@ -4,3 +4,4 @@ paho-mqtt
 pytz
 python-dotenv
 numpy
+pydantic

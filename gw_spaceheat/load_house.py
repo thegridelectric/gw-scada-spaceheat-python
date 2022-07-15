@@ -1,7 +1,7 @@
 import json
 import os
 
-import settings
+from config import settings
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from helpers import camel_to_snake
@@ -72,7 +72,7 @@ def load_nodes(house_data):
         SpaceheatNodeGt_Maker.dict_to_dc(d)
 
 
-def load_all(world_root_alias=settings.WORLD_ROOT_ALIAS):
+def load_all(world_root_alias: str = settings.world_root_alias):
     current_dir = os.path.dirname(os.path.realpath(__file__))
     with open(os.path.join(current_dir, "input_data/houses.json"), "r") as read_file:
         input_data = json.load(read_file)

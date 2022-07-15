@@ -10,7 +10,7 @@ from typing import List
 import paho.mqtt.client as mqtt
 
 import helpers
-import settings
+from config import settings
 from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from data_classes.components.electric_meter_component import ElectricMeterComponent
@@ -107,7 +107,7 @@ class ActorBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = input_data[settings.world_root_alias]["MyAtomicTNodeGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
@@ -115,7 +115,7 @@ class ActorBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = input_data[settings.world_root_alias]["MyAtomicTNodeGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
@@ -123,7 +123,7 @@ class ActorBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        my_atn_as_dict = input_data[settings.world_root_alias]["MyTerminalAssetGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
@@ -131,7 +131,7 @@ class ActorBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        my_atn_as_dict = input_data[settings.world_root_alias]["MyTerminalAssetGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
@@ -139,7 +139,7 @@ class ActorBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        my_scada_as_dict = input_data[settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["Alias"]
 
     @cached_property
@@ -147,7 +147,7 @@ class ActorBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        my_scada_as_dict = input_data[settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["GNodeId"]
 
     def __init__(self, node: ShNode, logging_on=False):
@@ -162,13 +162,13 @@ class ActorBase(ABC):
                 write = csv.writer(outfile, delimiter=",")
                 write.writerow(row)
             self.screen_print(f"log csv is {self.log_csv}")
-        self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
-        self.mqttBrokerPort = getattr(settings, "LOCAL_MQTT_BROKER_PORT", 1883)
+        self.mqttBroker = settings.local_mqtt.host
+        self.mqttBrokerPort = settings.local_mqtt.port
         self.client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.client = mqtt.Client(self.client_id)
         self.client.username_pw_set(
-            username=settings.LOCAL_MQTT_USER_NAME,
-            password=helpers.get_secret("LOCAL_MQTT_PW"),
+            username=settings.local_mqtt.username,
+            password=settings.local_mqtt.password.get_secret_value(),
         )
         self.client.on_message = self.on_mqtt_message
         self.client.on_connect = self.on_connect

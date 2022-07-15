@@ -4,7 +4,7 @@ from abc import abstractmethod
 import paho.mqtt.client as mqtt
 
 import helpers
-import settings
+from config import settings
 from actors.actor_base import ActorBase
 from actors.utils import QOS
 from data_classes.sh_node import ShNode
@@ -16,12 +16,13 @@ from schema.schema_switcher import TypeMakerByAliasDict
 class ScadaBase(ActorBase):
     def __init__(self, node: ShNode, logging_on=False):
         super(ScadaBase, self).__init__(node=node, logging_on=logging_on)
-        self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
-        self.gwMqttBrokerPort = getattr(settings, "GW_MQTT_BROKER_PORT", 1883)
+        self.gwMqttBroker = settings.gridworks_mqtt.host
+        self.gwMqttBrokerPort = settings.gridworks_mqtt.port
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(
-            username=settings.GW_MQTT_USER_NAME, password=helpers.get_secret("GW_MQTT_PW")
+            username=settings.gridworks_mqtt.username,
+            password=settings.gridworks_mqtt.password.get_secret_value(),
         )
         self.gw_client.on_message = self.on_gw_mqtt_message
         self.gw_client.on_connect = self.on_gw_connect

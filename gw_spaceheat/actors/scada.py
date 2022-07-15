@@ -4,7 +4,7 @@ import uuid
 from typing import Dict, List, Optional
 
 import pendulum
-import settings
+from config import settings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
@@ -520,7 +520,7 @@ class Scada(ScadaBase):
             status_uid=str(uuid.uuid4()),
             about_g_node_alias=self.terminal_asset_g_node_alias,
             slot_start_unix_s=slot_start_unix_s,
-            reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+            reporting_period_s=settings.seconds_per_report,
             booleanactuator_cmd_list=booleanactuator_cmd_list,
             multipurpose_telemetry_list=multipurpose_telemetry_list,
             simple_telemetry_list=simple_telemetry_list,

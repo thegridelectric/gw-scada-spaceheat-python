@@ -11,7 +11,7 @@ import paho.mqtt.client as mqtt
 
 import helpers
 import load_house
-import settings
+from config import settings
 from actors.utils import QOS, Subscription
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
@@ -25,7 +25,7 @@ class CloudBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = input_data[settings.world_root_alias]["MyAtomicTNodeGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
@@ -33,7 +33,7 @@ class CloudBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = input_data[settings.world_root_alias]["MyAtomicTNodeGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
@@ -41,7 +41,7 @@ class CloudBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        my_atn_as_dict = input_data[settings.world_root_alias]["MyTerminalAssetGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
@@ -49,7 +49,7 @@ class CloudBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        my_atn_as_dict = input_data[settings.world_root_alias]["MyTerminalAssetGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
@@ -57,7 +57,7 @@ class CloudBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        my_scada_as_dict = input_data[settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["Alias"]
 
     @cached_property
@@ -65,7 +65,7 @@ class CloudBase(ABC):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        my_scada_as_dict = input_data[settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["GNodeId"]
 
     def __init__(self, logging_on=False):
@@ -73,13 +73,13 @@ class CloudBase(ABC):
         self.main_thread = None
         self.logging_on = logging_on
         self.log_csv = f"output/debug_logs/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
-        self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
-        self.gwMqttBrokerPort = getattr(settings, "GW_MQTT_BROKER_PORT", 1883)
+        self.gwMqttBroker = settings.gridworks_mqtt.host
+        self.gwMqttBrokerPort = settings.gridworks_mqtt.port
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(
-            username=settings.GW_MQTT_USER_NAME,
-            password=helpers.get_secret("GW_MQTT_PW"),
+            username=settings.gridworks_mqtt.username,
+            password=settings.gridworks_mqtt.password.get_secret_value(),
         )
         self.gw_client.on_message = self.on_gw_mqtt_message
         self.gw_client.on_connect = self.on_connect

@@ -1,6 +1,6 @@
 import time
 from typing import Dict, List, Optional
-import settings
+from config import settings
 
 from actors.actor_base import ActorBase
 from actors.utils import Subscription, responsive_sleep
@@ -108,7 +108,7 @@ class PowerMeter(ActorBase):
                 telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 unit=Unit.AMPS_RMS,
                 exponent=6,
-                sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                sample_period_s=settings.seconds_per_report,
                 async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
             ).tuple
             tt = TelemetryTuple(
@@ -125,7 +125,7 @@ class PowerMeter(ActorBase):
                 telemetry_name=TelemetryName.POWER_W,
                 unit=Unit.W,
                 exponent=0,
-                sample_period_s=settings.SCADA_REPORTING_PERIOD_S,
+                sample_period_s=settings.seconds_per_report,
                 async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
             ).tuple
             eq_reporting_config_list.append(power_config)
@@ -136,7 +136,7 @@ class PowerMeter(ActorBase):
 
         poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
         return ReportingConfig_Maker(
-            reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+            reporting_period_s=settings.seconds_per_report,
             poll_period_ms=poll_period_ms,
             hw_uid=component.hw_uid,
             electrical_quantity_reporting_config_list=eq_reporting_config_list,
