@@ -135,7 +135,7 @@ def flush_all():
 
 
 class AbstractActor(ActorBase):
-    def __init__(self, node: ShNode, settings:ScadaSettings):
+    def __init__(self, node: ShNode, settings: ScadaSettings):
         super().__init__(node, settings=settings)
 
     def subscriptions(self):

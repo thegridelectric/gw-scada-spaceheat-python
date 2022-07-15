@@ -303,5 +303,5 @@ class PowerMeter(ActorBase):
             sleep_time_ms = self.reporting_config.PollPeriodMs
             delta_ms = 1000 * (time.time() - start_s)
             if delta_ms < self.reporting_config.PollPeriodMs:
-                 sleep_time_ms -= delta_ms
+                sleep_time_ms -= delta_ms
             responsive_sleep(self, sleep_time_ms / 1000)

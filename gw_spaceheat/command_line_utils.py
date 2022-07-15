@@ -20,7 +20,7 @@ def parse_args(
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        "-e", "--env-file", default = ".env",
+        "-e", "--env-file", default=".env",
         help=(
             "Name of .env file to locate with dotenv.find_dotenv(). Defaults to '.env'. "
             "Pass empty string in quotation marks to suppress use of .env file."

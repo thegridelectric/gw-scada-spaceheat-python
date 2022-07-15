@@ -59,7 +59,6 @@ class CloudBase(ABC):
         my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["Alias"]
 
-
     @cached_property
     def scada_g_node_id(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))

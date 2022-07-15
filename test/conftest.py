@@ -33,6 +33,7 @@ class CleanScadaEnv:
                 m.setenv(f"{self.prefix}WORLD_ROOT_ALIAS", self.world)
             yield m
 
+
 @pytest.fixture(autouse=True)
 def clean_scada_env(request) -> Generator[MonkeyPatch, None, None]:
     """Automatically used fixture producing monkeypatched environment with all vars starting SCADA_ removed and then
