@@ -271,12 +271,11 @@ class Scada(ScadaBase):
     ):
         if from_node in self.my_multipurpose_sensors():
             about_node_alias_list = payload.AboutNodeAliasList
-            for about_alias in about_node_alias_list:
+            for idx, about_alias in enumerate(about_node_alias_list):
                 if about_alias not in ShNode.by_alias.keys():
                     raise Exception(
                         f"alias {about_alias} in payload.AboutNodeAliasList not a recognized ShNode!"
                     )
-                idx = about_node_alias_list.index(about_alias)
                 tt = TelemetryTuple(
                     AboutNode=ShNode.by_alias[about_alias],
                     SensorNode=from_node,
