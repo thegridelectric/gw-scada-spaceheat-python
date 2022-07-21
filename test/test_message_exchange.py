@@ -1,12 +1,16 @@
 """An integration test which verifies some of the messages expected to be exchanged after system startup"""
 
 import load_house
+import time
 from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from data_classes.sh_node import ShNode
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
 from test.utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, EarRecorder, wait_for
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
+    GtDispatchBooleanLocal_Maker,
+)
 
 
 def test_message_exchange(tmp_path, monkeypatch):
@@ -40,6 +44,24 @@ def test_message_exchange(tmp_path, monkeypatch):
                     1,
                     "ERROR waiting for gw_client connect",
                 )
+
+        home_alone.terminate_main_loop()
+        dispatch_on = GtDispatchBooleanLocal_Maker(
+            send_time_unix_ms=int(time.time() * 1000),
+            from_node_alias=home_alone.node.alias,
+            about_node_alias="a.elt1.relay",
+            relay_state=1,
+        ).tuple
+        home_alone.publish(dispatch_on)
+        wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
+        dispatch_off = GtDispatchBooleanLocal_Maker(
+            send_time_unix_ms=int(time.time() * 1000),
+            from_node_alias=home_alone.node.alias,
+            about_node_alias="a.elt1.relay",
+            relay_state=0,
+        ).tuple
+        home_alone.publish(dispatch_off)
+        wait_for(lambda: elt_relay.relay_state == 0, 10, f"Relay state {elt_relay.relay_state}")
         scada._scada_atn_fast_dispatch_contract_is_alive_stub = True
         atn.turn_on(ShNode.by_alias["a.elt1.relay"])
         wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
