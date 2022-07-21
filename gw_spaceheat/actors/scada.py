@@ -152,15 +152,15 @@ class Scada(ScadaBase):
            - no contract exists
            - interactive polling between atn and scada is down
            - scada sent dispatch command with more than 6 seconds before response
-           as measured by power meter (requires a lot of clarification)
+             as measured by power meter (requires a lot of clarification)
            - average time for response to dispatch commands in last 50 dispatches
-           exceeds 3 seconds
+             exceeds 3 seconds
            - Scada has not sent in daily attestion that power metering is
-           working and accurate
+             working and accurate
            - Scada requests local control and Atn has agreed
-           - Atn requests that Scada tale local control and Scada has agreed
+           - Atn requests that Scada take local control and Scada has agreed
            - Scada has not sent in an attestion that metering is good in the
-           previous 24 hours
+             previous 24 hours
 
            Otherwise true
 

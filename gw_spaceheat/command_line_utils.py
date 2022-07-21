@@ -12,13 +12,11 @@ from data_classes.sh_node import ShNode
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
-
-def parse_args(
-    argv: Optional[Sequence[str]] = None,
-    default_nodes: Optional[Sequence[str]] = None,
-) -> argparse.Namespace:
-    """Parse command line arguments"""
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+def add_default_args(
+    parser: argparse.ArgumentParser,
+    default_nodes: Optional[Sequence[str]] = None
+) -> argparse.ArgumentParser:
+    """Add default arguments to a command line parser"""
     parser.add_argument(
         "-e", "--env-file", default=".env",
         help=(
@@ -30,12 +28,24 @@ def parse_args(
     parser.add_argument(
         "-n", "--nodes", default=default_nodes or [], nargs="*", help="ShNode aliases to load."
     )
-    return parser.parse_args(argv or sys.argv[1:])
+    return parser
 
+def parse_args(
+    argv: Optional[Sequence[str]] = None,
+    default_nodes: Optional[Sequence[str]] = None,
+    args: Optional[argparse.Namespace] = None,
+    parser: Optional[argparse.ArgumentParser] = None
+) -> argparse.Namespace:
+    """Parse command line arguments"""
+    return add_default_args(
+        parser or argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
+        default_nodes=default_nodes,
+    ).parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
 
-def setup_logging(args: argparse.Namespace) -> None:
+def setup_logging(args: argparse.Namespace, settings: ScadaSettings) -> None:
     """Setup python logging based on parsed command line args"""
-    if args.log:
+    if args.log or settings.logging_on:
+        settings.logging_on = True
         level = "DEBUG"
     else:
         level = "INFO"
@@ -70,7 +80,7 @@ def run_nodes_main(
 ) -> None:
     """Load and run the configured Nodes. If dbg is not None it will be populated with the actor objects."""
     args = parse_args(argv, default_nodes=default_nodes)
-    setup_logging(args)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
+    setup_logging(args, settings)
     load_house.load_all(settings.world_root_alias)
     run_nodes(args.nodes, settings, dbg=dbg)

@@ -153,13 +153,22 @@ class AtnRecorder(Atn):
     status_received: int
     latest_cli_response_payload: Optional[GtShCliScadaResponse]
     latest_status_payload: Optional[GtShStatus]
+    num_received: int
+    num_received_by_topic: Dict[str, int]
 
     def __init__(self, node: ShNode, settings: ScadaSettings):
         self.cli_resp_received = 0
         self.status_received = 0
         self.latest_cli_response_payload: Optional[GtShCliScadaResponse] = None
         self.latest_status_payload: Optional[GtShStatus] = None
+        self.num_received = 0
+        self.num_received_by_topic = defaultdict(int)
         super().__init__(node, settings=settings)
+
+    def on_gw_mqtt_message(self, client, userdata, message):
+        self.num_received += 1
+        self.num_received_by_topic[message.topic] += 1
+        super().on_gw_mqtt_message(client, userdata, message)
 
     def on_gw_message(self, from_node: ShNode, payload):
         if isinstance(payload, GtShCliScadaResponse):

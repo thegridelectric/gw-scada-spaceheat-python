@@ -12,16 +12,17 @@ class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
         if component.cac.make_model != MakeModel.GRIDWORKS__SIMPM1:
             raise Exception(f"Expected {MakeModel.GRIDWORKS__SIMPM1}, got {component.cac}")
         self.component = component
-        self._fake_current_rms_micro_amps = 18000
+        self.fake_current_rms_micro_amps = 18000
+        self.fake_power_w = 0
 
     def read_current_rms_micro_amps(self) -> Optional[int]:
-        return self._fake_current_rms_micro_amps
+        return self.fake_current_rms_micro_amps
 
     def read_hw_uid(self) -> Optional[str]:
         return "1001ab"
 
     def read_power_w(self) -> Optional[int]:
-        return 0
+        return self.fake_power_w
 
     def additional_telemetry_name_list(self) -> List[TelemetryName]:
         return [TelemetryName.CURRENT_RMS_MICRO_AMPS]

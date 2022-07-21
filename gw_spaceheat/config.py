@@ -16,7 +16,6 @@ class MQTTClient(BaseModel):
     username: Optional[str] = None
     password: SecretStr = SecretStr("")
 
-
 class ScadaSettings(BaseSettings):
     """Settings for the GridWorks scada."""
     world_root_alias: str
@@ -25,6 +24,7 @@ class ScadaSettings(BaseSettings):
     output_dir: str = "output"
     seconds_per_report: int = 300
     logging_on: bool = False
+    log_message_summary: bool = False
 
     class Config:
         env_prefix = "SCADA_"

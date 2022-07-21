@@ -6,7 +6,7 @@ import paho.mqtt.client as mqtt
 import helpers
 from config import ScadaSettings
 from actors.actor_base import ActorBase
-from actors.utils import QOS
+from actors.utils import QOS, MessageSummary
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr import GsPwr
@@ -70,6 +70,10 @@ class ScadaBase(ActorBase):
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(
+                MessageSummary.format("IN", self.node.alias, message.topic, payload_as_tuple, broker_flag="*")
+            )
         self.on_gw_message(payload=payload_as_tuple)
 
     @abstractmethod
@@ -81,8 +85,11 @@ class ScadaBase(ActorBase):
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
+        topic = f"{self.scada_g_node_alias}/{payload.TypeAlias}"
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(MessageSummary.format("OUT", self.node.alias, topic, payload, broker_flag="*"))
         self.gw_client.publish(
-            topic=f"{self.scada_g_node_alias}/{payload.TypeAlias}",
+            topic=topic,
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,

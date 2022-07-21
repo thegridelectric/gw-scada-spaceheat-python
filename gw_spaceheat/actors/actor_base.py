@@ -12,7 +12,7 @@ import paho.mqtt.client as mqtt
 
 import helpers
 from config import ScadaSettings
-from actors.utils import QOS, Subscription
+from actors.utils import QOS, Subscription, MessageSummary
 from data_classes.sh_node import ShNode
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
@@ -228,6 +228,8 @@ class ActorBase(ABC):
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
             )
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(MessageSummary.format("IN", self.node.alias, message.topic, payload_as_tuple))
         self.on_message(from_node=from_node, payload=payload_as_tuple)
 
     @abstractmethod
@@ -240,13 +242,14 @@ class ActorBase(ABC):
         else:
             qos = QOS.AtLeastOnce
         topic = f"{self.node.alias}/{payload.TypeAlias}"
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(MessageSummary.format("OUT", self.node.alias, topic, payload))
         self.client.publish(
             topic=topic,
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
         )
-        # self.screen_print(f"published to {topic}")
 
     def terminate_main_loop(self):
         self._main_loop_running = False
