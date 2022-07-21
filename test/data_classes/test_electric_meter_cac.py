@@ -1,10 +1,12 @@
 import load_house
+from config import ScadaSettings
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
 
 
 def test_electric_meter_cac():
-    load_house.load_all()
+    settings = ScadaSettings()
+    load_house.load_all(settings.world_root_alias)
     d = {
         "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
         "MakeModelGtEnumSymbol": "076da322",

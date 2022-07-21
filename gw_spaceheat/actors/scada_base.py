@@ -4,9 +4,9 @@ from abc import abstractmethod
 import paho.mqtt.client as mqtt
 
 import helpers
-import settings
+from config import ScadaSettings
 from actors.actor_base import ActorBase
-from actors.utils import QOS
+from actors.utils import QOS, MessageSummary
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr import GsPwr
@@ -14,20 +14,19 @@ from schema.schema_switcher import TypeMakerByAliasDict
 
 
 class ScadaBase(ActorBase):
-    def __init__(self, node: ShNode, logging_on=False):
-        super(ScadaBase, self).__init__(node=node, logging_on=logging_on)
-        self.gwMqttBroker = settings.GW_MQTT_BROKER_ADDRESS
-        self.gwMqttBrokerPort = getattr(settings, "GW_MQTT_BROKER_PORT", 1883)
+    def __init__(self, node: ShNode, settings: ScadaSettings):
+        super(ScadaBase, self).__init__(node=node, settings=settings)
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(
-            username=settings.GW_MQTT_USER_NAME, password=helpers.get_secret("GW_MQTT_PW")
+            username=self.settings.gridworks_mqtt.username,
+            password=self.settings.gridworks_mqtt.password.get_secret_value(),
         )
         self.gw_client.on_message = self.on_gw_mqtt_message
         self.gw_client.on_connect = self.on_gw_connect
         self.gw_client.on_connect_fail = self.on_gw_connect_fail
         self.gw_client.on_disconnect = self.on_gw_disconnect
-        if self.logging_on:
+        if self.settings.logging_on:
             self.gw_client.on_log = self.on_log
 
     def subscribe_gw(self):
@@ -71,6 +70,10 @@ class ScadaBase(ActorBase):
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(
+                MessageSummary.format("IN", self.node.alias, message.topic, payload_as_tuple, broker_flag="*")
+            )
         self.on_gw_message(payload=payload_as_tuple)
 
     @abstractmethod
@@ -82,8 +85,11 @@ class ScadaBase(ActorBase):
             qos = QOS.AtMostOnce
         else:
             qos = QOS.AtLeastOnce
+        topic = f"{self.scada_g_node_alias}/{payload.TypeAlias}"
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(MessageSummary.format("OUT", self.node.alias, topic, payload, broker_flag="*"))
         self.gw_client.publish(
-            topic=f"{self.scada_g_node_alias}/{payload.TypeAlias}",
+            topic=topic,
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
@@ -91,7 +97,10 @@ class ScadaBase(ActorBase):
 
     def start(self):
         super().start()
-        self.gw_client.connect(self.gwMqttBroker, port=self.gwMqttBrokerPort)
+        self.gw_client.connect(
+            self.settings.gridworks_mqtt.host,
+            port=self.settings.gridworks_mqtt.port
+        )
         self.gw_client.loop_start()
         self.screen_print(f"Started {self.__class__} remote connections")
 

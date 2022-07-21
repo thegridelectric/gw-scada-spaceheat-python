@@ -3,6 +3,7 @@ from typing import List
 
 from actors.actor_base import ActorBase
 from actors.utils import Subscription, responsive_sleep
+from config import ScadaSettings
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
@@ -11,11 +12,11 @@ from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 class SimpleSensor(ActorBase):
     MAIN_LOOP_MIN_TIME_S = 0.2
 
-    def __init__(self, node: ShNode, logging_on=False):
-        super(SimpleSensor, self).__init__(node=node, logging_on=logging_on)
+    def __init__(self, node: ShNode, settings: ScadaSettings):
+        super(SimpleSensor, self).__init__(node=node, settings=settings)
         self._last_sent_s = 0
         self.telemetry_value = None
-        self.config = NodeConfig(self.node)
+        self.config = NodeConfig(self.node, settings)
         self.screen_print(f"Initialized {self.__class__}")
 
     def subscriptions(self) -> List[Subscription]:

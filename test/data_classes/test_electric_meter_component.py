@@ -1,4 +1,5 @@
 import load_house
+from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker import (
     GtElectricMeterComponent_Maker,
@@ -6,7 +7,8 @@ from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker imp
 
 
 def test_electric_meter_component():
-    load_house.load_all()
+    settings = ScadaSettings()
+    load_house.load_all(settings.world_root_alias)
     d = {
         "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
         "DisplayName": "Main Power meter for Little orange house garage space heat",

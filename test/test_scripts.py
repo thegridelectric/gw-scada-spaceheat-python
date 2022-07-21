@@ -4,6 +4,7 @@ import pytest
 
 import load_house
 from command_line_utils import run_nodes_main
+from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 
@@ -36,7 +37,8 @@ def test_run_nodes_main(aliases):
 
 def test_run_local():
     """Test the "run_local" script semantics"""
-    load_house.load_all()
+    load_house.load_all(ScadaSettings().world_root_alias)
+
     aliases = [
         node.alias
         for node in filter(lambda x: (x.role != Role.ATN and x.has_actor), ShNode.by_alias.values())

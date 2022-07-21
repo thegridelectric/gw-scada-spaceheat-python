@@ -1,3 +1,4 @@
+from config import ScadaSettings
 from test.utils import AbstractActor, flush_all
 from data_classes.sh_node import ShNode
 
@@ -55,7 +56,8 @@ def test_abstract_actor():
 
     assert electric_meter_component.cac == electric_meter_cac
 
-    abstract_actor = AbstractActor(node=ShNode.by_alias["a.m"])
+    settings = ScadaSettings()
+    abstract_actor = AbstractActor(node=ShNode.by_alias["a.m"], settings=settings)
     assert isinstance(abstract_actor.power_meter_driver(), UnknownPowerMeterDriver)
     flush_all()
 
@@ -91,7 +93,7 @@ def test_abstract_actor():
     SpaceheatNodeGt_Maker.dict_to_dc(meter_node_dict)
     assert electric_meter_cac.make_model == MakeModel.ADAFRUIT__642
 
-    abstract_actor = AbstractActor(node=ShNode.by_alias["a.m"])
+    abstract_actor = AbstractActor(node=ShNode.by_alias["a.m"], settings=settings)
     with pytest.raises(Exception):
         abstract_actor.power_meter_driver()
 

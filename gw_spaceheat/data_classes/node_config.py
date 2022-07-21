@@ -1,4 +1,4 @@
-import settings
+from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import (
     GridworksSimBool30AmpRelay_BooleanActuatorDriver,
@@ -33,9 +33,10 @@ class NodeConfig:
     via Config messages.
     """
 
-    def __init__(self, node: ShNode):
+    def __init__(self, node: ShNode, settings: ScadaSettings):
         self.node = node
         component = node.component
+        self.seconds_per_report = settings.seconds_per_report
         self.reporting = None
         self.driver = None
         self.typical_response_time_ms = 0
@@ -61,7 +62,7 @@ class NodeConfig:
         self.reporting = ConfigMaker(
             report_on_change=False,
             exponent=5,
-            reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+            reporting_period_s=self.seconds_per_report,
             sample_period_s=self.node.reporting_sample_period_s,
             telemetry_name=cac.telemetry_name,
             unit=Unit.GPM,
@@ -80,7 +81,7 @@ class NodeConfig:
         self.reporting = ConfigMaker(
             report_on_change=False,
             exponent=cac.exponent,
-            reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+            reporting_period_s=self.seconds_per_report,
             sample_period_s=self.node.reporting_sample_period_s,
             telemetry_name=cac.telemetry_name,
             unit=cac.temp_unit,
@@ -101,13 +102,13 @@ class NodeConfig:
         cac = component.cac
         self.typical_response_time_ms = cac.typical_response_time_ms
         if self.node.reporting_sample_period_s is None:
-            reporting_sample_period_s = settings.SCADA_REPORTING_PERIOD_S
+            reporting_sample_period_s = self.seconds_per_report
         else:
             reporting_sample_period_s = self.node.reporting_sample_period_s
         self.reporting = ConfigMaker(
             report_on_change=True,
             exponent=0,
-            reporting_period_s=settings.SCADA_REPORTING_PERIOD_S,
+            reporting_period_s=self.seconds_per_report,
             sample_period_s=reporting_sample_period_s,
             telemetry_name=cac.telemetry_name,
             unit=Unit.UNITLESS,

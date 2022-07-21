@@ -2,6 +2,7 @@ import csv
 import json
 import os
 import threading
+import typing
 import uuid
 from abc import ABC, abstractmethod
 from functools import cached_property
@@ -10,8 +11,8 @@ from typing import List
 import paho.mqtt.client as mqtt
 
 import helpers
-import settings
-from actors.utils import QOS, Subscription
+from config import ScadaSettings
+from actors.utils import QOS, Subscription, MessageSummary
 from data_classes.sh_node import ShNode
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
@@ -72,7 +73,7 @@ class ActorBase(ABC):
 
     @classmethod
     def power_meter_driver(cls) -> PowerMeterDriver:
-        component: ElectricMeterComponent = cls.power_meter_node().component
+        component: ElectricMeterComponent = typing.cast(ElectricMeterComponent, cls.power_meter_node().component)
         cac = component.cac
         if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             driver = UnknownPowerMeterDriver(component=component)
@@ -103,78 +104,76 @@ class ActorBase(ABC):
         return nodes[0]
 
     @cached_property
-    def atn_g_node_alias(cls):
+    def atn_g_node_alias(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyAtomicTNodeGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
-    def atn_g_node_id(cls):
+    def atn_g_node_id(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyAtomicTNodeGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
-    def terminal_asset_g_node_alias(cls):
+    def terminal_asset_g_node_alias(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyTerminalAssetGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
-    def terminal_asset_g_node_id(cls):
+    def terminal_asset_g_node_id(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_atn_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyTerminalAssetGNode"]
+        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyTerminalAssetGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
-    def scada_g_node_alias(cls):
+    def scada_g_node_alias(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["Alias"]
 
     @cached_property
-    def scada_g_node_id(cls):
+    def scada_g_node_id(self):
         current_dir = os.path.dirname(os.path.realpath(__file__))
         with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
             input_data = json.load(read_file)
-        my_scada_as_dict = input_data[settings.WORLD_ROOT_ALIAS]["MyScadaGNode"]
+        my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["GNodeId"]
 
-    def __init__(self, node: ShNode, logging_on=False):
+    def __init__(self, node: ShNode, settings: ScadaSettings):
         self._main_loop_running = False
         self.main_thread = None
         self.node = node
-        self.logging_on = logging_on
-        self.log_csv = f"output/debug_logs/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
-        if self.logging_on:
+        self.settings = settings
+        self.log_csv = f"{self.settings.output_dir}/debug_logs/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
+        if self.settings.logging_on:
             row = [f"({helpers.log_time()}) {self.node.alias}"]
             with open(self.log_csv, "w") as outfile:
                 write = csv.writer(outfile, delimiter=",")
                 write.writerow(row)
             self.screen_print(f"log csv is {self.log_csv}")
-        self.mqttBroker = settings.LOCAL_MQTT_BROKER_ADDRESS
-        self.mqttBrokerPort = getattr(settings, "LOCAL_MQTT_BROKER_PORT", 1883)
         self.client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.client = mqtt.Client(self.client_id)
         self.client.username_pw_set(
-            username=settings.LOCAL_MQTT_USER_NAME,
-            password=helpers.get_secret("LOCAL_MQTT_PW"),
+            username=self.settings.local_mqtt.username,
+            password=self.settings.local_mqtt.password.get_secret_value(),
         )
         self.client.on_message = self.on_mqtt_message
         self.client.on_connect = self.on_connect
         self.client.on_connect_fail = self.on_connect_fail
         self.client.on_disconnect = self.on_disconnect
-        if self.logging_on:
+        if self.settings.logging_on:
             self.client.on_log = self.on_log
             self.client.enable_logger()
 
@@ -184,7 +183,7 @@ class ActorBase(ABC):
             self.client.subscribe(subscriptions)
 
     def mqtt_log_hack(self, row):
-        if self.logging_on:
+        if self.settings.logging_on:
             with open(self.log_csv, "a") as outfile:
                 write = csv.writer(outfile, delimiter=",")
                 write.writerow(row)
@@ -229,6 +228,8 @@ class ActorBase(ABC):
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
             )
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(MessageSummary.format("IN", self.node.alias, message.topic, payload_as_tuple))
         self.on_message(from_node=from_node, payload=payload_as_tuple)
 
     @abstractmethod
@@ -241,19 +242,20 @@ class ActorBase(ABC):
         else:
             qos = QOS.AtLeastOnce
         topic = f"{self.node.alias}/{payload.TypeAlias}"
+        if self.settings.logging_on or self.settings.log_message_summary:
+            print(MessageSummary.format("OUT", self.node.alias, topic, payload))
         self.client.publish(
             topic=topic,
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
         )
-        # self.screen_print(f"published to {topic}")
 
     def terminate_main_loop(self):
         self._main_loop_running = False
 
     def start(self):
-        self.client.connect(self.mqttBroker, port=self.mqttBrokerPort)
+        self.client.connect(self.settings.local_mqtt.host, port=self.settings.local_mqtt.port)
         self.client.loop_start()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
