@@ -51,7 +51,7 @@ class MessageSummary:
         actor_alias: str,
         topic: str,
         payload_object: Any = None,
-        broker_flag = " ",
+        broker_flag=" ",
         timestamp: Optional[datetime.datetime] = None,
     ) -> str:
         """

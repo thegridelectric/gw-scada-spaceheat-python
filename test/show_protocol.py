@@ -22,6 +22,8 @@ from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksS
 from utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, wait_for
 
 # noinspection PyUnusedLocal
+
+
 def i_am_quiet(self, note: str):
     """Replaces screen_print with silence"""
     pass
@@ -33,11 +35,13 @@ def please_be_quiet():
     Atn.screen_print = i_am_quiet
     CloudEar.screen_print = i_am_quiet
 
+
 class FragmentNames(enum.Enum):
     all = "all"
     meter = "meter"
     GsPwr = "GsPwr"
     thermo = "thermo"
+
 
 def add_show_protocol_args(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:
     """Add show_protocol only args"""
@@ -52,11 +56,14 @@ def add_show_protocol_args(parser: argparse.ArgumentParser) -> argparse.Argument
     parser.add_argument("-w", "--wait-at-least", default=0, help="Time to wait for all periodic fragments", type=float)
     return parser
 
+
 def delimit_str(text: str = "") -> str:
     return "\n## " + text + ("#" * (100 - len(text)))
 
+
 def delimit(text: str = ""):
     print(delimit_str(text))
+
 
 def do_nothing(seconds: float):
     """Let the actors run on their own for a while"""
@@ -64,6 +71,7 @@ def do_nothing(seconds: float):
         delimit(f"DOING NOTHING FOR {int(seconds):4d} SECONDS")
         time.sleep(seconds)
         delimit("DONE DOING NOTHING")
+
 
 class Actors:
     scada: ScadaRecorder
@@ -73,7 +81,7 @@ class Actors:
     meter: PowerMeter
     thermo: SimpleSensor
 
-    def __init__(self, settings:ScadaSettings):
+    def __init__(self, settings: ScadaSettings):
         self.scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
         self.atn = AtnRecorder(node=ShNode.by_alias["a"], settings=settings)
         self.home_alone = HomeAloneRecorder(node=ShNode.by_alias["a.home"], settings=settings)
@@ -90,7 +98,7 @@ class FragmentRunner:
     fragments: List["ProtocolFragment"]
     wait_at_least: float
 
-    def __init__(self, args:argparse.Namespace, settings:ScadaSettings, actors:Actors):
+    def __init__(self, args: argparse.Namespace, settings: ScadaSettings, actors: Actors):
         self.args = args
         self.settings = settings
         self.actors = actors
@@ -163,12 +171,13 @@ class FragmentRunner:
         finally:
             self.stop()
 
+
 class ProtocolFragment:
     args: argparse.Namespace
     settings: ScadaSettings
     wait_at_least: float
 
-    def __init__(self, runner:FragmentRunner, wait_at_least: float = 0):
+    def __init__(self, runner: FragmentRunner, wait_at_least: float = 0):
         self.args = runner.args
         self.settigns = runner.settings
         self.wait_at_least = wait_at_least
@@ -179,20 +188,24 @@ class ProtocolFragment:
     def run(self, actors: Actors):
         pass
 
+
 class WaitingFragment(ProtocolFragment):
 
-    def __init__(self, runner:FragmentRunner):
-        super().__init__(runner, wait_at_least = runner.args.wait_at_least)
+    def __init__(self, runner: FragmentRunner):
+        super().__init__(runner, wait_at_least=runner.args.wait_at_least)
+
 
 class ThermoFragment(WaitingFragment):
 
     def get_requested_actors(self, actors: Actors) -> Sequence[ActorBase]:
         return [actors.scada, actors.thermo]
 
+
 class MeterFragment(WaitingFragment):
 
     def get_requested_actors(self, actors: Actors) -> Sequence[ActorBase]:
         return [actors.scada, actors.meter]
+
 
 class GsPwrFragment(ProtocolFragment):
 
@@ -224,7 +237,7 @@ class AllFragments(ProtocolFragment):
             actors.thermo
         ]
 
-    def run(self, actors:Actors):
+    def run(self, actors: Actors):
         actors.scada._scada_atn_fast_dispatch_contract_is_alive_stub = True
 
         do_nothing(self.args.do_nothing_time)
@@ -270,6 +283,7 @@ class AllFragments(ProtocolFragment):
             f"home alone summary. {actors.home_alone.summary_str()}",
         )
         delimit("SCADA STATUS RECEIVED")
+
 
 def show_protocol(argv: Optional[List[str]] = None):
     """Run protocol fragments, showing their result on screen"""

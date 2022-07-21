@@ -160,6 +160,7 @@ def test_power_meter_small():
     meter.report_aggregated_power_w()
     assert meter.latest_agg_power_w == 500
 
+
 def test_power_meter_periodic_update(monkeypatch):
     """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (GsPwr sending is
     _not_ tested here."""
@@ -280,4 +281,3 @@ def test_power_meter_aggregate_power_forward(monkeypatch):
                 actor.stop()
             except:
                 pass
-

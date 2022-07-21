@@ -12,6 +12,7 @@ from data_classes.sh_node import ShNode
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
+
 def add_default_args(
     parser: argparse.ArgumentParser,
     default_nodes: Optional[Sequence[str]] = None
@@ -41,6 +42,7 @@ def parse_args(
         parser or argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter),
         default_nodes=default_nodes,
     ).parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
+
 
 def setup_logging(args: argparse.Namespace, settings: ScadaSettings) -> None:
     """Setup python logging based on parsed command line args"""
