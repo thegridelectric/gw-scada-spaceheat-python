@@ -69,6 +69,14 @@ class Scada(ScadaBase):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
 
     @classmethod
+    def my_home_alone(cls) -> ShNode:
+        all_nodes = list(ShNode.by_alias.values())
+        home_alone_nodes = list(filter(lambda x: (x.role == Role.HOME_ALONE), all_nodes))
+        if len(home_alone_nodes) != 1:
+            raise Exception("there should be a single SpaceheatNode with role HomeAlone")
+        return home_alone_nodes[0]
+
+    @classmethod
     def my_boolean_actuators(cls) -> List[ShNode]:
         all_nodes = list(ShNode.by_alias.values())
         return list(filter(lambda x: (x.role == Role.BOOLEAN_ACTUATOR), all_nodes))
@@ -199,6 +207,13 @@ class Scada(ScadaBase):
 
     def subscriptions(self) -> List[Subscription]:
         my_subscriptions = [Subscription(Topic=f"a.m/{GsPwr_Maker.type_alias}", Qos=QOS.AtMostOnce)]
+
+        my_subscriptions.append(
+            Subscription(
+                Topic=f"{self.my_home_alone().alias}/{GtDispatchBooleanLocal_Maker.type_alias}",
+                Qos=QOS.AtLeastOnce,
+            )
+        )
 
         for node in self.my_simple_sensors():
             my_subscriptions.append(
