@@ -12,6 +12,8 @@ pendulum==2.1.2
     # via -r requirements/base.in
 pika==1.1.0
     # via -r requirements/base.in
+pydantic==1.9.1
+    # via -r requirements/base.in
 pymodbus==2.5.3
     # via -r requirements/drivers.in
 pyserial==3.5
@@ -32,3 +34,5 @@ six==1.16.0
     #   python-dateutil
 smbus2==0.4.1
     # via -r requirements/drivers.in
+typing-extensions==4.3.0
+    # via pydantic
