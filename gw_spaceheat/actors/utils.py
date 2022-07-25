@@ -42,7 +42,10 @@ def responsive_sleep(
 class MessageSummary:
     """Helper class for formating message summaries message receipt/publication single line summaries."""
 
-    DEFAULT_FORMAT = "{timestamp}  {direction:3s}  {actor_alias:33s}  {broker_flag}  {arrow:2s}  {topic:80s}  {payload_type}"
+    DEFAULT_FORMAT = (
+        "{timestamp}  {direction:3s}  {actor_alias:33s}  {broker_flag}  {arrow:2s}  {topic:80s}"
+        "  {payload_type}"
+    )
 
     @classmethod
     def format(
