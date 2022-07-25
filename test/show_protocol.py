@@ -299,5 +299,6 @@ def show_protocol(argv: Optional[List[str]] = None):
     runner = FragmentRunner(args, settings, Actors(settings))
     runner.run()
 
+
 if __name__ == "__main__":
     show_protocol()
