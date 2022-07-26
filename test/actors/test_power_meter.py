@@ -160,8 +160,7 @@ def test_power_meter_small():
     meter.report_aggregated_power_w()
     assert meter.latest_agg_power_w == 500
 
-
-def test_power_meter_periodic_update(monkeypatch):
+def test_power_meter_periodic_update():
     """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (GsPwr sending is
     _not_ tested here."""
     settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
@@ -169,7 +168,6 @@ def test_power_meter_periodic_update(monkeypatch):
     scada = Scada(ShNode.by_alias["a.s"], settings=settings)
     meter_node = ShNode.by_alias["a.m"]
     typing.cast(ElectricMeterComponent, meter_node.component).cac.update_period_ms = 0
-    monkeypatch.setattr(typing.cast(ElectricMeterComponent, meter_node.component).cac, "update_period_ms", 0)
     meter = PowerMeter(node=meter_node, settings=settings)
     meter.reporting_sample_period_s = 0
     actors = [scada, meter]
@@ -220,7 +218,7 @@ def test_power_meter_periodic_update(monkeypatch):
                 pass
 
 
-def test_power_meter_aggregate_power_forward(monkeypatch):
+def test_power_meter_aggregate_power_forward():
     """Verify that when a simulated change in power is generated, Scadd and Atn both get a GsPwr message"""
 
     settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
@@ -229,7 +227,6 @@ def test_power_meter_aggregate_power_forward(monkeypatch):
     atn = AtnRecorder(ShNode.by_alias["a"], settings=settings)
     meter_node = ShNode.by_alias["a.m"]
     typing.cast(ElectricMeterComponent, meter_node.component).cac.update_period_ms = 0
-    monkeypatch.setattr(typing.cast(ElectricMeterComponent, meter_node.component).cac, "update_period_ms", 0)
     meter = PowerMeter(node=meter_node, settings=settings)
     meter.reporting_sample_period_s = 0
     actors = [scada, meter, atn]
@@ -281,3 +278,4 @@ def test_power_meter_aggregate_power_forward(monkeypatch):
                 actor.stop()
             except:
                 pass
+
