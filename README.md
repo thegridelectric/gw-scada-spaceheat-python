@@ -34,23 +34,11 @@ The pip-tools also allow for building layers of requirements on top of each othe
 ### Handling secrets and config variables
     
 SETTING UP SECRETS.
-Secrets use dotenv module in a gitignored gw-scada-spaceheat-python/.env file, through the helpers.get_secret function. Ask somebody on the team for the secrets.
-
-Convention: if you have a secret key,value pair where the value is None then add it to the .env file like this:
-
-MQTT_PW = None
-
-and the helper function will turn that None into the python None.
-
-SETTING UP NON_SECRET CONFIGS. Copy gw-scada-spaceheat-python/gw_spaceheat/settings_template.py  to [same]/settings.py
-
-Settings use a gitignored settings.py file. There is a template settings_template.py.
+Configuration variables (secret or otherwise) use dotenv module in a gitignored `.env` file, copied over from `.env-template`. These are accessed via `config.ScadaSettings`.
 
 
 ### Setting up MQTT
-For development purposes, you can set up .env to include MQTT_PW = None and use the default value in settings_template.py (one of the 
-many free cloud brokers))
-
+For development purposes, you can use the default values from `.env-template`.
 To use a local mosquitto broker:
 **Install the mosquito server**
 1. `brew install mosquitto`
@@ -64,17 +52,14 @@ To use a local mosquitto broker:
 ## Step 2: input data and running the code
 
 Input data is in the `input_data/houses.json` file. It includes house data organized by the `GNodeAlias` for the `AtomicTNode` 
-representing the house. If `ATN_G_NODE_ALIAS` in `settings.py` matches `template_settings.py` (i.e. `dw1.isone.nh.orange.1`) then the house is 
-_simulated_. If `ATN_G_NODE_ALIAS` in `settings.py` is `w.isone.nh.orange.1`, then the code expects the test heating system
-in Jessica's garage.
+representing the house. If `SCADA_WORLD_ROOT_ALIAS` in `.env` is is `w`, then the code expects the test heating system
+in Jessica's garage. Otherwise it expects a _simulated_ heating system.
 
 `python run_local.py` will start up all actors meant to run on the SCADA pi. 
 `python try_actors.py` gives an interactive script to selectively start some of the actors.
 
 `python run_atn.py` will start up an `AtomicTNode` meant to run in the cloud (this will not 
 remain in this repo).
-
-`python run_ear.py` will start up a data logger meant to run in the cloud.
 
 # Description of what this does
 

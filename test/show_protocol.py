@@ -209,5 +209,6 @@ def show_protocol(argv: Optional[List[str]] = None):
         runner.add_fragment(fragment_from_enum(runner, FragmentNames(fragment_name)))
     runner.run()
 
+
 if __name__ == "__main__":
     show_protocol()
