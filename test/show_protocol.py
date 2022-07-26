@@ -103,10 +103,12 @@ class RelayToggleFragment(ProtocolFragment):
         scada.turn_off(relay.node)
         time.sleep(1)
 
+
 class MeterFragment(WaitingFragment):
 
     def get_requested_actors(self) -> Sequence[ActorBase]:
         return [self.runner.actors.scada, self.runner.actors.meter]
+
 
 class GsPwrFragment(ProtocolFragment):
 
