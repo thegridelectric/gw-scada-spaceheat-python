@@ -331,7 +331,7 @@
             {
                 "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
                 "DisplayName": "Main power meter for Little orange house garage space heat",
-                "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
+                "ComponentAttributeClassId": "b8c7e562-5c72-4bfc-a199-b1c5e29aedbb",
                 "HwUid": "35941_308",
                 "TypeAlias": "gt.electric.meter.component.100"
             }
@@ -399,12 +399,11 @@
         ],
         "ElectricMeterCacs": [
             {
-                "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
-                "MakeModelGtEnumSymbol": "d300635e",
-                "DisplayName": "Schneider Electric Iem3455 Power Meter",
-                "LocalCommInterfaceGtEnumSymbol": "a6a4ac9f",
+                "ComponentAttributeClassId": "b8c7e562-5c72-4bfc-a199-b1c5e29aedbb",
+                "MakeModelGtEnumSymbol": "c75d269f",
+                "DisplayName": "OpenEnergy EmonPi",
+                "LocalCommInterfaceGtEnumSymbol": "829549d1",
                 "UpdatePeriodMs": 1000,
-                "DefaultBaud": 9600,
                 "TypeAlias": "gt.electric.meter.cac.100"
             }
         ],

@@ -59,5 +59,5 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
     def read_power_w(self) -> Optional[int]:
         return None
 
-    def additional_telemetry_name_list(self) -> List[TelemetryName]:
+    def telemetry_name_list(self) -> List[TelemetryName]:
         return [TelemetryName.CURRENT_RMS_MICRO_AMPS]

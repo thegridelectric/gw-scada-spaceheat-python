@@ -4,17 +4,31 @@ from typing import Dict, List, Optional
 from config import ScadaSettings
 
 from actors.actor_base import ActorBase
-from actors.utils import Subscription, responsive_sleep
+from actors.utils import Subscription, QOS, responsive_sleep
 
 from data_classes.sh_node import ShNode
+
+
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
+
+from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
+    GridworksSimPm1_PowerMeterDriver,
+)
+from drivers.power_meter.openenergy_emonpi__power_meter_driver import OpenenergyEmonpi_PowerMeterDriver
+
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
+
+from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
+    SchneiderElectricIem3455_PowerMeterDriver,
+)
+from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 
 from named_tuples.telemetry_tuple import TelemetryTuple
 
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
+from schema.enums.make_model.make_model_map import MakeModel
 from schema.enums.role.role_map import Role
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.enums.unit.unit_map import Unit
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig,
@@ -73,7 +87,8 @@ class PowerMeter(ActorBase):
         self.reporting_config: ReportingConfig = self.set_reporting_config(
             component=typing.cast(ElectricMeterComponent, self.node.component)
         )
-        self.driver: PowerMeterDriver = self.power_meter_driver()
+        self.driver: PowerMeterDriver = self.set_power_meter_driver(component=self.node.component)
+        self.driver.start()
 
         self.nameplate_telemetry_value: Dict[
             TelemetryTuple, int
@@ -98,6 +113,20 @@ class PowerMeter(ActorBase):
     ###################################
     # Initializing configuration
     ###################################
+
+    def set_power_meter_driver(self, component: ElectricMeterComponent) -> PowerMeterDriver:
+        cac = component.cac
+        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            driver = UnknownPowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
+            driver = SchneiderElectricIem3455_PowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
+            driver = GridworksSimPm1_PowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.OPENENERGY__EMONPI:
+            driver = OpenenergyEmonpi_PowerMeterDriver(component=component, settings=self.settings)
+        else:
+            raise NotImplementedError(f"No ElectricMeter driver yet for {cac.make_model}")
+        return driver
 
     def set_reporting_config(self, component: ElectricMeterComponent) -> ReportingConfig:
         cac = component.cac
@@ -300,7 +329,7 @@ class PowerMeter(ActorBase):
                         f"{tt.AboutNode.alias} is "
                         f"{self.latest_telemetry_value[tt]}"
                     )
-            sleep_time_ms = self.reporting_config.PollPeriodMs
+            sleep_time_ms = self.reporting_config.PollPeriodMs / 5
             delta_ms = 1000 * (time.time() - start_s)
             if delta_ms < self.reporting_config.PollPeriodMs:
                 sleep_time_ms -= delta_ms
