@@ -18,8 +18,10 @@ except ImportError:
 def delimit_str(text: str = "") -> str:
     return "\n## " + text + ("#" * (100 - len(text)))
 
+
 def delimit(text: str = ""):
     print(delimit_str(text))
+
 
 def do_nothing(seconds: float):
     """Let the actors run on their own for a while"""
@@ -27,6 +29,7 @@ def do_nothing(seconds: float):
         delimit(f"DOING NOTHING FOR {int(seconds):4d} SECONDS")
         time.sleep(seconds)
         delimit("DONE DOING NOTHING")
+
 
 class Actors:
     scada: ScadaRecorder
@@ -36,7 +39,7 @@ class Actors:
     meter: PowerMeter
     thermo: SimpleSensor
 
-    def __init__(self, settings:ScadaSettings):
+    def __init__(self, settings: ScadaSettings):
         self.scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
         self.atn = AtnRecorder(node=ShNode.by_alias["a"], settings=settings)
         self.home_alone = HomeAloneRecorder(node=ShNode.by_alias["a.home"], settings=settings)
@@ -55,10 +58,10 @@ class FragmentRunner:
 
     def __init__(
             self,
-            settings:ScadaSettings,
+            settings: ScadaSettings,
             wait_at_least: float = 0.,
             do_nothing_time: float = 0.,
-            actors:Optional[Actors] = None
+            actors: Optional[Actors] = None
     ):
         self.settings = settings
         self.wait_at_least = wait_at_least
@@ -133,7 +136,7 @@ class ProtocolFragment:
     runner: FragmentRunner
     wait_at_least: float
 
-    def __init__(self, runner:FragmentRunner, wait_at_least: float = 0):
+    def __init__(self, runner: FragmentRunner, wait_at_least: float = 0):
         self.runner = runner
         self.wait_at_least = wait_at_least
 

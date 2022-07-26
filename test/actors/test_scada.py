@@ -249,6 +249,7 @@ def test_scada_periodic_status_delivery():
 
     FragmentRunner.run_fragment(Fragment)
 
+
 def test_scada_snaphot_request_delivery():
     """Verify scada sends snapshot upon request from Atn"""
 
@@ -269,6 +270,7 @@ def test_scada_snaphot_request_delivery():
             )
 
     FragmentRunner.run_fragment(Fragment)
+
 
 def test_scada_status_content_dynamics():
     """Verify Scada status contains command acks from BooleanActuators and telemetry from SimpleSensor and
@@ -324,10 +326,10 @@ def test_scada_status_content_dynamics():
 
             wait_for(
                 lambda: (
-                        scada.num_received_by_topic[relay_telemetry_topic] == 1 and
-                        scada.num_received_by_topic[relay_command_received_topic] == 1 and
-                        scada.num_received_by_topic[meter_telemetry_topic] == 1 and
-                        scada.num_received_by_topic[thermo_telemetry_topic] == 1
+                    scada.num_received_by_topic[relay_telemetry_topic] == 1
+                    and scada.num_received_by_topic[relay_command_received_topic] == 1
+                    and scada.num_received_by_topic[meter_telemetry_topic] == 1
+                    and scada.num_received_by_topic[thermo_telemetry_topic] == 1
                 ),
                 5,
                 "Scada wait for reports"
@@ -346,7 +348,6 @@ def test_scada_status_content_dynamics():
             assert len(status.MultipurposeTelemetryList) == len(scada.my_telemetry_tuples())
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
-
 
             # Cause scada to send a status (and snapshot) now
             scada.last_5_cron_s -= 299
@@ -399,6 +400,7 @@ def test_scada_status_content_dynamics():
 
     FragmentRunner.run_fragment(Fragment)
 
+
 def test_scada_relay_dispatch():
     """Verify Scada forwards relay dispatch from Atn to relay and that resulting state changes in the relay are
     included in next status and shapshot"""
@@ -435,7 +437,7 @@ def test_scada_relay_dispatch():
             relay.start()
             self.runner.request_actors([relay])
             wait_for(
-                lambda : scada.num_received_by_topic[relay_state_topic] == 1,
+                lambda: scada.num_received_by_topic[relay_state_topic] == 1,
                 5,
                 "Scada wait for relay state change"
             )
@@ -450,12 +452,12 @@ def test_scada_relay_dispatch():
 
             # Verify scada gets telemetry state and command ack.
             wait_for(
-                lambda : scada.num_received_by_topic[relay_state_topic] == 1,
+                lambda: scada.num_received_by_topic[relay_state_topic] == 1,
                 5,
                 "Scada wait for relay state change"
             )
             wait_for(
-                lambda : scada.num_received_by_topic[relay_command_received_topic] == 1,
+                lambda: scada.num_received_by_topic[relay_command_received_topic] == 1,
                 5,
                 "Scada wait for relay command received"
             )

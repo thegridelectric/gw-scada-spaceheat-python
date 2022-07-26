@@ -420,16 +420,15 @@ class Scada(ScadaBase):
 
     def make_snapshot(self) -> GtShCliScadaResponse:
         return GtShCliScadaResponse_Maker(
-                from_g_node_alias=self.scada_g_node_alias,
-                from_g_node_id=self.scada_g_node_id,
-                snapshot=self.make_status_snapshot(),
-            ).tuple
+            from_g_node_alias=self.scada_g_node_alias,
+            from_g_node_id=self.scada_g_node_id,
+            snapshot=self.make_status_snapshot(),
+        ).tuple
 
     def gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
             return
         self.gw_publish(self.make_snapshot())
-
 
     ################################################
     # Primary functions

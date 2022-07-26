@@ -52,6 +52,7 @@ def add_show_protocol_args(parser: argparse.ArgumentParser) -> argparse.Argument
     parser.add_argument("-w", "--wait-at-least", default=0, help="Time to wait for all periodic fragments", type=float)
     return parser
 
+
 def fragment_from_enum(runner: FragmentRunner, name: FragmentNames) -> "ProtocolFragment":
     if name == FragmentNames.all:
         fragment = AllFragments(runner)
@@ -69,20 +70,24 @@ def fragment_from_enum(runner: FragmentRunner, name: FragmentNames) -> "Protocol
         raise ValueError(f"Unknown fragment name {name}")
     return fragment
 
+
 class WaitingFragment(ProtocolFragment):
 
-    def __init__(self, runner:FragmentRunner):
-        super().__init__(runner, wait_at_least = runner.wait_at_least)
+    def __init__(self, runner: FragmentRunner):
+        super().__init__(runner, wait_at_least=runner.wait_at_least)
+
 
 class ThermoFragment(WaitingFragment):
 
     def get_requested_actors(self) -> Sequence[ActorBase]:
         return [self.runner.actors.scada, self.runner.actors.thermo]
 
+
 class RelayFragment(WaitingFragment):
 
     def get_requested_actors(self) -> Sequence[ActorBase]:
         return [self.runner.actors.scada, self.runner.actors.relay]
+
 
 class RelayToggleFragment(ProtocolFragment):
 
@@ -180,6 +185,7 @@ class AllFragments(ProtocolFragment):
             f"home alone summary. {actors.home_alone.summary_str()}",
         )
         delimit("SCADA STATUS RECEIVED")
+
 
 def show_protocol(argv: Optional[List[str]] = None):
     """Run protocol fragments, showing their result on screen"""

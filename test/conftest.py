@@ -34,9 +34,11 @@ class CleanScadaEnv:
                 m.setenv(f"{self.prefix}WORLD_ROOT_ALIAS", self.world)
             yield m
 
+
 @pytest.fixture(autouse=True)
 def flush_local_registries():
     flush_all()
+
 
 @pytest.fixture(autouse=True)
 def clean_scada_env(request) -> Generator[MonkeyPatch, None, None]:
@@ -58,4 +60,3 @@ def clean_scada_env(request) -> Generator[MonkeyPatch, None, None]:
         prefix=param[1] if len(param) > 1 else "SCADA_"
     ).context() as mpatch:
         yield mpatch
-

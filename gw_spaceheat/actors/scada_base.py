@@ -105,4 +105,3 @@ class ScadaBase(ActorBase):
         super().stop_mqtt()
         self.gw_client.disconnect()
         self.gw_client.loop_stop()
-
