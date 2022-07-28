@@ -201,7 +201,7 @@
                 "ActorClassGtEnumSymbol": "dae4b2f0",
                 "DisplayName": "Tank temp sensor temp0 (on top)",
                 "ShNodeId": "24e6c994-ff61-43b2-8550-d2017f413cb3",
-                "ComponentId": "2d4b3b73-fc58-4789-b15e-9881f0b4ff40",
+                "ComponentId": "fbdadade-760f-4fdf-8a05-ab8243ba1371",
                 "ReportingSamplePeriodS": 5,
                 "TypeAlias": "spaceheat.node.gt.100"
             },
@@ -314,7 +314,7 @@
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
-                "ComponentId": "2d4b3b73-fc58-4789-b15e-9881f0b4ff40",
+                "ComponentId": "fbdadade-760f-4fdf-8a05-ab8243ba1371",
                 "DisplayName": "Component for a.tank.temp0 (on top)",
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
                 "HwUid": "0002b854",

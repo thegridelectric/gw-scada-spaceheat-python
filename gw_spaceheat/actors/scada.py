@@ -553,9 +553,6 @@ class Scada(ScadaBase):
             if self.time_for_5_cron():
                 self.cron_every_5()
             responsive_sleep(self, 1)
-            if int(time.time()) % 30 == 0:
-                self.screen_print(f"{pendulum.from_timestamp(int(time.time()))}")
-                self.screen_print(f"{self.next_5_cron_s - int(time.time())} seconds till status")
 
     @property
     def next_5_cron_s(self) -> int:
