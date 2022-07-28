@@ -267,7 +267,7 @@
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "MaxPowerW": 4500
+                "MaxPowerW": 400
             }],
         "BooleanActuatorComponents": [
             {

@@ -55,7 +55,7 @@ class PowerMeter(ActorBase):
     to configuration."""
 
     FASTEST_POWER_METER_POLL_PERIOD_MS = 40
-    DEFAULT_ASYNC_REPORTING_THRESHOLD = 0.05
+    DEFAULT_ASYNC_REPORTING_THRESHOLD = 0.02
 
     @classmethod
     def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
