@@ -1,4 +1,5 @@
 import time
+import datetime
 import typing
 from typing import Dict, List, Optional
 from config import ScadaSettings
@@ -296,6 +297,7 @@ class PowerMeter(ActorBase):
     def report_aggregated_power_w(self):
         self.publish(GsPwr_Maker(power=self.latest_agg_power_w).tuple)
         self.last_reported_agg_power_w = self.latest_agg_power_w
+        self.screen_print(f"{datetime.datetime.now().isoformat()} {self.latest_agg_power_w} W")
 
     def should_report_aggregated_power(self) -> bool:
         """Aggregated power is sent up asynchronously on change via a GsPwr message, and the last aggregated
@@ -323,12 +325,6 @@ class PowerMeter(ActorBase):
                     telemetry_tuple_report_list.append(telemetry_tuple)
             if len(telemetry_tuple_report_list) > 0:
                 self.report_sampled_telemetry_values(telemetry_tuple_report_list)
-                for tt in telemetry_tuple_report_list:
-                    self.screen_print(
-                        f"{tt.TelemetryName.value} for "
-                        f"{tt.AboutNode.alias} is "
-                        f"{self.latest_telemetry_value[tt]}"
-                    )
             sleep_time_ms = self.reporting_config.PollPeriodMs / 5
             delta_ms = 1000 * (time.time() - start_s)
             if delta_ms < self.reporting_config.PollPeriodMs:

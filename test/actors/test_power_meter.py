@@ -119,8 +119,8 @@ def test_power_meter_small():
 
     assert meter.value_exceeds_async_threshold(tt) is False
     report_threshold_ratio = meter.eq_reporting_config[tt].AsyncReportThreshold
-    assert report_threshold_ratio == 0.05
-    report_threshold_microamps = meter.nameplate_telemetry_value[tt] * 0.05
+    assert report_threshold_ratio == 0.02
+    report_threshold_microamps = meter.nameplate_telemetry_value[tt] * 0.02
     assert report_threshold_microamps == 937500
 
     meter.latest_telemetry_value[tt] += 900000
