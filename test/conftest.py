@@ -8,6 +8,7 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 
 from config import ScadaSettings
+from test.utils import flush_all
 
 
 class CleanScadaEnv:
@@ -32,6 +33,11 @@ class CleanScadaEnv:
             if self.world:
                 m.setenv(f"{self.prefix}WORLD_ROOT_ALIAS", self.world)
             yield m
+
+
+@pytest.fixture(autouse=True)
+def flush_local_registries():
+    flush_all()
 
 
 @pytest.fixture(autouse=True)

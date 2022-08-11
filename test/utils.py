@@ -100,7 +100,10 @@ def wait_for(
             time.sleep(min(retry_duration, until - now))
             now = time.time()
     if raise_timeout:
-        raise ValueError(f"ERROR. Function {f} timed out after {timeout} seconds. {tag}")
+        raise ValueError(
+            f"ERROR. "
+            f"[{tag}] wait_for() timed out after {timeout} seconds, wait function {f}"
+        )
     else:
         return False
 
@@ -216,11 +219,13 @@ class EarRecorder(CloudEar):
     num_received: int
     num_received_by_topic: Dict[str, int]
     latest_payload: Optional[Any]
+    payloads: List[Any]
 
     def __init__(self, settings: ScadaSettings):
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
         self.latest_payload = None
+        self.payloads = []
         super().__init__(settings=settings)
 
     def on_gw_mqtt_message(self, client, userdata, message):
@@ -230,6 +235,7 @@ class EarRecorder(CloudEar):
 
     def on_gw_message(self, from_node: ShNode, payload):
         self.latest_payload = payload
+        self.payloads.append(payload)
         super().on_gw_message(from_node, payload)
 
     def summary_str(self):
@@ -260,6 +266,22 @@ class ScadaRecorder(Scada):
         # on_socket_register_write AND on_socket_unregister_write callbacks are meant for
         # integration with event loops external to paho. They are also noisy, so we don't
         # use them here.
+
+    @property
+    def status_topic(self) -> str:
+        return f"{self.scada_g_node_alias}/gt.sh.status.110"
+
+    @property
+    def snapshot_topic(self) -> str:
+        return f"{self.scada_g_node_alias}/gt.sh.cli.scada.response.110"
+
+    @property
+    def last_5_cron_s(self):
+        return self._last_5_cron_s
+
+    @last_5_cron_s.setter
+    def last_5_cron_s(self, s: int):
+        self._last_5_cron_s = s
 
     @property
     def num_received(self) -> int:

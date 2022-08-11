@@ -64,15 +64,15 @@ def test_scada_ear_connection():
         assert ear.num_received > 0
         scada_g_node_alias = scada.scada_g_node_alias
         assert ear.num_received_by_topic[f"{scada_g_node_alias}/{GtShStatus_Maker.type_alias}"] == 1
-        assert isinstance(ear.latest_payload, GtShStatus)
-        simple_telemetry_list = ear.latest_payload.SimpleTelemetryList
+        assert isinstance(ear.payloads[-2], GtShStatus)
+        simple_telemetry_list = ear.payloads[-2].SimpleTelemetryList
         assert len(simple_telemetry_list) > 0
         node_alias_list = list(map(lambda x: x.ShNodeAlias, simple_telemetry_list))
         assert "a.tank.temp0" in node_alias_list
         thermo0_idx = node_alias_list.index("a.tank.temp0")
         telemetry_name_list = list(map(lambda x: x.TelemetryName, simple_telemetry_list))
         assert telemetry_name_list[thermo0_idx] == TelemetryName.WATER_TEMP_F_TIMES1000
-        assert ear.latest_payload.ReportingPeriodS == 300
+        assert ear.payloads[-2].ReportingPeriodS == 300
 
     finally:
         # noinspection PyBroadException

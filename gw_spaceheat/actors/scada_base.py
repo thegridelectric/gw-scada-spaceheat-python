@@ -95,17 +95,13 @@ class ScadaBase(ActorBase):
             retain=False,
         )
 
-    def start(self):
-        super().start()
-        self.gw_client.connect(
-            self.settings.gridworks_mqtt.host,
-            port=self.settings.gridworks_mqtt.port
-        )
+    def start_mqtt(self):
+        super().start_mqtt()
+        self.gw_client.connect(self.settings.gridworks_mqtt.host, port=self.settings.gridworks_mqtt.port)
         self.gw_client.loop_start()
         self.screen_print(f"Started {self.__class__} remote connections")
 
-    def stop(self):
-        super().stop()
+    def stop_mqtt(self):
+        super().stop_mqtt()
         self.gw_client.disconnect()
         self.gw_client.loop_stop()
-        self.screen_print(f"Stopped {self.__class__}")

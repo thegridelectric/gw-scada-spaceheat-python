@@ -254,20 +254,25 @@ class ActorBase(ABC):
     def terminate_main_loop(self):
         self._main_loop_running = False
 
-    def start(self):
+    def start_mqtt(self):
         self.client.connect(self.settings.local_mqtt.host, port=self.settings.local_mqtt.port)
         self.client.loop_start()
+
+    def stop_mqtt(self):
+        self.client.disconnect()
+        self.client.loop_stop()
+
+    def start(self):
+        self.start_mqtt()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f"Started {self.__class__}")
 
     def stop(self):
-        self.screen_print("Stopping ...")
         self.terminate_main_loop()
-        self.client.disconnect()
-        self.client.loop_stop()
+        self.stop_mqtt()
         self.main_thread.join()
-        self.screen_print("Stopped")
+        self.screen_print(f"Stopped {self.__class__}")
 
     @abstractmethod
     def main(self):
