@@ -11,10 +11,11 @@ from schema.enums.role.role_map import Role
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
-    GtShCliScadaResponse,
-    GtShCliScadaResponse_Maker,
+from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
+    SnapshotSpaceheat,
+    SnapshotSpaceheat_Maker,
 )
+
 from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
 
 
@@ -63,7 +64,7 @@ class Atn(CloudBase):
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{self.scada_g_node_alias}/{GtShCliScadaResponse_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
         ]
@@ -74,7 +75,7 @@ class Atn(CloudBase):
             raise Exception("gw messages must come from the Scada!")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(payload)
-        elif isinstance(payload, GtShCliScadaResponse):
+        elif isinstance(payload, SnapshotSpaceheat):
             self.gt_sh_cli_scada_response_received(payload)
         elif isinstance(payload, GtShStatus):
             self.gt_sh_status_received(payload)
@@ -88,7 +89,7 @@ class Atn(CloudBase):
     def gt_sh_status_received(self, payload: GtShStatus):
         self.latest_status = payload
 
-    def gt_sh_cli_scada_response_received(self, payload: GtShCliScadaResponse):
+    def gt_sh_cli_scada_response_received(self, payload: SnapshotSpaceheat):
         snapshot = payload.Snapshot
         for node in self.my_sensors():
             if node.alias not in snapshot.AboutNodeAliasList:

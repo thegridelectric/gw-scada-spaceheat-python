@@ -4,9 +4,11 @@ from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
-    GtShCliScadaResponse_Maker,
+from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
+    SnapshotSpaceheat_Maker,
 )
+
+
 from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
 
 from actors.cloud_base import CloudBase
@@ -29,7 +31,7 @@ class CloudEar(CloudBase):
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{self.scada_g_node_alias}/{GtShCliScadaResponse_Maker.type_alias}",
+                Topic=f"{self.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
