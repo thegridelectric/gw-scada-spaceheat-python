@@ -1,4 +1,4 @@
-import datetime
+import pendulum
 import enum
 import time
 from typing import NamedTuple, Optional, Any
@@ -55,7 +55,7 @@ class MessageSummary:
         topic: str,
         payload_object: Any = None,
         broker_flag=" ",
-        timestamp: Optional[datetime.datetime] = None,
+        timestamp: Optional[pendulum.datetime] = None,
     ) -> str:
         """
         Formats a single line summary of message receipt/publication.
@@ -66,14 +66,14 @@ class MessageSummary:
             topic: The destination or source topic.
             payload_object: The payload of the message.
             broker_flag: "*" for the "gw" broker.
-            timestamp: "datetime.datetime.now() by default.
+            timestamp: "pendulum.now("UTC") by default.
 
         Returns:
             Formatted string.
         """
         try:
             if timestamp is None:
-                timestamp = datetime.datetime.now()
+                timestamp = pendulum.now("UTC")
             direction = direction[:3].strip().upper()
             if direction in ["OUT", "SND"]:
                 arrow = "->"
