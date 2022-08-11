@@ -15,7 +15,9 @@ from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status import (
     GtShBooleanactuatorCmdStatus,
 )
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import GtShCliScadaResponse
+
+from schema.gt.snapshot_spaceheat.snapshot_spaceheat import SnapshotSpaceheat
+
 from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status import (
     GtShMultipurposeTelemetryStatus,
 )
@@ -379,11 +381,11 @@ def test_scada_status_content_dynamics():
             assert len(status.MultipurposeTelemetryList) == len(scada.my_telemetry_tuples())
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
-            snapshot = atn.latest_cli_response_payload
+            snapshot = atn.latest_snapshot_payload
             import pprint
             pprint.pprint(status.asdict())
             pprint.pprint(snapshot.asdict())
-            assert isinstance(snapshot, GtShCliScadaResponse)
+            assert isinstance(snapshot, SnapshotSpaceheat)
             assert set(snapshot.Snapshot.AboutNodeAliasList) == set(
                 [relay.node.alias, thermo.node.alias] + [
                     node.alias for node in meter.all_metered_nodes()
@@ -495,8 +497,8 @@ def test_scada_relay_dispatch():
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.node.alias
-            snapshot = atn.latest_cli_response_payload
-            assert isinstance(snapshot, GtShCliScadaResponse)
+            snapshot = atn.latest_snapshot_payload
+            assert isinstance(snapshot, SnapshotSpaceheat)
             assert snapshot.Snapshot.AboutNodeAliasList == [relay.node.alias]
             assert snapshot.Snapshot.ValueList == [1]
 

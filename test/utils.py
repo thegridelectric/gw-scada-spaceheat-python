@@ -36,8 +36,14 @@ from data_classes.components.temp_sensor_component import TempSensorCac, TempSen
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import GtDispatchBooleanLocal
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response import GtShCliScadaResponse
-from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
+from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
+    SnapshotSpaceheat,
+    SnapshotSpaceheat_Maker,
+)
+from schema.gt.gt_sh_status.gt_sh_status_maker import (
+    GtShStatus,
+    GtShStatus_Maker,
+)
 
 class Brokers(enum.Enum):
     invalid = "invalid"
@@ -152,17 +158,17 @@ class AbstractActor(ActorBase):
 
 
 class AtnRecorder(Atn):
-    cli_resp_received: int
+    snapshot_received: int
     status_received: int
-    latest_cli_response_payload: Optional[GtShCliScadaResponse]
+    latest_snapshot_payload: Optional[SnapshotSpaceheat]
     latest_status_payload: Optional[GtShStatus]
     num_received: int
     num_received_by_topic: Dict[str, int]
 
     def __init__(self, node: ShNode, settings: ScadaSettings):
-        self.cli_resp_received = 0
+        self.snapshot_received = 0
         self.status_received = 0
-        self.latest_cli_response_payload: Optional[GtShCliScadaResponse] = None
+        self.latest_snapshot_payload: Optional[SnapshotSpaceheat] = None
         self.latest_status_payload: Optional[GtShStatus] = None
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
@@ -174,9 +180,9 @@ class AtnRecorder(Atn):
         super().on_gw_mqtt_message(client, userdata, message)
 
     def on_gw_message(self, from_node: ShNode, payload):
-        if isinstance(payload, GtShCliScadaResponse):
-            self.cli_resp_received += 1
-            self.latest_cli_response_payload = payload
+        if isinstance(payload, SnapshotSpaceheat):
+            self.snapshot_received += 1
+            self.latest_snapshot_payload = payload
         if isinstance(payload, GtShStatus):
             self.status_received += 1
             self.latest_status_payload = payload
@@ -185,8 +191,8 @@ class AtnRecorder(Atn):
     def summary_str(self):
         """Summarize results in a string"""
         return (
-            f"AtnRecorder [{self.node.alias}] cli_resp_received: {self.cli_resp_received}  "
-            f"latest_cli_response_payload: {self.latest_cli_response_payload}\n"
+            f"AtnRecorder [{self.node.alias}] cli_resp_received: {self.snapshot_received}  "
+            f"latest_cli_response_payload: {self.latest_snapshot_payload}\n"
             f"status_received: {self.status_received}  "
             f"latest_status_payload: {self.latest_status_payload}"
         )
@@ -269,11 +275,11 @@ class ScadaRecorder(Scada):
 
     @property
     def status_topic(self) -> str:
-        return f"{self.scada_g_node_alias}/gt.sh.status.110"
+        return f"{self.scada_g_node_alias}/{GtShStatus_Maker.type_alias}"
 
     @property
     def snapshot_topic(self) -> str:
-        return f"{self.scada_g_node_alias}/gt.sh.cli.scada.response.110"
+        return f"{self.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}"
 
     @property
     def last_5_cron_s(self):

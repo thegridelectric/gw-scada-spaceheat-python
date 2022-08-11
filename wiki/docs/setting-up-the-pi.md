@@ -1,3 +1,10 @@
+# Setting up the Pi
+=======
+
+Use a Pi 4 B. 
+
+For the Maine project we used Pi 4Bs with 2 GB of ram  and 16 GB Micro Ultra sandisk 98 NB.s speed class 10 SD cards.
+
 The scada pi was choking on sudo apt-get update 
 (This must be accepted explicitly before updates for this repository can be applied. See apt-secure(8) manpage for details)
 
