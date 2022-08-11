@@ -5,9 +5,37 @@
 
 [tests]: https://github.com/thegridelectric/gw-scada-spaceheat-python/actions/workflows/ci.yaml
 [codecov]: https://app.codecov.io/gh/thegridelectric/gw-scada-spaceheat-python
+========
 
 
-## Step 1: Dev environment for macos or Pi
+This code is intended for running a heat pump thermal storage space heating system in a house, and doing this _transactively_. That means the heating system is capable of dynamically responding to local electric grid conditions and buying energy at the lowest cost times, while keeping the house warm. We believe this repo may be instrumental in effectively and efficiently reaching a low-carbon future. For an architectural overview of the code, and why it has something to do with a low-carbon future, please go [here](wiki/docs/architecture-overview.md).
+
+This code is part of a larger framework. In particular it assumes there is a cloud-based actor which it refers to as the [AtomicTNode](wiki/docs/atomic-t-node.md) (short for Atomic Transactive Node) that is calling the shots on its control decisions most of the time. In addition, the code is structured in an
+actor-based way, with a  collection of actors each responsible for an important but limited set
+of functionality communicating to each other via messages. For a more specific description of both how these internal actors work with each other and how 
+this repo fits into the larger transactive energy framework please go [here](wiki/docs/core-protocol-sequences.md); this page describes typical sequences of messages between relevant actors in the system.
+
+ We are indebted to Efficiency Maine, who spearheaded and funded the [initial pilot](wiki/docs/maine-heat-pilot.md) using this code. As per the requirements of the initial pilot, the code is intended to:
+  1) run on a raspberry Pi 4; and 
+  2) to be able to use a variety of off-the-shelf actuating and sensing devices.
+
+For information on setting up an SD card that will run this code on a Pi 4 with the correct
+configuration and attached devices, please [go here](wiki/docs/setting-up-the-pi.md)
+## Local Demo setup
+
+Follow the directions below for creating a dev environment (assumes mac or Pi).
+
+In one terminal window:
+
+```
+cd spaceheat
+python run_local.py
+```
+
+WE NEED A BETTER LOCAL DEV DEMO
+
+
+## Creating a Dev environment for macos or Pi
 
 
  - Use python 3.8.6
@@ -60,39 +88,5 @@ in Jessica's garage. Otherwise it expects a _simulated_ heating system.
 
 `python run_atn.py` will start up an `AtomicTNode` meant to run in the cloud (this will not 
 remain in this repo).
-
-# Description of what this does
-
-This code is intended to run on a raspberry Pi 4 attached to a number of actuating and sensing devices. It is for running a heat pump thermal storage heating system in a house, and doing this _transactively_. That means the heating system is capable of dynamically responding to local electric grid conditions and buying energy at the lowest cost times, while keeping the house warm. Most of the time, the decisions for when to charge the heating system (and how to participate in electricity markets) are made by an agent outside of the home's LAN - this agent is called the AtomicTransactive Node or AtomicTNode for short. 
-
-The SCADA It does 5 main things:
-
-1) It keeps track of the state of a DispatchContract that it can hold with its AtomicTNode.
-
-2) When the DispatchContract exists and is in RemoteControl mode, it sends up sensing data to its AtomicTNode:
-    a) compressed state data (mostly temperature) sent up every 5 minutes
-    b) asynchronous power reporting on change
-    c) debugging information etc if sensors are broken
-
-3) When the DispatchContract exists and is active, it responds to actuating commands from the AtomicTNode. This will primarily be for the main heating elements (heat pump, boost elements) 
-but can also be for other devices that can be actuated, like circulator pumps and flow valves.
-
-4) When the DispatchContract either does not exist or it exists but is in LocalControl mode, it 
-runs the heating system.
-
-5) It keeps a pared-down version of its compressed synchronous data when it doesn't have a DispatchContract running in RemoteControl, and sends that data up when the RemoteControl begins 
-again. There are different standards for how and what to keep for 1 day, 7 days and 28 days.
-
-The code needs to be prepared for a wide range of heating system configurations and sensor/actuator
-choices. The thermal store may be water-based, or a phase change material. We may or may not be able
-to control the COP/output temp tradeoff in the heat pump. We may end up adding new actuating devices
-as we evaluate the heating system performance.
-
-The code will be running on a handful of houses in Maine for the winter of 2022-2023.
-
-
-Please go to gw_spaceheat/README.md for application readme.
-
-Other files and subfolders are related to code derivation using https://effortlessapi.com/ effortlessapi tools.
 
 
