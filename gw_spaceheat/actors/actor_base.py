@@ -150,7 +150,6 @@ class ActorBase(ABC):
             input_data = json.load(read_file)
         my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
         return my_scada_as_dict["GNodeId"]
-    
 
     def __init__(self, node: ShNode, settings: ScadaSettings):
         self._main_loop_running = False
