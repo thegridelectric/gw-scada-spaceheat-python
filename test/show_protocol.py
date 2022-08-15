@@ -156,7 +156,7 @@ class AllFragments(ProtocolFragment):
         delimit("REQUESTING STATUS")
         actors.atn.status()
         wait_for(
-            lambda: actors.atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {actors.atn.summary_str()}"
+            lambda: actors.atn.snapshot_received > 0, 10, f"cli_resp_received == 0 {actors.atn.summary_str()}"
         )
 
         wait_for(

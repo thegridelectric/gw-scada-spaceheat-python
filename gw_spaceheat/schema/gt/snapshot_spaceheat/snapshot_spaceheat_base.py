@@ -1,15 +1,15 @@
-"""Base for gt.sh.cli.scada.response.110"""
+"""Base for snapshot.spaceheat.100"""
 import json
 from typing import List, NamedTuple
 import schema.property_format as property_format
-from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import GtShStatusSnapshot
+from schema.gt.telemetry_snapshot_spaceheat.telemetry_snapshot_spaceheat_maker import TelemetrySnapshotSpaceheat
 
 
-class GtShCliScadaResponseBase(NamedTuple):
+class SnapshotSpaceheatBase(NamedTuple):
     FromGNodeAlias: str  #
-    FromGNodeId: str  #
-    Snapshot: GtShStatusSnapshot  #
-    TypeAlias: str = "gt.sh.cli.scada.response.110"
+    FromGNodeInstanceId: str  #
+    Snapshot: TelemetrySnapshotSpaceheat  #
+    TypeAlias: str = "snapshot.spaceheat.100"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -30,22 +30,22 @@ class GtShCliScadaResponseBase(NamedTuple):
                 f"FromGNodeAlias {self.FromGNodeAlias}"
                 " must have format LrdAliasFormat"
             )
-        if not isinstance(self.FromGNodeId, str):
+        if not isinstance(self.FromGNodeInstanceId, str):
             errors.append(
-                f"FromGNodeId {self.FromGNodeId} must have type str."
+                f"FromGNodeInstanceId {self.FromGNodeInstanceId} must have type str."
             )
-        if not property_format.is_uuid_canonical_textual(self.FromGNodeId):
+        if not property_format.is_uuid_canonical_textual(self.FromGNodeInstanceId):
             errors.append(
-                f"FromGNodeId {self.FromGNodeId}"
+                f"FromGNodeInstanceId {self.FromGNodeInstanceId}"
                 " must have format UuidCanonicalTextual"
             )
-        if not isinstance(self.Snapshot, GtShStatusSnapshot):
+        if not isinstance(self.Snapshot, TelemetrySnapshotSpaceheat):
             errors.append(
-                f"Snapshot {self.Snapshot} must have typeGtShStatusSnapshot."
+                f"Snapshot {self.Snapshot} must have typeTelemetrySnapshotSpaceheat."
             )
-        if self.TypeAlias != "gt.sh.cli.scada.response.110":
+        if self.TypeAlias != "snapshot.spaceheat.100":
             errors.append(
-                f"Type requires TypeAlias of gt.sh.cli.scada.response.110, not {self.TypeAlias}."
+                f"Type requires TypeAlias of snapshot.spaceheat.100, not {self.TypeAlias}."
             )
 
         return errors

@@ -69,7 +69,7 @@ def test_message_exchange(tmp_path, monkeypatch):
         wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
         atn.status()
         wait_for(
-            lambda: atn.cli_resp_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}"
+            lambda: atn.snapshot_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}"
         )
 
         wait_for(

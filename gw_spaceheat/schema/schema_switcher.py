@@ -1,4 +1,5 @@
 from typing import Dict, List
+from .gt.telemetry_snapshot_spaceheat.telemetry_snapshot_spaceheat_maker import TelemetrySnapshotSpaceheat_Maker
 
 from schema.gs.gs_dispatch_maker import GsDispatch_Maker
 from schema.gs.gs_pwr_maker import GsPwr_Maker
@@ -10,14 +11,16 @@ from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker
     GtDriverBooleanactuatorCmd_Maker,
 )
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
-    GtShCliScadaResponse_Maker,
+from schema.gt.telemetry_snapshot_spaceheat.telemetry_snapshot_spaceheat_maker import (
+    TelemetrySnapshotSpaceheat_Maker
 )
+
 
 from schema.gt.gt_sh_status.gt_sh_status_maker import (
     GtShStatus_Maker,
 )
-from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import GtShStatusSnapshot_Maker
+
+from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import SnapshotSpaceheat_Maker
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor_Maker,
 )
@@ -31,9 +34,9 @@ schema_makers: List[GtTelemetry_Maker] = [
     GtDispatchBooleanLocal_Maker,
     GtDriverBooleanactuatorCmd_Maker,
     GtShCliAtnCmd_Maker,
-    GtShCliScadaResponse_Maker,
+    TelemetrySnapshotSpaceheat_Maker,
     GtShStatus_Maker,
-    GtShStatusSnapshot_Maker,
+    SnapshotSpaceheat_Maker,
     GtShTelemetryFromMultipurposeSensor_Maker,
     GtTelemetry_Maker,
 ]
