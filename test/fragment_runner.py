@@ -13,7 +13,13 @@ from config import ScadaSettings
 from data_classes.sh_node import ShNode
 
 try:
-    from test.utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, wait_for, await_for
+    from test.utils import (
+        ScadaRecorder,
+        AtnRecorder,
+        HomeAloneRecorder,
+        wait_for,
+        await_for,
+    )
 except ImportError:
     from utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, wait_for, await_for
 
@@ -54,12 +60,18 @@ class Actors:
     def __init__(self, settings: ScadaSettings):
         self.scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
         self.atn = AtnRecorder(node=ShNode.by_alias["a"], settings=settings)
-        self.home_alone = HomeAloneRecorder(node=ShNode.by_alias["a.home"], settings=settings)
+        self.home_alone = HomeAloneRecorder(
+            node=ShNode.by_alias["a.home"], settings=settings
+        )
         self.relay = BooleanActuator(ShNode.by_alias["a.elt1.relay"], settings=settings)
         self.meter = PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
-        self.thermo = SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], settings=settings)
+        self.thermo = SimpleSensor(
+            node=ShNode.by_alias["a.tank.temp0"], settings=settings
+        )
         self.scada2 = Scada2(ShNode.by_alias["a.s"], settings, actors=dict())
-        self.relay2 = actors2.BooleanActuator(node=ShNode.by_alias["a.elt1.relay"], services=self.scada2)
+        self.relay2 = actors2.BooleanActuator(
+            node=ShNode.by_alias["a.elt1.relay"], services=self.scada2
+        )
 
 
 class FragmentRunner:
@@ -71,11 +83,11 @@ class FragmentRunner:
     do_nothing_time: float
 
     def __init__(
-            self,
-            settings: ScadaSettings,
-            wait_at_least: float = 0.,
-            do_nothing_time: float = 0.,
-            actors: Optional[Actors] = None
+        self,
+        settings: ScadaSettings,
+        wait_at_least: float = 0.0,
+        do_nothing_time: float = 0.0,
+        actors: Optional[Actors] = None,
     ):
         self.settings = settings
         self.wait_at_least = wait_at_least
@@ -209,10 +221,12 @@ class FragmentRunner:
             #       This obscures scary-but-harmless-(???) "Task was destroyed but it is pending!" errors
             #       apparently due to cancelling tasks without the loop being able to clean them up.
             #       What is the right way of dealing with this?
-            await asyncio.sleep(.1)
+            await asyncio.sleep(0.1)
 
     @classmethod
-    def run_fragment(cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]):
+    def run_fragment(
+        cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]
+    ):
         settings = ScadaSettings(log_message_summary=True)
         load_house.load_all(settings.world_root_alias)
         runner = FragmentRunner(settings)
@@ -220,7 +234,9 @@ class FragmentRunner:
         runner.run()
 
     @classmethod
-    async def async_run_fragment(cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]):
+    async def async_run_fragment(
+        cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]
+    ):
         settings = ScadaSettings(log_message_summary=True)
         load_house.load_all(settings.world_root_alias)
         runner = FragmentRunner(settings)

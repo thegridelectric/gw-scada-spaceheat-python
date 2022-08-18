@@ -34,10 +34,15 @@ from data_classes.components.resistive_heater_component import (
     ResistiveHeaterCac,
     ResistiveHeaterComponent,
 )
-from data_classes.components.temp_sensor_component import TempSensorCac, TempSensorComponent
+from data_classes.components.temp_sensor_component import (
+    TempSensorCac,
+    TempSensorComponent,
+)
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch import GsDispatch
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import GtDispatchBooleanLocal
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
+    GtDispatchBooleanLocal,
+)
 from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
     SnapshotSpaceheat,
     SnapshotSpaceheat_Maker,
@@ -46,6 +51,7 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import (
     GtShStatus,
     GtShStatus_Maker,
 )
+
 
 class Brokers(enum.Enum):
     invalid = "invalid"
@@ -132,7 +138,9 @@ async def await_for(
     """
     now = start = time.time()
     until = now + timeout
-    err_format = "ERROR. [{tag}] wait_for() timed out after {seconds} seconds, wait function {f}"
+    err_format = (
+        "ERROR. [{tag}] wait_for() timed out after {seconds} seconds, wait function {f}"
+    )
     f_is_async = inspect.iscoroutinefunction(f)
     result = False
     if now >= until:
@@ -154,9 +162,12 @@ async def await_for(
         return True
     else:
         if raise_timeout:
-            raise ValueError(err_format.format(tag=tag, seconds=time.time() - start, f=f))
+            raise ValueError(
+                err_format.format(tag=tag, seconds=time.time() - start, f=f)
+            )
         else:
             return False
+
 
 def flush_components():
     BooleanActuatorComponent.by_id = {}
@@ -340,7 +351,9 @@ class ScadaRecorder(Scada):
     def _record_comm_event(self, broker: Brokers, event: CommEvents, *params: Any):
         self.comm_event_counts[event] += 1
         self.comm_events.append(
-            CommEvent(datetime.datetime.now(), broker=broker, event=event, params=list(params))
+            CommEvent(
+                datetime.datetime.now(), broker=broker, event=event, params=list(params)
+            )
         )
 
     @classmethod
@@ -378,7 +391,9 @@ class ScadaRecorder(Scada):
         self._record_comm_event(Brokers.gw, CommEvents.publish, userdata, mid)
 
     def on_gw_subscribe(self, _, userdata, mid, granted_qos):
-        self._record_comm_event(Brokers.gw, CommEvents.subscribe, userdata, mid, granted_qos)
+        self._record_comm_event(
+            Brokers.gw, CommEvents.subscribe, userdata, mid, granted_qos
+        )
 
     def on_gw_unsubscribe(self, _, userdata, mid):
         self._record_comm_event(Brokers.gw, CommEvents.unsubscribe, userdata, mid)

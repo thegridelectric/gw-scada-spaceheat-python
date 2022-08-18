@@ -14,6 +14,7 @@ class AsyncQueueWriter:
 
     It is assumed the asynchronous reader has access to the asyncio Queue "await get()" from directly from it.
     """
+
     _loop: asyncio.AbstractEventLoop
     _async_queue: asyncio.Queue
 
@@ -31,6 +32,7 @@ class SyncAsyncQueueWriter:
 
     It is assumed the asynchronous reader has access to the asyncio Queue "await get()" from directly from it.
     """
+
     _loop: asyncio.AbstractEventLoop
     _async_queue: asyncio.Queue
     sync_queue: Optional[queue.Queue]
@@ -39,7 +41,7 @@ class SyncAsyncQueueWriter:
         self,
         loop: asyncio.AbstractEventLoop,
         async_queue: asyncio.Queue,
-        sync_queue: Optional[queue.Queue] = None
+        sync_queue: Optional[queue.Queue] = None,
     ):
         self._loop = loop
         self._async_queue = async_queue
@@ -53,11 +55,11 @@ class SyncAsyncQueueWriter:
 
     def put_to_async_queue(self, item: Any):
         """Write to asynchronous queue in a threadsafe way."""
-        self._loop.call_soon_threadsafe(
-            self._async_queue.put_nowait, item
-        )
+        self._loop.call_soon_threadsafe(self._async_queue.put_nowait, item)
 
-    def get_from_sync_queue(self, block: bool = True, timeout: Optional[float] = None) -> Any:
+    def get_from_sync_queue(
+        self, block: bool = True, timeout: Optional[float] = None
+    ) -> Any:
         """Read from synchronous queue in a threadsafe way."""
         return self.sync_queue.get(block=block, timeout=timeout)
 
@@ -66,7 +68,8 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
     """A thread wrapper providing an async-sync communication channel and simple "iterate, sleep, read message"
     semantics.
     """
-    SLEEP_STEP_SECONDS = .01
+
+    SLEEP_STEP_SECONDS = 0.01
 
     _channel: SyncAsyncQueueWriter
     running: Optional[bool]
@@ -134,7 +137,7 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
     async def async_join(self, timeout: float = None) -> None:
         # TODO: Giant hack. Alternate implementations below caused
         #       hangups or (probably) harmless but ugly exceptions
-        await asyncio.sleep(.1)
+        await asyncio.sleep(0.1)
 
         # if timeout is not None:
         #     end = time.time() + timeout

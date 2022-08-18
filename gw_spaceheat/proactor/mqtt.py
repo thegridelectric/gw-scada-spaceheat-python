@@ -17,7 +17,8 @@ from proactor.message import (
     MQTTReceiptMessage,
     MQTTConnectMessage,
     MQTTConnectFailMessage,
-    MQTTDisconnectMessage, MQTTSubackMessage,
+    MQTTDisconnectMessage,
+    MQTTSubackMessage,
 )
 from proactor.sync_thread import AsyncQueueWriter
 
@@ -78,7 +79,9 @@ class MQTTClientWrapper:
             topics = list(self._subscriptions.keys())
             for topic in topics:
                 self._pending_subscriptions.add(topic)
-            subscribe_result = self._client.subscribe(list(self._subscriptions.items()), 0)
+            subscribe_result = self._client.subscribe(
+                list(self._subscriptions.items()), 0
+            )
             if subscribe_result[0] == MQTT_ERR_SUCCESS:
                 self._pending_subacks[subscribe_result[1]] = topics
         else:
@@ -99,7 +102,9 @@ class MQTTClientWrapper:
         return len(self._pending_subscriptions)
 
     def subscribed(self) -> bool:
-        return self.connected() and (not self.num_subscriptions() or not self.num_pending_subscriptions())
+        return self.connected() and (
+            not self.num_subscriptions() or not self.num_pending_subscriptions()
+        )
 
     def on_message(self, _, userdata, message):
         self._receive_queue.put(
@@ -121,7 +126,7 @@ class MQTTClientWrapper:
                     userdata=userdata,
                     mid=mid,
                     granted_qos=granted_qos,
-                    num_pending_subscriptions=len(self._pending_subscriptions)
+                    num_pending_subscriptions=len(self._pending_subscriptions),
                 )
             )
 

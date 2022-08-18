@@ -44,7 +44,7 @@ class Communicator(CommunicatorInterface, ABC):
 
 
 class Runnable(ABC):
-    """Pure interface to an object which is expected to support starting, stopping and joining. """
+    """Pure interface to an object which is expected to support starting, stopping and joining."""
 
     @abstractmethod
     def start(self):

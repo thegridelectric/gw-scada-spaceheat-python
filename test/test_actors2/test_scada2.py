@@ -36,12 +36,24 @@ def test_scada_small():
     relay_node = ShNode.by_alias["a.elt1.relay"]
     temp_node = ShNode.by_alias["a.tank.temp0"]
     assert list(scada._data.recent_ba_cmds.keys()) == Nodes.my_boolean_actuators()
-    assert list(scada._data.recent_ba_cmd_times_unix_ms.keys()) == Nodes.my_boolean_actuators()
+    assert (
+        list(scada._data.recent_ba_cmd_times_unix_ms.keys())
+        == Nodes.my_boolean_actuators()
+    )
     assert list(scada._data.latest_simple_value.keys()) == Nodes.my_simple_sensors()
     assert list(scada._data.recent_simple_values.keys()) == Nodes.my_simple_sensors()
-    assert list(scada._data.recent_simple_read_times_unix_ms.keys()) == Nodes.my_simple_sensors()
-    assert list(scada._data.latest_value_from_multipurpose_sensor.keys()) == Nodes.my_telemetry_tuples()
-    assert list(scada._data.recent_values_from_multipurpose_sensor.keys()) == Nodes.my_telemetry_tuples()
+    assert (
+        list(scada._data.recent_simple_read_times_unix_ms.keys())
+        == Nodes.my_simple_sensors()
+    )
+    assert (
+        list(scada._data.latest_value_from_multipurpose_sensor.keys())
+        == Nodes.my_telemetry_tuples()
+    )
+    assert (
+        list(scada._data.recent_values_from_multipurpose_sensor.keys())
+        == Nodes.my_telemetry_tuples()
+    )
     assert (
         list(scada._data.recent_read_times_unix_ms_from_multipurpose_sensor.keys())
         == Nodes.my_telemetry_tuples()
@@ -65,10 +77,14 @@ def test_scada_small():
         TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
     scada._data.recent_values_from_multipurpose_sensor[tt] = [72000]
-    scada._data.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [int(time.time() * 1000)]
+    scada._data.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [
+        int(time.time() * 1000)
+    ]
     s = scada._data.make_multipurpose_telemetry_status(tt=tt)
     assert isinstance(s, GtShMultipurposeTelemetryStatus)
-    s = scada._data.make_multipurpose_telemetry_status(tt=typing.cast(TelemetryTuple, "garbage"))
+    s = scada._data.make_multipurpose_telemetry_status(
+        tt=typing.cast(TelemetryTuple, "garbage")
+    )
     assert s is None
 
     scada._data.recent_ba_cmds[relay_node] = []
@@ -120,7 +136,6 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     debug_logs_path.mkdir(parents=True, exist_ok=True)
 
     class Fragment(ProtocolFragment):
-
         def __init__(self, runner_: FragmentRunner):
             runner_.actors.scada2._scada_atn_fast_dispatch_contract_is_alive_stub = True
             runner_.actors.scada2._last_status_second = int(time.time())
@@ -176,9 +191,11 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             await await_for(
                 lambda: atn.latest_snapshot_payload is not None,
                 3,
-                "atn did not receive first status"
+                "atn did not receive first status",
             )
-            snapshot1: SnapshotSpaceheat = typing.cast(SnapshotSpaceheat, atn.latest_snapshot_payload)
+            snapshot1: SnapshotSpaceheat = typing.cast(
+                SnapshotSpaceheat, atn.latest_snapshot_payload
+            )
             assert isinstance(snapshot1, SnapshotSpaceheat)
             if snapshot1.Snapshot.AboutNodeAliasList:
                 relay_idx = snapshot1.Snapshot.AboutNodeAliasList.index(relay_alias)
@@ -194,13 +211,15 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             await await_for(
                 lambda: scada2._data.latest_simple_value[relay_node] == 1,
                 3,
-                "scada did not receive update from relay"
+                "scada did not receive update from relay",
             )
             status = scada2._data.make_status(int(time.time()))
             assert len(status.SimpleTelemetryList) == 1
             assert status.SimpleTelemetryList[0].ValueList == [0, 1]
             assert status.SimpleTelemetryList[0].ShNodeAlias == relay2.alias
-            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
+            assert (
+                status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
+            )
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay2.alias
@@ -208,13 +227,16 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             # Verify Atn gets updated info for relay
             atn.status()
             await await_for(
-                lambda: atn.latest_snapshot_payload is not None and id(atn.latest_snapshot_payload) != id(snapshot1),
+                lambda: atn.latest_snapshot_payload is not None
+                and id(atn.latest_snapshot_payload) != id(snapshot1),
                 3,
-                "atn did not receive status"
+                "atn did not receive status",
             )
             snapshot2 = atn.latest_snapshot_payload
             assert isinstance(snapshot2, SnapshotSpaceheat)
-            assert relay_alias in snapshot2.Snapshot.AboutNodeAliasList, f"ERROR relay [{relay_alias}] not in {snapshot2.Snapshot.AboutNodeAliasList}"
+            assert (
+                relay_alias in snapshot2.Snapshot.AboutNodeAliasList
+            ), f"ERROR relay [{relay_alias}] not in {snapshot2.Snapshot.AboutNodeAliasList}"
             relay_idx = snapshot2.Snapshot.AboutNodeAliasList.index(relay_alias)
             relay_value = snapshot2.Snapshot.ValueList[relay_idx]
             assert relay_value == 1

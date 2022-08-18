@@ -25,7 +25,7 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
 
     _telemetry_value: Optional[int] = None
     _telemetry_destination: str
-    _last_sent_s: float = 0.
+    _last_sent_s: float = 0.0
     _config: NodeConfig
 
     def __init__(
@@ -34,7 +34,7 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
         config: NodeConfig,
         telemetry_destination: str,
         channel: SyncAsyncQueueWriter,
-        responsive_sleep_step_seconds=.01,
+        responsive_sleep_step_seconds=0.01,
         daemon: Optional[bool] = True,
     ):
         super().__init__(
@@ -54,7 +54,9 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
             self.report_telemetry()
         now_s = time.time()
         if (now_s - loop_start_s) < self.MAIN_LOOP_MIN_TIME_S:
-            self._iterate_sleep_seconds = self.MAIN_LOOP_MIN_TIME_S - (now_s - loop_start_s)
+            self._iterate_sleep_seconds = self.MAIN_LOOP_MIN_TIME_S - (
+                now_s - loop_start_s
+            )
         else:
             self._iterate_sleep_seconds = None
 
@@ -124,14 +126,16 @@ class SimpleSensor(Actor):
                 channel=SyncAsyncQueueWriter(
                     loop=loop if loop is not None else asyncio.get_event_loop(),
                     async_queue=services.async_receive_queue,
-                    sync_queue=queue.Queue() if driver_receives_messages else None
+                    sync_queue=queue.Queue() if driver_receives_messages else None,
                 ),
                 responsive_sleep_step_seconds=responsive_sleep_step_seconds,
                 daemon=daemon,
             )
 
     async def process_message(self, message: Message):
-        raise ValueError(f"Error. SimpleSensor does not process any messages. Received {message.header}")
+        raise ValueError(
+            f"Error. SimpleSensor does not process any messages. Received {message.header}"
+        )
 
     def send_driver_message(self, message: Any) -> None:
         self._driver_thread.put_to_sync_queue(message)

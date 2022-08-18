@@ -10,7 +10,9 @@ from actors2.scada_interface import ScadaInterface
 from data_classes.sh_node import ShNode
 from proactor.message import Message
 from proactor.sync_thread import SyncAsyncInteractionThread
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import GtDispatchBooleanLocal
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
+    GtDispatchBooleanLocal,
+)
 
 
 class DispatchRelay(BaseModel):
@@ -18,7 +20,6 @@ class DispatchRelay(BaseModel):
 
 
 class BooleanActuatorDriverThread(SimpleSensorDriverThread):
-
     def report_update_now(self, previous_value: Any) -> bool:
         return previous_value != self._telemetry_value
 
@@ -39,7 +40,6 @@ class BooleanActuatorDriverThread(SimpleSensorDriverThread):
 
 
 class BooleanActuator(SimpleSensor):
-
     def __init__(
         self,
         node: ShNode,
@@ -59,15 +59,21 @@ class BooleanActuator(SimpleSensor):
         )
 
     def _process_dispatch_message(self, message: Message[GtDispatchBooleanLocal]):
-        self.services.send(GtDriverBooleanactuatorCmdResponse(
-            src=self.name,
-            dst=self.services.name,
-            relay_state=message.payload.RelayState
-        ))
-        self.send_driver_message(DispatchRelay(relay_state=bool(message.payload.RelayState)))
+        self.services.send(
+            GtDriverBooleanactuatorCmdResponse(
+                src=self.name,
+                dst=self.services.name,
+                relay_state=message.payload.RelayState,
+            )
+        )
+        self.send_driver_message(
+            DispatchRelay(relay_state=bool(message.payload.RelayState))
+        )
 
     async def process_message(self, message: Message):
         if isinstance(message.payload, GtDispatchBooleanLocal):
             self._process_dispatch_message(message)
         else:
-            ValueError(f"Error. BooleanActuator {self.name} receieved unexpected message: {message.header}")
+            ValueError(
+                f"Error. BooleanActuator {self.name} receieved unexpected message: {message.header}"
+            )

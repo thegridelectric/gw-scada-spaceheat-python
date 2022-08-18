@@ -12,7 +12,11 @@ from paho.mqtt.client import MQTTMessageInfo
 from actors.scada import ScadaCmdDiagnostic
 from actors.utils import QOS
 from actors2.actor_interface import ActorInterface
-from actors2.message import GtDispatchBooleanLocalMessage, ScadaDBGPing, ShowSubscriptions
+from actors2.message import (
+    GtDispatchBooleanLocalMessage,
+    ScadaDBGPing,
+    ShowSubscriptions,
+)
 from actors2.nodes import Nodes
 from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
@@ -24,13 +28,20 @@ from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor, MQTTCodec
 from schema.gs.gs_pwr import GsPwr
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean import GtDispatchBoolean
-from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import GtDispatchBooleanLocal
-from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd import GtDriverBooleanactuatorCmd
+from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
+    GtDispatchBoolean_Maker,
+)
+from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
+    GtDispatchBooleanLocal,
+)
+from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd import (
+    GtDriverBooleanactuatorCmd,
+)
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd import GtShCliAtnCmd
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor import \
-    GtShTelemetryFromMultipurposeSensor
+from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor import (
+    GtShTelemetryFromMultipurposeSensor,
+)
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.schema_switcher import TypeMakerByAliasDict
 
@@ -51,7 +62,9 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
             )
         self.validate_source_alias(from_alias)
-        return TypeMakerByAliasDict[type_alias].type_to_tuple(receipt_payload.message.payload.decode(self.ENCODING))
+        return TypeMakerByAliasDict[type_alias].type_to_tuple(
+            receipt_payload.message.payload.decode(self.ENCODING)
+        )
 
     @abstractmethod
     def validate_source_alias(self, source_alias: str):
@@ -59,17 +72,17 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
 
 
 class GridworksMQTTCodec(ScadaMQTTCodec):
-
     def __init__(self, atn_g_node_alias: str):
         self._atn_g_node_alias = atn_g_node_alias
 
     def validate_source_alias(self, source_alias: str):
         if source_alias != self._atn_g_node_alias:
-            raise Exception(f"alias {source_alias} not my AtomicTNode ({self._atn_g_node_alias})!")
+            raise Exception(
+                f"alias {source_alias} not my AtomicTNode ({self._atn_g_node_alias})!"
+            )
 
 
 class LocalMQTTCodec(ScadaMQTTCodec):
-
     def validate_source_alias(self, source_alias: str):
         if source_alias not in ShNode.by_alias.keys():
             raise Exception(f"alias {source_alias} not in ShNode.by_alias keys!")
@@ -90,21 +103,37 @@ class Scada2(ScadaInterface, Proactor):
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
 
     # TODO: Cleanup loop policy
-    def __init__(self, node: ShNode, settings: ScadaSettings, actors: Optional[Dict[str, ActorInterface]] = None,
-                 loop: Optional[AbstractEventLoop] = None):
+    def __init__(
+        self,
+        node: ShNode,
+        settings: ScadaSettings,
+        actors: Optional[Dict[str, ActorInterface]] = None,
+        loop: Optional[AbstractEventLoop] = None,
+    ):
         super().__init__(name=node.alias, loop=loop)
         self._node = node
         self._settings = settings
         self._nodes = Nodes(settings)
         self._data = ScadaData(self._nodes)
-        self._add_mqtt_client(Scada2.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec())
-        self._add_mqtt_client(Scada2.GRIDWORKS_MQTT, self.settings.gridworks_mqtt,
-                              GridworksMQTTCodec(self._nodes.atn_g_node_alias))
+        self._add_mqtt_client(
+            Scada2.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec()
+        )
+        self._add_mqtt_client(
+            Scada2.GRIDWORKS_MQTT,
+            self.settings.gridworks_mqtt,
+            GridworksMQTTCodec(self._nodes.atn_g_node_alias),
+        )
         # TODO: take care of subscriptions better. They should be registered here and only subscribed on connect.
         self._mqtt_clients.subscribe(
-            Scada2.GRIDWORKS_MQTT, f"{self._nodes.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}", QOS.AtMostOnce)
+            Scada2.GRIDWORKS_MQTT,
+            f"{self._nodes.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}",
+            QOS.AtMostOnce,
+        )
         self._mqtt_clients.subscribe(
-            Scada2.GRIDWORKS_MQTT, f"{self._nodes.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}", QOS.AtMostOnce)
+            Scada2.GRIDWORKS_MQTT,
+            f"{self._nodes.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}",
+            QOS.AtMostOnce,
+        )
         # TODO: clean this up
         self.print_subsriptions("construction")
         now = int(time.time())
@@ -116,7 +145,9 @@ class Scada2(ScadaInterface, Proactor):
             self._add_communicator(actor)
 
     def _start_derived_tasks(self):
-        self._tasks.append(asyncio.create_task(self.update_status(), name="update_status"))
+        self._tasks.append(
+            asyncio.create_task(self.update_status(), name="update_status")
+        )
 
     async def update_status(self):
         while not self._stop_requested:
@@ -161,7 +192,9 @@ class Scada2(ScadaInterface, Proactor):
     def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
         return f"{from_alias}/{payload.TypeAlias}"
 
-    def _publish_to_gridworks(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
+    def _publish_to_gridworks(
+        self, payload, qos: QOS = QOS.AtMostOnce
+    ) -> MQTTMessageInfo:
         return self._encode_and_publish(
             Scada2.GRIDWORKS_MQTT,
             topic=self.gridworks_mqtt_topic(payload),
@@ -178,7 +211,9 @@ class Scada2(ScadaInterface, Proactor):
         )
 
     async def _derived_process_message(self, message: Message):
-        print(f"++Scada2._derived_process_message {message.header.src}/{message.header.message_type}")
+        print(
+            f"++Scada2._derived_process_message {message.header.src}/{message.header.message_type}"
+        )
         path_dbg = 0
         from_node = ShNode.by_alias.get(message.header.src, None)
         if isinstance(message.payload, GsPwr):
@@ -196,7 +231,9 @@ class Scada2(ScadaInterface, Proactor):
                 path_dbg |= 0x00000008
                 await self.local_boolean_dispatch_received(message.payload)
             else:
-                raise Exception("message.header.src must be a.home for GsDispatchBooleanLocal message")
+                raise Exception(
+                    "message.header.src must be a.home for GsDispatchBooleanLocal message"
+                )
         elif isinstance(message.payload, GtTelemetry):
             path_dbg |= 0x00000010
             if from_node in Nodes.my_simple_sensors():
@@ -208,12 +245,16 @@ class Scada2(ScadaInterface, Proactor):
             path_dbg |= 0x00000040
             if from_node in Nodes.my_multipurpose_sensors():
                 path_dbg |= 0x00000080
-                self.gt_sh_telemetry_from_multipurpose_sensor_received(from_node, message.payload)
+                self.gt_sh_telemetry_from_multipurpose_sensor_received(
+                    from_node, message.payload
+                )
         elif isinstance(message.payload, GtDriverBooleanactuatorCmd):
             path_dbg |= 0x00000100
             if from_node in Nodes.my_boolean_actuators():
                 path_dbg |= 0x00000200
-                self.gt_driver_booleanactuator_cmd_record_received(from_node, message.payload)
+                self.gt_driver_booleanactuator_cmd_record_received(
+                    from_node, message.payload
+                )
         # TODO: Replace these with generalized debug message
         elif isinstance(message.payload, ScadaDBGPing):
             path_dbg |= 0x00000400
@@ -237,7 +278,9 @@ class Scada2(ScadaInterface, Proactor):
             for subscription in self._mqtt_clients._clients[client]._subscriptions:
                 print(f"\t\t[{subscription}]")
 
-    async def _derived_process_mqtt_message(self, message: Message[MQTTReceiptPayload], decoded: Any):
+    async def _derived_process_mqtt_message(
+        self, message: Message[MQTTReceiptPayload], decoded: Any
+    ):
         print(f"++Scada2._derived_process_mqtt_message {message.payload.message.topic}")
         path_dbg = 0
         if message.payload.client_name != self.GRIDWORKS_MQTT:
@@ -265,25 +308,29 @@ class Scada2(ScadaInterface, Proactor):
         from_node = ShNode.by_alias[message.header.src]
         if from_node in self._nodes.my_simple_sensors():
             self._data.recent_simple_values[from_node].append(decoded.Value)
-            self._data.recent_simple_read_times_unix_ms[from_node].append(decoded.ScadaReadTimeUnixMs)
+            self._data.recent_simple_read_times_unix_ms[from_node].append(
+                decoded.ScadaReadTimeUnixMs
+            )
             self._data.latest_simple_value[from_node] = decoded.Value
 
-    async def _boolean_dispatch_received(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
+    async def _boolean_dispatch_received(
+        self, payload: GtDispatchBoolean
+    ) -> ScadaCmdDiagnostic:
         """This is a dispatch message received from the atn. It is
         honored whenever DispatchContract with the Atn is live."""
         if not self.scada_atn_fast_dispatch_contract_is_alive:
             return ScadaCmdDiagnostic.IGNORING_ATN_DISPATCH
         return await self._process_boolean_dispatch(payload)
 
-    async def _process_boolean_dispatch(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
+    async def _process_boolean_dispatch(
+        self, payload: GtDispatchBoolean
+    ) -> ScadaCmdDiagnostic:
         ba = ShNode.by_alias[payload.AboutNodeAlias]
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         await self._communicators[ba.alias].process_message(
             GtDispatchBooleanLocalMessage(
-                src=self.name,
-                dst=ba.alias,
-                relay_state=payload.RelayState
+                src=self.name, dst=ba.alias, relay_state=payload.RelayState
             )
         )
         return ScadaCmdDiagnostic.SUCCESS
@@ -293,9 +340,7 @@ class Scada2(ScadaInterface, Proactor):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         self.send_threadsafe(
             GtDispatchBooleanLocalMessage(
-                src=self.name,
-                dst=ba.alias,
-                relay_state=int(on)
+                src=self.name, dst=ba.alias, relay_state=int(on)
             )
         )
         return ScadaCmdDiagnostic.SUCCESS
@@ -377,15 +422,21 @@ class Scada2(ScadaInterface, Proactor):
                 )
                 if tt not in Nodes.my_telemetry_tuples():
                     raise Exception(f"Scada not tracking telemetry tuple {tt}!")
-                self._data.recent_values_from_multipurpose_sensor[tt].append(payload.ValueList[idx])
-                self._data.recent_read_times_unix_ms_from_multipurpose_sensor[tt].append(
-                    payload.ScadaReadTimeUnixMs
+                self._data.recent_values_from_multipurpose_sensor[tt].append(
+                    payload.ValueList[idx]
                 )
-                self._data.latest_value_from_multipurpose_sensor[tt] = payload.ValueList[idx]
+                self._data.recent_read_times_unix_ms_from_multipurpose_sensor[
+                    tt
+                ].append(payload.ScadaReadTimeUnixMs)
+                self._data.latest_value_from_multipurpose_sensor[
+                    tt
+                ] = payload.ValueList[idx]
 
     def gt_telemetry_received(self, from_node: ShNode, payload: GtTelemetry):
         self._data.recent_simple_values[from_node].append(payload.Value)
-        self._data.recent_simple_read_times_unix_ms[from_node].append(payload.ScadaReadTimeUnixMs)
+        self._data.recent_simple_read_times_unix_ms[from_node].append(
+            payload.ScadaReadTimeUnixMs
+        )
         self._data.latest_simple_value[from_node] = payload.Value
 
     def gt_driver_booleanactuator_cmd_record_received(
@@ -410,15 +461,23 @@ class Scada2(ScadaInterface, Proactor):
         actuated is really the best test."""
 
         if from_node not in Nodes.my_boolean_actuators():
-            raise Exception("boolean actuator command records must come from boolean actuator")
+            raise Exception(
+                "boolean actuator command records must come from boolean actuator"
+            )
         if from_node.alias != payload.ShNodeAlias:
             raise Exception("Command record must come from the boolean actuator actor")
         self._data.recent_ba_cmds[from_node].append(payload.RelayState)
-        self._data.recent_ba_cmd_times_unix_ms[from_node].append(payload.CommandTimeUnixMs)
+        self._data.recent_ba_cmd_times_unix_ms[from_node].append(
+            payload.CommandTimeUnixMs
+        )
 
-    async def local_boolean_dispatch_received(self, payload: GtDispatchBooleanLocal) -> ScadaCmdDiagnostic:
+    async def local_boolean_dispatch_received(
+        self, payload: GtDispatchBooleanLocal
+    ) -> ScadaCmdDiagnostic:
         """This will be a message from HomeAlone, honored when the DispatchContract
         with the Atn is not live."""
         if self.scada_atn_fast_dispatch_contract_is_alive:
             return ScadaCmdDiagnostic.IGNORING_HOMEALONE_DISPATCH
-        return await self._process_boolean_dispatch(typing.cast(GtDispatchBoolean, payload))
+        return await self._process_boolean_dispatch(
+            typing.cast(GtDispatchBoolean, payload)
+        )
