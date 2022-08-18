@@ -4,7 +4,7 @@ import time
 from typing import NamedTuple, Optional, Any
 
 
-class QOS(enum.Enum):
+class QOS(enum.IntEnum):
     AtMostOnce = 0
     AtLeastOnce = 1
     ExactlyOnce = 2
@@ -43,7 +43,7 @@ class MessageSummary:
     """Helper class for formating message summaries message receipt/publication single line summaries."""
 
     DEFAULT_FORMAT = (
-        "{timestamp}  {direction:3s}  {actor_alias:33s}  {broker_flag}  {arrow:2s}  {topic:80s}"
+        "{timestamp}  {direction:4s}  {actor_alias:33s}  {broker_flag}  {arrow:2s}  {topic:80s}"
         "  {payload_type}"
     )
 
@@ -77,7 +77,7 @@ class MessageSummary:
             direction = direction[:3].strip().upper()
             if direction in ["OUT", "SND"]:
                 arrow = "->"
-            elif direction in ["IN", "RCV"]:
+            elif direction.startswith("IN") or direction.startswith("RCV"):
                 arrow = "<-"
             else:
                 arrow = "? "
