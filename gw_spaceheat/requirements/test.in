@@ -3,3 +3,4 @@ pytest
 coverage
 mypy
 black
+pytest-asyncio

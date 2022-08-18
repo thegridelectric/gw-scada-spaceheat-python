@@ -1,12 +1,14 @@
+import asyncio
 import datetime
 import enum
+import inspect
 import pprint
 import socket
 import textwrap
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union, Awaitable
 
 from actors.actor_base import ActorBase
 from actors.atn import Atn
@@ -113,6 +115,46 @@ def wait_for(
     else:
         return False
 
+Predicate = Callable[[], bool]
+AwaitablePredicate = Callable[[], Awaitable[bool]]
+
+async def await_for(
+    f: Union[Predicate, AwaitablePredicate],
+    timeout: float,
+    tag: str = "",
+    raise_timeout: bool = True,
+    retry_duration: float = 0.1,
+) -> bool:
+    """Similar to wait_for(), but awaitable. Instead of sleeping after a False resoinse from function f, await_for
+    will asyncio.sleep(), allowing the event loop to continue. Additionally, f may be either a function or a coroutine.
+    """
+    now = start = time.time()
+    until = now + timeout
+    err_format = "ERROR. [{tag}] wait_for() timed out after {seconds} seconds, wait function {f}"
+    f_is_async = inspect.iscoroutinefunction(f)
+    result = False
+    if now >= until:
+        if f_is_async:
+            result = await f()
+        else:
+            result = f()
+    while now < until and result is False:
+        if f_is_async:
+            result = await f()
+        else:
+            result = f()
+        if result is False:
+            now = time.time()
+            if now < until:
+                await asyncio.sleep(min(retry_duration, until - now))
+                now = time.time()
+    if result is True:
+        return True
+    else:
+        if raise_timeout:
+            raise ValueError(err_format.format(tag=tag, seconds=time.time() - start, f=f))
+        else:
+            return False
 
 def flush_components():
     BooleanActuatorComponent.by_id = {}
