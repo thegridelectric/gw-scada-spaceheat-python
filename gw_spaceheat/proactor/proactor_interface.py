@@ -62,6 +62,7 @@ class Runnable(ABC):
         self.stop()
         await self.join()
 
+
 class ServicesInterface(CommunicatorInterface):
     """Interface to system services (the proactor)"""
 
@@ -81,4 +82,3 @@ class ServicesInterface(CommunicatorInterface):
     @abstractmethod
     def async_receive_queue(self) -> asyncio.Queue:
         raise NotImplementedError
-

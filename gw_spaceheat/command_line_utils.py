@@ -87,6 +87,7 @@ def run_nodes_main(
     load_house.load_all(settings.world_root_alias)
     run_nodes(args.nodes, settings, dbg=dbg)
 
+
 async def run_async_actors(
         aliases: Sequence[str],
         settings: ScadaSettings,
@@ -94,7 +95,7 @@ async def run_async_actors(
 ):
     actors_package = importlib.import_module(actors_package_name)
     nodes = [ShNode.by_alias[alias] for alias in aliases]
-    scada_node:Optional[ShNode] = None
+    scada_node: Optional[ShNode] = None
     actor_nodes = []
 
     for node in nodes:
@@ -123,6 +124,7 @@ async def run_async_actors(
 
     scada.start()
     await scada.run_forever()
+
 
 async def run_async_actors_main(
     argv: Optional[Sequence[str]] = None,

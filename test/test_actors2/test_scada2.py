@@ -108,6 +108,7 @@ def test_scada_small():
     scada._last_status_second = int(time.time() - 400)
     assert scada.time_to_send_status() is True
 
+
 @pytest.mark.asyncio
 async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     """Verify Scada forwards relay dispatch from Atn to relay and that resulting state changes in the relay are
@@ -155,7 +156,6 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             # assert scada.num_received_by_topic[relay_state_topic] == 0
             # assert scada.num_received_by_topic[relay_command_received_topic] == 0
 
-
             # TODO: After ScadaRecorder functionality, for test determinism, verify scada has received
             #       initial report from relay.
             # Start the relay and verify it reports its initial state
@@ -174,7 +174,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             assert atn.latest_snapshot_payload is None
             atn.status()
             await await_for(
-                lambda : atn.latest_snapshot_payload is not None,
+                lambda: atn.latest_snapshot_payload is not None,
                 3,
                 "atn did not receive first status"
             )
@@ -185,14 +185,14 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
                 relay_value = snapshot1.Snapshot.ValueList[relay_idx]
                 assert relay_value is None or relay_value == 0
             assert (
-                relay_node not in scada2._data.latest_simple_value or
-                scada2._data.latest_simple_value[relay_node] != 1
+                relay_node not in scada2._data.latest_simple_value
+                or scada2._data.latest_simple_value[relay_node] != 1
             )
 
             # Turn on relay
             atn.turn_on(relay_node)
             await await_for(
-                lambda : scada2._data.latest_simple_value[relay_node] == 1,
+                lambda: scada2._data.latest_simple_value[relay_node] == 1,
                 3,
                 "scada did not receive update from relay"
             )
@@ -205,11 +205,10 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay2.alias
 
-
             # Verify Atn gets updated info for relay
             atn.status()
             await await_for(
-                lambda : atn.latest_snapshot_payload is not None and id(atn.latest_snapshot_payload) != id(snapshot1),
+                lambda: atn.latest_snapshot_payload is not None and id(atn.latest_snapshot_payload) != id(snapshot1),
                 3,
                 "atn did not receive status"
             )
@@ -260,6 +259,4 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             # # assert len(status.BooleanactuatorCmdList) == 0
             # # assert len(status.MultipurposeTelemetryList) == 0
 
-
     await FragmentRunner.async_run_fragment(Fragment)
-

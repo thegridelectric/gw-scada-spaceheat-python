@@ -7,6 +7,7 @@ from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel
 from pydantic.generics import GenericModel
 
+
 class MessageType(Enum):
     invalid = "invalid"
     mqtt_subscribe = "mqtt_subscribe"
@@ -18,18 +19,20 @@ class MessageType(Enum):
 
     mqtt_suback = "mqtt_suback"
 
+
 class KnownNames(Enum):
     proactor = "proactor"
     mqtt_clients = "mqtt_clients"
 
+
 class Header(BaseModel):
     src: str
     dst: str
-    message_type: str # TODO: semantics of this and how namespaces of its contents are built needs to be worked out / explicit
-
+    message_type: str  # TODO: semantics of this and how namespaces of its contents are built needs to be worked out / explicit
 
 
 PayloadT = TypeVar("PayloadT")
+
 
 class Message(GenericModel, Generic[PayloadT]):
     header: Header
@@ -98,10 +101,12 @@ class MQTTReceiptMessage(MQTTClientMessage[MQTTReceiptPayload]):
             ),
         )
 
+
 class MQTTSubackPayload(MQTTClientsPayload):
     mid: int
     granted_qos: List[int]
     num_pending_subscriptions: int
+
 
 class MQTTSubackMessage(MQTTClientMessage[MQTTSubackPayload]):
     def __init__(
@@ -123,13 +128,13 @@ class MQTTSubackMessage(MQTTClientMessage[MQTTSubackPayload]):
             ),
         )
 
+
 class MQTTCommEventPayload(MQTTClientsPayload):
     rc: int
 
 
 class MQTTConnectPayload(MQTTCommEventPayload):
     flags: Dict
-
 
 
 class MQTTConnectMessage(MQTTClientMessage[MQTTConnectPayload]):

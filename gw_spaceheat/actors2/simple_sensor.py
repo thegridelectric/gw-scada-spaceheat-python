@@ -34,7 +34,7 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
         config: NodeConfig,
         telemetry_destination: str,
         channel: SyncAsyncQueueWriter,
-        responsive_sleep_step_seconds = .01,
+        responsive_sleep_step_seconds=.01,
         daemon: Optional[bool] = True,
     ):
         super().__init__(
@@ -96,6 +96,7 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
     def report_update_now(self, previous_value: Any) -> bool:
         return False
 
+
 class SimpleSensor(Actor):
     _driver_thread: SyncAsyncInteractionThread
 
@@ -132,7 +133,7 @@ class SimpleSensor(Actor):
     async def process_message(self, message: Message):
         raise ValueError(f"Error. SimpleSensor does not process any messages. Received {message.header}")
 
-    def send_driver_message(self, message:Any) -> None:
+    def send_driver_message(self, message: Any) -> None:
         self._driver_thread.put_to_sync_queue(message)
 
     def start(self):
@@ -143,4 +144,3 @@ class SimpleSensor(Actor):
 
     async def join(self):
         await self._driver_thread.async_join()
-

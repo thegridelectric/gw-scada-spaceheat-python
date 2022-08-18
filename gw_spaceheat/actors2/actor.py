@@ -27,4 +27,3 @@ class Actor(ActorInterface, Communicator, ABC):
     @property
     def node(self):
         return self._node
-

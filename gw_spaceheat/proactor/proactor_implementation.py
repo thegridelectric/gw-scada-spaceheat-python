@@ -22,11 +22,13 @@ from proactor.mqtt import MQTTClients
 from proactor.proactor_interface import ServicesInterface, Runnable, CommunicatorInterface
 from proactor.sync_thread import AsyncQueueWriter
 
-def _print_tasks(loop_, tag = "", tasks = None):
+
+def _print_tasks(loop_, tag="", tasks=None):
     # TODO: Move this to some general debugging location
     if tasks is None:
         tasks = asyncio.all_tasks(loop_)
     print(f"Tasks: {len(tasks)}  [{tag}]")
+
     def _exception(task_):
         try:
             exception_ = task_.exception()
@@ -91,7 +93,7 @@ class Proactor(ServicesInterface, Runnable):
         encoder = self._mqtt_codecs[client]
         return self._mqtt_clients.publish(client, topic, encoder.encode(payload), qos)
 
-    def _add_communicator(self, communicator:CommunicatorInterface):
+    def _add_communicator(self, communicator: CommunicatorInterface):
         # TODO: There probably needs to be some public version of this for testing.
         if communicator.name in self._communicators:
             raise ValueError(f"ERROR. Communicator with name [{communicator.name}] already present")
@@ -131,7 +133,8 @@ class Proactor(ServicesInterface, Runnable):
     async def process_message(self, message: Message):
         print(f"++Proactor.process_message {message.header.src}/{message.header.message_type}")
         path_dbg = 0
-        print(MessageSummary.format("INx ", self.name, f"{message.header.src}/{message.header.message_type}", message.payload))
+        print(MessageSummary.format("INx ", self.name,
+              f"{message.header.src}/{message.header.message_type}", message.payload))
         # TODO: be easier on the eyes
         if message.header.message_type == MessageType.mqtt_message.value:
             path_dbg |= 0x00000001
@@ -237,7 +240,8 @@ class Proactor(ServicesInterface, Runnable):
         self._mqtt_clients.publish(client, topic, payload, qos)
 
     def send(self, message: Message):
-        print(MessageSummary.format("OUTx",  message.header.src, f"{message.header.dst}/{message.header.message_type}", message.payload))
+        print(MessageSummary.format("OUTx", message.header.src,
+              f"{message.header.dst}/{message.header.message_type}", message.payload))
         self._receive_queue.put_nowait(message)
 
     def send_threadsafe(self, message: Message) -> None:

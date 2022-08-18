@@ -78,7 +78,7 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
         channel: SyncAsyncQueueWriter,
         name: Optional[str] = None,
         iterate_sleep_seconds: Optional[float] = None,
-        responsive_sleep_step_seconds = SLEEP_STEP_SECONDS,
+        responsive_sleep_step_seconds=SLEEP_STEP_SECONDS,
         daemon: Optional[bool] = True,
     ):
         super().__init__(name=name, daemon=daemon)
