@@ -16,6 +16,7 @@ from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import GtDisp
 class DispatchRelay(BaseModel):
     relay_state: bool
 
+
 class BooleanActuatorDriverThread(SimpleSensorDriverThread):
 
     def report_update_now(self, previous_value: Any) -> bool:
@@ -35,6 +36,7 @@ class BooleanActuatorDriverThread(SimpleSensorDriverThread):
                 self.update_telemetry_value()
                 if self.report_update_now(previous_value):
                     self.report_telemetry()
+
 
 class BooleanActuator(SimpleSensor):
 

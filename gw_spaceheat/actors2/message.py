@@ -39,6 +39,7 @@ class GtTelemetryMessage(Message[GtTelemetry]):
             payload=payload,
         )
 
+
 class GtDriverBooleanactuatorCmdResponse(Message[GtDriverBooleanactuatorCmd]):
 
     def __init__(
@@ -60,6 +61,7 @@ class GtDriverBooleanactuatorCmdResponse(Message[GtDriverBooleanactuatorCmd]):
             ),
             payload=payload,
         )
+
 
 class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
 
@@ -85,10 +87,14 @@ class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
         )
 
 # TODO: Replace with generalized debug message
+
+
 class ScadaDBGPing(BaseModel):
     number: int
 
 # TODO: Replace with generalized debug message
+
+
 class ScadaDBGPingMessage(Message[ScadaDBGPing]):
     def __init__(
             self,
@@ -104,10 +110,14 @@ class ScadaDBGPingMessage(Message[ScadaDBGPing]):
         )
 
 # TODO: Replace with generalized debug message
+
+
 class ShowSubscriptions(BaseModel):
     pass
 
 # TODO: Replace with generalized debug message
+
+
 class ShowSubscriptionsMessage(Message[ShowSubscriptions]):
     def __init__(self):
         super().__init__(

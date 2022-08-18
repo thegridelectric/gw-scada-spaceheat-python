@@ -33,11 +33,13 @@ def do_nothing(seconds: float):
         time.sleep(seconds)
         delimit("DONE DOING NOTHING")
 
+
 async def async_do_nothing(seconds: float):
     if seconds > 0:
         delimit(f"DOING NOTHING FOR {int(seconds):4d} SECONDS")
         await asyncio.sleep(seconds)
         delimit("DONE DOING NOTHING")
+
 
 class Actors:
     scada: ScadaRecorder
@@ -169,7 +171,6 @@ class FragmentRunner:
                 except:
                     pass
 
-
     def run(self, *args, **kwargs):
         try:
             start_time = time.time()
@@ -241,7 +242,6 @@ class ProtocolFragment:
     # noinspection PyMethodMayBeStatic
     def get_requested_actors2(self) -> Sequence[ActorInterface]:
         return []
-
 
     def run(self, *args, **kwargs):
         pass

@@ -115,8 +115,10 @@ def wait_for(
     else:
         return False
 
+
 Predicate = Callable[[], bool]
 AwaitablePredicate = Callable[[], Awaitable[bool]]
+
 
 async def await_for(
     f: Union[Predicate, AwaitablePredicate],

@@ -29,6 +29,7 @@ class Delay:
         else:
             return False
 
+
 def async_delay(delay: Delay) -> AwaitablePredicate:
 
     async def async_function():

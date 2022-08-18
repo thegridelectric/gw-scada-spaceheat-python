@@ -34,6 +34,7 @@ from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_mul
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.schema_switcher import TypeMakerByAliasDict
 
+
 class ScadaMQTTCodec(MQTTCodec, ABC):
     ENCODING = "utf-8"
 
@@ -56,6 +57,7 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
     def validate_source_alias(self, source_alias: str):
         pass
 
+
 class GridworksMQTTCodec(ScadaMQTTCodec):
 
     def __init__(self, atn_g_node_alias: str):
@@ -65,11 +67,13 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
         if source_alias != self._atn_g_node_alias:
             raise Exception(f"alias {source_alias} not my AtomicTNode ({self._atn_g_node_alias})!")
 
+
 class LocalMQTTCodec(ScadaMQTTCodec):
 
     def validate_source_alias(self, source_alias: str):
         if source_alias not in ShNode.by_alias.keys():
             raise Exception(f"alias {source_alias} not in ShNode.by_alias keys!")
+
 
 class Scada2(ScadaInterface, Proactor):
     GS_PWR_MULTIPLIER = 1
@@ -94,10 +98,13 @@ class Scada2(ScadaInterface, Proactor):
         self._nodes = Nodes(settings)
         self._data = ScadaData(self._nodes)
         self._add_mqtt_client(Scada2.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec())
-        self._add_mqtt_client(Scada2.GRIDWORKS_MQTT, self.settings.gridworks_mqtt, GridworksMQTTCodec(self._nodes.atn_g_node_alias))
+        self._add_mqtt_client(Scada2.GRIDWORKS_MQTT, self.settings.gridworks_mqtt,
+                              GridworksMQTTCodec(self._nodes.atn_g_node_alias))
         # TODO: take care of subscriptions better. They should be registered here and only subscribed on connect.
-        self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, f"{self._nodes.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}", QOS.AtMostOnce)
-        self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, f"{self._nodes.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}", QOS.AtMostOnce)
+        self._mqtt_clients.subscribe(
+            Scada2.GRIDWORKS_MQTT, f"{self._nodes.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}", QOS.AtMostOnce)
+        self._mqtt_clients.subscribe(
+            Scada2.GRIDWORKS_MQTT, f"{self._nodes.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}", QOS.AtMostOnce)
         # TODO: clean this up
         self.print_subsriptions("construction")
         now = int(time.time())
@@ -147,11 +154,11 @@ class Scada2(ScadaInterface, Proactor):
     def node(self) -> ShNode:
         return self._node
 
-    def gridworks_mqtt_topic(self, payload:Any) -> str:
+    def gridworks_mqtt_topic(self, payload: Any) -> str:
         return f"{self._nodes.scada_g_node_alias}/{payload.TypeAlias}"
 
     @classmethod
-    def local_mqtt_topic(cls, from_alias: str, payload:Any) -> str:
+    def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
         return f"{from_alias}/{payload.TypeAlias}"
 
     def _publish_to_gridworks(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
@@ -223,7 +230,7 @@ class Scada2(ScadaInterface, Proactor):
 
     # TODO: Clean this up
     # noinspection PyProtectedMember
-    def print_subsriptions(self, tag = ""):
+    def print_subsriptions(self, tag=""):
         print(f"Scada2 subscriptions: [{tag}]")
         for client in self._mqtt_clients._clients:
             print(f"\t{client}")
@@ -254,12 +261,12 @@ class Scada2(ScadaInterface, Proactor):
             )
         print(f"--Scada2._derived_process_mqtt_message  path:0x{path_dbg:08X}")
 
-    def _process_telemetry(self, message:Message, decoded:GtTelemetry):
-            from_node = ShNode.by_alias[message.header.src]
-            if from_node in self._nodes.my_simple_sensors():
-                self._data.recent_simple_values[from_node].append(decoded.Value)
-                self._data.recent_simple_read_times_unix_ms[from_node].append(decoded.ScadaReadTimeUnixMs)
-                self._data.latest_simple_value[from_node] = decoded.Value
+    def _process_telemetry(self, message: Message, decoded: GtTelemetry):
+        from_node = ShNode.by_alias[message.header.src]
+        if from_node in self._nodes.my_simple_sensors():
+            self._data.recent_simple_values[from_node].append(decoded.Value)
+            self._data.recent_simple_read_times_unix_ms[from_node].append(decoded.ScadaReadTimeUnixMs)
+            self._data.latest_simple_value[from_node] = decoded.Value
 
     async def _boolean_dispatch_received(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
         """This is a dispatch message received from the atn. It is
@@ -267,7 +274,6 @@ class Scada2(ScadaInterface, Proactor):
         if not self.scada_atn_fast_dispatch_contract_is_alive:
             return ScadaCmdDiagnostic.IGNORING_ATN_DISPATCH
         return await self._process_boolean_dispatch(payload)
-
 
     async def _process_boolean_dispatch(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
         ba = ShNode.by_alias[payload.AboutNodeAlias]
@@ -337,7 +343,6 @@ class Scada2(ScadaInterface, Proactor):
     @property
     def settings(self):
         return self._settings
-
 
     def gs_pwr_received(self, payload: GsPwr):
         """The highest priority of the SCADA, from the perspective of the electric grid,

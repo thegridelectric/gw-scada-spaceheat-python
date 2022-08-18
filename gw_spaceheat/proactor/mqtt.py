@@ -21,6 +21,7 @@ from proactor.message import (
 )
 from proactor.sync_thread import AsyncQueueWriter
 
+
 class MQTTClientWrapper:
     _name: str
     _client_config: config.MQTTClient
@@ -72,7 +73,6 @@ class MQTTClientWrapper:
             self._pending_subacks[subscribe_result[1]] = [topic]
         return subscribe_result
 
-
     def subscribe_all(self) -> Tuple[int, Optional[int]]:
         if self._subscriptions:
             topics = list(self._subscriptions.keys())
@@ -83,7 +83,7 @@ class MQTTClientWrapper:
                 self._pending_subacks[subscribe_result[1]] = topics
         else:
             subscribe_result = MQTT_ERR_SUCCESS, None
-        return  subscribe_result
+        return subscribe_result
 
     def unsubscribe(self, topic: str) -> Tuple[int, Optional[int]]:
         self._subscriptions.pop(topic, None)
@@ -152,6 +152,7 @@ class MQTTClientWrapper:
                 rc=rc,
             )
         )
+
 
 class MQTTClients:
     _clients: Dict[str, MQTTClientWrapper]
