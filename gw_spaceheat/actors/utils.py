@@ -17,6 +17,19 @@ class Subscription(NamedTuple):
 
 DEFAULT_STEP_DURATION = 0.1
 
+def mqtt_topic_encode(candidate: str):
+    return candidate.replace(".","_")
+
+def mqtt_topic_decode(candidate: str):
+    return candidate.replace("_",".")
+
+def dot_to_underscore(candidate):
+    l = candidate.split(".")
+    return "_".join(l)
+
+def underscore_to_dot(candidate):
+    l = candidate.split("_")
+    return ".".join(l)
 
 def responsive_sleep(
     obj,

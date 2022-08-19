@@ -12,7 +12,7 @@ import paho.mqtt.client as mqtt
 
 import helpers
 from config import ScadaSettings
-from actors.utils import QOS, Subscription, MessageSummary
+from actors.utils import QOS, Subscription, MessageSummary, mqtt_topic_decode, mqtt_topic_encode
 from data_classes.sh_node import ShNode
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
@@ -217,7 +217,8 @@ class ActorBase(ABC):
 
     def on_mqtt_message(self, client, userdata, message):
         try:
-            (from_alias, type_alias) = message.topic.split("/")
+            topic = mqtt_topic_decode(message.topic)
+            (from_alias, type_alias) = topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
         if from_alias not in ShNode.by_alias.keys():
@@ -243,9 +244,9 @@ class ActorBase(ABC):
             qos = QOS.AtLeastOnce
         topic = f"{self.node.alias}/{payload.TypeAlias}"
         if self.settings.logging_on or self.settings.log_message_summary:
-            print(MessageSummary.format("OUT", self.node.alias, topic, payload))
+            print(MessageSummary.format("OUT", self.node.alias, mqtt_topic_encode(topic), payload))
         self.client.publish(
-            topic=topic,
+            topic=mqtt_topic_encode(topic),
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
