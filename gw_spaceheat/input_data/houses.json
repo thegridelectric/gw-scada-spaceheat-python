@@ -1,10 +1,10 @@
 {    
-    "w":
+    "hw1":
     {
         "MyAtomicTNodeGNode":
         {
             "GNodeId": "d636cbeb-c4ad-45cd-b5bc-1c64cc33f4f4",
-            "Alias": "w.isone.ct.newhaven.orange1",
+            "Alias": "hw1.isone.ct.newhaven.orange1",
             "DisplayName": "Little Orange House Garage Heating System AtomicTNode",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "AtomicTNode"
@@ -12,7 +12,7 @@
         "MyTerminalAssetGNode": 
           {
               "GNodeId": "137d7f06-ea65-4254-bfd1-5d56fa789229",
-              "Alias":  "w.isone.ct.newhaven.orange1.ta",
+              "Alias":  "hw1.isone.ct.newhaven.orange1.ta",
               "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
               "GNodeStatusValue": "Active",
               "PrimaryGNodeRoleAlias": "TerminalAsset"
@@ -20,7 +20,7 @@
         "MyScadaGNode": 
         {
             "GNodeId": "28817671-3899-4e24-a337-abcb8633e47a",
-            "Alias":  "w.isone.ct.newhaven.orange1.ta.scada",
+            "Alias":  "hw1.isone.ct.newhaven.orange1.ta.scada",
             "DisplayName": "Little Orange House Garage Heating System SCADA",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "Scada"
