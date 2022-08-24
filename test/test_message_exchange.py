@@ -13,6 +13,7 @@ from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import 
     GtDispatchBooleanLocal_Maker,
 )
 
+from actors.utils import gw_mqtt_topic_encode
 
 def test_message_exchange(tmp_path, monkeypatch):
     """Run various nodes and verify they send each other messages as expected"""
@@ -76,7 +77,7 @@ def test_message_exchange(tmp_path, monkeypatch):
             lambda: len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}"
         )
 
-        topic = f"{scada.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"
+        topic = gw_mqtt_topic_encode(f"{scada.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}")
         print(topic)
         wait_for(
             lambda: ear.num_received_by_topic[topic] > 0, 10, f"ear receipt. {ear.summary_str()}"

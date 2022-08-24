@@ -13,8 +13,8 @@ def test_gt_dispatch_boolean():
 
     gw_dict = {
         "AboutNodeAlias": "a.elt1.relay",
-        "ToGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta.scada",
-        "FromGNodeAlias": "dwtest.isone.ct.newhaven.orange1",
+        "ToGNodeAlias": "dw1.isone.ct.newhaven.orange1.ta.scada",
+        "FromGNodeAlias": "dw1.isone.ct.newhaven.orange1",
         "FromGNodeId": "e7f7d6cc-08b0-4b36-bbbb-0a1f8447fd32",
         "RelayState": 0,
         "SendTimeUnixMs": 1657024737661,
@@ -153,12 +153,12 @@ def test_gt_dispatch_boolean():
     gw_dict["ToGNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ToGNodeAlias"] = "dwtest.isone.ct.newhaven.orange1.ta.scada"
+    gw_dict["ToGNodeAlias"] = "dw1.isone.ct.newhaven.orange1.ta.scada"
 
     gw_dict["FromGNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["FromGNodeAlias"] = "dwtest.isone.ct.newhaven.orange1"
+    gw_dict["FromGNodeAlias"] = "dw1.isone.ct.newhaven.orange1"
 
     gw_dict["FromGNodeId"] = "d4be12d5-33ba-4f1f-b9e5"
     with pytest.raises(MpSchemaError):

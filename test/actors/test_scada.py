@@ -34,6 +34,7 @@ from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import 
 )
 from test.fragment_runner import FragmentRunner, ProtocolFragment
 from test.utils import wait_for
+from actors.utils import gw_mqtt_topic_encode
 
 
 def test_scada_small():

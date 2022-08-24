@@ -14,6 +14,7 @@ from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status impor
 from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
 from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
 from test.utils import wait_for, ScadaRecorder, EarRecorder
+from actors.utils import gw_mqtt_topic_encode
 
 
 def test_scada_ear_connection():
@@ -63,7 +64,7 @@ def test_scada_ear_connection():
         # wait_for(ear.num_received > 0, 5)
         assert ear.num_received > 0
         scada_g_node_alias = scada.scada_g_node_alias
-        assert ear.num_received_by_topic[f"{scada_g_node_alias}/{GtShStatus_Maker.type_alias}"] == 1
+        assert ear.num_received_by_topic[gw_mqtt_topic_encode(f"{scada_g_node_alias}/{GtShStatus_Maker.type_alias}")] == 1
         assert isinstance(ear.payloads[-2], GtShStatus)
         simple_telemetry_list = ear.payloads[-2].SimpleTelemetryList
         assert len(simple_telemetry_list) > 0

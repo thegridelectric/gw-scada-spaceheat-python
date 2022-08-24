@@ -12,7 +12,7 @@ from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksS
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from test.utils import wait_for, ScadaRecorder, AtnRecorder
-
+from actors.utils import gw_mqtt_topic_encode
 
 # Refactor this test once we have a simulated relay that can be dispatched with
 # the GridWorks Simulated Boolean Actuator and sensed with the GridWorks Simulated Power meter.
@@ -250,7 +250,7 @@ def test_power_meter_aggregate_power_forward():
         for i in range(num_changes):
             print(f"Generating GsPwr change {i+1}/{num_changes}")
             num_scada_gs_pwr = scada.num_received_by_topic["a.m/p"]
-            atn_gs_pwr_topic = f"{scada.scada_g_node_alias}/p"
+            atn_gs_pwr_topic = gw_mqtt_topic_encode(f"{scada.scada_g_node_alias}/p")
             num_atn_gs_pwr = atn.num_received_by_topic[atn_gs_pwr_topic]
 
             # Simulate a change in aggregate power that should trigger a GsPwr message
