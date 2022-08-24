@@ -63,6 +63,20 @@ class ActorBase(ABC):
         return telemetry_tuples
 
     @classmethod
+    def power_meter_driver(cls) -> PowerMeterDriver:
+        component: ElectricMeterComponent = typing.cast(ElectricMeterComponent, cls.power_meter_node().component)
+        cac = component.cac
+        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            driver = UnknownPowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
+            driver = SchneiderElectricIem3455_PowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
+            driver = GridworksSimPm1_PowerMeterDriver(component=component)
+        else:
+            raise NotImplementedError(f"No ElectricMeter driver yet for {cac.make_model}")
+        return driver
+
+    @classmethod
     def power_meter_node(cls) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
         nodes = list(filter(lambda x: x.role == Role.POWER_METER, ShNode.by_alias.values()))
