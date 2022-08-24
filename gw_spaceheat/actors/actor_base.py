@@ -14,6 +14,7 @@ import helpers
 from config import ScadaSettings
 from actors.utils import QOS, Subscription, MessageSummary
 from data_classes.sh_node import ShNode
+from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.role.role_map import Role
 from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
