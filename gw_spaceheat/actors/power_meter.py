@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from config import ScadaSettings
 
 from actors.actor_base import ActorBase
-from actors.utils import Subscription, QOS, responsive_sleep
+from actors.utils import Subscription, responsive_sleep
 
 from data_classes.sh_node import ShNode
 

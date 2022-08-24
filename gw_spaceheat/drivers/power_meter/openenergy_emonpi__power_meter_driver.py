@@ -1,14 +1,12 @@
-from typing import Optional, List
+from typing import Optional
 from config import ScadaSettings
 import uuid
-import helpers
 from actors.utils import QOS, Subscription
 import paho.mqtt.client as mqtt
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 
 from schema.enums.make_model.make_model_map import MakeModel
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 
 
 class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
@@ -35,7 +33,7 @@ class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
         self.subscribe()
 
     def subscriptions(self):
-        return [Subscription(Topic=f"emon/emonpi/power1", Qos=QOS.AtMostOnce)]
+        return [Subscription(Topic="emon/emonpi/power1", Qos=QOS.AtMostOnce)]
 
     def subscribe(self):
         subscriptions = list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions()))
