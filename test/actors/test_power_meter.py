@@ -23,6 +23,7 @@ from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker imp
 
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 
+
 def test_driver():
 
     # Testing unknown meter driver
@@ -63,8 +64,8 @@ def test_driver():
     assert electric_meter_component.cac == electric_meter_cac
 
     settings = ScadaSettings()
-    meter= PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
-    
+    meter = PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
+
     print(meter.all_metered_nodes)
     assert isinstance(meter.driver, UnknownPowerMeterDriver)
     flush_all()
@@ -148,7 +149,6 @@ def test_driver():
 #             scada.stop()
 #         except:
 #             pass
-
 
 
 def test_power_meter_small():

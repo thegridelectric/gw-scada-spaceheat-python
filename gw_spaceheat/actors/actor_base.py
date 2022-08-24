@@ -22,7 +22,6 @@ from schema.gs.gs_pwr import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 
-
 class ActorBase(ABC):
     @classmethod
     def all_power_tuples(cls) -> List[TelemetryTuple]:
@@ -154,7 +153,6 @@ class ActorBase(ABC):
         if self.settings.logging_on:
             self.client.on_log = self.on_log
             self.client.enable_logger()
-
 
     def subscribe(self):
         subscriptions = list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.subscriptions()))
