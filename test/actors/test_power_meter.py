@@ -119,17 +119,19 @@ def test_power_meter_small():
 
     assert meter.value_exceeds_async_threshold(tt) is False
     report_threshold_ratio = meter.eq_reporting_config[tt].AsyncReportThreshold
+    assert meter.nameplate_telemetry_value[tt] == 18750000
     assert report_threshold_ratio == 0.02
     report_threshold_microamps = meter.nameplate_telemetry_value[tt] * 0.02
-    assert report_threshold_microamps == 937500
+    assert report_threshold_microamps == 375000
 
-    meter.latest_telemetry_value[tt] += 900000
+    meter.latest_telemetry_value[tt] += 374000
     assert meter.value_exceeds_async_threshold(tt) is False
 
-    meter.latest_telemetry_value[tt] += 100000
+    meter.latest_telemetry_value[tt] += 10000
     assert meter.value_exceeds_async_threshold(tt) is True
+    assert meter.should_report_telemetry_reading(tt) is True
     meter.report_sampled_telemetry_values([tt])
-    assert meter.last_reported_telemetry_value[tt] == 1018000
+    assert meter.last_reported_telemetry_value[tt] == 402000
     assert meter.should_report_telemetry_reading(tt) is False
 
     assert meter.last_reported_agg_power_w is None
@@ -143,22 +145,22 @@ def test_power_meter_small():
     assert nameplate_pwr_w_1 == 4500
     assert nameplate_pwr_w_2 == 4500
     assert meter.nameplate_agg_power_w == 9000
-    power_reporting_threshold_ratio = meter.DEFAULT_ASYNC_REPORTING_THRESHOLD
-    assert power_reporting_threshold_ratio == 0.05
+    power_reporting_threshold_ratio = meter.settings.async_power_reporting_threshold
+    assert power_reporting_threshold_ratio == 0.02
     power_reporting_threshold_w = power_reporting_threshold_ratio * meter.nameplate_agg_power_w
-    assert power_reporting_threshold_w == 450
+    assert power_reporting_threshold_w == 180
 
     tt = TelemetryTuple(
         AboutNode=ShNode.by_alias["a.elt1"],
         SensorNode=meter.node,
         TelemetryName=TelemetryName.POWER_W,
     )
-    meter.latest_telemetry_value[tt] += 300
+    meter.latest_telemetry_value[tt] += 100
     assert not meter.should_report_aggregated_power()
-    meter.latest_telemetry_value[tt] += 200
+    meter.latest_telemetry_value[tt] += 100
     assert meter.should_report_aggregated_power()
     meter.report_aggregated_power_w()
-    assert meter.latest_agg_power_w == 500
+    assert meter.latest_agg_power_w == 200
 
 
 def test_power_meter_periodic_update(monkeypatch):

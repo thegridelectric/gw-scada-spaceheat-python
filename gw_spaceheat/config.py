@@ -24,8 +24,10 @@ class ScadaSettings(BaseSettings):
     gridworks_mqtt: MQTTClient = MQTTClient()
     output_dir: str = "output"
     seconds_per_report: int = 300
+    async_power_reporting_threshold = 0.02
     logging_on: bool = False
     log_message_summary: bool = False
+
 
     class Config:
         env_prefix = "SCADA_"

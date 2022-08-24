@@ -56,7 +56,6 @@ class PowerMeter(ActorBase):
     to configuration."""
 
     FASTEST_POWER_METER_POLL_PERIOD_MS = 40
-    DEFAULT_ASYNC_REPORTING_THRESHOLD = 0.02
 
     @classmethod
     def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
@@ -140,7 +139,7 @@ class PowerMeter(ActorBase):
                 unit=Unit.AMPS_RMS,
                 exponent=6,
                 sample_period_s=self.settings.seconds_per_report,
-                async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
+                async_report_threshold=self.settings.async_power_reporting_threshold
             ).tuple
             tt = TelemetryTuple(
                 AboutNode=about_node,
@@ -157,7 +156,7 @@ class PowerMeter(ActorBase):
                 unit=Unit.W,
                 exponent=0,
                 sample_period_s=self.settings.seconds_per_report,
-                async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
+                async_report_threshold=self.settings.async_power_reporting_threshold
             ).tuple
             eq_reporting_config_list.append(power_config)
             tt = TelemetryTuple(
@@ -308,7 +307,7 @@ class PowerMeter(ActorBase):
             return True
         abs_power_delta = abs(self.latest_agg_power_w - self.last_reported_agg_power_w)
         change_ratio = abs_power_delta / self.nameplate_agg_power_w
-        if change_ratio > self.DEFAULT_ASYNC_REPORTING_THRESHOLD:
+        if change_ratio > self.settings.async_power_reporting_threshold:
             return True
         return False
 
