@@ -27,7 +27,6 @@ class ScadaSettings(BaseSettings):
     logging_on: bool = False
     log_message_summary: bool = False
 
-
     class Config:
         env_prefix = "SCADA_"
         env_nested_delimiter = "__"
