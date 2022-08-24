@@ -164,7 +164,10 @@ class PowerMeter(ActorBase):
             )
             self.eq_reporting_config[tt] = power_config
 
-        poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
+        if cac.update_period_ms is None:
+            poll_period_ms = self.FASTEST_POWER_METER_POLL_PERIOD_MS
+        else:
+            poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
         return ReportingConfig_Maker(
             reporting_period_s=self.settings.seconds_per_report,
             poll_period_ms=poll_period_ms,
