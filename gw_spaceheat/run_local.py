@@ -9,7 +9,7 @@ from schema.enums.role.role_map import Role
 from data_classes.sh_node import ShNode
 
 if __name__ == "__main__":
-    args = parse_args(sys.argv[:1])
+    args = parse_args(sys.argv[1:])
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     load_house.load_all(settings.world_root_alias)
     aliases = [

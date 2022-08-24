@@ -182,12 +182,16 @@ class CloudBase(ABC):
     def main(self):
         raise NotImplementedError
 
-    def start(self):
-        self.gw_client.connect(
-            self.settings.gridworks_mqtt.host,
-            port=self.settings.gridworks_mqtt.port
-        )
+    def start_mqtt(self):
+        self.gw_client.connect(self.settings.gridworks_mqtt.host, port=self.settings.gridworks_mqtt.port)
         self.gw_client.loop_start()
+
+    def stop_mqtt(self):
+        self.gw_client.disconnect()
+        self.gw_client.loop_stop()
+
+    def start(self):
+        self.start_mqtt()
         self.main_thread = threading.Thread(target=self.main)
         self.main_thread.start()
         self.screen_print(f"Started {self.__class__}")
@@ -195,7 +199,6 @@ class CloudBase(ABC):
     def stop(self):
         self.screen_print("Stopping ...")
         self.terminate_main_loop()
-        self.gw_client.disconnect()
-        self.gw_client.loop_stop()
+        self.stop_mqtt()
         self.main_thread.join()
         self.screen_print("Stopped")

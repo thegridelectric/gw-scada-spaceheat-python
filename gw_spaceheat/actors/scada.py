@@ -28,9 +28,11 @@ from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status
     GtShBooleanactuatorCmdStatus_Maker,
 )
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
-    GtShCliScadaResponse_Maker,
+from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
+    SnapshotSpaceheat,
+    SnapshotSpaceheat_Maker,
 )
+
 from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
     GtShMultipurposeTelemetryStatus,
     GtShMultipurposeTelemetryStatus_Maker,
@@ -40,10 +42,12 @@ from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker
     GtShSimpleTelemetryStatus_Maker,
 )
 from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
-from schema.gt.gt_sh_status_snapshot.gt_sh_status_snapshot_maker import (
-    GtShStatusSnapshot,
-    GtShStatusSnapshot_Maker,
+
+from schema.gt.telemetry_snapshot_spaceheat.telemetry_snapshot_spaceheat_maker import (
+    TelemetrySnapshotSpaceheat,
+    TelemetrySnapshotSpaceheat_Maker,
 )
+
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
     GtShTelemetryFromMultipurposeSensor,
     GtShTelemetryFromMultipurposeSensor_Maker,
@@ -396,7 +400,7 @@ class Scada(ScadaBase):
             return ScadaCmdDiagnostic.IGNORING_ATN_DISPATCH
         return self.process_boolean_dispatch(payload)
 
-    def make_status_snapshot(self) -> GtShStatusSnapshot:
+    def make_telemetry_snapshot(self) -> TelemetrySnapshotSpaceheat:
         about_node_alias_list = []
         value_list = []
         telemetry_name_list = []
@@ -410,24 +414,24 @@ class Scada(ScadaBase):
                 about_node_alias_list.append(tt.AboutNode.alias)
                 value_list.append(self.latest_value_from_multipurpose_sensor[tt])
                 telemetry_name_list.append(tt.TelemetryName)
-        return GtShStatusSnapshot_Maker(
+        return TelemetrySnapshotSpaceheat_Maker(
             about_node_alias_list=about_node_alias_list,
             report_time_unix_ms=int(1000 * time.time()),
             value_list=value_list,
             telemetry_name_list=telemetry_name_list,
         ).tuple
 
+    def make_snapshot(self) -> SnapshotSpaceheat:
+        return SnapshotSpaceheat_Maker(
+            from_g_node_alias=self.scada_g_node_alias,
+            from_g_node_instance_id=self.scada_g_node_id,
+            snapshot=self.make_telemetry_snapshot(),
+        ).tuple
+
     def gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
             return
-
-        snapshot = self.make_status_snapshot()
-        payload = GtShCliScadaResponse_Maker(
-            from_g_node_alias=self.scada_g_node_alias,
-            from_g_node_id=self.scada_g_node_id,
-            snapshot=snapshot,
-        ).tuple
-        self.gw_publish(payload=payload)
+        self.gw_publish(self.make_snapshot())
 
     ################################################
     # Primary functions
@@ -443,7 +447,6 @@ class Scada(ScadaBase):
             send_time_unix_ms=int(time.time() * 1000),
         ).tuple
         self.publish(payload=dispatch_payload)
-        self.gw_publish(payload=dispatch_payload)
         self.screen_print(f"Dispatched {ba.alias}  on")
         return ScadaCmdDiagnostic.SUCCESS
 
@@ -457,7 +460,6 @@ class Scada(ScadaBase):
             send_time_unix_ms=int(time.time() * 1000),
         ).tuple
         self.publish(payload=dispatch_payload)
-        self.gw_publish(payload=dispatch_payload)
         self.screen_print(f"Dispatched {ba.alias} off")
         return ScadaCmdDiagnostic.SUCCESS
 
@@ -508,8 +510,7 @@ class Scada(ScadaBase):
             command_time_unix_ms_list=self.recent_ba_cmd_times_unix_ms[node],
         ).tuple
 
-    def send_status(self):
-        self.screen_print("Should send status")
+    def make_status(self) -> GtShStatus:
         simple_telemetry_list = []
         multipurpose_telemetry_list = []
         booleanactuator_cmd_list = []
@@ -525,9 +526,8 @@ class Scada(ScadaBase):
             status = self.make_booleanactuator_cmd_status(node)
             if status:
                 booleanactuator_cmd_list.append(status)
-
         slot_start_unix_s = self._last_5_cron_s
-        status = GtShStatus_Maker(
+        return GtShStatus_Maker(
             from_g_node_alias=self.scada_g_node_alias,
             from_g_node_id=self.scada_g_node_id,
             status_uid=str(uuid.uuid4()),
@@ -538,9 +538,14 @@ class Scada(ScadaBase):
             multipurpose_telemetry_list=multipurpose_telemetry_list,
             simple_telemetry_list=simple_telemetry_list,
         ).tuple
+
+    def send_status(self):
+        self.screen_print("Should send status")
+        status = self.make_status()
         self.status_to_store[status.StatusUid] = status
         self.gw_publish(status)
         self.publish(status)
+        self.gw_publish(self.make_snapshot())
         self.flush_latest_readings()
 
     def cron_every_5(self):

@@ -22,8 +22,6 @@ class BooleanActuator(ActorBase):
 
     def __init__(self, node: ShNode, settings: ScadaSettings):
         super(BooleanActuator, self).__init__(node=node, settings=settings)
-        now = int(time.time())
-        self._last_sync_report_time_s = now - (now % 300) - 60
         self.relay_state: Optional[int] = None
         self.config = NodeConfig(self.node, settings)
         self.screen_print(f"Initialized {self.__class__}")
@@ -74,8 +72,8 @@ class BooleanActuator(ActorBase):
     def update_and_report_state_change(self):
         new_state = self.config.driver.is_on()
         if self.relay_state != new_state:
+            self.screen_print(f"Relay: {self.relay_state} -> {new_state}")
             self.relay_state = new_state
-            self.screen_print(f"Relay: {self.relay_state}")
             payload = GtTelemetry_Maker(
                 name=self.config.reporting.TelemetryName,
                 value=int(self.relay_state),
@@ -92,28 +90,15 @@ class BooleanActuator(ActorBase):
             scada_read_time_unix_ms=int(time.time() * 1000),
         ).tuple
         self.publish(payload)
-        self._last_sync_report_time_s = time.time()
 
     def main(self):
         self._main_loop_running = True
         while self._main_loop_running is True:
             check_start_s = time.time()
             self.update_and_report_state_change()
-            if self.time_for_sync_report():
-                self.sync_report()
-
             time_of_read_s = time.time()
             if (time_of_read_s - check_start_s) > self.MAIN_LOOP_MIN_TIME_S:
                 return
             wait_time_s = self.MAIN_LOOP_MIN_TIME_S - (time_of_read_s - check_start_s)
             responsive_sleep(self, wait_time_s)
 
-    @property
-    def next_sync_report_time_s(self) -> int:
-        next_s = self._last_sync_report_time_s + 300
-        return next_s - (next_s % 300) + 240
-
-    def time_for_sync_report(self) -> bool:
-        if time.time() > self.next_sync_report_time_s:
-            return True
-        return False

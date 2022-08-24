@@ -1,27 +1,21 @@
-"""Tests gt.sh.cli.scada.response.110 type"""
+"""Tests snapshot.spaceheat.100 type"""
 import json
 
 import pytest
 
 from schema.errors import MpSchemaError
-from schema.gt.gt_sh_cli_scada_response.gt_sh_cli_scada_response_maker import (
-    GtShCliScadaResponse_Maker as Maker,
+from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
+    SnapshotSpaceheat_Maker as Maker,
 )
 
 
-def test_gt_sh_cli_scada_response():
+def test_snapshot_spaceheat():
 
     gw_dict = {
         "FromGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta.scada",
-        "FromGNodeId": "0384ef21-648b-4455-b917-58a1172d7fc1",
-        "Snapshot": {
-            "TelemetryNameList": ["5a71d4b3"],
-            "AboutNodeAliasList": ["a.elt1.relay"],
-            "ReportTimeUnixMs": 1656363448000,
-            "ValueList": [1],
-            "TypeAlias": "gt.sh.status.snapshot.110",
-        },
-        "TypeAlias": "gt.sh.cli.scada.response.110",
+        "FromGNodeInstanceId": "0384ef21-648b-4455-b917-58a1172d7fc1",
+        "Snapshot": {"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "telemetry.snapshot.spaceheat.100"},
+        "TypeAlias": "snapshot.spaceheat.100",
     }
 
     with pytest.raises(MpSchemaError):
@@ -40,7 +34,7 @@ def test_gt_sh_cli_scada_response():
     # test Maker init
     t = Maker(
         from_g_node_alias=gw_tuple.FromGNodeAlias,
-        from_g_node_id=gw_tuple.FromGNodeId,
+        from_g_node_instance_id=gw_tuple.FromGNodeInstanceId,
         snapshot=gw_tuple.Snapshot,
         #
     ).tuple
@@ -62,11 +56,11 @@ def test_gt_sh_cli_scada_response():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["FromGNodeAlias"] = orig_value
 
-    orig_value = gw_dict["FromGNodeId"]
-    del gw_dict["FromGNodeId"]
+    orig_value = gw_dict["FromGNodeInstanceId"]
+    del gw_dict["FromGNodeInstanceId"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["FromGNodeId"] = orig_value
+    gw_dict["FromGNodeInstanceId"] = orig_value
 
     orig_value = gw_dict["Snapshot"]
     del gw_dict["Snapshot"]
@@ -84,14 +78,14 @@ def test_gt_sh_cli_scada_response():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["FromGNodeAlias"] = orig_value
 
-    orig_value = gw_dict["FromGNodeId"]
-    gw_dict["FromGNodeId"] = 42
+    orig_value = gw_dict["FromGNodeInstanceId"]
+    gw_dict["FromGNodeInstanceId"] = 42
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["FromGNodeId"] = orig_value
+    gw_dict["FromGNodeInstanceId"] = orig_value
 
     orig_value = gw_dict["Snapshot"]
-    gw_dict["Snapshot"] = "Not a GtShStatusSnapshot."
+    gw_dict["Snapshot"] = "Not a TelemetrySnapshotSpaceheat."
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
     gw_dict["Snapshot"] = orig_value
@@ -99,8 +93,8 @@ def test_gt_sh_cli_scada_response():
     with pytest.raises(MpSchemaError):
         Maker(
             from_g_node_alias=gw_tuple.FromGNodeAlias,
-            from_g_node_id=gw_tuple.FromGNodeId,
-            snapshot="Not a GtShStatusSnapshot",
+            from_g_node_instance_id=gw_tuple.FromGNodeInstanceId,
+            snapshot="Not a TelemetrySnapshotSpaceheat",
         )
 
     ######################################
@@ -110,7 +104,7 @@ def test_gt_sh_cli_scada_response():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.sh.cli.scada.response.110"
+    gw_dict["TypeAlias"] = "snapshot.spaceheat.100"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
@@ -121,9 +115,9 @@ def test_gt_sh_cli_scada_response():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["FromGNodeAlias"] = "dwtest.isone.ct.newhaven.orange1.ta.scada"
 
-    gw_dict["FromGNodeId"] = "d4be12d5-33ba-4f1f-b9e5"
+    gw_dict["FromGNodeInstanceId"] = "d4be12d5-33ba-4f1f-b9e5"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["FromGNodeId"] = "0384ef21-648b-4455-b917-58a1172d7fc1"
+    gw_dict["FromGNodeInstanceId"] = "0384ef21-648b-4455-b917-58a1172d7fc1"
 
     # End of Test
