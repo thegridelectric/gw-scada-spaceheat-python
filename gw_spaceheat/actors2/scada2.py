@@ -45,6 +45,7 @@ from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_mul
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.schema_switcher import TypeMakerByAliasDict
 
+from actors.utils import gw_mqtt_topic_encode, gw_mqtt_topic_decode
 
 class ScadaMQTTCodec(MQTTCodec, ABC):
     ENCODING = "utf-8"
@@ -54,7 +55,8 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
 
     def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
         try:
-            (from_alias, type_alias) = receipt_payload.message.topic.split("/")
+            decoded_topic = gw_mqtt_topic_decode(receipt_payload.message.topic)
+            (from_alias, type_alias) = decoded_topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
         if type_alias not in TypeMakerByAliasDict.keys():
@@ -126,12 +128,12 @@ class Scada2(ScadaInterface, Proactor):
         # TODO: take care of subscriptions better. They should be registered here and only subscribed on connect.
         self._mqtt_clients.subscribe(
             Scada2.GRIDWORKS_MQTT,
-            f"{self._nodes.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}",
+            gw_mqtt_topic_encode(f"{self._nodes.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"),
             QOS.AtMostOnce,
         )
         self._mqtt_clients.subscribe(
             Scada2.GRIDWORKS_MQTT,
-            f"{self._nodes.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}",
+            gw_mqtt_topic_encode(f"{self._nodes.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}"),
             QOS.AtMostOnce,
         )
         # TODO: clean this up
@@ -186,7 +188,7 @@ class Scada2(ScadaInterface, Proactor):
         return self._node
 
     def gridworks_mqtt_topic(self, payload: Any) -> str:
-        return f"{self._nodes.scada_g_node_alias}/{payload.TypeAlias}"
+        return  gw_mqtt_topic_encode(f"{self._nodes.scada_g_node_alias}/{payload.TypeAlias}")
 
     @classmethod
     def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
