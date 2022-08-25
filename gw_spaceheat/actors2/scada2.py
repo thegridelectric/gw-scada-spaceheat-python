@@ -188,7 +188,7 @@ class Scada2(ScadaInterface, Proactor):
         return self._node
 
     def gridworks_mqtt_topic(self, payload: Any) -> str:
-        return  gw_mqtt_topic_encode(f"{self._nodes.scada_g_node_alias}/{payload.TypeAlias}")
+        return gw_mqtt_topic_encode(f"{self._nodes.scada_g_node_alias}/{payload.TypeAlias}")
 
     @classmethod
     def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
