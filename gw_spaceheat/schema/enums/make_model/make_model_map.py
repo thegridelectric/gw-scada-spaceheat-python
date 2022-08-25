@@ -34,6 +34,7 @@ class MakeModelMap:
         "076da322": MakeModel.GRIDWORKS__SIMPM1,
         "d300635e": MakeModel.SCHNEIDERELECTRIC__IEM3455,
         "e81d74a8": MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY,
+        "c75d269f": MakeModel.OPENENERGY__EMONPI,
         "acd93fb3": MakeModel.ADAFRUIT__642,
         "fabfa505": MakeModel.NCD__PR814SPST,
         "b6a32d9b": MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
@@ -47,5 +48,6 @@ class MakeModelMap:
         MakeModel.ADAFRUIT__642: "acd93fb3",
         MakeModel.NCD__PR814SPST: "fabfa505",
         MakeModel.UNKNOWNMAKE__UNKNOWNMODEL: "b6a32d9b",
+        MakeModel.OPENENERGY__EMONPI: "c75d269f"
         #
     }

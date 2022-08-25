@@ -19,7 +19,7 @@ and adding moquitto-clients
 
 sudo apt-get update
 
-sudo apt-get install -y build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev libffi-dev tar wget vim build-essential libi2c-dev i2c-tools python-dev mosquitto-clients
+sudo apt-get install -y build-essential tk-dev libncurses5-dev libncursesw5-dev libreadline6-dev libdb5.3-dev libgdbm-dev libsqlite3-dev libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-dev libffi-dev tar wget vim build-essential libi2c-dev i2c-tools python-dev mosquitto-clients tmux
 
 sudo apt clean
 
@@ -51,6 +51,8 @@ export TMPDIR=/home/pi/tmp
 
 regular pip was going to /usr/bin/pip and failing. Did this:
  /usr/local/bin/pip3.10 install -r requirements/drivers.txt
+
+ sudo pip install pyModbusTCP
 
  resulted in this:
    WARNING: The scripts pyserial-miniterm and pyserial-ports are installed in '/home/pi/.local/bin' which is not on PATH.

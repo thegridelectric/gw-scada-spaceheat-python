@@ -48,12 +48,15 @@ class Nodes:
         return telemetry_tuples
 
     @classmethod
+    def all_metered_nodes(cls) -> List[ShNode]:
+        """All nodes whose power level is metered and included in power reporting by the Scada"""
+        return cls.all_resistive_heaters()
+
+    @classmethod
     def all_power_meter_telemetry_tuples(cls) -> List[TelemetryTuple]:
-        telemetry_tuples = cls.all_power_tuples()
+        telemetry_tuples = []
         for about_node in cls.all_metered_nodes():
-            for (
-                telemetry_name
-            ) in cls.power_meter_driver().additional_telemetry_name_list():
+            for telemetry_name in cls.power_meter_node().component.cac.telemetry_name_list():
                 telemetry_tuples.append(
                     TelemetryTuple(
                         AboutNode=about_node,
@@ -61,13 +64,13 @@ class Nodes:
                         TelemetryName=telemetry_name,
                     )
                 )
-
         return telemetry_tuples
 
     @classmethod
-    def all_metered_nodes(cls) -> List[ShNode]:
-        """All nodes whose power level is metered and included in power reporting by the Scada"""
-        return cls.all_resistive_heaters()
+    def power_meter_node(cls) -> ShNode:
+        """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
+        nodes = list(filter(lambda x: x.role == Role.POWER_METER, ShNode.by_alias.values()))
+        return nodes[0]
 
     @classmethod
     def all_resistive_heaters(cls) -> List[ShNode]:

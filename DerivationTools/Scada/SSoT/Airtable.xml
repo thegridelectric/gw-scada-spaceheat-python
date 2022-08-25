@@ -1026,7 +1026,7 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
-      <TestValue>"dwtest.isone.ct.newhaven.orange1.ta.scada"</TestValue>
+      <TestValue>"dw1.isone.ct.newhaven.orange1.ta.scada"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -1534,7 +1534,7 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
-      <TestValue>"dwtest.isone.ct.newhaven.orange1.ta"</TestValue>
+      <TestValue>"dw1.isone.ct.newhaven.orange1.ta"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -1595,7 +1595,7 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
-      <TestValue>"dwtest.isone.ct.newhaven.orange1"</TestValue>
+      <TestValue>"dw1.isone.ct.newhaven.orange1"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -1813,7 +1813,7 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
-      <TestValue>"dwtest.isone.ct.newhaven.orange1.ta.scada"</TestValue>
+      <TestValue>"dw1.isone.ct.newhaven.orange1.ta.scada"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -2443,7 +2443,7 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
-      <TestValue>"dwtest.isone.ct.newhaven.orange1.ta.scada"</TestValue>
+      <TestValue>"dw1.isone.ct.newhaven.orange1.ta.scada"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>
@@ -2769,7 +2769,7 @@
       <IsPrimitive>true</IsPrimitive>
       <PrimitiveType>String</PrimitiveType>
       <PrimitiveFormatId>recb9fI4kRkTYXDzA</PrimitiveFormatId>
-      <TestValue>"dwtest.isone.ct.newhaven.orange1"</TestValue>
+      <TestValue>"dw1.isone.ct.newhaven.orange1"</TestValue>
       <TypeCheck>1</TypeCheck>
       <PrimitiveFormat>LrdAliasFormat</PrimitiveFormat>
       <IsEnum>false</IsEnum>

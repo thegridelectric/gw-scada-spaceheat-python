@@ -1,4 +1,5 @@
 import time
+import datetime
 import typing
 from typing import Dict, List, Optional
 from config import ScadaSettings
@@ -7,14 +8,28 @@ from actors.actor_base import ActorBase
 from actors.utils import Subscription, responsive_sleep
 
 from data_classes.sh_node import ShNode
+
+
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
+
+from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
+    GridworksSimPm1_PowerMeterDriver,
+)
+from drivers.power_meter.openenergy_emonpi__power_meter_driver import OpenenergyEmonpi_PowerMeterDriver
+
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
+
+from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
+    SchneiderElectricIem3455_PowerMeterDriver,
+)
+from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 
 from named_tuples.telemetry_tuple import TelemetryTuple
 
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
+from schema.enums.make_model.make_model_map import MakeModel
 from schema.enums.role.role_map import Role
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.enums.unit.unit_map import Unit
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig,
@@ -41,7 +56,6 @@ class PowerMeter(ActorBase):
     to configuration."""
 
     FASTEST_POWER_METER_POLL_PERIOD_MS = 40
-    DEFAULT_ASYNC_REPORTING_THRESHOLD = 0.05
 
     @classmethod
     def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
@@ -73,7 +87,8 @@ class PowerMeter(ActorBase):
         self.reporting_config: ReportingConfig = self.set_reporting_config(
             component=typing.cast(ElectricMeterComponent, self.node.component)
         )
-        self.driver: PowerMeterDriver = self.power_meter_driver()
+        self.driver: PowerMeterDriver = self.set_power_meter_driver(component=self.node.component)
+        self.driver.start()
 
         self.nameplate_telemetry_value: Dict[
             TelemetryTuple, int
@@ -99,6 +114,20 @@ class PowerMeter(ActorBase):
     # Initializing configuration
     ###################################
 
+    def set_power_meter_driver(self, component: ElectricMeterComponent) -> PowerMeterDriver:
+        cac = component.cac
+        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            driver = UnknownPowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
+            driver = SchneiderElectricIem3455_PowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
+            driver = GridworksSimPm1_PowerMeterDriver(component=component)
+        elif cac.make_model == MakeModel.OPENENERGY__EMONPI:
+            driver = OpenenergyEmonpi_PowerMeterDriver(component=component, settings=self.settings)
+        else:
+            raise NotImplementedError(f"No ElectricMeter driver yet for {cac.make_model}")
+        return driver
+
     def set_reporting_config(self, component: ElectricMeterComponent) -> ReportingConfig:
         cac = component.cac
         eq_reporting_config_list = []
@@ -110,7 +139,7 @@ class PowerMeter(ActorBase):
                 unit=Unit.AMPS_RMS,
                 exponent=6,
                 sample_period_s=self.settings.seconds_per_report,
-                async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
+                async_report_threshold=self.settings.async_power_reporting_threshold
             ).tuple
             tt = TelemetryTuple(
                 AboutNode=about_node,
@@ -127,7 +156,7 @@ class PowerMeter(ActorBase):
                 unit=Unit.W,
                 exponent=0,
                 sample_period_s=self.settings.seconds_per_report,
-                async_report_threshold=self.DEFAULT_ASYNC_REPORTING_THRESHOLD,
+                async_report_threshold=self.settings.async_power_reporting_threshold
             ).tuple
             eq_reporting_config_list.append(power_config)
             tt = TelemetryTuple(
@@ -135,7 +164,10 @@ class PowerMeter(ActorBase):
             )
             self.eq_reporting_config[tt] = power_config
 
-        poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
+        if cac.update_period_ms is None:
+            poll_period_ms = self.FASTEST_POWER_METER_POLL_PERIOD_MS
+        else:
+            poll_period_ms = max(self.FASTEST_POWER_METER_POLL_PERIOD_MS, cac.update_period_ms)
         return ReportingConfig_Maker(
             reporting_period_s=self.settings.seconds_per_report,
             poll_period_ms=poll_period_ms,
@@ -267,6 +299,7 @@ class PowerMeter(ActorBase):
     def report_aggregated_power_w(self):
         self.publish(GsPwr_Maker(power=self.latest_agg_power_w).tuple)
         self.last_reported_agg_power_w = self.latest_agg_power_w
+        self.screen_print(f"{datetime.datetime.now().isoformat()} {self.latest_agg_power_w} W")
 
     def should_report_aggregated_power(self) -> bool:
         """Aggregated power is sent up asynchronously on change via a GsPwr message, and the last aggregated
@@ -277,7 +310,7 @@ class PowerMeter(ActorBase):
             return True
         abs_power_delta = abs(self.latest_agg_power_w - self.last_reported_agg_power_w)
         change_ratio = abs_power_delta / self.nameplate_agg_power_w
-        if change_ratio > self.DEFAULT_ASYNC_REPORTING_THRESHOLD:
+        if change_ratio > self.settings.async_power_reporting_threshold:
             return True
         return False
 
@@ -294,13 +327,7 @@ class PowerMeter(ActorBase):
                     telemetry_tuple_report_list.append(telemetry_tuple)
             if len(telemetry_tuple_report_list) > 0:
                 self.report_sampled_telemetry_values(telemetry_tuple_report_list)
-                for tt in telemetry_tuple_report_list:
-                    self.screen_print(
-                        f"{tt.TelemetryName.value} for "
-                        f"{tt.AboutNode.alias} is "
-                        f"{self.latest_telemetry_value[tt]}"
-                    )
-            sleep_time_ms = self.reporting_config.PollPeriodMs
+            sleep_time_ms = self.reporting_config.PollPeriodMs / 5
             delta_ms = 1000 * (time.time() - start_s)
             if delta_ms < self.reporting_config.PollPeriodMs:
                 sleep_time_ms -= delta_ms
