@@ -16,6 +16,7 @@ class MakeModel(enum.Enum):
     ADAFRUIT__642 = "Adafruit__642"
     NCD__PR814SPST = "NCD__PR8-14-SPST"
     UNKNOWNMAKE__UNKNOWNMODEL = "UnknownMake__UnknownModel"
+    OPENENERGY__EMONPI = "OpenEnergy__EmonPi"
     #
 
 
@@ -28,5 +29,6 @@ class SpaceheatMakeModel100GtEnum(ABC):
         "acd93fb3",
         "fabfa505",
         "b6a32d9b",
+        "c75d269f"
         #
     ]
