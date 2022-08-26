@@ -194,7 +194,8 @@ class ActorBase(ABC):
 
     def on_mqtt_message(self, client, userdata, message):
         try:
-            (from_alias, type_alias) = message.topic.split("/")
+            topic = message.topic
+            (from_alias, type_alias) = topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
         if from_alias not in ShNode.by_alias.keys():

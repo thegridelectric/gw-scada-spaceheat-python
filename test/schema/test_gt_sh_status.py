@@ -22,7 +22,7 @@ def test_gt_sh_status():
                 "TelemetryNameGtEnumSymbol": "5a71d4b3",
             }
         ],
-        "AboutGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta",
+        "AboutGNodeAlias": "dw1.isone.ct.newhaven.orange1.ta",
         "BooleanactuatorCmdList": [
             {
                 "ShNodeAlias": "a.elt1.relay",
@@ -31,7 +31,7 @@ def test_gt_sh_status():
                 "TypeAlias": "gt.sh.booleanactuator.cmd.status.100",
             }
         ],
-        "FromGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta.scada",
+        "FromGNodeAlias": "dw1.isone.ct.newhaven.orange1.ta.scada",
         "MultipurposeTelemetryList": [
             {
                 "AboutNodeAlias": "a.elt1",
@@ -327,12 +327,12 @@ def test_gt_sh_status():
     gw_dict["AboutGNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["AboutGNodeAlias"] = "dwtest.isone.ct.newhaven.orange1.ta"
+    gw_dict["AboutGNodeAlias"] = "dw1.isone.ct.newhaven.orange1.ta"
 
     gw_dict["FromGNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["FromGNodeAlias"] = "dwtest.isone.ct.newhaven.orange1.ta.scada"
+    gw_dict["FromGNodeAlias"] = "dw1.isone.ct.newhaven.orange1.ta.scada"
 
     gw_dict["FromGNodeId"] = "d4be12d5-33ba-4f1f-b9e5"
     with pytest.raises(MpSchemaError):

@@ -10,11 +10,14 @@ from data_classes.components.electric_meter_component import ElectricMeterCompon
 from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
+
 from test.utils import wait_for, ScadaRecorder, AtnRecorder, flush_all
+from actors.utils import gw_mqtt_topic_encode
+
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 
 from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
 
 from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker import (
@@ -346,7 +349,7 @@ def test_power_meter_aggregate_power_forward():
         for i in range(num_changes):
             print(f"Generating GsPwr change {i+1}/{num_changes}")
             num_scada_gs_pwr = scada.num_received_by_topic["a.m/p"]
-            atn_gs_pwr_topic = f"{scada.scada_g_node_alias}/p"
+            atn_gs_pwr_topic = gw_mqtt_topic_encode(f"{scada.scada_g_node_alias}/p")
             num_atn_gs_pwr = atn.num_received_by_topic[atn_gs_pwr_topic]
 
             # Simulate a change in aggregate power that should trigger a GsPwr message

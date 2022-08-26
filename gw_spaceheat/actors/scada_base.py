@@ -6,7 +6,7 @@ import paho.mqtt.client as mqtt
 import helpers
 from config import ScadaSettings
 from actors.actor_base import ActorBase
-from actors.utils import QOS, MessageSummary
+from actors.utils import QOS, MessageSummary, gw_mqtt_topic_decode, gw_mqtt_topic_encode
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr import GsPwr
@@ -30,7 +30,7 @@ class ScadaBase(ActorBase):
             self.gw_client.on_log = self.on_log
 
     def subscribe_gw(self):
-        subscriptions = list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
+        subscriptions = list(map(lambda x: (f"{gw_mqtt_topic_encode(x.Topic)}", x.Qos.value), self.gw_subscriptions()))
         if subscriptions:
             self.gw_client.subscribe(subscriptions)
 
@@ -62,7 +62,8 @@ class ScadaBase(ActorBase):
     # noinspection PyUnusedLocal
     def on_gw_mqtt_message(self, client, userdata, message):
         try:
-            (from_alias, type_alias) = message.topic.split("/")
+            topic = gw_mqtt_topic_decode(message.topic)
+            (from_alias, type_alias) = topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
         if from_alias != self.atn_g_node_alias:
@@ -87,9 +88,9 @@ class ScadaBase(ActorBase):
             qos = QOS.AtLeastOnce
         topic = f"{self.scada_g_node_alias}/{payload.TypeAlias}"
         if self.settings.logging_on or self.settings.log_message_summary:
-            print(MessageSummary.format("OUT", self.node.alias, topic, payload, broker_flag="*"))
+            print(MessageSummary.format("OUT", self.node.alias, gw_mqtt_topic_encode(topic), payload, broker_flag="*"))
         self.gw_client.publish(
-            topic=topic,
+            topic=gw_mqtt_topic_encode(topic),
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,
