@@ -12,7 +12,7 @@ from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import (
 def test_gt_sh_cli_atn_cmd():
 
     gw_dict = {
-        "FromGNodeAlias": "dwtest.isone.ct.newhaven.orange1",
+        "FromGNodeAlias": "dw1.isone.ct.newhaven.orange1",
         "SendSnapshot": True,
         "FromGNodeId": "e7f7d6cc-08b0-4b36-bbbb-0a1f8447fd32",
         "TypeAlias": "gt.sh.cli.atn.cmd.110",
@@ -106,7 +106,7 @@ def test_gt_sh_cli_atn_cmd():
     gw_dict["FromGNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["FromGNodeAlias"] = "dwtest.isone.ct.newhaven.orange1"
+    gw_dict["FromGNodeAlias"] = "dw1.isone.ct.newhaven.orange1"
 
     gw_dict["FromGNodeId"] = "d4be12d5-33ba-4f1f-b9e5"
     with pytest.raises(MpSchemaError):

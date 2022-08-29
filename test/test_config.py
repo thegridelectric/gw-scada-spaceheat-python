@@ -42,6 +42,7 @@ def test_scada_settings_defaults(clean_scada_env):
         local_mqtt=MQTTClient().dict(),
         gridworks_mqtt=MQTTClient().dict(),
         seconds_per_report=300,
+        async_power_reporting_threshold=0.02,
         logging_on=False,
         log_message_summary=False,
     )

@@ -32,6 +32,7 @@ def test_scada_small():
     settings = ScadaSettings()
     load_house.load_all(settings.world_root_alias)
     scada = Scada2(node=ShNode.by_alias["a.s"], settings=settings, actors=dict())
+    assert scada._nodes.power_meter_node() == ShNode.by_alias["a.m"]
     meter_node = ShNode.by_alias["a.m"]
     relay_node = ShNode.by_alias["a.elt1.relay"]
     temp_node = ShNode.by_alias["a.tank.temp0"]

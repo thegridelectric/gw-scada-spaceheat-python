@@ -12,7 +12,7 @@ from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
 def test_snapshot_spaceheat():
 
     gw_dict = {
-        "FromGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta.scada",
+        "FromGNodeAlias": "dw1.isone.ct.newhaven.orange1.ta.scada",
         "FromGNodeInstanceId": "0384ef21-648b-4455-b917-58a1172d7fc1",
         "Snapshot": {"TelemetryNameList": ["5a71d4b3"], "AboutNodeAliasList": ["a.elt1.relay"], "ReportTimeUnixMs": 1656363448000, "ValueList": [1], "TypeAlias": "telemetry.snapshot.spaceheat.100"},
         "TypeAlias": "snapshot.spaceheat.100",
@@ -113,7 +113,7 @@ def test_snapshot_spaceheat():
     gw_dict["FromGNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["FromGNodeAlias"] = "dwtest.isone.ct.newhaven.orange1.ta.scada"
+    gw_dict["FromGNodeAlias"] = "dw1.isone.ct.newhaven.orange1.ta.scada"
 
     gw_dict["FromGNodeInstanceId"] = "d4be12d5-33ba-4f1f-b9e5"
     with pytest.raises(MpSchemaError):

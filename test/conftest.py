@@ -15,10 +15,10 @@ class CleanScadaEnv:
     """Context manager for monkeypatched environment with all vars starting with SCADA_ removed. Usage:
     >>> os.environ["SCADA_WORLD_ROOT_ALIAS"] = "foo"
     >>> with CleanScadaEnv().context() as mpatch:
-    ...     assert os.getenv("SCADA_WORLD_ROOT_ALIAS") == "dwtest"
+    ...     assert os.getenv("SCADA_WORLD_ROOT_ALIAS") == "dw1"
     """
 
-    def __init__(self, world: str = "dwtest", prefix: str = ScadaSettings.Config.env_prefix):
+    def __init__(self, world: str = "dw1", prefix: str = ScadaSettings.Config.env_prefix):
         self.world = world
         self.prefix = prefix
 
@@ -43,7 +43,7 @@ def flush_local_registries():
 @pytest.fixture(autouse=True)
 def clean_scada_env(request) -> Generator[MonkeyPatch, None, None]:
     """Automatically used fixture producing monkeypatched environment with all vars starting SCADA_ removed and then
-    setting enviroment variable to SCADA_WORLD_ALIAS_ROOT set to 'dwtest'.
+    setting enviroment variable to SCADA_WORLD_ALIAS_ROOT set to 'dw1'.
 
     Note that this fixture is run before _every_ test.
 
@@ -54,9 +54,9 @@ def clean_scada_env(request) -> Generator[MonkeyPatch, None, None]:
         def test_something(clean_scada_env):
             assert os.getenv("SCADA_WORLD_ROOT_ALIAS") == "trappist-1e"
     """
-    param = getattr(request, "param", ("dwtest", "SCADA_"))
+    param = getattr(request, "param", ("dw1", "SCADA_"))
     with CleanScadaEnv(
-        world=param[0] if len(param) > 0 else "dwtest",
+        world=param[0] if len(param) > 0 else "dw1",
         prefix=param[1] if len(param) > 1 else "SCADA_"
     ).context() as mpatch:
         yield mpatch

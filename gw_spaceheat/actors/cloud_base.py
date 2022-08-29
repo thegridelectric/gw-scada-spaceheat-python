@@ -11,7 +11,7 @@ import paho.mqtt.client as mqtt
 
 import helpers
 from config import ScadaSettings
-from actors.utils import QOS, Subscription, MessageSummary
+from actors.utils import QOS, Subscription, MessageSummary, gw_mqtt_topic_encode, gw_mqtt_topic_decode
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr_maker import GsPwr
@@ -88,7 +88,7 @@ class CloudBase(ABC):
 
     def subscribe_gw(self):
         self.gw_client.subscribe(
-            list(map(lambda x: (f"{x.Topic}", x.Qos.value), self.gw_subscriptions()))
+            list(map(lambda x: (f"{gw_mqtt_topic_encode(x.Topic)}", x.Qos.value), self.gw_subscriptions()))
         )
 
     def mqtt_log_hack(self, row):
@@ -125,8 +125,10 @@ class CloudBase(ABC):
         raise NotImplementedError
 
     def on_gw_mqtt_message(self, client, userdata, message):
+        print(f"Got {message.topic}")
         try:
-            (from_alias, type_alias) = message.topic.split("/")
+            topic = gw_mqtt_topic_decode(message.topic)
+            (from_alias, type_alias) = topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
         if from_alias != self.scada_g_node_alias and from_alias != self.atn_g_node_alias:
@@ -163,9 +165,9 @@ class CloudBase(ABC):
             qos = QOS.AtLeastOnce
         topic = f"{self.atn_g_node_alias}/{payload.TypeAlias}"
         if self.settings.logging_on or self.settings.log_message_summary:
-            print(MessageSummary.format("OUT", self.atn_g_node_alias, topic, payload, broker_flag="*"))
+            print(MessageSummary.format("OUT", self.atn_g_node_alias, gw_mqtt_topic_encode(topic), payload, broker_flag="*"))
         self.gw_client.publish(
-            topic=topic,
+            topic=gw_mqtt_topic_encode(topic),
             payload=payload.as_type(),
             qos=qos.value,
             retain=False,

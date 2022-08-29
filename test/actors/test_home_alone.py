@@ -27,7 +27,7 @@ def test_homealone_small():
                 "TelemetryNameGtEnumSymbol": "5a71d4b3",
             }
         ],
-        "AboutGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta",
+        "AboutGNodeAlias": "dw1.isone.ct.newhaven.orange1.ta",
         "BooleanactuatorCmdList": [
             {
                 "ShNodeAlias": "a.elt1.relay",
@@ -36,7 +36,7 @@ def test_homealone_small():
                 "TypeAlias": "gt.sh.booleanactuator.cmd.status.100",
             }
         ],
-        "FromGNodeAlias": "dwtest.isone.ct.newhaven.orange1.ta.scada",
+        "FromGNodeAlias": "dw1.isone.ct.newhaven.orange1.ta.scada",
         "MultipurposeTelemetryList": [
             {
                 "AboutNodeAlias": "a.elt1",
