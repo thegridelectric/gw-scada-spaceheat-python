@@ -43,7 +43,6 @@ from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
 
 class ScadaData:
     latest_total_power_w: Optional[int]
-    latest_total_power_w: Optional[int]
     status_to_store: Dict[str, GtShStatus]
     latest_simple_value: Dict[ShNode, int]
     recent_simple_values: Dict[ShNode, List]

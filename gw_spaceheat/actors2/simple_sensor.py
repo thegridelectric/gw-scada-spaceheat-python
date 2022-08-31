@@ -11,12 +11,11 @@ import queue
 import time
 from typing import Optional, Type, Any
 
-from actors2.actor import Actor
+from actors2.actor import SyncThreadActor
 from actors2.message import GtTelemetryMessage
 from actors2.scada_interface import ScadaInterface
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
-from proactor.message import Message
 from proactor.sync_thread import SyncAsyncQueueWriter, SyncAsyncInteractionThread
 
 
@@ -50,7 +49,7 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
         loop_start_s = time.time()
         previous_value = self._telemetry_value
         self.update_telemetry_value()
-        if self.report_update_now(previous_value) or self.is_time_to_report():
+        if self.report_now(previous_value) or (self.is_time_to_report() and not self.filter(previous_value)):
             self.report_telemetry()
         now_s = time.time()
         if (now_s - loop_start_s) < self.MAIN_LOOP_MIN_TIME_S:
@@ -94,33 +93,32 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
         """Updates self.telemetry_value, using the config.driver"""
         self._telemetry_value = self._config.driver.read_telemetry_value()
 
+    def report_now(self, previous_value: Any) -> bool:
+        return False
+
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def report_update_now(self, previous_value: Any) -> bool:
+    def filter(self, previous_value: Any) -> bool:
         return False
 
 
-class SimpleSensor(Actor):
-    _driver_thread: SyncAsyncInteractionThread
+class SimpleSensor(SyncThreadActor):
 
     def __init__(
         self,
         node: ShNode,
         services: ScadaInterface,
         driver_thread: Optional[SyncAsyncInteractionThread] = None,
-        driver_thread_class: Optional[Type[SimpleSensorDriverThread]] = None,
+        driver_thread_class: Optional[Type[SyncAsyncInteractionThread]] = None,
         driver_receives_messages: bool = False,
-        responsive_sleep_step_seconds: float = SimpleSensorDriverThread.SLEEP_STEP_SECONDS,
+        responsive_sleep_step_seconds: float = SyncAsyncInteractionThread.SLEEP_STEP_SECONDS,
         daemon: bool = True,
         loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
-        super().__init__(node, services)
-        if driver_thread is not None:
-            self._driver_thread = driver_thread
-        else:
+        if driver_thread is None:
             if driver_thread_class is None:
                 driver_thread_class = SimpleSensorDriverThread
-            self._driver_thread = driver_thread_class(
-                name=self.alias,
+            driver_thread = driver_thread_class(
+                name=node.alias,
                 config=NodeConfig(node, services.settings),
                 telemetry_destination=services.name,
                 channel=SyncAsyncQueueWriter(
@@ -131,20 +129,5 @@ class SimpleSensor(Actor):
                 responsive_sleep_step_seconds=responsive_sleep_step_seconds,
                 daemon=daemon,
             )
+        super().__init__(node, services, driver_thread)
 
-    async def process_message(self, message: Message):
-        raise ValueError(
-            f"Error. SimpleSensor does not process any messages. Received {message.header}"
-        )
-
-    def send_driver_message(self, message: Any) -> None:
-        self._driver_thread.put_to_sync_queue(message)
-
-    def start(self):
-        self._driver_thread.start()
-
-    def stop(self):
-        self._driver_thread.request_stop()
-
-    async def join(self):
-        await self._driver_thread.async_join()

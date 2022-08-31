@@ -269,7 +269,6 @@ def test_power_meter_periodic_update():
     meter_node = ShNode.by_alias["a.m"]
     typing.cast(ElectricMeterComponent, meter_node.component).cac.update_period_ms = 0
     meter = PowerMeter(node=meter_node, settings=settings)
-    meter.reporting_sample_period_s = 0
     actors = [scada, meter]
     expected_tts = [
         TelemetryTuple(

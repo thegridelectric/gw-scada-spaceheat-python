@@ -51,7 +51,15 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
     ENCODING = "utf-8"
 
     def encode(self, payload: Any) -> bytes:
-        return payload.as_type().encode(self.ENCODING)
+        if isinstance(payload, bytes):
+            encoded = payload
+        else:
+            payload_as_type = payload.as_type()
+            if isinstance(payload_as_type, bytes):
+                encoded = payload_as_type
+            else:
+                encoded = payload_as_type.encode(self.ENCODING)
+        return encoded
 
     def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
         try:
