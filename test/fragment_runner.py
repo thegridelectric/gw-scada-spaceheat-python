@@ -56,6 +56,7 @@ class Actors:
     thermo: SimpleSensor
     scada2: Scada2
     relay2: actors2.BooleanActuator
+    meter2: actors2.PowerMeter
 
     def __init__(self, settings: ScadaSettings):
         self.scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
@@ -72,6 +73,7 @@ class Actors:
         self.relay2 = actors2.BooleanActuator(
             node=ShNode.by_alias["a.elt1.relay"], services=self.scada2
         )
+        self.meter2 = actors2.PowerMeter(node=ShNode.by_alias["a.m"], services=self.scada2)
 
 
 class FragmentRunner:

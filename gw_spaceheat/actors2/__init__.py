@@ -7,6 +7,7 @@ from actors2.scada2 import Scada2
 from actors2.actor import Actor
 from actors2.boolean_actuator import BooleanActuator
 from actors2.simple_sensor import SimpleSensor
+from actors2.power_meter import PowerMeter
 from actors2.message import (
     GtTelemetryMessage,
     GtDriverBooleanactuatorCmdResponse,
@@ -21,6 +22,7 @@ __all__ = [
     "Actor",
     "BooleanActuator",
     "SimpleSensor",
+    "PowerMeter",
     "Nodes",
     "GtTelemetryMessage",
     "GtDriverBooleanactuatorCmdResponse",

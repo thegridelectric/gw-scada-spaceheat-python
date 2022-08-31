@@ -20,7 +20,8 @@ class DispatchRelay(BaseModel):
 
 
 class BooleanActuatorDriverThread(SimpleSensorDriverThread):
-    def report_update_now(self, previous_value: Any) -> bool:
+
+    def report_now(self, previous_value: Any) -> bool:
         return previous_value != self._telemetry_value
 
     def update_telemetry_value(self):
@@ -35,7 +36,7 @@ class BooleanActuatorDriverThread(SimpleSensorDriverThread):
             if int(message.relay_state) != int(self._telemetry_value):
                 previous_value = self._telemetry_value
                 self.update_telemetry_value()
-                if self.report_update_now(previous_value):
+                if self.report_now(previous_value):
                     self.report_telemetry()
 
 
