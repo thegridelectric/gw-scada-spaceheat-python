@@ -167,4 +167,3 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
                 )
 
     await FragmentRunner.async_run_fragment(Fragment)
-

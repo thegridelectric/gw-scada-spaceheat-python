@@ -38,6 +38,7 @@ class Actor(ActorInterface, Communicator, ABC):
 
 SyncThreadT = TypeVar("SyncThreadT", bound=SyncAsyncInteractionThread)
 
+
 class SyncThreadActor(Actor, Generic[SyncThreadT]):
     _sync_thread: SyncAsyncInteractionThread
 
@@ -53,7 +54,7 @@ class SyncThreadActor(Actor, Generic[SyncThreadT]):
     async def process_message(self, message: Message):
         raise ValueError(f"Error. {self.__class__.__name__} does not process any messages. Received {message.header}")
 
-    def send_driver_message(self, message:Any) -> None:
+    def send_driver_message(self, message: Any) -> None:
         self._sync_thread.put_to_sync_queue(message)
 
     def start(self):
