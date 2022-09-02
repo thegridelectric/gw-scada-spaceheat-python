@@ -15,6 +15,7 @@ from actors.atn import Atn
 from actors.cloud_ear import CloudEar
 from actors.home_alone import HomeAlone
 from actors.scada import Scada
+from actors2 import Scada2
 from config import ScadaSettings
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
@@ -39,6 +40,9 @@ from data_classes.components.temp_sensor_component import (
     TempSensorComponent,
 )
 from data_classes.sh_node import ShNode
+from proactor import Message
+from proactor.message import MQTTReceiptPayload, MQTTConnectPayload, MQTTDisconnectPayload, MQTTConnectFailPayload, \
+    MQTTSubackPayload
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
     GtDispatchBooleanLocal,
@@ -418,6 +422,88 @@ class ScadaRecorder(Scada):
     def summary_str(self):
         """Summarize results in a string"""
         s = f"ScadaRecorder  {self.node.alias}  num_received: {self.num_received}  comm events: {len(self.comm_events)}"
+        for topic in sorted(self.num_received_by_topic):
+            s += f"\n  {self.num_received_by_topic[topic]:3d}: [{topic}]"
+        if self.comm_event_counts:
+            s += f"\n{textwrap.indent(pprint.pformat(self.comm_event_counts), '  ')}"
+        if self.comm_events:
+            s += "\n  Comm events:"
+            for comm_event in self.comm_events:
+                s += f"\n    {comm_event}"
+        return s
+
+class Scada2Recorder(Scada2):
+
+    num_received_by_topic: Dict[str, int]
+    comm_events: List[CommEvent]
+    comm_event_counts: Dict[CommEvents, int]
+
+    def __init__(self, node: ShNode, settings: ScadaSettings, actor_nodes: Optional[List[ShNode]] = None):
+        self.num_received_by_topic = defaultdict(int)
+        self.comm_events = []
+        self.comm_event_counts = defaultdict(int)
+        super().__init__(node, settings=settings, actor_nodes=actor_nodes)
+
+    @property
+    def status_topic(self) -> str:
+        return gw_mqtt_topic_encode(f"{self._nodes.scada_g_node_alias}/{GtShStatus_Maker.type_alias}")
+
+    @property
+    def snapshot_topic(self) -> str:
+        return gw_mqtt_topic_encode(f"{self._nodes.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}")
+
+    @property
+    def num_received(self) -> int:
+        return self.comm_event_counts[CommEvents.message]
+
+    def _record_comm_event(self, broker: Brokers, event: CommEvents, *params: Any):
+        self.comm_event_counts[event] += 1
+        self.comm_events.append(
+            CommEvent(
+                datetime.datetime.now(), broker=broker, event=event, params=list(params)
+            )
+        )
+
+    async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
+        self._record_comm_event(
+            Brokers.local,
+            CommEvents.message,
+            message.payload.userdata,
+            message.payload.message
+        )
+        self.num_received_by_topic[message.payload.message.topic] += 1
+        await super()._process_mqtt_message(message)
+
+    def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
+        self._record_comm_event(
+            Brokers.gw,
+            CommEvents.connect,
+            message.payload.userdata,
+            message.payload.flags,
+            message.payload.rc
+        )
+        super()._process_mqtt_connected(message)
+
+    def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
+        self._record_comm_event(Brokers.gw, CommEvents.disconnect, message.payload.userdata, message.payload.rc)
+        super()._process_mqtt_disconnected(message)
+
+    def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
+        self._record_comm_event(Brokers.gw, CommEvents.connect_fail, message.payload.userdata)
+        super()._process_mqtt_connect_fail(message)
+
+    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+        self._record_comm_event(
+            Brokers.gw,
+            CommEvents.subscribe,
+            message.payload.userdata,
+            message.payload.mid, message.payload.granted_qos
+        )
+        super()._process_mqtt_suback(message)
+
+    def summary_str(self):
+        """Summarize results in a string"""
+        s = f"Scada2Recorder  {self.node.alias}  num_received: {self.num_received}  comm events: {len(self.comm_events)}"
         for topic in sorted(self.num_received_by_topic):
             s += f"\n  {self.num_received_by_topic[topic]:3d}: [{topic}]"
         if self.comm_event_counts:

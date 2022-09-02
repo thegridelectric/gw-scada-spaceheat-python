@@ -111,7 +111,6 @@ class Scada2(ScadaInterface, Proactor):
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
 
-    # TODO: Cleanup loop policy
     def __init__(
         self,
         node: ShNode,

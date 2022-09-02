@@ -8,7 +8,7 @@ from actors.actor_base import ActorBase
 from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
-from actors2 import Scada2, ActorInterface
+from actors2 import ActorInterface
 from config import ScadaSettings
 from data_classes.sh_node import ShNode
 
@@ -19,9 +19,10 @@ try:
         HomeAloneRecorder,
         wait_for,
         await_for,
-    )
+        Scada2Recorder,
+)
 except ImportError:
-    from utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, wait_for, await_for
+    from utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, wait_for, await_for, Scada2Recorder
 
 
 def delimit_str(text: str = "") -> str:
@@ -54,7 +55,7 @@ class Actors:
     relay: BooleanActuator
     meter: PowerMeter
     thermo: SimpleSensor
-    scada2: Scada2
+    scada2: Scada2Recorder
     relay2: actors2.BooleanActuator
     meter2: actors2.PowerMeter
 
@@ -69,7 +70,7 @@ class Actors:
         self.thermo = SimpleSensor(
             node=ShNode.by_alias["a.tank.temp0"], settings=settings
         )
-        self.scada2 = Scada2(ShNode.by_alias["a.s"], settings)
+        self.scada2 = Scada2Recorder(ShNode.by_alias["a.s"], settings)
         self.relay2 = actors2.BooleanActuator(
             node=ShNode.by_alias["a.elt1.relay"], services=self.scada2
         )
