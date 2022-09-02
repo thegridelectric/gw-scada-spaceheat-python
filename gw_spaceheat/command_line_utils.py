@@ -130,14 +130,7 @@ async def run_async_actors(
         else:
             actor_nodes.append(node)
 
-    # TODO: Make choosing which actors to load more straight-forward and public.
-    scada = Scada2(node=scada_node, settings=settings, actors=dict())
-    for actor_node in actor_nodes:
-        # noinspection PyProtectedMember
-        scada._add_communicator(
-            ActorInterface.load(actor_node, scada, actors_package_name)
-        )
-
+    scada = Scada2(node=scada_node, settings=settings, actor_nodes=actor_nodes)
     scada.start()
     await scada.run_forever()
 

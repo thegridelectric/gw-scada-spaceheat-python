@@ -3,7 +3,6 @@
 import importlib
 import sys
 from abc import ABC, abstractmethod
-from typing import Dict
 
 from data_classes.sh_node import ShNode
 from proactor.proactor_interface import (
@@ -32,12 +31,3 @@ class ActorInterface(CommunicatorInterface, Runnable, ABC):
             importlib.import_module(module_name)
         actor_class = getattr(sys.modules[module_name], node.actor_class.value)
         return actor_class(node, services)
-
-    @classmethod
-    def load_all(
-        cls, services: ServicesInterface, module_name: str
-    ) -> Dict[str, "ActorInterface"]:
-        return {
-            alias: cls.load(node, services, module_name=module_name)
-            for alias, node in ShNode.by_alias.items()
-        }

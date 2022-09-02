@@ -69,7 +69,7 @@ class Actors:
         self.thermo = SimpleSensor(
             node=ShNode.by_alias["a.tank.temp0"], settings=settings
         )
-        self.scada2 = Scada2(ShNode.by_alias["a.s"], settings, actors=dict())
+        self.scada2 = Scada2(ShNode.by_alias["a.s"], settings)
         self.relay2 = actors2.BooleanActuator(
             node=ShNode.by_alias["a.elt1.relay"], services=self.scada2
         )

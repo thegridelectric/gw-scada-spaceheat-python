@@ -4,7 +4,7 @@ import asyncio
 import time
 import typing
 from abc import abstractmethod, ABC
-from typing import Any, Dict, Optional
+from typing import Any, List, Optional
 
 from paho.mqtt.client import MQTTMessageInfo
 
@@ -116,7 +116,7 @@ class Scada2(ScadaInterface, Proactor):
         self,
         node: ShNode,
         settings: ScadaSettings,
-        actors: Optional[Dict[str, ActorInterface]] = None,
+        actor_nodes: Optional[List[ShNode]] = None,
     ):
         super().__init__(name=node.alias)
         self._node = node
@@ -147,10 +147,9 @@ class Scada2(ScadaInterface, Proactor):
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
-        if actors is None:
-            actors = ActorInterface.load_all(self, self.DEFAULT_ACTORS_MODULE)
-        for actor in actors.values():
-            self._add_communicator(actor)
+        if actor_nodes is not None:
+            for actor_node in actor_nodes:
+                self._add_communicator(ActorInterface.load(actor_node, self, self.DEFAULT_ACTORS_MODULE))
 
     def _start_derived_tasks(self):
         self._tasks.append(
