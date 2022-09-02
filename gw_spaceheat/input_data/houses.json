@@ -303,21 +303,21 @@
                 "ComponentId": "2ca9e65a-5e85-4eaa-811b-901e940f8d09",
                 "DisplayName": "Temp sensor on pipe out of tank",
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
-                "HwUid": "00033ffe",
+                "hw1Uid": "00033ffe",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "35b5107c-bf32-4791-93eb-0497929fae57",
                 "DisplayName": "Temp sensor on pipe into tank",
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
-                "HwUid": "000363a9",
+                "hw1Uid": "000363a9",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "2d4b3b73-fc58-4789-b15e-9881f0b4ff40",
                 "DisplayName": "Component for a.tank.temp0 (on top)",
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
-                "HwUid": "00041d3f",
+                "hw1Uid": "00041d3f",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
@@ -332,7 +332,7 @@
                 "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
                 "DisplayName": "Main power meter for Little orange house garage space heat",
                 "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
-                "HwUid": "35941_308",
+                "hw1Uid": "35941_308",
                 "TypeAlias": "gt.electric.meter.component.100"
             }
         ],
@@ -459,12 +459,12 @@
         ]     
     },
 
-    "hw":
+    "hw1":
     {
         "MyAtomicTNodeGNode":
         {
             "GNodeId": "d636cbeb-c4ad-45cd-b5bc-1c64cc33f4f4",
-            "Alias": "hw.isone.ct.newhaven.orange1",
+            "Alias": "hw1.isone.ct.newhaven.orange1",
             "DisplayName": "Little Orange House Garage Heating System AtomicTNode",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "AtomicTNode"
@@ -472,7 +472,7 @@
         "MyTerminalAssetGNode": 
           {
               "GNodeId": "137d7f06-ea65-4254-bfd1-5d56fa789229",
-              "Alias":  "hw.isone.ct.newhaven.orange1.ta",
+              "Alias":  "hw1.isone.ct.newhaven.orange1.ta",
               "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
               "GNodeStatusValue": "Active",
               "PrimaryGNodeRoleAlias": "TerminalAsset"
@@ -480,7 +480,7 @@
         "MyScadaGNode": 
         {
             "GNodeId": "28817671-3899-4e24-a337-abcb8633e47a",
-            "Alias":  "hw.isone.ct.newhaven.orange1.ta.scada",
+            "Alias":  "hw1.isone.ct.newhaven.orange1.ta.scada",
             "DisplayName": "Little Orange House Garage Heating System SCADA",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "Scada"
@@ -763,21 +763,21 @@
                 "ComponentId": "2ca9e65a-5e85-4eaa-811b-901e940f8d09",
                 "DisplayName": "Temp sensor on pipe out of tank",
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
-                "HwUid": "00033ffe",
+                "hw1Uid": "00033ffe",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "35b5107c-bf32-4791-93eb-0497929fae57",
                 "DisplayName": "Temp sensor on pipe into tank",
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
-                "HwUid": "000363a9",
+                "hw1Uid": "000363a9",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "fbdadade-760f-4fdf-8a05-ab8243ba1371",
                 "DisplayName": "Component for a.tank.temp0 (on top)",
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
-                "HwUid": "0002b854",
+                "hw1Uid": "0002b854",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
@@ -792,7 +792,7 @@
                 "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
                 "DisplayName": "Main power meter for Little orange house garage space heat",
                 "ComponentAttributeClassId": "b8c7e562-5c72-4bfc-a199-b1c5e29aedbb",
-                "HwUid": "35941_308",
+                "hw1Uid": "35941_308",
                 "TypeAlias": "gt.electric.meter.component.100"
             }
         ],
@@ -1236,7 +1236,7 @@
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "HwUid": "aaaa2222",
+                "hw1Uid": "aaaa2222",
                 "TestedMaxColdMilliOhms": 14500,
                 "TestedMaxHotMilliOhms": 13714
             },
@@ -1245,7 +1245,7 @@
                 "DisplayName": "Second 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "HwUid": "bbbb2222"
+                "hw1Uid": "bbbb2222"
             }
         ],
         "BooleanActuatorComponents": [
@@ -1255,7 +1255,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 0,
                 "TypeAlias": "gt.boolean.actuator.component.100",
-                "HwUid": "abc123"
+                "hw1Uid": "abc123"
             },
             {
                 "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
@@ -1270,7 +1270,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 2,
                 "TypeAlias": "gt.boolean.actuator.component.100",
-                "HwUid": "ddd321"
+                "hw1Uid": "ddd321"
             }
         ],
         "TempSensorComponents": [
@@ -1296,42 +1296,42 @@
                 "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
                 "DisplayName": "Component for a.tank.temp0 (on top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1023abcd",
+                "hw1Uid": "1023abcd",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
                 "DisplayName": "Component for a.tank.temp1 (second from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "10032fff",
+                "hw1Uid": "10032fff",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "5453b43b-7940-463c-ae6e-5cfe86ecbd3d",
                 "DisplayName": "Component for a.tank.temp2 (third from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1004aaaa",
+                "hw1Uid": "1004aaaa",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "17110718-b102-4c3b-ae62-5331aec9eed3",
                 "DisplayName": "Component for a.tank.temp3 (fourth from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "100f2128",
+                "hw1Uid": "100f2128",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "bc2b731d-2b68-4cb8-9c27-8dd84dd2ea82",
                 "DisplayName": "Component for a.tank.temp4 (fifth from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1004bbbb",
+                "hw1Uid": "1004bbbb",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
                 "DisplayName": "First garage temp sensor",
                 "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
-                "HwUid": "1004aaaa",
+                "hw1Uid": "1004aaaa",
                 "TypeAlias": "gt.temp.sensor.component.100"
             }
         ],
@@ -1340,7 +1340,7 @@
                 "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
                 "DisplayName": "Main Power meter for Little orange house garage space heat",
                 "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "HwUid": "1001ab",
+                "hw1Uid": "1001ab",
                 "TypeAlias": "gt.electric.meter.component.100"
             }
         ],
@@ -1350,7 +1350,7 @@
                 "DisplayName": "Flow meter on pipe out of tank",
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
                 "TypeAlias": "gt.pipe.flow.sensor.component.100",
-                "HwUid": "1234"
+                "hw1Uid": "1234"
             }
         ],
         "OtherComponents": [
@@ -1787,7 +1787,7 @@
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "HwUid": "aaaa2222",
+                "hw1Uid": "aaaa2222",
                 "TestedMaxColdMilliOhms": 14500,
                 "TestedMaxHotMilliOhms": 13714
             },
@@ -1796,7 +1796,7 @@
                 "DisplayName": "Second 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "HwUid": "bbbb2222"
+                "hw1Uid": "bbbb2222"
             }
         ],
         "BooleanActuatorComponents": [
@@ -1806,7 +1806,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 0,
                 "TypeAlias": "gt.boolean.actuator.component.100",
-                "HwUid": "abc123"
+                "hw1Uid": "abc123"
             },
             {
                 "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
@@ -1821,7 +1821,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 2,
                 "TypeAlias": "gt.boolean.actuator.component.100",
-                "HwUid": "ddd321"
+                "hw1Uid": "ddd321"
             }
         ],
         "TempSensorComponents": [
@@ -1847,42 +1847,42 @@
                 "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
                 "DisplayName": "Component for a.tank.temp0 (on top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1023abcd",
+                "hw1Uid": "1023abcd",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
                 "DisplayName": "Component for a.tank.temp1 (second from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "10032fff",
+                "hw1Uid": "10032fff",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "5453b43b-7940-463c-ae6e-5cfe86ecbd3d",
                 "DisplayName": "Component for a.tank.temp2 (third from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1004aaaa",
+                "hw1Uid": "1004aaaa",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "17110718-b102-4c3b-ae62-5331aec9eed3",
                 "DisplayName": "Component for a.tank.temp3 (fourth from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "100f2128",
+                "hw1Uid": "100f2128",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "bc2b731d-2b68-4cb8-9c27-8dd84dd2ea82",
                 "DisplayName": "Component for a.tank.temp4 (fifth from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1004bbbb",
+                "hw1Uid": "1004bbbb",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
                 "DisplayName": "First garage temp sensor",
                 "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
-                "HwUid": "1004aaaa",
+                "hw1Uid": "1004aaaa",
                 "TypeAlias": "gt.temp.sensor.component.100"
             }
         ],
@@ -1891,7 +1891,7 @@
                 "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
                 "DisplayName": "Main Power meter for Little orange house garage space heat",
                 "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "HwUid": "1001ab",
+                "hw1Uid": "1001ab",
                 "TypeAlias": "gt.electric.meter.component.100"
             }
         ],
@@ -1901,7 +1901,7 @@
                 "DisplayName": "Flow meter on pipe out of tank",
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
                 "TypeAlias": "gt.pipe.flow.sensor.component.100",
-                "HwUid": "1234"
+                "hw1Uid": "1234"
             }
         ],
         "OtherComponents": [
@@ -2338,7 +2338,7 @@
                 "DisplayName": "First 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "HwUid": "aaaa2222",
+                "hw1Uid": "aaaa2222",
                 "TestedMaxColdMilliOhms": 14500,
                 "TestedMaxHotMilliOhms": 13714
             },
@@ -2347,7 +2347,7 @@
                 "DisplayName": "Second 4.5 kW boost in tank",
                 "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
                 "TypeAlias": "resistive.heater.component.gt.100",
-                "HwUid": "bbbb2222"
+                "hw1Uid": "bbbb2222"
             }
         ],
         "BooleanActuatorComponents": [
@@ -2357,7 +2357,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 0,
                 "TypeAlias": "gt.boolean.actuator.component.100",
-                "HwUid": "abc123"
+                "hw1Uid": "abc123"
             },
             {
                 "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
@@ -2372,7 +2372,7 @@
                 "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
                 "Gpio": 2,
                 "TypeAlias": "gt.boolean.actuator.component.100",
-                "HwUid": "ddd321"
+                "hw1Uid": "ddd321"
             }
         ],
         "TempSensorComponents": [
@@ -2398,42 +2398,42 @@
                 "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
                 "DisplayName": "Component for a.tank.temp0 (on top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1023abcd",
+                "hw1Uid": "1023abcd",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
                 "DisplayName": "Component for a.tank.temp1 (second from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "10032fff",
+                "hw1Uid": "10032fff",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "5453b43b-7940-463c-ae6e-5cfe86ecbd3d",
                 "DisplayName": "Component for a.tank.temp2 (third from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1004aaaa",
+                "hw1Uid": "1004aaaa",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "17110718-b102-4c3b-ae62-5331aec9eed3",
                 "DisplayName": "Component for a.tank.temp3 (fourth from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "100f2128",
+                "hw1Uid": "100f2128",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "bc2b731d-2b68-4cb8-9c27-8dd84dd2ea82",
                 "DisplayName": "Component for a.tank.temp4 (fifth from top)",
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-                "HwUid": "1004bbbb",
+                "hw1Uid": "1004bbbb",
                 "TypeAlias": "gt.temp.sensor.component.100"
             },
             {
                 "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
                 "DisplayName": "First garage temp sensor",
                 "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
-                "HwUid": "1004aaaa",
+                "hw1Uid": "1004aaaa",
                 "TypeAlias": "gt.temp.sensor.component.100"
             }
         ],
@@ -2442,7 +2442,7 @@
                 "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
                 "DisplayName": "Main Power meter for Little orange house garage space heat",
                 "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-                "HwUid": "1001ab",
+                "hw1Uid": "1001ab",
                 "TypeAlias": "gt.electric.meter.component.100"
             }
         ],
@@ -2452,7 +2452,7 @@
                 "DisplayName": "Flow meter on pipe out of tank",
                 "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
                 "TypeAlias": "gt.pipe.flow.sensor.component.100",
-                "HwUid": "1234"
+                "hw1Uid": "1234"
             }
         ],
         "OtherComponents": [
