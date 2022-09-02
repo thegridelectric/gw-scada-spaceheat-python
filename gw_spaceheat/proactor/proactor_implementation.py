@@ -70,17 +70,10 @@ class Proactor(ServicesInterface, Runnable):
     _tasks: List[asyncio.Task]
 
     # TODO: Clean up loop control
-    def __init__(
-        self,
-        name: str = KnownNames.proactor.value,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-    ):
+    def __init__(self, name: str = KnownNames.proactor.value):
         self._name = name
-        if loop is None:
-            # TODO: Figure out and remove the deprecation warning this produces.
-            self._loop = asyncio.get_event_loop()
-        else:
-            self._loop = loop
+        # TODO: Figure out and remove the deprecation warning this produces.
+        self._loop = asyncio.get_event_loop()
         self._receive_queue = asyncio.Queue()
         self._mqtt_clients = MQTTClients(
             AsyncQueueWriter(self._loop, self._receive_queue)

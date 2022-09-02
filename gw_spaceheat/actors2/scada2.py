@@ -4,7 +4,6 @@ import asyncio
 import time
 import typing
 from abc import abstractmethod, ABC
-from asyncio import AbstractEventLoop
 from typing import Any, Dict, Optional
 
 from paho.mqtt.client import MQTTMessageInfo
@@ -118,9 +117,8 @@ class Scada2(ScadaInterface, Proactor):
         node: ShNode,
         settings: ScadaSettings,
         actors: Optional[Dict[str, ActorInterface]] = None,
-        loop: Optional[AbstractEventLoop] = None,
     ):
-        super().__init__(name=node.alias, loop=loop)
+        super().__init__(name=node.alias)
         self._node = node
         self._settings = settings
         self._nodes = Nodes(settings)
