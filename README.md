@@ -38,7 +38,7 @@ WE NEED A BETTER LOCAL DEV DEMO
 ## Creating a Dev environment for macos or Pi
 
 
- - Use python 3.8.6
+ - Use python 3.10.6
 - .gitignore includes gw_spaceheat/venv for virtualenv so from gw_spaceheat directory:
   - `python -m venv venv`  
   - `source venv/bin/activate`

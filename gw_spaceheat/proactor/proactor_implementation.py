@@ -77,10 +77,11 @@ class Proactor(ServicesInterface, Runnable):
     ):
         self._name = name
         if loop is None:
+            # TODO: Figure out and remove the deprecation warning this produces.
             self._loop = asyncio.get_event_loop()
         else:
             self._loop = loop
-        self._receive_queue = asyncio.Queue(loop=loop)
+        self._receive_queue = asyncio.Queue()
         self._mqtt_clients = MQTTClients(
             AsyncQueueWriter(self._loop, self._receive_queue)
         )
