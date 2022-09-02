@@ -149,7 +149,7 @@ class Scada2(ScadaInterface, Proactor):
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
         if actor_nodes is not None:
             for actor_node in actor_nodes:
-                self._add_communicator(ActorInterface.load(actor_node, self, self.DEFAULT_ACTORS_MODULE))
+                self.add_communicator(ActorInterface.load(actor_node, self, self.DEFAULT_ACTORS_MODULE))
 
     def _start_derived_tasks(self):
         self._tasks.append(

@@ -100,8 +100,7 @@ class Proactor(ServicesInterface, Runnable):
         encoder = self._mqtt_codecs[client]
         return self._mqtt_clients.publish(client, topic, encoder.encode(payload), qos)
 
-    def _add_communicator(self, communicator: CommunicatorInterface):
-        # TODO: There probably needs to be some public version of this for testing.
+    def add_communicator(self, communicator: CommunicatorInterface):
         if communicator.name in self._communicators:
             raise ValueError(
                 f"ERROR. Communicator with name [{communicator.name}] already present"

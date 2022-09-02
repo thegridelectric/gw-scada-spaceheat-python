@@ -13,7 +13,7 @@ from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from test.fragment_runner import ProtocolFragment, FragmentRunner
+from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
 from test.utils import await_for
 
 
@@ -28,26 +28,20 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
     debug_logs_path.mkdir(parents=True, exist_ok=True)
 
     class Fragment(ProtocolFragment):
-        # TODO: Fragment runner should support or interact with this pattern better
-        meter: actors2.PowerMeter
-
-        def __init__(self, runner_: FragmentRunner):
-            # TODO: This should probably be easier.
-            meter_node = ShNode.by_alias["a.m"]
-            meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
-            monkeypatch.setattr(meter_cac, "update_period_ms", 0)
-            self.meter = actors2.PowerMeter(
-                node=meter_node,
-                services=runner_.actors.scada2,
-                settings=ScadaSettings(seconds_per_report=1)
-            )
-            super().__init__(runner_)
 
         def get_requested_actors(self):
             return [self.runner.actors.scada2]
 
         def get_requested_actors2(self):
-            return [self.meter]
+            meter_node = ShNode.by_alias["a.m"]
+            meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
+            monkeypatch.setattr(meter_cac, "update_period_ms", 0)
+            self.runner.actors.meter2 = actors2.PowerMeter(
+                node=meter_node,
+                services=self.runner.actors.scada2,
+                settings=ScadaSettings(seconds_per_report=1)
+            )
+            return [self.runner.actors.meter2]
 
         async def async_run(self):
             scada = self.runner.actors.scada2
@@ -55,12 +49,12 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
             expected_tts = [
                 TelemetryTuple(
                     AboutNode=ShNode.by_alias["a.elt1"],
-                    SensorNode=self.meter.node,
+                    SensorNode=self.runner.actors.meter2.node,
                     TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 ),
                 TelemetryTuple(
                     AboutNode=ShNode.by_alias["a.elt1"],
-                    SensorNode=self.meter.node,
+                    SensorNode=self.runner.actors.meter2.node,
                     TelemetryName=TelemetryName.POWER_W,
                 )
             ]
@@ -86,7 +80,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
                     f"wait for PowerMeter periodic update [{tt.TelemetryName}]"
                 )
 
-    await FragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment)
 
 
 @pytest.mark.asyncio
@@ -99,24 +93,20 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
     debug_logs_path.mkdir(parents=True, exist_ok=True)
 
     class Fragment(ProtocolFragment):
-        meter: actors2.PowerMeter
-
-        def __init__(self, runner_: FragmentRunner):
-            meter_node = ShNode.by_alias["a.m"]
-            meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
-            monkeypatch.setattr(meter_cac, "update_period_ms", 0)
-            self.meter = actors2.PowerMeter(
-                node=meter_node,
-                services=runner_.actors.scada2,
-                settings=ScadaSettings(seconds_per_report=1)
-            )
-            super().__init__(runner_)
 
         def get_requested_actors(self):
             return [self.runner.actors.scada2, self.runner.actors.atn]
 
         def get_requested_actors2(self):
-            return [self.meter]
+            meter_node = ShNode.by_alias["a.m"]
+            meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
+            monkeypatch.setattr(meter_cac, "update_period_ms", 0)
+            self.runner.actors.meter2 = actors2.PowerMeter(
+                node=meter_node,
+                services=self.runner.actors.scada2,
+                settings=ScadaSettings(seconds_per_report=1)
+            )
+            return [self.runner.actors.meter2]
 
         async def async_run(self):
             scada = self.runner.actors.scada2
@@ -131,7 +121,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
             )
 
             # TODO: Cleaner test access?
-            meter_sync_thread = typing.cast(PowerMeterDriverThread, self.meter._sync_thread)
+            meter_sync_thread = typing.cast(PowerMeterDriverThread, self.runner.actors.meter2._sync_thread)
             driver = typing.cast(
                 GridworksSimPm1_PowerMeterDriver,
                 meter_sync_thread.driver
@@ -166,4 +156,4 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
                     "Atn wait for GsPwr"
                 )
 
-    await FragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment)

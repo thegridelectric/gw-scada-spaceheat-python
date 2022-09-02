@@ -24,7 +24,7 @@ from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_
 from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status import (
     GtShSimpleTelemetryStatus,
 )
-from test.fragment_runner import ProtocolFragment, FragmentRunner
+from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
 from test.utils import await_for
 
 
@@ -137,7 +137,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     debug_logs_path.mkdir(parents=True, exist_ok=True)
 
     class Fragment(ProtocolFragment):
-        def __init__(self, runner_: FragmentRunner):
+        def __init__(self, runner_: AsyncFragmentRunner):
             runner_.actors.scada2._scada_atn_fast_dispatch_contract_is_alive_stub = True
             runner_.actors.scada2._last_status_second = int(time.time())
             super().__init__(runner_)
@@ -282,4 +282,4 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             # # assert len(status.BooleanactuatorCmdList) == 0
             # # assert len(status.MultipurposeTelemetryList) == 0
 
-    await FragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment)

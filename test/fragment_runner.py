@@ -102,20 +102,12 @@ class FragmentRunner:
         self.fragments.append(fragment)
         self.wait_at_least = max(self.wait_at_least, fragment.wait_at_least)
         self.request_actors(fragment.get_requested_actors())
-        self.request_actors2(fragment.get_requested_actors2())
         return self
 
     def request_actors(self, actors: Sequence[ActorBase]) -> "FragmentRunner":
         for actor in actors:
             if actor.node.alias not in self.requested:
                 self.requested[actor.node.alias] = actor
-        return self
-
-    def request_actors2(self, actors: Sequence[ActorInterface]) -> "FragmentRunner":
-        # TODO: There should be some test-public interface for this
-        for actor in actors:
-            # noinspection PyProtectedMember
-            self.actors.scada2._add_communicator(actor)
         return self
 
     def start(self):
@@ -136,31 +128,6 @@ class FragmentRunner:
                     1,
                     "ERROR waiting for gw_client connect",
                 )
-
-    async def await_connect(self):
-        for actor in self.requested.values():
-            if hasattr(actor, "client"):
-                await await_for(
-                    actor.client.is_connected,
-                    1,
-                    tag=f"ERROR waiting for {actor.node.alias} client connect",
-                )
-            if hasattr(actor, "gw_client"):
-                await await_for(
-                    actor.gw_client.is_connected,
-                    1,
-                    "ERROR waiting for gw_client connect",
-                )
-            # TODO: make some test-public form of this
-            if hasattr(actor, "_mqtt_clients"):
-                # noinspection PyProtectedMember
-                for client_name in actor._mqtt_clients._clients:
-                    # noinspection PyProtectedMember
-                    await await_for(
-                        lambda: actor._mqtt_clients.subscribed(client_name),
-                        3,
-                        f"waiting for {client_name} connect",
-                    )
 
     def stop(self):
         for actor in self.requested.values():
@@ -199,6 +166,75 @@ class FragmentRunner:
         finally:
             self.stop()
 
+    @classmethod
+    def run_fragment(
+        cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]
+    ):
+        settings = ScadaSettings(log_message_summary=True)
+        load_house.load_all(settings.world_root_alias)
+        runner = FragmentRunner(settings)
+        runner.add_fragment(fragment_factory(runner))
+        runner.run()
+
+class AsyncFragmentRunner(FragmentRunner):
+
+    def add_fragment(self, fragment: "ProtocolFragment") -> "AsyncFragmentRunner":
+        self.fragments.append(fragment)
+        self.wait_at_least = max(self.wait_at_least, fragment.wait_at_least)
+        self.request_actors(fragment.get_requested_actors())
+        self.request_actors2(fragment.get_requested_actors2())
+        return self
+
+    def request_actors2(self, actors: Sequence[ActorInterface]) -> "AsyncFragmentRunner":
+        for actor in actors:
+            # noinspection PyProtectedMember
+            self.actors.scada2.add_communicator(actor)
+        return self
+
+    def start(self):
+        for actor in self.requested.values():
+            actor.start()
+
+    async def await_connect(self):
+        for actor in self.requested.values():
+            if hasattr(actor, "client"):
+                await await_for(
+                    actor.client.is_connected,
+                    1,
+                    tag=f"ERROR waiting for {actor.node.alias} client connect",
+                )
+            if hasattr(actor, "gw_client"):
+                await await_for(
+                    actor.gw_client.is_connected,
+                    1,
+                    "ERROR waiting for gw_client connect",
+                )
+            # TODO: make some test-public form of this
+            if hasattr(actor, "_mqtt_clients"):
+                # noinspection PyProtectedMember
+                for client_name in actor._mqtt_clients._clients:
+                    # noinspection PyProtectedMember
+                    await await_for(
+                        lambda: actor._mqtt_clients.subscribed(client_name),
+                        3,
+                        f"waiting for {client_name} connect",
+                    )
+
+    async def stop_and_join(self):
+        for actor in self.requested.values():
+            # noinspection PyBroadException
+            try:
+                actor.stop()
+            except:
+                pass
+        for actor in self.requested.values():
+            if hasattr(actor, "join"):
+                # noinspection PyBroadException
+                try:
+                    await actor.join()
+                except:
+                    pass
+
     async def async_run(self, *args, **kwargs):
         try:
             start_time = time.time()
@@ -226,22 +262,12 @@ class FragmentRunner:
             await asyncio.sleep(0.1)
 
     @classmethod
-    def run_fragment(
-        cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]
-    ):
-        settings = ScadaSettings(log_message_summary=True)
-        load_house.load_all(settings.world_root_alias)
-        runner = FragmentRunner(settings)
-        runner.add_fragment(fragment_factory(runner))
-        runner.run()
-
-    @classmethod
     async def async_run_fragment(
-        cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]
+        cls, fragment_factory: Callable[["AsyncFragmentRunner"], "ProtocolFragment"]
     ):
         settings = ScadaSettings(log_message_summary=True)
         load_house.load_all(settings.world_root_alias)
-        runner = FragmentRunner(settings)
+        runner = AsyncFragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         await runner.async_run()
 
