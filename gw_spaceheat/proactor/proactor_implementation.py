@@ -252,10 +252,7 @@ class Proactor(ServicesInterface, Runnable):
         try:
             while running:
                 _print_tasks(self._loop, "WAITING FOR", tasks=running)
-                done, running = await asyncio.wait(
-                    running, return_when="FIRST_COMPLETED", loop=self._loop
-                )
-                # _print_tasks(self._loop, "WAITED")
+                done, running = await asyncio.wait(running, return_when="FIRST_COMPLETED")
                 _print_tasks(self._loop, tag="DONE", tasks=done)
                 _print_tasks(self._loop, tag="PENDING", tasks=running)
                 for task in done:

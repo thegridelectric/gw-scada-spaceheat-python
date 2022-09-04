@@ -58,18 +58,13 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import (
 
 from actors.utils import gw_mqtt_topic_encode
 
-class Brokers(enum.Enum):
-    invalid = "invalid"
-    gw = "gw"
-    local = "local"
-
-
 class CommEvents(enum.Enum):
     invalid = "invalid"
     connect = "connect"
     connect_fail = "connect_fail"
     subscribe = "subscribe"
     message = "message"
+    mqtt_message = "mqtt_message"
     publish = "publish"
     unsubscribe = "unsubscribe"
     disconnect = "disconnect"
@@ -82,7 +77,7 @@ class CommEvents(enum.Enum):
 @dataclass
 class CommEvent:
     timestamp: datetime.datetime = field(default_factory=datetime.datetime)
-    broker: Brokers = Brokers.invalid
+    broker: str = ""
     event: CommEvents = CommEvents.invalid
     params: List = field(default_factory=list)
 
@@ -91,7 +86,7 @@ class CommEvent:
         max_param_width = 80
         if len(param_str) > max_param_width:
             param_str = param_str[:max_param_width] + "..."
-        return f"{self.timestamp.isoformat()}  {self.broker.value:5s}  {self.event.value:23s}  {param_str}"
+        return f"{self.timestamp.isoformat()}  {self.broker:10s}  {self.event.value:23s}  {param_str}"
 
 
 def wait_for(
@@ -353,7 +348,7 @@ class ScadaRecorder(Scada):
     def num_received(self) -> int:
         return self.comm_event_counts[CommEvents.message]
 
-    def _record_comm_event(self, broker: Brokers, event: CommEvents, *params: Any):
+    def _record_comm_event(self, broker: str, event: CommEvents, *params: Any):
         self.comm_event_counts[event] += 1
         self.comm_events.append(
             CommEvent(
@@ -371,46 +366,46 @@ class ScadaRecorder(Scada):
         return s
 
     def on_mqtt_message(self, client, userdata, message):
-        self._record_comm_event(Brokers.local, CommEvents.message, userdata, message)
+        self._record_comm_event("local", CommEvents.message, userdata, message)
         self.num_received_by_topic[message.topic] += 1
         super().on_mqtt_message(client, userdata, message)
 
     def on_gw_mqtt_message(self, client, userdata, message):
-        self._record_comm_event(Brokers.gw, CommEvents.message, userdata, message)
+        self._record_comm_event("gridworks", CommEvents.message, userdata, message)
         self.num_received_by_topic[message.topic] += 1
         super().on_gw_mqtt_message(client, userdata, message)
 
     def on_gw_connect(self, client, userdata, flags, rc):
-        self._record_comm_event(Brokers.gw, CommEvents.connect, userdata, flags, rc)
+        self._record_comm_event("gridworks", CommEvents.connect, userdata, flags, rc)
         super().on_gw_connect(client, userdata, flags, rc)
 
     def on_gw_connect_fail(self, client, userdata, rc):
-        self._record_comm_event(Brokers.gw, CommEvents.connect_fail, userdata, rc)
+        self._record_comm_event("gridworks", CommEvents.connect_fail, userdata, rc)
         super().on_gw_connect_fail(client, userdata, rc)
 
     def on_gw_disconnect(self, client, userdata, rc):
-        self._record_comm_event(Brokers.gw, CommEvents.disconnect, userdata, rc)
+        self._record_comm_event("gridworks", CommEvents.disconnect, userdata, rc)
         super().on_gw_disconnect(client, userdata, rc)
 
     def on_gw_publish(self, _, userdata, mid):
-        self._record_comm_event(Brokers.gw, CommEvents.publish, userdata, mid)
+        self._record_comm_event("gridworks", CommEvents.publish, userdata, mid)
 
     def on_gw_subscribe(self, _, userdata, mid, granted_qos):
         self._record_comm_event(
-            Brokers.gw, CommEvents.subscribe, userdata, mid, granted_qos
+            "gridworks", CommEvents.subscribe, userdata, mid, granted_qos
         )
 
     def on_gw_unsubscribe(self, _, userdata, mid):
-        self._record_comm_event(Brokers.gw, CommEvents.unsubscribe, userdata, mid)
+        self._record_comm_event("gridworks", CommEvents.unsubscribe, userdata, mid)
 
     def on_gw_socket_open(self, _, userdata, sock):
         self._record_comm_event(
-            Brokers.gw, CommEvents.socket_open, userdata, self._socket_str(sock)
+            "gridworks", CommEvents.socket_open, userdata, self._socket_str(sock)
         )
 
     def on_gw_socket_close(self, _, userdata, sock):
         self._record_comm_event(
-            Brokers.gw, CommEvents.socket_close, userdata, self._socket_str(sock)
+            "gridworks", CommEvents.socket_close, userdata, self._socket_str(sock)
         )
 
     def gs_dispatch_received(self, from_node: ShNode, payload: GsDispatch):
@@ -435,11 +430,13 @@ class ScadaRecorder(Scada):
 class Scada2Recorder(Scada2):
 
     num_received_by_topic: Dict[str, int]
+    num_received_by_type: Dict[str, int]
     comm_events: List[CommEvent]
     comm_event_counts: Dict[CommEvents, int]
 
     def __init__(self, node: ShNode, settings: ScadaSettings, actor_nodes: Optional[List[ShNode]] = None):
         self.num_received_by_topic = defaultdict(int)
+        self.num_received_by_type = defaultdict(int)
         self.comm_events = []
         self.comm_event_counts = defaultdict(int)
         super().__init__(node, settings=settings, actor_nodes=actor_nodes)
@@ -456,7 +453,7 @@ class Scada2Recorder(Scada2):
     def num_received(self) -> int:
         return self.comm_event_counts[CommEvents.message]
 
-    def _record_comm_event(self, broker: Brokers, event: CommEvents, *params: Any):
+    def _record_comm_event(self, broker: str, event: CommEvents, *params: Any):
         self.comm_event_counts[event] += 1
         self.comm_events.append(
             CommEvent(
@@ -464,10 +461,24 @@ class Scada2Recorder(Scada2):
             )
         )
 
+    async def process_message(self, message: Message):
+        print(
+            f"++Scada2Recorder.process_message {message.header.src}/{message.header.message_type}"
+        )
+        self._record_comm_event(
+            message.header.src,
+            CommEvents.message,
+            message.header.message_type,
+            message.payload,
+        )
+        self.num_received_by_type[message.header.message_type] += 1
+        await super().process_message(message)
+        print(f"--Scada2Recorder.process_message")
+
     async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         self._record_comm_event(
-            Brokers.local,
-            CommEvents.message,
+            message.payload.client_name,
+            CommEvents.mqtt_message,
             message.payload.userdata,
             message.payload.message
         )
@@ -476,7 +487,7 @@ class Scada2Recorder(Scada2):
 
     def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
         self._record_comm_event(
-            Brokers.gw,
+            message.payload.client_name,
             CommEvents.connect,
             message.payload.userdata,
             message.payload.flags,
@@ -485,16 +496,25 @@ class Scada2Recorder(Scada2):
         super()._process_mqtt_connected(message)
 
     def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
-        self._record_comm_event(Brokers.gw, CommEvents.disconnect, message.payload.userdata, message.payload.rc)
+        self._record_comm_event(
+            message.payload.client_name,
+            CommEvents.disconnect,
+            message.payload.userdata,
+            message.payload.rc
+        )
         super()._process_mqtt_disconnected(message)
 
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
-        self._record_comm_event(Brokers.gw, CommEvents.connect_fail, message.payload.userdata)
+        self._record_comm_event(
+            message.payload.client_name,
+            CommEvents.connect_fail,
+            message.payload.userdata
+        )
         super()._process_mqtt_connect_fail(message)
 
     def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
         self._record_comm_event(
-            Brokers.gw,
+            message.payload.client_name,
             CommEvents.subscribe,
             message.payload.userdata,
             message.payload.mid, message.payload.granted_qos
@@ -504,10 +524,18 @@ class Scada2Recorder(Scada2):
     def summary_str(self):
         """Summarize results in a string"""
         s = f"Scada2Recorder  {self.node.alias}  num_received: {self.num_received}  comm events: {len(self.comm_events)}"
-        for topic in sorted(self.num_received_by_topic):
-            s += f"\n  {self.num_received_by_topic[topic]:3d}: [{topic}]"
+        if self.num_received_by_topic:
+            s += "\n  Received by topic:"
+            for topic in sorted(self.num_received_by_topic):
+                s += f"\n    {self.num_received_by_topic[topic]:3d}: [{topic}]"
+        if self.num_received_by_type:
+            s += "\n  Received by message_type:"
+            for message_type in sorted(self.num_received_by_type):
+                s += f"\n    {self.num_received_by_type[message_type]:3d}: [{message_type}]"
         if self.comm_event_counts:
-            s += f"\n{textwrap.indent(pprint.pformat(self.comm_event_counts), '  ')}"
+            s += "\n  Comm event counts:"
+            for comm_event in self.comm_event_counts:
+                s += f"\n    {self.comm_event_counts[comm_event]:3d}: [{comm_event}]"
         if self.comm_events:
             s += "\n  Comm events:"
             for comm_event in self.comm_events:

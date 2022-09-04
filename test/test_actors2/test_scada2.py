@@ -166,25 +166,23 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             assert len(snapshot.Snapshot.AboutNodeAliasList) == 0
             assert len(snapshot.Snapshot.ValueList) == 0
 
-            # TODO: Add ScadaRecorder functionality for Scada2
-            # relay_state_topic = f"{relay2.alias}/gt.telemetry.110"
-            # relay_command_received_topic = f"{relay.alias}/gt.driver.booleanactuator.cmd.100"
-            # assert scada.num_received_by_topic[relay_state_topic] == 0
-            # assert scada.num_received_by_topic[relay_command_received_topic] == 0
+            relay_state_message_type = "gt.telemetry.110"
+            relay_state_topic = f"{relay2.alias}/{relay_state_message_type}"
+            relay_command_received_topic = f"{relay2.alias}/gt.driver.booleanactuator.cmd.100"
+            assert scada2.num_received_by_topic[relay_state_topic] == 0
+            assert scada2.num_received_by_topic[relay_command_received_topic] == 0
 
-            # TODO: After ScadaRecorder functionality, for test determinism, verify scada has received
-            #       initial report from relay.
             # Start the relay and verify it reports its initial state
-            # wait_for(
-            #     lambda: scada.num_received_by_topic[relay_state_topic] == 1,
-            #     5,
-            #     "Scada wait for relay state change"
-            # )
-            # status = scada.make_status()
-            # assert len(status.SimpleTelemetryList) == 1
-            # assert status.SimpleTelemetryList[0].ValueList == [0]
-            # assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.alias
-            # assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
+            await await_for(
+                lambda: scada2.num_received_by_type["gt.telemetry.110"] == 1,
+                5,
+                "Scada wait for relay state change",
+            )
+            status = scada2._data.make_status(int(time.time()))
+            assert len(status.SimpleTelemetryList) == 1
+            assert status.SimpleTelemetryList[0].ValueList == [0]
+            assert status.SimpleTelemetryList[0].ShNodeAlias == relay2.node.alias
+            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
 
             # Verify relay is off
             assert atn.latest_snapshot_payload is None
