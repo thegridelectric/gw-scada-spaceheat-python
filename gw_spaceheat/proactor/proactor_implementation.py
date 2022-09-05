@@ -123,8 +123,10 @@ class Proactor(ServicesInterface, Runnable):
             print(f"ERROR in process_message: {e}")
             traceback.print_exc()
             print("Stopping procator")
-            self.stop()
-
+            try:
+                self.stop()
+            except Exception as e:
+                print(f"ERROR stopping proactor: {e}")
     def start_tasks(self):
         self._tasks = [
             asyncio.create_task(self.process_messages(), name="process_messages")
