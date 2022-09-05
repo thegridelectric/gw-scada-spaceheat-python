@@ -86,7 +86,7 @@ class CommEvent:
         max_param_width = 80
         if len(param_str) > max_param_width:
             param_str = param_str[:max_param_width] + "..."
-        return f"{self.timestamp.isoformat()}  {self.broker:10s}  {self.event.value:23s}  {param_str}"
+        return f"{self.timestamp.isoformat()}  {self.broker:14s}  {self.event.value:23s}  {param_str}"
 
 
 def wait_for(
