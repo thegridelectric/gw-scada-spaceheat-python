@@ -3,7 +3,14 @@
 
 Use a Pi 4 B. 
 
-For the Maine project we used Pi 4Bs with 2 GB of ram  and 16 GB Micro Ultra sandisk 98 NB.s speed class 10 SD cards.
+If using an emonPi, power it up and use the button to cycle the screen to `enable ssh` and then hold it. Then
+look at its address on the LAN (one of the screens) and ssh using username `pi` and password `emonpi2016`
+
+
+TODO: BURN IMAGE THAT STARTS WITH EMONPI SD CARD WITH 3.10.4, REPO, INTERFACE OPTIONS ENABLED AND VENV W PIP PUT INTO GOOGLE DRIVE.
+Call this `scada-template` image (with version number?)
+
+For the Maine project we used Pi 4Bs with 2 GB of ram  and an SD card with at least 16 GB
 
 The scada pi was choking on sudo apt-get update 
 (This must be accepted explicitly before updates for this repository can be applied. See apt-secure(8) manpage for details)
@@ -49,6 +56,7 @@ AFTER going into the venv and BEFORE doing pip install:
 export TMPDIR=/home/pi/tmp
 
 
+TODO: clean up the issues with pip. The latest `scada-template` 
 regular pip was going to /usr/bin/pip and failing. Did this:
  /usr/local/bin/pip3.10 install -r requirements/drivers.txt
 
