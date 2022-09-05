@@ -59,29 +59,56 @@ class Actors:
     relay2: actors2.BooleanActuator
     meter2: actors2.PowerMeter
 
-    def __init__(self, settings: ScadaSettings):
-        self.scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
-        self.atn = AtnRecorder(node=ShNode.by_alias["a"], settings=settings)
-        self.home_alone = HomeAloneRecorder(
-            node=ShNode.by_alias["a.home"], settings=settings
+    def __init__(self, settings: ScadaSettings, **kwargs):
+        self.scada = kwargs.get("scada", ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings))
+        self.atn = kwargs.get("atn", AtnRecorder(node=ShNode.by_alias["a"], settings=settings))
+        self.home_alone = kwargs.get(
+            "home_alone",
+            HomeAloneRecorder(node=ShNode.by_alias["a.home"], settings=settings)
         )
-        self.relay = BooleanActuator(ShNode.by_alias["a.elt1.relay"], settings=settings)
-        self.meter = PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
-        self.thermo = SimpleSensor(
-            node=ShNode.by_alias["a.tank.temp0"], settings=settings
+        self.relay = kwargs.get("relay", BooleanActuator(ShNode.by_alias["a.elt1.relay"], settings=settings))
+        self.meter = kwargs.get("power_meter", PowerMeter(node=ShNode.by_alias["a.m"], settings=settings))
+        self.thermo = kwargs.get(
+            "thermo",
+            SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], settings=settings)
         )
-        self.scada2 = Scada2Recorder(ShNode.by_alias["a.s"], settings)
-        self.relay2 = actors2.BooleanActuator(
-            node=ShNode.by_alias["a.elt1.relay"], services=self.scada2
+        self.scada2 = kwargs.get("scada2", Scada2Recorder(ShNode.by_alias["a.s"], settings))
+        self.relay2 = kwargs.get(
+            "relay2",
+            actors2.BooleanActuator(node=ShNode.by_alias["a.elt1.relay"], services=self.scada2)
         )
-        self.thermo2 = actors2.SimpleSensor(
-            node=ShNode.by_alias["a.tank.temp0"], services=self.scada2
+        self.thermo2 = kwargs.get(
+            "thermo2",
+            actors2.SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], services=self.scada2)
         )
-        self.meter2 = actors2.PowerMeter(node=ShNode.by_alias["a.m"], services=self.scada2)
+        self.meter2 = kwargs.get(
+            "meter2",
+            actors2.PowerMeter(node=ShNode.by_alias["a.m"], services=self.scada2)
+        )
+
+class ProtocolFragment:
+    runner: "FragmentRunner"
+    wait_at_least: float
+
+    def __init__(self, runner: "FragmentRunner", wait_at_least: float = 0):
+        self.runner = runner
+        self.wait_at_least = wait_at_least
+
+    def get_requested_actors(self) -> Sequence[ActorBase]:
+        return []
+
+    # noinspection PyMethodMayBeStatic
+    def get_requested_actors2(self) -> Sequence[ActorInterface]:
+        return []
+
+    def run(self, *args, **kwargs):
+        pass
+
+    async def async_run(self, *args, **kwargs):
+        pass
 
 
 class FragmentRunner:
-    settings: ScadaSettings
     actors: Actors
     requested: Dict[str, ActorBase]
     fragments: List["ProtocolFragment"]
@@ -95,7 +122,6 @@ class FragmentRunner:
         do_nothing_time: float = 0.0,
         actors: Optional[Actors] = None,
     ):
-        self.settings = settings
         self.wait_at_least = wait_at_least
         self.do_nothing_time = do_nothing_time
         self.actors = Actors(settings) if actors is None else actors
@@ -172,7 +198,7 @@ class FragmentRunner:
 
     @classmethod
     def run_fragment(
-        cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]
+        cls, fragment_factory: Callable[["FragmentRunner"], ProtocolFragment]
     ):
         settings = ScadaSettings(log_message_summary=True)
         load_house.load_all(settings.world_root_alias)
@@ -267,7 +293,7 @@ class AsyncFragmentRunner(FragmentRunner):
 
     @classmethod
     async def async_run_fragment(
-        cls, fragment_factory: Callable[["AsyncFragmentRunner"], "ProtocolFragment"]
+        cls, fragment_factory: Callable[["AsyncFragmentRunner"], ProtocolFragment]
     ):
         settings = ScadaSettings(log_message_summary=True)
         load_house.load_all(settings.world_root_alias)
@@ -276,23 +302,3 @@ class AsyncFragmentRunner(FragmentRunner):
         await runner.async_run()
 
 
-class ProtocolFragment:
-    runner: FragmentRunner
-    wait_at_least: float
-
-    def __init__(self, runner: FragmentRunner, wait_at_least: float = 0):
-        self.runner = runner
-        self.wait_at_least = wait_at_least
-
-    def get_requested_actors(self) -> Sequence[ActorBase]:
-        return []
-
-    # noinspection PyMethodMayBeStatic
-    def get_requested_actors2(self) -> Sequence[ActorInterface]:
-        return []
-
-    def run(self, *args, **kwargs):
-        pass
-
-    async def async_run(self, *args, **kwargs):
-        pass

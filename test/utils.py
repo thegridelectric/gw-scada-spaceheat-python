@@ -124,6 +124,7 @@ def wait_for(
 
 Predicate = Callable[[], bool]
 AwaitablePredicate = Callable[[], Awaitable[bool]]
+ErrorStringFunction = Callable[[], str]
 
 
 async def await_for(
@@ -132,6 +133,7 @@ async def await_for(
     tag: str = "",
     raise_timeout: bool = True,
     retry_duration: float = 0.1,
+    err_str_f: Optional[ErrorStringFunction] = None,
 ) -> bool:
     """Similar to wait_for(), but awaitable. Instead of sleeping after a False resoinse from function f, await_for
     will asyncio.sleep(), allowing the event loop to continue. Additionally, f may be either a function or a coroutine.
@@ -139,8 +141,14 @@ async def await_for(
     now = start = time.time()
     until = now + timeout
     err_format = (
-        "ERROR. [{tag}] wait_for() timed out after {seconds} seconds, wait function {f}"
+        "ERROR. wait_for() timed out after {seconds} seconds\n  [{tag}]\n  wait function: {f}{err_str}"
     )
+    if err_str_f is not None:
+        def err_str_f_() -> str:
+            return "\n" + textwrap.indent(err_str_f(), "  ")
+    else:
+        def err_str_f_() -> str:
+            return ""
     f_is_async = inspect.iscoroutinefunction(f)
     result = False
     if now >= until:
@@ -163,7 +171,7 @@ async def await_for(
     else:
         if raise_timeout:
             raise ValueError(
-                err_format.format(tag=tag, seconds=time.time() - start, f=f)
+                err_format.format(tag=tag, seconds=time.time() - start, f=f, err_str=err_str_f_())
             )
         else:
             return False
@@ -245,8 +253,16 @@ class AtnRecorder(Atn):
 
     def summary_str(self):
         """Summarize results in a string"""
+
+        # snapshot_received: int
+        # status_received: int
+        # latest_snapshot_payload: Optional[SnapshotSpaceheat]
+        # latest_status_payload: Optional[GtShStatus]
+        # num_received: int
+        # num_received_by_topic: Dict[str, int]
+
         return (
-            f"AtnRecorder [{self.node.alias}] cli_resp_received: {self.snapshot_received}  "
+            f"AtnRecorder [{self.node.alias}] snapshot_received: {self.snapshot_received}  "
             f"latest_cli_response_payload: {self.latest_snapshot_payload}\n"
             f"status_received: {self.status_received}  "
             f"latest_status_payload: {self.latest_status_payload}"
@@ -429,6 +445,7 @@ class ScadaRecorder(Scada):
 
 class Scada2Recorder(Scada2):
 
+    suppress_status: bool
     num_received_by_topic: Dict[str, int]
     num_received_by_type: Dict[str, int]
     comm_events: List[CommEvent]
@@ -439,7 +456,11 @@ class Scada2Recorder(Scada2):
         self.num_received_by_type = defaultdict(int)
         self.comm_events = []
         self.comm_event_counts = defaultdict(int)
+        self.suppress_status = False
         super().__init__(node, settings=settings, actor_nodes=actor_nodes)
+
+    def time_to_send_status(self) -> bool:
+        return not self.suppress_status and super().time_to_send_status()
 
     @property
     def status_topic(self) -> str:
