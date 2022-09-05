@@ -449,9 +449,9 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
             snapshot = atn.latest_snapshot_payload
-            import pprint
-            pprint.pprint(status.asdict())
-            pprint.pprint(snapshot.asdict())
+            # import pprint
+            # pprint.pprint(status.asdict())
+            # pprint.pprint(snapshot.asdict())
             assert isinstance(snapshot, SnapshotSpaceheat)
             assert set(snapshot.Snapshot.AboutNodeAliasList) == set(
                 [relay.node.alias, thermo.node.alias] + [
@@ -460,6 +460,20 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             )
             assert len(snapshot.Snapshot.AboutNodeAliasList) == 2 + len(Nodes.all_power_meter_telemetry_tuples())
             assert len(snapshot.Snapshot.ValueList) == len(snapshot.Snapshot.AboutNodeAliasList)
+
+            # Turn off telemtry reporting
+            for actor in [thermo, relay, meter]:
+                actor.stop()
+            for actor in [thermo, relay, meter]:
+                await actor.join()
+            # Wait for scada to send at least one more status.
+            statuses_received = atn.num_received_by_topic[scada.status_topic]
+            await await_for(
+                lambda: atn.num_received_by_topic[scada.status_topic] > statuses_received,
+                5,
+                "Atn wait for status message 2",
+                err_str_f=atn.summary_str
+            )
 
             # Verify scada has cleared its state
             status = scada._data.make_status(int(time.time()))

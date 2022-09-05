@@ -8,9 +8,10 @@ import dotenv
 
 import load_house
 from actors.strategy_switcher import strategy_from_node
-from actors2 import Scada2, ActorInterface
+from actors2 import Scada2
 from config import ScadaSettings
 from data_classes.sh_node import ShNode
+from schema.enums.role.sh_node_role_110 import Role
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
@@ -132,17 +133,23 @@ async def run_async_actors(
 
     scada = Scada2(node=scada_node, settings=settings, actor_nodes=actor_nodes)
     scada.start()
-    await scada.run_forever()
+    try:
+        await scada.run_forever()
+    finally:
+        scada.stop()
 
 
 async def run_async_actors_main(
     argv: Optional[Sequence[str]] = None,
     default_nodes: Optional[Sequence[str]] = None,
 ):
-    if default_nodes is None:
-        default_nodes = ["a.s", "a.elt1.relay"]
     args = parse_args(argv, default_nodes=default_nodes)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     setup_logging(args, settings)
     load_house.load_all(settings.world_root_alias)
+    if not args.nodes:
+        args.nodes = [
+            node.alias
+            for node in filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), ShNode.by_alias.values())
+        ]
     await run_async_actors(args.nodes, settings)

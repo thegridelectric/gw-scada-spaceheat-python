@@ -22,7 +22,7 @@ def test_simple_resubscribe_on_comm_restore(tmp_path, monkeypatch):
             actor.start()
         # Wait for connect and subscribe
         wait_for(
-            lambda: scada.comm_event_counts[CommEvents.subscribe] > 1,
+            lambda: scada.comm_event_counts[CommEvents.subscribe] > 0,
             1,
             "ERROR waiting for gw_client subscribe",
         )
