@@ -51,6 +51,7 @@ def test_run_local():
     ]
     test_run_nodes_main(aliases)
 
+@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_run_local2(tmp_path, monkeypatch):
 

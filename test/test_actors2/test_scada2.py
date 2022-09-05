@@ -346,7 +346,6 @@ async def test_scada2_snaphot_request_delivery():
 
     await AsyncFragmentRunner.async_run_fragment(Fragment)
 
-@pytest.mark.skip
 @pytest.mark.asyncio
 async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     """Verify Scada status contains command acks from BooleanActuators and telemetry from SimpleSensor and
