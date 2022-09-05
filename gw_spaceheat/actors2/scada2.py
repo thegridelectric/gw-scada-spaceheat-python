@@ -341,21 +341,21 @@ class Scada2(ScadaInterface, Proactor):
         )
         return ScadaCmdDiagnostic.SUCCESS
 
-    def _turn_on_off(self, ba: ShNode, on: bool):
+    def _set_relay_state(self, ba: ShNode, on: bool):
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         self.send_threadsafe(
             GtDispatchBooleanLocalMessage(
-                src=self.name, dst=ba.alias, relay_state=int(on)
+                src=Nodes.home_alone_node().alias, dst=ba.alias, relay_state=int(on)
             )
         )
         return ScadaCmdDiagnostic.SUCCESS
 
     def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._turn_on_off(ba, True)
+        return self._set_relay_state(ba, True)
 
     def turn_off(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._turn_on_off(ba, False)
+        return self._set_relay_state(ba, False)
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
