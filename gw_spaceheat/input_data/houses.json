@@ -521,15 +521,6 @@
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
-                "Alias": "a.elt1.relay",
-                "RoleGtEnumSymbol": "57b788ee",
-                "ActorClassGtEnumSymbol": "fddd0064",
-                "DisplayName": "30A Relay for first boost element",
-                "ShNodeId": "a9c94a2f-1800-4394-a90f-4f50dba053ac",
-                "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
                 "Alias": "a.tank",
                 "RoleGtEnumSymbol": "3ecfe9b8",
                 "ActorClassGtEnumSymbol": "99a5f20d",
@@ -575,15 +566,6 @@
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
-                "Alias": "a.tank.out.pump.relay",
-                "RoleGtEnumSymbol": "57b788ee",
-                "ActorClassGtEnumSymbol": "fddd0064",
-                "DisplayName": "Circulator Pump Boolean Actuator",
-                "ShNodeId": "d6109c64-daec-49b1-8b4f-1c69ab012e69",
-                "ComponentId": "7de91fae-72ab-4226-8ebe-f66a9d85cea4",
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
                 "Alias": "a.tank.out.pump.baseboard1",
                 "RoleGtEnumSymbol": "05fdd645",
                 "ActorClassGtEnumSymbol": "99a5f20d",
@@ -597,15 +579,6 @@
                 "ActorClassGtEnumSymbol": "99a5f20d",
                 "DisplayName": "First baseboard radiator fan",
                 "ShNodeId": "57b3632f-df3e-4a7f-9205-1e6f953dece9",
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
-                "Alias": "a.tank.out.pump.baseboard1.fan.relay",
-                "RoleGtEnumSymbol": "57b788ee",
-                "ActorClassGtEnumSymbol": "fddd0064",
-                "DisplayName": "Relay for first baseboard radiator fan",
-                "ShNodeId": "0223a903-ae99-4cd9-bd67-f28e1e799938",
-                "ComponentId": "dd9a1452-d7aa-4523-8deb-8e302a4f86ba",
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
