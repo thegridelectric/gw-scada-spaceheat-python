@@ -1,28 +1,25 @@
 # Setting up the Pi
 =======
 
-Use a Pi 4 B. 
 
-If using an emonPi, power it up and use the button to cycle the screen to `enable ssh` and then hold it. Then
+
+[scada-template-1](https://drive.google.com/drive/u/0/folders/11u_83c-HHFVoydwg1Qnm-RuoNUw5vw5l) -
+This is a 16 GB image that can be loaded onto any >= 16 GB microSD card. It followed this recipe:
+ **Started with emonPi 16 GB SD microSD card**
+power it up and use the button to cycle the screen to `enable ssh` and then hold it. Then
 look at its address on the LAN (one of the screens) and ssh using username `pi` and password `emonpi2016`
 
+Change ssh password to template password
 
-TODO: BURN IMAGE THAT STARTS WITH EMONPI SD CARD WITH 3.10.4, REPO, INTERFACE OPTIONS ENABLED AND VENV W PIP PUT INTO GOOGLE DRIVE.
-Call this `scada-template` image (with version number?)
+Change hostname to scada-template
 
-For the Maine project we used Pi 4Bs with 2 GB of ram  and an SD card with at least 16 GB
+sudo nano /etc/hostname
 
-The scada pi was choking on sudo apt-get update 
-(This must be accepted explicitly before updates for this repository can be applied. See apt-secure(8) manpage for details)
+sudo nano /etc/hosts
 
-This worked:
+
+ **Various apt-get**
 sudo apt-get update --allow-releaseinfo-change
-
-# apt-get libraries 
-
-followed these instructions:
-https://installvirtual.com/how-to-install-python-3-8-on-raspberry-pi-raspbian/
-and adding moquitto-clients
 
 sudo apt-get update
 
@@ -30,7 +27,8 @@ sudo apt-get install -y build-essential tk-dev libncurses5-dev libncursesw5-dev 
 
 sudo apt clean
 
-# python
+
+**Python 3.10.4**
 
 wget https://www.python.org/ftp/python/3.10.4/Python-3.10.4.tgz
 
@@ -49,11 +47,37 @@ python -V
 sudo rm -rf Python-3.10.4.tgz
 sudo rm -rf Python-3.10.4
 
+**Enable interface options**
 
-Follow directions from readme. HOWEVER, 
-AFTER going into the venv and BEFORE doing pip install:
+sudo raspi-config 
+
+Navigate to Interfacing Options, select i2c, and enable it. 
+Same for 1-wire
+
+reboot
+
+**Install repo**
+
+Use ssh -A pi@LAN to bring my keys
+
+In /home/pi
+
+git clone https://github.com/thegridelectric/gw-scada-spaceheat-python.git
+
+cd gw-scada-spaceheat-python/gw_spaceheat/
+
+python -m venv venv
+
+source venv/bin/activate
 
 export TMPDIR=/home/pi/tmp
+
+pip install -r requirements/drivers.txt
+
+# RANDOM NOTES
+
+When I tried the above again from scratch I was having trouble still with a claim that
+there was no more memory
 
 
 TODO: clean up the issues with pip. The latest `scada-template` 
@@ -81,9 +105,7 @@ After loading the various drivers, I tried to run the simple-gpio-monitor script
  No such file or directory: '/dev/i2c-1'
 
 
-[Devine Lu Linvega](https://github.com/neauoire) of [100 rabbits](http://100r.co/site/about_us.html) points out [here](https://github.com/pimoroni/inky-phat/issues/28) that the pi interface needs to be activated, first by typing sudo raspi-config and then
-navigating to Interfacing Options, selecting i2c, and enabling it. Alternatively,
-sudo nano /boot/config.txt and make sure it has the a line with dtparam=i2c_arm=on
+[Devine Lu Linvega](https://github.com/neauoire) of [100 rabbits](http://100r.co/site/about_us.html) points out [here](https://github.com/pimoroni/inky-phat/issues/28) that the pi interface needs to be activated, first by typing 
 
 # MQTT
 
