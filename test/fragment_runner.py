@@ -20,7 +20,7 @@ try:
         wait_for,
         await_for,
         Scada2Recorder,
-)
+    )
 except ImportError:
     from utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, wait_for, await_for, Scada2Recorder
 
@@ -85,6 +85,7 @@ class Actors:
             "meter2",
             actors2.PowerMeter(node=ShNode.by_alias["a.m"], services=self.scada2)
         )
+
 
 class ProtocolFragment:
     runner: "FragmentRunner"
@@ -205,6 +206,7 @@ class FragmentRunner:
         runner = FragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         runner.run()
+
 
 class AsyncFragmentRunner(FragmentRunner):
 

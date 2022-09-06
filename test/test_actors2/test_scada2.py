@@ -324,6 +324,7 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
     runner.add_fragment(Fragment(runner))
     await runner.async_run()
 
+
 @pytest.mark.asyncio
 async def test_scada2_snaphot_request_delivery():
     """Verify scada sends snapshot upon request from Atn"""
@@ -346,6 +347,7 @@ async def test_scada2_snaphot_request_delivery():
 
     await AsyncFragmentRunner.async_run_fragment(Fragment)
 
+
 @pytest.mark.asyncio
 async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     """Verify Scada status contains command acks from BooleanActuators and telemetry from SimpleSensor and
@@ -360,7 +362,6 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     # actors.scada2._scada_atn_fast_dispatch_contract_is_alive_stub = True
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
-
 
     class Fragment(ProtocolFragment):
 

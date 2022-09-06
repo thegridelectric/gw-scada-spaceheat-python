@@ -17,6 +17,7 @@ from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryNa
 from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
 from test.utils import await_for
 
+
 def test_power_meter_small():
     settings = ScadaSettings()
     load_all(settings.world_root_alias)

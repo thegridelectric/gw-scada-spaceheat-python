@@ -443,6 +443,7 @@ class ScadaRecorder(Scada):
                 s += f"\n    {comm_event}"
         return s
 
+
 class Scada2Recorder(Scada2):
 
     suppress_status: bool

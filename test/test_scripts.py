@@ -51,6 +51,7 @@ def test_run_local():
     ]
     test_run_nodes_main(aliases)
 
+
 @pytest.mark.skip
 @pytest.mark.asyncio
 async def test_run_local2(tmp_path, monkeypatch):
@@ -103,7 +104,8 @@ async def test_run_local2(tmp_path, monkeypatch):
                 assert len(status.MultipurposeTelemetryList) == len(Nodes.my_telemetry_tuples())
                 snapshot = atn.latest_snapshot_payload
                 assert isinstance(snapshot, SnapshotSpaceheat)
-                assert len(snapshot.Snapshot.ValueList) == len(status.SimpleTelemetryList) + len(Nodes.my_telemetry_tuples())
+                assert len(snapshot.Snapshot.ValueList) == len(
+                    status.SimpleTelemetryList) + len(Nodes.my_telemetry_tuples())
                 assert len(snapshot.Snapshot.ValueList) == len(snapshot.Snapshot.AboutNodeAliasList)
             finally:
                 script_task.cancel()
@@ -114,6 +116,4 @@ async def test_run_local2(tmp_path, monkeypatch):
                 except Exception as e:
                     print(e)
 
-
     await AsyncFragmentRunner.async_run_fragment(Fragment)
-

@@ -58,4 +58,3 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch):
             )
 
     await AsyncFragmentRunner.async_run_fragment(Fragment)
-
