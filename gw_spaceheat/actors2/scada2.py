@@ -4,8 +4,7 @@ import asyncio
 import time
 import typing
 from abc import abstractmethod, ABC
-from asyncio import AbstractEventLoop
-from typing import Any, Dict, Optional
+from typing import Any, List, Optional
 
 from paho.mqtt.client import MQTTMessageInfo
 
@@ -112,15 +111,13 @@ class Scada2(ScadaInterface, Proactor):
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
 
-    # TODO: Cleanup loop policy
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
-        actors: Optional[Dict[str, ActorInterface]] = None,
-        loop: Optional[AbstractEventLoop] = None,
+        actor_nodes: Optional[List[ShNode]] = None,
     ):
-        super().__init__(name=node.alias, loop=loop)
+        super().__init__(name=node.alias)
         self._node = node
         self._settings = settings
         self._nodes = Nodes(settings)
@@ -149,10 +146,9 @@ class Scada2(ScadaInterface, Proactor):
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
-        if actors is None:
-            actors = ActorInterface.load_all(self, self.DEFAULT_ACTORS_MODULE)
-        for actor in actors.values():
-            self._add_communicator(actor)
+        if actor_nodes is not None:
+            for actor_node in actor_nodes:
+                self.add_communicator(ActorInterface.load(actor_node, self, self.DEFAULT_ACTORS_MODULE))
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -345,21 +341,21 @@ class Scada2(ScadaInterface, Proactor):
         )
         return ScadaCmdDiagnostic.SUCCESS
 
-    def _turn_on_off(self, ba: ShNode, on: bool):
+    def _set_relay_state(self, ba: ShNode, on: bool):
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         self.send_threadsafe(
             GtDispatchBooleanLocalMessage(
-                src=self.name, dst=ba.alias, relay_state=int(on)
+                src=Nodes.home_alone_node().alias, dst=ba.alias, relay_state=int(on)
             )
         )
         return ScadaCmdDiagnostic.SUCCESS
 
     def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._turn_on_off(ba, True)
+        return self._set_relay_state(ba, True)
 
     def turn_off(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._turn_on_off(ba, False)
+        return self._set_relay_state(ba, False)
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:

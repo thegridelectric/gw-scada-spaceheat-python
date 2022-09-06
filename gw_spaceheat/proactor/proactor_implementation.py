@@ -70,17 +70,10 @@ class Proactor(ServicesInterface, Runnable):
     _tasks: List[asyncio.Task]
 
     # TODO: Clean up loop control
-    def __init__(
-        self,
-        name: str = KnownNames.proactor.value,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-    ):
+    def __init__(self, name: str = KnownNames.proactor.value):
         self._name = name
-        if loop is None:
-            # TODO: Figure out and remove the deprecation warning this produces.
-            self._loop = asyncio.get_event_loop()
-        else:
-            self._loop = loop
+        # TODO: Figure out and remove the deprecation warning this produces.
+        self._loop = asyncio.get_event_loop()
         self._receive_queue = asyncio.Queue()
         self._mqtt_clients = MQTTClients(
             AsyncQueueWriter(self._loop, self._receive_queue)
@@ -107,8 +100,7 @@ class Proactor(ServicesInterface, Runnable):
         encoder = self._mqtt_codecs[client]
         return self._mqtt_clients.publish(client, topic, encoder.encode(payload), qos)
 
-    def _add_communicator(self, communicator: CommunicatorInterface):
-        # TODO: There probably needs to be some public version of this for testing.
+    def add_communicator(self, communicator: CommunicatorInterface):
         if communicator.name in self._communicators:
             raise ValueError(
                 f"ERROR. Communicator with name [{communicator.name}] already present"
@@ -131,8 +123,10 @@ class Proactor(ServicesInterface, Runnable):
             print(f"ERROR in process_message: {e}")
             traceback.print_exc()
             print("Stopping procator")
-            self.stop()
-
+            try:
+                self.stop()
+            except Exception as e:
+                print(f"ERROR stopping proactor: {e}")
     def start_tasks(self):
         self._tasks = [
             asyncio.create_task(self.process_messages(), name="process_messages")
@@ -260,10 +254,7 @@ class Proactor(ServicesInterface, Runnable):
         try:
             while running:
                 _print_tasks(self._loop, "WAITING FOR", tasks=running)
-                done, running = await asyncio.wait(
-                    running, return_when="FIRST_COMPLETED", loop=self._loop
-                )
-                # _print_tasks(self._loop, "WAITED")
+                done, running = await asyncio.wait(running, return_when="FIRST_COMPLETED")
                 _print_tasks(self._loop, tag="DONE", tasks=done)
                 _print_tasks(self._loop, tag="PENDING", tasks=running)
                 for task in done:
