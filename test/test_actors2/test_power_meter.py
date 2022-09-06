@@ -5,16 +5,126 @@ import pytest
 
 import actors2
 from actors.utils import gw_mqtt_topic_encode
-from actors2 import Nodes
-from actors2.power_meter import PowerMeterDriverThread
+from actors2 import Nodes, Scada2
+from actors2.power_meter import PowerMeterDriverThread, PowerMeter, DriverThreadSetupHelper
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
+from load_house import load_all
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
 from test.utils import await_for
+
+def test_power_meter_small():
+    settings = ScadaSettings()
+    load_all(settings.world_root_alias)
+    scada = Scada2(ShNode.by_alias["a.s"], settings)
+
+    # Raise exception if initiating node is anything except the unique power meter node
+    with pytest.raises(Exception):
+        PowerMeter(node=ShNode.by_alias["a.s"], services=scada)
+
+    meter = PowerMeter(node=ShNode.by_alias["a.m"], services=scada)
+    assert isinstance(meter._sync_thread, PowerMeterDriverThread)
+    driver_thread: PowerMeterDriverThread = meter._sync_thread
+    setup_helper = DriverThreadSetupHelper(meter.node, settings)
+
+    assert set(driver_thread.nameplate_telemetry_value.keys()) == set(
+        Nodes.all_power_meter_telemetry_tuples()
+    )
+    assert set(driver_thread.last_reported_telemetry_value.keys()) == set(
+        Nodes.all_power_meter_telemetry_tuples()
+    )
+    assert set(driver_thread.latest_telemetry_value.keys()) == set(Nodes.all_power_meter_telemetry_tuples())
+    assert set(driver_thread.eq_reporting_config.keys()) == set(Nodes.all_power_meter_telemetry_tuples())
+    assert set(driver_thread._last_sampled_s.keys()) == set(Nodes.all_power_meter_telemetry_tuples())
+
+    # Only get resistive heater nameplate attributes if node role is boost element
+    with pytest.raises(Exception):
+        setup_helper.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.tank.temp0"])
+
+    with pytest.raises(Exception):
+        setup_helper.get_resistive_heater_nameplate_current_amps(ShNode.by_alias["a.tank.temp0"])
+
+    all_eq_configs = driver_thread.reporting_config.ElectricalQuantityReportingConfigList
+
+    amp_list = list(
+        filter(
+            lambda x: x.TelemetryName == TelemetryName.CURRENT_RMS_MICRO_AMPS
+            and x.ShNodeAlias == "a.elt1",
+            all_eq_configs,
+        )
+    )
+    assert (len(amp_list)) == 1
+    tt = TelemetryTuple(
+        AboutNode=ShNode.by_alias["a.elt1"],
+        SensorNode=meter.node,
+        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+    )
+    assert tt in Nodes.all_power_meter_telemetry_tuples()
+    assert driver_thread.last_reported_telemetry_value[tt] is None
+    assert driver_thread.latest_telemetry_value[tt] is None
+
+    # If latest_telemetry_value is None, should not report reading
+    assert driver_thread.should_report_telemetry_reading(tt) is False
+    driver_thread.update_latest_value_dicts()
+    assert isinstance(driver_thread.latest_telemetry_value[tt], int)
+    assert driver_thread.last_reported_telemetry_value[tt] is None
+
+    # If last_reported_telemetry_value exists, but last_reported is None, should report
+    assert driver_thread.should_report_telemetry_reading(tt)
+    driver_thread.report_sampled_telemetry_values([tt])
+
+    assert driver_thread.last_reported_telemetry_value[tt] == driver_thread.latest_telemetry_value[tt]
+
+    driver_thread.last_reported_telemetry_value[tt] = driver_thread.latest_telemetry_value[tt]
+
+    assert driver_thread.value_exceeds_async_threshold(tt) is False
+    report_threshold_ratio = driver_thread.eq_reporting_config[tt].AsyncReportThreshold
+    assert driver_thread.nameplate_telemetry_value[tt] == 18750000
+    assert report_threshold_ratio == 0.02
+    report_threshold_microamps = driver_thread.nameplate_telemetry_value[tt] * 0.02
+    assert report_threshold_microamps == 375000
+
+    driver_thread.latest_telemetry_value[tt] += 374000
+    assert driver_thread.value_exceeds_async_threshold(tt) is False
+
+    driver_thread.latest_telemetry_value[tt] += 10000
+    assert driver_thread.value_exceeds_async_threshold(tt) is True
+    assert driver_thread.should_report_telemetry_reading(tt) is True
+    driver_thread.report_sampled_telemetry_values([tt])
+    assert driver_thread.last_reported_telemetry_value[tt] == 402000
+    assert driver_thread.should_report_telemetry_reading(tt) is False
+
+    assert driver_thread.last_reported_agg_power_w is None
+    assert driver_thread.latest_agg_power_w == 0
+    assert driver_thread.should_report_aggregated_power()
+    driver_thread.report_aggregated_power_w()
+    assert not driver_thread.should_report_aggregated_power()
+
+    nameplate_pwr_w_1 = setup_helper.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.elt1"])
+    nameplate_pwr_w_2 = setup_helper.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.elt2"])
+    assert nameplate_pwr_w_1 == 4500
+    assert nameplate_pwr_w_2 == 4500
+    assert driver_thread.nameplate_agg_power_w == 9000
+    power_reporting_threshold_ratio = driver_thread.async_power_reporting_threshold
+    assert power_reporting_threshold_ratio == 0.02
+    power_reporting_threshold_w = power_reporting_threshold_ratio * driver_thread.nameplate_agg_power_w
+    assert power_reporting_threshold_w == 180
+
+    tt = TelemetryTuple(
+        AboutNode=ShNode.by_alias["a.elt1"],
+        SensorNode=meter.node,
+        TelemetryName=TelemetryName.POWER_W,
+    )
+    driver_thread.latest_telemetry_value[tt] += 100
+    assert not driver_thread.should_report_aggregated_power()
+    driver_thread.latest_telemetry_value[tt] += 100
+    assert driver_thread.should_report_aggregated_power()
+    driver_thread.report_aggregated_power_w()
+    assert driver_thread.latest_agg_power_w == 200
 
 
 @pytest.mark.asyncio

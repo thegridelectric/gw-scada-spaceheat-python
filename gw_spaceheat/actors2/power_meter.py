@@ -1,4 +1,4 @@
-"""Implements PowerMeter via SyncThreadActor and PowerMeterDriverThread. A helper class, _DriverThreadSetupHelper,
+"""Implements PowerMeter via SyncThreadActor and PowerMeterDriverThread. A helper class, DriverThreadSetupHelper,
 isolates code used only in PowerMeterDriverThread constructor. """
 
 import asyncio
@@ -42,7 +42,7 @@ from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_mak
 )
 
 
-class _DriverThreadSetupHelper:
+class DriverThreadSetupHelper:
     """A helper class to isolate code only used in construction of PowerMeterDriverThread"""
 
     FASTEST_POWER_METER_POLL_PERIOD_MS = 40
@@ -213,7 +213,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             daemon=daemon,
         )
         self._telemetry_destination = telemetry_destination
-        setup_helper = _DriverThreadSetupHelper(node, settings)
+        setup_helper = DriverThreadSetupHelper(node, settings)
         self.eq_reporting_config = setup_helper.make_eq_reporting_config()
         self.reporting_config = setup_helper.make_reporting_config(
             list(self.eq_reporting_config.values())
