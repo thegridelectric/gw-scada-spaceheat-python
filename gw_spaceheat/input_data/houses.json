@@ -521,15 +521,6 @@
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
-                "Alias": "a.elt1.relay",
-                "RoleGtEnumSymbol": "57b788ee",
-                "ActorClassGtEnumSymbol": "fddd0064",
-                "DisplayName": "30A Relay for first boost element",
-                "ShNodeId": "a9c94a2f-1800-4394-a90f-4f50dba053ac",
-                "ComponentId": "57e2eb41-08f4-4032-8948-b14890fce9ca",
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
                 "Alias": "a.tank",
                 "RoleGtEnumSymbol": "3ecfe9b8",
                 "ActorClassGtEnumSymbol": "99a5f20d",
@@ -575,15 +566,6 @@
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
-                "Alias": "a.tank.out.pump.relay",
-                "RoleGtEnumSymbol": "57b788ee",
-                "ActorClassGtEnumSymbol": "fddd0064",
-                "DisplayName": "Circulator Pump Boolean Actuator",
-                "ShNodeId": "d6109c64-daec-49b1-8b4f-1c69ab012e69",
-                "ComponentId": "7de91fae-72ab-4226-8ebe-f66a9d85cea4",
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
                 "Alias": "a.tank.out.pump.baseboard1",
                 "RoleGtEnumSymbol": "05fdd645",
                 "ActorClassGtEnumSymbol": "99a5f20d",
@@ -597,15 +579,6 @@
                 "ActorClassGtEnumSymbol": "99a5f20d",
                 "DisplayName": "First baseboard radiator fan",
                 "ShNodeId": "57b3632f-df3e-4a7f-9205-1e6f953dece9",
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
-                "Alias": "a.tank.out.pump.baseboard1.fan.relay",
-                "RoleGtEnumSymbol": "57b788ee",
-                "ActorClassGtEnumSymbol": "fddd0064",
-                "DisplayName": "Relay for first baseboard radiator fan",
-                "ShNodeId": "0223a903-ae99-4cd9-bd67-f28e1e799938",
-                "ComponentId": "dd9a1452-d7aa-4523-8deb-8e302a4f86ba",
                 "TypeAlias": "spaceheat.node.gt.100"
             },
             {
@@ -624,68 +597,7 @@
                 "DisplayName": "43 Avon St Microclimate",
                 "ShNodeId": "7706f7ae-d01e-4ec2-89f4-8eb6fcc64f18",
                 "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
-                "Alias": "a.tank.out.flowmeter1",
-                "RoleGtEnumSymbol": "ece3b600",
-                "ActorClassGtEnumSymbol": "dae4b2f0",
-                "DisplayName": "Flow Meter on distribution pipe out of tank",
-                "ShNodeId": "0cb98277-b4b5-4016-8afa-ed2bffca6750",
-                "ComponentId": "cec2fe5c-977c-4e5f-b299-f70adbc38523",
-                "ReportingSamplePeriodS": 5,
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
-                "Alias": "a.tank.out.temp1",
-                "RoleGtEnumSymbol": "c480f612",
-                "ActorClassGtEnumSymbol": "dae4b2f0",
-                "DisplayName": "Temp Sensor on distribution pipe out of tank",
-                "ShNodeId": "88b30858-65c0-470b-82e5-0981d3f2b5fe",
-                "ComponentId": "2ca9e65a-5e85-4eaa-811b-901e940f8d09",
-                "ReportingSamplePeriodS": 5,
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
-                "Alias": "a.tank.in.temp1",
-                "RoleGtEnumSymbol": "c480f612",
-                "ActorClassGtEnumSymbol": "dae4b2f0",
-                "DisplayName": "Temp Sensor on distribution pipe into tank",
-                "ShNodeId": "675458cf-2da8-4792-8c50-e04c3f2f8326",
-                "ComponentId": "35b5107c-bf32-4791-93eb-0497929fae57",
-                "ReportingSamplePeriodS": 5,
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
-                "Alias": "a.tank.temp0",
-                "RoleGtEnumSymbol": "73308a1f",
-                "ActorClassGtEnumSymbol": "dae4b2f0",
-                "DisplayName": "Tank temp sensor temp0 (on top)",
-                "ShNodeId": "24e6c994-ff61-43b2-8550-d2017f413cb3",
-                "ComponentId": "fbdadade-760f-4fdf-8a05-ab8243ba1371",
-                "ReportingSamplePeriodS": 5,
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
-                "Alias": "a.tank.out.pump.baseboard1.garage.temp1",
-                "RoleGtEnumSymbol": "fec74958",
-                "ActorClassGtEnumSymbol": "99a5f20d",
-                "DisplayName": "First Garage Temp sensor",
-                "ShNodeId": "12b072ef-0a8b-4569-a055-12b486f35f04",
-                "ComponentId": "38d2db8d-3668-4479-a839-c4b0298be270",
-                "ReportingSamplePeriodS": 60,
-                "TypeAlias": "spaceheat.node.gt.100"
-            },
-            {
-                "Alias": "a.outdoors.temp1",
-                "RoleGtEnumSymbol": "5938bf1f",
-                "ActorClassGtEnumSymbol": "99a5f20d",
-                "DisplayName": "First Outdoor Temp sensor",
-                "ShNodeId": "f0821873-e34f-4d53-a69a-10f6bed6d8d8",
-                "ComponentId": "a9d43bb7-f838-4b7c-89ed-186eb8c89f23",
-                "ReportingSamplePeriodS": 60,
-                "TypeAlias": "spaceheat.node.gt.100"
             }
-    
         ],
         "ThermalEdges": [
             {
