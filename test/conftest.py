@@ -28,8 +28,9 @@ class CleanScadaEnv:
     variable exists but is empty or the specified path does not exist.
     """
 
-    def __init__(self, world: str = "dw1", prefix: str = ScadaSettings.Config.env_prefix):
+    def __init__(self, world: str = "dw1", use_test_dotenv: bool = True, prefix: str = ScadaSettings.Config.env_prefix):
         self.world = world
+        self.use_test_dotenv = use_test_dotenv
         self.prefix = prefix
 
     @contextlib.contextmanager
@@ -42,13 +43,14 @@ class CleanScadaEnv:
                     m.delenv(env_var)
             if self.world:
                 m.setenv(f"{self.prefix}WORLD_ROOT_ALIAS", self.world)
-            test_dotenv_file = os.getenv(TEST_DOTENV_PATH_VAR)
-            if test_dotenv_file is None:
-                test_dotenv_file = TEST_DOTENV_PATH
-            if test_dotenv_file:
-                test_dotenv_path = Path(test_dotenv_file)
-                if test_dotenv_path.exists():
-                    dotenv.load_dotenv(dotenv_path=test_dotenv_path)
+            if self.use_test_dotenv:
+                test_dotenv_file = os.getenv(TEST_DOTENV_PATH_VAR)
+                if test_dotenv_file is None:
+                    test_dotenv_file = TEST_DOTENV_PATH
+                if test_dotenv_file:
+                    test_dotenv_path = Path(test_dotenv_file)
+                    if test_dotenv_path.exists():
+                        dotenv.load_dotenv(dotenv_path=test_dotenv_path)
             yield m
 
 
@@ -75,9 +77,10 @@ def clean_scada_env(request) -> Generator[MonkeyPatch, None, None]:
 
 
     """
-    param = getattr(request, "param", ("dw1", "SCADA_"))
+    param = getattr(request, "param", ("dw1", True, "SCADA_"))
     with CleanScadaEnv(
         world=param[0] if len(param) > 0 else "dw1",
-        prefix=param[1] if len(param) > 1 else "SCADA_"
+        use_test_dotenv=param[1] if len(param) > 1 else True,
+        prefix=param[2] if len(param) > 2 else "SCADA_"
     ).context() as mpatch:
         yield mpatch

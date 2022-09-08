@@ -26,7 +26,7 @@ def test_mqtt_client_settings():
     assert settings.password.get_secret_value() == password
 
 
-@pytest.mark.parametrize("clean_scada_env", [("",)], indirect=True)
+@pytest.mark.parametrize("clean_scada_env", [("", False)], indirect=True)
 def test_scada_settings_defaults(clean_scada_env):
     """Test ScadaSettings defaults"""
 
