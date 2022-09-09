@@ -85,6 +85,23 @@ export TMPDIR=/home/pi/tmp
   WARNING: The script dotenv is installed in '/home/pi/.local/bin' which is not on PATH.
 pip install -r requirements/drivers.txt
 
+**Running the tests**
+
+Activate the virtual environment and install the test requirements: 
+
+    cd gw-scada-spaceheat-python/gw_spaceheat/
+    pip install -r requirements/test.txt
+
+Set variables for the tests: 
+
+    export PYTHONPATH=gw_spaceheat
+    export GW_SPACEHEAT_TEST_DOTENV_PATH=test/.env-gw-spaceheat-test-pi
+
+Run the tests:
+
+    cd gw-scada-spaceheat-python
+    pytest
+
 
 **Make .env file; Use the local emonPi broker**
 
