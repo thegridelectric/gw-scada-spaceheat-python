@@ -62,17 +62,18 @@ Use ssh -A pi@LAN to bring my keys
 
 In /home/pi
 
-git clone https://github.com/thegridelectric/gw-scada-spaceheat-python.git
+    git clone https://github.com/thegridelectric/gw-scada-spaceheat-python.git
+    cd gw-scada-spaceheat-python/gw_spaceheat/
+    python -m venv venv
+    source venv/bin/activate
+    export TMPDIR=/home/pi/tmp
+    pip install -r requirements/drivers.txt
 
-cd gw-scada-spaceheat-python/gw_spaceheat/
+Test with: 
 
-python -m venv venv
-
-source venv/bin/activate
-
-export TMPDIR=/home/pi/tmp
-
-pip install -r requirements/drivers.txt
+    export PYTHONPATH=gw_spaceheat
+    export GW_SPACEHEAT_TEST_DOTENV_PATH=test/.env-gw-spaceheat-test-pi
+    pytest
 
 # RANDOM NOTES
 
