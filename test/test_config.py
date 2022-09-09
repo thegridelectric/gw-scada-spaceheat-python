@@ -1,5 +1,4 @@
 """Test config module"""
-import os
 import textwrap
 from pathlib import Path
 
@@ -26,7 +25,6 @@ def test_mqtt_client_settings():
     assert settings.password.get_secret_value() == password
 
 
-@pytest.mark.parametrize("clean_scada_env", [("", False)], indirect=True)
 def test_scada_settings_defaults(clean_scada_env):
     """Test ScadaSettings defaults"""
 
@@ -53,10 +51,8 @@ def test_scada_settings_defaults(clean_scada_env):
     assert settings.local_mqtt.password.get_secret_value() == ""
 
 
-def test_scada_settings_from_env(monkeypatch):
+def test_scada_settings_from_env(monkeypatch, clean_scada_env):
     """Verify settings loaded from env as expected. """
-    monkeypatch.delenv("SCADA_WORLD_ROOT_ALIAS")
-    assert "SCADA_WORLD_ROOT_ALIAS" not in os.environ
     with pytest.raises(pydantic.error_wrappers.ValidationError):
         ScadaSettings()
     world = "Foo"
@@ -85,9 +81,8 @@ def test_scada_settings_from_env(monkeypatch):
     assert settings.gridworks_mqtt.password.get_secret_value() == exp["SCADA_GRIDWORKS_MQTT__PASSWORD"]
 
 
-def test_scada_settings_from_dotenv(monkeypatch, tmp_path):
+def test_scada_settings_from_dotenv(monkeypatch, tmp_path, clean_scada_env):
     """Verify settings loaded from .env file as expected. """
-    monkeypatch.delenv("SCADA_WORLD_ROOT_ALIAS")
     env_file = Path(tmp_path) / ".env"
     settings = ScadaSettings(world_root_alias="1", _env_file=env_file)
     assert settings.seconds_per_report == 300
@@ -118,7 +113,7 @@ def test_scada_settings_from_dotenv(monkeypatch, tmp_path):
     assert settings.local_mqtt.password.get_secret_value() == password
 
 
-def test_scada_settings_from_env_and_dotenv(monkeypatch, tmp_path):
+def test_scada_settings_from_env_and_dotenv(monkeypatch, tmp_path, clean_scada_env):
     """Verify settings loaded from both environment variables and .env and as expected - environment variables
     take precedence"""
     env = dict(

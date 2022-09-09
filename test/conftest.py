@@ -16,11 +16,11 @@ TEST_DOTENV_PATH = "test/.env-gw-spaceheat-test"
 TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"
 
 
-class CleanScadaEnv:
+class TestScadaEnv:
     """Context manager for monkeypatched environment with all vars starting with SCADA_ removed and replaced by
     the contents of the test env file, if specified. Usage:
     >>> os.environ["SCADA_WORLD_ROOT_ALIAS"] = "foo"
-    >>> with CleanScadaEnv().context() as mpatch:
+    >>> with TestScadaEnv().context() as mpatch:
     ...     assert os.getenv("SCADA_WORLD_ROOT_ALIAS") == "dw1"
 
     The default test env file is test/.env-gw-spaceheat-test. This path can be overridden with the environment variable
@@ -58,29 +58,41 @@ class CleanScadaEnv:
 def flush_local_registries():
     flush_all()
 
-
 @pytest.fixture(autouse=True)
-def clean_scada_env(request) -> Generator[MonkeyPatch, None, None]:
-    """Automatically used fixture producing monkeypatched environment with all vars starting SCADA_ removed and then
-    setting enviroment variable to SCADA_WORLD_ALIAS_ROOT set to 'dw1'. If the test dotenv file
-    (.test/.env-gw-spaceheat-test or the value of the environment variable TEST_DOTENV_PATH_VAR) exists, its contents
-    will be used to set the environment after cleaning previously existing SCDADA_ vars.
+def test_scada_env(request) -> Generator[MonkeyPatch, None, None]:
+    """Automatically used fixture producing monkeypatched environment with all vars starting SCADA_ *removed* and then:
+        1. Setting SCADA_WORLD_ALIAS_ROOT set to 'dw1'.
+        2. Setting variables from the test/.env-gw-spaceheat-test, if present.
 
     Note that this fixture is run before _every_ test.
 
-    To customize the behavior of this fixture use the test dotenv file as described above or pass the fixture explicitly
-    to a test and parametrize it. For example to run the test with SCADA_WORLD_ROOT set to "trappist-1e":
+    The behavior of this fixture can be customized by:
+        1. Modifying the contents of test/.env-gw-spaceheat-test.
+        2. Changing the the path to the test dotenv file via the GW_SPACEHEAT_TEST_DOTENV_PATH environment variable.
+        3. Explicitly passing and parametrizing this fixture. For example to run the test with SCADA_WORLD_ROOT set to
+           "trappist-1e":
 
-        @pytest.mark.parametrize("clean_scada_env", [("trappist-1e",)], indirect=True)
-        def test_something(clean_scada_env):
-            assert os.getenv("SCADA_WORLD_ROOT_ALIAS") == "trappist-1e"
-
-
+                @pytest.mark.parametrize("test_scada_env", [("trappist-1e",)], indirect=True)
+                def test_something(test_scada_env):
+                    assert os.getenv("SCADA_WORLD_ROOT_ALIAS") == "trappist-1e"
     """
     param = getattr(request, "param", ("dw1", True, "SCADA_"))
-    with CleanScadaEnv(
+    with TestScadaEnv(
         world=param[0] if len(param) > 0 else "dw1",
         use_test_dotenv=param[1] if len(param) > 1 else True,
+        prefix=param[2] if len(param) > 2 else "SCADA_"
+    ).context() as mpatch:
+        yield mpatch
+
+
+@pytest.fixture
+def clean_scada_env(request) -> Generator[MonkeyPatch, None, None]:
+    """Get a monkeypatched environment with all vars starting SCADA_ *removed* (and none loaded from any dotenv
+    file). """
+    param = getattr(request, "param", ("", False, "SCADA_"))
+    with TestScadaEnv(
+        world=param[0] if len(param) > 0 else "",
+        use_test_dotenv=param[1] if len(param) > 1 else False,
         prefix=param[2] if len(param) > 2 else "SCADA_"
     ).context() as mpatch:
         yield mpatch
