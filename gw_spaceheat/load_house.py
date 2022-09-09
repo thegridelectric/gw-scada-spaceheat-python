@@ -72,8 +72,7 @@ def load_nodes(dna):
 
 def load_all(settings: ScadaSettings):
     dna: Dict = json.loads(settings.dna_type)
-    #TODO dna into GwTuple of a schema type with lots of consistency checking
+    # TODO dna into GwTuple of a schema type with lots of consistency checking
     load_cacs(dna=dna)
     load_components(dna=dna)
     load_nodes(dna=dna)
-
