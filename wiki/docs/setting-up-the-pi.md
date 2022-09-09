@@ -2,24 +2,25 @@
 =======
 
 
+[scada-template-2](https://drive.google.com/drive/u/0/folders/1stNbaPS0m_K00DqltmTKjR6WiAvD7Pge) -
+This is a 32 GB image that can be loaded onto any >= 32 GB microSD card. It followed this recipe:
+ **Started with emonPi 32 GB SD microSD card**
 
-[scada-template-1](https://drive.google.com/drive/u/0/folders/11u_83c-HHFVoydwg1Qnm-RuoNUw5vw5l) -
-This is a 16 GB image that can be loaded onto any >= 16 GB microSD card. It followed this recipe:
- **Started with emonPi 16 GB SD microSD card**
+Double-check thatt the SD card is 32 GB(hex screwdriver, open it up).
+
 power it up and use the button to cycle the screen to `enable ssh` and then hold it. Then
 look at its address on the LAN (one of the screens) and ssh using username `pi` and password `emonpi2016`
 
 Change ssh password to template password
 
-Change hostname to scada-template
+Change hostname to scada-template-2
 
 sudo nano /etc/hostname
 
 sudo nano /etc/hosts
 
-
+sudo reboot
  **Various apt-get**
-sudo apt-get update --allow-releaseinfo-change
 
 sudo apt-get update
 
@@ -62,54 +63,85 @@ Use ssh -A pi@LAN to bring my keys
 
 In /home/pi
 
-    git clone https://github.com/thegridelectric/gw-scada-spaceheat-python.git
-    cd gw-scada-spaceheat-python/gw_spaceheat/
-    python -m venv venv
-    source venv/bin/activate
-    export TMPDIR=/home/pi/tmp
-    pip install -r requirements/drivers.txt
+mkdir tmp
 
-Test with: 
+git clone https://github.com/thegridelectric/gw-scada-spaceheat-python.git
 
-    export PYTHONPATH=gw_spaceheat
-    export GW_SPACEHEAT_TEST_DOTENV_PATH=test/.env-gw-spaceheat-test-pi
-    pytest
+cd gw-scada-spaceheat-python/gw_spaceheat/
 
-# RANDOM NOTES
+python -m venv venv
 
-When I tried the above again from scratch I was having trouble still with a claim that
-there was no more memory
+source venv/bin/activate
 
 
-TODO: clean up the issues with pip. The latest `scada-template` 
-regular pip was going to /usr/bin/pip and failing. Did this:
+export TMPDIR=/home/pi/tmp
+
+
  /usr/local/bin/pip3.10 install -r requirements/drivers.txt
-
- sudo pip install pyModbusTCP
 
  resulted in this:
    WARNING: The scripts pyserial-miniterm and pyserial-ports are installed in '/home/pi/.local/bin' which is not on PATH.
   Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
   WARNING: The script dotenv is installed in '/home/pi/.local/bin' which is not on PATH.
-
-But seems to work.
-
-# Raspberry Pi i2c 
-
-The first time I tried to use i2c, it was to control an [ncd_pr8-14 relay](https://docs.google.com/document/d/1DurCUDddqoAkloZs7OPQh909biuquTCC3XDcZe132yg/edit)
+pip install -r requirements/drivers.txt
 
 
-(See learning/by_function/ncd_pr-8-14_spst for example scripts)
+**Make .env file; Use the local emonPi broker**
+
+Contents of `.env`
+
+```
+SCADA_WORLD_ROOT_ALIAS = "hw1"
+SCADA_SECONDS_PER_REPORT = 300
+SCADA_ASYNC_POWER_REPORTING_THRESHOLD = 0.02
+SCADA_LOCAL_MQTT__HOST = "localhost"
+SCADA_LOCAL_MQTT__PORT = 1883
+SCADA_LOCAL_MQTT__USERNAME = "emonpi"
+SCADA_LOCAL_MQTT__PASSWORD = "emonpimqtt2016"
+SCADA_GRIDWORKS_MQTT__HOST = "hw1-1.electricity.works"
+SCADA_GRIDWORKS_MQTT__PORT = 1883
+SCADA_GRIDWORKS_MQTT__USERNAME = "smqPublic"
+SCADA_GRIDWORKS_MQTT__PASSWORD = ""
 
 
-After loading the various drivers, I tried to run the simple-gpio-monitor script and got this error:
- No such file or directory: '/dev/i2c-1'
+PYTHONPATH=gw_spaceheat
+```
+
+**remove `tmp` folder**
+
+cd ~
+rm tmp/
+
+**add readme**
+From `/home/pi`:
+
+mv readme.md emonpi_orig_readme.md
+
+contents of new `readme.md`:
+
+```
+This Pi is designed to run a SCADA  for a residential space heating system
+that combines heat pumps with thermal storage and supports the electric grid
+by recognizing and utilizing renewable energy when it is available.
+
+The code is open source and available here:
+https://github.com/thegridelectric/gw-scada-spaceheat-python
+
+The Pi is also designed to expand on the original functionality of the
+emonPi. The SD card started with the image provided in the emonPi sold
+by open energy monitor (https://shop.openenergymonitor.com/emonpi/). On
+top of that we have installed python 3.10.4 as the default python and
+added the repo in this home directory.
+```
 
 
-[Devine Lu Linvega](https://github.com/neauoire) of [100 rabbits](http://100r.co/site/about_us.html) points out [here](https://github.com/pimoroni/inky-phat/issues/28) that the pi interface needs to be activated, first by typing 
+# WISH LIST FOR NEXT VERSION: 
+ - change username and password for the local MQTT broker. Need to make sure that the 
+power meter has correct access still.
+
+
 
 # MQTT
-
 
 
 testing broker access (needs to be on the same LAN as moquitto broker)
@@ -120,19 +152,6 @@ mosquitto_sub -v -u emonpi -P emonpimqtt2016 -t 'emon/emonpi/power1'
 mosquitto_sub -v -u emonpi -P emonpimqtt2016 -t 'emon/emonpi/vrms'
 
 (see settings.py for username and .env for password)
-
-# 1-wire
-Followed these instructions (https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing?view=all)
-
-sudo raspi-config, 5) Interface Options P7) 1-Wire, Select yes
-sudo reboot
-
-lsmod | grep -i w1_
-
-look for 
-w1_therm   
-w1_gpio
-wire
 
 # hex code for emonpi
 
