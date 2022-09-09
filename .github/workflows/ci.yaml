@@ -37,7 +37,7 @@ jobs:
         uses: canastro/copy-file-action@master
         with:
           source: "test/config/.env-ci"
-          target: ".env"
+          target: "test/.env-gw-spaceheat-test"
       - name: Run tests with pytest under coverage
         run: coverage run -m pytest
       - name: Upload coverage data
