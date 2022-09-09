@@ -217,7 +217,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             )
             status = scada2._data.make_status(int(time.time()))
             assert len(status.SimpleTelemetryList) == 1
-            assert status.SimpleTelemetryList[0].ValueList == [0, 1]
+            assert status.SimpleTelemetryList[0].ValueList[-1] == 1
             assert status.SimpleTelemetryList[0].ShNodeAlias == relay2.alias
             assert (
                 status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
