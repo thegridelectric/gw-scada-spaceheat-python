@@ -6,7 +6,7 @@ from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectr
 
 def test_electric_meter_cac():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     d = {
         "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
         "MakeModelGtEnumSymbol": "076da322",

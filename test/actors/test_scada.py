@@ -38,7 +38,7 @@ from test.utils import wait_for
 
 def test_scada_small():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     with pytest.raises(Exception):
         Scada(node=ShNode.by_alias["a"], settings=settings)
     scada = Scada(node=ShNode.by_alias["a.s"], settings=settings)

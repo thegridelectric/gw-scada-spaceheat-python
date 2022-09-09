@@ -98,7 +98,7 @@ def run_nodes_main(
     args = parse_args(argv, default_nodes=default_nodes)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     setup_logging(args, settings)
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     run_nodes(args.nodes, settings, dbg=dbg)
 
 
@@ -151,5 +151,5 @@ async def run_async_actors_main(
     args = parse_args(argv, default_nodes=default_nodes)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     setup_logging(args, settings)
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     await run_async_actors(args.nodes, settings)

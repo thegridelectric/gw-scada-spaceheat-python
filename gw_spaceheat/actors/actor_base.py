@@ -82,50 +82,32 @@ class ActorBase(ABC):
 
     @cached_property
     def atn_g_node_alias(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = self.settings.dna["MyAtomicTNodeGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
     def atn_g_node_id(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyAtomicTNodeGNode"]
+        my_atn_as_dict = self.settings.dna["MyAtomicTNodeGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
     def terminal_asset_g_node_alias(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyTerminalAssetGNode"]
+        my_atn_as_dict = self.settings.dna["MyTerminalAssetGNode"]
         return my_atn_as_dict["Alias"]
 
     @cached_property
     def terminal_asset_g_node_id(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyTerminalAssetGNode"]
+        my_atn_as_dict = self.settings.dna["MyTerminalAssetGNode"]
         return my_atn_as_dict["GNodeId"]
 
     @cached_property
     def scada_g_node_alias(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
+        my_scada_as_dict = self.settings.dna["MyScadaGNode"]
         return my_scada_as_dict["Alias"]
 
     @cached_property
     def scada_g_node_id(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
+        my_scada_as_dict = self.settings.dna["MyScadaGNode"]
         return my_scada_as_dict["GNodeId"]
 
     def __init__(self, node: ShNode, settings: ScadaSettings):
@@ -133,6 +115,7 @@ class ActorBase(ABC):
         self.main_thread = None
         self.node = node
         self.settings = settings
+        self.settings.dna = json.loads(settings.dna_type)
         self.log_csv = f"{self.settings.output_dir}/debug_logs/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
         if self.settings.logging_on:
             row = [f"({helpers.log_time()}) {self.node.alias}"]

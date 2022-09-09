@@ -37,7 +37,7 @@ def test_run_nodes_main(aliases):
 
 def test_run_local():
     """Test the "run_local" script semantics"""
-    load_house.load_all(ScadaSettings().world_root_alias)
+    load_house.load_all(ScadaSettings())
 
     aliases = [
         node.alias

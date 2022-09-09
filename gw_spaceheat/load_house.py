@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
-from typing import Union
+from typing import Dict
+from config import ScadaSettings
 
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
@@ -33,55 +33,47 @@ from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_maker import (
     GtTempSensorComponent_Maker,
 )
 
-INPUT_JSON_FILE = "input_data/houses.json"
 
-
-def load_cacs(house_data):
-    for d in house_data["BooleanActuatorCacs"]:
+def load_cacs(dna):
+    for d in dna["BooleanActuatorCacs"]:
         GtBooleanActuatorCac_Maker.dict_to_dc(d)
-    for d in house_data["ResistiveHeaterCacs"]:
+    for d in dna["ResistiveHeaterCacs"]:
         ResistiveHeaterCacGt_Maker.dict_to_dc(d)
-    for d in house_data["ElectricMeterCacs"]:
+    for d in dna["ElectricMeterCacs"]:
         GtElectricMeterCac_Maker.dict_to_dc(d)
-    for d in house_data["PipeFlowSensorCacs"]:
+    for d in dna["PipeFlowSensorCacs"]:
         GtPipeFlowSensorCac_Maker.dict_to_dc(d)
-    for d in house_data["TempSensorCacs"]:
+    for d in dna["TempSensorCacs"]:
         GtTempSensorCac_Maker.dict_to_dc(d)
-    for d in house_data["OtherCacs"]:
+    for d in dna["OtherCacs"]:
         ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"])
 
 
-def load_components(house_data):
-    for d in house_data["BooleanActuatorComponents"]:
+def load_components(dna):
+    for d in dna["BooleanActuatorComponents"]:
         GtBooleanActuatorComponent_Maker.dict_to_dc(d)
-    for d in house_data["ResistiveHeaterComponents"]:
+    for d in dna["ResistiveHeaterComponents"]:
         ResistiveHeaterComponentGt_Maker.dict_to_dc(d)
-    for d in house_data["ElectricMeterComponents"]:
+    for d in dna["ElectricMeterComponents"]:
         GtElectricMeterComponent_Maker.dict_to_dc(d)
-    for d in house_data["PipeFlowSensorComponents"]:
+    for d in dna["PipeFlowSensorComponents"]:
         GtPipeFlowSensorComponent_Maker.dict_to_dc(d)
-    for d in house_data["TempSensorComponents"]:
+    for d in dna["TempSensorComponents"]:
         GtTempSensorComponent_Maker.dict_to_dc(d)
-    for camel in house_data["OtherComponents"]:
+    for camel in dna["OtherComponents"]:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         Component(**snake_dict)
 
 
-def load_nodes(house_data):
-    for d in house_data["ShNodes"]:
+def load_nodes(dna):
+    for d in dna["ShNodes"]:
         SpaceheatNodeGt_Maker.dict_to_dc(d)
 
 
-def load_all(world_root_alias: str, houses_json: Union[str, Path] = "input_data/houses.json"):
-    with (Path(__file__).resolve().parent / houses_json).open("r") as read_file:
-        input_data = json.load(read_file)
-    if world_root_alias not in input_data.keys():
-        raise Exception(f"{world_root_alias} house data missing from input_data/houses.json")
-    house_data = input_data[world_root_alias]
-    load_cacs(house_data=house_data)
-    load_components(house_data=house_data)
-    load_nodes(house_data=house_data)
+def load_all(settings: ScadaSettings):
+    dna: Dict = json.loads(settings.dna_type)
+    #TODO dna into GwTuple of a schema type with lots of consistency checking
+    load_cacs(dna=dna)
+    load_components(dna=dna)
+    load_nodes(dna=dna)
 
-
-def stickler():
-    return

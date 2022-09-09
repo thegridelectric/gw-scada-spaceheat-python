@@ -12,7 +12,7 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
 
 def test_homealone_small():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     with pytest.raises(Exception):
         HomeAlone(node=ShNode.by_alias["a"], settings=settings)
     home_alone = HomeAlone(node=ShNode.by_alias["a.home"], settings=settings)

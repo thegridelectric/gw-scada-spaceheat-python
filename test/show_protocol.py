@@ -199,7 +199,7 @@ def show_protocol(argv: Optional[List[str]] = None):
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file), log_message_summary=True)
     setup_logging(args, settings)
     please_be_quiet()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     runner = FragmentRunner(
         settings,
         wait_at_least=args.wait_at_least,

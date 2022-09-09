@@ -13,7 +13,7 @@ from test.utils import wait_for
 def test_simple_sensor_periodic_update():
     """Verify that SimpleSensor sends its periodic GtTelemetry message."""
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     scada = Scada(ShNode.by_alias["a.s"], settings=settings)
     thermo_node = ShNode.by_alias["a.tank.temp0"]
     # Artificially speed up the test by telling the SimpleSensor to report every second

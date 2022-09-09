@@ -230,7 +230,7 @@ class FragmentRunner:
         cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]
     ):
         settings = ScadaSettings(log_message_summary=True)
-        load_house.load_all(settings.world_root_alias)
+        load_house.load_all(settings)
         runner = FragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         runner.run()
@@ -240,7 +240,7 @@ class FragmentRunner:
         cls, fragment_factory: Callable[["FragmentRunner"], "ProtocolFragment"]
     ):
         settings = ScadaSettings(log_message_summary=True)
-        load_house.load_all(settings.world_root_alias)
+        load_house.load_all(settings)
         runner = FragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         await runner.async_run()

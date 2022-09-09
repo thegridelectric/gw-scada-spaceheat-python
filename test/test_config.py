@@ -30,14 +30,14 @@ def test_mqtt_client_settings():
 def test_scada_settings_defaults(clean_scada_env):
     """Test ScadaSettings defaults"""
 
-    # world_root_alias required
+    # dna_type required required
     with pytest.raises(pydantic.error_wrappers.ValidationError):
         ScadaSettings()
 
     # defaults
-    settings = ScadaSettings(world_root_alias="foo")
+    settings = ScadaSettings(dna_type="foo")
     exp = dict(
-        world_root_alias="foo",
+        dna_type="foo",
         output_dir="output",
         local_mqtt=MQTTClient().dict(),
         gridworks_mqtt=MQTTClient().dict(),
@@ -46,7 +46,7 @@ def test_scada_settings_defaults(clean_scada_env):
         logging_on=False,
         log_message_summary=False,
     )
-    assert settings.world_root_alias == "foo"
+    assert settings.dna_type == "foo"
     assert settings.dict() == exp
     assert settings.local_mqtt == MQTTClient()
     assert settings.local_mqtt.username is None
@@ -55,14 +55,14 @@ def test_scada_settings_defaults(clean_scada_env):
 
 def test_scada_settings_from_env(monkeypatch):
     """Verify settings loaded from env as expected. """
-    monkeypatch.delenv("SCADA_WORLD_ROOT_ALIAS")
-    assert "SCADA_WORLD_ROOT_ALIAS" not in os.environ
+    monkeypatch.delenv("SCADA_DNA_TYPE")
+    assert "SCADA_DNA_TYPE" not in os.environ
     with pytest.raises(pydantic.error_wrappers.ValidationError):
         ScadaSettings()
-    world = "Foo"
-    monkeypatch.setenv("SCADA_WORLD_ROOT_ALIAS", world)
+    fake_dna_type = "Foo"
+    monkeypatch.setenv("SCADA_DNA_TYPE", fake_dna_type)
     settings = ScadaSettings()
-    assert settings.world_root_alias == world
+    assert settings.dna_type == fake_dna_type
     assert settings.seconds_per_report == 300
     assert settings.local_mqtt.host == "localhost"
     assert settings.local_mqtt.password.get_secret_value() == ""
@@ -87,13 +87,13 @@ def test_scada_settings_from_env(monkeypatch):
 
 def test_scada_settings_from_dotenv(monkeypatch, tmp_path):
     """Verify settings loaded from .env file as expected. """
-    monkeypatch.delenv("SCADA_WORLD_ROOT_ALIAS")
+    monkeypatch.delenv("SCADA_DNA_TYPE")
     env_file = Path(tmp_path) / ".env"
-    settings = ScadaSettings(world_root_alias="1", _env_file=env_file)
+    settings = ScadaSettings(dna_type="1", _env_file=env_file)
     assert settings.seconds_per_report == 300
     assert settings.local_mqtt.host == "localhost"
     assert settings.local_mqtt.password.get_secret_value() == ""
-    world = "Foo"
+    fake_dna_type = "Foo"
     seconds_per_report = 1
     host = "x"
     password = "y"
@@ -101,7 +101,7 @@ def test_scada_settings_from_dotenv(monkeypatch, tmp_path):
         f.write(
             textwrap.dedent(
                 f"""
-                SCADA_WORLD_ROOT_ALIAS="{world}"
+                SCADA_DNA_TYPE="{fake_dna_type}"
                 SCADA_SECONDS_PER_REPORT={seconds_per_report}
                 SCADA_LOCAL_MQTT__HOST={host}
                 SCADA_LOCAL_MQTT__PASSWORD={password}
@@ -112,7 +112,7 @@ def test_scada_settings_from_dotenv(monkeypatch, tmp_path):
     working_dir.mkdir(parents=True)
     monkeypatch.chdir(working_dir)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(str(env_file)))
-    assert settings.world_root_alias == world
+    assert settings.dna_type == fake_dna_type
     assert settings.seconds_per_report == seconds_per_report
     assert settings.local_mqtt.host == host
     assert settings.local_mqtt.password.get_secret_value() == password
@@ -122,13 +122,13 @@ def test_scada_settings_from_env_and_dotenv(monkeypatch, tmp_path):
     """Verify settings loaded from both environment variables and .env and as expected - environment variables
     take precedence"""
     env = dict(
-        SCADA_WORLD_ROOT_ALIAS="a",
+        SCADA_DNA_TYPE="a",
         SCADA_LOCAL_MQTT__PASSWORD="1"
     )
     for k, v in env.items():
         monkeypatch.setenv(k, v)
     dotenv_ = dict(
-        SCADA_WORLD_ROOT_ALIAS="b",
+        SCADA_DNA_TYPE="b",
         SCADA_GRIDWORKS_MQTT__PASSWORD="2"
     )
     env_file = Path(tmp_path) / ".env"
@@ -136,6 +136,6 @@ def test_scada_settings_from_env_and_dotenv(monkeypatch, tmp_path):
         for k, v in dotenv_.items():
             f.write(f"{k}={v}\n")
     settings = ScadaSettings(_env_file=env_file)
-    assert settings.world_root_alias == env["SCADA_WORLD_ROOT_ALIAS"]
+    assert settings.dna_type == env["SCADA_DNA_TYPE"]
     assert settings.local_mqtt.password.get_secret_value() == env["SCADA_LOCAL_MQTT__PASSWORD"]
     assert settings.gridworks_mqtt.password.get_secret_value() == dotenv_["SCADA_GRIDWORKS_MQTT__PASSWORD"]

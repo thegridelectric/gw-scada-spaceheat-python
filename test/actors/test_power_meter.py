@@ -156,7 +156,7 @@ def test_driver():
 
 def test_power_meter_small():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
 
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
@@ -264,7 +264,7 @@ def test_power_meter_periodic_update():
     """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (GsPwr sending is
     _not_ tested here."""
     settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     scada = Scada(ShNode.by_alias["a.s"], settings=settings)
     meter_node = ShNode.by_alias["a.m"]
     typing.cast(ElectricMeterComponent, meter_node.component).cac.update_period_ms = 0
@@ -321,7 +321,7 @@ def test_power_meter_aggregate_power_forward():
     """Verify that when a simulated change in power is generated, Scadd and Atn both get a GsPwr message"""
 
     settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     scada = ScadaRecorder(ShNode.by_alias["a.s"], settings=settings)
     atn = AtnRecorder(ShNode.by_alias["a"], settings=settings)
     meter_node = ShNode.by_alias["a.m"]

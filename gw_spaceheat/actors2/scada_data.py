@@ -4,7 +4,6 @@ not necessarily re-use. """
 import time
 import uuid
 from typing import Optional, Dict, List
-
 from actors2.nodes import Nodes
 from config import ScadaSettings
 from data_classes.node_config import NodeConfig

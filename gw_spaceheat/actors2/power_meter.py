@@ -4,6 +4,7 @@ isolates code used only in PowerMeterDriverThread constructor. """
 import asyncio
 import time
 import typing
+import json
 from collections import OrderedDict
 from typing import Optional, Dict, List
 
@@ -64,6 +65,7 @@ class _DriverThreadSetupHelper:
             )
         self.node = node
         self.settings = settings
+        self.settings.dna = json.loads(settings.dna_type)
         self.component = typing.cast(ElectricMeterComponent, node.component)
 
     def make_eq_reporting_config(self) -> Dict[TelemetryTuple, GtEqReportingConfig]:

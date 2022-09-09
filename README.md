@@ -78,11 +78,7 @@ To use a local mosquitto broker:
    - Success: the subscribing terminal outputs hi
 
 ## Step 2: input data and running the code
-
-Input data is in the `input_data/houses.json` file. It includes house data organized by the `GNodeAlias` for the `AtomicTNode` 
-representing the house. If `SCADA_WORLD_ROOT_ALIAS` in `.env` is is `w`, then the code expects the test heating system
-in Jessica's garage. Otherwise it expects a _simulated_ heating system.
-
+TODO:  ADD
 `python run_local.py` will start up all actors meant to run on the SCADA pi. 
 `python try_actors.py` gives an interactive script to selectively start some of the actors.
 

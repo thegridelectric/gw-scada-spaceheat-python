@@ -16,7 +16,7 @@ from actors.boolean_actuator import BooleanActuator
 
 def test_boolean_actuator():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     boost_relay = BooleanActuator(ShNode.by_alias["a.elt1.relay"], settings=settings)
 
     # test on_message

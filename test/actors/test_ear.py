@@ -19,7 +19,7 @@ from actors.utils import gw_mqtt_topic_encode
 
 def test_scada_ear_connection():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
     ear = EarRecorder(settings=settings)
     thermo0_node = ShNode.by_alias["a.tank.temp0"]

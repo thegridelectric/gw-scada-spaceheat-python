@@ -30,7 +30,7 @@ from test.utils import await_for
 
 def test_scada_small():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     scada = Scada2(node=ShNode.by_alias["a.s"], settings=settings, actors=dict())
     assert scada._nodes.power_meter_node() == ShNode.by_alias["a.m"]
     meter_node = ShNode.by_alias["a.m"]
