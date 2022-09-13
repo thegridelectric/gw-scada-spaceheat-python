@@ -147,7 +147,7 @@ class AllFragments(ProtocolFragment):
         do_nothing(self.runner.do_nothing_time)
 
         delimit("TURNING ON")
-        actors.atn.turn_on(ShNode.by_alias["a.elt1.relay"])
+        actors.atn.turn_on(self.runner.layout.node("a.elt1.relay"))
         wait_for(lambda: actors.relay.relay_state == 1, 10, f"Relay state")
         delimit("TURNED ON")
 

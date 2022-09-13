@@ -38,13 +38,13 @@ from test.utils import wait_for
 
 def test_scada_small():
     settings = ScadaSettings()
-    load_house.load_all(settings)
+    layout = load_house.load_all(settings)
     with pytest.raises(Exception):
-        Scada(node=ShNode.by_alias["a"], settings=settings)
-    scada = Scada(node=ShNode.by_alias["a.s"], settings=settings)
-    meter_node = ShNode.by_alias["a.m"]
-    relay_node = ShNode.by_alias["a.elt1.relay"]
-    temp_node = ShNode.by_alias["a.tank.temp0"]
+        Scada(node=layout.node("a"), settings=settings, hardware_layout=layout)
+    scada = Scada(node=layout.node("a.s"), settings=settings, hardware_layout=layout)
+    meter_node = layout.node("a.m")
+    relay_node = layout.node("a.elt1.relay")
+    temp_node = layout.node("a.tank.temp0")
     assert list(scada.recent_ba_cmds.keys()) == scada.my_boolean_actuators()
     assert list(scada.recent_ba_cmd_times_unix_ms.keys()) == scada.my_boolean_actuators()
     assert list(scada.latest_simple_value.keys()) == scada.my_simple_sensors()
@@ -86,7 +86,7 @@ def test_scada_small():
     # Testing messages received locally
     #################################
 
-    boost = ShNode.by_alias["a.elt1.relay"]
+    boost = layout.node("a.elt1.relay")
     payload = GsPwr_Maker(power=2100).tuple
     with pytest.raises(Exception):
         scada.on_message(from_node=boost, payload=payload)
@@ -122,7 +122,7 @@ def test_scada_small():
     with pytest.raises(Exception):
         scada.gt_driver_booleanactuator_cmd_record_received(meter_node, payload)
 
-    elt_relay_node = ShNode.by_alias["a.elt1.relay"]
+    elt_relay_node = layout.node("a.elt1.relay")
 
     # Throws error if the ShNodeAlias is not equal to the from_node.
 
@@ -171,8 +171,8 @@ def test_scada_small():
     assert isinstance(s, GtShSimpleTelemetryStatus)
 
     tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
-        SensorNode=ShNode.by_alias["a.m"],
+        AboutNode=layout.node("a.elt1"),
+        SensorNode=layout.node("a.m"),
         TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
     scada.recent_values_from_multipurpose_sensor[tt] = [72000]

@@ -8,7 +8,6 @@ import pytest
 import load_house
 from actors.scada import ScadaCmdDiagnostic
 from actors2 import Scada2
-from actors2.nodes import Nodes
 from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -30,34 +29,34 @@ from test.utils import await_for
 
 def test_scada_small():
     settings = ScadaSettings()
-    load_house.load_all(settings)
-    scada = Scada2(node=ShNode.by_alias["a.s"], settings=settings, actors=dict())
-    assert scada._nodes.power_meter_node() == ShNode.by_alias["a.m"]
-    meter_node = ShNode.by_alias["a.m"]
-    relay_node = ShNode.by_alias["a.elt1.relay"]
-    temp_node = ShNode.by_alias["a.tank.temp0"]
-    assert list(scada._data.recent_ba_cmds.keys()) == Nodes.my_boolean_actuators()
+    layout = load_house.load_all(settings)
+    scada = Scada2(node=layout.node("a.s"), settings=settings, hardware_layout=layout, actors=dict())
+    assert layout.power_meter_node == layout.node("a.m")
+    meter_node = layout.node("a.m")
+    relay_node = layout.node("a.elt1.relay")
+    temp_node = layout.node("a.tank.temp0")
+    assert list(scada._data.recent_ba_cmds.keys()) == layout.my_boolean_actuators
     assert (
         list(scada._data.recent_ba_cmd_times_unix_ms.keys())
-        == Nodes.my_boolean_actuators()
+        == layout.my_boolean_actuators
     )
-    assert list(scada._data.latest_simple_value.keys()) == Nodes.my_simple_sensors()
-    assert list(scada._data.recent_simple_values.keys()) == Nodes.my_simple_sensors()
+    assert list(scada._data.latest_simple_value.keys()) == layout.my_simple_sensors
+    assert list(scada._data.recent_simple_values.keys()) == layout.my_simple_sensors
     assert (
         list(scada._data.recent_simple_read_times_unix_ms.keys())
-        == Nodes.my_simple_sensors()
+        == layout.my_simple_sensors
     )
     assert (
         list(scada._data.latest_value_from_multipurpose_sensor.keys())
-        == Nodes.my_telemetry_tuples()
+        == layout.my_telemetry_tuples
     )
     assert (
         list(scada._data.recent_values_from_multipurpose_sensor.keys())
-        == Nodes.my_telemetry_tuples()
+        == layout.my_telemetry_tuples
     )
     assert (
         list(scada._data.recent_read_times_unix_ms_from_multipurpose_sensor.keys())
-        == Nodes.my_telemetry_tuples()
+        == layout.my_telemetry_tuples
     )
 
     ###########################################
@@ -73,8 +72,8 @@ def test_scada_small():
     assert isinstance(s, GtShSimpleTelemetryStatus)
 
     tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
-        SensorNode=ShNode.by_alias["a.m"],
+        AboutNode=layout.node("a.elt1"),
+        SensorNode=layout.node("a.m"),
         TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
     scada._data.recent_values_from_multipurpose_sensor[tt] = [72000]
@@ -249,14 +248,14 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             #
             # # TODO: Test-public access for topics
             # # Verify Atn got status and snapshot
-            # print(atn.num_received_by_topic[f"{scada2._nodes.scada_g_node_alias}/{GtShStatus_Maker.type_alias}"])
+            # print(atn.num_received_by_topic[f"{scada2._layout.scada_g_node_alias}/{GtShStatus_Maker.type_alias}"])
             # await await_for(
-            #     lambda: atn.num_received_by_topic[f"{scada2._nodes.scada_g_node_alias}/{GtShStatus_Maker.type_alias}"] == 1,
+            #     lambda: atn.num_received_by_topic[f"{scada2._layout.scada_g_node_alias}/{GtShStatus_Maker.type_alias}"] == 1,
             #     5,
             #     "Atn wait for status message"
             # )
             # await await_for(
-            #     lambda: atn.num_received_by_topic[f"{scada2._nodes.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}"] == 1,
+            #     lambda: atn.num_received_by_topic[f"{scada2._layout.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}"] == 1,
             #     5,
             #     "Atn wait for snapshot message"
             # )

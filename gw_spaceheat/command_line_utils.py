@@ -10,6 +10,7 @@ import load_house
 from actors.strategy_switcher import strategy_from_node
 from actors2 import Scada2, ActorInterface
 from config import ScadaSettings
+from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
@@ -66,7 +67,7 @@ def setup_logging(args: argparse.Namespace, settings: ScadaSettings) -> None:
 
 
 def run_nodes(
-    aliases: Sequence[str], settings: ScadaSettings, dbg: Optional[Dict] = None
+    aliases: Sequence[str], settings: ScadaSettings, layout: HardwareLayout, dbg: Optional[Dict] = None
 ) -> None:
     """Start actors associated with node aliases. If dbg is not None, the actor instances will be returned in dbg["actors"]
     as dict of alias:actor."""
@@ -74,13 +75,13 @@ def run_nodes(
     actor_constructors: List[Tuple[ShNode, Callable]] = []
 
     for alias in aliases:
-        node = ShNode.by_alias[alias]
+        node = layout.node(alias)
         actor_function = strategy_from_node(node)
         if not actor_function:
             raise ValueError(f"ERROR. Node alias [{alias}] has no strategy")
         actor_constructors.append((node, actor_function))
 
-    actors = [constructor(node, settings) for node, constructor in actor_constructors]
+    actors = [constructor(node, settings, layout) for node, constructor in actor_constructors]
 
     for actor in actors:
         actor.start()
@@ -97,22 +98,22 @@ def run_nodes_main(
     """Load and run the configured Nodes. If dbg is not None it will be populated with the actor objects."""
     args = parse_args(argv, default_nodes=default_nodes)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
+    settings.paths.mkdirs()
     setup_logging(args, settings)
-    load_house.load_all(settings)
-    run_nodes(args.nodes, settings, dbg=dbg)
+    run_nodes(args.nodes, settings, load_house.load_all(settings.paths.hardware_layout), dbg=dbg)
 
 
 async def run_async_actors(
     aliases: Sequence[str],
     settings: ScadaSettings,
+    layout: HardwareLayout,
     actors_package_name: str = Scada2.DEFAULT_ACTORS_MODULE,
 ):
     actors_package = importlib.import_module(actors_package_name)
-    nodes = [ShNode.by_alias[alias] for alias in aliases]
     scada_node: Optional[ShNode] = None
     actor_nodes = []
 
-    for node in nodes:
+    for node in [layout.node(alias) for alias in aliases]:
         if not node.has_actor:
             raise ValueError(f"ERROR. Node {node.alias} has no actor.")
         if node.actor_class.value == "Scada":
@@ -131,7 +132,7 @@ async def run_async_actors(
             actor_nodes.append(node)
 
     # TODO: Make choosing which actors to load more straight-forward and public.
-    scada = Scada2(node=scada_node, settings=settings, actors=dict())
+    scada = Scada2(node=scada_node, settings=settings, hardware_layout=layout, actors=dict())
     for actor_node in actor_nodes:
         # noinspection PyProtectedMember
         scada._add_communicator(
@@ -150,6 +151,6 @@ async def run_async_actors_main(
         default_nodes = ["a.s", "a.elt1.relay"]
     args = parse_args(argv, default_nodes=default_nodes)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
+    settings.paths.mkdirs()
     setup_logging(args, settings)
-    load_house.load_all(settings)
-    await run_async_actors(args.nodes, settings)
+    await run_async_actors(args.nodes, settings, load_house.load_all(settings.paths.hardware_layout))

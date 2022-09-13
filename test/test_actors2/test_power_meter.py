@@ -5,11 +5,9 @@ import pytest
 
 import actors2
 from actors.utils import gw_mqtt_topic_encode
-from actors2 import Nodes
 from actors2.power_meter import PowerMeterDriverThread
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
-from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
@@ -33,7 +31,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
 
         def __init__(self, runner_: FragmentRunner):
             # TODO: This should probably be easier.
-            meter_node = ShNode.by_alias["a.m"]
+            meter_node = runner_.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
             self.meter = actors2.PowerMeter(
@@ -54,12 +52,12 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
 
             expected_tts = [
                 TelemetryTuple(
-                    AboutNode=ShNode.by_alias["a.elt1"],
+                    AboutNode=self.runner.layout.node("a.elt1"),
                     SensorNode=self.meter.node,
                     TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 ),
                 TelemetryTuple(
-                    AboutNode=ShNode.by_alias["a.elt1"],
+                    AboutNode=self.runner.layout.node("a.elt1"),
                     SensorNode=self.meter.node,
                     TelemetryName=TelemetryName.POWER_W,
                 )
@@ -102,7 +100,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
         meter: actors2.PowerMeter
 
         def __init__(self, runner_: FragmentRunner):
-            meter_node = ShNode.by_alias["a.m"]
+            meter_node = runner_.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
             self.meter = actors2.PowerMeter(
@@ -148,7 +146,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
                 increment = int(
                     meter_sync_thread.async_power_reporting_threshold * meter_sync_thread.nameplate_agg_power_w
                 ) + 1
-                expected = latest_total_power_w + (increment * scada.GS_PWR_MULTIPLIER * len(Nodes.all_power_tuples()))
+                expected = latest_total_power_w + (increment * scada.GS_PWR_MULTIPLIER * len(self.runner.layout.all_power_tuples))
                 driver.fake_power_w += increment
 
                 # Verify scada gets the message

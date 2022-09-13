@@ -15,6 +15,7 @@ tmp.csv
 
 .coverage
 htmlcov
+hacking
 
 # ignore output
 gw_spaceheat/output/**

@@ -3,9 +3,9 @@ import time
 import uuid
 from typing import Dict, List, Optional
 
-import pendulum
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from data_classes.hardware_layout import HardwareLayout
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -72,22 +72,19 @@ class Scada(ScadaBase):
     GS_PWR_MULTIPLIER = 1
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
 
-    @classmethod
-    def my_home_alone(cls) -> ShNode:
-        all_nodes = list(ShNode.by_alias.values())
+    def my_home_alone(self) -> ShNode:
+        all_nodes = list(self.nodes.nodes.values())
         home_alone_nodes = list(filter(lambda x: (x.role == Role.HOME_ALONE), all_nodes))
         if len(home_alone_nodes) != 1:
             raise Exception("there should be a single SpaceheatNode with role HomeAlone")
         return home_alone_nodes[0]
 
-    @classmethod
-    def my_boolean_actuators(cls) -> List[ShNode]:
-        all_nodes = list(ShNode.by_alias.values())
+    def my_boolean_actuators(self) -> List[ShNode]:
+        all_nodes = list(self.nodes.nodes.values())
         return list(filter(lambda x: (x.role == Role.BOOLEAN_ACTUATOR), all_nodes))
 
-    @classmethod
-    def my_simple_sensors(cls) -> List[ShNode]:
-        all_nodes = list(ShNode.by_alias.values())
+    def my_simple_sensors(self) -> List[ShNode]:
+        all_nodes = list(self.nodes.nodes.values())
         return list(
             filter(
                 lambda x: (
@@ -100,17 +97,16 @@ class Scada(ScadaBase):
             )
         )
 
-    @classmethod
-    def my_multipurpose_sensors(cls) -> List[ShNode]:
+    def my_multipurpose_sensors(self) -> List[ShNode]:
         """This will be a list of all sensing devices that either measure more
         than one ShNode or measure more than one physical quantity type (or both).
         This includes the (unique) power meter, but may also include other roles like thermostats
         and heat pumps."""
-        all_nodes = list(ShNode.by_alias.values())
+        all_nodes = list(self.nodes.nodes.values())
         return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
 
-    def __init__(self, node: ShNode, settings: ScadaSettings):
-        super(Scada, self).__init__(node=node, settings=settings)
+    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(Scada, self).__init__(node=node, settings=settings, hardware_layout=hardware_layout)
         if self.node != self.scada_node():
             raise Exception(f"The node for Scada must be {self.scada_node()}, not {self.node}!")
         # hack before dispatch contract is implemented
@@ -253,7 +249,7 @@ class Scada(ScadaBase):
                     f"from_node {from_node} must be from {self.power_meter_node()} for GsPwr message"
                 )
         elif isinstance(payload, GtDispatchBooleanLocal):
-            if from_node == ShNode.by_alias["a.home"]:
+            if from_node == self.nodes.node("a.home"):
                 self.local_boolean_dispatch_received(from_node, payload)
             else:
                 raise Exception("from_node must be a.home for GsDispatchBooleanLocal message")
@@ -262,7 +258,7 @@ class Scada(ScadaBase):
                 self.gt_telemetry_received(from_node, payload),
         elif isinstance(payload, GtShTelemetryFromMultipurposeSensor):
             if from_node in self.my_multipurpose_sensors():
-                self.gt_sh_telemetry_from_multipurpose_sensor_received(from_node, payload)
+                self.gt_sh_telemetry_from_multipurposei_sensor_received(from_node, payload)
         elif isinstance(payload, GtDriverBooleanactuatorCmd):
             if from_node in self.my_boolean_actuators():
                 self.gt_driver_booleanactuator_cmd_record_received(from_node, payload)
@@ -291,12 +287,12 @@ class Scada(ScadaBase):
         if from_node in self.my_multipurpose_sensors():
             about_node_alias_list = payload.AboutNodeAliasList
             for idx, about_alias in enumerate(about_node_alias_list):
-                if about_alias not in ShNode.by_alias.keys():
+                if about_alias not in self.nodes.nodes:
                     raise Exception(
                         f"alias {about_alias} in payload.AboutNodeAliasList not a recognized ShNode!"
                     )
                 tt = TelemetryTuple(
-                    AboutNode=ShNode.by_alias[about_alias],
+                    AboutNode=self.nodes.node(about_alias),
                     SensorNode=from_node,
                     TelemetryName=payload.TelemetryNameList[idx],
                 )
@@ -368,10 +364,10 @@ class Scada(ScadaBase):
             return ScadaCmdDiagnostic.PAYLOAD_NOT_IMPLEMENTED
 
     def process_boolean_dispatch(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
-        if payload.AboutNodeAlias not in ShNode.by_alias.keys():
+        if payload.AboutNodeAlias not in self.nodes.nodes.keys():
             self.screen_print(f"dispatch received for unknown sh_node {payload.AboutNodeAlias}")
             return ScadaCmdDiagnostic.UNKNOWN_DISPATCH_NODE
-        ba = ShNode.by_alias[payload.AboutNodeAlias]
+        ba = self.nodes.node(payload.AboutNodeAlias)
         if not isinstance(ba.component, BooleanActuatorComponent):
             self.screen_print(f"{ba} must be a BooleanActuator!")
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
@@ -386,7 +382,7 @@ class Scada(ScadaBase):
     ) -> ScadaCmdDiagnostic:
         """This will be a message from HomeAlone, honored when the DispatchContract
         with the Atn is not live."""
-        if from_node != ShNode.by_alias["a.home"]:
+        if from_node != self.nodes.node("a.home"):
             return ScadaCmdDiagnostic.BAD_FROM_NODE
         if self.scada_atn_fast_dispatch_contract_is_alive:
             return ScadaCmdDiagnostic.IGNORING_HOMEALONE_DISPATCH
