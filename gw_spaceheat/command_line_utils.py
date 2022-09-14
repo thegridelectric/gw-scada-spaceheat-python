@@ -8,10 +8,11 @@ import dotenv
 
 import load_house
 from actors.strategy_switcher import strategy_from_node
-from actors2 import Scada2, ActorInterface
+from actors2 import Scada2
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
+from schema.enums.role.sh_node_role_110 import Role
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
@@ -100,7 +101,7 @@ def run_nodes_main(
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     settings.paths.mkdirs()
     setup_logging(args, settings)
-    run_nodes(args.nodes, settings, load_house.load_all(settings.paths.hardware_layout), dbg=dbg)
+    run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
 
 
 async def run_async_actors(
@@ -131,26 +132,26 @@ async def run_async_actors(
         else:
             actor_nodes.append(node)
 
-    # TODO: Make choosing which actors to load more straight-forward and public.
-    scada = Scada2(node=scada_node, settings=settings, hardware_layout=layout, actors=dict())
-    for actor_node in actor_nodes:
-        # noinspection PyProtectedMember
-        scada._add_communicator(
-            ActorInterface.load(actor_node, scada, actors_package_name)
-        )
-
+    scada = Scada2(node=scada_node, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     scada.start()
-    await scada.run_forever()
+    try:
+        await scada.run_forever()
+    finally:
+        scada.stop()
 
 
 async def run_async_actors_main(
     argv: Optional[Sequence[str]] = None,
     default_nodes: Optional[Sequence[str]] = None,
 ):
-    if default_nodes is None:
-        default_nodes = ["a.s", "a.elt1.relay"]
     args = parse_args(argv, default_nodes=default_nodes)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     settings.paths.mkdirs()
     setup_logging(args, settings)
-    await run_async_actors(args.nodes, settings, load_house.load_all(settings.paths.hardware_layout))
+    layout = load_house.load_all(settings)
+    if not args.nodes:
+        args.nodes = [
+            node.alias
+            for node in filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), layout.nodes.values())
+        ]
+    await run_async_actors(args.nodes, settings, layout)

@@ -1,9 +1,9 @@
 """Test PowerMeter actor"""
 import json
 import typing
+import pytest
 
 import load_house
-import pytest
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from config import ScadaSettings
@@ -25,7 +25,7 @@ from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker imp
     GtElectricMeterComponent_Maker,
 )
 
-def test_driver():
+def test_driver_loading():
 
     # Testing unknown meter driver
     flush_all()
@@ -66,9 +66,8 @@ def test_driver():
     electric_meter_component = GtElectricMeterComponent_Maker.dict_to_dc(layout_dict["ElectricMeterComponents"][0])
     assert electric_meter_component.cac == electric_meter_cac
 
-    layout = HardwareLayout(layout_dict)
+    layout = HardwareLayout.load_dict(layout_dict)
     meter = PowerMeter(node=layout.node("a.m"), settings=settings, hardware_layout=layout)
-
     print(meter.all_metered_nodes)
     assert isinstance(meter.driver, UnknownPowerMeterDriver)
     flush_all()

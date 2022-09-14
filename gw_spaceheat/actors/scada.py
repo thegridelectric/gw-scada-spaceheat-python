@@ -258,7 +258,7 @@ class Scada(ScadaBase):
                 self.gt_telemetry_received(from_node, payload),
         elif isinstance(payload, GtShTelemetryFromMultipurposeSensor):
             if from_node in self.my_multipurpose_sensors():
-                self.gt_sh_telemetry_from_multipurposei_sensor_received(from_node, payload)
+                self.gt_sh_telemetry_from_multipurpose_sensor_received(from_node, payload)
         elif isinstance(payload, GtDriverBooleanactuatorCmd):
             if from_node in self.my_boolean_actuators():
                 self.gt_driver_booleanactuator_cmd_record_received(from_node, payload)
