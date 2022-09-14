@@ -83,25 +83,15 @@ class TestScadaEnv:
                 if env_var.startswith(self.prefix):
                     m.delenv(env_var)
 
-    @classmethod
-    def load_test_dotenv(cls):
-        test_dotenv_file = os.getenv(TEST_DOTENV_PATH_VAR)
-        if test_dotenv_file is None:
-            test_dotenv_file = TEST_DOTENV_PATH
-        if test_dotenv_file:
-            test_dotenv_path = Path(test_dotenv_file)
-            if test_dotenv_path.exists():
-                dotenv.load_dotenv(dotenv_path=test_dotenv_path)
-
-    @classmethod
-    def test_paths(cls, home_dir: Path, **kwargs) -> Paths:
-        return Paths(
-            data_home=home_dir / ".local" / "share",
-            state_home=home_dir / ".local" / "state",
-            config_home=home_dir / ".config",
-            **kwargs
-        )
-
+    def load_test_dotenv(self):
+        if self.load_test_dotenv:
+            test_dotenv_file = os.getenv(TEST_DOTENV_PATH_VAR)
+            if test_dotenv_file is None:
+                test_dotenv_file = TEST_DOTENV_PATH
+            if test_dotenv_file:
+                test_dotenv_path = Path(test_dotenv_file)
+                if test_dotenv_path.exists():
+                    dotenv.load_dotenv(dotenv_path=test_dotenv_path)
 
 @pytest.fixture(autouse=True)
 def flush_local_registries():

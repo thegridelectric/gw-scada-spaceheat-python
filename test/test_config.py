@@ -1,7 +1,6 @@
 """Test config module"""
 import textwrap
 from pathlib import Path
-
 import dotenv
 from pydantic import SecretStr
 
@@ -131,9 +130,6 @@ def test_paths(clean_scada_env, tmp_path):
         config_dir="/z/gridworks/scada",
         hardware_layout="/z/gridworks/scada/hardware-layout.json"
     )
-
-def test_paths_mkdirs(clean_scada_env):
-    pass
 
 def test_scada_settings_defaults(clean_scada_env, tmp_path):
     """Test ScadaSettings defaults"""
