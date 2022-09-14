@@ -77,13 +77,12 @@ class TestScadaEnv:
                 shutil.copyfile(self.src_test_layout, paths.hardware_layout)
 
     def clean_env(self, m: MonkeyPatch):
-        if self.use_test_dotenv:
-            for env_var in os.environ:
-                if env_var.startswith(self.prefix):
-                    m.delenv(env_var)
+        for env_var in os.environ:
+            if env_var.startswith(self.prefix):
+                m.delenv(env_var)
 
     def load_test_dotenv(self):
-        if self.load_test_dotenv:
+        if self.use_test_dotenv:
             test_dotenv_file = os.getenv(TEST_DOTENV_PATH_VAR)
             if test_dotenv_file is None:
                 test_dotenv_file = TEST_DOTENV_PATH
