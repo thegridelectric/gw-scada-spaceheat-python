@@ -261,7 +261,6 @@ class HardwareLayout:
         )
         return nodes[0]
 
-
     @cached_property
     def my_home_alone(self) -> ShNode:
         all_nodes = list(self.nodes.values())

@@ -13,7 +13,7 @@ def test_simple_resubscribe_on_comm_restore(tmp_path, monkeypatch):
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings()
-    layout=load_house.load_all(settings)
+    layout = load_house.load_all(settings)
     scada = ScadaRecorder(node=layout.node("a.s"), settings=settings, hardware_layout=layout)
     actors = [scada]
     try:

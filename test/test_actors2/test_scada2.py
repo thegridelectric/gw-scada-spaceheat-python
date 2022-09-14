@@ -469,7 +469,8 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
                     node.alias for node in self.runner.layout.all_metered_nodes
                 ]
             )
-            assert len(snapshot.Snapshot.AboutNodeAliasList) == 2 + len(self.runner.layout.all_power_meter_telemetry_tuples)
+            assert len(snapshot.Snapshot.AboutNodeAliasList) == 2 + \
+                len(self.runner.layout.all_power_meter_telemetry_tuples)
             assert len(snapshot.Snapshot.ValueList) == len(snapshot.Snapshot.AboutNodeAliasList)
 
             # Turn off telemtry reporting

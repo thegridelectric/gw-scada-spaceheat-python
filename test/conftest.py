@@ -66,7 +66,6 @@ class TestScadaEnv:
             self.setup_text_xdg_home(m)
             yield m
 
-
     def setup_text_xdg_home(self, m: MonkeyPatch):
         if self.xdg_home is not None:
             m.setenv("XDG_DATA_HOME", str(self.xdg_home / ".local" / "share"))
