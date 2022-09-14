@@ -155,7 +155,6 @@ class ActorBase(ABC):
     def all_power_tuples(self) -> List[TelemetryTuple]:
         return self.nodes.all_power_tuples
 
-
     def all_metered_nodes(self) -> List[ShNode]:
         """All nodes whose power level is metered and included in power reporting by the Scada"""
         return self.nodes.all_metered_nodes

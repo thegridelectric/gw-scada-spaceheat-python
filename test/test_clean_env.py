@@ -18,7 +18,8 @@ def test_clean_env(tmp_path):
     assert paths.hardware_layout.exists()
     HardwareLayout.load(paths.hardware_layout)
 
-@pytest.mark.parametrize("test_scada_env", [("",DUMMY_TEST_HARDWARE_LAYOUT_PATH)], indirect=True)
+
+@pytest.mark.parametrize("test_scada_env", [("", DUMMY_TEST_HARDWARE_LAYOUT_PATH)], indirect=True)
 def test_custom_hardware_layout_file(test_scada_env):
     paths = Paths()
     assert paths.hardware_layout.exists()

@@ -322,7 +322,6 @@ class AsyncFragmentRunner(FragmentRunner):
             #       What is the right way of dealing with this?
             await asyncio.sleep(0.1)
 
-
     @classmethod
     async def async_run_fragment(
         cls, fragment_factory: Callable[["AsyncFragmentRunner"], ProtocolFragment]

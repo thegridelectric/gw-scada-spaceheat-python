@@ -248,7 +248,8 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
                 increment = int(
                     meter_sync_thread.async_power_reporting_threshold * meter_sync_thread.nameplate_agg_power_w
                 ) + 1
-                expected = latest_total_power_w + (increment * scada.GS_PWR_MULTIPLIER * len(self.runner.layout.all_power_tuples))
+                expected = latest_total_power_w + (increment * scada.GS_PWR_MULTIPLIER
+                                                   * len(self.runner.layout.all_power_tuples))
                 driver.fake_power_w += increment
 
                 # Verify scada gets the message
