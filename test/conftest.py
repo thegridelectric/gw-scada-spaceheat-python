@@ -91,9 +91,11 @@ class TestScadaEnv:
                 if test_dotenv_path.exists():
                     dotenv.load_dotenv(dotenv_path=test_dotenv_path)
 
+
 @pytest.fixture(autouse=True)
 def flush_local_registries():
     flush_all()
+
 
 @pytest.fixture(autouse=True)
 def test_scada_env(request, tmp_path) -> Generator[MonkeyPatch, None, None]:
