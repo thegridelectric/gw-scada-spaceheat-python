@@ -133,6 +133,7 @@ def test_paths(clean_scada_env, tmp_path):
         hardware_layout="/z/gridworks/scada/hardware-layout.json"
     )
 
+
 def test_paths_mkdirs(clean_scada_env):
     pass
 
