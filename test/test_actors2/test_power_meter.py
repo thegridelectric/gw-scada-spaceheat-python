@@ -20,13 +20,13 @@ from test.utils import await_for
 def test_power_meter_small():
     settings = ScadaSettings()
     layout = load_all(settings)
-    scada = Scada2(layout.node("a.s"), settings, layout)
+    scada = Scada2("a.s", settings, layout)
 
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        PowerMeter(node=layout.node("a.s"), services=scada)
+        PowerMeter("a.s", services=scada)
 
-    meter = PowerMeter(node=layout.node("a.m"), services=scada)
+    meter = PowerMeter("a.m", services=scada)
     assert isinstance(meter._sync_thread, PowerMeterDriverThread)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
     setup_helper = DriverThreadSetupHelper(meter.node, settings, layout)
@@ -147,7 +147,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
             self.runner.actors.meter2 = actors2.PowerMeter(
-                node=meter_node,
+                name=meter_node.alias,
                 services=self.runner.actors.scada2,
                 settings=ScadaSettings(seconds_per_report=1)
             )
@@ -212,7 +212,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
             self.runner.actors.meter2 = actors2.PowerMeter(
-                node=meter_node,
+                name=meter_node.alias,
                 services=self.runner.actors.scada2,
                 settings=ScadaSettings(seconds_per_report=1)
             )

@@ -7,7 +7,6 @@ from pydantic import BaseModel
 from actors2.message import GtDriverBooleanactuatorCmdResponse
 from actors2.simple_sensor import SimpleSensor, SimpleSensorDriverThread
 from actors2.scada_interface import ScadaInterface
-from data_classes.sh_node import ShNode
 from proactor.message import Message
 from proactor.sync_thread import SyncAsyncInteractionThread
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
@@ -43,14 +42,14 @@ class BooleanActuatorDriverThread(SimpleSensorDriverThread):
 class BooleanActuator(SimpleSensor):
     def __init__(
         self,
-        node: ShNode,
+        name: str,
         services: ScadaInterface,
         driver_thread: Optional[SyncAsyncInteractionThread] = None,
         responsive_sleep_step_seconds: float = SimpleSensorDriverThread.SLEEP_STEP_SECONDS,
         daemon: bool = True,
     ):
         super().__init__(
-            node=node,
+            name=name,
             services=services,
             driver_thread=driver_thread,
             driver_thread_class=BooleanActuatorDriverThread,

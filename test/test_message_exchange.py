@@ -21,13 +21,13 @@ def test_message_exchange(tmp_path, monkeypatch):
     debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings(log_message_summary=True)
     layout = load_house.load_all(settings)
-    scada = ScadaRecorder(node=layout.node("a.s"), settings=settings, hardware_layout=layout)
-    atn = AtnRecorder(node=layout.node("a"), settings=settings, hardware_layout=layout)
+    scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
+    atn = AtnRecorder("a", settings=settings, hardware_layout=layout)
     ear = EarRecorder(settings=settings, hardware_layout=layout)
-    home_alone = HomeAloneRecorder(node=layout.node("a.home"), settings=settings, hardware_layout=layout)
-    elt_relay = BooleanActuator(layout.node("a.elt1.relay"), settings=settings, hardware_layout=layout)
-    meter = PowerMeter(node=layout.node("a.m"), settings=settings, hardware_layout=layout)
-    thermo = SimpleSensor(node=layout.node("a.tank.temp0"), settings=settings, hardware_layout=layout)
+    home_alone = HomeAloneRecorder("a.home", settings=settings, hardware_layout=layout)
+    elt_relay = BooleanActuator("a.elt1.relay", settings=settings, hardware_layout=layout)
+    meter = PowerMeter("a.m", settings=settings, hardware_layout=layout)
+    thermo = SimpleSensor("a.tank.temp0", settings=settings, hardware_layout=layout)
     actors = [scada, atn, ear, home_alone, elt_relay, meter, thermo]
 
     try:

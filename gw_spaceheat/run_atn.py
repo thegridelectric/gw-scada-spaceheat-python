@@ -18,8 +18,7 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> Atn:
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file), log_message_summary=True)
     settings.paths.mkdirs()
     setup_logging(args, settings)
-    layout = load_house.load_all(settings.paths.hardware_layout)
-    atn = Atn(layout.node("a"), settings, layout)
+    atn = Atn("a", settings, load_house.load_all(settings))
     if start:
         atn.start()
     return atn

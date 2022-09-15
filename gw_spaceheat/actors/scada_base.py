@@ -8,15 +8,14 @@ from config import ScadaSettings
 from actors.actor_base import ActorBase
 from actors.utils import QOS, MessageSummary, gw_mqtt_topic_decode, gw_mqtt_topic_encode
 from data_classes.hardware_layout import HardwareLayout
-from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 
 class ScadaBase(ActorBase):
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        super(ScadaBase, self).__init__(node=node, settings=settings, hardware_layout=hardware_layout)
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(ScadaBase, self).__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(

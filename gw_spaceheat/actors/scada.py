@@ -105,8 +105,8 @@ class Scada(ScadaBase):
         all_nodes = list(self.nodes.nodes.values())
         return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        super(Scada, self).__init__(node=node, settings=settings, hardware_layout=hardware_layout)
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(Scada, self).__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
         if self.node != self.scada_node():
             raise Exception(f"The node for Scada must be {self.scada_node()}, not {self.node}!")
         # hack before dispatch contract is implemented

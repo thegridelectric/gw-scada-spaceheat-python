@@ -116,13 +116,13 @@ class Scada2(ScadaInterface, Proactor):
 
     def __init__(
         self,
-        node: ShNode,
+        name: str,
         settings: ScadaSettings,
         hardware_layout: HardwareLayout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
-        super().__init__(name=node.alias)
-        self._node = node
+        super().__init__(name=name)
+        self._node = hardware_layout.node(name)
         self._settings = settings
         self._nodes = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
@@ -152,7 +152,14 @@ class Scada2(ScadaInterface, Proactor):
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
         if actor_nodes is not None:
             for actor_node in actor_nodes:
-                self.add_communicator(ActorInterface.load(actor_node, self, self.DEFAULT_ACTORS_MODULE))
+                self.add_communicator(
+                    ActorInterface.load(
+                        actor_node.alias,
+                        actor_node.actor_class.value,
+                        self,
+                        self.DEFAULT_ACTORS_MODULE
+                    )
+                )
 
     def _start_derived_tasks(self):
         self._tasks.append(

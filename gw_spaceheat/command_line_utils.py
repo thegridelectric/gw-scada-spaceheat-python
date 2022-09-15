@@ -82,7 +82,7 @@ def run_nodes(
             raise ValueError(f"ERROR. Node alias [{alias}] has no strategy")
         actor_constructors.append((node, actor_function))
 
-    actors = [constructor(node, settings, layout) for node, constructor in actor_constructors]
+    actors = [constructor(node.alias, settings, layout) for node, constructor in actor_constructors]
 
     for actor in actors:
         actor.start()
@@ -132,7 +132,7 @@ async def run_async_actors(
         else:
             actor_nodes.append(node)
 
-    scada = Scada2(node=scada_node, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+    scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     scada.start()
     try:
         await scada.run_forever()

@@ -31,7 +31,7 @@ from test.utils import await_for, Scada2Recorder
 def test_scada2_small():
     settings = ScadaSettings()
     layout = load_house.load_all(settings)
-    scada = Scada2(node=layout.node("a.s"), settings=settings, hardware_layout=layout)
+    scada = Scada2("a.s", settings=settings, hardware_layout=layout)
     assert layout.power_meter_node == layout.node("a.m")
     meter_node = layout.node("a.m")
     relay_node = layout.node("a.elt1.relay")
@@ -140,7 +140,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     actors = Actors(
         settings,
         layout=layout,
-        scada2=Scada2Recorder(layout.node("a.s"), settings, hardware_layout=layout)
+        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout)
     )
     actors.scada2._scada_atn_fast_dispatch_contract_is_alive_stub = True
     actors.scada2._last_status_second = int(time.time())
@@ -300,7 +300,7 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
     actors = Actors(
         settings,
         layout=layout,
-        scada2=Scada2Recorder(layout.node("a.s"), settings, hardware_layout=layout)
+        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout)
     )
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
@@ -368,7 +368,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     actors = Actors(
         settings,
         layout=layout,
-        scada2=Scada2Recorder(layout.node("a.s"), settings, hardware_layout=layout)
+        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout)
     )
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True

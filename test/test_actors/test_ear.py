@@ -19,10 +19,10 @@ from actors.utils import gw_mqtt_topic_encode
 def test_scada_ear_connection():
     settings = ScadaSettings()
     layout = load_house.load_all(settings)
-    scada = ScadaRecorder(node=layout.node("a.s"), settings=settings, hardware_layout=layout)
+    scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
     ear = EarRecorder(settings=settings, hardware_layout=layout)
     thermo0_node = layout.node("a.tank.temp0")
-    thermo0 = SimpleSensor(node=thermo0_node, settings=settings, hardware_layout=layout)
+    thermo0 = SimpleSensor(thermo0_node.alias, settings=settings, hardware_layout=layout)
     try:
 
         scada.start()

@@ -13,8 +13,8 @@ from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 class SimpleSensor(ActorBase):
     MAIN_LOOP_MIN_TIME_S = 0.2
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        super(SimpleSensor, self).__init__(node=node, settings=settings, hardware_layout=hardware_layout)
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(SimpleSensor, self).__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
         self._last_sent_s = 0
         self.telemetry_value = None
         self.config = NodeConfig(self.node, settings)

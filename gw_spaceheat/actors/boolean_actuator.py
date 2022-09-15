@@ -21,8 +21,8 @@ from actors.utils import QOS, Subscription, responsive_sleep
 class BooleanActuator(ActorBase):
     MAIN_LOOP_MIN_TIME_S = 5
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        super(BooleanActuator, self).__init__(node=node, settings=settings, hardware_layout=hardware_layout)
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(BooleanActuator, self).__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
         self.relay_state: Optional[int] = None
         self.config = NodeConfig(self.node, settings)
         self.screen_print(f"Initialized {self.__class__}")

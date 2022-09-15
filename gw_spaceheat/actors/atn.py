@@ -38,9 +38,9 @@ class Atn(CloudBase):
             )
         )
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
         super(Atn, self).__init__(settings=settings, hardware_layout=hardware_layout)
-        self.node = node
+        self.node = hardware_layout.node(alias)
         self.latest_power_w: Dict[ShNode, Optional[int]] = {}
         self.power_nodes = list(
             filter(

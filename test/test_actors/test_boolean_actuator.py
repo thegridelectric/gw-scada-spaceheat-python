@@ -6,7 +6,6 @@ import load_house
 import pytest
 
 from config import ScadaSettings
-from data_classes.sh_node import ShNode
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
     GtDispatchBooleanLocal_Maker,
 )
@@ -17,7 +16,7 @@ from actors.boolean_actuator import BooleanActuator
 def test_boolean_actuator():
     settings = ScadaSettings()
     layout = load_house.load_all(settings)
-    boost_relay = BooleanActuator(layout.node("a.elt1.relay"), settings=settings, hardware_layout=layout)
+    boost_relay = BooleanActuator("a.elt1.relay", settings=settings, hardware_layout=layout)
 
     # test on_message
     # raises error on unrecongized payload

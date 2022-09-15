@@ -19,9 +19,9 @@ class Actor(ActorInterface, Communicator, ABC):
 
     _node: ShNode
 
-    def __init__(self, node: ShNode, services: ScadaInterface):
-        self._node = node
-        super().__init__(node.alias, services)
+    def __init__(self, name: str, services: ScadaInterface):
+        self._node = services.hardware_layout.node(name)
+        super().__init__(name, services)
 
     @property
     def services(self):
@@ -44,11 +44,11 @@ class SyncThreadActor(Actor, Generic[SyncThreadT]):
 
     def __init__(
         self,
-        node: ShNode,
+        name: str,
         services: ScadaInterface,
         sync_thread: SyncAsyncInteractionThread,
     ):
-        super().__init__(node, services)
+        super().__init__(name, services)
         self._sync_thread = sync_thread
 
     async def process_message(self, message: Message):

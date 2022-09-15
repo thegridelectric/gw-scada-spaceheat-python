@@ -13,8 +13,8 @@ def test_homealone_small():
     settings = ScadaSettings()
     layout = load_house.load_all(settings)
     with pytest.raises(Exception):
-        HomeAlone(node=layout.node("a"), settings=settings, hardware_layout=layout)
-    home_alone = HomeAlone(node=layout.node("a.home"), settings=settings, hardware_layout=layout)
+        HomeAlone("a", settings=settings, hardware_layout=layout)
+    home_alone = HomeAlone("a.home", settings=settings, hardware_layout=layout)
     status_dict = {
         "SlotStartUnixS": 1656945300,
         "SimpleTelemetryList": [

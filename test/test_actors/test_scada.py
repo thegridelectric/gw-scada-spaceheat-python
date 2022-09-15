@@ -40,8 +40,8 @@ def test_scada_small():
     settings = ScadaSettings()
     layout = load_house.load_all(settings)
     with pytest.raises(Exception):
-        Scada(node=layout.node("a"), settings=settings, hardware_layout=layout)
-    scada = Scada(node=layout.node("a.s"), settings=settings, hardware_layout=layout)
+        Scada("a", settings=settings, hardware_layout=layout)
+    scada = Scada("a.s", settings=settings, hardware_layout=layout)
     meter_node = layout.node("a.m")
     relay_node = layout.node("a.elt1.relay")
     temp_node = layout.node("a.tank.temp0")

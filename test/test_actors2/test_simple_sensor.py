@@ -33,7 +33,7 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch):
             thermo_node.reporting_sample_period_s = 0
             typing.cast(TempSensorComponent, thermo_node.component).cac.typical_response_time_ms = .01
             self.runner.actors.thermo2 = actors2.SimpleSensor(
-                node=thermo_node,
+                name=thermo_node.alias,
                 services=self.runner.actors.scada2,
             )
             return [self.runner.actors.thermo2]

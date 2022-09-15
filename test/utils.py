@@ -207,8 +207,8 @@ def flush_all():
 
 
 class AbstractActor(ActorBase):
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        super().__init__(node, settings=settings, hardware_layout=hardware_layout)
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super().__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
 
     def subscriptions(self):
         return []
@@ -228,14 +228,14 @@ class AtnRecorder(Atn):
     num_received: int
     num_received_by_topic: Dict[str, int]
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self.snapshot_received = 0
         self.status_received = 0
         self.latest_snapshot_payload: Optional[SnapshotSpaceheat] = None
         self.latest_status_payload: Optional[GtShStatus] = None
         self.num_received = 0
         self.num_received_by_topic = defaultdict(int)
-        super().__init__(node, settings=settings, hardware_layout=hardware_layout)
+        super().__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
 
     def on_gw_mqtt_message(self, client, userdata, message):
         self.num_received += 1
@@ -273,10 +273,10 @@ class HomeAloneRecorder(HomeAlone):
     status_received: int
     latest_status_payload: Optional[GtShStatus]
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self.status_received = 0
         self.latest_status_payload: Optional[GtShStatus] = None
-        super().__init__(node, settings=settings, hardware_layout=hardware_layout)
+        super().__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
 
     def on_message(self, from_node: ShNode, payload):
         if isinstance(payload, GtShStatus):
@@ -330,11 +330,11 @@ class ScadaRecorder(Scada):
     comm_events: List[CommEvent]
     comm_event_counts: Dict[CommEvents, int]
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self.num_received_by_topic = defaultdict(int)
         self.comm_events = []
         self.comm_event_counts = defaultdict(int)
-        super().__init__(node, settings=settings, hardware_layout=hardware_layout)
+        super().__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
         self.gw_client.on_subscribe = self.on_gw_subscribe
         self.gw_client.on_publish = self.on_gw_publish
         self.gw_client.on_unsubscribe = self.on_gw_unsubscribe
@@ -452,13 +452,13 @@ class Scada2Recorder(Scada2):
     comm_events: List[CommEvent]
     comm_event_counts: Dict[CommEvents, int]
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout, actor_nodes: Optional[List[ShNode]] = None):
+    def __init__(self, name: str, settings: ScadaSettings, hardware_layout: HardwareLayout, actor_nodes: Optional[List[ShNode]] = None):
         self.num_received_by_topic = defaultdict(int)
         self.num_received_by_type = defaultdict(int)
         self.comm_events = []
         self.comm_event_counts = defaultdict(int)
         self.suppress_status = False
-        super().__init__(node, settings=settings, hardware_layout=hardware_layout, actor_nodes=actor_nodes)
+        super().__init__(name=name, settings=settings, hardware_layout=hardware_layout, actor_nodes=actor_nodes)
 
     def time_to_send_status(self) -> bool:
         return not self.suppress_status and super().time_to_send_status()

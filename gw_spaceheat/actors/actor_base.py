@@ -19,10 +19,10 @@ from schema.schema_switcher import TypeMakerByAliasDict
 
 class ActorBase(ABC):
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self._main_loop_running = False
         self.main_thread = None
-        self.node = node
+        self.node = hardware_layout.node(alias)
         self.settings = settings
         self.nodes = hardware_layout
         self.log_csv = f"{self.settings.paths.log_dir}/debug_logs/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"

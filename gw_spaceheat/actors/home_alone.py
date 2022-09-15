@@ -21,8 +21,8 @@ class HomeAlone(ActorBase):
 
     MAIN_LOOP_MIN_TIME_S = 5
 
-    def __init__(self, node: ShNode, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        super(HomeAlone, self).__init__(node=node, settings=settings, hardware_layout=hardware_layout)
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(HomeAlone, self).__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
 
         if self.node != self.home_alone_node():
             raise Exception(f"node for HomeAlone must be {self.home_alone_node}, not {self.node}")

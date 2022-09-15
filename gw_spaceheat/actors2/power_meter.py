@@ -380,17 +380,17 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
 class PowerMeter(SyncThreadActor):
     def __init__(
         self,
-        node: ShNode,
+        name: str,
         services: ScadaInterface,
         settings: Optional[ScadaSettings] = None,
         loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
 
         super().__init__(
-            node=node,
+            name=name,
             services=services,
             sync_thread=PowerMeterDriverThread(
-                node=node,
+                node=services.hardware_layout.node(name),
                 settings=services.settings if settings is None else settings,
                 hardware_layout=services.hardware_layout,
                 telemetry_destination=services.name,

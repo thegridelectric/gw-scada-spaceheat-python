@@ -61,7 +61,7 @@ async def test_run_local2(tmp_path, monkeypatch):
     settings = ScadaSettings()
     assert settings.seconds_per_report == 2
     layout = load_house.load_all(settings)
-    topic_creator = Scada2Recorder(layout.node("a.s"), settings, layout)
+    topic_creator = Scada2Recorder("a.s", settings, layout)
     status_topic = topic_creator.status_topic
     snapshot_topic = topic_creator.snapshot_topic
 

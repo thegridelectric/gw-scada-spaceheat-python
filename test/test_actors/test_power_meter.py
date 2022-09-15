@@ -67,7 +67,7 @@ def test_driver_loading():
     assert electric_meter_component.cac == electric_meter_cac
 
     layout = HardwareLayout.load_dict(layout_dict)
-    meter = PowerMeter(node=layout.node("a.m"), settings=settings, hardware_layout=layout)
+    meter = PowerMeter("a.m", settings=settings, hardware_layout=layout)
     print(meter.all_metered_nodes)
     assert isinstance(meter.driver, UnknownPowerMeterDriver)
     flush_all()
@@ -107,7 +107,7 @@ def test_driver_loading():
     assert electric_meter_cac.make_model == MakeModel.ADAFRUIT__642
 
     with pytest.raises(Exception):
-        PowerMeter(node=layout.node("a.m"), settings=settings, hardware_layout=layout)
+        PowerMeter("a.m", settings=settings, hardware_layout=layout)
 
     flush_all()
 
@@ -161,9 +161,9 @@ def test_power_meter_small():
 
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        PowerMeter(node=layout.node("a.s"), settings=settings, hardware_layout=layout)
+        PowerMeter("a.s", settings=settings, hardware_layout=layout)
 
-    meter = PowerMeter(node=layout.node("a.m"), settings=settings, hardware_layout=layout)
+    meter = PowerMeter("a.m", settings=settings, hardware_layout=layout)
 
     assert set(meter.nameplate_telemetry_value.keys()) == set(
         meter.all_power_meter_telemetry_tuples()
@@ -266,10 +266,10 @@ def test_power_meter_periodic_update():
     _not_ tested here."""
     settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
     layout = load_house.load_all(settings)
-    scada = Scada(layout.node("a.s"), settings=settings, hardware_layout=layout)
+    scada = Scada("a.s", settings=settings, hardware_layout=layout)
     meter_node = layout.node("a.m")
     typing.cast(ElectricMeterComponent, meter_node.component).cac.update_period_ms = 0
-    meter = PowerMeter(node=meter_node, settings=settings, hardware_layout=layout)
+    meter = PowerMeter(alias=meter_node.alias, settings=settings, hardware_layout=layout)
     actors = [scada, meter]
     expected_tts = [
         TelemetryTuple(
@@ -323,11 +323,11 @@ def test_power_meter_aggregate_power_forward():
 
     settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
     layout = load_house.load_all(settings)
-    scada = ScadaRecorder(layout.node("a.s"), settings=settings, hardware_layout=layout)
-    atn = AtnRecorder(layout.node("a"), settings=settings, hardware_layout=layout)
+    scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
+    atn = AtnRecorder("a", settings=settings, hardware_layout=layout)
     meter_node = layout.node("a.m")
     typing.cast(ElectricMeterComponent, meter_node.component).cac.update_period_ms = 0
-    meter = PowerMeter(node=meter_node, settings=settings, hardware_layout=layout)
+    meter = PowerMeter(meter_node.alias, settings=settings, hardware_layout=layout)
     meter.reporting_sample_period_s = 0
     actors = [scada, meter, atn]
     try:

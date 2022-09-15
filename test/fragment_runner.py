@@ -59,58 +59,45 @@ class Actors:
     meter2: actors2.PowerMeter
 
     def __init__(self, settings: ScadaSettings, layout: HardwareLayout, **kwargs):
-        # self.home_alone = HomeAloneRecorder(
-        #     node=layout.node("a.home"), settings=settings, hardware_layout=layout
-        # )
-        # self.relay = BooleanActuator(layout.node("a.elt1.relay"), settings=settings, hardware_layout=layout)
-        # self.meter = PowerMeter(node=layout.node("a.m"), settings=settings, hardware_layout=layout)
-        # self.thermo = SimpleSensor(
-        #     node=layout.node("a.tank.temp0"), settings=settings, hardware_layout=layout
-        # )
-        # self.scada2 = Scada2Recorder(layout.node("a.s"), settings, hardware_layout=layout)
-        # self.relay2 = actors2.BooleanActuator(
-        #     node=layout.node("a.elt1.relay"), services=self.scada2
-        # )
-        # self.meter2 = actors2.PowerMeter(node=layout.node("a.m"), services=self.scada2)
         self.scada = kwargs.get(
             "scada",
-            ScadaRecorder(node=layout.node("a.s"), settings=settings, hardware_layout=layout)
+            ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
         )
         self.atn = kwargs.get(
             "atn",
-            AtnRecorder(node=layout.node("a"), settings=settings, hardware_layout=layout)
+            AtnRecorder("a", settings=settings, hardware_layout=layout)
         )
         self.home_alone = kwargs.get(
             "home_alone",
-            HomeAloneRecorder(node=layout.node("a.home"), settings=settings, hardware_layout=layout)
+            HomeAloneRecorder("a.home", settings=settings, hardware_layout=layout)
         )
         self.relay = kwargs.get(
             "relay",
-            BooleanActuator(layout.node("a.elt1.relay"), settings=settings, hardware_layout=layout)
+            BooleanActuator("a.elt1.relay", settings=settings, hardware_layout=layout)
         )
         self.meter = kwargs.get(
             "power_meter",
-            PowerMeter(node=layout.node("a.m"), settings=settings, hardware_layout=layout)
+            PowerMeter("a.m", settings=settings, hardware_layout=layout)
         )
         self.thermo = kwargs.get(
             "thermo",
-            SimpleSensor(node=layout.node("a.tank.temp0"), settings=settings, hardware_layout=layout)
+            SimpleSensor("a.tank.temp0", settings=settings, hardware_layout=layout)
         )
         self.scada2 = kwargs.get(
             "scada2",
-            Scada2Recorder(layout.node("a.s"), settings, hardware_layout=layout)
+            Scada2Recorder("a.s", settings, hardware_layout=layout)
         )
         self.relay2 = kwargs.get(
             "relay2",
-            actors2.BooleanActuator(node=layout.node("a.elt1.relay"), services=self.scada2)
+            actors2.BooleanActuator("a.elt1.relay", services=self.scada2)
         )
         self.thermo2 = kwargs.get(
             "thermo2",
-            actors2.SimpleSensor(node=layout.node("a.tank.temp0"), services=self.scada2)
+            actors2.SimpleSensor("a.tank.temp0", services=self.scada2)
         )
         self.meter2 = kwargs.get(
             "meter2",
-            actors2.PowerMeter(node=layout.node("a.m"), services=self.scada2)
+            actors2.PowerMeter("a.m", services=self.scada2)
         )
 
 class ProtocolFragment:
