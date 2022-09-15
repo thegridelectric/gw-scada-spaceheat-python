@@ -42,7 +42,19 @@ WE NEED A BETTER LOCAL DEV DEMO
 - .gitignore includes gw_spaceheat/venv for virtualenv so from gw_spaceheat directory:
   - `python -m venv venv`  
   - `source venv/bin/activate`
-  - `pip install -r requirements/dev.txt` 
+  - `pip install -r requirements/dev.txt`
+
+Run the tests from the root directory of the repo with:
+
+    pytest
+
+A hardware layout file is necessary to run the scada locally. Find the default path the layout file with: 
+    
+    python -c "import config; print(config.Paths().hardware_layout)"
+
+For initial experiments the test layout file can be used. The test layout file is located at:
+    
+    test/config/hardware-layout.json
 
 There are some scratch notes on Pi-related setup (like enabling interfaces) in docs/pi_setup.md
 ### Adding libraries 
