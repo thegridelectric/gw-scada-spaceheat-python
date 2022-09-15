@@ -25,7 +25,7 @@ class ActorBase(ABC):
         self.node = hardware_layout.node(alias)
         self.settings = settings
         self.nodes = hardware_layout
-        self.log_csv = f"{self.settings.paths.log_dir}/debug_logs/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
+        self.log_csv = f"{self.settings.paths.log_dir}/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
         if self.settings.logging_on:
             row = [f"({helpers.log_time()}) {self.node.alias}"]
             with open(self.log_csv, "w") as outfile:

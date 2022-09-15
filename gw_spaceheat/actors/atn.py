@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
-from config import ScadaSettings
+from config import ScadaSettings, Paths
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
@@ -51,7 +51,9 @@ class Atn(CloudBase):
         for node in self.power_nodes:
             self.latest_power_w[node] = None
         self.latest_status: Optional[GtShStatus] = None
-        self.log_csv = f"output/debug_logs/atn_{str(uuid.uuid4()).split('-')[1]}.csv"
+        self.status_output_dir = self.settings.paths.data_dir / "status"
+        self.status_output_dir.mkdir(parents=True, exist_ok=True)
+        self.log_csv = str(self.settings.paths.log_dir / f"atn_{str(uuid.uuid4()).split('-')[1]}.csv")
         self.total_power_w = 0
         self.screen_print(f"Initialized {self.__class__}")
 
@@ -89,10 +91,7 @@ class Atn(CloudBase):
 
     def gt_sh_status_received(self, payload: GtShStatus):
         self.latest_status = payload
-        status_dir = Path("output/status")
-        if not status_dir.exists():
-            status_dir.mkdir(parents=True)
-        status_file = status_dir / f"GtShStatus.{payload.SlotStartUnixS}.json"
+        status_file = self.status_output_dir / f"GtShStatus.{payload.SlotStartUnixS}.json"
         with status_file.open("w") as f:
             f.write(payload.as_type())
         print(f"Wrote status file [{status_file}]")

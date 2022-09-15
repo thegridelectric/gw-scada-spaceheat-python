@@ -23,7 +23,7 @@ class CloudBase(ABC):
         self.main_thread = None
         self.settings = settings
         self.nodes = hardware_layout
-        self.log_csv = f"{self.settings.paths.log_dir}/debug_logs/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
+        self.log_csv = f"{self.settings.paths.log_dir}/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
         self.gw_client.username_pw_set(
