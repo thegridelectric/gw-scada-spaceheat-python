@@ -2,7 +2,7 @@
 from pathlib import Path
 from typing import Optional, Dict
 
-import xdg as xdg
+import xdg
 from pydantic import BaseModel, BaseSettings, SecretStr, validator
 
 DEFAULT_ENV_FILE = ".env"

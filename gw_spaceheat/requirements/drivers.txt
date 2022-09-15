@@ -12,7 +12,7 @@ pendulum==2.1.2
     # via -r requirements/base.in
 pika==1.1.0
     # via -r requirements/base.in
-pydantic==1.9.1
+pydantic==1.10.2
     # via -r requirements/base.in
 pymodbus==2.5.3
     # via -r requirements/drivers.in
@@ -36,3 +36,5 @@ smbus2==0.4.1
     # via -r requirements/drivers.in
 typing-extensions==4.3.0
     # via pydantic
+xdg==5.1.1
+    # via -r requirements/base.in
