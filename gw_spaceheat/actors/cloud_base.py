@@ -22,7 +22,7 @@ class CloudBase(ABC):
         self._main_loop_running = False
         self.main_thread = None
         self.settings = settings
-        self.nodes = hardware_layout
+        self.layout = hardware_layout
         self.log_csv = f"{self.settings.paths.log_dir}/cloudbase_{str(uuid.uuid4()).split('-')[1]}.csv"
         self.gw_client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.gw_client = mqtt.Client(self.gw_client_id)
@@ -86,9 +86,9 @@ class CloudBase(ABC):
         if from_alias != self.scada_g_node_alias and from_alias != self.atn_g_node_alias:
             raise Exception(f"alias {from_alias} not my Scada or Atn!")
         if from_alias == self.scada_g_node_alias:
-            from_node = self.nodes.node("a.s")
+            from_node = self.layout.node("a.s")
         else:
-            from_node = self.nodes.node("a")
+            from_node = self.layout.node("a")
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
@@ -159,24 +159,24 @@ class CloudBase(ABC):
 
     @property
     def atn_g_node_alias(self):
-        return self.nodes.atn_g_node_alias
+        return self.layout.atn_g_node_alias
 
     @property
     def atn_g_node_id(self):
-        return self.nodes.atn_g_node_id
+        return self.layout.atn_g_node_id
 
     @property
     def terminal_asset_g_node_alias(self):
-        return self.nodes.terminal_asset_g_node_alias
+        return self.layout.terminal_asset_g_node_alias
 
     @property
     def terminal_asset_g_node_id(self):
-        return self.nodes.terminal_asset_g_node_id
+        return self.layout.terminal_asset_g_node_id
 
     @property
     def scada_g_node_alias(self):
-        return self.nodes.scada_g_node_alias
+        return self.layout.scada_g_node_alias
 
     @property
     def scada_g_node_id(self):
-        return self.nodes.scada_g_node_id
+        return self.layout.scada_g_node_id

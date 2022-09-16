@@ -465,11 +465,11 @@ class Scada2Recorder(Scada2):
 
     @property
     def status_topic(self) -> str:
-        return gw_mqtt_topic_encode(f"{self._nodes.scada_g_node_alias}/{GtShStatus_Maker.type_alias}")
+        return gw_mqtt_topic_encode(f"{self._layout.scada_g_node_alias}/{GtShStatus_Maker.type_alias}")
 
     @property
     def snapshot_topic(self) -> str:
-        return gw_mqtt_topic_encode(f"{self._nodes.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}")
+        return gw_mqtt_topic_encode(f"{self._layout.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}")
 
     @property
     def num_received(self) -> int:

@@ -222,7 +222,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
             scada = self.runner.actors.scada2
             atn = self.runner.actors.atn
             # TODO: Make better test-public access
-            atn_gs_pwr_topic = gw_mqtt_topic_encode(f"{scada._nodes.scada_g_node_alias}/p")
+            atn_gs_pwr_topic = gw_mqtt_topic_encode(f"{scada.hardware_layout.scada_g_node_alias}/p")
 
             await await_for(
                 lambda: scada._data.latest_total_power_w is not None,

@@ -1,11 +1,10 @@
 import time
 import uuid
-from pathlib import Path
 from typing import Dict, List, Optional
 
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
-from config import ScadaSettings, Paths
+from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
@@ -24,7 +23,7 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Mak
 class Atn(CloudBase):
 
     def my_sensors(self) -> List[ShNode]:
-        all_nodes = list(self.nodes.nodes.values())
+        all_nodes = list(self.layout.nodes.values())
         return list(
             filter(
                 lambda x: (
@@ -45,7 +44,7 @@ class Atn(CloudBase):
         self.power_nodes = list(
             filter(
                 lambda x: x.role == Role.BOOST_ELEMENT and x.has_actor,
-                self.nodes.nodes.values()
+                self.layout.nodes.values()
             )
         )
         for node in self.power_nodes:
@@ -74,7 +73,7 @@ class Atn(CloudBase):
         ]
 
     def on_gw_message(self, from_node: ShNode, payload):
-        if from_node != self.nodes.node("a.s"):
+        if from_node != self.layout.node("a.s"):
             raise Exception("gw messages must come from the Scada!")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(payload)

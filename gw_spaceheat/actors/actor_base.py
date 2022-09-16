@@ -24,7 +24,7 @@ class ActorBase(ABC):
         self.main_thread = None
         self.node = hardware_layout.node(alias)
         self.settings = settings
-        self.nodes = hardware_layout
+        self.layout = hardware_layout
         self.log_csv = f"{self.settings.paths.log_dir}/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
         if self.settings.logging_on:
             row = [f"({helpers.log_time()}) {self.node.alias}"]
@@ -90,9 +90,9 @@ class ActorBase(ABC):
             (from_alias, type_alias) = topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if from_alias not in self.nodes.nodes.keys():
+        if from_alias not in self.layout.nodes.keys():
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
-        from_node = self.nodes.node(from_alias)
+        from_node = self.layout.node(from_alias)
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
@@ -153,50 +153,50 @@ class ActorBase(ABC):
         print(header + note)
 
     def all_power_tuples(self) -> List[TelemetryTuple]:
-        return self.nodes.all_power_tuples
+        return self.layout.all_power_tuples
 
     def all_metered_nodes(self) -> List[ShNode]:
         """All nodes whose power level is metered and included in power reporting by the Scada"""
-        return self.nodes.all_metered_nodes
+        return self.layout.all_metered_nodes
 
     def all_resistive_heaters(self) -> List[ShNode]:
-        return self.nodes.all_resistive_heaters
+        return self.layout.all_resistive_heaters
 
     def all_power_meter_telemetry_tuples(self) -> List[TelemetryTuple]:
-        return self.nodes.all_power_meter_telemetry_tuples
+        return self.layout.all_power_meter_telemetry_tuples
 
     def power_meter_node(self) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
-        return self.nodes.power_meter_node
+        return self.layout.power_meter_node
 
     def scada_node(self) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role Scada"""
-        return self.nodes.scada_node
+        return self.layout.scada_node
 
     def home_alone_node(self) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role HomeAlone"""
-        return self.nodes.home_alone_node
+        return self.layout.home_alone_node
 
     @property
     def atn_g_node_alias(self):
-        return self.nodes.atn_g_node_alias
+        return self.layout.atn_g_node_alias
 
     @property
     def atn_g_node_id(self):
-        return self.nodes.atn_g_node_id
+        return self.layout.atn_g_node_id
 
     @property
     def terminal_asset_g_node_alias(self):
-        return self.nodes.terminal_asset_g_node_alias
+        return self.layout.terminal_asset_g_node_alias
 
     @property
     def terminal_asset_g_node_id(self):
-        return self.nodes.terminal_asset_g_node_id
+        return self.layout.terminal_asset_g_node_id
 
     @property
     def scada_g_node_alias(self):
-        return self.nodes.scada_g_node_alias
+        return self.layout.scada_g_node_alias
 
     @property
     def scada_g_node_id(self):
-        return self.nodes.scada_g_node_id
+        return self.layout.scada_g_node_id

@@ -73,18 +73,18 @@ class Scada(ScadaBase):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
 
     def my_home_alone(self) -> ShNode:
-        all_nodes = list(self.nodes.nodes.values())
+        all_nodes = list(self.layout.nodes.values())
         home_alone_nodes = list(filter(lambda x: (x.role == Role.HOME_ALONE), all_nodes))
         if len(home_alone_nodes) != 1:
             raise Exception("there should be a single SpaceheatNode with role HomeAlone")
         return home_alone_nodes[0]
 
     def my_boolean_actuators(self) -> List[ShNode]:
-        all_nodes = list(self.nodes.nodes.values())
+        all_nodes = list(self.layout.nodes.values())
         return list(filter(lambda x: (x.role == Role.BOOLEAN_ACTUATOR), all_nodes))
 
     def my_simple_sensors(self) -> List[ShNode]:
-        all_nodes = list(self.nodes.nodes.values())
+        all_nodes = list(self.layout.nodes.values())
         return list(
             filter(
                 lambda x: (
@@ -102,7 +102,7 @@ class Scada(ScadaBase):
         than one ShNode or measure more than one physical quantity type (or both).
         This includes the (unique) power meter, but may also include other roles like thermostats
         and heat pumps."""
-        all_nodes = list(self.nodes.nodes.values())
+        all_nodes = list(self.layout.nodes.values())
         return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
 
     def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
@@ -249,7 +249,7 @@ class Scada(ScadaBase):
                     f"from_node {from_node} must be from {self.power_meter_node()} for GsPwr message"
                 )
         elif isinstance(payload, GtDispatchBooleanLocal):
-            if from_node == self.nodes.node("a.home"):
+            if from_node == self.layout.node("a.home"):
                 self.local_boolean_dispatch_received(from_node, payload)
             else:
                 raise Exception("from_node must be a.home for GsDispatchBooleanLocal message")
@@ -287,12 +287,12 @@ class Scada(ScadaBase):
         if from_node in self.my_multipurpose_sensors():
             about_node_alias_list = payload.AboutNodeAliasList
             for idx, about_alias in enumerate(about_node_alias_list):
-                if about_alias not in self.nodes.nodes:
+                if about_alias not in self.layout.nodes:
                     raise Exception(
                         f"alias {about_alias} in payload.AboutNodeAliasList not a recognized ShNode!"
                     )
                 tt = TelemetryTuple(
-                    AboutNode=self.nodes.node(about_alias),
+                    AboutNode=self.layout.node(about_alias),
                     SensorNode=from_node,
                     TelemetryName=payload.TelemetryNameList[idx],
                 )
@@ -364,10 +364,10 @@ class Scada(ScadaBase):
             return ScadaCmdDiagnostic.PAYLOAD_NOT_IMPLEMENTED
 
     def process_boolean_dispatch(self, payload: GtDispatchBoolean) -> ScadaCmdDiagnostic:
-        if payload.AboutNodeAlias not in self.nodes.nodes.keys():
+        if payload.AboutNodeAlias not in self.layout.nodes.keys():
             self.screen_print(f"dispatch received for unknown sh_node {payload.AboutNodeAlias}")
             return ScadaCmdDiagnostic.UNKNOWN_DISPATCH_NODE
-        ba = self.nodes.node(payload.AboutNodeAlias)
+        ba = self.layout.node(payload.AboutNodeAlias)
         if not isinstance(ba.component, BooleanActuatorComponent):
             self.screen_print(f"{ba} must be a BooleanActuator!")
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
@@ -382,7 +382,7 @@ class Scada(ScadaBase):
     ) -> ScadaCmdDiagnostic:
         """This will be a message from HomeAlone, honored when the DispatchContract
         with the Atn is not live."""
-        if from_node != self.nodes.node("a.home"):
+        if from_node != self.layout.node("a.home"):
             return ScadaCmdDiagnostic.BAD_FROM_NODE
         if self.scada_atn_fast_dispatch_contract_is_alive:
             return ScadaCmdDiagnostic.IGNORING_HOMEALONE_DISPATCH

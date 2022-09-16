@@ -124,25 +124,25 @@ class Scada2(ScadaInterface, Proactor):
         super().__init__(name=name)
         self._node = hardware_layout.node(name)
         self._settings = settings
-        self._nodes = hardware_layout
+        self._layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
         self._add_mqtt_client(
-            Scada2.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec(self._nodes)
+            Scada2.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec(self._layout)
         )
         self._add_mqtt_client(
             Scada2.GRIDWORKS_MQTT,
             self.settings.gridworks_mqtt,
-            GridworksMQTTCodec(self._nodes),
+            GridworksMQTTCodec(self._layout),
         )
         # TODO: take care of subscriptions better. They should be registered here and only subscribed on connect.
         self._mqtt_clients.subscribe(
             Scada2.GRIDWORKS_MQTT,
-            gw_mqtt_topic_encode(f"{self._nodes.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"),
+            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"),
             QOS.AtMostOnce,
         )
         self._mqtt_clients.subscribe(
             Scada2.GRIDWORKS_MQTT,
-            gw_mqtt_topic_encode(f"{self._nodes.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}"),
+            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}"),
             QOS.AtMostOnce,
         )
         # TODO: clean this up
@@ -203,7 +203,7 @@ class Scada2(ScadaInterface, Proactor):
         return self._node
 
     def gridworks_mqtt_topic(self, payload: Any) -> str:
-        return gw_mqtt_topic_encode(f"{self._nodes.scada_g_node_alias}/{payload.TypeAlias}")
+        return gw_mqtt_topic_encode(f"{self._layout.scada_g_node_alias}/{payload.TypeAlias}")
 
     @classmethod
     def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
@@ -232,15 +232,15 @@ class Scada2(ScadaInterface, Proactor):
             f"++Scada2._derived_process_message {message.header.src}/{message.header.message_type}"
         )
         path_dbg = 0
-        from_node = self._nodes.node(message.header.src, None)
+        from_node = self._layout.node(message.header.src, None)
         if isinstance(message.payload, GsPwr):
             path_dbg |= 0x00000001
-            if from_node is self._nodes.power_meter_node:
+            if from_node is self._layout.power_meter_node:
                 path_dbg |= 0x00000002
                 self.gs_pwr_received(message.payload)
             else:
                 raise Exception(
-                    f"message.header.src {message.header.src} must be from {self._nodes.power_meter_node} for GsPwr message"
+                    f"message.header.src {message.header.src} must be from {self._layout.power_meter_node} for GsPwr message"
                 )
         elif isinstance(message.payload, GtDispatchBooleanLocal):
             path_dbg |= 0x00000004
@@ -253,21 +253,21 @@ class Scada2(ScadaInterface, Proactor):
                 )
         elif isinstance(message.payload, GtTelemetry):
             path_dbg |= 0x00000010
-            if from_node in self._nodes.my_simple_sensors:
+            if from_node in self._layout.my_simple_sensors:
                 path_dbg |= 0x00000020
                 self.gt_telemetry_received(from_node, message.payload)
             else:
                 print(f"Src node [{message.header.src}] not in ")
         elif isinstance(message.payload, GtShTelemetryFromMultipurposeSensor):
             path_dbg |= 0x00000040
-            if from_node in self._nodes.my_multipurpose_sensors:
+            if from_node in self._layout.my_multipurpose_sensors:
                 path_dbg |= 0x00000080
                 self.gt_sh_telemetry_from_multipurpose_sensor_received(
                     from_node, message.payload
                 )
         elif isinstance(message.payload, GtDriverBooleanactuatorCmd):
             path_dbg |= 0x00000100
-            if from_node in self._nodes.my_boolean_actuators:
+            if from_node in self._layout.my_boolean_actuators:
                 path_dbg |= 0x00000200
                 self.gt_driver_booleanactuator_cmd_record_received(
                     from_node, message.payload
@@ -322,8 +322,8 @@ class Scada2(ScadaInterface, Proactor):
         print(f"--Scada2._derived_process_mqtt_message  path:0x{path_dbg:08X}")
 
     def _process_telemetry(self, message: Message, decoded: GtTelemetry):
-        from_node = self._nodes.node(message.header.src)
-        if from_node in self._nodes.my_simple_sensors:
+        from_node = self._layout.node(message.header.src)
+        if from_node in self._layout.my_simple_sensors:
             self._data.recent_simple_values[from_node].append(decoded.Value)
             self._data.recent_simple_read_times_unix_ms[from_node].append(
                 decoded.ScadaReadTimeUnixMs
@@ -342,7 +342,7 @@ class Scada2(ScadaInterface, Proactor):
     async def _process_boolean_dispatch(
         self, payload: GtDispatchBoolean
     ) -> ScadaCmdDiagnostic:
-        ba = self._nodes.node(payload.AboutNodeAlias)
+        ba = self._layout.node(payload.AboutNodeAlias)
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         await self._communicators[ba.alias].process_message(
@@ -357,7 +357,7 @@ class Scada2(ScadaInterface, Proactor):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         self.send_threadsafe(
             GtDispatchBooleanLocalMessage(
-                src=self._nodes.home_alone_node.alias, dst=ba.alias, relay_state=int(on)
+                src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=int(on)
             )
         )
         return ScadaCmdDiagnostic.SUCCESS
@@ -408,7 +408,7 @@ class Scada2(ScadaInterface, Proactor):
 
     @property
     def hardware_layout(self) -> HardwareLayout:
-        return self._nodes
+        return self._layout
 
     def gs_pwr_received(self, payload: GsPwr):
         """The highest priority of the SCADA, from the perspective of the electric grid,
@@ -429,19 +429,19 @@ class Scada2(ScadaInterface, Proactor):
     def gt_sh_telemetry_from_multipurpose_sensor_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
     ):
-        if from_node in self._nodes.my_multipurpose_sensors:
+        if from_node in self._layout.my_multipurpose_sensors:
             about_node_alias_list = payload.AboutNodeAliasList
             for idx, about_alias in enumerate(about_node_alias_list):
-                if about_alias not in self._nodes.nodes:
+                if about_alias not in self._layout.nodes:
                     raise Exception(
                         f"alias {about_alias} in payload.AboutNodeAliasList not a recognized ShNode!"
                     )
                 tt = TelemetryTuple(
-                    AboutNode=self._nodes.node(about_alias),
+                    AboutNode=self._layout.node(about_alias),
                     SensorNode=from_node,
                     TelemetryName=payload.TelemetryNameList[idx],
                 )
-                if tt not in self._nodes.my_telemetry_tuples:
+                if tt not in self._layout.my_telemetry_tuples:
                     raise Exception(f"Scada not tracking telemetry tuple {tt}!")
                 self._data.recent_values_from_multipurpose_sensor[tt].append(
                     payload.ValueList[idx]
@@ -481,7 +481,7 @@ class Scada2(ScadaInterface, Proactor):
         So measuring the current and/or power of the thing getting
         actuated is really the best test."""
 
-        if from_node not in self._nodes.my_boolean_actuators:
+        if from_node not in self._layout.my_boolean_actuators:
             raise Exception(
                 "boolean actuator command records must come from boolean actuator"
             )

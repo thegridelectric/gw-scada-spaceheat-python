@@ -63,7 +63,7 @@ class BooleanActuator(ActorBase):
     def gt_dispatch_boolean_local_received(
         self, from_node: ShNode, payload: GtDispatchBooleanLocal
     ):
-        if from_node != self.nodes.node("a.s"):
+        if from_node != self.layout.node("a.s"):
             raise Exception(f"Only responds to dispatch from Scada. Got dispatch from {from_node}")
         if payload.AboutNodeAlias == self.node.alias:
             self.dispatch_relay(payload.RelayState)
