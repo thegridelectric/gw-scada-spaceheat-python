@@ -103,12 +103,17 @@ Run the tests:
     pytest
 
 
+**Hardware layout file**
+
+Place your hardware layout file at the default path expected by the Scada code. Find that default path with: 
+
+    python -c "import config; print(config.Paths().hardware_layout)"
+
 **Make .env file; Use the local emonPi broker**
 
 Contents of `.env`
 
 ```
-SCADA_WORLD_ROOT_ALIAS = "hw1"
 SCADA_SECONDS_PER_REPORT = 300
 SCADA_ASYNC_POWER_REPORTING_THRESHOLD = 0.02
 SCADA_LOCAL_MQTT__HOST = "localhost"

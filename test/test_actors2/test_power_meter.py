@@ -5,11 +5,10 @@ import pytest
 
 import actors2
 from actors.utils import gw_mqtt_topic_encode
-from actors2 import Nodes, Scada2
+from actors2 import Scada2
 from actors2.power_meter import PowerMeterDriverThread, PowerMeter, DriverThreadSetupHelper
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
-from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from load_house import load_all
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -20,34 +19,34 @@ from test.utils import await_for
 
 def test_power_meter_small():
     settings = ScadaSettings()
-    load_all(settings.world_root_alias)
-    scada = Scada2(ShNode.by_alias["a.s"], settings)
+    layout = load_all(settings)
+    scada = Scada2("a.s", settings, layout)
 
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        PowerMeter(node=ShNode.by_alias["a.s"], services=scada)
+        PowerMeter("a.s", services=scada)
 
-    meter = PowerMeter(node=ShNode.by_alias["a.m"], services=scada)
+    meter = PowerMeter("a.m", services=scada)
     assert isinstance(meter._sync_thread, PowerMeterDriverThread)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
-    setup_helper = DriverThreadSetupHelper(meter.node, settings)
+    setup_helper = DriverThreadSetupHelper(meter.node, settings, layout)
 
     assert set(driver_thread.nameplate_telemetry_value.keys()) == set(
-        Nodes.all_power_meter_telemetry_tuples()
+        layout.all_power_meter_telemetry_tuples
     )
     assert set(driver_thread.last_reported_telemetry_value.keys()) == set(
-        Nodes.all_power_meter_telemetry_tuples()
+        layout.all_power_meter_telemetry_tuples
     )
-    assert set(driver_thread.latest_telemetry_value.keys()) == set(Nodes.all_power_meter_telemetry_tuples())
-    assert set(driver_thread.eq_reporting_config.keys()) == set(Nodes.all_power_meter_telemetry_tuples())
-    assert set(driver_thread._last_sampled_s.keys()) == set(Nodes.all_power_meter_telemetry_tuples())
+    assert set(driver_thread.latest_telemetry_value.keys()) == set(layout.all_power_meter_telemetry_tuples)
+    assert set(driver_thread.eq_reporting_config.keys()) == set(layout.all_power_meter_telemetry_tuples)
+    assert set(driver_thread._last_sampled_s.keys()) == set(layout.all_power_meter_telemetry_tuples)
 
     # Only get resistive heater nameplate attributes if node role is boost element
     with pytest.raises(Exception):
-        setup_helper.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.tank.temp0"])
+        setup_helper.get_resistive_heater_nameplate_power_w(layout.node("a.tank.temp0"))
 
     with pytest.raises(Exception):
-        setup_helper.get_resistive_heater_nameplate_current_amps(ShNode.by_alias["a.tank.temp0"])
+        setup_helper.get_resistive_heater_nameplate_current_amps(layout.node("a.tank.temp0"))
 
     all_eq_configs = driver_thread.reporting_config.ElectricalQuantityReportingConfigList
 
@@ -60,11 +59,11 @@ def test_power_meter_small():
     )
     assert (len(amp_list)) == 1
     tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
+        AboutNode=layout.node("a.elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
-    assert tt in Nodes.all_power_meter_telemetry_tuples()
+    assert tt in layout.all_power_meter_telemetry_tuples
     assert driver_thread.last_reported_telemetry_value[tt] is None
     assert driver_thread.latest_telemetry_value[tt] is None
 
@@ -105,8 +104,8 @@ def test_power_meter_small():
     driver_thread.report_aggregated_power_w()
     assert not driver_thread.should_report_aggregated_power()
 
-    nameplate_pwr_w_1 = setup_helper.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.elt1"])
-    nameplate_pwr_w_2 = setup_helper.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.elt2"])
+    nameplate_pwr_w_1 = setup_helper.get_resistive_heater_nameplate_power_w(layout.node("a.elt1"))
+    nameplate_pwr_w_2 = setup_helper.get_resistive_heater_nameplate_power_w(layout.node("a.elt2"))
     assert nameplate_pwr_w_1 == 4500
     assert nameplate_pwr_w_2 == 4500
     assert driver_thread.nameplate_agg_power_w == 9000
@@ -116,7 +115,7 @@ def test_power_meter_small():
     assert power_reporting_threshold_w == 180
 
     tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
+        AboutNode=layout.node("a.elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.POWER_W,
     )
@@ -144,11 +143,11 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
             return [self.runner.actors.scada2]
 
         def get_requested_actors2(self):
-            meter_node = ShNode.by_alias["a.m"]
+            meter_node = self.runner.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
             self.runner.actors.meter2 = actors2.PowerMeter(
-                node=meter_node,
+                name=meter_node.alias,
                 services=self.runner.actors.scada2,
                 settings=ScadaSettings(seconds_per_report=1)
             )
@@ -159,12 +158,12 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
 
             expected_tts = [
                 TelemetryTuple(
-                    AboutNode=ShNode.by_alias["a.elt1"],
+                    AboutNode=self.runner.layout.node("a.elt1"),
                     SensorNode=self.runner.actors.meter2.node,
                     TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 ),
                 TelemetryTuple(
-                    AboutNode=ShNode.by_alias["a.elt1"],
+                    AboutNode=self.runner.layout.node("a.elt1"),
                     SensorNode=self.runner.actors.meter2.node,
                     TelemetryName=TelemetryName.POWER_W,
                 )
@@ -209,11 +208,11 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
             return [self.runner.actors.scada2, self.runner.actors.atn]
 
         def get_requested_actors2(self):
-            meter_node = ShNode.by_alias["a.m"]
+            meter_node = self.runner.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
             self.runner.actors.meter2 = actors2.PowerMeter(
-                node=meter_node,
+                name=meter_node.alias,
                 services=self.runner.actors.scada2,
                 settings=ScadaSettings(seconds_per_report=1)
             )
@@ -223,7 +222,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
             scada = self.runner.actors.scada2
             atn = self.runner.actors.atn
             # TODO: Make better test-public access
-            atn_gs_pwr_topic = gw_mqtt_topic_encode(f"{scada._nodes.scada_g_node_alias}/p")
+            atn_gs_pwr_topic = gw_mqtt_topic_encode(f"{scada.hardware_layout.scada_g_node_alias}/p")
 
             await await_for(
                 lambda: scada._data.latest_total_power_w is not None,
@@ -249,7 +248,8 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
                 increment = int(
                     meter_sync_thread.async_power_reporting_threshold * meter_sync_thread.nameplate_agg_power_w
                 ) + 1
-                expected = latest_total_power_w + (increment * scada.GS_PWR_MULTIPLIER * len(Nodes.all_power_tuples()))
+                expected = latest_total_power_w + (increment * scada.GS_PWR_MULTIPLIER
+                                                   * len(self.runner.layout.all_power_tuples))
                 driver.fake_power_w += increment
 
                 # Verify scada gets the message

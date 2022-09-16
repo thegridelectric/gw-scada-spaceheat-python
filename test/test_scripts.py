@@ -4,10 +4,8 @@ import asyncio
 import pytest
 
 import load_house
-from actors2 import Nodes
 from command_line_utils import run_nodes_main, run_async_actors_main
 from config import ScadaSettings
-from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
 from schema.gt.snapshot_spaceheat.snapshot_spaceheat import SnapshotSpaceheat
@@ -43,11 +41,11 @@ def test_run_nodes_main(aliases):
 
 def test_run_local():
     """Test the "run_local" script semantics"""
-    load_house.load_all(ScadaSettings().world_root_alias)
+    layout = load_house.load_all(ScadaSettings())
 
     aliases = [
         node.alias
-        for node in filter(lambda x: (x.role != Role.ATN and x.has_actor), ShNode.by_alias.values())
+        for node in filter(lambda x: (x.role != Role.ATN and x.has_actor), layout.nodes.values())
     ]
     test_run_nodes_main(aliases)
 
@@ -62,8 +60,8 @@ async def test_run_local2(tmp_path, monkeypatch):
     debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings()
     assert settings.seconds_per_report == 2
-    load_house.load_all(settings.world_root_alias)
-    topic_creator = Scada2Recorder(ShNode.by_alias["a.s"], settings)
+    layout = load_house.load_all(settings)
+    topic_creator = Scada2Recorder("a.s", settings, layout)
     status_topic = topic_creator.status_topic
     snapshot_topic = topic_creator.snapshot_topic
 
@@ -75,7 +73,7 @@ async def test_run_local2(tmp_path, monkeypatch):
         async def async_run(self):
             atn = self.runner.actors.atn
             argv = ["-n"]
-            for node in ShNode.by_alias.values():
+            for node in self.runner.layout.nodes.values():
                 if node.role != Role.ATN and node.role != Role.HOME_ALONE and node.has_actor:
                     argv.append(node.alias)
                     print(f"  {node.alias:42}  {node.role.value:30}  {node.actor_class}")
@@ -101,11 +99,11 @@ async def test_run_local2(tmp_path, monkeypatch):
                 status = atn.latest_status_payload
                 assert isinstance(status, GtShStatus)
                 assert len(status.SimpleTelemetryList) == 10
-                assert len(status.MultipurposeTelemetryList) == len(Nodes.my_telemetry_tuples())
+                assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
                 snapshot = atn.latest_snapshot_payload
                 assert isinstance(snapshot, SnapshotSpaceheat)
                 assert len(snapshot.Snapshot.ValueList) == len(
-                    status.SimpleTelemetryList) + len(Nodes.my_telemetry_tuples())
+                    status.SimpleTelemetryList) + len(self.runner.layout.my_telemetry_tuples)
                 assert len(snapshot.Snapshot.ValueList) == len(snapshot.Snapshot.AboutNodeAliasList)
             finally:
                 script_task.cancel()

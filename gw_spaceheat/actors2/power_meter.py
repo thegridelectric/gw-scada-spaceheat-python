@@ -7,13 +7,13 @@ import typing
 from collections import OrderedDict
 from typing import Optional, Dict, List
 
-from actors2.nodes import Nodes
 from actors2.actor import SyncThreadActor
 from actors2.message import GsPwrMessage, MultipurposeSensorTelemetryMessage
 from actors2.scada_interface import ScadaInterface
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
+from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
@@ -50,12 +50,14 @@ class DriverThreadSetupHelper:
 
     node: ShNode
     settings: ScadaSettings
+    hardware_layout: HardwareLayout
     component: ElectricMeterComponent
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
+        hardware_layout: HardwareLayout,
     ):
         if not isinstance(node.component, ElectricMeterComponent):
             raise ValueError(
@@ -64,11 +66,12 @@ class DriverThreadSetupHelper:
             )
         self.node = node
         self.settings = settings
+        self.hardware_layout = hardware_layout
         self.component = typing.cast(ElectricMeterComponent, node.component)
 
     def make_eq_reporting_config(self) -> Dict[TelemetryTuple, GtEqReportingConfig]:
         eq_reporting_config: Dict[TelemetryTuple, GtEqReportingConfig] = OrderedDict()
-        for about_node in Nodes.all_metered_nodes():
+        for about_node in self.hardware_layout.all_metered_nodes:
             eq_reporting_config[
                 TelemetryTuple(
                     AboutNode=about_node,
@@ -161,7 +164,7 @@ class DriverThreadSetupHelper:
 
     def get_nameplate_telemetry_value(self) -> Dict[TelemetryTuple, int]:
         response_dict: Dict[TelemetryTuple, int] = {}
-        for about_node in Nodes.all_resistive_heaters():
+        for about_node in self.hardware_layout.all_resistive_heaters:
             current_tt = TelemetryTuple(
                 AboutNode=about_node,
                 SensorNode=self.node,
@@ -196,11 +199,13 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     _last_sampled_s: Dict[TelemetryTuple, Optional[int]]
     async_power_reporting_threshold: float
     _telemetry_destination: str
+    _hardware_layout: HardwareLayout
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
+        hardware_layout: HardwareLayout,
         telemetry_destination: str,
         channel: SyncAsyncQueueWriter,
         responsive_sleep_step_seconds=0.01,
@@ -212,8 +217,9 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             responsive_sleep_step_seconds=responsive_sleep_step_seconds,
             daemon=daemon,
         )
+        self._hardware_layout = hardware_layout
         self._telemetry_destination = telemetry_destination
-        setup_helper = DriverThreadSetupHelper(node, settings)
+        setup_helper = DriverThreadSetupHelper(node, settings, hardware_layout)
         self.eq_reporting_config = setup_helper.make_eq_reporting_config()
         self.reporting_config = setup_helper.make_reporting_config(
             list(self.eq_reporting_config.values())
@@ -222,13 +228,13 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self.nameplate_telemetry_value = setup_helper.get_nameplate_telemetry_value()
         self.last_reported_agg_power_w: Optional[int] = None
         self.last_reported_telemetry_value = {
-            tt: None for tt in Nodes.all_power_meter_telemetry_tuples()
+            tt: None for tt in self._hardware_layout.all_power_meter_telemetry_tuples
         }
         self.latest_telemetry_value = {
-            tt: None for tt in Nodes.all_power_meter_telemetry_tuples()
+            tt: None for tt in self._hardware_layout.all_power_meter_telemetry_tuples
         }
         self._last_sampled_s = {
-            tt: None for tt in Nodes.all_power_meter_telemetry_tuples()
+            tt: None for tt in self._hardware_layout.all_power_meter_telemetry_tuples
         }
         self.async_power_reporting_threshold = settings.async_power_reporting_threshold
 
@@ -242,7 +248,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             self.report_aggregated_power_w()
         telemetry_tuple_report_list = [
             tpl
-            for tpl in Nodes.all_power_meter_telemetry_tuples()
+            for tpl in self._hardware_layout.all_power_meter_telemetry_tuples
             if self.should_report_telemetry_reading(tpl)
         ]
         if telemetry_tuple_report_list:
@@ -254,7 +260,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self._iterate_sleep_seconds = sleep_time_ms / 1000
 
     def update_latest_value_dicts(self):
-        for tt in Nodes.all_power_meter_telemetry_tuples():
+        for tt in self._hardware_layout.all_power_meter_telemetry_tuples:
             self.latest_telemetry_value[tt] = self.driver.read_telemetry_value(
                 tt.TelemetryName
             )
@@ -332,7 +338,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         latest_power_list = [
             v
             for k, v in self.latest_telemetry_value.items()
-            if k in Nodes.all_power_tuples()
+            if k in self._hardware_layout.all_power_tuples
         ]
         if None in latest_power_list:
             return None
@@ -343,7 +349,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         nameplate_power_list = [
             v
             for k, v in self.nameplate_telemetry_value.items()
-            if k in Nodes.all_power_tuples()
+            if k in self._hardware_layout.all_power_tuples
         ]
         return int(sum(nameplate_power_list))
 
@@ -374,18 +380,19 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
 class PowerMeter(SyncThreadActor):
     def __init__(
         self,
-        node: ShNode,
+        name: str,
         services: ScadaInterface,
         settings: Optional[ScadaSettings] = None,
         loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
 
         super().__init__(
-            node=node,
+            name=name,
             services=services,
             sync_thread=PowerMeterDriverThread(
-                node=node,
+                node=services.hardware_layout.node(name),
                 settings=services.settings if settings is None else settings,
+                hardware_layout=services.hardware_layout,
                 telemetry_destination=services.name,
                 channel=SyncAsyncQueueWriter(
                     loop=loop if loop is not None else asyncio.get_event_loop(),

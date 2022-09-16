@@ -6,6 +6,7 @@ from config import ScadaSettings
 
 from actors.actor_base import ActorBase
 from actors.utils import Subscription, responsive_sleep
+from data_classes.hardware_layout import HardwareLayout
 
 from data_classes.sh_node import ShNode
 
@@ -76,8 +77,8 @@ class PowerMeter(ActorBase):
         cac = component.cac
         return cac.nameplate_max_power_w / node.rated_voltage_v
 
-    def __init__(self, node: ShNode, settings: ScadaSettings):
-        super(PowerMeter, self).__init__(node=node, settings=settings)
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(PowerMeter, self).__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
         if self.node != self.power_meter_node():
             raise Exception(
                 f"PowerMeter node must be the unique Spaceheat Node of role PowerMeter! Not {self.node}"

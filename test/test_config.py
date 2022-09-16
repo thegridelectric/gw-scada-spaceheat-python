@@ -1,13 +1,10 @@
 """Test config module"""
 import textwrap
 from pathlib import Path
-
 import dotenv
-import pydantic
-import pytest
 from pydantic import SecretStr
 
-from config import MQTTClient, ScadaSettings
+from config import MQTTClient, ScadaSettings, Paths
 
 
 def test_mqtt_client_settings():
@@ -25,26 +22,136 @@ def test_mqtt_client_settings():
     assert settings.password.get_secret_value() == password
 
 
-def test_scada_settings_defaults(clean_scada_env):
+def exp_paths_dict(**kwargs) -> dict:
+    default_base = Path("gridworks")
+    default_name = Path("scada")
+    default_relative_path = default_base / default_name
+    home = kwargs.pop("home", Path.home())
+    default_data_home = home / ".local" / "share"
+    default_state_home = home / ".local" / "state"
+    default_config_home = home / ".config"
+    default_config_dir = default_config_home / default_relative_path
+    exp = dict(
+        base=default_base,
+        name=default_name,
+        relative_path=default_relative_path,
+        data_home=default_data_home,
+        state_home=default_state_home,
+        config_home=default_config_home,
+        data_dir=default_data_home / default_relative_path,
+        config_dir=default_config_dir,
+        log_dir=default_state_home / default_relative_path / "log",
+        hardware_layout=default_config_dir / "hardware-layout.json"
+    )
+    exp.update(**kwargs)
+    return exp
+
+
+def assert_paths(paths: Paths, **kwargs):
+    exp = exp_paths_dict(**kwargs)
+    for field, exp_value in exp.items():
+        got_value = getattr(paths, field)
+        if isinstance(got_value, Path) and not isinstance(exp_value, Path):
+            exp_value = Path(exp_value)
+            exp[field] = exp_value
+        assert got_value == exp_value, f"Paths.{field}\n\texp: {exp_value}\n\tgot: {got_value}"
+    assert paths.dict() == exp
+
+
+def test_paths_defaults(clean_scada_env, tmp_path):
+    assert_paths(Paths(), home=tmp_path)
+
+
+def test_paths(clean_scada_env, tmp_path):
+    # base, name
+    assert_paths(
+        Paths(base="foo", name="bar"),
+        home=tmp_path,
+        base=Path("foo"),
+        name=Path("bar"),
+        relative_path=Path("foo/bar"),
+        data_dir=tmp_path / ".local/share/foo/bar",
+        config_dir=tmp_path / ".config/foo/bar",
+        log_dir=tmp_path / ".local/state/foo/bar/log",
+        hardware_layout=tmp_path / ".config/foo/bar/hardware-layout.json"
+    )
+
+    # explicit relative_path
+    assert_paths(
+        Paths(relative_path="foo/bar"),
+        home=tmp_path,
+        relative_path=Path("foo/bar"),
+        data_dir=tmp_path / ".local/share/foo/bar",
+        config_dir=tmp_path / ".config/foo/bar",
+        log_dir=tmp_path / ".local/state/foo/bar/log",
+        hardware_layout=tmp_path / ".config/foo/bar/hardware-layout.json"
+    )
+
+    # explicit xdg dirs
+    assert_paths(
+        Paths(data_home="x", state_home="y", config_home="z"),
+        home=tmp_path,
+        data_home="x",
+        state_home="y",
+        config_home="z",
+        data_dir="x/gridworks/scada",
+        log_dir="y/gridworks/scada/log",
+        config_dir="z/gridworks/scada",
+        hardware_layout="z/gridworks/scada/hardware-layout.json"
+    )
+
+    # explicit working dirs
+    assert_paths(
+        Paths(data_dir="x", log_dir="y", config_dir="z"),
+        home=tmp_path,
+        data_dir="x",
+        log_dir="y",
+        config_dir="z",
+        hardware_layout="z/hardware-layout.json"
+    )
+
+    # explicit hardware_layout
+    assert_paths(
+        Paths(hardware_layout="foo.json"),
+        home=tmp_path,
+        hardware_layout="foo.json"
+    )
+
+    # set xdg through environment
+    clean_scada_env.setenv("XDG_DATA_HOME", "/x")
+    clean_scada_env.setenv("XDG_STATE_HOME", "/y")
+    clean_scada_env.setenv("XDG_CONFIG_HOME", "/z")
+    assert_paths(
+        Paths(),
+        home=tmp_path,
+        data_home="/x",
+        state_home="/y",
+        config_home="/z",
+        data_dir="/x/gridworks/scada",
+        log_dir="/y/gridworks/scada/log",
+        config_dir="/z/gridworks/scada",
+        hardware_layout="/z/gridworks/scada/hardware-layout.json"
+    )
+
+
+def test_paths_mkdirs(clean_scada_env):
+    pass
+
+
+def test_scada_settings_defaults(clean_scada_env, tmp_path):
     """Test ScadaSettings defaults"""
 
-    # world_root_alias required
-    with pytest.raises(pydantic.error_wrappers.ValidationError):
-        ScadaSettings()
-
     # defaults
-    settings = ScadaSettings(world_root_alias="foo")
+    settings = ScadaSettings()
     exp = dict(
-        world_root_alias="foo",
-        output_dir="output",
         local_mqtt=MQTTClient().dict(),
         gridworks_mqtt=MQTTClient().dict(),
         seconds_per_report=300,
         async_power_reporting_threshold=0.02,
         logging_on=False,
         log_message_summary=False,
+        paths=exp_paths_dict(home=tmp_path)
     )
-    assert settings.world_root_alias == "foo"
     assert settings.dict() == exp
     assert settings.local_mqtt == MQTTClient()
     assert settings.local_mqtt.username is None
@@ -53,12 +160,7 @@ def test_scada_settings_defaults(clean_scada_env):
 
 def test_scada_settings_from_env(monkeypatch, clean_scada_env):
     """Verify settings loaded from env as expected. """
-    with pytest.raises(pydantic.error_wrappers.ValidationError):
-        ScadaSettings()
-    world = "Foo"
-    monkeypatch.setenv("SCADA_WORLD_ROOT_ALIAS", world)
     settings = ScadaSettings()
-    assert settings.world_root_alias == world
     assert settings.seconds_per_report == 300
     assert settings.local_mqtt.host == "localhost"
     assert settings.local_mqtt.password.get_secret_value() == ""
@@ -84,11 +186,10 @@ def test_scada_settings_from_env(monkeypatch, clean_scada_env):
 def test_scada_settings_from_dotenv(monkeypatch, tmp_path, clean_scada_env):
     """Verify settings loaded from .env file as expected. """
     env_file = Path(tmp_path) / ".env"
-    settings = ScadaSettings(world_root_alias="1", _env_file=env_file)
+    settings = ScadaSettings(_env_file=env_file)
     assert settings.seconds_per_report == 300
     assert settings.local_mqtt.host == "localhost"
     assert settings.local_mqtt.password.get_secret_value() == ""
-    world = "Foo"
     seconds_per_report = 1
     host = "x"
     password = "y"
@@ -96,7 +197,6 @@ def test_scada_settings_from_dotenv(monkeypatch, tmp_path, clean_scada_env):
         f.write(
             textwrap.dedent(
                 f"""
-                SCADA_WORLD_ROOT_ALIAS="{world}"
                 SCADA_SECONDS_PER_REPORT={seconds_per_report}
                 SCADA_LOCAL_MQTT__HOST={host}
                 SCADA_LOCAL_MQTT__PASSWORD={password}
@@ -107,7 +207,6 @@ def test_scada_settings_from_dotenv(monkeypatch, tmp_path, clean_scada_env):
     working_dir.mkdir(parents=True)
     monkeypatch.chdir(working_dir)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(str(env_file)))
-    assert settings.world_root_alias == world
     assert settings.seconds_per_report == seconds_per_report
     assert settings.local_mqtt.host == host
     assert settings.local_mqtt.password.get_secret_value() == password
@@ -117,13 +216,11 @@ def test_scada_settings_from_env_and_dotenv(monkeypatch, tmp_path, clean_scada_e
     """Verify settings loaded from both environment variables and .env and as expected - environment variables
     take precedence"""
     env = dict(
-        SCADA_WORLD_ROOT_ALIAS="a",
         SCADA_LOCAL_MQTT__PASSWORD="1"
     )
     for k, v in env.items():
         monkeypatch.setenv(k, v)
     dotenv_ = dict(
-        SCADA_WORLD_ROOT_ALIAS="b",
         SCADA_GRIDWORKS_MQTT__PASSWORD="2"
     )
     env_file = Path(tmp_path) / ".env"
@@ -131,6 +228,5 @@ def test_scada_settings_from_env_and_dotenv(monkeypatch, tmp_path, clean_scada_e
         for k, v in dotenv_.items():
             f.write(f"{k}={v}\n")
     settings = ScadaSettings(_env_file=env_file)
-    assert settings.world_root_alias == env["SCADA_WORLD_ROOT_ALIAS"]
     assert settings.local_mqtt.password.get_secret_value() == env["SCADA_LOCAL_MQTT__PASSWORD"]
     assert settings.gridworks_mqtt.password.get_secret_value() == dotenv_["SCADA_GRIDWORKS_MQTT__PASSWORD"]

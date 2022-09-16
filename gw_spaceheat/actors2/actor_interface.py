@@ -25,9 +25,9 @@ class ActorInterface(CommunicatorInterface, Runnable, ABC):
 
     @classmethod
     def load(
-        cls, node: ShNode, services: ServicesInterface, module_name: str
+        cls, name: str, actor_class_name: str, services: ServicesInterface, module_name: str
     ) -> "ActorInterface":
         if module_name not in sys.modules:
             importlib.import_module(module_name)
-        actor_class = getattr(sys.modules[module_name], node.actor_class.value)
-        return actor_class(node, services)
+        actor_class = getattr(sys.modules[module_name], actor_class_name)
+        return actor_class(name, services)

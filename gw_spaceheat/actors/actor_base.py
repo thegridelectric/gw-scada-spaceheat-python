@@ -1,11 +1,7 @@
 import csv
-import json
-import os
 import threading
-import typing
 import uuid
 from abc import ABC, abstractmethod
-from functools import cached_property
 from typing import List
 
 import paho.mqtt.client as mqtt
@@ -13,127 +9,23 @@ import paho.mqtt.client as mqtt
 import helpers
 from config import ScadaSettings
 from actors.utils import QOS, Subscription, MessageSummary
+from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums.role.role_map import Role
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
 from schema.gs.gs_dispatch import GsDispatch
 from schema.gs.gs_pwr import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 
 class ActorBase(ABC):
-    @classmethod
-    def all_power_tuples(cls) -> List[TelemetryTuple]:
-        telemetry_tuples = []
-        for node in cls.all_metered_nodes():
-            telemetry_tuples += [
-                TelemetryTuple(
-                    AboutNode=node,
-                    SensorNode=cls.power_meter_node(),
-                    TelemetryName=TelemetryName.POWER_W,
-                )
-            ]
-        return telemetry_tuples
 
-
-    @classmethod
-    def all_metered_nodes(cls) -> List[ShNode]:
-        """All nodes whose power level is metered and included in power reporting by the Scada"""
-        return cls.all_resistive_heaters()
-
-    @classmethod
-    def all_resistive_heaters(cls) -> List[ShNode]:
-        all_nodes = list(ShNode.by_alias.values())
-        return list(filter(lambda x: (x.role == Role.BOOST_ELEMENT), all_nodes))
-
-    @classmethod
-    def all_power_meter_telemetry_tuples(cls) -> List[TelemetryTuple]:
-        telemetry_tuples = []
-        for about_node in cls.all_metered_nodes():
-            for telemetry_name in cls.power_meter_node().component.cac.telemetry_name_list():
-                telemetry_tuples.append(
-                    TelemetryTuple(
-                        AboutNode=about_node,
-                        SensorNode=cls.power_meter_node(),
-                        TelemetryName=telemetry_name,
-                    )
-                )
-        return telemetry_tuples
-
-
-    @classmethod
-    def power_meter_node(cls) -> ShNode:
-        """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
-        nodes = list(filter(lambda x: x.role == Role.POWER_METER, ShNode.by_alias.values()))
-        return nodes[0]
-
-    @classmethod
-    def scada_node(cls) -> ShNode:
-        """Schema for input data enforces exactly one Spaceheat Node with role Scada"""
-        nodes = list(filter(lambda x: x.role == Role.SCADA, ShNode.by_alias.values()))
-        return nodes[0]
-
-    @classmethod
-    def home_alone_node(cls) -> ShNode:
-        """Schema for input data enforces exactly one Spaceheat Node with role HomeAlone"""
-        nodes = list(filter(lambda x: x.role == Role.HOME_ALONE, ShNode.by_alias.values()))
-        return nodes[0]
-
-    @cached_property
-    def atn_g_node_alias(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyAtomicTNodeGNode"]
-        return my_atn_as_dict["Alias"]
-
-    @cached_property
-    def atn_g_node_id(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyAtomicTNodeGNode"]
-        return my_atn_as_dict["GNodeId"]
-
-    @cached_property
-    def terminal_asset_g_node_alias(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyTerminalAssetGNode"]
-        return my_atn_as_dict["Alias"]
-
-    @cached_property
-    def terminal_asset_g_node_id(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_atn_as_dict = input_data[self.settings.world_root_alias]["MyTerminalAssetGNode"]
-        return my_atn_as_dict["GNodeId"]
-
-    @cached_property
-    def scada_g_node_alias(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
-        return my_scada_as_dict["Alias"]
-
-    @cached_property
-    def scada_g_node_id(self):
-        current_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(os.path.join(current_dir, "../input_data/houses.json"), "r") as read_file:
-            input_data = json.load(read_file)
-        my_scada_as_dict = input_data[self.settings.world_root_alias]["MyScadaGNode"]
-        return my_scada_as_dict["GNodeId"]
-
-    def __init__(self, node: ShNode, settings: ScadaSettings):
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self._main_loop_running = False
         self.main_thread = None
-        self.node = node
+        self.node = hardware_layout.node(alias)
         self.settings = settings
-        self.log_csv = f"{self.settings.output_dir}/debug_logs/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
+        self.layout = hardware_layout
+        self.log_csv = f"{self.settings.paths.log_dir}/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
         if self.settings.logging_on:
             row = [f"({helpers.log_time()}) {self.node.alias}"]
             with open(self.log_csv, "w") as outfile:
@@ -198,9 +90,9 @@ class ActorBase(ABC):
             (from_alias, type_alias) = topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if from_alias not in ShNode.by_alias.keys():
+        if from_alias not in self.layout.nodes.keys():
             raise Exception(f"alias {from_alias} not in ShNode.by_alias keys!")
-        from_node = ShNode.by_alias[from_alias]
+        from_node = self.layout.node(from_alias)
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
@@ -259,3 +151,52 @@ class ActorBase(ABC):
     def screen_print(self, note):
         header = f"{self.node.alias}: "
         print(header + note)
+
+    def all_power_tuples(self) -> List[TelemetryTuple]:
+        return self.layout.all_power_tuples
+
+    def all_metered_nodes(self) -> List[ShNode]:
+        """All nodes whose power level is metered and included in power reporting by the Scada"""
+        return self.layout.all_metered_nodes
+
+    def all_resistive_heaters(self) -> List[ShNode]:
+        return self.layout.all_resistive_heaters
+
+    def all_power_meter_telemetry_tuples(self) -> List[TelemetryTuple]:
+        return self.layout.all_power_meter_telemetry_tuples
+
+    def power_meter_node(self) -> ShNode:
+        """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
+        return self.layout.power_meter_node
+
+    def scada_node(self) -> ShNode:
+        """Schema for input data enforces exactly one Spaceheat Node with role Scada"""
+        return self.layout.scada_node
+
+    def home_alone_node(self) -> ShNode:
+        """Schema for input data enforces exactly one Spaceheat Node with role HomeAlone"""
+        return self.layout.home_alone_node
+
+    @property
+    def atn_g_node_alias(self):
+        return self.layout.atn_g_node_alias
+
+    @property
+    def atn_g_node_id(self):
+        return self.layout.atn_g_node_id
+
+    @property
+    def terminal_asset_g_node_alias(self):
+        return self.layout.terminal_asset_g_node_alias
+
+    @property
+    def terminal_asset_g_node_id(self):
+        return self.layout.terminal_asset_g_node_id
+
+    @property
+    def scada_g_node_alias(self):
+        return self.layout.scada_g_node_alias
+
+    @property
+    def scada_g_node_id(self):
+        return self.layout.scada_g_node_id

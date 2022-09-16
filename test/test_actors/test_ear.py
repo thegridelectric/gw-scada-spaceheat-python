@@ -5,7 +5,6 @@ import time
 import load_house
 from actors.simple_sensor import SimpleSensor
 from config import ScadaSettings
-from data_classes.sh_node import ShNode
 from schema import property_format
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status import (
@@ -19,11 +18,11 @@ from actors.utils import gw_mqtt_topic_encode
 
 def test_scada_ear_connection():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
-    scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
-    ear = EarRecorder(settings=settings)
-    thermo0_node = ShNode.by_alias["a.tank.temp0"]
-    thermo0 = SimpleSensor(node=thermo0_node, settings=settings)
+    layout = load_house.load_all(settings)
+    scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
+    ear = EarRecorder(settings=settings, hardware_layout=layout)
+    thermo0_node = layout.node("a.tank.temp0")
+    thermo0 = SimpleSensor(thermo0_node.alias, settings=settings, hardware_layout=layout)
     try:
 
         scada.start()

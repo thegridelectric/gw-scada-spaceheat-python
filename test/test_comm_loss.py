@@ -4,7 +4,6 @@ from paho.mqtt.client import MQTT_ERR_CONN_LOST
 
 import load_house
 from config import ScadaSettings
-from data_classes.sh_node import ShNode
 from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
 from test.utils import ScadaRecorder, wait_for, CommEvents, await_for
 
@@ -14,8 +13,8 @@ def test_simple_resubscribe_on_comm_restore(tmp_path, monkeypatch):
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
-    scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
+    layout = load_house.load_all(settings)
+    scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
     actors = [scada]
     try:
         for actor in actors:

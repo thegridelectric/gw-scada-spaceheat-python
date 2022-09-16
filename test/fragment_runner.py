@@ -3,14 +3,13 @@ import time
 from typing import Optional, List, Sequence, Dict, Callable
 
 import actors2
-import load_house
 from actors.actor_base import ActorBase
 from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from actors2 import ActorInterface
 from config import ScadaSettings
-from data_classes.sh_node import ShNode
+from data_classes.hardware_layout import HardwareLayout
 
 try:
     from test.utils import (
@@ -59,33 +58,47 @@ class Actors:
     relay2: actors2.BooleanActuator
     meter2: actors2.PowerMeter
 
-    def __init__(self, settings: ScadaSettings, **kwargs):
-        self.scada = kwargs.get("scada", ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings))
-        self.atn = kwargs.get("atn", AtnRecorder(node=ShNode.by_alias["a"], settings=settings))
+    def __init__(self, settings: ScadaSettings, layout: HardwareLayout, **kwargs):
+        self.scada = kwargs.get(
+            "scada",
+            ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
+        )
+        self.atn = kwargs.get(
+            "atn",
+            AtnRecorder("a", settings=settings, hardware_layout=layout)
+        )
         self.home_alone = kwargs.get(
             "home_alone",
-            HomeAloneRecorder(node=ShNode.by_alias["a.home"], settings=settings)
+            HomeAloneRecorder("a.home", settings=settings, hardware_layout=layout)
         )
-        self.relay = kwargs.get("relay", BooleanActuator(ShNode.by_alias["a.elt1.relay"], settings=settings))
-        self.meter = kwargs.get("power_meter", PowerMeter(node=ShNode.by_alias["a.m"], settings=settings))
+        self.relay = kwargs.get(
+            "relay",
+            BooleanActuator("a.elt1.relay", settings=settings, hardware_layout=layout)
+        )
+        self.meter = kwargs.get(
+            "power_meter",
+            PowerMeter("a.m", settings=settings, hardware_layout=layout)
+        )
         self.thermo = kwargs.get(
             "thermo",
-            SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], settings=settings)
+            SimpleSensor("a.tank.temp0", settings=settings, hardware_layout=layout)
         )
-        self.scada2 = kwargs.get("scada2", Scada2Recorder(ShNode.by_alias["a.s"], settings))
+        self.scada2 = kwargs.get(
+            "scada2",
+            Scada2Recorder("a.s", settings, hardware_layout=layout)
+        )
         self.relay2 = kwargs.get(
             "relay2",
-            actors2.BooleanActuator(node=ShNode.by_alias["a.elt1.relay"], services=self.scada2)
+            actors2.BooleanActuator("a.elt1.relay", services=self.scada2)
         )
         self.thermo2 = kwargs.get(
             "thermo2",
-            actors2.SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], services=self.scada2)
+            actors2.SimpleSensor("a.tank.temp0", services=self.scada2)
         )
         self.meter2 = kwargs.get(
             "meter2",
-            actors2.PowerMeter(node=ShNode.by_alias["a.m"], services=self.scada2)
+            actors2.PowerMeter("a.m", services=self.scada2)
         )
-
 
 class ProtocolFragment:
     runner: "FragmentRunner"
@@ -110,9 +123,11 @@ class ProtocolFragment:
 
 
 class FragmentRunner:
+    settings: ScadaSettings
+    layout: HardwareLayout
     actors: Actors
     requested: Dict[str, ActorBase]
-    fragments: List["ProtocolFragment"]
+    fragments: List[ProtocolFragment]
     wait_at_least: float
     do_nothing_time: float
 
@@ -123,9 +138,11 @@ class FragmentRunner:
         do_nothing_time: float = 0.0,
         actors: Optional[Actors] = None,
     ):
+        self.settings = settings
+        self.layout = HardwareLayout.load(settings.paths.hardware_layout)
         self.wait_at_least = wait_at_least
         self.do_nothing_time = do_nothing_time
-        self.actors = Actors(settings) if actors is None else actors
+        self.actors = Actors(settings, self.layout) if actors is None else actors
         self.requested = dict()
         self.fragments = []
 
@@ -202,7 +219,6 @@ class FragmentRunner:
         cls, fragment_factory: Callable[["FragmentRunner"], ProtocolFragment]
     ):
         settings = ScadaSettings(log_message_summary=True)
-        load_house.load_all(settings.world_root_alias)
         runner = FragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         runner.run()
@@ -298,7 +314,6 @@ class AsyncFragmentRunner(FragmentRunner):
         cls, fragment_factory: Callable[["AsyncFragmentRunner"], ProtocolFragment]
     ):
         settings = ScadaSettings(log_message_summary=True)
-        load_house.load_all(settings.world_root_alias)
         runner = AsyncFragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         await runner.async_run()

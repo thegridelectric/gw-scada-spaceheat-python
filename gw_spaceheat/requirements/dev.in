@@ -5,3 +5,4 @@ ipython==8.0.0
 pip-tools
 isort
 pytest-sugar
+rich-cli

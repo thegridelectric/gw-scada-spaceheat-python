@@ -8,7 +8,6 @@ import pytest
 import load_house
 from actors.scada import ScadaCmdDiagnostic
 from actors2 import Scada2
-from actors2.nodes import Nodes
 from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -29,36 +28,36 @@ from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner, Actors
 from test.utils import await_for, Scada2Recorder
 
 
-def test_scada_small():
+def test_scada2_small():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
-    scada = Scada2(node=ShNode.by_alias["a.s"], settings=settings)
-    assert scada._nodes.power_meter_node() == ShNode.by_alias["a.m"]
-    meter_node = ShNode.by_alias["a.m"]
-    relay_node = ShNode.by_alias["a.elt1.relay"]
-    temp_node = ShNode.by_alias["a.tank.temp0"]
-    assert list(scada._data.recent_ba_cmds.keys()) == Nodes.my_boolean_actuators()
+    layout = load_house.load_all(settings)
+    scada = Scada2("a.s", settings=settings, hardware_layout=layout)
+    assert layout.power_meter_node == layout.node("a.m")
+    meter_node = layout.node("a.m")
+    relay_node = layout.node("a.elt1.relay")
+    temp_node = layout.node("a.tank.temp0")
+    assert list(scada._data.recent_ba_cmds.keys()) == layout.my_boolean_actuators
     assert (
         list(scada._data.recent_ba_cmd_times_unix_ms.keys())
-        == Nodes.my_boolean_actuators()
+        == layout.my_boolean_actuators
     )
-    assert list(scada._data.latest_simple_value.keys()) == Nodes.my_simple_sensors()
-    assert list(scada._data.recent_simple_values.keys()) == Nodes.my_simple_sensors()
+    assert list(scada._data.latest_simple_value.keys()) == layout.my_simple_sensors
+    assert list(scada._data.recent_simple_values.keys()) == layout.my_simple_sensors
     assert (
         list(scada._data.recent_simple_read_times_unix_ms.keys())
-        == Nodes.my_simple_sensors()
+        == layout.my_simple_sensors
     )
     assert (
         list(scada._data.latest_value_from_multipurpose_sensor.keys())
-        == Nodes.my_telemetry_tuples()
+        == layout.my_telemetry_tuples
     )
     assert (
         list(scada._data.recent_values_from_multipurpose_sensor.keys())
-        == Nodes.my_telemetry_tuples()
+        == layout.my_telemetry_tuples
     )
     assert (
         list(scada._data.recent_read_times_unix_ms_from_multipurpose_sensor.keys())
-        == Nodes.my_telemetry_tuples()
+        == layout.my_telemetry_tuples
     )
 
     ###########################################
@@ -74,8 +73,8 @@ def test_scada_small():
     assert isinstance(s, GtShSimpleTelemetryStatus)
 
     tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
-        SensorNode=ShNode.by_alias["a.m"],
+        AboutNode=layout.node("a.elt1"),
+        SensorNode=layout.node("a.m"),
         TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
     scada._data.recent_values_from_multipurpose_sensor[tt] = [72000]
@@ -137,8 +136,12 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings(seconds_per_report=2, log_message_summary=True)
-    load_house.load_all(settings.world_root_alias)
-    actors = Actors(settings, scada2=Scada2Recorder(ShNode.by_alias["a.s"], settings))
+    layout = load_house.load_all(settings)
+    actors = Actors(
+        settings,
+        layout=layout,
+        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout)
+    )
     actors.scada2._scada_atn_fast_dispatch_contract_is_alive_stub = True
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
@@ -293,8 +296,12 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings(seconds_per_report=2, log_message_summary=True)
-    load_house.load_all(settings.world_root_alias)
-    actors = Actors(settings, scada2=Scada2Recorder(ShNode.by_alias["a.s"], settings))
+    layout = load_house.load_all(settings)
+    actors = Actors(
+        settings,
+        layout=layout,
+        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout)
+    )
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
 
@@ -357,9 +364,12 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings(seconds_per_report=2, log_message_summary=True)
-    load_house.load_all(settings.world_root_alias)
-    actors = Actors(settings, scada2=Scada2Recorder(ShNode.by_alias["a.s"], settings))
-    # actors.scada2._scada_atn_fast_dispatch_contract_is_alive_stub = True
+    layout = load_house.load_all(settings)
+    actors = Actors(
+        settings,
+        layout=layout,
+        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout)
+    )
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
 
@@ -415,7 +425,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.node.alias
-            assert len(status.MultipurposeTelemetryList) == len(Nodes.my_telemetry_tuples())
+            assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
 
@@ -446,7 +456,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.node.alias
-            assert len(status.MultipurposeTelemetryList) == len(Nodes.my_telemetry_tuples())
+            assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
             snapshot = atn.latest_snapshot_payload
@@ -456,10 +466,11 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             assert isinstance(snapshot, SnapshotSpaceheat)
             assert set(snapshot.Snapshot.AboutNodeAliasList) == set(
                 [relay.node.alias, thermo.node.alias] + [
-                    node.alias for node in Nodes.all_metered_nodes()
+                    node.alias for node in self.runner.layout.all_metered_nodes
                 ]
             )
-            assert len(snapshot.Snapshot.AboutNodeAliasList) == 2 + len(Nodes.all_power_meter_telemetry_tuples())
+            assert len(snapshot.Snapshot.AboutNodeAliasList) == 2 + \
+                len(self.runner.layout.all_power_meter_telemetry_tuples)
             assert len(snapshot.Snapshot.ValueList) == len(snapshot.Snapshot.AboutNodeAliasList)
 
             # Turn off telemtry reporting

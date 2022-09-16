@@ -5,17 +5,16 @@ from actors.home_alone import HomeAlone
 
 import load_house
 from config import ScadaSettings
-from data_classes.sh_node import ShNode
 
 from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
 
 
 def test_homealone_small():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    layout = load_house.load_all(settings)
     with pytest.raises(Exception):
-        HomeAlone(node=ShNode.by_alias["a"], settings=settings)
-    home_alone = HomeAlone(node=ShNode.by_alias["a.home"], settings=settings)
+        HomeAlone("a", settings=settings, hardware_layout=layout)
+    home_alone = HomeAlone("a.home", settings=settings, hardware_layout=layout)
     status_dict = {
         "SlotStartUnixS": 1656945300,
         "SimpleTelemetryList": [
@@ -59,6 +58,6 @@ def test_homealone_small():
 
     # status_payload has to come from scada
     with pytest.raises(Exception):
-        home_alone.on_message(from_node=ShNode.by_alias["a.elt1"], payload=status_payload)
+        home_alone.on_message(from_node=layout.node("a.elt1"), payload=status_payload)
 
     home_alone.on_message(from_node=home_alone.scada_node(), payload=status_payload)

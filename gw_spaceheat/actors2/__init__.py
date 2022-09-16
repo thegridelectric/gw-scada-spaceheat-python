@@ -13,7 +13,6 @@ from actors2.message import (
     GtDriverBooleanactuatorCmdResponse,
     GtDispatchBooleanLocalMessage,
 )
-from actors2.nodes import Nodes
 
 __all__ = [
     "ScadaInterface",
@@ -23,7 +22,6 @@ __all__ = [
     "BooleanActuator",
     "SimpleSensor",
     "PowerMeter",
-    "Nodes",
     "GtTelemetryMessage",
     "GtDriverBooleanactuatorCmdResponse",
     "GtDispatchBooleanLocalMessage",

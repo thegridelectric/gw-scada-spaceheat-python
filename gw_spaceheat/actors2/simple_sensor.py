@@ -15,7 +15,6 @@ from actors2.actor import SyncThreadActor
 from actors2.message import GtTelemetryMessage
 from actors2.scada_interface import ScadaInterface
 from data_classes.node_config import NodeConfig
-from data_classes.sh_node import ShNode
 from proactor.sync_thread import SyncAsyncQueueWriter, SyncAsyncInteractionThread
 
 
@@ -105,7 +104,7 @@ class SimpleSensor(SyncThreadActor):
 
     def __init__(
         self,
-        node: ShNode,
+        name: str,
         services: ScadaInterface,
         driver_thread: Optional[SyncAsyncInteractionThread] = None,
         driver_thread_class: Optional[Type[SyncAsyncInteractionThread]] = None,
@@ -118,8 +117,8 @@ class SimpleSensor(SyncThreadActor):
             if driver_thread_class is None:
                 driver_thread_class = SimpleSensorDriverThread
             driver_thread = driver_thread_class(
-                name=node.alias,
-                config=NodeConfig(node, services.settings),
+                name=name,
+                config=NodeConfig(services.hardware_layout.node(name), services.settings),
                 telemetry_destination=services.name,
                 channel=SyncAsyncQueueWriter(
                     loop=loop if loop is not None else asyncio.get_event_loop(),
@@ -129,5 +128,5 @@ class SimpleSensor(SyncThreadActor):
                 responsive_sleep_step_seconds=responsive_sleep_step_seconds,
                 daemon=daemon,
             )
-        super().__init__(node, services, driver_thread)
+        super().__init__(name, services, driver_thread)
 

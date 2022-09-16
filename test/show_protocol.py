@@ -147,7 +147,7 @@ class AllFragments(ProtocolFragment):
         do_nothing(self.runner.do_nothing_time)
 
         delimit("TURNING ON")
-        actors.atn.turn_on(ShNode.by_alias["a.elt1.relay"])
+        actors.atn.turn_on(self.runner.layout.node("a.elt1.relay"))
         wait_for(lambda: actors.relay.relay_state == 1, 10, f"Relay state")
         delimit("TURNED ON")
 
@@ -199,7 +199,7 @@ def show_protocol(argv: Optional[List[str]] = None):
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file), log_message_summary=True)
     setup_logging(args, settings)
     please_be_quiet()
-    load_house.load_all(settings.world_root_alias)
+    load_house.load_all(settings)
     runner = FragmentRunner(
         settings,
         wait_at_least=args.wait_at_least,

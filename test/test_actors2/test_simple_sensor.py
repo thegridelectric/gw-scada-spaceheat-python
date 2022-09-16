@@ -7,7 +7,6 @@ import pytest
 
 import actors2
 from data_classes.components.temp_sensor_component import TempSensorComponent
-from data_classes.sh_node import ShNode
 from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
 from test.utils import await_for
 
@@ -27,14 +26,14 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch):
             return [self.runner.actors.scada2]
 
         def get_requested_actors2(self):
-            thermo_node = ShNode.by_alias["a.tank.temp0"]
+            thermo_node = self.runner.layout.node("a.tank.temp0")
             # Artificially speed up the test by telling the SimpleSensor to report every second
             # and telling it's driver that the read time is .01 ms.
             # Note: The read delay can *still* be 1 second because the times compared are cast to floats.
             thermo_node.reporting_sample_period_s = 0
             typing.cast(TempSensorComponent, thermo_node.component).cac.typical_response_time_ms = .01
             self.runner.actors.thermo2 = actors2.SimpleSensor(
-                node=thermo_node,
+                name=thermo_node.alias,
                 services=self.runner.actors.scada2,
             )
             return [self.runner.actors.thermo2]

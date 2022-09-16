@@ -6,6 +6,7 @@ from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from schema.enums.role.role_map import Role
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
@@ -20,9 +21,9 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Mak
 
 
 class Atn(CloudBase):
-    @classmethod
-    def my_sensors(cls) -> List[ShNode]:
-        all_nodes = list(ShNode.by_alias.values())
+
+    def my_sensors(self) -> List[ShNode]:
+        all_nodes = list(self.layout.nodes.values())
         return list(
             filter(
                 lambda x: (
@@ -36,20 +37,22 @@ class Atn(CloudBase):
             )
         )
 
-    def __init__(self, node: ShNode, settings: ScadaSettings):
-        super(Atn, self).__init__(settings=settings)
-        self.node = node
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(Atn, self).__init__(settings=settings, hardware_layout=hardware_layout)
+        self.node = hardware_layout.node(alias)
         self.latest_power_w: Dict[ShNode, Optional[int]] = {}
         self.power_nodes = list(
             filter(
                 lambda x: x.role == Role.BOOST_ELEMENT and x.has_actor,
-                ShNode.by_alias.values()
+                self.layout.nodes.values()
             )
         )
         for node in self.power_nodes:
             self.latest_power_w[node] = None
         self.latest_status: Optional[GtShStatus] = None
-        self.log_csv = f"output/debug_logs/atn_{str(uuid.uuid4()).split('-')[1]}.csv"
+        self.status_output_dir = self.settings.paths.data_dir / "status"
+        self.status_output_dir.mkdir(parents=True, exist_ok=True)
+        self.log_csv = str(self.settings.paths.log_dir / f"atn_{str(uuid.uuid4()).split('-')[1]}.csv")
         self.total_power_w = 0
         self.screen_print(f"Initialized {self.__class__}")
 
@@ -70,8 +73,7 @@ class Atn(CloudBase):
         ]
 
     def on_gw_message(self, from_node: ShNode, payload):
-        self.payload = payload
-        if from_node != ShNode.by_alias["a.s"]:
+        if from_node != self.layout.node("a.s"):
             raise Exception("gw messages must come from the Scada!")
         if isinstance(payload, GsPwr):
             self.gs_pwr_received(payload)
@@ -88,6 +90,10 @@ class Atn(CloudBase):
 
     def gt_sh_status_received(self, payload: GtShStatus):
         self.latest_status = payload
+        status_file = self.status_output_dir / f"GtShStatus.{payload.SlotStartUnixS}.json"
+        with status_file.open("w") as f:
+            f.write(payload.as_type())
+        print(f"Wrote status file [{status_file}]")
 
     def gt_sh_cli_scada_response_received(self, payload: SnapshotSpaceheat):
         snapshot = payload.Snapshot

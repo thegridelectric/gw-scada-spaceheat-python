@@ -6,7 +6,6 @@ from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from config import ScadaSettings
-from data_classes.sh_node import ShNode
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
 from test.utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, EarRecorder, wait_for
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
@@ -21,14 +20,14 @@ def test_message_exchange(tmp_path, monkeypatch):
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings(log_message_summary=True)
-    load_house.load_all(settings.world_root_alias)
-    scada = ScadaRecorder(node=ShNode.by_alias["a.s"], settings=settings)
-    atn = AtnRecorder(node=ShNode.by_alias["a"], settings=settings)
-    ear = EarRecorder(settings=settings)
-    home_alone = HomeAloneRecorder(node=ShNode.by_alias["a.home"], settings=settings)
-    elt_relay = BooleanActuator(ShNode.by_alias["a.elt1.relay"], settings=settings)
-    meter = PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
-    thermo = SimpleSensor(node=ShNode.by_alias["a.tank.temp0"], settings=settings)
+    layout = load_house.load_all(settings)
+    scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
+    atn = AtnRecorder("a", settings=settings, hardware_layout=layout)
+    ear = EarRecorder(settings=settings, hardware_layout=layout)
+    home_alone = HomeAloneRecorder("a.home", settings=settings, hardware_layout=layout)
+    elt_relay = BooleanActuator("a.elt1.relay", settings=settings, hardware_layout=layout)
+    meter = PowerMeter("a.m", settings=settings, hardware_layout=layout)
+    thermo = SimpleSensor("a.tank.temp0", settings=settings, hardware_layout=layout)
     actors = [scada, atn, ear, home_alone, elt_relay, meter, thermo]
 
     try:
@@ -66,7 +65,7 @@ def test_message_exchange(tmp_path, monkeypatch):
         home_alone.publish(dispatch_off)
         wait_for(lambda: elt_relay.relay_state == 0, 10, f"Relay state {elt_relay.relay_state}")
         scada._scada_atn_fast_dispatch_contract_is_alive_stub = True
-        atn.turn_on(ShNode.by_alias["a.elt1.relay"])
+        atn.turn_on(layout.node("a.elt1.relay"))
         wait_for(lambda: elt_relay.relay_state == 1, 10, f"Relay state {elt_relay.relay_state}")
         atn.status()
         wait_for(
@@ -100,7 +99,7 @@ def test_message_exchange(tmp_path, monkeypatch):
             f"scada temperature. {scada.summary_str()}",
         )
 
-        atn.turn_off(ShNode.by_alias["a.elt1.relay"])
+        atn.turn_off(layout.node("a.elt1.relay"))
         wait_for(
             lambda: int(elt_relay.relay_state) == 0, 10, f"Relay state {elt_relay.relay_state}"
         )

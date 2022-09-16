@@ -1,13 +1,14 @@
 """Test PowerMeter actor"""
+import json
 import typing
+import pytest
 
 import load_house
-import pytest
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
-from data_classes.sh_node import ShNode
+from data_classes.hardware_layout import HardwareLayout
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
 
@@ -24,30 +25,34 @@ from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker imp
     GtElectricMeterComponent_Maker,
 )
 
-from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
-
-
-def test_driver():
+def test_driver_loading():
 
     # Testing unknown meter driver
     flush_all()
-    unknown_electric_meter_cac_dict = {
+    settings = ScadaSettings()
+    with settings.paths.hardware_layout.open() as f:
+        layout_dict = json.loads(f.read())
+    meter_node_idx = -1
+    for i, v in enumerate(layout_dict["ShNodes"]):
+        if v["Alias"] == "a.m":
+            meter_node_idx = i
+            break
+
+    layout_dict["ElectricMeterCacs"][0] = {
         "ComponentAttributeClassId": "c1f17330-6269-4bc5-aa4b-82e939e9b70c",
         "MakeModelGtEnumSymbol": "b6a32d9b",
         "DisplayName": "Unknown Power Meter",
         "LocalCommInterfaceGtEnumSymbol": "829549d1",
         "TypeAlias": "gt.electric.meter.cac.100",
     }
-
-    electric_meter_component_dict = {
+    layout_dict["ElectricMeterComponents"][0] = {
         "ComponentId": "c7d352db-9a86-40f0-9601-d99243719cc5",
         "DisplayName": "Test unknown meter",
         "ComponentAttributeClassId": "c1f17330-6269-4bc5-aa4b-82e939e9b70c",
         "HwUid": "7ec4a224",
         "TypeAlias": "gt.electric.meter.component.100",
     }
-
-    meter_node_dict = {
+    layout_dict["ShNodes"][meter_node_idx] = {
         "Alias": "a.m",
         "RoleGtEnumSymbol": "9ac68b6e",
         "ActorClassGtEnumSymbol": "2ea112b9",
@@ -57,24 +62,21 @@ def test_driver():
         "TypeAlias": "spaceheat.node.gt.100",
     }
 
-    electric_meter_cac = GtElectricMeterCac_Maker.dict_to_dc(unknown_electric_meter_cac_dict)
-    electric_meter_component = GtElectricMeterComponent_Maker.dict_to_dc(
-        electric_meter_component_dict
-    )
-
-    SpaceheatNodeGt_Maker.dict_to_dc(meter_node_dict)
-
+    electric_meter_cac = GtElectricMeterCac_Maker.dict_to_dc(layout_dict["ElectricMeterCacs"][0])
+    electric_meter_component = GtElectricMeterComponent_Maker.dict_to_dc(layout_dict["ElectricMeterComponents"][0])
     assert electric_meter_component.cac == electric_meter_cac
 
-    settings = ScadaSettings()
-    meter = PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
-
+    layout = HardwareLayout.load_dict(layout_dict)
+    meter = PowerMeter("a.m", settings=settings, hardware_layout=layout)
     print(meter.all_metered_nodes)
     assert isinstance(meter.driver, UnknownPowerMeterDriver)
     flush_all()
 
     # Testing faulty meter driver (set to temp sensor)
-    faulty_electric_meter_cac_dict = {
+    with settings.paths.hardware_layout.open() as f:
+        layout_dict = json.loads(f.read())
+
+    layout_dict["ElectricMeterCacs"][0] = {
         "ComponentAttributeClassId": "f931a424-317c-4ca7-a712-55aba66070dd",
         "MakeModelGtEnumSymbol": "acd93fb3",
         "DisplayName": "Faulty Power Meter, actually an Adafruit temp sensor",
@@ -82,7 +84,7 @@ def test_driver():
         "TypeAlias": "gt.electric.meter.cac.100",
     }
 
-    faulty_meter_component_dict = {
+    layout_dict["ElectricMeterComponents"][0] = {
         "ComponentId": "03f7f670-4896-473f-8dda-521747ee7a2d",
         "DisplayName": "faulty meter, actually an Adafruit temp sensor",
         "ComponentAttributeClassId": "f931a424-317c-4ca7-a712-55aba66070dd",
@@ -90,7 +92,7 @@ def test_driver():
         "TypeAlias": "gt.electric.meter.component.100",
     }
 
-    meter_node_dict = {
+    layout_dict["ShNodes"][meter_node_idx] = {
         "Alias": "a.m",
         "RoleGtEnumSymbol": "9ac68b6e",
         "ActorClassGtEnumSymbol": "2ea112b9",
@@ -100,13 +102,12 @@ def test_driver():
         "TypeAlias": "spaceheat.node.gt.100",
     }
 
-    electric_meter_cac = GtElectricMeterCac_Maker.dict_to_dc(faulty_electric_meter_cac_dict)
-    GtElectricMeterComponent_Maker.dict_to_dc(faulty_meter_component_dict)
-    SpaceheatNodeGt_Maker.dict_to_dc(meter_node_dict)
+    electric_meter_cac = GtElectricMeterCac_Maker.dict_to_dc(layout_dict["ElectricMeterCacs"][0])
+    GtElectricMeterComponent_Maker.dict_to_dc(layout_dict["ElectricMeterComponents"][0])
     assert electric_meter_cac.make_model == MakeModel.ADAFRUIT__642
 
     with pytest.raises(Exception):
-        meter = PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
+        PowerMeter("a.m", settings=settings, hardware_layout=layout)
 
     flush_all()
 
@@ -156,13 +157,13 @@ def test_driver():
 
 def test_power_meter_small():
     settings = ScadaSettings()
-    load_house.load_all(settings.world_root_alias)
+    layout = load_house.load_all(settings)
 
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        PowerMeter(node=ShNode.by_alias["a.s"], settings=settings)
+        PowerMeter("a.s", settings=settings, hardware_layout=layout)
 
-    meter = PowerMeter(node=ShNode.by_alias["a.m"], settings=settings)
+    meter = PowerMeter("a.m", settings=settings, hardware_layout=layout)
 
     assert set(meter.nameplate_telemetry_value.keys()) == set(
         meter.all_power_meter_telemetry_tuples()
@@ -176,10 +177,10 @@ def test_power_meter_small():
 
     # Only get resistive heater nameplate attributes if node role is boost element
     with pytest.raises(Exception):
-        meter.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.tank.temp0"])
+        meter.get_resistive_heater_nameplate_power_w(layout.node("a.tank.temp0"))
 
     with pytest.raises(Exception):
-        meter.get_resistive_heater_nameplate_current_amps(ShNode.by_alias["a.tank.temp0"])
+        meter.get_resistive_heater_nameplate_current_amps(layout.node("a.tank.temp0"))
 
     all_eq_configs = meter.reporting_config.ElectricalQuantityReportingConfigList
 
@@ -192,7 +193,7 @@ def test_power_meter_small():
     )
     assert (len(amp_list)) == 1
     tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
+        AboutNode=layout.node("a.elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
     )
@@ -237,8 +238,8 @@ def test_power_meter_small():
     meter.report_aggregated_power_w()
     assert not meter.should_report_aggregated_power()
 
-    nameplate_pwr_w_1 = meter.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.elt1"])
-    nameplate_pwr_w_2 = meter.get_resistive_heater_nameplate_power_w(ShNode.by_alias["a.elt2"])
+    nameplate_pwr_w_1 = meter.get_resistive_heater_nameplate_power_w(layout.node("a.elt1"))
+    nameplate_pwr_w_2 = meter.get_resistive_heater_nameplate_power_w(layout.node("a.elt2"))
     assert nameplate_pwr_w_1 == 4500
     assert nameplate_pwr_w_2 == 4500
     assert meter.nameplate_agg_power_w == 9000
@@ -248,7 +249,7 @@ def test_power_meter_small():
     assert power_reporting_threshold_w == 180
 
     tt = TelemetryTuple(
-        AboutNode=ShNode.by_alias["a.elt1"],
+        AboutNode=layout.node("a.elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.POWER_W,
     )
@@ -264,20 +265,20 @@ def test_power_meter_periodic_update():
     """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (GsPwr sending is
     _not_ tested here."""
     settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
-    load_house.load_all(settings.world_root_alias)
-    scada = Scada(ShNode.by_alias["a.s"], settings=settings)
-    meter_node = ShNode.by_alias["a.m"]
+    layout = load_house.load_all(settings)
+    scada = Scada("a.s", settings=settings, hardware_layout=layout)
+    meter_node = layout.node("a.m")
     typing.cast(ElectricMeterComponent, meter_node.component).cac.update_period_ms = 0
-    meter = PowerMeter(node=meter_node, settings=settings)
+    meter = PowerMeter(alias=meter_node.alias, settings=settings, hardware_layout=layout)
     actors = [scada, meter]
     expected_tts = [
         TelemetryTuple(
-            AboutNode=ShNode.by_alias["a.elt1"],
+            AboutNode=layout.node("a.elt1"),
             SensorNode=meter.node,
             TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
         ),
         TelemetryTuple(
-            AboutNode=ShNode.by_alias["a.elt1"],
+            AboutNode=layout.node("a.elt1"),
             SensorNode=meter.node,
             TelemetryName=TelemetryName.POWER_W,
         )
@@ -321,12 +322,12 @@ def test_power_meter_aggregate_power_forward():
     """Verify that when a simulated change in power is generated, Scadd and Atn both get a GsPwr message"""
 
     settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
-    load_house.load_all(settings.world_root_alias)
-    scada = ScadaRecorder(ShNode.by_alias["a.s"], settings=settings)
-    atn = AtnRecorder(ShNode.by_alias["a"], settings=settings)
-    meter_node = ShNode.by_alias["a.m"]
+    layout = load_house.load_all(settings)
+    scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
+    atn = AtnRecorder("a", settings=settings, hardware_layout=layout)
+    meter_node = layout.node("a.m")
     typing.cast(ElectricMeterComponent, meter_node.component).cac.update_period_ms = 0
-    meter = PowerMeter(node=meter_node, settings=settings)
+    meter = PowerMeter(meter_node.alias, settings=settings, hardware_layout=layout)
     meter.reporting_sample_period_s = 0
     actors = [scada, meter, atn]
     try:

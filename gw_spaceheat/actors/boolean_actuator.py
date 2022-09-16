@@ -2,6 +2,7 @@ import time
 from typing import List, Optional
 
 from config import ScadaSettings
+from data_classes.hardware_layout import HardwareLayout
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
@@ -20,8 +21,8 @@ from actors.utils import QOS, Subscription, responsive_sleep
 class BooleanActuator(ActorBase):
     MAIN_LOOP_MIN_TIME_S = 5
 
-    def __init__(self, node: ShNode, settings: ScadaSettings):
-        super(BooleanActuator, self).__init__(node=node, settings=settings)
+    def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
+        super(BooleanActuator, self).__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
         self.relay_state: Optional[int] = None
         self.config = NodeConfig(self.node, settings)
         self.screen_print(f"Initialized {self.__class__}")
@@ -62,7 +63,7 @@ class BooleanActuator(ActorBase):
     def gt_dispatch_boolean_local_received(
         self, from_node: ShNode, payload: GtDispatchBooleanLocal
     ):
-        if from_node != ShNode.by_alias["a.s"]:
+        if from_node != self.layout.node("a.s"):
             raise Exception(f"Only responds to dispatch from Scada. Got dispatch from {from_node}")
         if payload.AboutNodeAlias == self.node.alias:
             self.dispatch_relay(payload.RelayState)
