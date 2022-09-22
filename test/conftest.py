@@ -6,13 +6,14 @@ import shutil
 import logging
 from pathlib import Path
 from types import NoneType
-from typing import Generator
+from typing import Generator, Sequence
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
 import dotenv
 
 from config import ScadaSettings, DEFAULT_LAYOUT_FILE, Paths
+from logging_config import LoggerLevels, DEFAULT_BASE_NAME
 from test.utils import flush_all
 
 TEST_DOTENV_PATH = "test/.env-gw-spaceheat-test"
@@ -158,23 +159,67 @@ def clean_scada_env(request, tmp_path) -> Generator[MonkeyPatch, None, None]:
     ).context() as mpatch:
         yield mpatch
 
+class LoggerGuard:
+    level: int
+    propagate: bool
+    handlers: set[logging.Handler]
+    filters: set[logging.Filter]
+
+
+    def __init__(self, logger: logging.Logger):
+        self.logger = logger
+        self.level = logger.level
+        self.propagate = logger.propagate
+        self.handlers = set(logger.handlers)
+        self.filters = set(logger.filters)
+
+    def restore(self):
+        self.logger.setLevel(self.level)
+        self.logger.propagate = self.propagate
+        curr_handlers = set(self.logger.handlers)
+        for handler in (curr_handlers - self.handlers):
+            self.logger.removeHandler(handler)
+        for handler in (self.handlers - curr_handlers):
+            self.logger.addHandler(handler)
+        curr_filters = set(self.logger.filters)
+        for filter_ in (curr_filters - self.filters):
+            self.logger.removeFilter(filter_)
+        for filter_ in (self.filters - curr_filters):
+            self.logger.addFilter(filter_)
+        assert set(self.logger.handlers) == self.handlers
+        assert set(self.logger.filters) == self.filters
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.restore()
+        return True
+
+class LoggerGuards:
+    guards: dict[str, LoggerGuard]
+
+    def __init__(self, logger_names: Sequence[str]):
+        self.guards = {logger_name: LoggerGuard(logging.getLogger(logger_name)) for logger_name in logger_names}
+
+    def restore(self):
+        for guard in self.guards.values():
+            guard.restore()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.restore()
+        return True
+
+
+
+
 @pytest.fixture(autouse=True)
-def restore_root_logger():
-    root = logging.getLogger()
-    orig_handlers = set(root.handlers)
-    orig_level = root.level
-    orig_filters = set(root.filters)
-    yield root
-    root.setLevel(orig_level)
-    curr_handlers = set(root.handlers)
-    for handler in (curr_handlers - orig_handlers):
-        root.removeHandler(handler)
-    for handler in (orig_handlers - curr_handlers):
-        root.addHandler(handler)
-    curr_filters = set(root.filters)
-    for filter_ in (curr_filters - orig_filters):
-        root.removeFilter(filter_)
-    for filter_ in (orig_filters - curr_filters):
-        root.addFilter(filter_)
-    assert set(root.handlers) == orig_handlers
-    assert set(root.filters) == orig_filters
+def restore_loggers() -> LoggerGuards:
+    guards = LoggerGuards(
+        ["root"] + list(LoggerLevels().qualified_logger_names(DEFAULT_BASE_NAME).values())
+    )
+    yield guards
+    guards.restore()

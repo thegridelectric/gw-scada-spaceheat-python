@@ -85,14 +85,13 @@ def run_nodes(
 def run_nodes_main(
     argv: Optional[Sequence[str]] = None,
     default_nodes: Optional[Sequence[str]] = None,
-    update_root_logger: bool = True,
     dbg: Optional[Dict] = None,
 ) -> None:
     """Load and run the configured Nodes. If dbg is not None it will be populated with the actor objects."""
     args = parse_args(argv, default_nodes=default_nodes)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     settings.paths.mkdirs()
-    setup_logging(args, settings, update_root_logger)
+    setup_logging(args, settings)
     run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
 
 
@@ -135,12 +134,11 @@ async def run_async_actors(
 async def run_async_actors_main(
     argv: Optional[Sequence[str]] = None,
     default_nodes: Optional[Sequence[str]] = None,
-    update_root_logger: bool = True,
 ):
     args = parse_args(argv, default_nodes=default_nodes)
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     settings.paths.mkdirs()
-    setup_logging(args, settings, update_root_logger)
+    setup_logging(args, settings)
     layout = load_house.load_all(settings)
     if not args.nodes:
         args.nodes = [

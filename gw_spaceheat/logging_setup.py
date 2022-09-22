@@ -31,7 +31,6 @@ def format_exceptions(exceptions: list[BaseException]) -> str:
 def setup_logging(
         args: argparse.Namespace,
         settings: ScadaSettings,
-        update_root_logger: bool = True,
         errors: Optional[list[BaseException]] = None,
 ) -> None:
     """Get python logging config based on parsed command line args, defaults, environment variables and logging config file.
@@ -87,17 +86,13 @@ def setup_logging(
             except BaseException as e:
                 errors.append(e)
 
-        # Turn on logging in base logger, with level and handlers, as requested
-        if update_root_logger:
-            base_logger_name = ""
-        else:
-            base_logger_name = settings.logging.base_log_name
-        base_logger = logging.getLogger(base_logger_name)
-        base_logger.setLevel(logging.INFO)
+        # Turn on logging in root logger, with level and handlers, as requested
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.INFO)
         for handler in [screen_handler, file_handler]:
             if handler is not None:
                 try:
-                    base_logger.addHandler(handler)
+                    root_logger.addHandler(handler)
                 except BaseException as e:
                     errors.append(e)
         config_finished = True

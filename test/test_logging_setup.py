@@ -4,7 +4,7 @@ import logging.handlers
 from typing import Optional
 
 from config import Paths, ScadaSettings
-from logging_config import LoggingSettings, LoggerLevels
+from logging_config import LoggingSettings, LoggerLevels, DEFAULT_LOG_FILE_NAME
 from logging_setup import setup_logging
 from test.test_logging_config import get_exp_formatted_time
 
@@ -66,4 +66,10 @@ def test_get_default_logging_config(caplog, capsys):
         assert capsys.readouterr().err == exp_msg
         text += exp_msg
         caplog.clear()
+
+    # Check file contents
+    log_path = settings.paths.log_dir / DEFAULT_LOG_FILE_NAME
+    with log_path.open() as f:
+        log_contents = f.read()
+    assert log_contents == text
 
