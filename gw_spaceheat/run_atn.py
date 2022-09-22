@@ -23,7 +23,7 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True, update_roo
         ),
     )
     settings.paths.mkdirs()
-    setup_logging(args, settings, update_root_logger)
+    setup_logging(args, settings)
     layout = load_house.load_all(settings)
     atn = Atn("a", settings, layout)
     if start:
@@ -31,4 +31,4 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True, update_roo
     return atn
 
 if __name__ == "__main__":
-    get_atn(update_root_logger=True)
+    get_atn()
