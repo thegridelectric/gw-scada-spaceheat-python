@@ -3,6 +3,7 @@ from typing import Optional, Any
 
 import pendulum
 
+
 class MessageSummary:
     """Helper class for formating message summaries message receipt/publication single line summaries."""
 
@@ -69,7 +70,7 @@ class ProactorLogger(logging.LoggerAdapter):
     lifecycle_logger: logging.Logger
     comm_event_logger: logging.Logger
 
-    def __init__(self, general: str, message_summary:str, lifecycle: str, comm_event: str,  extra: Optional[dict] = None):
+    def __init__(self, general: str, message_summary: str, lifecycle: str, comm_event: str, extra: Optional[dict] = None):
         super().__init__(logging.getLogger(general), extra=extra)
         self.message_summary_logger = logging.getLogger(message_summary)
         self.lifecycle_logger = logging.getLogger(lifecycle)
@@ -139,6 +140,4 @@ class ProactorLogger(logging.LoggerAdapter):
             f"{self.message_summary_logger.name}, "
             f"{self.lifecycle_logger.name}, "
             f"{self.comm_event_logger.name}>"
-    )
-
-
+        )

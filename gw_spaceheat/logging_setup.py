@@ -7,6 +7,7 @@ from typing import Optional
 
 from config import ScadaSettings
 
+
 def format_exceptions(exceptions: list[BaseException]) -> str:
     s = ""
     # noinspection PyBroadException
@@ -27,6 +28,7 @@ def format_exceptions(exceptions: list[BaseException]) -> str:
     except:
         s += "UNEXPECTED ERROR formatting exception.\n"
     return s
+
 
 def setup_logging(
         args: argparse.Namespace,
@@ -113,4 +115,3 @@ def setup_logging(
                     print(s)
             except:
                 pass
-

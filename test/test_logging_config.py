@@ -53,7 +53,7 @@ def test_logger_levels():
     assert levels.general == 1
     assert levels.message_summary == logging.CRITICAL
     assert levels.lifecycle == logging.DEBUG
-    assert levels.comm_event ==  logging.DEBUG
+    assert levels.comm_event == logging.DEBUG
 
     # qualified_names()
     base_name = "foo"
@@ -80,6 +80,7 @@ def test_logger_levels():
     }
     # no fields set
     assert LoggerLevels().set_logger_names_to_levels(base_name) == {}
+
 
 def test_logging_settings():
 
@@ -162,6 +163,7 @@ def test_logging_settings():
     logging_settings.levels.message_summary = 20
     assert logging_settings.message_summary_enabled()
 
+
 def get_exp_formatted_time(record: logging.LogRecord, formatter: logging.Formatter) -> str:
     return formatter.default_msec_format % (
         time.strftime(
@@ -170,6 +172,7 @@ def get_exp_formatted_time(record: logging.LogRecord, formatter: logging.Formatt
         ),
         record.msecs,
     )
+
 
 def test_formatter_settings():
     settings = FormatterSettings()
@@ -189,6 +192,7 @@ def test_formatter_settings():
     formatted = formatter.format(record)
     assert formatted.startswith(exp_formatted_time)
     assert formatted.endswith(record.msg % record.args)
+
 
 def test_rotating_file_handler_settings(tmp_path):
     settings = RotatingFileHandlerSettings()

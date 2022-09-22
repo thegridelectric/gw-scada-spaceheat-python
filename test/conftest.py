@@ -159,12 +159,12 @@ def clean_scada_env(request, tmp_path) -> Generator[MonkeyPatch, None, None]:
     ).context() as mpatch:
         yield mpatch
 
+
 class LoggerGuard:
     level: int
     propagate: bool
     handlers: set[logging.Handler]
     filters: set[logging.Filter]
-
 
     def __init__(self, logger: logging.Logger):
         self.logger = logger
@@ -195,6 +195,7 @@ class LoggerGuard:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.restore()
         return True
+
 
 class LoggerGuards:
     guards: dict[str, LoggerGuard]

@@ -72,9 +72,11 @@ def test_get_default_logging_config(caplog, capsys):
         log_contents = f.read()
     assert log_contents == text
 
+
 def test_rollover():
     paths = Paths()
     paths.mkdirs()
+
     def _log_dir_size() -> int:
         return sum(f.stat().st_size for f in paths.log_dir.glob('**/*') if f.is_file())
     bytes_per_log_file = 50
@@ -94,7 +96,5 @@ def test_rollover():
     logger = logging.getLogger("gridworks.general")
     for _ in range(300):
         logger.info("12345678901234567890")
-    assert _log_dir_size() <=  bytes_per_log_file * num_log_files
+    assert _log_dir_size() <= bytes_per_log_file * num_log_files
     assert len(list(paths.log_dir.glob('**/*'))) == num_log_files
-
-

@@ -28,6 +28,7 @@ class FormatterSettings(BaseModel):
         formatter.converter = time.gmtime
         return formatter
 
+
 class RotatingFileHandlerSettings(BaseModel):
     filename: str = DEFAULT_LOG_FILE_NAME
     bytes_per_log_file: int = DEFAULT_BYTES_PER_LOG_FILE
@@ -38,7 +39,7 @@ class RotatingFileHandlerSettings(BaseModel):
         handler = logging.handlers.RotatingFileHandler(
             filename=log_dir / self.filename,
             maxBytes=self.bytes_per_log_file,
-            backupCount=self.num_log_files-1,
+            backupCount=self.num_log_files - 1,
         )
         handler.setFormatter(formatter)
         if self.level != logging.NOTSET:
@@ -82,6 +83,7 @@ class LoggerLevels(BaseModel):
                     f"Could not convert level ({v}/{type(v)}) to an int, either by cast or by logging.getLevelName()")
         return int_v
 
+
 class LoggingSettings(BaseModel):
     base_log_name: str = DEFAULT_BASE_NAME
     base_log_level: int = logging.INFO
@@ -103,4 +105,3 @@ class LoggingSettings(BaseModel):
 
     def message_summary_enabled(self) -> bool:
         return self.levels.message_summary <= logging.INFO
-
