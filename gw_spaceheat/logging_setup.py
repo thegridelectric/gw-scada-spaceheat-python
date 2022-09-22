@@ -52,6 +52,7 @@ def setup_logging(
         try:
             if getattr(args, "verbose", None):
                 settings.logging.levels.general = logging.INFO
+                settings.logging.levels.message_summary = logging.DEBUG
             if getattr(args, "message_summary", None):
                 settings.logging.levels.message_summary = logging.INFO
         except BaseException as e:

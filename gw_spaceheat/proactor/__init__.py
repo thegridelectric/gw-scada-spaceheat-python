@@ -27,17 +27,19 @@ from proactor.sync_thread import (
     SyncAsyncQueueWriter,
     SyncAsyncInteractionThread,
 )
+from proactor.logger import ProactorLogger
 
 __all__ = [
+    "AsyncQueueWriter",
+    "Communicator",
+    "CommunicatorInterface",
     "Header",
     "Message",
-    "CommunicatorInterface",
-    "Communicator",
+    "MQTTCodec",
+    "Proactor",
+    "ProactorLogger",
     "Runnable",
     "ServicesInterface",
-    "Proactor",
-    "MQTTCodec",
-    "AsyncQueueWriter",
-    "SyncAsyncQueueWriter",
     "SyncAsyncInteractionThread",
+    "SyncAsyncQueueWriter",
 ]

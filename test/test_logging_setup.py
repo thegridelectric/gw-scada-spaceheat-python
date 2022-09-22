@@ -16,7 +16,6 @@ def test_get_default_logging_config(caplog, capsys):
         logging=LoggingSettings(
             levels=LoggerLevels(
                 general=logging.INFO,
-                message_summary=logging.INFO,
             )
         )
     )
@@ -24,7 +23,7 @@ def test_get_default_logging_config(caplog, capsys):
     pytest_root_handlers = len(root.handlers)
     errors = []
 
-    setup_logging(argparse.Namespace(), settings, errors=errors)
+    setup_logging(argparse.Namespace(message_summary=True), settings, errors=errors)
     assert len(errors) == 0
 
     # root logger changes

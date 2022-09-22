@@ -232,7 +232,7 @@ class Scada2(ScadaInterface, Proactor):
         )
 
     async def _derived_process_message(self, message: Message):
-        self._logger.path("++Scada2._derived_process_message {src}/{type}", src=message.header.src, type=message.header.message_type)
+        self._logger.path("++Scada2._derived_process_message %s/%s", message.header.src, message.header.message_type)
         path_dbg = 0
         from_node = self._layout.node(message.header.src, None)
         if isinstance(message.payload, GsPwr):
@@ -282,7 +282,7 @@ class Scada2(ScadaInterface, Proactor):
             raise ValueError(
                 f"There is not handler for mqtt message payload type [{type(message.payload)}]"
             )
-        self._logger.path("--Scada2._derived_process_message  path:0x{path_dbg:08X}", path_dbg=path_dbg)
+        self._logger.path("--Scada2._derived_process_message  path:0x%08X", path_dbg)
 
     # TODO: Clean this up
     # noinspection PyProtectedMember
@@ -298,7 +298,7 @@ class Scada2(ScadaInterface, Proactor):
     async def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
-        self._logger.path("++Scada2._derived_process_mqtt_message {topic}", topic=message.payload.message.topic)
+        self._logger.path("++Scada2._derived_process_mqtt_message %s", message.payload.message.topic)
         path_dbg = 0
         if message.payload.client_name != self.GRIDWORKS_MQTT:
             raise ValueError(
@@ -319,7 +319,7 @@ class Scada2(ScadaInterface, Proactor):
                 f"There is not handler for mqtt message payload type [{type(decoded)}]"
                 f"Received\n\t topic: [{message.payload.message.topic}]"
             )
-        self._logger.path("--Scada2._derived_process_mqtt_message  path:0x{path_dbg:08X}", path_dbg=[path_dbg])
+        self._logger.path("--Scada2._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_telemetry(self, message: Message, decoded: GtTelemetry):
         from_node = self._layout.node(message.header.src)

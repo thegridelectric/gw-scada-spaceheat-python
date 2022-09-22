@@ -6,7 +6,7 @@ import shutil
 import logging
 from pathlib import Path
 from types import NoneType
-from typing import Generator, Sequence
+from typing import Generator, Sequence, Optional
 
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
@@ -199,7 +199,9 @@ class LoggerGuard:
 class LoggerGuards:
     guards: dict[str, LoggerGuard]
 
-    def __init__(self, logger_names: Sequence[str]):
+    def __init__(self, logger_names: Optional[Sequence[str]] = None):
+        if logger_names is None:
+            logger_names = self.default_logger_names()
         self.guards = {logger_name: LoggerGuard(logging.getLogger(logger_name)) for logger_name in logger_names}
 
     def restore(self):
@@ -213,13 +215,13 @@ class LoggerGuards:
         self.restore()
         return True
 
-
+    @classmethod
+    def default_logger_names(cls) -> list[str]:
+        return ["root"] + list(LoggerLevels().qualified_logger_names(DEFAULT_BASE_NAME).values())
 
 
 @pytest.fixture(autouse=True)
 def restore_loggers() -> LoggerGuards:
-    guards = LoggerGuards(
-        ["root"] + list(LoggerLevels().qualified_logger_names(DEFAULT_BASE_NAME).values())
-    )
+    guards = LoggerGuards()
     yield guards
     guards.restore()

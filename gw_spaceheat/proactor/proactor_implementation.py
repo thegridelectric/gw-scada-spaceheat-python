@@ -127,7 +127,7 @@ class Proactor(ServicesInterface, Runnable):
         pass
 
     async def process_message(self, message: Message):
-        self._logger.path("++Proactor.process_message {}/{}", message.header.src, message.header.message_type)
+        self._logger.path("++Proactor.process_message %s/%s", message.header.src, message.header.message_type)
         path_dbg = 0
         self._logger.message_summary(
             "INx ",
@@ -153,10 +153,10 @@ class Proactor(ServicesInterface, Runnable):
         else:
             path_dbg |= 0x00000010
             await self._derived_process_message(message)
-        self._logger.path("--Proactor.process_message  path:0x{path_dbg:0x8X}", path_dbg=path_dbg)
+        self._logger.path("--Proactor.process_message  path:0x%08X", path_dbg)
 
     async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
-        self._logger.path("++Proactor._process_mqtt_message {src}/{type}", src=message.header.src, type=message.header.message_type)
+        self._logger.path("++Proactor._process_mqtt_message %s/%s", message.header.src, message.header.message_type)
         path_dbg = 0
         decoder = self._mqtt_codecs.get(message.payload.client_name, None)
         if decoder is not None:
@@ -167,7 +167,7 @@ class Proactor(ServicesInterface, Runnable):
             decoded = message.payload
         self._logger.message_summary("INq ", self.name, message.payload.message.topic, decoded)
         await self._derived_process_mqtt_message(message, decoded)
-        self._logger.path("--Proactor._process_mqtt_message  path:0x{path_dbg:08X}", path_dbg=path_dbg)
+        self._logger.path("--Proactor._process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
         self._mqtt_clients.subscribe_all(message.payload.client_name)
