@@ -19,7 +19,7 @@ def test_message_exchange(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
-    settings = ScadaSettings(log_message_summary=True)
+    settings = ScadaSettings()
     layout = load_house.load_all(settings)
     scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
     atn = AtnRecorder("a", settings=settings, hardware_layout=layout)

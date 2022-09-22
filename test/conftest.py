@@ -3,6 +3,7 @@
 import contextlib
 import os
 import shutil
+import logging
 from pathlib import Path
 from types import NoneType
 from typing import Generator
@@ -156,3 +157,24 @@ def clean_scada_env(request, tmp_path) -> Generator[MonkeyPatch, None, None]:
         prefix=param[4] if len(param) > 4 else "SCADA_"
     ).context() as mpatch:
         yield mpatch
+
+@pytest.fixture(autouse=True)
+def restore_root_logger():
+    root = logging.getLogger()
+    orig_handlers = set(root.handlers)
+    orig_level = root.level
+    orig_filters = set(root.filters)
+    yield root
+    root.setLevel(orig_level)
+    curr_handlers = set(root.handlers)
+    for handler in (curr_handlers - orig_handlers):
+        root.removeHandler(handler)
+    for handler in (orig_handlers - curr_handlers):
+        root.addHandler(handler)
+    curr_filters = set(root.filters)
+    for filter_ in (curr_filters - orig_filters):
+        root.removeFilter(filter_)
+    for filter_ in (orig_filters - curr_filters):
+        root.addFilter(filter_)
+    assert set(root.handlers) == orig_handlers
+    assert set(root.filters) == orig_filters

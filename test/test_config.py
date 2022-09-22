@@ -1,10 +1,11 @@
 """Test config module"""
+import shutil
 import textwrap
 from pathlib import Path
 import dotenv
 from pydantic import SecretStr
 
-from config import MQTTClient, ScadaSettings, Paths
+from config import MQTTClient, ScadaSettings, Paths, LoggingSettings
 
 
 def test_mqtt_client_settings():
@@ -41,7 +42,7 @@ def exp_paths_dict(**kwargs) -> dict:
         data_dir=default_data_home / default_relative_path,
         config_dir=default_config_dir,
         log_dir=default_state_home / default_relative_path / "log",
-        hardware_layout=default_config_dir / "hardware-layout.json"
+        hardware_layout=default_config_dir / "hardware-layout.json",
     )
     exp.update(**kwargs)
     return exp
@@ -73,7 +74,7 @@ def test_paths(clean_scada_env, tmp_path):
         data_dir=tmp_path / ".local/share/foo/bar",
         config_dir=tmp_path / ".config/foo/bar",
         log_dir=tmp_path / ".local/state/foo/bar/log",
-        hardware_layout=tmp_path / ".config/foo/bar/hardware-layout.json"
+        hardware_layout=tmp_path / ".config/foo/bar/hardware-layout.json",
     )
 
     # explicit relative_path
@@ -84,7 +85,7 @@ def test_paths(clean_scada_env, tmp_path):
         data_dir=tmp_path / ".local/share/foo/bar",
         config_dir=tmp_path / ".config/foo/bar",
         log_dir=tmp_path / ".local/state/foo/bar/log",
-        hardware_layout=tmp_path / ".config/foo/bar/hardware-layout.json"
+        hardware_layout=tmp_path / ".config/foo/bar/hardware-layout.json",
     )
 
     # explicit xdg dirs
@@ -97,7 +98,7 @@ def test_paths(clean_scada_env, tmp_path):
         data_dir="x/gridworks/scada",
         log_dir="y/gridworks/scada/log",
         config_dir="z/gridworks/scada",
-        hardware_layout="z/gridworks/scada/hardware-layout.json"
+        hardware_layout="z/gridworks/scada/hardware-layout.json",
     )
 
     # explicit working dirs
@@ -107,14 +108,14 @@ def test_paths(clean_scada_env, tmp_path):
         data_dir="x",
         log_dir="y",
         config_dir="z",
-        hardware_layout="z/hardware-layout.json"
+        hardware_layout="z/hardware-layout.json",
     )
 
     # explicit hardware_layout
     assert_paths(
         Paths(hardware_layout="foo.json"),
         home=tmp_path,
-        hardware_layout="foo.json"
+        hardware_layout="foo.json",
     )
 
     # set xdg through environment
@@ -130,13 +131,22 @@ def test_paths(clean_scada_env, tmp_path):
         data_dir="/x/gridworks/scada",
         log_dir="/y/gridworks/scada/log",
         config_dir="/z/gridworks/scada",
-        hardware_layout="/z/gridworks/scada/hardware-layout.json"
+        hardware_layout="/z/gridworks/scada/hardware-layout.json",
     )
 
 
-def test_paths_mkdirs(clean_scada_env):
-    pass
-
+def test_paths_mkdirs(clean_scada_env, tmp_path):
+    paths = Paths()
+    assert not paths.data_dir.exists()
+    # Get rid of the config dir created inside of tmp_path by clean_scada_env
+    if paths.config_dir.exists():
+        shutil.rmtree(paths.config_dir)
+    assert not paths.config_dir.exists()
+    assert not paths.log_dir.exists()
+    paths.mkdirs()
+    assert paths.data_dir.exists()
+    assert paths.config_dir.exists()
+    assert paths.log_dir.exists()
 
 def test_scada_settings_defaults(clean_scada_env, tmp_path):
     """Test ScadaSettings defaults"""
@@ -148,9 +158,8 @@ def test_scada_settings_defaults(clean_scada_env, tmp_path):
         gridworks_mqtt=MQTTClient().dict(),
         seconds_per_report=300,
         async_power_reporting_threshold=0.02,
-        logging_on=False,
-        log_message_summary=False,
-        paths=exp_paths_dict(home=tmp_path)
+        paths=exp_paths_dict(home=tmp_path),
+        logging=LoggingSettings().dict(),
     )
     assert settings.dict() == exp
     assert settings.local_mqtt == MQTTClient()

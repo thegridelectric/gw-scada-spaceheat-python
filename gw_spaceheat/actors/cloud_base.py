@@ -8,7 +8,8 @@ import paho.mqtt.client as mqtt
 
 import helpers
 from config import ScadaSettings
-from actors.utils import QOS, Subscription, MessageSummary, gw_mqtt_topic_encode, gw_mqtt_topic_decode
+from actors.utils import QOS, Subscription, gw_mqtt_topic_encode, gw_mqtt_topic_decode
+from proactor.logger import MessageSummary
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from schema.gs.gs_dispatch_maker import GsDispatch
@@ -34,7 +35,7 @@ class CloudBase(ABC):
         self.gw_client.on_connect = self.on_connect
         self.gw_client.on_connect_fail = self.on_connect_fail
         self.gw_client.on_disconnect = self.on_disconnect
-        if self.settings.logging_on:
+        if self.settings.logging.verbose():
             self.gw_client.on_log = self.on_log
             self.gw_client.enable_logger()
 
@@ -44,7 +45,7 @@ class CloudBase(ABC):
         )
 
     def mqtt_log_hack(self, row):
-        if self.settings.logging_on:
+        if self.settings.logging.verbose():
             with open(self.log_csv, "a") as outfile:
                 write = csv.writer(outfile, delimiter=",")
                 write.writerow(row)
@@ -94,7 +95,7 @@ class CloudBase(ABC):
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
             )
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
-        if self.settings.logging_on or self.settings.log_message_summary:
+        if self.settings.logging.verbose() or self.settings.logging.message_summary_enabled():
             print(
                 MessageSummary.format(
                     "IN",
@@ -116,7 +117,7 @@ class CloudBase(ABC):
         else:
             qos = QOS.AtLeastOnce
         topic = f"{self.atn_g_node_alias}/{payload.TypeAlias}"
-        if self.settings.logging_on or self.settings.log_message_summary:
+        if self.settings.logging.verbose() or self.settings.logging.message_summary_enabled():
             print(MessageSummary.format("OUT", self.atn_g_node_alias, gw_mqtt_topic_encode(topic), payload, broker_flag="*"))
         self.gw_client.publish(
             topic=gw_mqtt_topic_encode(topic),

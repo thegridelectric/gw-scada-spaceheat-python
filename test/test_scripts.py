@@ -28,6 +28,7 @@ def test_run_nodes_main(aliases):
         run_nodes_main(
             argv=["-n", *aliases],
             dbg=dbg,
+            update_root_logger=False,
         )
         assert len(dbg["actors"]) == len(aliases)
     finally:
@@ -79,7 +80,7 @@ async def test_run_local2(tmp_path, monkeypatch):
                     print(f"  {node.alias:42}  {node.role.value:30}  {node.actor_class}")
                     if node.role != Role.SCADA:
                         node.reporting_sample_period_s = 1
-            script_task = asyncio.create_task(run_async_actors_main(argv=argv))
+            script_task = asyncio.create_task(run_async_actors_main(argv=argv, update_root_logger=False))
             try:
                 # Verify Atn got status and snapshot
                 await await_for(

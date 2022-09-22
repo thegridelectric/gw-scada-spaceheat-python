@@ -8,7 +8,8 @@ import paho.mqtt.client as mqtt
 
 import helpers
 from config import ScadaSettings
-from actors.utils import QOS, Subscription, MessageSummary
+from actors.utils import QOS, Subscription
+from proactor.logger import MessageSummary
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -26,7 +27,7 @@ class ActorBase(ABC):
         self.settings = settings
         self.layout = hardware_layout
         self.log_csv = f"{self.settings.paths.log_dir}/{self.node.alias}_{str(uuid.uuid4()).split('-')[1]}.csv"
-        if self.settings.logging_on:
+        if self.settings.logging.verbose():
             row = [f"({helpers.log_time()}) {self.node.alias}"]
             with open(self.log_csv, "w") as outfile:
                 write = csv.writer(outfile, delimiter=",")
@@ -42,7 +43,7 @@ class ActorBase(ABC):
         self.client.on_connect = self.on_connect
         self.client.on_connect_fail = self.on_connect_fail
         self.client.on_disconnect = self.on_disconnect
-        if self.settings.logging_on:
+        if self.settings.logging.verbose():
             self.client.on_log = self.on_log
             self.client.enable_logger()
 
@@ -52,7 +53,7 @@ class ActorBase(ABC):
             self.client.subscribe(subscriptions)
 
     def mqtt_log_hack(self, row):
-        if self.settings.logging_on:
+        if self.settings.logging.verbose():
             with open(self.log_csv, "a") as outfile:
                 write = csv.writer(outfile, delimiter=",")
                 write.writerow(row)
@@ -98,7 +99,7 @@ class ActorBase(ABC):
                 f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
             )
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
-        if self.settings.logging_on or self.settings.log_message_summary:
+        if self.settings.logging.verbose() or self.settings.logging.message_summary_enabled():
             print(MessageSummary.format("IN", self.node.alias, message.topic, payload_as_tuple))
         self.on_message(from_node=from_node, payload=payload_as_tuple)
 
@@ -112,7 +113,7 @@ class ActorBase(ABC):
         else:
             qos = QOS.AtLeastOnce
         topic = f"{self.node.alias}/{payload.TypeAlias}"
-        if self.settings.logging_on or self.settings.log_message_summary:
+        if self.settings.logging.verbose() or self.settings.logging.message_summary_enabled():
             print(MessageSummary.format("OUT", self.node.alias, topic, payload))
         self.client.publish(
             topic=topic,

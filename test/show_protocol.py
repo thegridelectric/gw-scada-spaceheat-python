@@ -1,5 +1,6 @@
 """Sample driver script showing message in/out summary lines for a portion of the mqtt protocol."""
 import enum
+import logging
 import sys
 import argparse
 import time
@@ -13,7 +14,7 @@ from actors.actor_base import ActorBase
 from actors.atn import Atn
 from actors.cloud_ear import CloudEar
 from command_line_utils import add_default_args, setup_logging
-from config import ScadaSettings
+from config import ScadaSettings, LoggingSettings, LoggerLevels
 from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from fragment_runner import ProtocolFragment, FragmentRunner, do_nothing, delimit
@@ -196,7 +197,14 @@ def show_protocol(argv: Optional[List[str]] = None):
             argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
         )
     ).parse_args(sys.argv[1:] if argv is None else argv)
-    settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file), log_message_summary=True)
+    settings = ScadaSettings(
+        _env_file=dotenv.find_dotenv(args.env_file),
+        logging=LoggingSettings(
+            levels=LoggerLevels(
+                message_summary=logging.DEBUG
+            )
+        )
+    )
     setup_logging(args, settings)
     please_be_quiet()
     load_house.load_all(settings)

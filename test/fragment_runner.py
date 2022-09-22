@@ -218,7 +218,7 @@ class FragmentRunner:
     def run_fragment(
         cls, fragment_factory: Callable[["FragmentRunner"], ProtocolFragment]
     ):
-        settings = ScadaSettings(log_message_summary=True)
+        settings = ScadaSettings()
         runner = FragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         runner.run()
@@ -313,7 +313,7 @@ class AsyncFragmentRunner(FragmentRunner):
     async def async_run_fragment(
         cls, fragment_factory: Callable[["AsyncFragmentRunner"], ProtocolFragment]
     ):
-        settings = ScadaSettings(log_message_summary=True)
+        settings = ScadaSettings()
         runner = AsyncFragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         await runner.async_run()

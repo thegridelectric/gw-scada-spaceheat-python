@@ -264,7 +264,7 @@ def test_power_meter_small():
 def test_power_meter_periodic_update():
     """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (GsPwr sending is
     _not_ tested here."""
-    settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
+    settings = ScadaSettings(seconds_per_report=1)
     layout = load_house.load_all(settings)
     scada = Scada("a.s", settings=settings, hardware_layout=layout)
     meter_node = layout.node("a.m")
@@ -321,7 +321,7 @@ def test_power_meter_periodic_update():
 def test_power_meter_aggregate_power_forward():
     """Verify that when a simulated change in power is generated, Scadd and Atn both get a GsPwr message"""
 
-    settings = ScadaSettings(log_message_summary=True, seconds_per_report=1)
+    settings = ScadaSettings(seconds_per_report=1)
     layout = load_house.load_all(settings)
     scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
     atn = AtnRecorder("a", settings=settings, hardware_layout=layout)

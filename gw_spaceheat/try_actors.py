@@ -95,7 +95,7 @@ def start_roles(node_alias_list: List, nodes: dict) -> List:
 
 
 def main():
-    args = parse_args(sys.argv[:1])
+    args = parse_args(sys.argv[1:])
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     layout = load_house.load_all(settings)
     node_alias_list = []

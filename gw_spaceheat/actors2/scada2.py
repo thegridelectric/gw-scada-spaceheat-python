@@ -23,6 +23,7 @@ from data_classes.components.boolean_actuator_component import BooleanActuatorCo
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
+from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor, MQTTCodec
 from schema.gs.gs_pwr import GsPwr
@@ -121,7 +122,10 @@ class Scada2(ScadaInterface, Proactor):
         hardware_layout: HardwareLayout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
-        super().__init__(name=name)
+        super().__init__(
+            name=name,
+            logger=ProactorLogger(**settings.logging.qualified_logger_names())
+        )
         self._node = hardware_layout.node(name)
         self._settings = settings
         self._layout = hardware_layout
@@ -146,7 +150,7 @@ class Scada2(ScadaInterface, Proactor):
             QOS.AtMostOnce,
         )
         # TODO: clean this up
-        self.print_subscriptions("construction")
+        self.log_subscriptions("construction")
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
@@ -228,9 +232,7 @@ class Scada2(ScadaInterface, Proactor):
         )
 
     async def _derived_process_message(self, message: Message):
-        print(
-            f"++Scada2._derived_process_message {message.header.src}/{message.header.message_type}"
-        )
+        self._logger.path("++Scada2._derived_process_message {src}/{type}", src=message.header.src, type=message.header.message_type)
         path_dbg = 0
         from_node = self._layout.node(message.header.src, None)
         if isinstance(message.payload, GsPwr):
@@ -256,8 +258,6 @@ class Scada2(ScadaInterface, Proactor):
             if from_node in self._layout.my_simple_sensors:
                 path_dbg |= 0x00000020
                 self.gt_telemetry_received(from_node, message.payload)
-            else:
-                print(f"Src node [{message.header.src}] not in ")
         elif isinstance(message.payload, GtShTelemetryFromMultipurposeSensor):
             path_dbg |= 0x00000040
             if from_node in self._layout.my_multipurpose_sensors:
@@ -275,30 +275,30 @@ class Scada2(ScadaInterface, Proactor):
         # TODO: Replace these with generalized debug message
         elif isinstance(message.payload, ScadaDBGPing):
             path_dbg |= 0x00000400
-            print(f"Got ScadaPing {message}")
         elif isinstance(message.payload, ShowSubscriptions):
             path_dbg |= 0x00000800
-            print(f"Got ShowSubscriptions {message}")
-            self.print_subscriptions("message")
+            self.log_subscriptions("message")
         else:
             raise ValueError(
                 f"There is not handler for mqtt message payload type [{type(message.payload)}]"
             )
-        print(f"--Scada2._derived_process_message  path:0x{path_dbg:08X}")
+        self._logger.path("--Scada2._derived_process_message  path:0x{path_dbg:08X}", path_dbg=path_dbg)
 
     # TODO: Clean this up
     # noinspection PyProtectedMember
-    def print_subscriptions(self, tag=""):
-        print(f"Scada2 subscriptions: [{tag}]")
-        for client in self._mqtt_clients._clients:
-            print(f"\t{client}")
-            for subscription in self._mqtt_clients._clients[client]._subscriptions:
-                print(f"\t\t[{subscription}]")
+    def log_subscriptions(self, tag=""):
+        if self._logger.lifecycle_enabled:
+            s = f"Scada2 subscriptions: [{tag}]]\n"
+            for client in self._mqtt_clients._clients:
+                s += f"\t{client}\n"
+                for subscription in self._mqtt_clients._clients[client]._subscriptions:
+                    s += f"\t\t[{subscription}]\n"
+            self._logger.lifecycle(s)
 
     async def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
-        print(f"++Scada2._derived_process_mqtt_message {message.payload.message.topic}")
+        self._logger.path("++Scada2._derived_process_mqtt_message {topic}", topic=message.payload.message.topic)
         path_dbg = 0
         if message.payload.client_name != self.GRIDWORKS_MQTT:
             raise ValueError(
@@ -319,7 +319,7 @@ class Scada2(ScadaInterface, Proactor):
                 f"There is not handler for mqtt message payload type [{type(decoded)}]"
                 f"Received\n\t topic: [{message.payload.message.topic}]"
             )
-        print(f"--Scada2._derived_process_mqtt_message  path:0x{path_dbg:08X}")
+        self._logger.path("--Scada2._derived_process_mqtt_message  path:0x{path_dbg:08X}", path_dbg=[path_dbg])
 
     def _process_telemetry(self, message: Message, decoded: GtTelemetry):
         from_node = self._layout.node(message.header.src)
