@@ -4,7 +4,7 @@ import logging.handlers
 from typing import Optional
 
 from config import Paths, ScadaSettings
-from logging_config import LoggingSettings, LoggerLevels, DEFAULT_LOG_FILE_NAME
+from logging_config import LoggingSettings, LoggerLevels, DEFAULT_LOG_FILE_NAME, RotatingFileHandlerSettings
 from logging_setup import setup_logging
 from test.test_logging_config import get_exp_formatted_time
 
@@ -71,4 +71,30 @@ def test_get_default_logging_config(caplog, capsys):
     with log_path.open() as f:
         log_contents = f.read()
     assert log_contents == text
+
+def test_rollover():
+    paths = Paths()
+    paths.mkdirs()
+    def _log_dir_size() -> int:
+        return sum(f.stat().st_size for f in paths.log_dir.glob('**/*') if f.is_file())
+    bytes_per_log_file = 50
+    num_log_files = 3
+    settings = ScadaSettings(
+        logging=LoggingSettings(
+            file_handler=RotatingFileHandlerSettings(
+                bytes_per_log_file=bytes_per_log_file,
+                num_log_files=num_log_files,
+            )
+        )
+    )
+    errors = []
+    setup_logging(argparse.Namespace(verbose=True), settings, errors=errors)
+    assert len(errors) == 0
+    assert _log_dir_size() == 0
+    logger = logging.getLogger("gridworks.general")
+    for _ in range(300):
+        logger.info("12345678901234567890")
+    assert _log_dir_size() <=  bytes_per_log_file * num_log_files
+    assert len(list(paths.log_dir.glob('**/*'))) == num_log_files
+
 
