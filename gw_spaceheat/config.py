@@ -5,7 +5,13 @@ from typing import Optional, Dict
 import xdg
 from pydantic import BaseModel, BaseSettings, SecretStr, validator
 
+from logging_config import LoggingSettings, DEFAULT_BASE_NAME
+
 DEFAULT_ENV_FILE = ".env"
+DEFAULT_BASE_DIR = Path(DEFAULT_BASE_NAME)
+DEFAULT_NAME = "scada"
+DEFAULT_NAME_DIR = Path(DEFAULT_NAME)
+DEFAULT_LAYOUT_FILE = Path("hardware-layout.json")
 
 
 class MQTTClient(BaseModel):
@@ -17,11 +23,6 @@ class MQTTClient(BaseModel):
     bind_port: int = 0
     username: Optional[str] = None
     password: SecretStr = SecretStr("")
-
-
-DEFAULT_BASE_DIR = Path("gridworks")
-DEFAULT_NAME_DIR = Path("scada")
-DEFAULT_LAYOUT_FILE = Path("hardware-layout.json")
 
 
 class Paths(BaseModel):
@@ -88,7 +89,6 @@ class Paths(BaseModel):
         self.config_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
         self.log_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
 
-
 class ScadaSettings(BaseSettings):
     """Settings for the GridWorks scada."""
     local_mqtt: MQTTClient = MQTTClient()
@@ -96,15 +96,14 @@ class ScadaSettings(BaseSettings):
     paths: Paths = None
     seconds_per_report: int = 300
     async_power_reporting_threshold = 0.02
-    logging_on: bool = False
-    log_message_summary: bool = False
+    logging: LoggingSettings = LoggingSettings()
 
     class Config:
         env_prefix = "SCADA_"
         env_nested_delimiter = "__"
 
     @validator("paths", always=True)
-    def get_relative_path(cls, v: Paths) -> Paths:
+    def get_paths(cls, v: Paths) -> Paths:
         if v is None:
             v = Paths()
         return v

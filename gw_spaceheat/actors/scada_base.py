@@ -6,7 +6,8 @@ import paho.mqtt.client as mqtt
 import helpers
 from config import ScadaSettings
 from actors.actor_base import ActorBase
-from actors.utils import QOS, MessageSummary, gw_mqtt_topic_decode, gw_mqtt_topic_encode
+from actors.utils import QOS, gw_mqtt_topic_decode, gw_mqtt_topic_encode
+from proactor.logger import MessageSummary
 from data_classes.hardware_layout import HardwareLayout
 from schema.gs.gs_dispatch_maker import GsDispatch
 from schema.gs.gs_pwr import GsPwr
@@ -26,7 +27,7 @@ class ScadaBase(ActorBase):
         self.gw_client.on_connect = self.on_gw_connect
         self.gw_client.on_connect_fail = self.on_gw_connect_fail
         self.gw_client.on_disconnect = self.on_gw_disconnect
-        if self.settings.logging_on:
+        if self.settings.logging.verbose():
             self.gw_client.on_log = self.on_log
 
     def subscribe_gw(self):
@@ -71,7 +72,7 @@ class ScadaBase(ActorBase):
         if type_alias not in TypeMakerByAliasDict.keys():
             raise Exception(f"Type {type_alias} not recognized. Should be in TypeByAliasDict keys!")
         payload_as_tuple = TypeMakerByAliasDict[type_alias].type_to_tuple(message.payload)
-        if self.settings.logging_on or self.settings.log_message_summary:
+        if self.settings.logging.verbose() or self.settings.logging.message_summary_enabled():
             print(
                 MessageSummary.format("IN", self.node.alias, message.topic, payload_as_tuple, broker_flag="*")
             )
@@ -87,7 +88,7 @@ class ScadaBase(ActorBase):
         else:
             qos = QOS.AtLeastOnce
         topic = f"{self.scada_g_node_alias}/{payload.TypeAlias}"
-        if self.settings.logging_on or self.settings.log_message_summary:
+        if self.settings.logging.verbose() or self.settings.logging.message_summary_enabled():
             print(MessageSummary.format("OUT", self.node.alias, gw_mqtt_topic_encode(topic), payload, broker_flag="*"))
         self.gw_client.publish(
             topic=gw_mqtt_topic_encode(topic),

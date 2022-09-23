@@ -1,7 +1,7 @@
 import pendulum
 import enum
 import time
-from typing import NamedTuple, Optional, Any
+from typing import NamedTuple
 
 
 class QOS(enum.IntEnum):
@@ -57,61 +57,3 @@ def responsive_sleep(
     return getattr(obj, running_field_name)
 
 
-class MessageSummary:
-    """Helper class for formating message summaries message receipt/publication single line summaries."""
-
-    DEFAULT_FORMAT = (
-        "{timestamp}  {direction:4s}  {actor_alias:33s}  {broker_flag}  {arrow:2s}  {topic:80s}"
-        "  {payload_type}"
-    )
-
-    @classmethod
-    def format(
-        cls,
-        direction: str,
-        actor_alias: str,
-        topic: str,
-        payload_object: Any = None,
-        broker_flag=" ",
-        timestamp: Optional[pendulum.datetime] = None,
-    ) -> str:
-        """
-        Formats a single line summary of message receipt/publication.
-
-        Args:
-            direction: "IN" or "OUT"
-            actor_alias: The node alias of the sending or receiving actor.
-            topic: The destination or source topic.
-            payload_object: The payload of the message.
-            broker_flag: "*" for the "gw" broker.
-            timestamp: "pendulum.now("UTC") by default.
-
-        Returns:
-            Formatted string.
-        """
-        try:
-            if timestamp is None:
-                timestamp = pendulum.now("UTC")
-            direction = direction[:3].strip().upper()
-            if direction in ["OUT", "SND"]:
-                arrow = "->"
-            elif direction.startswith("IN") or direction.startswith("RCV"):
-                arrow = "<-"
-            else:
-                arrow = "? "
-            if hasattr(payload_object, "__class__"):
-                payload_str = payload_object.__class__.__name__
-            else:
-                payload_str = type(payload_object)
-            return cls.DEFAULT_FORMAT.format(
-                timestamp=timestamp.isoformat(),
-                direction=direction,
-                actor_alias=actor_alias,
-                broker_flag=broker_flag,
-                arrow=arrow,
-                topic=f"[{topic}]",
-                payload_type=payload_str,
-            )
-        except Exception as e:
-            print(f"ouch got {e}")
-            return ""

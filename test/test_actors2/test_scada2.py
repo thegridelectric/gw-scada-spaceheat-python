@@ -135,7 +135,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     logging.basicConfig(level="DEBUG")
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
-    settings = ScadaSettings(seconds_per_report=2, log_message_summary=True)
+    settings = ScadaSettings(seconds_per_report=2)
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,
@@ -295,7 +295,7 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
-    settings = ScadaSettings(seconds_per_report=2, log_message_summary=True)
+    settings = ScadaSettings(seconds_per_report=2)
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,
@@ -363,7 +363,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     debug_logs_path = tmp_path / "output/debug_logs"
     debug_logs_path.mkdir(parents=True, exist_ok=True)
-    settings = ScadaSettings(seconds_per_report=2, log_message_summary=True)
+    settings = ScadaSettings(seconds_per_report=2)
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,

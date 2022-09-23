@@ -9,11 +9,11 @@ from command_line_utils import parse_args, setup_logging
 from config import ScadaSettings, Paths
 
 
-def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> Atn:
+def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True, update_root_logger: bool = False) -> Atn:
     if argv is None:
         argv = sys.argv[1:]
-        if "-l" not in argv and "--log" not in argv:
-            argv.append("-l")
+        if "-v" not in argv and "--verbose" not in argv:
+            argv.append("-v")
     args = parse_args(argv)
     dotenv.load_dotenv(dotenv.find_dotenv(args.env_file))
     settings = ScadaSettings(
@@ -21,7 +21,6 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> Atn:
             name="atn",
             hardware_layout=Paths().hardware_layout
         ),
-        log_message_summary=True
     )
     settings.paths.mkdirs()
     setup_logging(args, settings)

@@ -1,12 +1,12 @@
 import importlib
 import sys
 import argparse
-import logging
 from typing import Optional, Sequence, Dict, Callable, Tuple, List
 
 import dotenv
 
 import load_house
+from logging_setup import setup_logging
 from actors.strategy_switcher import strategy_from_node
 from actors2 import Scada2
 from config import ScadaSettings
@@ -30,7 +30,9 @@ def add_default_args(
             "Pass empty string in quotation marks to suppress use of .env file."
         ),
     )
-    parser.add_argument("-l", "--log", action="store_true", help="Turn logging on.")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Increase logging verbosity")
+    parser.add_argument("--message-summary", action="store_true", help="Turn on message summary logging")
+
     parser.add_argument(
         "-n",
         "--nodes",
@@ -55,17 +57,6 @@ def parse_args(
         ),
         default_nodes=default_nodes,
     ).parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
-
-
-def setup_logging(args: argparse.Namespace, settings: ScadaSettings) -> None:
-    """Setup python logging based on parsed command line args"""
-    if args.log or settings.logging_on:
-        settings.logging_on = True
-        level = "DEBUG"
-    else:
-        level = "INFO"
-    logging.basicConfig(level=level, format=LOGGING_FORMAT)
-
 
 def run_nodes(
     aliases: Sequence[str], settings: ScadaSettings, layout: HardwareLayout, dbg: Optional[Dict] = None
