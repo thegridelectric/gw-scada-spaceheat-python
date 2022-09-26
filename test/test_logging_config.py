@@ -133,7 +133,7 @@ def test_logging_settings():
     # custom base name and level dicts
     logging_settings = LoggingSettings(base_log_name="foo", base_log_level=0, levels=LoggerLevels(message_summary=1))
     assert logging_settings.qualified_logger_names() == {
-        "base":"foo",
+        "base": "foo",
         "message_summary": "foo.message_summary",
         "lifecycle": "foo.lifecycle",
         "comm_event": "foo.comm_event",
