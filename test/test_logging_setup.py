@@ -20,6 +20,7 @@ def test_get_default_logging_config(caplog, capsys):
         )
     )
     root = logging.getLogger()
+    old_root_level = root.getEffectiveLevel()
     pytest_root_handlers = len(root.handlers)
     errors = []
 
@@ -27,7 +28,7 @@ def test_get_default_logging_config(caplog, capsys):
     assert len(errors) == 0
 
     # root logger changes
-    assert root.level == logging.INFO
+    assert root.getEffectiveLevel() == old_root_level
     assert len(root.handlers) == pytest_root_handlers + 2
     stream_handler: Optional[logging.StreamHandler] = None
     file_handler: Optional[logging.handlers.RotatingFileHandler] = None
@@ -39,7 +40,7 @@ def test_get_default_logging_config(caplog, capsys):
             file_handler = handler
     assert stream_handler is not None
     assert file_handler is not None
-    assert root.level == settings.logging.base_log_level
+    assert logging.getLogger("gridworks").getEffectiveLevel() == settings.logging.base_log_level
     # Sub-logger levels
     logger_names = settings.logging.qualified_logger_names()
 
@@ -54,7 +55,7 @@ def test_get_default_logging_config(caplog, capsys):
     # Check logger filter by level and message formatting.
     formatter = settings.logging.formatter.create()
     text = ""
-    for i, logger_name in enumerate(["root"] + list(logger_names.values())):
+    for i, logger_name in enumerate([settings.logging.base_log_name] + list(logger_names.values())):
         logger = logging.getLogger(logger_name)
         msg = "%d: %s"
         logger.debug(msg, i, logger.name)

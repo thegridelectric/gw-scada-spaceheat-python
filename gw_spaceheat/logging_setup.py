@@ -82,6 +82,7 @@ def setup_logging(
             errors.append(e)
 
         # Set application logger levels
+        logging.getLogger(settings.logging.base_log_name).setLevel(logging.INFO)
         for logger_name, logger_settings in settings.logging.logger_levels().items():
             try:
                 logger = logging.getLogger(logger_name)
@@ -89,9 +90,8 @@ def setup_logging(
             except BaseException as e:
                 errors.append(e)
 
-        # Turn on logging in root logger, with level and handlers, as requested
+        # Assign handlers to root logger
         root_logger = logging.getLogger()
-        root_logger.setLevel(logging.INFO)
         for handler in [screen_handler, file_handler]:
             if handler is not None:
                 try:
