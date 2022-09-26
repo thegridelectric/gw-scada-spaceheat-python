@@ -70,8 +70,8 @@ class ProactorLogger(logging.LoggerAdapter):
     lifecycle_logger: logging.Logger
     comm_event_logger: logging.Logger
 
-    def __init__(self, general: str, message_summary: str, lifecycle: str, comm_event: str, extra: Optional[dict] = None):
-        super().__init__(logging.getLogger(general), extra=extra)
+    def __init__(self, base: str, message_summary: str, lifecycle: str, comm_event: str, extra: Optional[dict] = None):
+        super().__init__(logging.getLogger(base), extra=extra)
         self.message_summary_logger = logging.getLogger(message_summary)
         self.lifecycle_logger = logging.getLogger(lifecycle)
         self.comm_event_logger = logging.getLogger(comm_event)
@@ -125,13 +125,6 @@ class ProactorLogger(logging.LoggerAdapter):
 
     def comm_event(self, msg: str, *args, **kwargs) -> None:
         self.comm_event_logger.info(msg, *args, **kwargs)
-
-    def general(self, msg: str, *args, **kwargs) -> None:
-        self.info(msg, *args, **kwargs)
-
-    @property
-    def general_logger(self) -> logging.Logger:
-        return self.logger
 
     def __repr__(self):
         return (

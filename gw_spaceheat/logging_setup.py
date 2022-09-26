@@ -53,7 +53,7 @@ def setup_logging(
         # Take any arguments from command line
         try:
             if getattr(args, "verbose", None):
-                settings.logging.levels.general = logging.INFO
+                settings.logging.base_log_level = logging.INFO
                 settings.logging.levels.message_summary = logging.DEBUG
             if getattr(args, "message_summary", None):
                 settings.logging.levels.message_summary = logging.INFO
@@ -89,9 +89,8 @@ def setup_logging(
             except BaseException as e:
                 errors.append(e)
 
-        # Turn on logging in root logger, with level and handlers, as requested
+        # Assign handlers to root logger
         root_logger = logging.getLogger()
-        root_logger.setLevel(logging.INFO)
         for handler in [screen_handler, file_handler]:
             if handler is not None:
                 try:
