@@ -16,7 +16,7 @@ def test_proactor_logger(caplog):
         setup_logging(argparse.Namespace(), settings, errors=errors)
         assert len(errors) == 0
         logger = ProactorLogger(**settings.logging.qualified_logger_names())
-        assert not logger.general_enabled
+        assert not logger.isEnabledFor(logging.INFO)
         assert not logger.message_summary_enabled
         assert logger.message_summary_logger.level == logging.WARNING
         assert not logger.path_enabled
@@ -31,7 +31,7 @@ def test_proactor_logger(caplog):
     setup_logging(argparse.Namespace(verbose=True), settings, errors=errors)
     assert len(errors) == 0
     logger = ProactorLogger(**settings.logging.qualified_logger_names())
-    assert logger.general_enabled
+    assert logger.isEnabledFor(logging.INFO)
     assert logger.message_summary_enabled
     assert logger.message_summary_logger.level == logging.DEBUG
     assert logger.path_enabled
@@ -40,7 +40,7 @@ def test_proactor_logger(caplog):
     logger.info("info")
     assert len(caplog.records) == 1
     caplog.clear()
-    for function_name in ["general", "path", "lifecycle", "comm_event"]:
+    for function_name in ["path", "lifecycle", "comm_event"]:
         getattr(logger, function_name)(function_name)
         assert len(caplog.records) == 1
         caplog.clear()

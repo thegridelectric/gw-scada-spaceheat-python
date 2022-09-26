@@ -53,7 +53,7 @@ def setup_logging(
         # Take any arguments from command line
         try:
             if getattr(args, "verbose", None):
-                settings.logging.levels.general = logging.INFO
+                settings.logging.base_log_level = logging.INFO
                 settings.logging.levels.message_summary = logging.DEBUG
             if getattr(args, "message_summary", None):
                 settings.logging.levels.message_summary = logging.INFO
@@ -82,7 +82,6 @@ def setup_logging(
             errors.append(e)
 
         # Set application logger levels
-        logging.getLogger(settings.logging.base_log_name).setLevel(logging.INFO)
         for logger_name, logger_settings in settings.logging.logger_levels().items():
             try:
                 logger = logging.getLogger(logger_name)

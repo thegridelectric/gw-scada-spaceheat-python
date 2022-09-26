@@ -19,38 +19,33 @@ from logging_config import (
 def test_logger_levels():
 
     # Check if fields have been added or renamed
-    assert set(LoggerLevels().__fields__.keys()) == {"general", "message_summary", "lifecycle", "comm_event"}
+    assert set(LoggerLevels().__fields__.keys()) == {"message_summary", "lifecycle", "comm_event"}
 
     # Defaults
     levels = LoggerLevels()
-    assert levels.general == logging.WARNING
     assert levels.message_summary == logging.WARNING
     assert levels.lifecycle == logging.INFO
     assert levels.comm_event == logging.INFO
 
     # Set parameters
     levels = LoggerLevels(
-        general=1,
         message_summary=2,
         lifecycle=3,
         comm_event=4,
     )
-    assert levels.general == 1
     assert levels.message_summary == 2
     assert levels.lifecycle == 3
     assert levels.comm_event == 4
 
     # Level conversion
     with pytest.raises(ValidationError):
-        LoggerLevels(general="FOO")
+        LoggerLevels(message_summary="FOO")
 
     levels = LoggerLevels(
-        general="1",
         message_summary="Critical",
         lifecycle="DEBUG",
         comm_event="debug"
     )
-    assert levels.general == 1
     assert levels.message_summary == logging.CRITICAL
     assert levels.lifecycle == logging.DEBUG
     assert levels.comm_event == logging.DEBUG
@@ -64,7 +59,6 @@ def test_logger_levels():
 
     # logger_names_to_levels()
     assert levels.logger_names_to_levels(base_name) == {
-        "foo.general": dict(level=1),
         "foo.message_summary": dict(level=50),
         "foo.lifecycle": dict(level=10),
         "foo.comm_event": dict(level=10),
@@ -73,9 +67,8 @@ def test_logger_levels():
     # set_logger_names_to_levels() - all fields set
     assert levels.set_logger_names_to_levels(base_name) == levels.logger_names_to_levels(base_name)
     # only some fields set
-    levels = LoggerLevels(general=1, comm_event=2)
+    levels = LoggerLevels(comm_event=2)
     assert levels.set_logger_names_to_levels(base_name) == {
-        "foo.general": dict(level=1),
         "foo.comm_event": dict(level=2),
     }
     # no fields set
@@ -85,12 +78,12 @@ def test_logger_levels():
 def test_logging_settings():
 
     # Check if loggers have been added or renamed
-    assert set(LoggingSettings().levels.__fields__.keys()) == {"general", "message_summary", "lifecycle", "comm_event"}
+    assert set(LoggingSettings().levels.__fields__.keys()) == {"message_summary", "lifecycle", "comm_event"}
 
     # Defaults
     logging_settings = LoggingSettings()
     assert logging_settings.base_log_name == DEFAULT_BASE_NAME
-    assert logging_settings.levels.general == logging.WARNING
+    assert logging_settings.base_log_level == logging.WARNING
     assert logging_settings.levels.message_summary == logging.WARNING
     assert logging_settings.levels.lifecycle == logging.INFO
     assert logging_settings.levels.comm_event == logging.INFO
@@ -98,29 +91,31 @@ def test_logging_settings():
     # constructor settings
     logging_settings = LoggingSettings(
         base_log_name="foo",
+        base_log_level=1,
         levels=LoggerLevels(
-            general=1,
             message_summary=2,
             lifecycle=3,
             comm_event=4,
         )
     )
     assert logging_settings.base_log_name == "foo"
-    assert logging_settings.levels.general == 1
+    assert logging_settings.base_log_level == 1
     assert logging_settings.levels.message_summary == 2
     assert logging_settings.levels.lifecycle == 3
     assert logging_settings.levels.comm_event == 4
 
     # qualified_names()
     logging_settings = LoggingSettings()
-    assert logging_settings.qualified_logger_names() == {
+    exp_logger_names = {
         field_name: f"gridworks.{field_name}" for
         field_name in logging_settings.levels.__fields__.keys()
     }
+    exp_logger_names["base"] = logging_settings.base_log_name
+    assert logging_settings.qualified_logger_names() == exp_logger_names
 
     # logger_levels()
     assert logging_settings.logger_levels() == {
-        "gridworks.general": dict(level=30),
+        "gridworks": dict(level=30),
         "gridworks.message_summary": dict(level=30),
         "gridworks.lifecycle": dict(level=20),
         "gridworks.comm_event": dict(level=20),
@@ -130,32 +125,31 @@ def test_logging_settings():
     assert logging_settings.set_logger_levels() == {}
 
     # some fields set
-    logging_settings = LoggingSettings(levels=LoggerLevels(general=1, lifecycle=2))
+    logging_settings = LoggingSettings(levels=LoggerLevels(lifecycle=2))
     assert logging_settings.set_logger_levels() == {
-        "gridworks.general": dict(level=1),
         "gridworks.lifecycle": dict(level=2),
     }
 
     # custom base name and level dicts
-    logging_settings = LoggingSettings(base_log_name="foo", levels=LoggerLevels(general=1))
+    logging_settings = LoggingSettings(base_log_name="foo", base_log_level=0, levels=LoggerLevels(message_summary=1))
     assert logging_settings.qualified_logger_names() == {
-        "general": "foo.general",
+        "base":"foo",
         "message_summary": "foo.message_summary",
         "lifecycle": "foo.lifecycle",
         "comm_event": "foo.comm_event",
     }
     assert logging_settings.logger_levels() == {
-        "foo.general": dict(level=1),
-        "foo.message_summary": dict(level=30),
+        "foo": dict(level=0),
+        "foo.message_summary": dict(level=1),
         "foo.lifecycle": dict(level=20),
         "foo.comm_event": dict(level=20),
     }
-    assert logging_settings.set_logger_levels() == {"foo.general": dict(level=1)}
+    assert logging_settings.set_logger_levels() == {"foo.message_summary": dict(level=1)}
 
     # verbose()
     logging_settings = LoggingSettings()
     assert not logging_settings.verbose()
-    logging_settings.levels.general = logging.INFO
+    logging_settings.base_log_level = logging.INFO
     assert logging_settings.verbose()
 
     # message_summary_enabled()

@@ -48,7 +48,6 @@ class RotatingFileHandlerSettings(BaseModel):
 
 
 class LoggerLevels(BaseModel):
-    general: int | str = logging.WARNING
     message_summary: int | str = logging.WARNING
     lifecycle: int | str = logging.INFO
     comm_event: int | str = logging.INFO
@@ -86,22 +85,26 @@ class LoggerLevels(BaseModel):
 
 class LoggingSettings(BaseModel):
     base_log_name: str = DEFAULT_BASE_NAME
-    base_log_level: int = logging.INFO
+    base_log_level: int = logging.WARNING
     levels: LoggerLevels = LoggerLevels()
     formatter: FormatterSettings = FormatterSettings()
     file_handler: RotatingFileHandlerSettings = RotatingFileHandlerSettings()
 
     def qualified_logger_names(self) -> dict[str, str]:
-        return self.levels.qualified_logger_names(self.base_log_name)
+        return dict(self.levels.qualified_logger_names(self.base_log_name), base=self.base_log_name)
 
     def logger_levels(self) -> dict[str, dict[str, int]]:
-        return self.levels.logger_names_to_levels(self.base_log_name)
+        d = dict(
+            self.levels.logger_names_to_levels(self.base_log_name),
+        )
+        d[self.base_log_name] = dict(level=self.base_log_level)
+        return d
 
     def set_logger_levels(self) -> dict[str, dict[str, int]]:
         return self.levels.set_logger_names_to_levels(self.base_log_name)
 
     def verbose(self) -> bool:
-        return self.levels.general <= logging.INFO
+        return self.base_log_level <= logging.INFO
 
     def message_summary_enabled(self) -> bool:
         return self.levels.message_summary <= logging.INFO
