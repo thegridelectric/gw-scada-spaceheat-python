@@ -3,8 +3,12 @@
 import asyncio
 import time
 import typing
+from typing import (
+    Any,
+    List,
+    Optional,
+)
 from abc import abstractmethod, ABC
-from typing import Any, List, Optional
 
 from paho.mqtt.client import MQTTMessageInfo
 
@@ -26,7 +30,10 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor, MQTTCodec
+from schema.decoders import Decoders
+from schema.decoders_factory import from_objects
 from schema.gs.gs_pwr import GsPwr
+from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean import GtDispatchBoolean
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
     GtDispatchBoolean_Maker,
@@ -37,22 +44,27 @@ from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
 from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd import (
     GtDriverBooleanactuatorCmd,
 )
+from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import GtDriverBooleanactuatorCmd_Maker
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd import GtShCliAtnCmd
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor import (
     GtShTelemetryFromMultipurposeSensor,
 )
+from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import \
+    GtShTelemetryFromMultipurposeSensor_Maker
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
-from schema.schema_switcher import TypeMakerByAliasDict
+from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
 from actors.utils import gw_mqtt_topic_encode, gw_mqtt_topic_decode
 
 class ScadaMQTTCodec(MQTTCodec, ABC):
     ENCODING = "utf-8"
     hardware_layout: HardwareLayout
+    decoders: Decoders
 
-    def __init__(self, hardware_layout: HardwareLayout):
+    def __init__(self, hardware_layout: HardwareLayout, decoders: Decoders):
         self.hardware_layout = hardware_layout
+        self.decoders = Decoders().merge(decoders)
         super().__init__()
 
     def encode(self, payload: Any) -> bytes:
@@ -72,21 +84,31 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
             (from_alias, type_alias) = decoded_topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if type_alias not in TypeMakerByAliasDict.keys():
+        if type_alias not in self.decoders:
             raise Exception(
-                f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
+                f"Type {type_alias} not recognized. Available decoders: {self.decoders.types()}"
             )
         self.validate_source_alias(from_alias)
-        return TypeMakerByAliasDict[type_alias].type_to_tuple(
-            receipt_payload.message.payload.decode(self.ENCODING)
-        )
+        return self.decoders.decode_str(type_alias, receipt_payload.message.payload.decode(self.ENCODING))
 
     @abstractmethod
     def validate_source_alias(self, source_alias: str):
         pass
 
-
 class GridworksMQTTCodec(ScadaMQTTCodec):
+
+    def __init__(self, hardware_layout: HardwareLayout):
+        super().__init__(
+            hardware_layout,
+            decoders=from_objects(
+                [
+                    GtDispatchBoolean_Maker,
+                    GtShCliAtnCmd_Maker,
+                ],
+                type_name_field="type_alias",
+                decoder_func_name="type_to_tuple",
+            )
+        )
 
     def validate_source_alias(self, source_alias: str):
         if source_alias != self.hardware_layout.atn_g_node_alias:
@@ -96,6 +118,22 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
 
 
 class LocalMQTTCodec(ScadaMQTTCodec):
+
+    def __init__(self, hardware_layout: HardwareLayout):
+        super().__init__(
+            hardware_layout,
+            decoders=from_objects(
+                [
+                    GsPwr_Maker,
+                    GtDriverBooleanactuatorCmd_Maker,
+                    GtShTelemetryFromMultipurposeSensor_Maker,
+                    GtTelemetry_Maker,
+                ],
+                type_name_field="type_alias",
+                decoder_func_name="type_to_tuple",
+            )
+        )
+
     def validate_source_alias(self, source_alias: str):
         if source_alias not in self.hardware_layout.nodes.keys():
             raise Exception(f"alias {source_alias} not in ShNode.by_alias keys!")

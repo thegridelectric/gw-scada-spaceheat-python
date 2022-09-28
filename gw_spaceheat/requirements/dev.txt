@@ -124,6 +124,8 @@ pytzdata==2020.1
     # via pendulum
 requests==2.28.1
     # via rich-cli
+result==0.8.0
+    # via -r requirements/base.in
 rich==12.5.1
     # via
     #   rich-cli

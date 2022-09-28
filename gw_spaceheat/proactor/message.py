@@ -1,12 +1,13 @@
 """Message structures for use between proactor and its sub-objects."""
-
+import uuid
+import time
 from enum import Enum
 from typing import Any, Optional, TypeVar, Generic, Dict, List
 
 from paho.mqtt.client import MQTTMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from pydantic.fields import FieldInfo
 from pydantic.generics import GenericModel
-
 
 class MessageType(Enum):
     invalid = "invalid"
@@ -185,3 +186,48 @@ class MQTTDisconnectMessage(MQTTClientMessage[MQTTDisconnectPayload]):
                 rc=rc,
             ),
         )
+
+def type_name(s: str, version: str = "000", **kwargs) -> FieldInfo:
+    kwargs.pop("const", None)
+    return Field(f"{s}.{version}", const=True, **kwargs)
+
+class EventBase(BaseModel):
+    uid: str = Field(default_factory=lambda : str(uuid.uuid4()))
+    time_ns: int = Field(default_factory=time.time_ns)
+    src: str = ""
+    type_name: str = Field(const=True)
+
+EventT = TypeVar("EventT", bound=EventBase)
+
+class StartupEvent(EventBase):
+    clean_shutdown: bool
+    type_name: str = Field("gridworks.event.startup.000", const=True)
+
+class ShutdownEvent(EventBase):
+    reason: str
+    type_name: str = Field("gridworks.event.shutdown.000", const=True)
+
+class ProblemEnum(str, Enum):
+    error = "error"
+    warning = "warning"
+
+class ProblemEvent(EventBase):
+    problem_type: ProblemEnum
+    summary: str
+    details: str = ""
+    type_name: str = Field("gridworks.event.problem.000", const=True)
+
+class CommEvent(EventBase):
+    ...
+
+class MQTTCommEvent(CommEvent):
+    ...
+
+class MQTTConnectFailedEvent(MQTTCommEvent):
+    type_name: str = Field("gridworks.event.comm.mqtt.connect_failed.000", const=True)
+
+class MQTTDisconnectEvent(MQTTCommEvent):
+    type_name: str = Field("gridworks.event.comm.mqtt.disconnect.000", const=True)
+
+class MQTTFullySubscribedEvent(CommEvent):
+    type_name: str = Field("gridworks.event.comm.mqtt.fully_subscribed.000", const=True)

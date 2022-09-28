@@ -2,11 +2,12 @@
 
 import time
 import typing
+from typing import (
+    List,
+)
 
-from typing import List
 from pydantic import BaseModel
 
-from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.message import Message, Header, KnownNames
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_pwr import GsPwr

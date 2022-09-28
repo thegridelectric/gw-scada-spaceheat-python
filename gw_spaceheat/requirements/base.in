@@ -6,3 +6,4 @@ python-dotenv
 numpy
 pydantic
 xdg
+result
