@@ -1,5 +1,6 @@
 """Test code very similar to the scripts provided by the repo"""
 import asyncio
+import os
 
 import pytest
 
@@ -9,6 +10,7 @@ from config import ScadaSettings
 from schema.enums.role.role_map import Role
 from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
 from schema.gt.snapshot_spaceheat.snapshot_spaceheat import SnapshotSpaceheat
+from test.conftest import TEST_DOTENV_PATH_VAR, TEST_DOTENV_PATH
 from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
 from test.utils import await_for, Scada2Recorder
 
@@ -26,7 +28,7 @@ def test_run_nodes_main(aliases):
     dbg = dict(actors={})
     try:
         run_nodes_main(
-            argv=["-n", *aliases],
+            argv=["-n", *aliases, "-e", os.getenv(TEST_DOTENV_PATH_VAR, TEST_DOTENV_PATH)],
             dbg=dbg,
         )
         assert len(dbg["actors"]) == len(aliases)
@@ -39,7 +41,7 @@ def test_run_nodes_main(aliases):
                 pass
 
 
-def test_run_local():
+def test_run_local(tmp_path):
     """Test the "run_local" script semantics"""
     layout = load_house.load_all(ScadaSettings())
 
@@ -56,9 +58,8 @@ async def test_run_local2(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("SCADA_SECONDS_PER_REPORT", "2")
-    debug_logs_path = tmp_path / "output/debug_logs"
-    debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings()
+    settings.paths.mkdirs()
     assert settings.seconds_per_report == 2
     layout = load_house.load_all(settings)
     topic_creator = Scada2Recorder("a.s", settings, layout)
@@ -72,7 +73,7 @@ async def test_run_local2(tmp_path, monkeypatch):
 
         async def async_run(self):
             atn = self.runner.actors.atn
-            argv = ["-n"]
+            argv = ["-n", "-e", os.getenv(TEST_DOTENV_PATH_VAR, TEST_DOTENV_PATH)]
             for node in self.runner.layout.nodes.values():
                 if node.role != Role.ATN and node.role != Role.HOME_ALONE and node.has_actor:
                     argv.append(node.alias)
