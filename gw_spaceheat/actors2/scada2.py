@@ -17,8 +17,8 @@ from actors.utils import QOS
 from actors2.actor_interface import ActorInterface
 from actors2.message import (
     GtDispatchBooleanLocalMessage,
-    ScadaDBGPing,
-    ShowSubscriptions,
+    ScadaDBG,
+    ScadaDBGCommands,
 )
 from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
@@ -31,7 +31,7 @@ from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor, MQTTCodec
 from schema.decoders import Decoders
-from schema.decoders_factory import from_objects
+from schema.decoders_factory import DecoderExtractor
 from schema.gs.gs_pwr import GsPwr
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean import GtDispatchBoolean
@@ -100,13 +100,11 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
     def __init__(self, hardware_layout: HardwareLayout):
         super().__init__(
             hardware_layout,
-            decoders=from_objects(
+            decoders=DecoderExtractor().from_objects(
                 [
                     GtDispatchBoolean_Maker,
                     GtShCliAtnCmd_Maker,
-                ],
-                type_name_field="type_alias",
-                decoder_func_name="type_to_tuple",
+                ]
             )
         )
 
@@ -122,15 +120,13 @@ class LocalMQTTCodec(ScadaMQTTCodec):
     def __init__(self, hardware_layout: HardwareLayout):
         super().__init__(
             hardware_layout,
-            decoders=from_objects(
+            decoders=DecoderExtractor().from_objects(
                 [
                     GsPwr_Maker,
                     GtDriverBooleanactuatorCmd_Maker,
                     GtShTelemetryFromMultipurposeSensor_Maker,
                     GtTelemetry_Maker,
                 ],
-                type_name_field="type_alias",
-                decoder_func_name="type_to_tuple",
             )
         )
 
@@ -310,12 +306,13 @@ class Scada2(ScadaInterface, Proactor):
                 self.gt_driver_booleanactuator_cmd_record_received(
                     from_node, message.payload
                 )
-        # TODO: Replace these with generalized debug message
-        elif isinstance(message.payload, ScadaDBGPing):
+        elif isinstance(message.payload, ScadaDBG):
             path_dbg |= 0x00000400
-        elif isinstance(message.payload, ShowSubscriptions):
-            path_dbg |= 0x00000800
-            self.log_subscriptions("message")
+            # TODO: mqtt????
+            match message.payload.command:
+                case ScadaDBGCommands.show_subscriptions:
+                    path_dbg |= 0x00000400
+                    self.log_subscriptions("message")
         else:
             raise ValueError(
                 f"There is not handler for mqtt message payload type [{type(message.payload)}]"

@@ -1,65 +1,68 @@
-import inspect
-import json
-import sys
-from typing import Any, Sequence, Callable, Optional, Tuple, Mapping, NamedTuple
+from dataclasses import dataclass
+from typing import Any, Sequence, Optional, Callable
 
-from schema.decoders import Decoders
+from schema.decoders import Decoders, Decoder, DecoderItem
 
-def get_type_field_value_from_pydantic_model(potential_decoder: Any, type_name_field: str) -> str:
-    type_name = ""
-    decoder_fields = getattr(potential_decoder, "__fields__", None)
-    if decoder_fields:
-        model_field = decoder_fields.get(type_name_field, None)
-        if model_field:
-            type_name = getattr(model_field, "default", "")
-    return type_name
+@dataclass
+class OneDecoderExtractor:
+    type_name_field: str = "type_alias"
+    decoder_function_name: str = "type_to_tuple"
 
-def get_type_field_value(potential_decoder: Any, type_name_field: str) -> str:
-    return getattr(
-        potential_decoder,
-        type_name_field,
-        get_type_field_value_from_pydantic_model(potential_decoder, type_name_field)
-    )
+    def get_type_name_value(self, obj: Any) -> str:
+        return getattr(obj, self.type_name_field, "")
 
-DEFAULT_TYPE_NAME_FIELD = "type_name"
-
-def str_to_json_adapter(f: Callable, **json_kwargs) -> Callable:
-    def str_to_json(content: str) -> Any:
-        return f(**json.loads(content, **json_kwargs))
-    return str_to_json
-
-def from_objects(
-        objs: list,
-        type_name_field: str = DEFAULT_TYPE_NAME_FIELD,
-        decoder_func_name: str = "",
-        adapter_func: Optional[Callable[[Callable], Callable]] = None
-) -> Decoders:
-    decoder_dict: dict[str, Callable] = dict()
-    for obj in objs:
-        if type_field_value := get_type_field_value(obj, type_name_field):
-            if decoder_func_name:
-                if not hasattr(obj, decoder_func_name):
-                    raise ValueError(f"ERROR. object {obj} has no attribute named {decoder_func_name}")
-                decoder_func = getattr(obj, decoder_func_name)
-                if not isinstance(decoder_func, Callable):
-                    raise ValueError(f"ERROR. object {obj} attribute {decoder_func_name} is not Callable")
-                decoder_func = getattr(obj, decoder_func_name, None)
+    def extract(self, obj: Any) -> Optional[DecoderItem]:
+        if type_field_value := self.get_type_name_value(obj):
+            if self.decoder_function_name:
+                if not hasattr(obj, self.decoder_function_name):
+                    raise ValueError(f"ERROR. object {obj} has no attribute named {self.decoder_function_name}")
+                decoder_function = getattr(obj, self.decoder_function_name)
             else:
-                decoder_func = obj
-            if adapter_func is not None:
-                decoder_func = adapter_func(decoder_func)
-            decoder_dict[type_field_value] = decoder_func
-    return Decoders(decoder_dict)
+                decoder_function = obj
+            if not isinstance(decoder_function, Callable):
+                raise ValueError(f"ERROR. object {obj} attribute {self.decoder_function_name} is not Callable")
+            item = DecoderItem(type_field_value, decoder_function)
+        else:
+            item = None
+        return item
 
-def from_module(module_name: str, type_name_field: str = DEFAULT_TYPE_NAME_FIELD) -> Decoders:
-    return from_objects(
-        [entry[1] for entry in inspect.getmembers(sys.modules[module_name], inspect.isclass)],
-        type_name_field=type_name_field
-    )
 
-def from_modules(module_names: Sequence[str], type_name_field: str = DEFAULT_TYPE_NAME_FIELD) -> Decoders:
-    decoders = Decoders()
-    for module_name in module_names:
-        decoders.merge(from_module(module_name, type_name_field=type_name_field))
-    return decoders
+class PydanticExtractor(OneDecoderExtractor):
+    type_name_field = "type_name"
+    decoder_function_name = "parse_raw"
+
+    def get_type_name_value(self, obj: Any) -> str:
+        type_name = ""
+        decoder_fields = getattr(obj, "__fields__", None)
+        if decoder_fields:
+            model_field = decoder_fields.get(self.type_name_field, None)
+            if model_field:
+                type_name = getattr(model_field, "default", "")
+        return type_name
+
+class DecoderExtractor:
+    _extractors: list
+
+    def __init__(self, extractors: Optional[Sequence[OneDecoderExtractor]] = None):
+        if extractors is None:
+            self._extractors = [
+                OneDecoderExtractor(),
+                PydanticExtractor(),
+            ]
+        else:
+            self._extractors = list(*extractors)
+
+    def decoder_item_from_object(self, obj: Any) -> Optional[DecoderItem]:
+        item = None
+        for extractor in self._extractors:
+            item = extractor.extract(obj)
+            if item is not None:
+                break
+        return item
+
+    def decoder_items_from_objects(self, objs: list) -> dict[str, Decoder]:
+        return dict(filter(lambda item: item is not None, [self.decoder_item_from_object(obj) for obj in objs]))
+
+    def from_objects(self, objs: list) -> Decoders:
+        return Decoders(self.decoder_items_from_objects(objs))
 

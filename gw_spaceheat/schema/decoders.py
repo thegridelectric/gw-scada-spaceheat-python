@@ -1,16 +1,22 @@
 import json
 from pathlib import Path
-from typing import Callable, Any, Optional
+from typing import Callable, Any, Optional, NamedTuple
+
+Decoder = Callable[[Any], Any]
+
+class DecoderItem(NamedTuple):
+    type_name: str
+    decoder: Decoder
 
 class Decoders:
-    _decoders: dict[str, Callable]
+    _decoders: dict[str, Decoder]
 
-    def __init__(self, decoders: Optional[dict[str, Callable]] = None):
+    def __init__(self, decoders: Optional[dict[str, Decoder]] = None):
         self._decoders = dict()
         if decoders is not None:
             self._decoders.update(decoders)
 
-    def decoder(self, type_name: str) -> Callable:
+    def decoder(self, type_name: str) -> Decoder:
         return self._decoders[type_name]
 
     def decode(self, type_name: str, *args, **kwargs) -> Any:
@@ -46,12 +52,12 @@ class Decoders:
     ):
         return self.decode_json(type_name, Path(path).read_bytes(), encoding=encoding, json_args=json_args)
 
-    def add_decoder(self, type_name: str, decoder: Callable) -> "Decoders":
+    def add_decoder(self, type_name: str, decoder: Decoder) -> "Decoders":
         self._validate(type_name, decoder)
         self._decoders[type_name] = decoder
         return self
 
-    def add_decoders(self, decoders: dict[str, Callable]) -> "Decoders":
+    def add_decoders(self, decoders: dict[str, Decoder]) -> "Decoders":
         for type_name, decoder in decoders.items():
             self._validate(type_name, decoder)
         self._decoders.update(decoders)
