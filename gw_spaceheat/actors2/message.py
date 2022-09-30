@@ -1,17 +1,19 @@
 """Proactor-internal messages wrappers of Scada message structures."""
 
 import time
-import typing
-from enum import Enum
 from typing import (
     List,
     Optional,
+    TypeVar,
+    Any
 )
+import typing
+from enum import Enum
 
 from pydantic import BaseModel, Field, validator
 
 from logging_config import LoggerLevels
-from proactor.message import Message, Header, KnownNames
+from proactor.message import Message, Header, KnownNames, as_enum
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_pwr import GsPwr
 from schema.gs.gs_pwr_maker import GsPwr_Maker
@@ -155,7 +157,6 @@ class ScadaDBGCommands(Enum):
     show_subscriptions = "show_subscriptions"
 
 class ScadaDBG(BaseModel):
-    """"""
     levels: LoggerLevels = LoggerLevels(
         message_summary=-1,
         lifecycle=-1,
@@ -165,13 +166,8 @@ class ScadaDBG(BaseModel):
     type_name: str = Field("gridworks.scada.dbg.000", const=True)
 
     @validator("command", pre=True)
-    def command_str(cls, v):
-        if v is not None:
-            try:
-                v = ScadaDBGCommands(v)
-            except ValueError:
-                v = None
-        return v
+    def command_value(cls, v):
+        return as_enum(v, ScadaDBGCommands)
 
 class ScadaDBGMessage(Message[ScadaDBG]):
     def __init__(
@@ -185,3 +181,4 @@ class ScadaDBGMessage(Message[ScadaDBG]):
             ),
             payload=ScadaDBG(),
         )
+

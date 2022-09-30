@@ -5,9 +5,17 @@ from enum import Enum
 from typing import Any, Optional, TypeVar, Generic, Dict, List
 
 from paho.mqtt.client import MQTTMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from pydantic.fields import FieldInfo
 from pydantic.generics import GenericModel
+
+EnumType = TypeVar("EnumType")
+
+def as_enum(value: Any, enum_type: EnumType, default: Optional[EnumType] = None) -> Optional[EnumType]:
+    try:
+        return enum_type(value)
+    except ValueError:
+        return default
 
 class MessageType(Enum):
     invalid = "invalid"
@@ -20,6 +28,7 @@ class MessageType(Enum):
 
     mqtt_suback = "mqtt_suback"
 
+    event_report = "event_report"
 
 class KnownNames(Enum):
     proactor = "proactor"
@@ -28,16 +37,17 @@ class KnownNames(Enum):
 
 class Header(BaseModel):
     src: str
-    dst: str
-    message_type: str  # TODO: semantics of this and how namespaces of its contents are built needs to be worked out / explicit
-
+    dst: str = ""
+    message_type: str
+    message_id: str = ""
+    type_name: str = Field("gridworks-header-000", const=True)
 
 PayloadT = TypeVar("PayloadT")
-
 
 class Message(GenericModel, Generic[PayloadT]):
     header: Header
     payload: PayloadT
+    type_name: str = Field("gridworks-message-000", const=True)
 
 
 class MQTTClientsPayload(BaseModel):
@@ -192,7 +202,7 @@ def type_name(s: str, version: str = "000", **kwargs) -> FieldInfo:
     return Field(f"{s}.{version}", const=True, **kwargs)
 
 class EventBase(BaseModel):
-    uid: str = Field(default_factory=lambda : str(uuid.uuid4()))
+    message_id: str = Field(default_factory=lambda : str(uuid.uuid4()))
     time_ns: int = Field(default_factory=time.time_ns)
     src: str = ""
     type_name: str = Field(const=True)
@@ -207,7 +217,7 @@ class ShutdownEvent(EventBase):
     reason: str
     type_name: str = Field("gridworks.event.shutdown.000", const=True)
 
-class ProblemEnum(str, Enum):
+class ProblemEnum(Enum):
     error = "error"
     warning = "warning"
 
@@ -216,6 +226,12 @@ class ProblemEvent(EventBase):
     summary: str
     details: str = ""
     type_name: str = Field("gridworks.event.problem.000", const=True)
+
+    @validator("problem_type", pre=True)
+    def problem_type_value(cls, v):
+        return as_enum(v, ProblemEnum)
+
+
 
 class CommEvent(EventBase):
     ...
@@ -231,3 +247,23 @@ class MQTTDisconnectEvent(MQTTCommEvent):
 
 class MQTTFullySubscribedEvent(CommEvent):
     type_name: str = Field("gridworks.event.comm.mqtt.fully_subscribed.000", const=True)
+
+class EventMessage(Message[EventT], Generic[EventT]):
+    def __init__(
+        self,
+        payload: EventT,
+    ):
+        super().__init__(
+            header=Header(
+                src=payload.src,
+                dst="",
+                message_type=payload.type_name,
+                message_id=payload.message_id,
+            ),
+            payload=payload,
+        )
+
+class Ack(BaseModel):
+    acks_message_id: str = ""
+    type_name = Field("gridworks.ack.000")
+
