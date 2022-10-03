@@ -31,7 +31,7 @@ from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor, MQTTCodec
 from schema.decoders import Decoders
-from schema.decoders_factory import DecoderExtractor
+from schema.decoders_factory import DecoderExtractor, create_message_payload_discriminator
 from schema.gs.gs_pwr import GsPwr
 from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean import GtDispatchBoolean
@@ -71,11 +71,14 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
         if isinstance(payload, bytes):
             encoded = payload
         else:
-            payload_as_type = payload.as_type()
-            if isinstance(payload_as_type, bytes):
-                encoded = payload_as_type
+            if hasattr(payload, "as_type"):
+                payload_as_str = payload.as_type()
             else:
-                encoded = payload_as_type.encode(self.ENCODING)
+                payload_as_str = payload.json()
+            if isinstance(payload_as_str, bytes):
+                encoded = payload_as_str
+            else:
+                encoded = payload_as_str.encode(self.ENCODING)
         return encoded
 
     def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
@@ -89,11 +92,21 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
                 f"Type {type_alias} not recognized. Available decoders: {self.decoders.types()}"
             )
         self.validate_source_alias(from_alias)
-        return self.decoders.decode_str(type_alias, receipt_payload.message.payload.decode(self.ENCODING))
+        # TODO: This should probably be decode_str so that we can handle payloads that are not json, e.g.
+        #       GSwPwr over mqtt.
+        return self.decoders.decode_json(type_alias, receipt_payload.message.payload, encoding=self.ENCODING)
 
     @abstractmethod
     def validate_source_alias(self, source_alias: str):
         pass
+
+ScadaMessageDecoder = create_message_payload_discriminator(
+    "ScadaMessageDecoder",
+    [
+        "proactor.message",
+        "actors2.message"
+    ]
+)
 
 class GridworksMQTTCodec(ScadaMQTTCodec):
 
@@ -104,7 +117,8 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
                 [
                     GtDispatchBoolean_Maker,
                     GtShCliAtnCmd_Maker,
-                ]
+                ],
+                message_payload_discriminator=ScadaMessageDecoder,
             )
         )
 
@@ -114,6 +128,11 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
                 f"alias {source_alias} not my AtomicTNode ({self.hardware_layout.atn_g_node_alias})!"
             )
 
+class GsPwr_MakerAdapter(GsPwr_Maker):
+
+    @classmethod
+    def dict_to_tuple(cls, d: dict) -> GtDriverBooleanactuatorCmd:
+        pass
 
 class LocalMQTTCodec(ScadaMQTTCodec):
 
@@ -122,11 +141,11 @@ class LocalMQTTCodec(ScadaMQTTCodec):
             hardware_layout,
             decoders=DecoderExtractor().from_objects(
                 [
-                    GsPwr_Maker,
                     GtDriverBooleanactuatorCmd_Maker,
                     GtShTelemetryFromMultipurposeSensor_Maker,
                     GtTelemetry_Maker,
                 ],
+                message_payload_discriminator=ScadaMessageDecoder,
             )
         )
 

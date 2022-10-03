@@ -2,7 +2,7 @@
 import uuid
 import time
 from enum import Enum
-from typing import Any, Optional, TypeVar, Generic, Dict, List
+from typing import Any, Optional, TypeVar, Generic, Dict, List, Literal
 
 from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel, Field, validator
@@ -48,6 +48,34 @@ class Message(GenericModel, Generic[PayloadT]):
     header: Header
     payload: PayloadT
     type_name: str = Field("gridworks-message-000", const=True)
+
+    def __init__(self, **kwargs):
+        kwargs["header"] = self._header_from_kwargs(kwargs)
+        super().__init__(**kwargs)
+
+    @classmethod
+    def _header_from_kwargs(cls, kwargs: dict) -> Header:
+        header_kwargs = dict()
+        payload = kwargs["payload"]
+        for header_field, payload_fields in [
+            ("src", ["src"]),
+            ("dst", ["dst"]),
+            ("message_id", ["message_id"]),
+            ("message_type", ["type_name", "type_alias"]),
+        ]:
+            val = kwargs.get(header_field, None)
+            if val is None:
+                for payload_field in payload_fields:
+                    if hasattr(payload, payload_field):
+                        val = getattr(payload, payload_field)
+            if val is not None:
+                header_kwargs[header_field] = val
+        header = kwargs.get("header", None)
+        if header is None:
+            header = Header(**header_kwargs)
+        else:
+            header = header.copy(update=header_kwargs, deep=True)
+        return header
 
 
 class MQTTClientsPayload(BaseModel):
@@ -211,25 +239,25 @@ EventT = TypeVar("EventT", bound=EventBase)
 
 class StartupEvent(EventBase):
     clean_shutdown: bool
-    type_name: str = Field("gridworks.event.startup.000", const=True)
+    type_name: Literal["gridworks.event.startup.000"] = "gridworks.event.startup.000"
 
 class ShutdownEvent(EventBase):
     reason: str
-    type_name: str = Field("gridworks.event.shutdown.000", const=True)
+    type_name: Literal["gridworks.event.shutdown.000"] = "gridworks.event.shutdown.000"
 
-class ProblemEnum(Enum):
+class Problems(Enum):
     error = "error"
     warning = "warning"
 
 class ProblemEvent(EventBase):
-    problem_type: ProblemEnum
+    problem_type: Problems
     summary: str
     details: str = ""
-    type_name: str = Field("gridworks.event.problem.000", const=True)
+    type_name: Literal["gridworks.event.problem.000"] = "gridworks.event.problem.000"
 
     @validator("problem_type", pre=True)
     def problem_type_value(cls, v):
-        return as_enum(v, ProblemEnum)
+        return as_enum(v, Problems)
 
 
 
@@ -240,30 +268,18 @@ class MQTTCommEvent(CommEvent):
     ...
 
 class MQTTConnectFailedEvent(MQTTCommEvent):
-    type_name: str = Field("gridworks.event.comm.mqtt.connect_failed.000", const=True)
+    type_name: Literal["gridworks.event.comm.mqtt.connect_failed.000"] = "gridworks.event.comm.mqtt.connect_failed.000"
 
 class MQTTDisconnectEvent(MQTTCommEvent):
-    type_name: str = Field("gridworks.event.comm.mqtt.disconnect.000", const=True)
+    type_name: Literal["gridworks.event.comm.mqtt.disconnect.000"] = "gridworks.event.comm.mqtt.disconnect.000"
 
 class MQTTFullySubscribedEvent(CommEvent):
-    type_name: str = Field("gridworks.event.comm.mqtt.fully_subscribed.000", const=True)
+    type_name: Literal["gridworks.event.comm.mqtt.fully_subscribed.000"] = "gridworks.event.comm.mqtt.fully_subscribed.000"
 
 class EventMessage(Message[EventT], Generic[EventT]):
-    def __init__(
-        self,
-        payload: EventT,
-    ):
-        super().__init__(
-            header=Header(
-                src=payload.src,
-                dst="",
-                message_type=payload.type_name,
-                message_id=payload.message_id,
-            ),
-            payload=payload,
-        )
+    ...
 
 class Ack(BaseModel):
     acks_message_id: str = ""
-    type_name = Field("gridworks.ack.000")
+    type_name: Literal["gridworks.ack.000"] = "gridworks.ack.000"
 

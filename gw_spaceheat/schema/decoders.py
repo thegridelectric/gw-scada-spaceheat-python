@@ -41,7 +41,7 @@ class Decoders:
     ) -> Any:
         if isinstance(content, bytes):
             content = content.decode(encoding)
-        return self.decode(type_name, **json.loads(content, **(json_args or dict())))
+        return self.decode(type_name, json.loads(content, **(json_args or dict())))
 
     def decode_path(
         self,

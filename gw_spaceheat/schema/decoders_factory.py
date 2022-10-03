@@ -1,12 +1,75 @@
+import sys
+from typing import (
+    Any,
+    Sequence,
+    Optional,
+    Callable,
+    Union,
+    Type,
+    TypeVar,
+)
+import typing
+import functools
+import inspect
 from dataclasses import dataclass
-from typing import Any, Sequence, Optional, Callable
 
+from pydantic import create_model, Field
+
+from proactor import Message, Header
 from schema.decoders import Decoders, Decoder, DecoderItem
+
+DEFAULT_TYPE_NAME_FIELD = "type_name"
+
+def has_pydantic_literal_type_name(o, type_name_field: str = DEFAULT_TYPE_NAME_FIELD) -> bool:
+    if hasattr(o, "__fields__"):
+        if type_name_field in o.__fields__:
+            return typing.get_origin(o.__fields__[type_name_field].annotation) == typing.Literal
+    return False
+
+def pydantic_named_types(module_names: str | Sequence[str], type_name_field: str = DEFAULT_TYPE_NAME_FIELD) -> list:
+    if isinstance(module_names, str):
+        module_names = [module_names]
+    if unimported := [module_name for module_name in module_names if not module_name in sys.modules]:
+        raise ValueError(f"ERROR. modules {unimported} have not been imported.")
+    types = []
+    for module_name in module_names:
+        types.extend(
+            [
+                entry[1] for entry in inspect.getmembers(sys.modules[module_name], inspect.isclass)
+                if has_pydantic_literal_type_name(entry[1], type_name_field=type_name_field)
+            ]
+        )
+    return types
+
+MessageDiscriminator = TypeVar("MessageDiscriminator", bound=Message)
+
+def create_message_payload_discriminator(model_name: str, modules_names: str | Sequence[str]) -> Type["MessageDiscriminator"]:
+    return create_model(
+        model_name,
+        __base__=Message,
+        payload=(
+            Union[tuple(pydantic_named_types(modules_names, type_name_field=DEFAULT_TYPE_NAME_FIELD))],
+            Field(..., discriminator=DEFAULT_TYPE_NAME_FIELD)
+        )
+    )
+
+def gridworks_message_decoder(d: dict, decoders: Decoders, message_discriminator: Optional[Type["MessageDiscriminator"]] = None) -> Message:
+    message_dict = dict(d)
+    message_dict["header"] = Header.parse_obj(d.get("header", dict()))
+    if message_dict["header"].message_type in decoders:
+        message_dict["payload"] = decoders.decode(message_dict["header"].message_type, message_dict.get("payload", dict()))
+        message = Message(**message_dict)
+    else:
+        if message_discriminator is None:
+            raise ValueError(f"ERROR. No decoder present for payload type {message_dict['header'].message_type}")
+        else:
+            message = message_discriminator.parse_obj(d)
+    return message
 
 @dataclass
 class OneDecoderExtractor:
     type_name_field: str = "type_alias"
-    decoder_function_name: str = "type_to_tuple"
+    decoder_function_name: str = "dict_to_tuple"
 
     def get_type_name_value(self, obj: Any) -> str:
         return getattr(obj, self.type_name_field, "")
@@ -26,10 +89,10 @@ class OneDecoderExtractor:
             item = None
         return item
 
-
+@dataclass
 class PydanticExtractor(OneDecoderExtractor):
-    type_name_field = "type_name"
-    decoder_function_name = "parse_raw"
+    type_name_field: str = DEFAULT_TYPE_NAME_FIELD
+    decoder_function_name: str = "parse_obj"
 
     def get_type_name_value(self, obj: Any) -> str:
         type_name = ""
@@ -63,6 +126,12 @@ class DecoderExtractor:
     def decoder_items_from_objects(self, objs: list) -> dict[str, Decoder]:
         return dict(filter(lambda item: item is not None, [self.decoder_item_from_object(obj) for obj in objs]))
 
-    def from_objects(self, objs: list) -> Decoders:
-        return Decoders(self.decoder_items_from_objects(objs))
+    def from_objects(self, objs: list, message_payload_discriminator: Optional[Type["MessageDiscriminator"]] = None) -> Decoders:
+        d = Decoders(self.decoder_items_from_objects(objs))
+        d.add_decoder(
+            Message.__fields__[DEFAULT_TYPE_NAME_FIELD].default,
+            functools.partial(gridworks_message_decoder, decoders=d, message_payload_discriminator=message_payload_discriminator)
+        )
+        return d
+
 

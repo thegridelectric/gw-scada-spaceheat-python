@@ -4,16 +4,15 @@ import time
 from typing import (
     List,
     Optional,
-    TypeVar,
-    Any
+    Literal,
+    cast
 )
-import typing
 from enum import Enum
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, validator
 
 from logging_config import LoggerLevels
-from proactor.message import Message, Header, KnownNames, as_enum
+from proactor.message import Message, Header, as_enum
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_pwr import GsPwr
 from schema.gs.gs_pwr_maker import GsPwr_Maker
@@ -117,7 +116,7 @@ class GsPwrMessage(Message[GsPwr]):
         dst: str,
         power: int,
     ):
-        payload = typing.cast(GsPwr, GsPwr_Maker(power=power).tuple)
+        payload = cast(GsPwr, GsPwr_Maker(power=power).tuple)
         super().__init__(
             header=Header(
                 src=src,
@@ -163,22 +162,8 @@ class ScadaDBG(BaseModel):
         comm_event=-1,
     )
     command: Optional[ScadaDBGCommands] = None
-    type_name: str = Field("gridworks.scada.dbg.000", const=True)
+    type_name: Literal["gridworks.scada.dbg.000"] = "gridworks.scada.dbg.000"
 
     @validator("command", pre=True)
     def command_value(cls, v):
         return as_enum(v, ScadaDBGCommands)
-
-class ScadaDBGMessage(Message[ScadaDBG]):
-    def __init__(
-        self,
-    ):
-        super().__init__(
-            header=Header(
-                src="dbg",
-                dst=KnownNames.proactor.value,
-                message_type=self.__class__.__name__,
-            ),
-            payload=ScadaDBG(),
-        )
-
