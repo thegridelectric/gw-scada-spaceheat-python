@@ -110,7 +110,7 @@ class Scada(ScadaBase):
         if self.node != self.scada_node():
             raise Exception(f"The node for Scada must be {self.scada_node()}, not {self.node}!")
         # hack before dispatch contract is implemented
-        self._scada_atn_fast_dispatch_contract_is_alive_stub = False
+        self._scada_atn_fast_dispatch_contract_is_alive_stub = True
 
         now = int(time.time())
         self._last_5_cron_s = now - (now % 300)
