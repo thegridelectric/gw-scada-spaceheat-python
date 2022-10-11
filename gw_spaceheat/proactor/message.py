@@ -2,7 +2,7 @@
 import uuid
 import time
 from enum import Enum
-from typing import Any, Optional, TypeVar, Generic, Dict, List, Literal
+from typing import Any, Optional, TypeVar, Generic, Dict, List, Literal, Mapping
 
 from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel, Field, validator
@@ -40,18 +40,21 @@ class Header(BaseModel):
     dst: str = ""
     message_type: str
     message_id: str = ""
-    type_name: str = Field("gridworks-header-000", const=True)
+    type_name: str = Field("gridworks.header.000", const=True)
 
 PayloadT = TypeVar("PayloadT")
 
 class Message(GenericModel, Generic[PayloadT]):
     header: Header
     payload: PayloadT
-    type_name: str = Field("gridworks-message-000", const=True)
+    type_name: str = Field("gridworks.message.000", const=True)
 
     def __init__(self, **kwargs):
         kwargs["header"] = self._header_from_kwargs(kwargs)
         super().__init__(**kwargs)
+
+    def mqtt_topic(self):
+        return f"{self.header.src}/{self.type_name.replace('.', '-')}"
 
     @classmethod
     def _header_from_kwargs(cls, kwargs: dict) -> Header:
@@ -61,13 +64,15 @@ class Message(GenericModel, Generic[PayloadT]):
             ("src", ["src"]),
             ("dst", ["dst"]),
             ("message_id", ["message_id"]),
-            ("message_type", ["type_name", "type_alias"]),
+            ("message_type", ["type_name", "type_alias", "TypeAlias"]),
         ]:
             val = kwargs.get(header_field, None)
             if val is None:
                 for payload_field in payload_fields:
                     if hasattr(payload, payload_field):
                         val = getattr(payload, payload_field)
+                    elif isinstance(payload, Mapping) and payload_field in payload:
+                        val = payload[payload_field]
             if val is not None:
                 header_kwargs[header_field] = val
         header = kwargs.get("header", None)
@@ -76,7 +81,6 @@ class Message(GenericModel, Generic[PayloadT]):
         else:
             header = header.copy(update=header_kwargs, deep=True)
         return header
-
 
 class MQTTClientsPayload(BaseModel):
     client_name: str
