@@ -382,9 +382,6 @@ def test_scada_status_content_dynamics():
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
             snapshot = atn.latest_snapshot_payload
-            import pprint
-            pprint.pprint(status.asdict())
-            pprint.pprint(snapshot.asdict())
             assert isinstance(snapshot, SnapshotSpaceheat)
             assert set(snapshot.Snapshot.AboutNodeAliasList) == set(
                 [relay.node.alias, thermo.node.alias] + [

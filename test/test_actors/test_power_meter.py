@@ -68,7 +68,6 @@ def test_driver_loading():
 
     layout = HardwareLayout.load_dict(layout_dict)
     meter = PowerMeter("a.m", settings=settings, hardware_layout=layout)
-    print(meter.all_metered_nodes)
     assert isinstance(meter.driver, UnknownPowerMeterDriver)
     flush_all()
 
@@ -302,7 +301,6 @@ def test_power_meter_periodic_update():
         received_tt_counts = [
             len(scada.recent_values_from_multipurpose_sensor[tt]) for tt in expected_tts
         ]
-        print(received_tt_counts)
         for received_count, tt in zip(received_tt_counts, expected_tts):
             wait_for(
                 lambda: len(scada.recent_values_from_multipurpose_sensor[tt]) > received_count,
@@ -347,7 +345,7 @@ def test_power_meter_aggregate_power_forward():
         # Simulate power changes. Verify Scada and Atn get messages for each.
         num_changes = 2
         for i in range(num_changes):
-            print(f"Generating GsPwr change {i+1}/{num_changes}")
+            atn.logger.info(f"Generating GsPwr change {i+1}/{num_changes}")
             num_scada_gs_pwr = scada.num_received_by_topic["a.m/p"]
             atn_gs_pwr_topic = gw_mqtt_topic_encode(f"{scada.scada_g_node_alias}/p")
             num_atn_gs_pwr = atn.num_received_by_topic[atn_gs_pwr_topic]

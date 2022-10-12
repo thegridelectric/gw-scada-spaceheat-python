@@ -6,8 +6,10 @@ import pprint
 import socket
 import textwrap
 import time
+from inspect import getframeinfo, stack
 from collections import defaultdict
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union, Awaitable
 
 from actors.actor_base import ActorBase
@@ -57,7 +59,9 @@ from schema.gt.gt_sh_status.gt_sh_status_maker import (
     GtShStatus_Maker,
 )
 
-from actors.utils import gw_mqtt_topic_encode
+from actors.utils import gw_mqtt_topic_encode, gw_mqtt_topic_decode
+from schema.schema_switcher import TypeMakerByAliasDict
+
 
 class CommEvents(enum.Enum):
     invalid = "invalid"
@@ -142,7 +146,11 @@ async def await_for(
     now = start = time.time()
     until = now + timeout
     err_format = (
-        "ERROR. wait_for() timed out after {seconds} seconds\n  [{tag}]\n  wait function: {f}{err_str}"
+        "ERROR. [{tag}] wait_for() timed out after {seconds} seconds\n"
+        "  [{tag}]\n"
+        "  From {file}:{line}\n"
+        "  wait function: {f}"
+        "{err_str}"
     )
     if err_str_f is not None:
         def err_str_f_() -> str:
@@ -171,8 +179,16 @@ async def await_for(
         return True
     else:
         if raise_timeout:
+            caller = getframeinfo(stack()[1][0])
             raise ValueError(
-                err_format.format(tag=tag, seconds=time.time() - start, f=f, err_str=err_str_f_())
+                err_format.format(
+                    tag=tag,
+                    file=Path(caller.filename).name,
+                    line=caller.lineno,
+                    seconds=time.time() - start,
+                    f=f,
+                    err_str=err_str_f_()
+                )
             )
         else:
             return False
@@ -238,8 +254,22 @@ class AtnRecorder(Atn):
         super().__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
 
     def on_gw_mqtt_message(self, client, userdata, message):
+
+        old_num_received = self.num_received
         self.num_received += 1
-        self.num_received_by_topic[message.topic] += 1
+        _, type_alias = gw_mqtt_topic_decode(message.topic).split("/")
+        self.logger.info(f"type_alias: [{type_alias}] present in {self.decoders.types()}? {type_alias in self.decoders.types()}")
+        if type_alias not in TypeMakerByAliasDict.keys():
+            topic = self.decoders.decode_str(type_alias, message.payload).header.message_type
+        else:
+            topic = message.topic
+        old_num_received_by_topic = self.num_received_by_topic[topic]
+        self.num_received_by_topic[topic] += 1
+        self.logger.info(
+            f"AtnRecorder.on_gw_mqtt_message ({topic}: "
+            f"{old_num_received} -> {self.num_received})  "
+            f"{old_num_received_by_topic} -> {self.num_received_by_topic[topic]}"
+        )
         super().on_gw_mqtt_message(client, userdata, message)
 
     def on_gw_message(self, from_node: ShNode, payload):
@@ -251,7 +281,7 @@ class AtnRecorder(Atn):
             self.latest_status_payload = payload
         super().on_gw_message(from_node, payload)
 
-    def summary_str(self):
+    def summary_str(self) -> str:
         """Summarize results in a string"""
 
         # snapshot_received: int
@@ -261,13 +291,14 @@ class AtnRecorder(Atn):
         # num_received: int
         # num_received_by_topic: Dict[str, int]
 
-        return (
-            f"AtnRecorder [{self.node.alias}] snapshot_received: {self.snapshot_received}  "
-            f"latest_cli_response_payload: {self.latest_snapshot_payload}\n"
-            f"status_received: {self.status_received}  "
-            f"latest_status_payload: {self.latest_status_payload}"
+        s = (
+            f"AtnRecorder [{self.node.alias}] total: {self.num_received}  "
+            f"status:{self.status_received}  snapshot:{self.snapshot_received}\n"
+            "\tnum_received_by_topic:\n"
         )
-
+        for topic in sorted(self.num_received_by_topic.keys()):
+            s += f"\t\t{topic:70s}  {self.num_received_by_topic[topic]:2d}\n"
+        return s
 
 class HomeAloneRecorder(HomeAlone):
     status_received: int
@@ -484,9 +515,6 @@ class Scada2Recorder(Scada2):
         )
 
     async def process_message(self, message: Message):
-        print(
-            f"++Scada2Recorder.process_message {message.header.src}/{message.header.message_type}"
-        )
         self._record_comm_event(
             message.header.src,
             CommEvents.message,
@@ -495,7 +523,6 @@ class Scada2Recorder(Scada2):
         )
         self.num_received_by_type[message.header.message_type] += 1
         await super().process_message(message)
-        print(f"--Scada2Recorder.process_message")
 
     async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         self._record_comm_event(
