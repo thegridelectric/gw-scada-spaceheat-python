@@ -33,7 +33,6 @@ from proactor.proactor_implementation import Proactor, MQTTCodec
 from schema.decoders import Decoders
 from schema.decoders_factory import DecoderExtractor, create_message_payload_discriminator
 from schema.gs.gs_pwr import GsPwr
-from schema.gs.gs_pwr_maker import GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean import GtDispatchBoolean
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
     GtDispatchBoolean_Maker,
@@ -67,14 +66,14 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
         self.decoders = Decoders().merge(decoders)
         super().__init__()
 
-    def encode(self, payload: Any) -> bytes:
-        if isinstance(payload, bytes):
-            encoded = payload
+    def encode(self, content: Any) -> bytes:
+        if isinstance(content, bytes):
+            encoded = content
         else:
-            if hasattr(payload, "as_type"):
-                payload_as_str = payload.as_type()
+            if hasattr(content, "as_type"):
+                payload_as_str = content.as_type()
             else:
-                payload_as_str = payload.json()
+                payload_as_str = content.json()
             if isinstance(payload_as_str, bytes):
                 encoded = payload_as_str
             else:
@@ -127,12 +126,6 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
             raise Exception(
                 f"alias {source_alias} not my AtomicTNode ({self.hardware_layout.atn_g_node_alias})!"
             )
-
-class GsPwr_MakerAdapter(GsPwr_Maker):
-
-    @classmethod
-    def dict_to_tuple(cls, d: dict) -> GtDriverBooleanactuatorCmd:
-        pass
 
 class LocalMQTTCodec(ScadaMQTTCodec):
 
@@ -233,9 +226,9 @@ class Scada2(ScadaInterface, Proactor):
     def send_status(self):
         status = self._data.make_status(self._last_status_second)
         self._data.status_to_store[status.StatusUid] = status
-        self._publish_to_gridworks(status)
+        self._publish_to_gridworks(status.asdict())
         self._publish_to_local(self._node, status)
-        self._publish_to_gridworks(self._data.make_snapshot())
+        self._publish_to_gridworks(self._data.make_snaphsot_payload())
         self._data.flush_latest_readings()
 
     def next_status_second(self) -> int:
@@ -266,21 +259,24 @@ class Scada2(ScadaInterface, Proactor):
     def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
         return f"{from_alias}/{payload.TypeAlias}"
 
+    # TODO: gw_mqtt_topic_encode belongs in a better place
     def _publish_to_gridworks(
         self, payload, qos: QOS = QOS.AtMostOnce
     ) -> MQTTMessageInfo:
+        message = Message(src=self._layout.scada_g_node_alias, payload=payload)
         return self._encode_and_publish(
             Scada2.GRIDWORKS_MQTT,
-            topic=self.gridworks_mqtt_topic(payload),
-            payload=payload,
+            topic=gw_mqtt_topic_encode(message.mqtt_topic()),
+            payload=message,
             qos=qos,
         )
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
+        message = Message(src=from_node.alias, payload=payload)
         return self._encode_and_publish(
             Scada2.LOCAL_MQTT,
-            topic=self.local_mqtt_topic(from_node.alias, payload),
-            payload=payload,
+            topic=message.mqtt_topic(),
+            payload=message,
             qos=qos,
         )
 
@@ -425,7 +421,7 @@ class Scada2(ScadaInterface, Proactor):
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
             return
-        self._publish_to_gridworks(self._data.make_snapshot())
+        self._publish_to_gridworks(self._data.make_snaphsot_payload())
 
     @property
     def scada_atn_fast_dispatch_contract_is_alive(self):
