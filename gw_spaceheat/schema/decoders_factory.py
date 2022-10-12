@@ -1,3 +1,4 @@
+import json
 import sys
 from typing import (
     Any,
@@ -53,17 +54,29 @@ def create_message_payload_discriminator(model_name: str, modules_names: str | S
         )
     )
 
-def gridworks_message_decoder(d: dict, decoders: Decoders, message_discriminator: Optional[Type["MessageDiscriminator"]] = None) -> Message:
-    message_dict = dict(d)
-    message_dict["header"] = Header.parse_obj(d.get("header", dict()))
+# TODO: type of content should be better thought out (or maybe never dict?); decode needs encoding
+def gridworks_message_decoder(
+        content: str | bytes | dict,
+        decoders: Decoders,
+        message_payload_discriminator: Optional[Type["MessageDiscriminator"]] = None
+) -> Message:
+    if isinstance(content, bytes):
+        content = content.decode("utf-8")
+    if isinstance(content, str):
+        content = json.loads(content)
+    message_dict = dict(content)
+    message_dict["header"] = Header.parse_obj(content.get("header", dict()))
     if message_dict["header"].message_type in decoders:
-        message_dict["payload"] = decoders.decode(message_dict["header"].message_type, message_dict.get("payload", dict()))
+        message_dict["payload"] = decoders.decode(
+            message_dict["header"].message_type,
+            json.dumps(message_dict.get("payload", dict()))
+        )
         message = Message(**message_dict)
     else:
-        if message_discriminator is None:
+        if message_payload_discriminator is None:
             raise ValueError(f"ERROR. No decoder present for payload type {message_dict['header'].message_type}")
         else:
-            message = message_discriminator.parse_obj(d)
+            message = message_payload_discriminator.parse_obj(content)
     return message
 
 @dataclass
@@ -113,7 +126,7 @@ class DecoderExtractor:
                 PydanticExtractor(),
             ]
         else:
-            self._extractors = list(*extractors)
+            self._extractors = list(extractors)
 
     def decoder_item_from_object(self, obj: Any) -> Optional[DecoderItem]:
         item = None
