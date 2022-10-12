@@ -224,3 +224,6 @@ class ScadaData:
             from_g_node_instance_id=self.hardware_layout.scada_g_node_id,
             snapshot=self.make_telemetry_snapshot(),
         ).tuple
+
+    def make_snaphsot_payload(self) -> dict:
+        return self.make_snapshot().asdict()
