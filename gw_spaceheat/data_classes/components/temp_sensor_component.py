@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.component import Component
-from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums import MakeModel
 
 
 class TempSensorComponent(Component):

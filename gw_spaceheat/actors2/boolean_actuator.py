@@ -1,17 +1,17 @@
 """Implements BooleanActuator via SimpleSensor and SimpleSensorDriverThread."""
 
-from typing import Optional, Any
+from typing import Any
+from typing import Optional
 
 from pydantic import BaseModel
 
 from actors2.message import GtDriverBooleanactuatorCmdResponse
-from actors2.simple_sensor import SimpleSensor, SimpleSensorDriverThread
 from actors2.scada_interface import ScadaInterface
+from actors2.simple_sensor import SimpleSensor
+from actors2.simple_sensor import SimpleSensorDriverThread
 from proactor.message import Message
 from proactor.sync_thread import SyncAsyncInteractionThread
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
-    GtDispatchBooleanLocal,
-)
+from schema.messages import GtDispatchBooleanLocal
 
 
 class DispatchRelay(BaseModel):

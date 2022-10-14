@@ -6,60 +6,59 @@ import pprint
 import socket
 import textwrap
 import time
-from inspect import getframeinfo, stack
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
+from inspect import getframeinfo
+from inspect import stack
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, Awaitable
+from typing import Any
+from typing import Awaitable
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Union
 
+from actors2 import Scada2
 from actors.actor_base import ActorBase
 from actors.atn import Atn
 from actors.cloud_ear import CloudEar
 from actors.home_alone import HomeAlone
 from actors.scada import Scada
-from actors2 import Scada2
+from actors.utils import gw_mqtt_topic_decode
+from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
-from data_classes.components.boolean_actuator_component import (
-    BooleanActuatorCac,
-    BooleanActuatorComponent,
-)
-from data_classes.components.electric_meter_component import (
-    ElectricMeterCac,
-    ElectricMeterComponent,
-)
-from data_classes.components.pipe_flow_sensor_component import (
-    PipeFlowSensorCac,
-    PipeFlowSensorComponent,
-)
-from data_classes.components.resistive_heater_component import (
-    ResistiveHeaterCac,
-    ResistiveHeaterComponent,
-)
-from data_classes.components.temp_sensor_component import (
-    TempSensorCac,
-    TempSensorComponent,
-)
+from data_classes.components.boolean_actuator_component import BooleanActuatorCac
+from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from data_classes.components.electric_meter_component import ElectricMeterCac
+from data_classes.components.electric_meter_component import ElectricMeterComponent
+from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorCac
+from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
+from data_classes.components.resistive_heater_component import ResistiveHeaterCac
+from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
+from data_classes.components.temp_sensor_component import TempSensorCac
+from data_classes.components.temp_sensor_component import TempSensorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor import Message
-from proactor.message import MQTTReceiptPayload, MQTTConnectPayload, MQTTDisconnectPayload, MQTTConnectFailPayload, \
-    MQTTSubackPayload
-from schema.gs.gs_dispatch import GsDispatch
+from proactor.message import MQTTConnectFailPayload
+from proactor.message import MQTTConnectPayload
+from proactor.message import MQTTDisconnectPayload
+from proactor.message import MQTTReceiptPayload
+from proactor.message import MQTTSubackPayload
 from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
     GtDispatchBooleanLocal,
 )
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus
+from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
+from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import SnapshotSpaceheat
 from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat,
     SnapshotSpaceheat_Maker,
 )
-from schema.gt.gt_sh_status.gt_sh_status_maker import (
-    GtShStatus,
-    GtShStatus_Maker,
-)
-
-from actors.utils import gw_mqtt_topic_encode, gw_mqtt_topic_decode
+from schema.messages import GsDispatch
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

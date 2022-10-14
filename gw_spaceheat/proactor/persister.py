@@ -3,11 +3,15 @@ import re
 import shutil
 from abc import abstractmethod
 from pathlib import Path
-from typing import Optional, NamedTuple
+from typing import NamedTuple
+from typing import Optional
 
 import pendulum
 from pendulum import DateTime
-from result import Result, Ok, Err
+from result import Err
+from result import Ok
+from result import Result
+
 
 
 class Problems(Exception):

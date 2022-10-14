@@ -1,10 +1,9 @@
 import json
+from test.conftest import DUMMY_TEST_HARDWARE_LAYOUT_PATH
 
 import pytest
-
 from config import Paths
 from data_classes.hardware_layout import HardwareLayout
-from test.conftest import DUMMY_TEST_HARDWARE_LAYOUT_PATH
 
 
 def test_clean_env(tmp_path):

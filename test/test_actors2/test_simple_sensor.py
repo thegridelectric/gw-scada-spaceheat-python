@@ -2,13 +2,13 @@
 """Test SimpleSensor actor"""
 import logging
 import typing
-
-import pytest
+from test.fragment_runner import AsyncFragmentRunner
+from test.fragment_runner import ProtocolFragment
+from test.utils import await_for
 
 import actors2
+import pytest
 from data_classes.components.temp_sensor_component import TempSensorComponent
-from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
-from test.utils import await_for
 
 
 @pytest.mark.asyncio

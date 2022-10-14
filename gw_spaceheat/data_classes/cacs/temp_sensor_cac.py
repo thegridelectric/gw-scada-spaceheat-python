@@ -2,9 +2,9 @@
 from typing import Dict, Optional
 
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.enums.make_model.make_model_map import MakeModelMap
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryNameMap
-from schema.enums.unit.unit_map import Unit, UnitMap
+from schema.enums import MakeModelMap
+from schema.enums import TelemetryNameMap
+from schema.enums import Unit, UnitMap
 
 
 class TempSensorCac(ComponentAttributeClass):

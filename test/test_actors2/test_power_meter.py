@@ -1,23 +1,28 @@
 import argparse
 import logging
 import typing
-
-import pytest
+from test.fragment_runner import AsyncFragmentRunner
+from test.fragment_runner import ProtocolFragment
+from test.utils import await_for
 
 import actors2
+import pytest
 from actors2 import Scada2
-from actors2.power_meter import PowerMeterDriverThread, PowerMeter, DriverThreadSetupHelper
+from actors2.power_meter import DriverThreadSetupHelper
+from actors2.power_meter import PowerMeter
+from actors2.power_meter import PowerMeterDriverThread
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
-from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
+from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
+    GridworksSimPm1_PowerMeterDriver,
+)
 from load_house import load_all
-from logging_config import LoggingSettings, LoggerLevels
+from logging_config import LoggerLevels
+from logging_config import LoggingSettings
 from logging_setup import setup_logging
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.gs.gs_pwr_maker import GsPwr_Maker
-from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
-from test.utils import await_for
+from schema.enums import TelemetryName
+from schema.messages import GsPwr_Maker
 
 
 def test_power_meter_small():

@@ -1,19 +1,16 @@
 from typing import List
 
+from actors.cloud_base import CloudBase
+from actors.utils import QOS
+from actors.utils import Subscription
+from actors.utils import responsive_sleep
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.gs.gs_pwr_maker import GsPwr_Maker
-from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat_Maker,
-)
-
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
-
-from actors.cloud_base import CloudBase
-from actors.utils import QOS, Subscription, responsive_sleep
+from schema.messages import GsPwr_Maker
+from schema.messages import GtDispatchBoolean_Maker
+from schema.messages import GtShStatus_Maker
+from schema.messages import SnapshotSpaceheat_Maker
 
 
 class CloudEar(CloudBase):

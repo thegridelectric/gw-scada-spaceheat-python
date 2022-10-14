@@ -2,7 +2,7 @@
 import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
-from schema.enums.make_model.make_model_map import (
+from schema.enums import (
     MakeModel,
     MakeModelMap,
 )

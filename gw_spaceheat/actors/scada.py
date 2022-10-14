@@ -1,61 +1,47 @@
 import enum
 import time
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict
+from typing import List
+from typing import Optional
 
+from actors.scada_base import ScadaBase
+from actors.utils import QOS
+from actors.utils import Subscription
+from actors.utils import responsive_sleep
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums.role.role_map import Role
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
-    GtDispatchBoolean,
-    GtDispatchBoolean_Maker,
-)
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
-    GtDispatchBooleanLocal,
-    GtDispatchBooleanLocal_Maker,
-)
-from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
-    GtDriverBooleanactuatorCmd,
-    GtDriverBooleanactuatorCmd_Maker,
-)
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
-    GtShBooleanactuatorCmdStatus,
-    GtShBooleanactuatorCmdStatus_Maker,
-)
-from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat,
-    SnapshotSpaceheat_Maker,
-)
-
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
-    GtShMultipurposeTelemetryStatus,
-    GtShMultipurposeTelemetryStatus_Maker,
-)
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
-    GtShSimpleTelemetryStatus,
-    GtShSimpleTelemetryStatus_Maker,
-)
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
-
-from schema.gt.telemetry_snapshot_spaceheat.telemetry_snapshot_spaceheat_maker import (
-    TelemetrySnapshotSpaceheat,
-    TelemetrySnapshotSpaceheat_Maker,
-)
-
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
-    GtShTelemetryFromMultipurposeSensor,
-    GtShTelemetryFromMultipurposeSensor_Maker,
-)
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
-
-from actors.scada_base import ScadaBase
-from actors.utils import QOS, Subscription, responsive_sleep
+from schema.enums import Role
+from schema.gs.gs_pwr_maker import GsPwr
+from schema.gs.gs_pwr_maker import GsPwr_Maker
+from schema.messages import GtDispatchBoolean
+from schema.messages import GtDispatchBoolean_Maker
+from schema.messages import GtDispatchBooleanLocal
+from schema.messages import GtDispatchBooleanLocal_Maker
+from schema.messages import GtDriverBooleanactuatorCmd
+from schema.messages import GtDriverBooleanactuatorCmd_Maker
+from schema.messages import GtShBooleanactuatorCmdStatus
+from schema.messages import GtShBooleanactuatorCmdStatus_Maker
+from schema.messages import GtShCliAtnCmd
+from schema.messages import GtShCliAtnCmd_Maker
+from schema.messages import GtShMultipurposeTelemetryStatus
+from schema.messages import GtShMultipurposeTelemetryStatus_Maker
+from schema.messages import GtShSimpleTelemetryStatus
+from schema.messages import GtShSimpleTelemetryStatus_Maker
+from schema.messages import GtShStatus
+from schema.messages import GtShStatus_Maker
+from schema.messages import GtShTelemetryFromMultipurposeSensor
+from schema.messages import GtShTelemetryFromMultipurposeSensor_Maker
+from schema.messages import GtTelemetry
+from schema.messages import GtTelemetry_Maker
+from schema.messages import SnapshotSpaceheat
+from schema.messages import SnapshotSpaceheat_Maker
+from schema.messages import TelemetrySnapshotSpaceheat
+from schema.messages import TelemetrySnapshotSpaceheat_Maker
 
 
 class ScadaCmdDiagnostic(enum.Enum):

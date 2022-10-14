@@ -7,7 +7,7 @@ from typing import Optional
 import schema.property_format as property_format
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
-from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums import MakeModel
 
 BASE_DIR = "/sys/bus/w1/devices/"
 ONE_WIRE_FILE_START_ID = "28"

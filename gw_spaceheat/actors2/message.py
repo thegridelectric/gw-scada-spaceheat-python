@@ -1,41 +1,30 @@
 """Proactor-internal messages wrappers of Scada message structures."""
 
 import time
-from typing import (
-    List,
-    Optional,
-    Literal,
-    cast
-)
 from enum import Enum
+from typing import List
+from typing import Literal
+from typing import Optional
+from typing import cast
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
+from pydantic import validator
 
 from logging_config import LoggerLevels
-from proactor.message import Message, Header, as_enum
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.gs.gs_pwr import GsPwr
-from schema.gs.gs_pwr_maker import GsPwr_Maker
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
-    GtDispatchBooleanLocal,
-)
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
-    GtDispatchBooleanLocal_Maker,
-)
-from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd import (
-    GtDriverBooleanactuatorCmd,
-)
-from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
-    GtDriverBooleanactuatorCmd_Maker,
-)
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor import (
-    GtShTelemetryFromMultipurposeSensor,
-)
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
-    GtShTelemetryFromMultipurposeSensor_Maker,
-)
-from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
+from proactor.message import Header
+from proactor.message import Message
+from proactor.message import as_enum
+from schema.enums import TelemetryName
+from schema.messages import GsPwr
+from schema.messages import GsPwr_Maker
+from schema.messages import GtDispatchBooleanLocal
+from schema.messages import GtDispatchBooleanLocal_Maker
+from schema.messages import GtDriverBooleanactuatorCmd
+from schema.messages import GtDriverBooleanactuatorCmd_Maker
+from schema.messages import GtShTelemetryFromMultipurposeSensor
+from schema.messages import GtShTelemetryFromMultipurposeSensor_Maker
+from schema.messages import GtTelemetry
+from schema.messages import GtTelemetry_Maker
 
 
 class GtTelemetryMessage(Message[GtTelemetry]):

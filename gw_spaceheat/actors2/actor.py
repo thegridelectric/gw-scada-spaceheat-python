@@ -6,12 +6,15 @@ SyncAsyncInteractionThread
 
 
 from abc import ABC
-from typing import TypeVar, Generic, Any
+from typing import Any
+from typing import Generic
+from typing import TypeVar
 
 from actors2.actor_interface import ActorInterface
 from actors2.scada_interface import ScadaInterface
 from data_classes.sh_node import ShNode
-from proactor import SyncAsyncInteractionThread, Message
+from proactor import Message
+from proactor import SyncAsyncInteractionThread
 from proactor.proactor_interface import Communicator
 
 

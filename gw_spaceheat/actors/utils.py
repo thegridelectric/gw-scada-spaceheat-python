@@ -1,7 +1,8 @@
-import pendulum
 import enum
 import time
 from typing import NamedTuple
+
+import pendulum
 
 
 class QOS(enum.IntEnum):

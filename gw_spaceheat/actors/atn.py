@@ -1,25 +1,27 @@
 import time
 import uuid
-from typing import Dict, List, Optional
-import logging
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from actors.cloud_base import CloudBase
-from actors.utils import QOS, Subscription, responsive_sleep
+from actors.utils import QOS
+from actors.utils import Subscription
+from actors.utils import responsive_sleep
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor import Message
-from schema.enums.role.role_map import Role
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
-from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat,
-    SnapshotSpaceheat_Maker,
-)
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
+from schema.enums import Role
+from schema.messages import GsPwr
+from schema.messages import GsPwr_Maker
+from schema.messages import GtDispatchBoolean_Maker
+from schema.messages import GtShCliAtnCmd_Maker
+from schema.messages import GtShStatus
+from schema.messages import GtShStatus_Maker
+from schema.messages import SnapshotSpaceheat
+from schema.messages import SnapshotSpaceheat_Maker
 
 
 class Atn(CloudBase):

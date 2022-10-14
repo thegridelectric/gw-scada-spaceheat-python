@@ -2,11 +2,8 @@
 import json
 
 import pytest
-
 from schema.errors import MpSchemaError
-from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_maker import (
-    GtPipeFlowSensorComponent_Maker as Maker,
-)
+from schema.gt.components import GtPipeFlowSensorComponent_Maker as Maker
 
 
 def test_gt_pipe_flow_sensor_component():

@@ -8,18 +8,22 @@ Main current limitation: each interaction between asyncio code and the mqtt clie
 """
 
 import uuid
-from typing import Dict, List, Tuple, Optional, Set
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Set
+from typing import Tuple
 
-from paho.mqtt.client import Client as PahoMQTTClient, MQTTMessageInfo, MQTT_ERR_SUCCESS
+from paho.mqtt.client import MQTT_ERR_SUCCESS
+from paho.mqtt.client import Client as PahoMQTTClient
+from paho.mqtt.client import MQTTMessageInfo
 
 import config
-from proactor.message import (
-    MQTTReceiptMessage,
-    MQTTConnectMessage,
-    MQTTConnectFailMessage,
-    MQTTDisconnectMessage,
-    MQTTSubackMessage,
-)
+from proactor.message import MQTTConnectFailMessage
+from proactor.message import MQTTConnectMessage
+from proactor.message import MQTTDisconnectMessage
+from proactor.message import MQTTReceiptMessage
+from proactor.message import MQTTSubackMessage
 from proactor.sync_thread import AsyncQueueWriter
 
 

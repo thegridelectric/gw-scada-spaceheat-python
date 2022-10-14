@@ -4,7 +4,7 @@ from typing import List
 
 from schema.gt.telemetry_snapshot_spaceheat.telemetry_snapshot_spaceheat import TelemetrySnapshotSpaceheat
 from schema.errors import MpSchemaError
-from schema.enums.telemetry_name.telemetry_name_map import (
+from schema.enums import (
     TelemetryName,
     TelemetryNameMap,
 )

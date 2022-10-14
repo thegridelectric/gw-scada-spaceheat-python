@@ -15,7 +15,7 @@ Commenting out for now.
 # from data_classes.sh_node import ShNode
 # from utils import ScadaRecorder, AtnRecorder, wait_for
 #
-# from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
+# from schema.enums import TelemetryName
 #
 #
 # def test_atn_cli():

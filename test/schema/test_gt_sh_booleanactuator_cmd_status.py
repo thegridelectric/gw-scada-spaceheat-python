@@ -2,11 +2,8 @@
 import json
 
 import pytest
-
 from schema.errors import MpSchemaError
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
-    GtShBooleanactuatorCmdStatus_Maker as Maker,
-)
+from schema.messages import GtShBooleanactuatorCmdStatus_Maker as Maker
 
 
 def test_gt_sh_booleanactuator_cmd_status():

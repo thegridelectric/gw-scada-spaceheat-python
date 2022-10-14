@@ -2,11 +2,8 @@
 import json
 
 import pytest
-
 from schema.errors import MpSchemaError
-from schema.gt.gt_heartbeat_a.gt_heartbeat_a_maker import (
-    GtHeartbeatA_Maker as Maker,
-)
+from schema.gt.gt_heartbeat_a.gt_heartbeat_a_maker import GtHeartbeatA_Maker as Maker
 
 
 def test_gt_heartbeat_a():

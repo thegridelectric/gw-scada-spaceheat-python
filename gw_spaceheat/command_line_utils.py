@@ -1,5 +1,4 @@
 import importlib
-import logging
 import sys
 import argparse
 from typing import Optional, Sequence, Dict, Callable, Tuple, List
@@ -13,7 +12,7 @@ from actors2 import Scada2
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.enums.role.sh_node_role_110 import Role
+from schema.enums import Role
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 

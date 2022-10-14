@@ -4,13 +4,15 @@ from abc import abstractmethod
 import paho.mqtt.client as mqtt
 
 import helpers
-from config import ScadaSettings
 from actors.actor_base import ActorBase
-from actors.utils import QOS, gw_mqtt_topic_decode, gw_mqtt_topic_encode
-from proactor.logger import MessageSummary
+from actors.utils import QOS
+from actors.utils import gw_mqtt_topic_decode
+from actors.utils import gw_mqtt_topic_encode
+from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
-from schema.gs.gs_dispatch_maker import GsDispatch
-from schema.gs.gs_pwr import GsPwr
+from proactor.logger import MessageSummary
+from schema.messages import GsDispatch
+from schema.messages import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

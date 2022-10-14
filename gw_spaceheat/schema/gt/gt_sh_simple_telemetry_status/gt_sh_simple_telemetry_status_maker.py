@@ -4,7 +4,7 @@ from typing import List
 
 from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status import GtShSimpleTelemetryStatus
 from schema.errors import MpSchemaError
-from schema.enums.telemetry_name.telemetry_name_map import (
+from schema.enums import (
     TelemetryName,
     TelemetryNameMap,
 )

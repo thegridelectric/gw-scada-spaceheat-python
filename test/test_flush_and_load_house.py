@@ -1,35 +1,26 @@
 """Test load_house module"""
 
-from config import ScadaSettings
-from data_classes.hardware_layout import HardwareLayout
 from test.utils import flush_all
-import load_house
 
+import load_house
+from config import ScadaSettings
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
-from data_classes.components.boolean_actuator_component import (
-    BooleanActuatorCac,
-    BooleanActuatorComponent,
-)
-from data_classes.components.electric_meter_component import (
-    ElectricMeterCac,
-    ElectricMeterComponent,
-)
-from data_classes.components.pipe_flow_sensor_component import (
-    PipeFlowSensorCac,
-    PipeFlowSensorComponent,
-)
-from data_classes.components.resistive_heater_component import (
-    ResistiveHeaterCac,
-    ResistiveHeaterComponent,
-)
-from data_classes.components.temp_sensor_component import TempSensorCac, TempSensorComponent
+from data_classes.components.boolean_actuator_component import BooleanActuatorCac
+from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from data_classes.components.electric_meter_component import ElectricMeterCac
+from data_classes.components.electric_meter_component import ElectricMeterComponent
+from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorCac
+from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
+from data_classes.components.resistive_heater_component import ResistiveHeaterCac
+from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
+from data_classes.components.temp_sensor_component import TempSensorCac
+from data_classes.components.temp_sensor_component import TempSensorComponent
+from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.enums.role.sh_node_role_110 import Role
-from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker import (
-    GtElectricMeterComponent_Maker,
-)
+from schema.enums import Role
+from schema.gt.cacs import GtElectricMeterCac_Maker
+from schema.gt.components import GtElectricMeterComponent_Maker
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 
 

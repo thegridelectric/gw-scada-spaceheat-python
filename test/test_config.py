@@ -2,10 +2,13 @@
 import shutil
 import textwrap
 from pathlib import Path
-import dotenv
-from pydantic import SecretStr
 
-from config import MQTTClient, ScadaSettings, Paths, LoggingSettings
+import dotenv
+from config import LoggingSettings
+from config import MQTTClient
+from config import Paths
+from config import ScadaSettings
+from pydantic import SecretStr
 
 
 def test_mqtt_client_settings():

@@ -2,11 +2,8 @@
 import json
 
 import pytest
-
 from schema.errors import MpSchemaError
-from schema.gt.resistive_heater_component_gt.resistive_heater_component_gt_maker import (
-    ResistiveHeaterComponentGt_Maker as Maker,
-)
+from schema.gt.components import ResistiveHeaterComponentGt_Maker as Maker
 
 
 def test_resistive_heater_component_gt():
