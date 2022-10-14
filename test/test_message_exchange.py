@@ -1,18 +1,21 @@
 """An integration test which verifies some of the messages expected to be exchanged after system startup"""
 
-import load_house
 import time
+from test.utils import AtnRecorder
+from test.utils import EarRecorder
+from test.utils import HomeAloneRecorder
+from test.utils import ScadaRecorder
+from test.utils import wait_for
+
+import load_house
 from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
-from config import ScadaSettings
-from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
-from test.utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, EarRecorder, wait_for
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
-    GtDispatchBooleanLocal_Maker,
-)
-
 from actors.utils import gw_mqtt_topic_encode
+from config import ScadaSettings
+from schema.messages import GtDispatchBoolean_Maker
+from schema.messages import GtDispatchBooleanLocal_Maker
+
 
 def test_message_exchange(tmp_path, monkeypatch):
     """Run various nodes and verify they send each other messages as expected"""

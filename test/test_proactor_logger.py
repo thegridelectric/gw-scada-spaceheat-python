@@ -1,10 +1,11 @@
 import argparse
 import logging
+from test.conftest import LoggerGuards
 
-from config import Paths, ScadaSettings
+from config import Paths
+from config import ScadaSettings
 from logging_setup import setup_logging
 from proactor import ProactorLogger
-from test.conftest import LoggerGuards
 
 
 def test_proactor_logger(caplog):

@@ -9,13 +9,16 @@ optionally bi-directional bridge to the rest of the proactor universe.
 import asyncio
 import queue
 import time
-from typing import Optional, Type, Any
+from typing import Any
+from typing import Optional
+from typing import Type
 
 from actors2.actor import SyncThreadActor
 from actors2.message import GtTelemetryMessage
 from actors2.scada_interface import ScadaInterface
 from data_classes.node_config import NodeConfig
-from proactor.sync_thread import SyncAsyncQueueWriter, SyncAsyncInteractionThread
+from proactor.sync_thread import SyncAsyncInteractionThread
+from proactor.sync_thread import SyncAsyncQueueWriter
 
 
 class SimpleSensorDriverThread(SyncAsyncInteractionThread):

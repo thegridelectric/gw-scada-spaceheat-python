@@ -1,12 +1,10 @@
 """Test HomeAlone actor"""
 
+import load_house
 import pytest
 from actors.home_alone import HomeAlone
-
-import load_house
 from config import ScadaSettings
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
+from schema.messages import GtShStatus_Maker
 
 
 def test_homealone_small():

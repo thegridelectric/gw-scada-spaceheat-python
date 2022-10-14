@@ -1,6 +1,6 @@
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
-from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums import MakeModel
 
 
 class UnknownBooleanActuatorDriver(BooleanActuatorDriver):

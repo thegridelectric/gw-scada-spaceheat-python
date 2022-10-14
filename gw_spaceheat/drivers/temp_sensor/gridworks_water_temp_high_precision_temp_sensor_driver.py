@@ -4,8 +4,8 @@ from typing import Optional
 
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
-from schema.enums.make_model.make_model_map import MakeModel
-from schema.enums.unit.unit_map import Unit
+from schema.enums import MakeModel
+from schema.enums import Unit
 
 
 class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):

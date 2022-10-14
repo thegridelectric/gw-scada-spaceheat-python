@@ -4,13 +4,9 @@ import time
 
 import load_house
 import pytest
-
-from config import ScadaSettings
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
-    GtDispatchBooleanLocal_Maker,
-)
-
 from actors.boolean_actuator import BooleanActuator
+from config import ScadaSettings
+from schema.messages import GtDispatchBooleanLocal_Maker
 
 
 def test_boolean_actuator():

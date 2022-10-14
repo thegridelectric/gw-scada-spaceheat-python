@@ -14,20 +14,18 @@ Particular questions:
 * Test support should be implemented / cleaner.
 """
 
-from proactor.message import Header, Message
-from proactor.proactor_interface import (
-    CommunicatorInterface,
-    Communicator,
-    Runnable,
-    ServicesInterface,
-)
-from proactor.proactor_implementation import Proactor, MQTTCodec
-from proactor.sync_thread import (
-    AsyncQueueWriter,
-    SyncAsyncQueueWriter,
-    SyncAsyncInteractionThread,
-)
 from proactor.logger import ProactorLogger
+from proactor.message import Header
+from proactor.message import Message
+from proactor.proactor_implementation import MQTTCodec
+from proactor.proactor_implementation import Proactor
+from proactor.proactor_interface import Communicator
+from proactor.proactor_interface import CommunicatorInterface
+from proactor.proactor_interface import Runnable
+from proactor.proactor_interface import ServicesInterface
+from proactor.sync_thread import AsyncQueueWriter
+from proactor.sync_thread import SyncAsyncInteractionThread
+from proactor.sync_thread import SyncAsyncQueueWriter
 
 __all__ = [
     "AsyncQueueWriter",

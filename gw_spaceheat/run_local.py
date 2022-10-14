@@ -5,7 +5,7 @@ import dotenv
 import load_house
 from command_line_utils import run_nodes_main, parse_args
 from config import ScadaSettings
-from schema.enums.role.role_map import Role
+from schema.enums import Role
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])

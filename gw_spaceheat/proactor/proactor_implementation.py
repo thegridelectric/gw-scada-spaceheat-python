@@ -2,28 +2,30 @@
 
 import asyncio
 import traceback
-from abc import ABC, abstractmethod
-from typing import Dict, List, Awaitable, Any, Optional, Iterable
+from abc import ABC
+from abc import abstractmethod
+from typing import Any
+from typing import Awaitable
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Optional
 
 from paho.mqtt.client import MQTTMessageInfo
 
 import config
 from proactor.logger import ProactorLogger
-from proactor.message import (
-    Message,
-    MessageType,
-    MQTTConnectPayload,
-    MQTTReceiptPayload,
-    MQTTConnectFailPayload,
-    MQTTDisconnectPayload,
-    MQTTSubackPayload,
-)
+from proactor.message import Message
+from proactor.message import MessageType
+from proactor.message import MQTTConnectFailPayload
+from proactor.message import MQTTConnectPayload
+from proactor.message import MQTTDisconnectPayload
+from proactor.message import MQTTReceiptPayload
+from proactor.message import MQTTSubackPayload
 from proactor.mqtt import MQTTClients
-from proactor.proactor_interface import (
-    ServicesInterface,
-    Runnable,
-    CommunicatorInterface,
-)
+from proactor.proactor_interface import CommunicatorInterface
+from proactor.proactor_interface import Runnable
+from proactor.proactor_interface import ServicesInterface
 from proactor.sync_thread import AsyncQueueWriter
 
 

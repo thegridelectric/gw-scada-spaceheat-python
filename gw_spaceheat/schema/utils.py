@@ -1,12 +1,9 @@
 import datetime
-import inspect
 import json
 import re
 import socket
 import subprocess
-import sys
 from contextlib import closing
-from typing import Callable
 
 import pytz
 
@@ -18,8 +15,6 @@ def camel_to_snake(name):
 
 
 def snake_to_camel(word):
-    import re
-
     return "".join(x.capitalize() or "_" for x in word.split("_"))
 
 
@@ -90,8 +85,7 @@ def socket_is_open(host, port) -> bool:
 def rld_alias(alias) -> str:
     words = alias.split(".")
     words = reversed(words)
-    rld_alias = ".".join(words)
-    return rld_alias
+    return ".".join(words)
 
 
 def all_equal(iterator):

@@ -2,7 +2,7 @@
 import json
 from typing import List, NamedTuple
 import schema.property_format as property_format
-from schema.enums.telemetry_name.telemetry_name_map import (
+from schema.enums import (
     TelemetryName,
     TelemetryNameMap,
 )

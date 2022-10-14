@@ -1,12 +1,12 @@
 """Test SimpleSensor actor"""
 import typing
+from test.utils import wait_for
 
 import load_house
 from actors.scada import Scada
 from actors.simple_sensor import SimpleSensor
 from config import ScadaSettings
 from data_classes.components.temp_sensor_component import TempSensorComponent
-from test.utils import wait_for
 
 
 def test_simple_sensor_periodic_update():

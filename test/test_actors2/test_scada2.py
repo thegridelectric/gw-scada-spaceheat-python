@@ -2,31 +2,27 @@
 import logging
 import time
 import typing
-
-import pytest
+from test.fragment_runner import Actors
+from test.fragment_runner import AsyncFragmentRunner
+from test.fragment_runner import ProtocolFragment
+from test.utils import Scada2Recorder
+from test.utils import await_for
 
 import load_house
-from actors.scada import ScadaCmdDiagnostic
+import pytest
 from actors2 import Scada2
+from actors.scada import ScadaCmdDiagnostic
 from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status import (
-    GtShBooleanactuatorCmdStatus,
-)
-from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import SnapshotSpaceheat, SnapshotSpaceheat_Maker
-
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status import (
-    GtShMultipurposeTelemetryStatus,
-)
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status import (
-    GtShSimpleTelemetryStatus,
-)
-from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner, Actors
-from test.utils import await_for, Scada2Recorder
+from schema.enums import TelemetryName
+from schema.messages import GtShBooleanactuatorCmdStatus
+from schema.messages import GtShMultipurposeTelemetryStatus
+from schema.messages import GtShSimpleTelemetryStatus
+from schema.messages import GtShStatus
+from schema.messages import GtShStatus_Maker
+from schema.messages import SnapshotSpaceheat
+from schema.messages import SnapshotSpaceheat_Maker
 
 
 def test_scada2_small():

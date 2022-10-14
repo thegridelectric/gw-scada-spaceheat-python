@@ -1,20 +1,22 @@
 import csv
 import threading
 import uuid
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 from typing import List
 
 import paho.mqtt.client as mqtt
 
 import helpers
+from actors.utils import QOS
+from actors.utils import Subscription
 from config import ScadaSettings
-from actors.utils import QOS, Subscription
-from proactor.logger import MessageSummary
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.gs.gs_dispatch import GsDispatch
-from schema.gs.gs_pwr import GsPwr
+from proactor.logger import MessageSummary
+from schema.messages import GsDispatch
+from schema.messages import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

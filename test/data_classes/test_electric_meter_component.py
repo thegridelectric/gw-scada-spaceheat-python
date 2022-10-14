@@ -1,9 +1,7 @@
 import load_house
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker import (
-    GtElectricMeterComponent_Maker,
-)
+from schema.gt.components import GtElectricMeterComponent_Maker
 
 
 def test_electric_meter_component():

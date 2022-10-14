@@ -1,7 +1,7 @@
 import load_house
 from config import ScadaSettings
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
-from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
+from schema.gt.cacs import GtElectricMeterCac_Maker
 
 
 def test_electric_meter_cac():

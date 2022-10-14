@@ -2,7 +2,6 @@
 import json
 
 import pytest
-
 from schema.errors import MpSchemaError
 from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import (
     GtSensorReportingConfig_Maker as Maker,

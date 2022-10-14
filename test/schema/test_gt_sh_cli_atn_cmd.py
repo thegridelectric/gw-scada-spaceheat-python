@@ -2,11 +2,8 @@
 import json
 
 import pytest
-
 from schema.errors import MpSchemaError
-from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import (
-    GtShCliAtnCmd_Maker as Maker,
-)
+from schema.messages import GtShCliAtnCmd_Maker as Maker
 
 
 def test_gt_sh_cli_atn_cmd():

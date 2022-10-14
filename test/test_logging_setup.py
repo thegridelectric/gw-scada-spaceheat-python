@@ -1,12 +1,16 @@
 import argparse
 import logging
 import logging.handlers
+from test.test_logging_config import get_exp_formatted_time
 from typing import Optional
 
-from config import Paths, ScadaSettings
-from logging_config import LoggingSettings, LoggerLevels, DEFAULT_LOG_FILE_NAME, RotatingFileHandlerSettings
+from config import Paths
+from config import ScadaSettings
+from logging_config import DEFAULT_LOG_FILE_NAME
+from logging_config import LoggerLevels
+from logging_config import LoggingSettings
+from logging_config import RotatingFileHandlerSettings
 from logging_setup import setup_logging
-from test.test_logging_config import get_exp_formatted_time
 
 
 def test_get_default_logging_config(caplog, capsys):

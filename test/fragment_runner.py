@@ -1,27 +1,34 @@
 import asyncio
 import time
-from typing import Optional, List, Sequence, Dict, Callable
+from typing import Callable
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Sequence
 
 import actors2
+from actors2 import ActorInterface
 from actors.actor_base import ActorBase
 from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
-from actors2 import ActorInterface
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 
 try:
-    from test.utils import (
-        ScadaRecorder,
-        AtnRecorder,
-        HomeAloneRecorder,
-        wait_for,
-        await_for,
-        Scada2Recorder,
-    )
+    from test.utils import AtnRecorder
+    from test.utils import HomeAloneRecorder
+    from test.utils import Scada2Recorder
+    from test.utils import ScadaRecorder
+    from test.utils import await_for
+    from test.utils import wait_for
 except ImportError:
-    from utils import ScadaRecorder, AtnRecorder, HomeAloneRecorder, wait_for, await_for, Scada2Recorder
+    from utils import AtnRecorder
+    from utils import HomeAloneRecorder
+    from utils import Scada2Recorder
+    from utils import ScadaRecorder
+    from utils import await_for
+    from utils import wait_for
 
 
 def delimit_str(text: str = "") -> str:

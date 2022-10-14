@@ -1,20 +1,24 @@
 """Local pytest configuration"""
 
 import contextlib
+import logging
 import os
 import shutil
-import logging
 from pathlib import Path
+from test.utils import flush_all
 from types import NoneType
-from typing import Generator, Sequence, Optional
+from typing import Generator
+from typing import Optional
+from typing import Sequence
 
+import dotenv
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-import dotenv
-
-from config import ScadaSettings, DEFAULT_LAYOUT_FILE, Paths
-from logging_config import LoggerLevels, DEFAULT_BASE_NAME
-from test.utils import flush_all
+from config import DEFAULT_LAYOUT_FILE
+from config import Paths
+from config import ScadaSettings
+from logging_config import DEFAULT_BASE_NAME
+from logging_config import LoggerLevels
 
 TEST_DOTENV_PATH = "test/.env-gw-spaceheat-test"
 TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"

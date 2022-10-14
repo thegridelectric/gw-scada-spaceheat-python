@@ -18,8 +18,8 @@ from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker impor
     GtSensorReportingConfig_Maker as ConfigMaker,
 )
 
-from schema.enums.unit.unit_map import Unit
-from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums import Unit
+from schema.enums import MakeModel
 
 
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent

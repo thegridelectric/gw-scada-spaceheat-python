@@ -3,7 +3,7 @@ import json
 
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
 from schema.errors import MpSchemaError
-from schema.enums.telemetry_name.telemetry_name_map import (
+from schema.enums import (
     TelemetryName,
     TelemetryNameMap,
 )

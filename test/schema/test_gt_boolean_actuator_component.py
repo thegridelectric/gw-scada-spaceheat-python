@@ -2,11 +2,8 @@
 import json
 
 import pytest
-
 from schema.errors import MpSchemaError
-from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component_maker import (
-    GtBooleanActuatorComponent_Maker as Maker,
-)
+from schema.gt.components import GtBooleanActuatorComponent_Maker as Maker
 
 
 def test_gt_boolean_actuator_component():

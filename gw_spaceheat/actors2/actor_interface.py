@@ -2,14 +2,13 @@
 
 import importlib
 import sys
-from abc import ABC, abstractmethod
+from abc import ABC
+from abc import abstractmethod
 
 from data_classes.sh_node import ShNode
-from proactor.proactor_interface import (
-    CommunicatorInterface,
-    Runnable,
-    ServicesInterface,
-)
+from proactor.proactor_interface import CommunicatorInterface
+from proactor.proactor_interface import Runnable
+from proactor.proactor_interface import ServicesInterface
 
 
 class ActorInterface(CommunicatorInterface, Runnable, ABC):

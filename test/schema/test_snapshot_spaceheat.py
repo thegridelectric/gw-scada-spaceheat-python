@@ -2,11 +2,8 @@
 import json
 
 import pytest
-
 from schema.errors import MpSchemaError
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat_Maker as Maker,
-)
+from schema.messages import SnapshotSpaceheat_Maker as Maker
 
 
 def test_snapshot_spaceheat():

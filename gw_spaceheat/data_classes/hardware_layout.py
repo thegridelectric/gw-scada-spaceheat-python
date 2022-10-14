@@ -24,36 +24,36 @@ from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
 )
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums.make_model.spaceheat_make_model_100 import MakeModel
-from schema.enums.role.sh_node_role_110 import Role
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
+from schema.enums import MakeModel
+from schema.enums import Role
+from schema.enums import TelemetryName
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from helpers import camel_to_snake
-from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac_maker import (
+from schema.gt.cacs import (
     GtBooleanActuatorCac_Maker,
 )
-from schema.gt.gt_boolean_actuator_component.gt_boolean_actuator_component_maker import (
+from schema.gt.components import (
     GtBooleanActuatorComponent_Maker,
 )
 
-from schema.gt.resistive_heater_cac_gt.resistive_heater_cac_gt_maker import ResistiveHeaterCacGt_Maker
-from schema.gt.resistive_heater_component_gt.resistive_heater_component_gt_maker import (
+from schema.gt.cacs import ResistiveHeaterCacGt_Maker
+from schema.gt.components import (
     ResistiveHeaterComponentGt_Maker,
 )
 
-from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker import (
+from schema.gt.cacs import GtElectricMeterCac_Maker
+from schema.gt.components import (
     GtElectricMeterComponent_Maker,
 )
-from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac_maker import (
+from schema.gt.cacs import (
     GtPipeFlowSensorCac_Maker,
 )
-from schema.gt.gt_pipe_flow_sensor_component.gt_pipe_flow_sensor_component_maker import (
+from schema.gt.components import (
     GtPipeFlowSensorComponent_Maker,
 )
-from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac_maker import GtTempSensorCac_Maker
-from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component_maker import (
+from schema.gt.cacs import GtTempSensorCac_Maker
+from schema.gt.components import (
     GtTempSensorComponent_Maker,
 )
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker

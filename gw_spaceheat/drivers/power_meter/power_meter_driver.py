@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional, List
 from data_classes.components.electric_meter_component import ElectricMeterComponent
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
+from schema.enums import TelemetryName
 
 
 class PowerMeterDriver(ABC):

@@ -1,11 +1,15 @@
 """Test communication issues"""
-import pytest
-from paho.mqtt.client import MQTT_ERR_CONN_LOST
+from test.fragment_runner import AsyncFragmentRunner
+from test.fragment_runner import ProtocolFragment
+from test.utils import CommEvents
+from test.utils import ScadaRecorder
+from test.utils import await_for
+from test.utils import wait_for
 
 import load_house
+import pytest
 from config import ScadaSettings
-from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
-from test.utils import ScadaRecorder, wait_for, CommEvents, await_for
+from paho.mqtt.client import MQTT_ERR_CONN_LOST
 
 
 def test_simple_resubscribe_on_comm_restore(tmp_path, monkeypatch):

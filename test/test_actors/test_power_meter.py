@@ -1,29 +1,29 @@
 """Test PowerMeter actor"""
 import json
 import typing
-import pytest
+from test.utils import AtnRecorder
+from test.utils import ScadaRecorder
+from test.utils import flush_all
+from test.utils import wait_for
 
 import load_house
+import pytest
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
+from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.hardware_layout import HardwareLayout
-from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
-from named_tuples.telemetry_tuple import TelemetryTuple
-
-from test.utils import wait_for, ScadaRecorder, AtnRecorder, flush_all
-from actors.utils import gw_mqtt_topic_encode
-
-from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
-
-from schema.enums.make_model.make_model_map import MakeModel
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
-from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac_maker import GtElectricMeterCac_Maker
-
-from schema.gt.gt_electric_meter_component.gt_electric_meter_component_maker import (
-    GtElectricMeterComponent_Maker,
+from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
+    GridworksSimPm1_PowerMeterDriver,
 )
+from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
+from named_tuples.telemetry_tuple import TelemetryTuple
+from schema.enums import MakeModel
+from schema.enums import TelemetryName
+from schema.gt.cacs import GtElectricMeterCac_Maker
+from schema.gt.components import GtElectricMeterComponent_Maker
+
 
 def test_driver_loading():
 

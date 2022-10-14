@@ -4,7 +4,8 @@ import asyncio
 import queue
 import threading
 from abc import ABC
-from typing import Any, Optional
+from typing import Any
+from typing import Optional
 
 from actors.utils import responsive_sleep
 

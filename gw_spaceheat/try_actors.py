@@ -8,7 +8,7 @@ import load_house
 from command_line_utils import run_nodes_main, parse_args
 from config import ScadaSettings
 from data_classes.sh_node import ShNode
-from schema.enums.role.role_map import Role
+from schema.enums import Role
 
 
 def get_single_node(nodes: dict) -> Optional[ShNode]:

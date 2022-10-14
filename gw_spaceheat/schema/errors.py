@@ -1,4 +1,2 @@
-class MpSchemaError(Exception):
+class MpSchemaError(ValueError):
     """Base class for Message Protocol Schema errors"""
-
-    pass

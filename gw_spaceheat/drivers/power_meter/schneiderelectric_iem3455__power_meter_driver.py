@@ -5,8 +5,8 @@ import numpy as np
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 
-from schema.enums.make_model.make_model_map import MakeModel
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
+from schema.enums import MakeModel
+from schema.enums import TelemetryName
 
 
 PORT = "/dev/ttyUSB0"

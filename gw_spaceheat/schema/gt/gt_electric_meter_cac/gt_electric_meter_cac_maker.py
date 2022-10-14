@@ -5,11 +5,11 @@ from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 
 from schema.gt.gt_electric_meter_cac.gt_electric_meter_cac import GtElectricMeterCac
 from schema.errors import MpSchemaError
-from schema.enums.local_comm_interface.local_comm_interface_map import (
+from schema.enums import (
     LocalCommInterface,
     LocalCommInterfaceMap,
 )
-from schema.enums.make_model.make_model_map import (
+from schema.enums import (
     MakeModel,
     MakeModelMap,
 )

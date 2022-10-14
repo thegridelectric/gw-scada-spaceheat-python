@@ -5,7 +5,7 @@ from data_classes.cacs.boolean_actuator_cac import BooleanActuatorCac
 
 from schema.gt.gt_boolean_actuator_cac.gt_boolean_actuator_cac import GtBooleanActuatorCac
 from schema.errors import MpSchemaError
-from schema.enums.make_model.make_model_map import (
+from schema.enums import (
     MakeModel,
     MakeModelMap,
 )
