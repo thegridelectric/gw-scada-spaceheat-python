@@ -1,6 +1,7 @@
 import time
 import uuid
 from typing import Dict, List, Optional
+import logging
 
 from actors.cloud_base import CloudBase
 from actors.utils import QOS, Subscription, responsive_sleep
@@ -8,6 +9,7 @@ from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
+from proactor import Message
 from schema.enums.role.role_map import Role
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
@@ -70,6 +72,10 @@ class Atn(CloudBase):
                 Topic=f"{self.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
             ),
+            Subscription(
+                Topic=f"{self.scada_g_node_alias}/{Message.__fields__['type_name'].default}",
+                Qos=QOS.AtMostOnce,
+            ),
         ]
 
     def on_gw_message(self, from_node: ShNode, payload):
@@ -93,7 +99,7 @@ class Atn(CloudBase):
         status_file = self.status_output_dir / f"GtShStatus.{payload.SlotStartUnixS}.json"
         with status_file.open("w") as f:
             f.write(payload.as_type())
-        print(f"Wrote status file [{status_file}]")
+        self.logger.info(f"Wrote status file [{status_file}]")
 
     def gt_sh_cli_scada_response_received(self, payload: SnapshotSpaceheat):
         snapshot = payload.Snapshot
@@ -102,7 +108,7 @@ class Atn(CloudBase):
                 self.screen_print(f"No data for {node.alias}")
 
         for i in range(len(snapshot.AboutNodeAliasList)):
-            print(
+            self.logger.info(
                 f"{snapshot.AboutNodeAliasList[i]}: {snapshot.ValueList[i]} {snapshot.TelemetryNameList[i].value}"
             )
 
@@ -151,4 +157,4 @@ class Atn(CloudBase):
 
     def screen_print(self, note):
         header = f"{self.node.alias}: "
-        print(header + note)
+        self.logger.info(header + note)

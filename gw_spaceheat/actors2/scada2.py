@@ -3,8 +3,12 @@
 import asyncio
 import time
 import typing
+from typing import (
+    Any,
+    List,
+    Optional,
+)
 from abc import abstractmethod, ABC
-from typing import Any, List, Optional
 
 from paho.mqtt.client import MQTTMessageInfo
 
@@ -13,8 +17,8 @@ from actors.utils import QOS
 from actors2.actor_interface import ActorInterface
 from actors2.message import (
     GtDispatchBooleanLocalMessage,
-    ScadaDBGPing,
-    ShowSubscriptions,
+    ScadaDBG,
+    ScadaDBGCommands,
 )
 from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
@@ -26,6 +30,8 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor, MQTTCodec
+from schema.decoders import Decoders
+from schema.decoders_factory import DecoderExtractor, create_message_payload_discriminator
 from schema.gs.gs_pwr import GsPwr
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean import GtDispatchBoolean
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
@@ -37,33 +43,41 @@ from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
 from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd import (
     GtDriverBooleanactuatorCmd,
 )
+from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import GtDriverBooleanactuatorCmd_Maker
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd import GtShCliAtnCmd
 from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
 from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor import (
     GtShTelemetryFromMultipurposeSensor,
 )
+from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import \
+    GtShTelemetryFromMultipurposeSensor_Maker
 from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
-from schema.schema_switcher import TypeMakerByAliasDict
+from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
 
 from actors.utils import gw_mqtt_topic_encode, gw_mqtt_topic_decode
 
 class ScadaMQTTCodec(MQTTCodec, ABC):
     ENCODING = "utf-8"
     hardware_layout: HardwareLayout
+    decoders: Decoders
 
-    def __init__(self, hardware_layout: HardwareLayout):
+    def __init__(self, hardware_layout: HardwareLayout, decoders: Decoders):
         self.hardware_layout = hardware_layout
+        self.decoders = Decoders().merge(decoders)
         super().__init__()
 
-    def encode(self, payload: Any) -> bytes:
-        if isinstance(payload, bytes):
-            encoded = payload
+    def encode(self, content: Any) -> bytes:
+        if isinstance(content, bytes):
+            encoded = content
         else:
-            payload_as_type = payload.as_type()
-            if isinstance(payload_as_type, bytes):
-                encoded = payload_as_type
+            if hasattr(content, "as_type"):
+                payload_as_str = content.as_type()
             else:
-                encoded = payload_as_type.encode(self.ENCODING)
+                payload_as_str = content.json()
+            if isinstance(payload_as_str, bytes):
+                encoded = payload_as_str
+            else:
+                encoded = payload_as_str.encode(self.ENCODING)
         return encoded
 
     def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
@@ -72,21 +86,42 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
             (from_alias, type_alias) = decoded_topic.split("/")
         except IndexError:
             raise Exception("topic must be of format A/B")
-        if type_alias not in TypeMakerByAliasDict.keys():
+        if type_alias not in self.decoders:
             raise Exception(
-                f"Type {type_alias} not recognized. Should be in TypeMakerByAliasDict keys!"
+                f"Type {type_alias} not recognized. Available decoders: {self.decoders.types()}"
             )
         self.validate_source_alias(from_alias)
-        return TypeMakerByAliasDict[type_alias].type_to_tuple(
-            receipt_payload.message.payload.decode(self.ENCODING)
-        )
+        # TODO: This should probably be decode_str so that we can handle payloads that are not json, e.g.
+        #       GSwPwr over mqtt.
+        return self.decoders.decode_json(type_alias, receipt_payload.message.payload, encoding=self.ENCODING)
 
     @abstractmethod
     def validate_source_alias(self, source_alias: str):
         pass
 
 
+ScadaMessageDecoder = create_message_payload_discriminator(
+    "ScadaMessageDecoder",
+    [
+        "proactor.message",
+        "actors2.message"
+    ]
+)
+
+
 class GridworksMQTTCodec(ScadaMQTTCodec):
+
+    def __init__(self, hardware_layout: HardwareLayout):
+        super().__init__(
+            hardware_layout,
+            decoders=DecoderExtractor().from_objects(
+                [
+                    GtDispatchBoolean_Maker,
+                    GtShCliAtnCmd_Maker,
+                ],
+                message_payload_discriminator=ScadaMessageDecoder,
+            )
+        )
 
     def validate_source_alias(self, source_alias: str):
         if source_alias != self.hardware_layout.atn_g_node_alias:
@@ -96,6 +131,20 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
 
 
 class LocalMQTTCodec(ScadaMQTTCodec):
+
+    def __init__(self, hardware_layout: HardwareLayout):
+        super().__init__(
+            hardware_layout,
+            decoders=DecoderExtractor().from_objects(
+                [
+                    GtDriverBooleanactuatorCmd_Maker,
+                    GtShTelemetryFromMultipurposeSensor_Maker,
+                    GtTelemetry_Maker,
+                ],
+                message_payload_discriminator=ScadaMessageDecoder,
+            )
+        )
+
     def validate_source_alias(self, source_alias: str):
         if source_alias not in self.hardware_layout.nodes.keys():
             raise Exception(f"alias {source_alias} not in ShNode.by_alias keys!")
@@ -180,9 +229,9 @@ class Scada2(ScadaInterface, Proactor):
     def send_status(self):
         status = self._data.make_status(self._last_status_second)
         self._data.status_to_store[status.StatusUid] = status
-        self._publish_to_gridworks(status)
+        self._publish_to_gridworks(status.asdict())
         self._publish_to_local(self._node, status)
-        self._publish_to_gridworks(self._data.make_snapshot())
+        self._publish_to_gridworks(self._data.make_snaphsot_payload())
         self._data.flush_latest_readings()
 
     def next_status_second(self) -> int:
@@ -213,21 +262,24 @@ class Scada2(ScadaInterface, Proactor):
     def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
         return f"{from_alias}/{payload.TypeAlias}"
 
+    # TODO: gw_mqtt_topic_encode belongs in a better place
     def _publish_to_gridworks(
         self, payload, qos: QOS = QOS.AtMostOnce
     ) -> MQTTMessageInfo:
+        message = Message(src=self._layout.scada_g_node_alias, payload=payload)
         return self._encode_and_publish(
             Scada2.GRIDWORKS_MQTT,
-            topic=self.gridworks_mqtt_topic(payload),
-            payload=payload,
+            topic=gw_mqtt_topic_encode(message.mqtt_topic()),
+            payload=message,
             qos=qos,
         )
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
+        message = Message(src=from_node.alias, payload=payload)
         return self._encode_and_publish(
             Scada2.LOCAL_MQTT,
-            topic=self.local_mqtt_topic(from_node.alias, payload),
-            payload=payload,
+            topic=message.mqtt_topic(),
+            payload=message,
             qos=qos,
         )
 
@@ -272,12 +324,13 @@ class Scada2(ScadaInterface, Proactor):
                 self.gt_driver_booleanactuator_cmd_record_received(
                     from_node, message.payload
                 )
-        # TODO: Replace these with generalized debug message
-        elif isinstance(message.payload, ScadaDBGPing):
+        elif isinstance(message.payload, ScadaDBG):
             path_dbg |= 0x00000400
-        elif isinstance(message.payload, ShowSubscriptions):
-            path_dbg |= 0x00000800
-            self.log_subscriptions("message")
+            # TODO: mqtt????
+            match message.payload.command:
+                case ScadaDBGCommands.show_subscriptions:
+                    path_dbg |= 0x00000400
+                    self.log_subscriptions("message")
         else:
             raise ValueError(
                 f"There is not handler for mqtt message payload type [{type(message.payload)}]"
@@ -371,7 +424,7 @@ class Scada2(ScadaInterface, Proactor):
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
             return
-        self._publish_to_gridworks(self._data.make_snapshot())
+        self._publish_to_gridworks(self._data.make_snaphsot_payload())
 
     @property
     def scada_atn_fast_dispatch_contract_is_alive(self):

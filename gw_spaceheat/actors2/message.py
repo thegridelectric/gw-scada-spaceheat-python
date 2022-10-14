@@ -1,13 +1,18 @@
 """Proactor-internal messages wrappers of Scada message structures."""
 
 import time
-import typing
+from typing import (
+    List,
+    Optional,
+    Literal,
+    cast
+)
+from enum import Enum
 
-from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 
-from named_tuples.telemetry_tuple import TelemetryTuple
-from proactor.message import Message, Header, KnownNames
+from logging_config import LoggerLevels
+from proactor.message import Message, Header, as_enum
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
 from schema.gs.gs_pwr import GsPwr
 from schema.gs.gs_pwr_maker import GsPwr_Maker
@@ -111,7 +116,7 @@ class GsPwrMessage(Message[GsPwr]):
         dst: str,
         power: int,
     ):
-        payload = typing.cast(GsPwr, GsPwr_Maker(power=power).tuple)
+        payload = cast(GsPwr, GsPwr_Maker(power=power).tuple)
         super().__init__(
             header=Header(
                 src=src,
@@ -147,48 +152,19 @@ class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSe
         )
 
 
-# TODO: Replace with generalized debug message
+class ScadaDBGCommands(Enum):
+    show_subscriptions = "show_subscriptions"
 
 
-class ScadaDBGPing(BaseModel):
-    number: int
+class ScadaDBG(BaseModel):
+    levels: LoggerLevels = LoggerLevels(
+        message_summary=-1,
+        lifecycle=-1,
+        comm_event=-1,
+    )
+    command: Optional[ScadaDBGCommands] = None
+    type_name: Literal["gridworks.scada.dbg.000"] = "gridworks.scada.dbg.000"
 
-
-# TODO: Replace with generalized debug message
-
-
-class ScadaDBGPingMessage(Message[ScadaDBGPing]):
-    def __init__(
-        self,
-        number: int,
-    ):
-        super().__init__(
-            header=Header(
-                src="foo",
-                dst=KnownNames.proactor.value,
-                message_type=self.__class__.__name__,
-            ),
-            payload=ScadaDBGPing(number=number),
-        )
-
-
-# TODO: Replace with generalized debug message
-
-
-class ShowSubscriptions(BaseModel):
-    pass
-
-
-# TODO: Replace with generalized debug message
-
-
-class ShowSubscriptionsMessage(Message[ShowSubscriptions]):
-    def __init__(self):
-        super().__init__(
-            header=Header(
-                src="foo",
-                dst=KnownNames.proactor.value,
-                message_type=self.__class__.__name__,
-            ),
-            payload=ShowSubscriptions(),
-        )
+    @validator("command", pre=True)
+    def command_value(cls, v):
+        return as_enum(v, ScadaDBGCommands)

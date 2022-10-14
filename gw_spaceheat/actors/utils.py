@@ -19,11 +19,11 @@ DEFAULT_STEP_DURATION = 0.1
 
 
 def gw_mqtt_topic_encode(candidate: str):
-    return candidate.replace(".", "_")
+    return candidate.replace(".", "-")
 
 
 def gw_mqtt_topic_decode(candidate: str):
-    return candidate.replace("_", ".")
+    return candidate.replace("-", ".")
 
 
 def dot_to_underscore(candidate):

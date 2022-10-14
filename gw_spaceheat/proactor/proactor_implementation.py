@@ -29,7 +29,7 @@ from proactor.sync_thread import AsyncQueueWriter
 
 class MQTTCodec(ABC):
     @abstractmethod
-    def encode(self, payload: Any) -> bytes:
+    def encode(self, content: Any) -> bytes:
         pass
 
     @abstractmethod
@@ -80,6 +80,12 @@ class Proactor(ServicesInterface, Runnable):
         encoder = self._mqtt_codecs[client]
         return self._mqtt_clients.publish(client, topic, encoder.encode(payload), qos)
 
+    # TODO: QOS out of actors
+    def _publish_message(self, client, message: Message, qos: int = 0) -> MQTTMessageInfo:
+        topic = message.mqtt_topic()
+        self._logger.message_summary("OUTq", client, topic, message)
+        return self._mqtt_clients.publish(client, topic, self._mqtt_codecs[client].encode(message), qos)
+
     def add_communicator(self, communicator: CommunicatorInterface):
         if communicator.name in self._communicators:
             raise ValueError(
@@ -100,9 +106,10 @@ class Proactor(ServicesInterface, Runnable):
                     await self.process_message(message)
                 self._receive_queue.task_done()
         # TODO: Clean this up
-        except:
-            self._logger.exception(f"ERROR in process_message")
-            self._logger.error("Stopping procator")
+        except BaseException as e:
+            if not isinstance(e, asyncio.exceptions.CancelledError):
+                self._logger.exception(f"ERROR in process_message")
+                self._logger.error("Stopping procator")
             # noinspection PyBroadException
             try:
                 self.stop()
@@ -231,7 +238,7 @@ class Proactor(ServicesInterface, Runnable):
                 self._logger.lifecycle(str_tasks(self._loop, tag="DONE", tasks=done))
                 self._logger.lifecycle(str_tasks(self._loop, tag="PENDING", tasks=running))
                 for task in done:
-                    if exception := task.exception():
+                    if not task.cancelled() and (exception := task.exception()):
                         self._logger.error(f"EXCEPTION in task {task.get_name()}  {exception}")
                         self._logger.error(traceback.format_tb(exception.__traceback__))
         except:

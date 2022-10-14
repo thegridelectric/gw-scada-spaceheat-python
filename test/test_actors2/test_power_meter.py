@@ -1,18 +1,21 @@
+import argparse
 import logging
 import typing
 
 import pytest
 
 import actors2
-from actors.utils import gw_mqtt_topic_encode
 from actors2 import Scada2
 from actors2.power_meter import PowerMeterDriverThread, PowerMeter, DriverThreadSetupHelper
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import GridworksSimPm1_PowerMeterDriver
 from load_house import load_all
+from logging_config import LoggingSettings, LoggerLevels
+from logging_setup import setup_logging
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
+from schema.gs.gs_pwr_maker import GsPwr_Maker
 from test.fragment_runner import ProtocolFragment, AsyncFragmentRunner
 from test.utils import await_for
 
@@ -134,8 +137,6 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     logging.basicConfig(level="DEBUG")
-    debug_logs_path = tmp_path / "output/debug_logs"
-    debug_logs_path.mkdir(parents=True, exist_ok=True)
 
     class Fragment(ProtocolFragment):
 
@@ -182,7 +183,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
             received_tt_counts = [
                 len(scada._data.recent_values_from_multipurpose_sensor[tt]) for tt in expected_tts
             ]
-            print(received_tt_counts)
+            scada._logger.info(received_tt_counts)
             for received_count, tt in zip(received_tt_counts, expected_tts):
                 await await_for(
                     lambda: len(scada._data.recent_values_from_multipurpose_sensor[tt]) > received_count,
@@ -194,13 +195,22 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
+async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch):
     """Verify that when a simulated change in power is generated, Scadd and Atn both get a GsPwr message"""
 
     monkeypatch.chdir(tmp_path)
-    logging.basicConfig(level="DEBUG")
-    debug_logs_path = tmp_path / "output/debug_logs"
-    debug_logs_path.mkdir(parents=True, exist_ok=True)
+    settings = ScadaSettings(
+        logging=LoggingSettings(
+            base_log_level=logging.DEBUG,
+            levels=LoggerLevels(
+                message_summary=logging.DEBUG
+            )
+        )
+    )
+    settings.paths.mkdirs()
+    errors = []
+    setup_logging(args=argparse.Namespace(), settings=settings, errors=errors)
+    assert not errors
 
     class Fragment(ProtocolFragment):
 
@@ -221,9 +231,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
         async def async_run(self):
             scada = self.runner.actors.scada2
             atn = self.runner.actors.atn
-            # TODO: Make better test-public access
-            atn_gs_pwr_topic = gw_mqtt_topic_encode(f"{scada.hardware_layout.scada_g_node_alias}/p")
-
+            atn.logger.setLevel(logging.DEBUG)
             await await_for(
                 lambda: scada._data.latest_total_power_w is not None,
                 1,
@@ -238,11 +246,11 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
             )
 
             # Simulate power changes. Verify Scada and Atn get messages for each.
-            num_changes = 2
+            num_changes = 5
             for i in range(num_changes):
-                print(f"Generating GsPwr change {i + 1}/{num_changes}")
+                scada._logger.info(f"Generating GsPwr change {i + 1}/{num_changes}")
                 latest_total_power_w = scada._data.latest_total_power_w
-                num_atn_gs_pwr = atn.num_received_by_topic[atn_gs_pwr_topic]
+                num_atn_gs_pwr = atn.num_received_by_topic[GsPwr_Maker.type_alias]
 
                 # Simulate a change in aggregate power that should trigger a GsPwr message
                 increment = int(
@@ -262,9 +270,10 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch):
 
                 # Verify Atn gets the forwarded message
                 await await_for(
-                    lambda: atn.num_received_by_topic[atn_gs_pwr_topic] > num_atn_gs_pwr,
+                    lambda: atn.num_received_by_topic[GsPwr_Maker.type_alias] > num_atn_gs_pwr,
                     1,
-                    "Atn wait for GsPwr"
+                    "Atn wait for GsPwr",
+                    err_str_f=atn.summary_str,
                 )
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, settings=settings)

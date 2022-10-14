@@ -1,4 +1,5 @@
 import importlib
+import logging
 import sys
 import argparse
 from typing import Optional, Sequence, Dict, Callable, Tuple, List
@@ -32,6 +33,11 @@ def add_default_args(
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Increase logging verbosity")
     parser.add_argument("--message-summary", action="store_true", help="Turn on message summary logging")
+    parser.add_argument(
+        "--seconds-per-report",
+        default=ScadaSettings.__fields__["seconds_per_report"].default,
+        help="Seconds per status report"
+    )
 
     parser.add_argument(
         "-n",
@@ -89,7 +95,10 @@ def run_nodes_main(
 ) -> None:
     """Load and run the configured Nodes. If dbg is not None it will be populated with the actor objects."""
     args = parse_args(argv, default_nodes=default_nodes)
-    settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
+    settings = ScadaSettings(
+        _env_file=dotenv.find_dotenv(args.env_file),
+        seconds_per_report=args.seconds_per_report,
+    )
     settings.paths.mkdirs()
     setup_logging(args, settings)
     run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
