@@ -11,11 +11,13 @@ from pydantic.generics import GenericModel
 
 EnumType = TypeVar("EnumType")
 
+
 def as_enum(value: Any, enum_type: EnumType, default: Optional[EnumType] = None) -> Optional[EnumType]:
     try:
         return enum_type(value)
     except ValueError:
         return default
+
 
 class MessageType(Enum):
     invalid = "invalid"
@@ -229,29 +231,36 @@ class MQTTDisconnectMessage(MQTTClientMessage[MQTTDisconnectPayload]):
             ),
         )
 
+
 def type_name(s: str, version: str = "000", **kwargs) -> FieldInfo:
     kwargs.pop("const", None)
     return Field(f"{s}.{version}", const=True, **kwargs)
 
+
 class EventBase(BaseModel):
-    message_id: str = Field(default_factory=lambda : str(uuid.uuid4()))
+    message_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     time_ns: int = Field(default_factory=time.time_ns)
     src: str = ""
     type_name: str = Field(const=True)
 
+
 EventT = TypeVar("EventT", bound=EventBase)
+
 
 class StartupEvent(EventBase):
     clean_shutdown: bool
     type_name: Literal["gridworks.event.startup.000"] = "gridworks.event.startup.000"
 
+
 class ShutdownEvent(EventBase):
     reason: str
     type_name: Literal["gridworks.event.shutdown.000"] = "gridworks.event.shutdown.000"
 
+
 class Problems(Enum):
     error = "error"
     warning = "warning"
+
 
 class ProblemEvent(EventBase):
     problem_type: Problems
@@ -264,26 +273,30 @@ class ProblemEvent(EventBase):
         return as_enum(v, Problems)
 
 
-
 class CommEvent(EventBase):
     ...
+
 
 class MQTTCommEvent(CommEvent):
     ...
 
+
 class MQTTConnectFailedEvent(MQTTCommEvent):
     type_name: Literal["gridworks.event.comm.mqtt.connect_failed.000"] = "gridworks.event.comm.mqtt.connect_failed.000"
+
 
 class MQTTDisconnectEvent(MQTTCommEvent):
     type_name: Literal["gridworks.event.comm.mqtt.disconnect.000"] = "gridworks.event.comm.mqtt.disconnect.000"
 
+
 class MQTTFullySubscribedEvent(CommEvent):
     type_name: Literal["gridworks.event.comm.mqtt.fully_subscribed.000"] = "gridworks.event.comm.mqtt.fully_subscribed.000"
+
 
 class EventMessage(Message[EventT], Generic[EventT]):
     ...
 
+
 class Ack(BaseModel):
     acks_message_id: str = ""
     type_name: Literal["gridworks.ack.000"] = "gridworks.ack.000"
-

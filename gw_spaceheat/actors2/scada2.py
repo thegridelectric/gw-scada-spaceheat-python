@@ -99,6 +99,7 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
     def validate_source_alias(self, source_alias: str):
         pass
 
+
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
     [
@@ -106,6 +107,7 @@ ScadaMessageDecoder = create_message_payload_discriminator(
         "actors2.message"
     ]
 )
+
 
 class GridworksMQTTCodec(ScadaMQTTCodec):
 
@@ -126,6 +128,7 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
             raise Exception(
                 f"alias {source_alias} not my AtomicTNode ({self.hardware_layout.atn_g_node_alias})!"
             )
+
 
 class LocalMQTTCodec(ScadaMQTTCodec):
 

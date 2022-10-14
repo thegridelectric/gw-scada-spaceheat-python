@@ -35,7 +35,7 @@ def add_default_args(
     parser.add_argument("--message-summary", action="store_true", help="Turn on message summary logging")
     parser.add_argument(
         "--seconds-per-report",
-        default = ScadaSettings.__fields__["seconds_per_report"].default,
+        default=ScadaSettings.__fields__["seconds_per_report"].default,
         help="Seconds per status report"
     )
 

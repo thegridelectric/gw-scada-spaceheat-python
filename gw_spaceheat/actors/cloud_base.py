@@ -149,7 +149,8 @@ class CloudBase(ABC):
             qos = QOS.AtLeastOnce
         topic = f"{self.atn_g_node_alias}/{payload.TypeAlias}"
         if self.settings.logging.verbose() or self.settings.logging.message_summary_enabled():
-            self.logger.info(MessageSummary.format("OUT", self.atn_g_node_alias, gw_mqtt_topic_encode(topic), payload, broker_flag="*"))
+            self.logger.info(MessageSummary.format("OUT", self.atn_g_node_alias,
+                             gw_mqtt_topic_encode(topic), payload, broker_flag="*"))
         self.gw_client.publish(
             topic=gw_mqtt_topic_encode(topic),
             payload=payload.as_type(),

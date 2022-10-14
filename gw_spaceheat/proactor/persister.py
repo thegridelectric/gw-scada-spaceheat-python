@@ -9,6 +9,7 @@ import pendulum
 from pendulum import DateTime
 from result import Result, Ok, Err
 
+
 class Problems(Exception):
     MAX_PROBLEMS = 10
 
@@ -18,7 +19,7 @@ class Problems(Exception):
 
     def __init__(
             self,
-            msg:str = "",
+            msg: str = "",
             warnings: Optional[list[BaseException]] = None,
             errors: Optional[list[BaseException]] = None,
             max_problems: Optional[int] = MAX_PROBLEMS
@@ -63,38 +64,50 @@ class PersisterException(Exception):
 class PersisterError(PersisterException):
     ...
 
+
 class PersisterWarning(PersisterException):
     ...
+
 
 class WriteFailed(PersisterError):
     ...
 
+
 class ContentTooLarge(PersisterError):
     ...
+
 
 class FileMissing(PersisterError):
     ...
 
+
 class ReadFailed(PersisterError):
     ...
+
 
 class TrimFailed(PersisterError):
     ...
 
+
 class ReindexError(PersisterError):
     ...
+
 
 class UIDExistedWarning(PersisterWarning):
     ...
 
+
 class FileExistedWarning(PersisterWarning):
     ...
+
 
 class FileMissingWarning(PersisterWarning):
     ...
 
+
 class UIDMissingWarning(PersisterWarning):
     ...
+
 
 class PersisterInterface(abc.ABC):
 
@@ -123,9 +136,11 @@ class PersisterInterface(abc.ABC):
     def reindex(self) -> Result[Optional[bool], Problems]:
         ...
 
+
 class _PersistedItem(NamedTuple):
     uid: str
     path: Path
+
 
 class TimedRollingFilePersister(PersisterInterface):
     DEFAULT_MAX_BYTES: int = 500 * 1024 * 1024
@@ -182,7 +197,7 @@ class TimedRollingFilePersister(PersisterInterface):
                 self._curr_bytes += len(content)
             except BaseException as e:
                 return Err(
-                        problems.add_error(e).add_error(
+                    problems.add_error(e).add_error(
                         WriteFailed(f"Open or write failed", uid=uid, path=existing_path)
                     )
                 )
@@ -195,7 +210,7 @@ class TimedRollingFilePersister(PersisterInterface):
         else:
             return Ok()
 
-    def _trim_old_storage(self, needed_bytes: int) ->  Result[bool, Problems]:
+    def _trim_old_storage(self, needed_bytes: int) -> Result[bool, Problems]:
         problems = Problems()
         last_day_dir: Optional[Path] = None
         items = list(self._pending.items())
@@ -268,7 +283,7 @@ class TimedRollingFilePersister(PersisterInterface):
         else:
             return Ok(content)
 
-    def reindex(self) ->  Result[bool, Problems]:
+    def reindex(self) -> Result[bool, Problems]:
         problems = Problems()
         self._curr_bytes = 0
         paths: list[_PersistedItem] = []
@@ -302,7 +317,7 @@ class TimedRollingFilePersister(PersisterInterface):
             self._curr_dir.mkdir(parents=True, exist_ok=True)
 
     @classmethod
-    def _make_name(cls, dt: DateTime, uid:str) -> str:
+    def _make_name(cls, dt: DateTime, uid: str) -> str:
         return f"{dt.isoformat()}.uid[{uid}].json"
 
     @classmethod

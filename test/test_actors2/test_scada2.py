@@ -442,7 +442,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
                 lambda: atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias] == 1,
                 5,
                 "Atn wait for snapshot message",
-                err_str_f = atn.summary_str
+                err_str_f=atn.summary_str
             )
 
             # Verify contents of status and snapshot are as expected

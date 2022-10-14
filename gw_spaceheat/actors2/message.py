@@ -155,6 +155,7 @@ class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSe
 class ScadaDBGCommands(Enum):
     show_subscriptions = "show_subscriptions"
 
+
 class ScadaDBG(BaseModel):
     levels: LoggerLevels = LoggerLevels(
         message_summary=-1,

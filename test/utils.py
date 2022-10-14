@@ -258,7 +258,8 @@ class AtnRecorder(Atn):
         old_num_received = self.num_received
         self.num_received += 1
         _, type_alias = gw_mqtt_topic_decode(message.topic).split("/")
-        self.logger.info(f"type_alias: [{type_alias}] present in {self.decoders.types()}? {type_alias in self.decoders.types()}")
+        self.logger.info(
+            f"type_alias: [{type_alias}] present in {self.decoders.types()}? {type_alias in self.decoders.types()}")
         if type_alias not in TypeMakerByAliasDict.keys():
             topic = self.decoders.decode_str(type_alias, message.payload).header.message_type
         else:
