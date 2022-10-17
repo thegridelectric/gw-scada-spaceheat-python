@@ -95,7 +95,7 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
     [
-        "proactor.message",
+        "gwproto.messages",
         "actors2.message"
     ]
 )

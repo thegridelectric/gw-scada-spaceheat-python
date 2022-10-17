@@ -43,21 +43,17 @@ from data_classes.components.temp_sensor_component import TempSensorCac
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from proactor import Message
+from gwproto.message import Message
 from proactor.message import MQTTConnectFailPayload
 from proactor.message import MQTTConnectPayload
 from proactor.message import MQTTDisconnectPayload
 from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
-    GtDispatchBooleanLocal,
-)
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import SnapshotSpaceheat
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat_Maker,
-)
+from schema.messages import GtDispatchBooleanLocal
+from schema.messages import GtShStatus
+from schema.messages import GtShStatus_Maker
+from schema.messages import SnapshotSpaceheat
+from schema.messages import SnapshotSpaceheat_Maker
 from schema.messages import GsDispatch
 from schema.schema_switcher import TypeMakerByAliasDict
 

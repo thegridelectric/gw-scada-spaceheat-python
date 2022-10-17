@@ -1,8 +1,8 @@
 from typing import Dict, List
 
-from schema.gs import GsDispatch_Maker
-from schema.gs import GsPwr_Maker
-from schema.gt.messages import GtDispatchBoolean_Maker
+from schema.messages import GsDispatch_Maker
+from schema.messages import GsPwr_Maker
+from schema.messages import GtDispatchBoolean_Maker
 from schema.messages import GtDispatchBooleanLocal_Maker
 from schema.messages import GtDriverBooleanactuatorCmd_Maker
 from schema.messages import GtShCliAtnCmd_Maker

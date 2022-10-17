@@ -29,7 +29,7 @@ from schema.enums import MakeModel
 from schema.enums import Role
 from schema.enums import TelemetryName
 from schema.enums import Unit
-from schema.gs.gs_pwr_maker import GsPwr_Maker
+from schema.messages import GsPwr_Maker
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig,
 )

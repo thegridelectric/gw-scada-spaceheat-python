@@ -11,9 +11,9 @@ from pydantic import BaseModel
 from pydantic import validator
 
 from logging_config import LoggerLevels
-from proactor.message import Header
-from proactor.message import Message
-from proactor.message import as_enum
+from gwproto.message import Header
+from gwproto.message import Message
+from gwproto.message import as_enum
 from schema.enums import TelemetryName
 from schema.messages import GsPwr
 from schema.messages import GsPwr_Maker

@@ -19,9 +19,9 @@ from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor.logger import MessageSummary
-from schema.decoders_factory import DecoderExtractor
-from schema.decoders_factory import OneDecoderExtractor
-from schema.decoders_factory import PydanticExtractor
+from schema import DecoderExtractor
+from schema import OneDecoderExtractor
+from schema import PydanticExtractor
 from schema.messages import GsDispatch
 from schema.messages import GsPwr
 from schema.messages import GsPwr_Maker

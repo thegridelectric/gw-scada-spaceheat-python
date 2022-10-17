@@ -16,8 +16,8 @@ from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums import Role
-from schema.gs.gs_pwr_maker import GsPwr
-from schema.gs.gs_pwr_maker import GsPwr_Maker
+from schema.messages import GsPwr
+from schema.messages import GsPwr_Maker
 from schema.messages import GtDispatchBoolean
 from schema.messages import GtDispatchBoolean_Maker
 from schema.messages import GtDispatchBooleanLocal

@@ -1,20 +1,20 @@
-from .decoders import Decoder
-from .decoders import DecoderItem
-from .decoders import Decoders
+from gwproto import Decoder
+from gwproto import DecoderItem
+from gwproto import Decoders
 
-from .decoders_factory import (
+from gwproto.decoders_factory import (
     create_message_payload_discriminator,
     DecoderExtractor,
     gridworks_message_decoder,
     MessageDiscriminator,
     OneDecoderExtractor,
-    has_pydantic_literal_type_name,
+    get_pydantic_literal_type_name,
     pydantic_named_types,
     PydanticExtractor,
 )
 
 import schema.enums as enums
-from .errors import MpSchemaError
+from gwproto.errors import MpSchemaError
 import schema.property_format as property_format
 import schema.messages as messages
 
@@ -29,7 +29,7 @@ __all__ = [
     "gridworks_message_decoder",
     "MessageDiscriminator",
     "OneDecoderExtractor",
-    "has_pydantic_literal_type_name",
+    "get_pydantic_literal_type_name",
     "pydantic_named_types",
     "PydanticExtractor",
     "enums",

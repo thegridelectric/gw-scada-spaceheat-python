@@ -2,7 +2,7 @@ from schema.enums.actor_class import *
 from schema.enums.local_comm_interface import *
 from schema.enums.make_model import *
 from schema.enums.role import *
-from schema.enums.telemetry_name import *
+from gwproto.enums.telemetry_name import *
 from schema.enums.unit import *
 
 __all__ = [
