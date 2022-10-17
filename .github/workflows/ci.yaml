@@ -32,7 +32,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r gw_spaceheat/requirements/dev.txt
+          pip install -r gw_spaceheat/requirements/test.txt
       - name: copy test_dotenv
         uses: canastro/copy-file-action@master
         with:
