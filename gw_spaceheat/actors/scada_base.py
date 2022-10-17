@@ -11,8 +11,8 @@ from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from proactor.logger import MessageSummary
-from schema.messages import GsDispatch
-from schema.messages import GsPwr
+from gwproto.messages import  GsDispatch
+from gwproto.messages import  GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

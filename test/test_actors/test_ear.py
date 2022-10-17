@@ -9,11 +9,11 @@ import load_house
 from actors.simple_sensor import SimpleSensor
 from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
-from schema import property_format
-from schema.enums import TelemetryName
-from schema.messages import GtShSimpleTelemetryStatus
-from schema.messages import GtShStatus
-from schema.messages import GtShStatus_Maker
+from gwproto import property_format
+from gwproto.enums import TelemetryName
+from gwproto.messages import  GtShSimpleTelemetryStatus
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
 
 
 def test_scada_ear_connection():

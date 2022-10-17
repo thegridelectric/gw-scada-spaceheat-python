@@ -13,10 +13,10 @@ from command_line_utils import run_async_actors_main
 from command_line_utils import run_nodes_main
 from config import ScadaSettings
 from schema.enums import Role
-from schema.messages import GtShStatus
-from schema.messages import GtShStatus_Maker
-from schema.messages import SnapshotSpaceheat
-from schema.messages import SnapshotSpaceheat_Maker
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import  SnapshotSpaceheat_Maker
 
 
 @pytest.mark.parametrize(

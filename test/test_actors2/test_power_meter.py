@@ -21,8 +21,8 @@ from logging_config import LoggerLevels
 from logging_config import LoggingSettings
 from logging_setup import setup_logging
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums import TelemetryName
-from schema.messages import GsPwr_Maker
+from gwproto.enums import TelemetryName
+from gwproto.messages import  GsPwr_Maker
 
 
 def test_power_meter_small():

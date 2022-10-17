@@ -4,7 +4,7 @@ import load_house
 import pytest
 from actors.home_alone import HomeAlone
 from config import ScadaSettings
-from schema.messages import GtShStatus_Maker
+from gwproto.messages import  GtShStatus_Maker
 
 
 def test_homealone_small():

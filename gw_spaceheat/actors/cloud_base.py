@@ -19,14 +19,14 @@ from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor.logger import MessageSummary
-from schema import DecoderExtractor
-from schema import OneDecoderExtractor
-from schema import PydanticExtractor
-from schema.messages import GsDispatch
-from schema.messages import GsPwr
-from schema.messages import GsPwr_Maker
-from schema.messages import GtShStatus_Maker
-from schema.messages import SnapshotSpaceheat_Maker
+from gwproto import DecoderExtractor
+from gwproto import OneDecoderExtractor
+from gwproto import PydanticExtractor
+from gwproto.messages import  GsDispatch
+from gwproto.messages import  GsPwr
+from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat_Maker
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

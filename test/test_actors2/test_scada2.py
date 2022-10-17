@@ -15,14 +15,14 @@ from actors.scada import ScadaCmdDiagnostic
 from config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums import TelemetryName
-from schema.messages import GtShBooleanactuatorCmdStatus
-from schema.messages import GtShMultipurposeTelemetryStatus
-from schema.messages import GtShSimpleTelemetryStatus
-from schema.messages import GtShStatus
-from schema.messages import GtShStatus_Maker
-from schema.messages import SnapshotSpaceheat
-from schema.messages import SnapshotSpaceheat_Maker
+from gwproto.enums import TelemetryName
+from gwproto.messages import  GtShBooleanactuatorCmdStatus
+from gwproto.messages import  GtShMultipurposeTelemetryStatus
+from gwproto.messages import  GtShSimpleTelemetryStatus
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import  SnapshotSpaceheat_Maker
 
 
 def test_scada2_small():

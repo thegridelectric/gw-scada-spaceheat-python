@@ -2,7 +2,7 @@
 import json
 
 import pytest
-from schema.errors import MpSchemaError
+from gwproto import MpSchemaError
 from schema.gt.components import GtBooleanActuatorComponent_Maker as Maker
 
 

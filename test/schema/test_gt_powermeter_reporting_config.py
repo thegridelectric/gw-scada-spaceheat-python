@@ -2,7 +2,7 @@
 import json
 
 import pytest
-from schema.errors import MpSchemaError
+from gwproto import MpSchemaError
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig_Maker as Maker,
 )

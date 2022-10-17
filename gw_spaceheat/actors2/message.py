@@ -11,20 +11,20 @@ from pydantic import BaseModel
 from pydantic import validator
 
 from logging_config import LoggerLevels
+from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.message import as_enum
-from schema.enums import TelemetryName
-from schema.messages import GsPwr
-from schema.messages import GsPwr_Maker
-from schema.messages import GtDispatchBooleanLocal
-from schema.messages import GtDispatchBooleanLocal_Maker
-from schema.messages import GtDriverBooleanactuatorCmd
-from schema.messages import GtDriverBooleanactuatorCmd_Maker
-from schema.messages import GtShTelemetryFromMultipurposeSensor
-from schema.messages import GtShTelemetryFromMultipurposeSensor_Maker
-from schema.messages import GtTelemetry
-from schema.messages import GtTelemetry_Maker
+from gwproto.messages import  GsPwr
+from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import  GtDispatchBooleanLocal
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtDriverBooleanactuatorCmd
+from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import  GtTelemetry
+from gwproto.messages import  GtTelemetry_Maker
 
 
 class GtTelemetryMessage(Message[GtTelemetry]):

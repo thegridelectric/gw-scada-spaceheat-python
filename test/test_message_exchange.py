@@ -13,8 +13,8 @@ from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
-from schema.messages import GtDispatchBoolean_Maker
-from schema.messages import GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtDispatchBoolean_Maker
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
 
 
 def test_message_exchange(tmp_path, monkeypatch):

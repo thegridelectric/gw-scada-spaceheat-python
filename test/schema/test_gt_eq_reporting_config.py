@@ -2,7 +2,7 @@
 import json
 
 import pytest
-from schema.errors import MpSchemaError
+from gwproto import MpSchemaError
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig_Maker as Maker,
 )

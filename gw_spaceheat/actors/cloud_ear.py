@@ -7,10 +7,10 @@ from actors.utils import responsive_sleep
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.messages import GsPwr_Maker
-from schema.messages import GtDispatchBoolean_Maker
-from schema.messages import GtShStatus_Maker
-from schema.messages import SnapshotSpaceheat_Maker
+from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import  GtDispatchBoolean_Maker
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat_Maker
 
 
 class CloudEar(CloudBase):

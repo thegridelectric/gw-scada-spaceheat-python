@@ -49,12 +49,12 @@ from proactor.message import MQTTConnectPayload
 from proactor.message import MQTTDisconnectPayload
 from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
-from schema.messages import GtDispatchBooleanLocal
-from schema.messages import GtShStatus
-from schema.messages import GtShStatus_Maker
-from schema.messages import SnapshotSpaceheat
-from schema.messages import SnapshotSpaceheat_Maker
-from schema.messages import GsDispatch
+from gwproto.messages import  GtDispatchBooleanLocal
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import  SnapshotSpaceheat_Maker
+from gwproto.messages import  GsDispatch
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

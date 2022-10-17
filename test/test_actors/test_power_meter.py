@@ -20,7 +20,7 @@ from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums import MakeModel
-from schema.enums import TelemetryName
+from gwproto.enums import TelemetryName
 from schema.gt.cacs import GtElectricMeterCac_Maker
 from schema.gt.components import GtElectricMeterComponent_Maker
 

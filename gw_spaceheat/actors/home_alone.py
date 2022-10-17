@@ -9,9 +9,9 @@ from actors.utils import responsive_sleep
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.messages import GtDispatchBooleanLocal_Maker
-from schema.messages import GtShStatus
-from schema.messages import GtShStatus_Maker
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
 
 
 class HomeAlone(ActorBase):

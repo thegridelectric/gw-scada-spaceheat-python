@@ -34,7 +34,7 @@ from proactor.sync_thread import SyncAsyncInteractionThread
 from proactor.sync_thread import SyncAsyncQueueWriter
 from schema.enums import MakeModel
 from schema.enums import Role
-from schema.enums import TelemetryName
+from gwproto.enums import TelemetryName
 from schema.enums import Unit
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (

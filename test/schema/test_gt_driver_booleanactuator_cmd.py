@@ -2,8 +2,8 @@
 import json
 
 import pytest
-from schema.errors import MpSchemaError
-from schema.messages import GtDriverBooleanactuatorCmd_Maker as Maker
+from gwproto import MpSchemaError
+from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker as Maker
 
 
 def test_gt_driver_booleanactuator_cmd():

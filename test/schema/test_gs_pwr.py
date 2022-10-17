@@ -1,6 +1,6 @@
 import pytest
-from schema.errors import MpSchemaError
-from schema.messages import GsPwr_Maker as Maker
+from gwproto import MpSchemaError
+from gwproto.messages import  GsPwr_Maker as Maker
 
 
 def test_gs_pwr():
