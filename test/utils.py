@@ -23,7 +23,6 @@ from typing import Union
 from actors2 import Scada2
 from actors.actor_base import ActorBase
 from actors.atn import Atn
-from actors.cloud_ear import CloudEar
 from actors.home_alone import HomeAlone
 from actors.scada import Scada
 from actors.utils import gw_mqtt_topic_decode
@@ -317,37 +316,6 @@ class HomeAloneRecorder(HomeAlone):
             f"HomeAloneRecorder [{self.node.alias}] status_received: {self.status_received}  "
             f"latest_status_payload: {self.latest_status_payload}"
         )
-
-
-class EarRecorder(CloudEar):
-    num_received: int
-    num_received_by_topic: Dict[str, int]
-    latest_payload: Optional[Any]
-    payloads: List[Any]
-
-    def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        self.num_received = 0
-        self.num_received_by_topic = defaultdict(int)
-        self.latest_payload = None
-        self.payloads = []
-        super().__init__(settings=settings, hardware_layout=hardware_layout)
-
-    def on_gw_mqtt_message(self, client, userdata, message):
-        self.num_received += 1
-        self.num_received_by_topic[message.topic] += 1
-        super().on_gw_mqtt_message(client, userdata, message)
-
-    def on_gw_message(self, from_node: ShNode, payload):
-        self.latest_payload = payload
-        self.payloads.append(payload)
-        super().on_gw_message(from_node, payload)
-
-    def summary_str(self):
-        """Summarize results in a string"""
-        s = f"EarRecorder  num_received: {self.num_received}  latest_payload: {self.latest_payload}"
-        for topic in sorted(self.num_received_by_topic):
-            s += f"\n\t{self.num_received_by_topic[topic]:3d}: [{topic}]"
-        return s
 
 
 class ScadaRecorder(Scada):
