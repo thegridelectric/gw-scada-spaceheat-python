@@ -1,18 +1,18 @@
 import logging
-import time
 from logging.handlers import RotatingFileHandler
+import time
 from pathlib import Path
 from typing import Iterable
 
 from pydantic import BaseModel, validator
+
+from .paths import DEFAULT_BASE_NAME
 
 DEFAULT_LOGGING_FORMAT = "%(asctime)s %(message)s"
 DEFAULT_FRACTIONAL_SECOND_FORMAT = "%s.%03d"
 DEFAULT_LOG_FILE_NAME = "scada.log"
 DEFAULT_BYTES_PER_LOG_FILE = 2 * 1024 * 1024
 DEFAULT_NUM_LOG_FILES = 10
-DEFAULT_BASE_NAME = "gridworks"
-
 
 class FormatterSettings(BaseModel):
     fmt: str = DEFAULT_LOGGING_FORMAT

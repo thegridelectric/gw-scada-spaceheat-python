@@ -17,8 +17,8 @@ from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
 from load_house import load_all
-from logging_config import LoggerLevels
-from logging_config import LoggingSettings
+from config import LoggerLevels
+from config import LoggingSettings
 from logging_setup import setup_logging
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName

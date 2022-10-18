@@ -10,7 +10,7 @@ from typing import cast
 from pydantic import BaseModel
 from pydantic import validator
 
-from logging_config import LoggerLevels
+from config import LoggerLevels
 from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message

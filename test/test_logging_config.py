@@ -2,14 +2,14 @@ import logging
 import time
 
 import pytest
-from logging_config import DEFAULT_BASE_NAME
-from logging_config import DEFAULT_BYTES_PER_LOG_FILE
-from logging_config import DEFAULT_LOG_FILE_NAME
-from logging_config import DEFAULT_NUM_LOG_FILES
-from logging_config import FormatterSettings
-from logging_config import LoggerLevels
-from logging_config import LoggingSettings
-from logging_config import RotatingFileHandlerSettings
+from config import DEFAULT_BASE_NAME
+from config import DEFAULT_BYTES_PER_LOG_FILE
+from config import DEFAULT_LOG_FILE_NAME
+from config import DEFAULT_NUM_LOG_FILES
+from config import FormatterSettings
+from config import LoggerLevels
+from config import LoggingSettings
+from config import RotatingFileHandlerSettings
 from pydantic import ValidationError
 
 

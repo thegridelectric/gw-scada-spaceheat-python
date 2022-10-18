@@ -15,7 +15,7 @@ from actors.actor_base import ActorBase
 from actors.atn import Atn
 from command_line_utils import add_default_args
 from command_line_utils import setup_logging
-from logging_config import LoggerLevels
+from config import LoggerLevels
 from config import LoggingSettings
 from config import ScadaSettings
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
