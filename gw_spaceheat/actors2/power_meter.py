@@ -1,7 +1,6 @@
 """Implements PowerMeter via SyncThreadActor and PowerMeterDriverThread. A helper class, DriverThreadSetupHelper,
 isolates code used only in PowerMeterDriverThread constructor. """
 
-import asyncio
 import time
 import typing
 from collections import OrderedDict
@@ -31,7 +30,6 @@ from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.sync_thread import SyncAsyncInteractionThread
-from proactor.sync_thread import SyncAsyncQueueWriter
 from schema.enums import MakeModel
 from schema.enums import Role
 from gwproto.enums import TelemetryName
@@ -213,12 +211,10 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         settings: ScadaSettings,
         hardware_layout: HardwareLayout,
         telemetry_destination: str,
-        channel: SyncAsyncQueueWriter,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,
     ):
         super().__init__(
-            channel=channel,
             name=node.alias,
             responsive_sleep_step_seconds=responsive_sleep_step_seconds,
             daemon=daemon,
@@ -389,7 +385,6 @@ class PowerMeter(SyncThreadActor):
         name: str,
         services: ScadaInterface,
         settings: Optional[ScadaSettings] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
 
         super().__init__(
@@ -400,9 +395,5 @@ class PowerMeter(SyncThreadActor):
                 settings=services.settings if settings is None else settings,
                 hardware_layout=services.hardware_layout,
                 telemetry_destination=services.name,
-                channel=SyncAsyncQueueWriter(
-                    loop=loop if loop is not None else asyncio.get_event_loop(),
-                    async_queue=services.async_receive_queue,
-                ),
             ),
         )

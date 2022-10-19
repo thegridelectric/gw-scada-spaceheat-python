@@ -132,7 +132,6 @@ async def run_async_actors(
             actor_nodes.append(node)
 
     scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-    scada.start()
     try:
         await scada.run_forever()
     finally:

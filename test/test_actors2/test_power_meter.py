@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import logging
 import typing
 from test.fragment_runner import AsyncFragmentRunner
@@ -24,12 +25,10 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
 from gwproto.messages import  GsPwr_Maker
 
-
-def test_power_meter_small():
+def test_power_meter_small2():
     settings = ScadaSettings()
     layout = load_all(settings)
     scada = Scada2("a.s", settings, layout)
-
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
         PowerMeter("a.s", services=scada)
@@ -37,6 +36,7 @@ def test_power_meter_small():
     meter = PowerMeter("a.m", services=scada)
     assert isinstance(meter._sync_thread, PowerMeterDriverThread)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
+    driver_thread.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
     setup_helper = DriverThreadSetupHelper(meter.node, settings, layout)
 
     assert set(driver_thread.nameplate_telemetry_value.keys()) == set(

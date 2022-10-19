@@ -14,6 +14,7 @@ from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
+from proactor import Proactor
 
 try:
     from test.utils import AtnRecorder
@@ -248,7 +249,8 @@ class AsyncFragmentRunner(FragmentRunner):
 
     def start(self):
         for actor in self.requested.values():
-            actor.start()
+            if not isinstance(actor, Proactor):
+                actor.start()
 
     async def await_connect(self):
         for actor in self.requested.values():
@@ -295,7 +297,6 @@ class AsyncFragmentRunner(FragmentRunner):
             start_time = time.time()
             delimit("STARTING")
             self.start()
-            # TODO: Work out how this fits with Scada2.start()
             asyncio.create_task(self.actors.scada2.run_forever(), name="run_forever")
             await self.await_connect()
             delimit("CONNECTED")

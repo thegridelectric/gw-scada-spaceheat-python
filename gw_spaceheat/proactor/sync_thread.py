@@ -16,15 +16,17 @@ class AsyncQueueWriter:
     It is assumed the asynchronous reader has access to the asyncio Queue "await get()" from directly from it.
     """
 
-    _loop: asyncio.AbstractEventLoop
-    _async_queue: asyncio.Queue
+    _loop: Optional[asyncio.AbstractEventLoop] = None
+    _async_queue: Optional[asyncio.Queue] = None
 
-    def __init__(self, loop: asyncio.AbstractEventLoop, async_queue: asyncio.Queue):
+    def set_async_loop(self, loop: asyncio.AbstractEventLoop, async_queue: asyncio.Queue) -> None:
         self._loop = loop
         self._async_queue = async_queue
 
     def put(self, item: Any) -> None:
         """Write to asyncio queue in a threadsafe way."""
+        if self._loop is None or self._async_queue is None:
+            raise ValueError("ERROR. start(loop, async_queue) must be called prior to put(item)")
         self._loop.call_soon_threadsafe(self._async_queue.put_nowait, item)
 
 
@@ -34,19 +36,16 @@ class SyncAsyncQueueWriter:
     It is assumed the asynchronous reader has access to the asyncio Queue "await get()" from directly from it.
     """
 
-    _loop: asyncio.AbstractEventLoop
-    _async_queue: asyncio.Queue
+    _loop: Optional[asyncio.AbstractEventLoop] = None
+    _async_queue: Optional[asyncio.Queue] = None
     sync_queue: Optional[queue.Queue]
 
-    def __init__(
-        self,
-        loop: asyncio.AbstractEventLoop,
-        async_queue: asyncio.Queue,
-        sync_queue: Optional[queue.Queue] = None,
-    ):
+    def __init__(self, sync_queue: Optional[queue.Queue] = None):
+        self.sync_queue = sync_queue
+
+    def set_async_loop(self, loop: asyncio.AbstractEventLoop, async_queue: asyncio.Queue) -> None:
         self._loop = loop
         self._async_queue = async_queue
-        self.sync_queue = sync_queue
 
     def put_to_sync_queue(
         self, item: Any, block: bool = True, timeout: Optional[float] = None
@@ -56,6 +55,8 @@ class SyncAsyncQueueWriter:
 
     def put_to_async_queue(self, item: Any):
         """Write to asynchronous queue in a threadsafe way."""
+        if self._loop is None or self._async_queue is None:
+            raise ValueError("ERROR. start(loop, async_queue) must be called prior to put(item)")
         self._loop.call_soon_threadsafe(self._async_queue.put_nowait, item)
 
     def get_from_sync_queue(
@@ -79,14 +80,17 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
 
     def __init__(
         self,
-        channel: SyncAsyncQueueWriter,
+        channel: Optional[SyncAsyncQueueWriter] = None,
         name: Optional[str] = None,
         iterate_sleep_seconds: Optional[float] = None,
         responsive_sleep_step_seconds=SLEEP_STEP_SECONDS,
         daemon: bool = True,
     ):
         super().__init__(name=name, daemon=daemon)
-        self._channel = channel
+        if channel is None:
+            self._channel = SyncAsyncQueueWriter()
+        else:
+            self._channel = channel
         self._iterate_sleep_seconds = iterate_sleep_seconds
         self._responsive_sleep_step_seconds = responsive_sleep_step_seconds
         self.running = None
@@ -102,6 +106,13 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
 
     def request_stop(self) -> None:
         self.running = False
+
+    def set_async_loop(self, loop: asyncio.AbstractEventLoop, async_queue: asyncio.Queue) -> None:
+        self._channel.set_async_loop(loop, async_queue)
+
+    def set_async_loop_and_start(self, loop: asyncio.AbstractEventLoop, async_queue: asyncio.Queue) -> None:
+        self.set_async_loop(loop, async_queue)
+        self.start()
 
     def put_to_sync_queue(
         self, message: Any, block: bool = True, timeout: Optional[float] = None

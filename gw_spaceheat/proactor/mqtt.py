@@ -6,7 +6,7 @@ Main current limitation: each interaction between asyncio code and the mqtt clie
 (as is provided inside paho for certain functions such as publish()) or an explicit message based API.
 
 """
-
+import asyncio
 import uuid
 from typing import Dict
 from typing import List
@@ -135,6 +135,7 @@ class MQTTClientWrapper:
             )
 
     def on_connect(self, _, userdata, flags, rc):
+        print("on_connect")
         self._receive_queue.put(
             MQTTConnectMessage(
                 client_name=self.name,
@@ -198,7 +199,8 @@ class MQTTClients:
         for client in self._clients.values():
             client.stop()
 
-    def start(self):
+    def start(self, loop: asyncio.AbstractEventLoop, async_queue: asyncio.Queue):
+        self._send_queue.set_async_loop(loop, async_queue)
         for client in self._clients.values():
             client.start()
 

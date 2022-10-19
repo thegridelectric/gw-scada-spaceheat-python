@@ -61,7 +61,7 @@ class SyncThreadActor(Actor, Generic[SyncThreadT]):
         self._sync_thread.put_to_sync_queue(message)
 
     def start(self):
-        self._sync_thread.start()
+        self._sync_thread.set_async_loop_and_start(self.services.event_loop, self.services.async_receive_queue)
 
     def stop(self):
         self._sync_thread.request_stop()

@@ -51,8 +51,6 @@ class Atn(CloudBase):
                 self.layout.nodes.values()
             )
         )
-        for node in self.power_nodes:
-            self.latest_power_w[node] = None
         self.latest_status: Optional[GtShStatus] = None
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
