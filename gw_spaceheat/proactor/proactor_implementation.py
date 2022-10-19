@@ -111,7 +111,7 @@ class Proactor(ServicesInterface, Runnable):
         except BaseException as e:
             if not isinstance(e, asyncio.exceptions.CancelledError):
                 self._logger.exception(f"ERROR in process_message")
-                self._logger.error("Stopping procator")
+                self._logger.error("Stopping proactor")
             # noinspection PyBroadException
             try:
                 self.stop()
@@ -170,7 +170,11 @@ class Proactor(ServicesInterface, Runnable):
         decoder = self._mqtt_codecs.get(message.payload.client_name, None)
         if decoder is not None:
             path_dbg |= 0x00000001
-            decoded = decoder.decode(message.payload)
+            try:
+                decoded = decoder.decode(message.payload)
+            except:
+                self._logger.exception("ERROR decoding [%s]", message.payload)
+                raise
         else:
             path_dbg |= 0x00000002
             decoded = message.payload

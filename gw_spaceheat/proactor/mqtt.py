@@ -135,7 +135,6 @@ class MQTTClientWrapper:
             )
 
     def on_connect(self, _, userdata, flags, rc):
-        print("on_connect")
         self._receive_queue.put(
             MQTTConnectMessage(
                 client_name=self.name,

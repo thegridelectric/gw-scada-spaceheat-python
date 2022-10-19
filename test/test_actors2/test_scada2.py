@@ -1,7 +1,11 @@
 """Test Scada2"""
+import argparse
 import logging
 import time
 import typing
+
+from config import LoggingSettings
+from logging_setup import setup_logging
 from test.fragment_runner import Actors
 from test.fragment_runner import AsyncFragmentRunner
 from test.fragment_runner import ProtocolFragment
@@ -329,8 +333,15 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_scada2_snaphot_request_delivery():
+async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch):
     """Verify scada sends snapshot upon request from Atn"""
+
+    monkeypatch.chdir(tmp_path)
+    settings = ScadaSettings(seconds_per_report=2, logging=LoggingSettings(base_log_level=logging.DEBUG))
+    settings.paths.mkdirs(parents=True)
+    errors = []
+    setup_logging(args=argparse.Namespace(), settings=settings, errors=errors)
+    assert not errors
 
     class Fragment(ProtocolFragment):
 
@@ -343,8 +354,9 @@ async def test_scada2_snaphot_request_delivery():
             atn.status()
             await await_for(
                 lambda: atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias] == 1,
-                10,
-                "Atn wait for snapshot message"
+                3,
+                "Atn wait for snapshot message",
+                err_str_f=atn.summary_str
             )
 
     await AsyncFragmentRunner.async_run_fragment(Fragment)
@@ -356,9 +368,8 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     MultipurposeSensor."""
 
     monkeypatch.chdir(tmp_path)
-    debug_logs_path = tmp_path / "output/debug_logs"
-    debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings(seconds_per_report=2)
+    settings.paths.mkdirs(parents=True)
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,
