@@ -4,6 +4,7 @@ from .mqtt import MQTTClient
 from .paths import Paths
 from .logging import LoggingSettings
 
+
 class ScadaSettings(BaseSettings):
     """Settings for the GridWorks scada."""
     local_mqtt: MQTTClient = MQTTClient()

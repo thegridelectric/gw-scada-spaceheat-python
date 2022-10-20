@@ -204,8 +204,6 @@ class Proactor(ServicesInterface, Runnable):
         self.start_tasks()
         await self.join()
 
-
-
     def stop_mqtt(self):
         self._mqtt_clients.stop()
 

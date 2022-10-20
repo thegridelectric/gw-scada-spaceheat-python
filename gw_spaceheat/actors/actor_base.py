@@ -15,8 +15,8 @@ from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.logger import MessageSummary
-from gwproto.messages import  GsDispatch
-from gwproto.messages import  GsPwr
+from gwproto.messages import GsDispatch
+from gwproto.messages import GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

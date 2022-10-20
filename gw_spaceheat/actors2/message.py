@@ -15,16 +15,16 @@ from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.message import as_enum
-from gwproto.messages import  GsPwr
-from gwproto.messages import  GsPwr_Maker
-from gwproto.messages import  GtDispatchBooleanLocal
-from gwproto.messages import  GtDispatchBooleanLocal_Maker
-from gwproto.messages import  GtDriverBooleanactuatorCmd
-from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
-from gwproto.messages import  GtShTelemetryFromMultipurposeSensor
-from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
-from gwproto.messages import  GtTelemetry
-from gwproto.messages import  GtTelemetry_Maker
+from gwproto.messages import GsPwr
+from gwproto.messages import GsPwr_Maker
+from gwproto.messages import GtDispatchBooleanLocal
+from gwproto.messages import GtDispatchBooleanLocal_Maker
+from gwproto.messages import GtDriverBooleanactuatorCmd
+from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import GtTelemetry
+from gwproto.messages import GtTelemetry_Maker
 
 
 class GtTelemetryMessage(Message[GtTelemetry]):

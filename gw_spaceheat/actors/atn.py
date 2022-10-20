@@ -14,14 +14,14 @@ from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor import Message
 from schema.enums import Role
-from gwproto.messages import  GsPwr
-from gwproto.messages import  GsPwr_Maker
-from gwproto.messages import  GtDispatchBoolean_Maker
-from gwproto.messages import  GtShCliAtnCmd_Maker
-from gwproto.messages import  GtShStatus
-from gwproto.messages import  GtShStatus_Maker
-from gwproto.messages import  SnapshotSpaceheat
-from gwproto.messages import  SnapshotSpaceheat_Maker
+from gwproto.messages import GsPwr
+from gwproto.messages import GsPwr_Maker
+from gwproto.messages import GtDispatchBoolean_Maker
+from gwproto.messages import GtShCliAtnCmd_Maker
+from gwproto.messages import GtShStatus
+from gwproto.messages import GtShStatus_Maker
+from gwproto.messages import SnapshotSpaceheat
+from gwproto.messages import SnapshotSpaceheat_Maker
 
 
 class Atn(CloudBase):

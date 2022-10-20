@@ -34,18 +34,19 @@ from proactor.proactor_implementation import Proactor
 from gwproto import DecoderExtractor
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
-from gwproto.messages import  GsPwr
-from gwproto.messages import  GtDispatchBoolean
-from gwproto.messages import  GtDispatchBoolean_Maker
-from gwproto.messages import  GtDispatchBooleanLocal
-from gwproto.messages import  GtDriverBooleanactuatorCmd
-from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
-from gwproto.messages import  GtShCliAtnCmd
-from gwproto.messages import  GtShCliAtnCmd_Maker
-from gwproto.messages import  GtShTelemetryFromMultipurposeSensor
-from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
-from gwproto.messages import  GtTelemetry
-from gwproto.messages import  GtTelemetry_Maker
+from gwproto.messages import GsPwr
+from gwproto.messages import GtDispatchBoolean
+from gwproto.messages import GtDispatchBoolean_Maker
+from gwproto.messages import GtDispatchBooleanLocal
+from gwproto.messages import GtDriverBooleanactuatorCmd
+from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import GtShCliAtnCmd
+from gwproto.messages import GtShCliAtnCmd_Maker
+from gwproto.messages import GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import GtTelemetry
+from gwproto.messages import GtTelemetry_Maker
+
 
 class ScadaMQTTCodec(MQTTCodec, ABC):
     ENCODING = "utf-8"

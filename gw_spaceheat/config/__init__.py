@@ -48,5 +48,3 @@ __all__ = [
     "ScadaSettings",
 
 ]
-
-

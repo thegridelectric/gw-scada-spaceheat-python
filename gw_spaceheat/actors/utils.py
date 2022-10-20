@@ -16,6 +16,8 @@ class Subscription(NamedTuple):
 DEFAULT_STEP_DURATION = 0.1
 
 # TODO: move to gwproto
+
+
 def gw_mqtt_topic_encode(candidate: str):
     return candidate.replace(".", "-")
 
