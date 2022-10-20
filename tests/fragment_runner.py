@@ -17,12 +17,12 @@ from data_classes.hardware_layout import HardwareLayout
 from proactor import Proactor
 
 try:
-    from test.utils import AtnRecorder
-    from test.utils import HomeAloneRecorder
-    from test.utils import Scada2Recorder
-    from test.utils import ScadaRecorder
-    from test.utils import await_for
-    from test.utils import wait_for
+    from tests.utils import AtnRecorder
+    from tests.utils import HomeAloneRecorder
+    from tests.utils import Scada2Recorder
+    from tests.utils import ScadaRecorder
+    from tests.utils import await_for
+    from tests.utils import wait_for
 except ImportError:
     from utils import AtnRecorder
     from utils import HomeAloneRecorder

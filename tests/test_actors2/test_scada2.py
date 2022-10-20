@@ -6,11 +6,11 @@ import typing
 
 from config import LoggingSettings
 from logging_setup import setup_logging
-from test.fragment_runner import Actors
-from test.fragment_runner import AsyncFragmentRunner
-from test.fragment_runner import ProtocolFragment
-from test.utils import Scada2Recorder
-from test.utils import await_for
+from tests.fragment_runner import Actors
+from tests.fragment_runner import AsyncFragmentRunner
+from tests.fragment_runner import ProtocolFragment
+from tests.utils import Scada2Recorder
+from tests.utils import await_for
 
 import load_house
 import pytest

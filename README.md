@@ -54,7 +54,7 @@ A hardware layout file is necessary to run the scada locally. Find the default p
 
 For initial experiments the test layout file can be used. The test layout file is located at:
     
-    test/config/hardware-layout.json
+    tests/config/hardware-layout.json
 
 There are some scratch notes on Pi-related setup (like enabling interfaces) in docs/pi_setup.md
 ### Adding libraries 

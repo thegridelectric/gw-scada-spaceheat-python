@@ -1,10 +1,10 @@
 """Test communication issues"""
-from test.fragment_runner import AsyncFragmentRunner
-from test.fragment_runner import ProtocolFragment
-from test.utils import CommEvents
-from test.utils import ScadaRecorder
-from test.utils import await_for
-from test.utils import wait_for
+from tests.fragment_runner import AsyncFragmentRunner
+from tests.fragment_runner import ProtocolFragment
+from tests.utils import CommEvents
+from tests.utils import ScadaRecorder
+from tests.utils import await_for
+from tests.utils import wait_for
 
 import load_house
 import pytest

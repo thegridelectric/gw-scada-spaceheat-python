@@ -5,7 +5,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from test.utils import flush_all
+from tests.utils import flush_all
 from types import NoneType
 from typing import Generator
 from typing import Optional
@@ -20,7 +20,7 @@ from config import ScadaSettings
 from config import DEFAULT_BASE_NAME
 from config import LoggerLevels
 
-TEST_DOTENV_PATH = "test/.env-gw-spaceheat-test"
+TEST_DOTENV_PATH = "tests/.env-gw-spaceheat-test"
 TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"
 TEST_HARDWARE_LAYOUT_PATH = Path(__file__).parent / "config" / DEFAULT_LAYOUT_FILE
 DUMMY_TEST_HARDWARE_LAYOUT_PATH = Path(__file__).parent / "config" / "dummy-hardware-layout.json"
@@ -120,7 +120,7 @@ def test_scada_env(request, tmp_path) -> Generator[MonkeyPatch, None, None]:
         3. Explicitly passing and parametrizing this fixture. For example, to run a test with a different hardware
           layout file, such as DUMMY_TEST_HARDWARE_LAYOUT_PATH:
 
-            >>> from test.conftest import DUMMY_TEST_HARDWARE_LAYOUT_PATH
+            >>> from tests.conftest import DUMMY_TEST_HARDWARE_LAYOUT_PATH
             >>> @pytest.mark.parametrize("test_scada_env", [("",DUMMY_TEST_HARDWARE_LAYOUT_PATH)], indirect=True)
             >>> def test_something(test_scada_env):
             >>>    assert Paths().hardware_layout.open().read() == DUMMY_TEST_HARDWARE_LAYOUT_PATH.open().read()

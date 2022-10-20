@@ -1,6 +1,6 @@
 """Test SimpleSensor actor"""
 import typing
-from test.utils import wait_for
+from tests.utils import wait_for
 
 import load_house
 from actors.scada import Scada

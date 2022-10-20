@@ -1,9 +1,9 @@
 """Test Scada actor"""
 import time
 import typing
-from test.fragment_runner import FragmentRunner
-from test.fragment_runner import ProtocolFragment
-from test.utils import wait_for
+from tests.fragment_runner import FragmentRunner
+from tests.fragment_runner import ProtocolFragment
+from tests.utils import wait_for
 
 import load_house
 import pytest

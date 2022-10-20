@@ -2,9 +2,9 @@ import argparse
 import asyncio
 import logging
 import typing
-from test.fragment_runner import AsyncFragmentRunner
-from test.fragment_runner import ProtocolFragment
-from test.utils import await_for
+from tests.fragment_runner import AsyncFragmentRunner
+from tests.fragment_runner import ProtocolFragment
+from tests.utils import await_for
 
 import actors2
 import pytest
