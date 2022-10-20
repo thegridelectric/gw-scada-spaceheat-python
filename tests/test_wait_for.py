@@ -1,9 +1,9 @@
 import asyncio
 import time
-from test.test_actor_utils import StopWatch
-from test.utils import AwaitablePredicate
-from test.utils import await_for
-from test.utils import wait_for
+from tests.test_actor_utils import StopWatch
+from tests.utils import AwaitablePredicate
+from tests.utils import await_for
+from tests.utils import wait_for
 from typing import Optional
 
 import pytest

@@ -1,7 +1,7 @@
 import argparse
 import logging
 import logging.handlers
-from test.test_logging_config import get_exp_formatted_time
+from tests.test_logging_config import get_exp_formatted_time
 from typing import Optional
 
 from config import Paths

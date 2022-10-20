@@ -1,6 +1,6 @@
 import argparse
 import logging
-from test.conftest import LoggerGuards
+from tests.conftest import LoggerGuards
 
 from config import Paths
 from config import ScadaSettings

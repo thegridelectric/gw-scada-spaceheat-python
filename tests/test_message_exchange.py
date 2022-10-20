@@ -1,10 +1,10 @@
 """An integration test which verifies some of the messages expected to be exchanged after system startup"""
 
 import time
-from test.utils import AtnRecorder
-from test.utils import HomeAloneRecorder
-from test.utils import ScadaRecorder
-from test.utils import wait_for
+from tests.utils import AtnRecorder
+from tests.utils import HomeAloneRecorder
+from tests.utils import ScadaRecorder
+from tests.utils import wait_for
 
 import load_house
 from actors.boolean_actuator import BooleanActuator

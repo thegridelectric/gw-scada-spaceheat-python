@@ -1,6 +1,6 @@
 """Test load_house module"""
 
-from test.utils import flush_all
+from tests.utils import flush_all
 
 import load_house
 from config import ScadaSettings

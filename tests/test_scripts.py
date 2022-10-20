@@ -1,11 +1,11 @@
 """Test code very similar to the scripts provided by the repo"""
 import asyncio
 import os
-from test.conftest import TEST_DOTENV_PATH
-from test.conftest import TEST_DOTENV_PATH_VAR
-from test.fragment_runner import AsyncFragmentRunner
-from test.fragment_runner import ProtocolFragment
-from test.utils import await_for
+from tests.conftest import TEST_DOTENV_PATH
+from tests.conftest import TEST_DOTENV_PATH_VAR
+from tests.fragment_runner import AsyncFragmentRunner
+from tests.fragment_runner import ProtocolFragment
+from tests.utils import await_for
 
 import load_house
 import pytest
