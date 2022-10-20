@@ -9,6 +9,7 @@ from data_classes.hardware_layout import HardwareLayout
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
+from schema.enums.actor_class.actor_class_map import ActorClass
 from schema.enums.role.role_map import Role
 from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
 from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
@@ -88,10 +89,7 @@ class Scada(ScadaBase):
         return list(
             filter(
                 lambda x: (
-                    x.role == Role.TANK_WATER_TEMP_SENSOR
-                    or x.role == Role.BOOLEAN_ACTUATOR
-                    or x.role == Role.PIPE_TEMP_SENSOR
-                    or x.role == Role.PIPE_FLOW_METER
+                    x.actor_class == ActorClass.SIMPLE_SENSOR
                 ),
                 all_nodes,
             )
