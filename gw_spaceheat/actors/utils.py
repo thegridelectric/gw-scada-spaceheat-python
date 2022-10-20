@@ -2,9 +2,6 @@ import enum
 import time
 from typing import NamedTuple
 
-import pendulum
-
-
 class QOS(enum.IntEnum):
     AtMostOnce = 0
     AtLeastOnce = 1
@@ -18,11 +15,12 @@ class Subscription(NamedTuple):
 
 DEFAULT_STEP_DURATION = 0.1
 
-
+# TODO: move to gwproto
 def gw_mqtt_topic_encode(candidate: str):
     return candidate.replace(".", "-")
 
 
+# TODO: move to gwproto
 def gw_mqtt_topic_decode(candidate: str):
     return candidate.replace("-", ".")
 

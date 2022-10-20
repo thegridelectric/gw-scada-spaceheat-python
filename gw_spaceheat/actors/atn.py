@@ -14,14 +14,14 @@ from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor import Message
 from schema.enums import Role
-from schema.messages import GsPwr
-from schema.messages import GsPwr_Maker
-from schema.messages import GtDispatchBoolean_Maker
-from schema.messages import GtShCliAtnCmd_Maker
-from schema.messages import GtShStatus
-from schema.messages import GtShStatus_Maker
-from schema.messages import SnapshotSpaceheat
-from schema.messages import SnapshotSpaceheat_Maker
+from gwproto.messages import  GsPwr
+from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import  GtDispatchBoolean_Maker
+from gwproto.messages import  GtShCliAtnCmd_Maker
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import  SnapshotSpaceheat_Maker
 
 
 class Atn(CloudBase):
@@ -51,8 +51,6 @@ class Atn(CloudBase):
                 self.layout.nodes.values()
             )
         )
-        for node in self.power_nodes:
-            self.latest_power_w[node] = None
         self.latest_status: Optional[GtShStatus] = None
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)

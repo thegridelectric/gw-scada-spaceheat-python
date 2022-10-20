@@ -6,7 +6,7 @@ import load_house
 import pytest
 from actors.boolean_actuator import BooleanActuator
 from config import ScadaSettings
-from schema.messages import GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
 
 
 def test_boolean_actuator():

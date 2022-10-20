@@ -31,22 +31,21 @@ from proactor.message import Message
 from proactor.message import MQTTReceiptPayload
 from proactor.proactor_implementation import MQTTCodec
 from proactor.proactor_implementation import Proactor
-from schema import DecoderExtractor
-from schema import Decoders
-from schema import create_message_payload_discriminator
-from schema.messages import GsPwr
-from schema.messages import GtDispatchBoolean
-from schema.messages import GtDispatchBoolean_Maker
-from schema.messages import GtDispatchBooleanLocal
-from schema.messages import GtDriverBooleanactuatorCmd
-from schema.messages import GtDriverBooleanactuatorCmd_Maker
-from schema.messages import GtShCliAtnCmd
-from schema.messages import GtShCliAtnCmd_Maker
-from schema.messages import GtShTelemetryFromMultipurposeSensor
-from schema.messages import GtShTelemetryFromMultipurposeSensor_Maker
-from schema.messages import GtTelemetry
-from schema.messages import GtTelemetry_Maker
-
+from gwproto import DecoderExtractor
+from gwproto import Decoders
+from gwproto import create_message_payload_discriminator
+from gwproto.messages import  GsPwr
+from gwproto.messages import  GtDispatchBoolean
+from gwproto.messages import  GtDispatchBoolean_Maker
+from gwproto.messages import  GtDispatchBooleanLocal
+from gwproto.messages import  GtDriverBooleanactuatorCmd
+from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import  GtShCliAtnCmd
+from gwproto.messages import  GtShCliAtnCmd_Maker
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import  GtTelemetry
+from gwproto.messages import  GtTelemetry_Maker
 
 class ScadaMQTTCodec(MQTTCodec, ABC):
     ENCODING = "utf-8"
@@ -84,7 +83,7 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
             )
         self.validate_source_alias(from_alias)
         # TODO: This should probably be decode_str so that we can handle payloads that are not json, e.g.
-        #       GSwPwr over mqtt.
+        #       GSPwr over mqtt.
         return self.decoders.decode_json(type_alias, receipt_payload.message.payload, encoding=self.ENCODING)
 
     @abstractmethod
@@ -95,7 +94,7 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
     [
-        "proactor.message",
+        "gwproto.messages",
         "actors2.message"
     ]
 )
@@ -179,17 +178,13 @@ class Scada2(ScadaInterface, Proactor):
             self.settings.gridworks_mqtt,
             GridworksMQTTCodec(self._layout),
         )
-        # TODO: take care of subscriptions better. They should be registered here and only subscribed on connect.
-        self._mqtt_clients.subscribe(
-            Scada2.GRIDWORKS_MQTT,
+        for topic in [
+            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{Message.__fields__['type_name'].default}"),
             gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"),
-            QOS.AtMostOnce,
-        )
-        self._mqtt_clients.subscribe(
-            Scada2.GRIDWORKS_MQTT,
             gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}"),
-            QOS.AtMostOnce,
-        )
+        ]:
+            self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
+
         # TODO: clean this up
         self.log_subscriptions("construction")
         now = int(time.time())

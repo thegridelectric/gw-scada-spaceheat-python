@@ -6,10 +6,10 @@ from typing import Optional
 
 from config import Paths
 from config import ScadaSettings
-from logging_config import DEFAULT_LOG_FILE_NAME
-from logging_config import LoggerLevels
-from logging_config import LoggingSettings
-from logging_config import RotatingFileHandlerSettings
+from config import DEFAULT_LOG_FILE_NAME
+from config import LoggerLevels
+from config import LoggingSettings
+from config import RotatingFileHandlerSettings
 from logging_setup import setup_logging
 
 

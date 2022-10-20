@@ -13,13 +13,11 @@ import dotenv
 import load_house
 from actors.actor_base import ActorBase
 from actors.atn import Atn
-from actors.cloud_ear import CloudEar
 from command_line_utils import add_default_args
 from command_line_utils import setup_logging
 from config import LoggerLevels
 from config import LoggingSettings
 from config import ScadaSettings
-from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
@@ -40,7 +38,6 @@ def please_be_quiet():
     """Monkey patch screen_print() to do nothing."""
     ActorBase.screen_print = i_am_quiet
     Atn.screen_print = i_am_quiet
-    CloudEar.screen_print = i_am_quiet
 
 class FragmentNames(enum.Enum):
     all = "all"

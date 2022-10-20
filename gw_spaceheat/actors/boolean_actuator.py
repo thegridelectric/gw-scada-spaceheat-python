@@ -10,10 +10,10 @@ from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
-from schema.messages import GtDispatchBooleanLocal
-from schema.messages import GtDispatchBooleanLocal_Maker
-from schema.messages import GtDriverBooleanactuatorCmd_Maker
-from schema.messages import GtTelemetry_Maker
+from gwproto.messages import  GtDispatchBooleanLocal
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import  GtTelemetry_Maker
 
 
 class BooleanActuator(ActorBase):

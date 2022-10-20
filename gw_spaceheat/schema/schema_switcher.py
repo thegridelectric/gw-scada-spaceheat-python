@@ -1,16 +1,16 @@
 from typing import Dict, List
 
-from schema.gs import GsDispatch_Maker
-from schema.gs import GsPwr_Maker
-from schema.gt.messages import GtDispatchBoolean_Maker
-from schema.messages import GtDispatchBooleanLocal_Maker
-from schema.messages import GtDriverBooleanactuatorCmd_Maker
-from schema.messages import GtShCliAtnCmd_Maker
-from schema.messages import TelemetrySnapshotSpaceheat_Maker
-from schema.messages import GtShStatus_Maker
-from schema.messages import SnapshotSpaceheat_Maker
-from schema.messages import GtShTelemetryFromMultipurposeSensor_Maker
-from schema.messages import GtTelemetry_Maker
+from gwproto.messages import  GsDispatch_Maker
+from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import  GtDispatchBoolean_Maker
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import  GtShCliAtnCmd_Maker
+from gwproto.messages import  TelemetrySnapshotSpaceheat_Maker
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat_Maker
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import  GtTelemetry_Maker
 
 TypeMakerByAliasDict: Dict[str, GtTelemetry_Maker] = {}
 schema_makers: List[GtTelemetry_Maker] = [

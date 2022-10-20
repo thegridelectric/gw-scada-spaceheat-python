@@ -2,7 +2,6 @@
 
 import time
 from test.utils import AtnRecorder
-from test.utils import EarRecorder
 from test.utils import HomeAloneRecorder
 from test.utils import ScadaRecorder
 from test.utils import wait_for
@@ -13,8 +12,8 @@ from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
-from schema.messages import GtDispatchBoolean_Maker
-from schema.messages import GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtDispatchBoolean_Maker
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
 
 
 def test_message_exchange(tmp_path, monkeypatch):
@@ -26,12 +25,11 @@ def test_message_exchange(tmp_path, monkeypatch):
     layout = load_house.load_all(settings)
     scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
     atn = AtnRecorder("a", settings=settings, hardware_layout=layout)
-    ear = EarRecorder(settings=settings, hardware_layout=layout)
     home_alone = HomeAloneRecorder("a.home", settings=settings, hardware_layout=layout)
     elt_relay = BooleanActuator("a.elt1.relay", settings=settings, hardware_layout=layout)
     meter = PowerMeter("a.m", settings=settings, hardware_layout=layout)
     thermo = SimpleSensor("a.tank.temp0", settings=settings, hardware_layout=layout)
-    actors = [scada, atn, ear, home_alone, elt_relay, meter, thermo]
+    actors = [scada, atn, home_alone, elt_relay, meter, thermo]
 
     try:
         for actor in actors:
@@ -75,16 +73,7 @@ def test_message_exchange(tmp_path, monkeypatch):
             lambda: atn.snapshot_received > 0, 10, f"cli_resp_received == 0 {atn.summary_str()}"
         )
 
-        wait_for(
-            lambda: len(ear.num_received_by_topic) > 0, 10, f"ear receipt. {ear.summary_str()}"
-        )
-
         topic = gw_mqtt_topic_encode(f"{scada.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}")
-        print(topic)
-        wait_for(
-            lambda: ear.num_received_by_topic[topic] > 0, 10, f"ear receipt. {ear.summary_str()}"
-        )
-        assert ear.num_received_by_topic[topic] > 0
 
         wait_for(
             lambda: scada.num_received_by_topic["a.elt1.relay/gt.telemetry.110"] > 0,

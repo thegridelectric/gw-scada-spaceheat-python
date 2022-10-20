@@ -2,8 +2,8 @@
 import json
 
 import pytest
-from schema.errors import MpSchemaError
-from schema.messages import GtShMultipurposeTelemetryStatus_Maker as Maker
+from gwproto import MpSchemaError
+from gwproto.messages import  GtShMultipurposeTelemetryStatus_Maker as Maker
 
 
 def test_gt_sh_multipurpose_telemetry_status():

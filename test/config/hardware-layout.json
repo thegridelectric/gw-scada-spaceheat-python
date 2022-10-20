@@ -15,7 +15,7 @@
   },
   "MyScadaGNode": {
     "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
-    "Alias": "dw1.isone.ct.newhaven.orange1",
+    "Alias": "dw1.isone.ct.newhaven.orange1.ta.scada",
     "DisplayName": "Little Orange House Garage Heating System SCADA",
     "GNodeStatusValue": "Active",
     "PrimaryGNodeRoleAlias": "Scada"

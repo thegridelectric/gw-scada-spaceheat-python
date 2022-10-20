@@ -5,6 +5,7 @@ create forward references for implementation hiearchies
 import asyncio
 from abc import ABC
 from abc import abstractmethod
+from typing import Optional
 
 from proactor.message import Message
 
@@ -81,5 +82,10 @@ class ServicesInterface(CommunicatorInterface):
 
     @property
     @abstractmethod
-    def async_receive_queue(self) -> asyncio.Queue:
+    def async_receive_queue(self) -> Optional[asyncio.Queue]:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def event_loop(self) -> Optional[asyncio.AbstractEventLoop]:
         raise NotImplementedError

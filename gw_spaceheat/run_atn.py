@@ -8,7 +8,7 @@ import load_house
 from actors.atn import Atn
 from command_line_utils import parse_args, setup_logging
 from config import ScadaSettings, Paths
-from logging_config import LoggingSettings
+from config import LoggingSettings
 
 
 def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> Atn:

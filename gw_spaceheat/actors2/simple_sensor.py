@@ -6,7 +6,6 @@ optionally bi-directional bridge to the rest of the proactor universe.
 
 """
 
-import asyncio
 import queue
 import time
 from typing import Any
@@ -114,7 +113,6 @@ class SimpleSensor(SyncThreadActor):
         driver_receives_messages: bool = False,
         responsive_sleep_step_seconds: float = SyncAsyncInteractionThread.SLEEP_STEP_SECONDS,
         daemon: bool = True,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
         if driver_thread is None:
             if driver_thread_class is None:
@@ -123,11 +121,7 @@ class SimpleSensor(SyncThreadActor):
                 name=name,
                 config=NodeConfig(services.hardware_layout.node(name), services.settings),
                 telemetry_destination=services.name,
-                channel=SyncAsyncQueueWriter(
-                    loop=loop if loop is not None else asyncio.get_event_loop(),
-                    async_queue=services.async_receive_queue,
-                    sync_queue=queue.Queue() if driver_receives_messages else None,
-                ),
+                channel=SyncAsyncQueueWriter(queue.Queue() if driver_receives_messages else None),
                 responsive_sleep_step_seconds=responsive_sleep_step_seconds,
                 daemon=daemon,
             )

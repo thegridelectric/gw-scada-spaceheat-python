@@ -11,7 +11,7 @@ from actors2.simple_sensor import SimpleSensor
 from actors2.simple_sensor import SimpleSensorDriverThread
 from proactor.message import Message
 from proactor.sync_thread import SyncAsyncInteractionThread
-from schema.messages import GtDispatchBooleanLocal
+from gwproto.messages import  GtDispatchBooleanLocal
 
 
 class DispatchRelay(BaseModel):

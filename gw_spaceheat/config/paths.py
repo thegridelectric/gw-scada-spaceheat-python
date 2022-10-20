@@ -1,28 +1,15 @@
-"""Settings for the GridWorks Scada, readable from environment and/or from env files."""
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Dict
 
 import xdg
-from pydantic import BaseModel, BaseSettings, SecretStr, validator
+from pydantic import BaseModel, validator
 
-from logging_config import LoggingSettings, DEFAULT_BASE_NAME
-
-DEFAULT_ENV_FILE = ".env"
+DEFAULT_BASE_NAME = "gridworks"
 DEFAULT_BASE_DIR = Path(DEFAULT_BASE_NAME)
 DEFAULT_NAME = "scada"
 DEFAULT_NAME_DIR = Path(DEFAULT_NAME)
 DEFAULT_LAYOUT_FILE = Path("hardware-layout.json")
 
-
-class MQTTClient(BaseModel):
-    """Settings for connecting to an MQTT Broker"""
-    host: str = "localhost"
-    port: int = 1883
-    keepalive: int = 60
-    bind_address: str = ""
-    bind_port: int = 0
-    username: Optional[str] = None
-    password: SecretStr = SecretStr("")
 
 
 class Paths(BaseModel):
@@ -88,22 +75,3 @@ class Paths(BaseModel):
         self.data_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
         self.config_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
         self.log_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
-
-class ScadaSettings(BaseSettings):
-    """Settings for the GridWorks scada."""
-    local_mqtt: MQTTClient = MQTTClient()
-    gridworks_mqtt: MQTTClient = MQTTClient()
-    paths: Paths = None
-    seconds_per_report: int = 300
-    async_power_reporting_threshold = 0.02
-    logging: LoggingSettings = LoggingSettings()
-
-    class Config:
-        env_prefix = "SCADA_"
-        env_nested_delimiter = "__"
-
-    @validator("paths", always=True)
-    def get_paths(cls, v: Paths) -> Paths:
-        if v is None:
-            v = Paths()
-        return v

@@ -23,7 +23,6 @@ from typing import Union
 from actors2 import Scada2
 from actors.actor_base import ActorBase
 from actors.atn import Atn
-from actors.cloud_ear import CloudEar
 from actors.home_alone import HomeAlone
 from actors.scada import Scada
 from actors.utils import gw_mqtt_topic_decode
@@ -43,22 +42,18 @@ from data_classes.components.temp_sensor_component import TempSensorCac
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from proactor import Message
+from gwproto.message import Message
 from proactor.message import MQTTConnectFailPayload
 from proactor.message import MQTTConnectPayload
 from proactor.message import MQTTDisconnectPayload
 from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
-    GtDispatchBooleanLocal,
-)
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import SnapshotSpaceheat
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat_Maker,
-)
-from schema.messages import GsDispatch
+from gwproto.messages import  GtDispatchBooleanLocal
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import  SnapshotSpaceheat_Maker
+from gwproto.messages import  GsDispatch
 from schema.schema_switcher import TypeMakerByAliasDict
 
 
@@ -321,37 +316,6 @@ class HomeAloneRecorder(HomeAlone):
             f"HomeAloneRecorder [{self.node.alias}] status_received: {self.status_received}  "
             f"latest_status_payload: {self.latest_status_payload}"
         )
-
-
-class EarRecorder(CloudEar):
-    num_received: int
-    num_received_by_topic: Dict[str, int]
-    latest_payload: Optional[Any]
-    payloads: List[Any]
-
-    def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        self.num_received = 0
-        self.num_received_by_topic = defaultdict(int)
-        self.latest_payload = None
-        self.payloads = []
-        super().__init__(settings=settings, hardware_layout=hardware_layout)
-
-    def on_gw_mqtt_message(self, client, userdata, message):
-        self.num_received += 1
-        self.num_received_by_topic[message.topic] += 1
-        super().on_gw_mqtt_message(client, userdata, message)
-
-    def on_gw_message(self, from_node: ShNode, payload):
-        self.latest_payload = payload
-        self.payloads.append(payload)
-        super().on_gw_message(from_node, payload)
-
-    def summary_str(self):
-        """Summarize results in a string"""
-        s = f"EarRecorder  num_received: {self.num_received}  latest_payload: {self.latest_payload}"
-        for topic in sorted(self.num_received_by_topic):
-            s += f"\n\t{self.num_received_by_topic[topic]:3d}: [{topic}]"
-        return s
 
 
 class ScadaRecorder(Scada):

@@ -27,9 +27,9 @@ from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriv
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums import MakeModel
 from schema.enums import Role
-from schema.enums import TelemetryName
+from gwproto.enums import TelemetryName
 from schema.enums import Unit
-from schema.gs.gs_pwr_maker import GsPwr_Maker
+from gwproto.messages import  GsPwr_Maker
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig,
 )
@@ -42,7 +42,7 @@ from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_mak
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig_Maker as ReportingConfig_Maker,
 )
-from schema.messages import GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
 
 
 class PowerMeter(ActorBase):

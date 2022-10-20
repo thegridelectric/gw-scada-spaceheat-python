@@ -41,8 +41,8 @@ class MQTTCodec(ABC):
 
 class Proactor(ServicesInterface, Runnable):
     _name: str
-    _loop: asyncio.AbstractEventLoop
-    _receive_queue: asyncio.Queue
+    _loop: Optional[asyncio.AbstractEventLoop] = None
+    _receive_queue: Optional[asyncio.Queue] = None
     _mqtt_clients: MQTTClients
     _mqtt_codecs: Dict[str, MQTTCodec]
     _communicators: Dict[str, CommunicatorInterface]
@@ -55,11 +55,7 @@ class Proactor(ServicesInterface, Runnable):
         self._name = name
         self._logger = logger
         # TODO: Figure out and remove the deprecation warning this produces.
-        self._loop = asyncio.get_event_loop()
-        self._receive_queue = asyncio.Queue()
-        self._mqtt_clients = MQTTClients(
-            AsyncQueueWriter(self._loop, self._receive_queue)
-        )
+        self._mqtt_clients = MQTTClients(AsyncQueueWriter())
         self._mqtt_codecs = dict()
         self._communicators = dict()
         self._tasks = []
@@ -96,8 +92,12 @@ class Proactor(ServicesInterface, Runnable):
         self._communicators[communicator.name] = communicator
 
     @property
-    def async_receive_queue(self):
+    def async_receive_queue(self) -> Optional[asyncio.Queue]:
         return self._receive_queue
+
+    @property
+    def event_loop(self) -> Optional[asyncio.AbstractEventLoop]:
+        return self._loop
 
     async def process_messages(self):
         # noinspection PyBroadException
@@ -111,7 +111,7 @@ class Proactor(ServicesInterface, Runnable):
         except BaseException as e:
             if not isinstance(e, asyncio.exceptions.CancelledError):
                 self._logger.exception(f"ERROR in process_message")
-                self._logger.error("Stopping procator")
+                self._logger.error("Stopping proactor")
             # noinspection PyBroadException
             try:
                 self.stop()
@@ -170,7 +170,11 @@ class Proactor(ServicesInterface, Runnable):
         decoder = self._mqtt_codecs.get(message.payload.client_name, None)
         if decoder is not None:
             path_dbg |= 0x00000001
-            decoded = decoder.decode(message.payload)
+            try:
+                decoded = decoder.decode(message.payload)
+            except:
+                self._logger.exception("ERROR decoding [%s]", message.payload)
+                raise
         else:
             path_dbg |= 0x00000002
             decoded = message.payload
@@ -191,20 +195,23 @@ class Proactor(ServicesInterface, Runnable):
         pass
 
     async def run_forever(self):
+        self._loop = asyncio.get_running_loop()
+        self._receive_queue = asyncio.Queue()
+        self._mqtt_clients.start(self._loop, self._receive_queue)
+        for communicator in self._communicators.values():
+            if isinstance(communicator, Runnable):
+                communicator.start()
         self.start_tasks()
         await self.join()
 
-    def start_mqtt(self):
-        self._mqtt_clients.start()
+
 
     def stop_mqtt(self):
         self._mqtt_clients.stop()
 
     def start(self):
-        self.start_mqtt()
-        for communicator in self._communicators.values():
-            if isinstance(communicator, Runnable):
-                communicator.start()
+        # TODO clean up this interface for proactor
+        raise RuntimeError("ERROR. Proactor must be started by awaiting run_forever()")
 
     def stop(self):
         self._stop_requested = True

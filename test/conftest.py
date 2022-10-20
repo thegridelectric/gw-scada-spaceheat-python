@@ -17,8 +17,8 @@ from _pytest.monkeypatch import MonkeyPatch
 from config import DEFAULT_LAYOUT_FILE
 from config import Paths
 from config import ScadaSettings
-from logging_config import DEFAULT_BASE_NAME
-from logging_config import LoggerLevels
+from config import DEFAULT_BASE_NAME
+from config import LoggerLevels
 
 TEST_DOTENV_PATH = "test/.env-gw-spaceheat-test"
 TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"
