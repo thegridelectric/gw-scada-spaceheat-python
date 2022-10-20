@@ -1,5 +1,6 @@
 import logging
-from typing import Optional, Any
+from typing import Any
+from typing import Optional
 
 import pendulum
 
@@ -46,6 +47,8 @@ class MessageSummary:
                 arrow = "<-"
             else:
                 arrow = "? "
+            if hasattr(payload_object, "payload"):
+                payload_object = payload_object.payload
             if hasattr(payload_object, "__class__"):
                 payload_str = payload_object.__class__.__name__
             else:

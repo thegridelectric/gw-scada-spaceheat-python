@@ -6,3 +6,5 @@ python-dotenv
 numpy
 pydantic
 xdg
+result
+gridworks-protocol

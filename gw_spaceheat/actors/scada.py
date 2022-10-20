@@ -1,62 +1,48 @@
 import enum
 import time
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict
+from typing import List
+from typing import Optional
 
+from actors.scada_base import ScadaBase
+from actors.utils import QOS
+from actors.utils import Subscription
+from actors.utils import responsive_sleep
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums.actor_class.actor_class_map import ActorClass
-from schema.enums.role.role_map import Role
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import (
-    GtDispatchBoolean,
-    GtDispatchBoolean_Maker,
-)
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
-    GtDispatchBooleanLocal,
-    GtDispatchBooleanLocal_Maker,
-)
-from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
-    GtDriverBooleanactuatorCmd,
-    GtDriverBooleanactuatorCmd_Maker,
-)
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
-    GtShBooleanactuatorCmdStatus,
-    GtShBooleanactuatorCmdStatus_Maker,
-)
-from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd, GtShCliAtnCmd_Maker
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat,
-    SnapshotSpaceheat_Maker,
-)
-
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
-    GtShMultipurposeTelemetryStatus,
-    GtShMultipurposeTelemetryStatus_Maker,
-)
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
-    GtShSimpleTelemetryStatus,
-    GtShSimpleTelemetryStatus_Maker,
-)
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
-
-from schema.gt.telemetry_snapshot_spaceheat.telemetry_snapshot_spaceheat_maker import (
-    TelemetrySnapshotSpaceheat,
-    TelemetrySnapshotSpaceheat_Maker,
-)
-
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
-    GtShTelemetryFromMultipurposeSensor,
-    GtShTelemetryFromMultipurposeSensor_Maker,
-)
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry, GtTelemetry_Maker
-
-from actors.scada_base import ScadaBase
-from actors.utils import QOS, Subscription, responsive_sleep
+from schema.enums import ActorClass
+from schema.enums import Role
+from gwproto.messages import  GsPwr
+from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import  GtDispatchBoolean
+from gwproto.messages import  GtDispatchBoolean_Maker
+from gwproto.messages import  GtDispatchBooleanLocal
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtDriverBooleanactuatorCmd
+from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import  GtShBooleanactuatorCmdStatus
+from gwproto.messages import  GtShBooleanactuatorCmdStatus_Maker
+from gwproto.messages import  GtShCliAtnCmd
+from gwproto.messages import  GtShCliAtnCmd_Maker
+from gwproto.messages import  GtShMultipurposeTelemetryStatus
+from gwproto.messages import  GtShMultipurposeTelemetryStatus_Maker
+from gwproto.messages import  GtShSimpleTelemetryStatus
+from gwproto.messages import  GtShSimpleTelemetryStatus_Maker
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import  GtTelemetry
+from gwproto.messages import  GtTelemetry_Maker
+from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import  SnapshotSpaceheat_Maker
+from gwproto.messages import  TelemetrySnapshotSpaceheat
+from gwproto.messages import  TelemetrySnapshotSpaceheat_Maker
 
 
 class ScadaCmdDiagnostic(enum.Enum):

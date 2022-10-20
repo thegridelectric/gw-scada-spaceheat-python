@@ -5,15 +5,15 @@ from data_classes.cacs.temp_sensor_cac import TempSensorCac
 
 from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac import GtTempSensorCac
 from schema.errors import MpSchemaError
-from schema.enums.telemetry_name.telemetry_name_map import (
+from schema.enums import (
     TelemetryName,
     TelemetryNameMap,
 )
-from schema.enums.unit.unit_map import (
+from schema.enums import (
     Unit,
     UnitMap,
 )
-from schema.enums.make_model.make_model_map import (
+from schema.enums import (
     MakeModel,
     MakeModelMap,
 )

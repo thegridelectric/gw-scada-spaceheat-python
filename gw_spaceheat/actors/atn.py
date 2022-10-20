@@ -1,23 +1,27 @@
 import time
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from actors.cloud_base import CloudBase
-from actors.utils import QOS, Subscription, responsive_sleep
+from actors.utils import QOS
+from actors.utils import Subscription
+from actors.utils import responsive_sleep
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.enums.role.role_map import Role
-from schema.gs.gs_pwr_maker import GsPwr, GsPwr_Maker
-from schema.gt.gt_dispatch_boolean.gt_dispatch_boolean_maker import GtDispatchBoolean_Maker
-from schema.gt.gt_sh_cli_atn_cmd.gt_sh_cli_atn_cmd_maker import GtShCliAtnCmd_Maker
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat,
-    SnapshotSpaceheat_Maker,
-)
-
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus, GtShStatus_Maker
+from proactor import Message
+from schema.enums import Role
+from gwproto.messages import  GsPwr
+from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import  GtDispatchBoolean_Maker
+from gwproto.messages import  GtShCliAtnCmd_Maker
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import  SnapshotSpaceheat_Maker
 
 
 class Atn(CloudBase):
@@ -47,8 +51,6 @@ class Atn(CloudBase):
                 self.layout.nodes.values()
             )
         )
-        for node in self.power_nodes:
-            self.latest_power_w[node] = None
         self.latest_status: Optional[GtShStatus] = None
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
@@ -69,6 +71,10 @@ class Atn(CloudBase):
             Subscription(
                 Topic=f"{self.scada_g_node_alias}/{SnapshotSpaceheat_Maker.type_alias}",
                 Qos=QOS.AtLeastOnce,
+            ),
+            Subscription(
+                Topic=f"{self.scada_g_node_alias}/{Message.__fields__['type_name'].default}",
+                Qos=QOS.AtMostOnce,
             ),
         ]
 
@@ -93,7 +99,7 @@ class Atn(CloudBase):
         status_file = self.status_output_dir / f"GtShStatus.{payload.SlotStartUnixS}.json"
         with status_file.open("w") as f:
             f.write(payload.as_type())
-        print(f"Wrote status file [{status_file}]")
+        self.logger.info(f"Wrote status file [{status_file}]")
 
     def gt_sh_cli_scada_response_received(self, payload: SnapshotSpaceheat):
         snapshot = payload.Snapshot
@@ -102,7 +108,7 @@ class Atn(CloudBase):
                 self.screen_print(f"No data for {node.alias}")
 
         for i in range(len(snapshot.AboutNodeAliasList)):
-            print(
+            self.logger.info(
                 f"{snapshot.AboutNodeAliasList[i]}: {snapshot.ValueList[i]} {snapshot.TelemetryNameList[i].value}"
             )
 
@@ -151,4 +157,4 @@ class Atn(CloudBase):
 
     def screen_print(self, note):
         header = f"{self.node.alias}: "
-        print(header + note)
+        self.logger.info(header + note)

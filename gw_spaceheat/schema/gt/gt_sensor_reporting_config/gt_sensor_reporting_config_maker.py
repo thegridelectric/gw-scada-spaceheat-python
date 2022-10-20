@@ -4,11 +4,11 @@ from typing import Optional
 
 from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config import GtSensorReportingConfig
 from schema.errors import MpSchemaError
-from schema.enums.telemetry_name.telemetry_name_map import (
+from schema.enums import (
     TelemetryName,
     TelemetryNameMap,
 )
-from schema.enums.unit.unit_map import (
+from schema.enums import (
     Unit,
     UnitMap,
 )

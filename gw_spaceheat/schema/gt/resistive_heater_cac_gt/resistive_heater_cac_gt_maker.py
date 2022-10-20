@@ -5,7 +5,7 @@ from data_classes.cacs.resistive_heater_cac import ResistiveHeaterCac
 
 from schema.gt.resistive_heater_cac_gt.resistive_heater_cac_gt import ResistiveHeaterCacGt
 from schema.errors import MpSchemaError
-from schema.enums.make_model.make_model_map import (
+from schema.enums import (
     MakeModel,
     MakeModelMap,
 )

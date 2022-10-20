@@ -1,14 +1,16 @@
 """Implements PowerMeter via SyncThreadActor and PowerMeterDriverThread. A helper class, DriverThreadSetupHelper,
 isolates code used only in PowerMeterDriverThread constructor. """
 
-import asyncio
 import time
 import typing
 from collections import OrderedDict
-from typing import Optional, Dict, List
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from actors2.actor import SyncThreadActor
-from actors2.message import GsPwrMessage, MultipurposeSensorTelemetryMessage
+from actors2.message import GsPwrMessage
+from actors2.message import MultipurposeSensorTelemetryMessage
 from actors2.scada_interface import ScadaInterface
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
@@ -27,17 +29,19 @@ from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
 )
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
-from proactor.sync_thread import SyncAsyncInteractionThread, SyncAsyncQueueWriter
-from schema.enums.make_model.spaceheat_make_model_100 import MakeModel
-from schema.enums.role.sh_node_role_110 import Role
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.enums.unit.spaceheat_unit_100 import Unit
+from proactor.sync_thread import SyncAsyncInteractionThread
+from schema.enums import MakeModel
+from schema.enums import Role
+from gwproto.enums import TelemetryName
+from schema.enums import Unit
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig_Maker,
 )
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig as ReportingConfig,
+)
+from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig_Maker,
 )
 
@@ -207,12 +211,10 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         settings: ScadaSettings,
         hardware_layout: HardwareLayout,
         telemetry_destination: str,
-        channel: SyncAsyncQueueWriter,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,
     ):
         super().__init__(
-            channel=channel,
             name=node.alias,
             responsive_sleep_step_seconds=responsive_sleep_step_seconds,
             daemon=daemon,
@@ -383,7 +385,6 @@ class PowerMeter(SyncThreadActor):
         name: str,
         services: ScadaInterface,
         settings: Optional[ScadaSettings] = None,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
     ):
 
         super().__init__(
@@ -394,9 +395,5 @@ class PowerMeter(SyncThreadActor):
                 settings=services.settings if settings is None else settings,
                 hardware_layout=services.hardware_layout,
                 telemetry_destination=services.name,
-                channel=SyncAsyncQueueWriter(
-                    loop=loop if loop is not None else asyncio.get_event_loop(),
-                    async_queue=services.async_receive_queue,
-                ),
             ),
         )

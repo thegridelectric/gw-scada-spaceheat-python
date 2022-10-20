@@ -3,41 +3,28 @@ not necessarily re-use. """
 
 import time
 import uuid
-from typing import Optional, Dict, List
+from typing import Dict
+from typing import List
+from typing import Optional
+
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status import (
-    GtShBooleanactuatorCmdStatus,
-)
-from schema.gt.gt_sh_booleanactuator_cmd_status.gt_sh_booleanactuator_cmd_status_maker import (
-    GtShBooleanactuatorCmdStatus_Maker,
-)
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status import (
-    GtShMultipurposeTelemetryStatus,
-)
-from schema.gt.gt_sh_multipurpose_telemetry_status.gt_sh_multipurpose_telemetry_status_maker import (
-    GtShMultipurposeTelemetryStatus_Maker,
-)
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status import (
-    GtShSimpleTelemetryStatus,
-)
-from schema.gt.gt_sh_simple_telemetry_status.gt_sh_simple_telemetry_status_maker import (
-    GtShSimpleTelemetryStatus_Maker,
-)
-from schema.gt.gt_sh_status.gt_sh_status import GtShStatus
-from schema.gt.gt_sh_status.gt_sh_status_maker import GtShStatus_Maker
-from schema.gt.telemetry_snapshot_spaceheat.telemetry_snapshot_spaceheat_maker import (
-    TelemetrySnapshotSpaceheat,
-    TelemetrySnapshotSpaceheat_Maker,
-)
-from schema.gt.snapshot_spaceheat.snapshot_spaceheat_maker import (
-    SnapshotSpaceheat,
-    SnapshotSpaceheat_Maker,
-)
+from gwproto.enums import TelemetryName
+from gwproto.messages import  GtShBooleanactuatorCmdStatus
+from gwproto.messages import  GtShBooleanactuatorCmdStatus_Maker
+from gwproto.messages import  GtShMultipurposeTelemetryStatus
+from gwproto.messages import  GtShMultipurposeTelemetryStatus_Maker
+from gwproto.messages import  GtShSimpleTelemetryStatus
+from gwproto.messages import  GtShSimpleTelemetryStatus_Maker
+from gwproto.messages import  GtShStatus
+from gwproto.messages import  GtShStatus_Maker
+from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import  SnapshotSpaceheat_Maker
+from gwproto.messages import  TelemetrySnapshotSpaceheat
+from gwproto.messages import  TelemetrySnapshotSpaceheat_Maker
 
 
 class ScadaData:
@@ -224,3 +211,6 @@ class ScadaData:
             from_g_node_instance_id=self.hardware_layout.scada_g_node_id,
             snapshot=self.make_telemetry_snapshot(),
         ).tuple
+
+    def make_snaphsot_payload(self) -> dict:
+        return self.make_snapshot().asdict()

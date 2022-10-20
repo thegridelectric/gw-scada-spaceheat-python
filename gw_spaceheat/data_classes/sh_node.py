@@ -3,8 +3,8 @@ from typing import Dict, Optional
 
 from data_classes.component import Component
 from data_classes.errors import DataClassLoadingError
-from schema.enums.role.role_map import RoleMap
-from schema.enums.actor_class.actor_class_map import ActorClassMap, ActorClass
+from schema.enums import RoleMap
+from schema.enums import ActorClassMap, ActorClass
 
 
 class ShNode:

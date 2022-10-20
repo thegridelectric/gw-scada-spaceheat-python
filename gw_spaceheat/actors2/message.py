@@ -1,36 +1,30 @@
 """Proactor-internal messages wrappers of Scada message structures."""
 
 import time
-import typing
-
+from enum import Enum
 from typing import List
-from pydantic import BaseModel
+from typing import Literal
+from typing import Optional
+from typing import cast
 
-from named_tuples.telemetry_tuple import TelemetryTuple
-from proactor.message import Message, Header, KnownNames
-from schema.enums.telemetry_name.spaceheat_telemetry_name_100 import TelemetryName
-from schema.gs.gs_pwr import GsPwr
-from schema.gs.gs_pwr_maker import GsPwr_Maker
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local import (
-    GtDispatchBooleanLocal,
-)
-from schema.gt.gt_dispatch_boolean_local.gt_dispatch_boolean_local_maker import (
-    GtDispatchBooleanLocal_Maker,
-)
-from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd import (
-    GtDriverBooleanactuatorCmd,
-)
-from schema.gt.gt_driver_booleanactuator_cmd.gt_driver_booleanactuator_cmd_maker import (
-    GtDriverBooleanactuatorCmd_Maker,
-)
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor import (
-    GtShTelemetryFromMultipurposeSensor,
-)
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
-    GtShTelemetryFromMultipurposeSensor_Maker,
-)
-from schema.gt.gt_telemetry.gt_telemetry import GtTelemetry
-from schema.gt.gt_telemetry.gt_telemetry_maker import GtTelemetry_Maker
+from pydantic import BaseModel
+from pydantic import validator
+
+from config import LoggerLevels
+from gwproto.enums import TelemetryName
+from gwproto.message import Header
+from gwproto.message import Message
+from gwproto.message import as_enum
+from gwproto.messages import  GsPwr
+from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import  GtDispatchBooleanLocal
+from gwproto.messages import  GtDispatchBooleanLocal_Maker
+from gwproto.messages import  GtDriverBooleanactuatorCmd
+from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import  GtTelemetry
+from gwproto.messages import  GtTelemetry_Maker
 
 
 class GtTelemetryMessage(Message[GtTelemetry]):
@@ -111,7 +105,7 @@ class GsPwrMessage(Message[GsPwr]):
         dst: str,
         power: int,
     ):
-        payload = typing.cast(GsPwr, GsPwr_Maker(power=power).tuple)
+        payload = cast(GsPwr, GsPwr_Maker(power=power).tuple)
         super().__init__(
             header=Header(
                 src=src,
@@ -147,48 +141,19 @@ class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSe
         )
 
 
-# TODO: Replace with generalized debug message
+class ScadaDBGCommands(Enum):
+    show_subscriptions = "show_subscriptions"
 
 
-class ScadaDBGPing(BaseModel):
-    number: int
+class ScadaDBG(BaseModel):
+    levels: LoggerLevels = LoggerLevels(
+        message_summary=-1,
+        lifecycle=-1,
+        comm_event=-1,
+    )
+    command: Optional[ScadaDBGCommands] = None
+    type_name: Literal["gridworks.scada.dbg.000"] = "gridworks.scada.dbg.000"
 
-
-# TODO: Replace with generalized debug message
-
-
-class ScadaDBGPingMessage(Message[ScadaDBGPing]):
-    def __init__(
-        self,
-        number: int,
-    ):
-        super().__init__(
-            header=Header(
-                src="foo",
-                dst=KnownNames.proactor.value,
-                message_type=self.__class__.__name__,
-            ),
-            payload=ScadaDBGPing(number=number),
-        )
-
-
-# TODO: Replace with generalized debug message
-
-
-class ShowSubscriptions(BaseModel):
-    pass
-
-
-# TODO: Replace with generalized debug message
-
-
-class ShowSubscriptionsMessage(Message[ShowSubscriptions]):
-    def __init__(self):
-        super().__init__(
-            header=Header(
-                src="foo",
-                dst=KnownNames.proactor.value,
-                message_type=self.__class__.__name__,
-            ),
-            payload=ShowSubscriptions(),
-        )
+    @validator("command", pre=True)
+    def command_value(cls, v):
+        return as_enum(v, ScadaDBGCommands)

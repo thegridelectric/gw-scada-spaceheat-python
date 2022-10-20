@@ -1,50 +1,48 @@
-import time
 import datetime
+import time
 import typing
-from typing import Dict, List, Optional
-from config import ScadaSettings
+from typing import Dict
+from typing import List
+from typing import Optional
 
 from actors.actor_base import ActorBase
-from actors.utils import Subscription, responsive_sleep
-from data_classes.hardware_layout import HardwareLayout
-
-from data_classes.sh_node import ShNode
-
-
+from actors.utils import Subscription
+from actors.utils import responsive_sleep
+from config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
-
+from data_classes.hardware_layout import HardwareLayout
+from data_classes.sh_node import ShNode
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
-from drivers.power_meter.openenergy_emonpi__power_meter_driver import OpenenergyEmonpi_PowerMeterDriver
-
+from drivers.power_meter.openenergy_emonpi__power_meter_driver import (
+    OpenenergyEmonpi_PowerMeterDriver,
+)
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-
 from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
     SchneiderElectricIem3455_PowerMeterDriver,
 )
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
-
 from named_tuples.telemetry_tuple import TelemetryTuple
-
-from schema.enums.make_model.make_model_map import MakeModel
-from schema.enums.role.role_map import Role
-from schema.enums.telemetry_name.telemetry_name_map import TelemetryName
-from schema.enums.unit.unit_map import Unit
+from schema.enums import MakeModel
+from schema.enums import Role
+from gwproto.enums import TelemetryName
+from schema.enums import Unit
+from gwproto.messages import  GsPwr_Maker
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig,
+)
+from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig_Maker,
 )
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig as ReportingConfig,
+)
+from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig_Maker as ReportingConfig_Maker,
 )
-
-from schema.gs.gs_pwr_maker import GsPwr_Maker
-from schema.gt.gt_sh_telemetry_from_multipurpose_sensor.gt_sh_telemetry_from_multipurpose_sensor_maker import (
-    GtShTelemetryFromMultipurposeSensor_Maker,
-)
+from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
 
 
 class PowerMeter(ActorBase):

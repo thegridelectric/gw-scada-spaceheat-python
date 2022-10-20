@@ -1,4 +1,2 @@
-class MpSchemaError(Exception):
-    """Base class for Message Protocol Schema errors"""
-
-    pass
+from gwproto.errors import *
+__all__ = ["MpSchemaError"]

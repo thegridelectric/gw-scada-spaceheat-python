@@ -2,11 +2,11 @@
 import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
-from schema.enums.role.role_map import (
+from schema.enums import (
     Role,
     RoleMap,
 )
-from schema.enums.actor_class.actor_class_map import (
+from schema.enums import (
     ActorClass,
     ActorClassMap,
 )

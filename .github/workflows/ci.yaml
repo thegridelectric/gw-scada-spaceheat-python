@@ -16,14 +16,14 @@ jobs:
         with:
           version: '1.6'
           ports: '1883:1883 8883:8883'
-          config: ${{ github.workspace }}/test/config/local_mosquitto.conf
+          config: ${{ github.workspace }}/tests/config/local_mosquitto.conf
           container-name: 'local-mqtt'
       - name: Start 'GridWorks' Mosquitto
         uses: namoshek/mosquitto-github-action@v1
         with:
           version: '1.6'
           ports: '18831:18831'
-          config: ${{ github.workspace }}/test/config/gw_mosquitto.conf
+          config: ${{ github.workspace }}/tests/config/gw_mosquitto.conf
           container-name: 'gw-mqtt'
       - name: Install Python 3
         uses: actions/setup-python@v2
@@ -36,10 +36,10 @@ jobs:
       - name: copy test_dotenv
         uses: canastro/copy-file-action@master
         with:
-          source: "test/config/.env-ci"
-          target: "test/.env-gw-spaceheat-test"
+          source: "tests/config/.env-ci"
+          target: "tests/.env-gw-spaceheat-test"
       - name: Run tests with pytest under coverage
-        run: coverage run -m pytest
+        run: coverage run -m pytest -s
       - name: Upload coverage data
         uses: "actions/upload-artifact@v3"
         with:

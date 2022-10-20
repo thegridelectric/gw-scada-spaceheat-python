@@ -11,7 +11,7 @@ gw_spaceheat/dw1_isone_nh*
 SassyMQ
 .idea
 .env
-test/.env-gw-spaceheat-test
+tests/.env-gw-spaceheat-test
 tmp.csv
 
 .coverage

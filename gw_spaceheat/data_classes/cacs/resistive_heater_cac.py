@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.enums.make_model.make_model_map import MakeModelMap
+from schema.enums import MakeModelMap
 
 
 class ResistiveHeaterCac(ComponentAttributeClass):

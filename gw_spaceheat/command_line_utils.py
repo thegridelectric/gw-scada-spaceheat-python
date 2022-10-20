@@ -12,7 +12,7 @@ from actors2 import Scada2
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.enums.role.sh_node_role_110 import Role
+from schema.enums import Role
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
@@ -32,6 +32,11 @@ def add_default_args(
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Increase logging verbosity")
     parser.add_argument("--message-summary", action="store_true", help="Turn on message summary logging")
+    parser.add_argument(
+        "--seconds-per-report",
+        default=ScadaSettings.__fields__["seconds_per_report"].default,
+        help="Seconds per status report"
+    )
 
     parser.add_argument(
         "-n",
@@ -89,7 +94,10 @@ def run_nodes_main(
 ) -> None:
     """Load and run the configured Nodes. If dbg is not None it will be populated with the actor objects."""
     args = parse_args(argv, default_nodes=default_nodes)
-    settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
+    settings = ScadaSettings(
+        _env_file=dotenv.find_dotenv(args.env_file),
+        seconds_per_report=args.seconds_per_report,
+    )
     settings.paths.mkdirs()
     setup_logging(args, settings)
     run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
@@ -124,7 +132,6 @@ async def run_async_actors(
             actor_nodes.append(node)
 
     scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-    scada.start()
     try:
         await scada.run_forever()
     finally:
