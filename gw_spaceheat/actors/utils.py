@@ -2,6 +2,7 @@ import enum
 import time
 from typing import NamedTuple
 
+
 class QOS(enum.IntEnum):
     AtMostOnce = 0
     AtLeastOnce = 1

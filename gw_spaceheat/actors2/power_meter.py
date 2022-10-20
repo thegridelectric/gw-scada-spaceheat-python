@@ -8,6 +8,8 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from gwproto.enums import TelemetryName
+
 from actors2.actor import SyncThreadActor
 from actors2.message import GsPwrMessage
 from actors2.message import MultipurposeSensorTelemetryMessage
@@ -32,7 +34,6 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.sync_thread import SyncAsyncInteractionThread
 from schema.enums import MakeModel
 from schema.enums import Role
-from gwproto.enums import TelemetryName
 from schema.enums import Unit
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (

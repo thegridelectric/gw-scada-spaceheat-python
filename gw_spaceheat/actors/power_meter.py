@@ -5,6 +5,10 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from gwproto.enums import TelemetryName
+from gwproto.messages import GsPwr_Maker
+from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
+
 from actors.actor_base import ActorBase
 from actors.utils import Subscription
 from actors.utils import responsive_sleep
@@ -27,9 +31,7 @@ from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriv
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums import MakeModel
 from schema.enums import Role
-from gwproto.enums import TelemetryName
 from schema.enums import Unit
-from gwproto.messages import  GsPwr_Maker
 from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
     GtEqReportingConfig,
 )
@@ -42,7 +44,6 @@ from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_mak
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig_Maker as ReportingConfig_Maker,
 )
-from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
 
 
 class PowerMeter(ActorBase):
