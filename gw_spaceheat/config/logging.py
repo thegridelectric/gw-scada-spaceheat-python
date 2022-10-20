@@ -1,10 +1,11 @@
 import logging
-from logging.handlers import RotatingFileHandler
 import time
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Iterable
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
+from pydantic import validator
 
 from .paths import DEFAULT_BASE_NAME
 

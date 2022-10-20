@@ -2,6 +2,11 @@ import time
 from typing import List
 from typing import Optional
 
+from gwproto.messages import GtDispatchBooleanLocal
+from gwproto.messages import GtDispatchBooleanLocal_Maker
+from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import GtTelemetry_Maker
+
 from actors.actor_base import ActorBase
 from actors.utils import QOS
 from actors.utils import Subscription
@@ -10,10 +15,6 @@ from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
-from gwproto.messages import  GtDispatchBooleanLocal
-from gwproto.messages import  GtDispatchBooleanLocal_Maker
-from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
-from gwproto.messages import  GtTelemetry_Maker
 
 
 class BooleanActuator(ActorBase):

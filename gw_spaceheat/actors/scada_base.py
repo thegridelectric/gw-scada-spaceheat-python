@@ -2,6 +2,8 @@ import uuid
 from abc import abstractmethod
 
 import paho.mqtt.client as mqtt
+from gwproto.messages import GsDispatch
+from gwproto.messages import GsPwr
 
 import helpers
 from actors.actor_base import ActorBase
@@ -11,8 +13,6 @@ from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from proactor.logger import MessageSummary
-from gwproto.messages import  GsDispatch
-from gwproto.messages import  GsPwr
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

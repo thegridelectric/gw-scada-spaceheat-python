@@ -5,6 +5,33 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from gwproto.messages import GsPwr
+from gwproto.messages import GsPwr_Maker
+from gwproto.messages import GtDispatchBoolean
+from gwproto.messages import GtDispatchBoolean_Maker
+from gwproto.messages import GtDispatchBooleanLocal
+from gwproto.messages import GtDispatchBooleanLocal_Maker
+from gwproto.messages import GtDriverBooleanactuatorCmd
+from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
+from gwproto.messages import GtShBooleanactuatorCmdStatus
+from gwproto.messages import GtShBooleanactuatorCmdStatus_Maker
+from gwproto.messages import GtShCliAtnCmd
+from gwproto.messages import GtShCliAtnCmd_Maker
+from gwproto.messages import GtShMultipurposeTelemetryStatus
+from gwproto.messages import GtShMultipurposeTelemetryStatus_Maker
+from gwproto.messages import GtShSimpleTelemetryStatus
+from gwproto.messages import GtShSimpleTelemetryStatus_Maker
+from gwproto.messages import GtShStatus
+from gwproto.messages import GtShStatus_Maker
+from gwproto.messages import GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
+from gwproto.messages import GtTelemetry
+from gwproto.messages import GtTelemetry_Maker
+from gwproto.messages import SnapshotSpaceheat
+from gwproto.messages import SnapshotSpaceheat_Maker
+from gwproto.messages import TelemetrySnapshotSpaceheat
+from gwproto.messages import TelemetrySnapshotSpaceheat_Maker
+
 from actors.scada_base import ScadaBase
 from actors.utils import QOS
 from actors.utils import Subscription
@@ -16,32 +43,6 @@ from data_classes.node_config import NodeConfig
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums import Role
-from gwproto.messages import  GsPwr
-from gwproto.messages import  GsPwr_Maker
-from gwproto.messages import  GtDispatchBoolean
-from gwproto.messages import  GtDispatchBoolean_Maker
-from gwproto.messages import  GtDispatchBooleanLocal
-from gwproto.messages import  GtDispatchBooleanLocal_Maker
-from gwproto.messages import  GtDriverBooleanactuatorCmd
-from gwproto.messages import  GtDriverBooleanactuatorCmd_Maker
-from gwproto.messages import  GtShBooleanactuatorCmdStatus
-from gwproto.messages import  GtShBooleanactuatorCmdStatus_Maker
-from gwproto.messages import  GtShCliAtnCmd
-from gwproto.messages import  GtShCliAtnCmd_Maker
-from gwproto.messages import  GtShMultipurposeTelemetryStatus
-from gwproto.messages import  GtShMultipurposeTelemetryStatus_Maker
-from gwproto.messages import  GtShSimpleTelemetryStatus
-from gwproto.messages import  GtShSimpleTelemetryStatus_Maker
-from gwproto.messages import  GtShStatus
-from gwproto.messages import  GtShStatus_Maker
-from gwproto.messages import  GtShTelemetryFromMultipurposeSensor
-from gwproto.messages import  GtShTelemetryFromMultipurposeSensor_Maker
-from gwproto.messages import  GtTelemetry
-from gwproto.messages import  GtTelemetry_Maker
-from gwproto.messages import  SnapshotSpaceheat
-from gwproto.messages import  SnapshotSpaceheat_Maker
-from gwproto.messages import  TelemetrySnapshotSpaceheat
-from gwproto.messages import  TelemetrySnapshotSpaceheat_Maker
 
 
 class ScadaCmdDiagnostic(enum.Enum):

@@ -3,6 +3,7 @@
 from typing import Any
 from typing import Optional
 
+from gwproto.messages import GtDispatchBooleanLocal
 from pydantic import BaseModel
 
 from actors2.message import GtDriverBooleanactuatorCmdResponse
@@ -11,7 +12,6 @@ from actors2.simple_sensor import SimpleSensor
 from actors2.simple_sensor import SimpleSensorDriverThread
 from proactor.message import Message
 from proactor.sync_thread import SyncAsyncInteractionThread
-from gwproto.messages import  GtDispatchBooleanLocal
 
 
 class DispatchRelay(BaseModel):

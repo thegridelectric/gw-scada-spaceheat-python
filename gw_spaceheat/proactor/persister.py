@@ -13,7 +13,6 @@ from result import Ok
 from result import Result
 
 
-
 class Problems(Exception):
     MAX_PROBLEMS = 10
 

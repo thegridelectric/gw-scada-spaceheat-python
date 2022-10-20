@@ -1,8 +1,10 @@
-from pydantic import BaseSettings, validator
+from pydantic import BaseSettings
+from pydantic import validator
 
+from .logging import LoggingSettings
 from .mqtt import MQTTClient
 from .paths import Paths
-from .logging import LoggingSettings
+
 
 class ScadaSettings(BaseSettings):
     """Settings for the GridWorks scada."""
