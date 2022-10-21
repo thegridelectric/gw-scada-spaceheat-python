@@ -167,8 +167,8 @@ class MQTTClients:
     _clients: Dict[str, MQTTClientWrapper]
     _send_queue: AsyncQueueWriter
 
-    def __init__(self, async_queue_writer: AsyncQueueWriter):
-        self._send_queue = async_queue_writer
+    def __init__(self):
+        self._send_queue = AsyncQueueWriter()
         self._clients = dict()
 
     def add_client(

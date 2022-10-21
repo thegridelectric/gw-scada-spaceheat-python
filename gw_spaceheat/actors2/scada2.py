@@ -346,18 +346,18 @@ class Scada2(ScadaInterface, Proactor):
                 f"There are no messages expected to be received from [{message.payload.client_name}] mqtt broker. "
                 f"Received\n\t topic: [{message.payload.message.topic}]"
             )
-        if isinstance(decoded, GtDispatchBoolean):
+        if isinstance(decoded.payload, GtDispatchBoolean):
             path_dbg |= 0x00000001
-            await self._boolean_dispatch_received(decoded)
-        elif isinstance(decoded, GtShCliAtnCmd):
+            await self._boolean_dispatch_received(decoded.payload)
+        elif isinstance(decoded.payload, GtShCliAtnCmd):
             path_dbg |= 0x00000002
-            self._gt_sh_cli_atn_cmd_received(decoded)
-        elif isinstance(decoded, GtTelemetry):
+            self._gt_sh_cli_atn_cmd_received(decoded.payload)
+        elif isinstance(decoded.payload, GtTelemetry):
             path_dbg |= 0x00000004
-            self._process_telemetry(message, decoded)
+            self._process_telemetry(message, decoded.payload)
         else:
             raise ValueError(
-                f"There is not handler for mqtt message payload type [{type(decoded)}]"
+                f"There is not handler for mqtt message payload type [{type(decoded)}]\n"
                 f"Received\n\t topic: [{message.payload.message.topic}]"
             )
         self._logger.path("--Scada2._derived_process_mqtt_message  path:0x%08X", path_dbg)

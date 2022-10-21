@@ -220,7 +220,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch):
     class Fragment(ProtocolFragment):
 
         def get_requested_actors(self):
-            return [self.runner.actors.scada2, self.runner.actors.atn]
+            return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         def get_requested_actors2(self):
             meter_node = self.runner.layout.node("a.m")
@@ -235,8 +235,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch):
 
         async def async_run(self):
             scada = self.runner.actors.scada2
-            atn = self.runner.actors.atn
-            atn.logger.setLevel(logging.DEBUG)
+            atn = self.runner.actors.atn2
             await await_for(
                 lambda: scada._data.latest_total_power_w is not None,
                 1,
@@ -255,7 +254,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch):
             for i in range(num_changes):
                 scada._logger.info(f"Generating GsPwr change {i + 1}/{num_changes}")
                 latest_total_power_w = scada._data.latest_total_power_w
-                num_atn_gs_pwr = atn.num_received_by_topic[GsPwr_Maker.type_alias]
+                num_atn_gs_pwr = atn.stats.num_received_by_message_type[GsPwr_Maker.type_alias]
 
                 # Simulate a change in aggregate power that should trigger a GsPwr message
                 increment = int(
@@ -275,7 +274,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch):
 
                 # Verify Atn gets the forwarded message
                 await await_for(
-                    lambda: atn.num_received_by_topic[GsPwr_Maker.type_alias] > num_atn_gs_pwr,
+                    lambda: atn.stats.num_received_by_message_type[GsPwr_Maker.type_alias] > num_atn_gs_pwr,
                     1,
                     "Atn wait for GsPwr",
                     err_str_f=atn.summary_str,
