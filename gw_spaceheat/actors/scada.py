@@ -79,6 +79,7 @@ class Scada(ScadaBase):
                     or x.role == Role.BOOLEAN_ACTUATOR
                     or x.role == Role.PIPE_TEMP_SENSOR
                     or x.role == Role.PIPE_FLOW_METER
+                    or x.role == Role.ROOM_TEMP_SENSOR
                 ),
                 all_nodes,
             )
