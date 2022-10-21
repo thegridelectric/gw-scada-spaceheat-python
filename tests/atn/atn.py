@@ -1,15 +1,18 @@
 """Scada implementation"""
 import asyncio
 import logging
+import os
 import sys
 import threading
 import time
 from collections import defaultdict
+from pathlib import Path
 from typing import Any
 from typing import Optional
 from typing import Sequence
 
 import dotenv
+import rich
 from paho.mqtt.client import MQTTMessageInfo
 
 from gwproto import DecoderExtractor
@@ -309,18 +312,19 @@ class Atn2(ActorInterface, Proactor):
         return s
 
     @classmethod
-    def get_atn(cls, argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn2":
+    def get_atn(
+        cls, argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn2":
         if argv is None:
             argv = sys.argv[1:]
             if "-v" not in argv and "--verbose" not in argv:
                 argv.append("-v")
         args = parse_args(argv)
-        env_path = dotenv.find_dotenv(args.env_file)
+        env_path = Path(dotenv.find_dotenv(args.env_file))
         dotenv.load_dotenv(env_path)
         settings = AtnSettings(
             paths=Paths(
                 name="atn",
-                hardware_layout=Paths().hardware_layout
+                hardware_layout=os.getenv("ATN_PATHS__HARDWARE_LAYOUT", Paths().hardware_layout)
             ),
             logging=LoggingSettings(base_log_name="gridworks.atn")
         )
@@ -328,6 +332,7 @@ class Atn2(ActorInterface, Proactor):
         setup_logging(args, settings)  # type: ignore
         logger = logging.getLogger(settings.logging.base_log_name)
         logger.info(f"Env file: {env_path}")
+        rich.print(settings)
         layout = HardwareLayout.load(settings.paths.hardware_layout)
         a = Atn2("a", settings, layout)
         if start:
