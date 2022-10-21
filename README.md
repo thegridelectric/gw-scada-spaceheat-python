@@ -79,15 +79,12 @@ Configuration variables (secret or otherwise) use dotenv module in a gitignored 
 
 ### Setting up MQTT
 For development purposes, you can use the default values from `.env-template`.
-To use a local mosquitto broker:
-**Install the mosquito server**
-1. `brew install mosquitto`
-2. `brew services restart mosquitto`
-3. if you want to the broker to start on mac startup: `ln -sfv /usr/local/opt/mosquitto/*.plist ~/Library/LaunchAgents`
-4. Test using commandline pub sub.
-   - In first terminal: `mosquitto_sub -t 'test'`
-   - In second terminal: `mosquitto_pub -t 'test' -m 'hi'`
-   - Success: the subscribing terminal outputs hi
+
+We use a rabbit broker with an mqtt plugin. To set this up in a dev environment:
+1. Make sure you have docker installed
+2. From the top level of the repo, run: `docker-compose -f dev-world-broker.yml up -d`
+3. Check the broker ui at this web page: `http://0.0.0.0:15672/` username/password both `smqPublic`
+
 
 ## Step 2: input data and running the code
 TODO:  ADD
