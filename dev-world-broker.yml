@@ -1,0 +1,22 @@
+version: "3.5"
+
+services:
+  dev-dw1-1-broker:
+    container_name: dev-instance_rabbit-broker_1
+    image: "bitnami/rabbitmq:3.9.8"
+    ports:
+      - 1885:1885
+      - 4369:4369
+      - 5672:5672
+      - 15672:15672
+      - 15674:15674
+      - 25672:25672
+    env_file: ./docker/vhost.env
+    environment:
+      - RABBITMQ_USERNAME=smqPublic
+      - RABBITMQ_PASSWORD=smqPublic
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbitmq_management load_definitions "/tmp/rabbit_definitions.json"
+      - RABBITMQ_PLUGINS=rabbitmq_management,rabbitmq_stomp,rabbitmq_web_stomp,rabbitmq_mqtt
+    volumes:
+      - ./docker/rabbit_definitions.json:/tmp/rabbit_definitions.json:ro
+      - ./docker/rabbitmq.conf:/opt/bitnami/rabbitmq/etc/rabbitmq/rabbitmq.conf:ro
