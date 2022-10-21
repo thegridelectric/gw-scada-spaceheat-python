@@ -38,7 +38,7 @@ docutils==0.19
     # via rich-rst
 executing==0.8.3
     # via stack-data
-gridworks-protocol==0.0.2
+gridworks-protocol==0.0.3
     # via -r requirements/base.in
 idna==3.4
     # via requests
