@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from typing import Callable
 from typing import Dict
@@ -12,19 +13,21 @@ from actors.actor_base import ActorBase
 from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
+from config import LoggingSettings
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
+from tests.atn import Atn2
 from proactor import Proactor
+from tests.atn import AtnSettings
+from tests.utils import AtnRecorder
 
 try:
-    from tests.utils import AtnRecorder
     from tests.utils import HomeAloneRecorder
     from tests.utils import Scada2Recorder
     from tests.utils import ScadaRecorder
     from tests.utils import await_for
     from tests.utils import wait_for
 except ImportError:
-    from utils import AtnRecorder
     from utils import HomeAloneRecorder
     from utils import Scada2Recorder
     from utils import ScadaRecorder
@@ -62,11 +65,17 @@ class Actors:
     relay: BooleanActuator
     meter: PowerMeter
     thermo: SimpleSensor
+    atn2: Atn2
     scada2: Scada2Recorder
     relay2: actors2.BooleanActuator
     meter2: actors2.PowerMeter
 
-    def __init__(self, settings: ScadaSettings, layout: HardwareLayout, **kwargs):
+    def __init__(
+            self,
+            settings: ScadaSettings,
+            layout: HardwareLayout,
+            **kwargs
+    ):
         self.scada = kwargs.get(
             "scada",
             ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
@@ -90,6 +99,10 @@ class Actors:
         self.thermo = kwargs.get(
             "thermo",
             SimpleSensor("a.tank.temp0", settings=settings, hardware_layout=layout)
+        )
+        self.atn2 = kwargs.get(
+            "atn",
+            Atn2("a", settings=kwargs.get("atn_settings", AtnSettings()), hardware_layout=layout)
         )
         self.scada2 = kwargs.get(
             "scada2",
@@ -184,12 +197,25 @@ class FragmentRunner:
                     1,
                     "ERROR waiting for gw_client connect",
                 )
+            # TODO: make some test-public form of this
+            if hasattr(actor, "_mqtt_clients"):
+                # noinspection PyProtectedMember
+                for client_name in actor._mqtt_clients._clients:
+                    # noinspection PyProtectedMember
+                    wait_for(
+                        lambda: actor._mqtt_clients.subscribed(client_name),
+                        3,
+                        f"waiting for {client_name} connect",
+                    )
 
     def stop(self):
         for actor in self.requested.values():
             # noinspection PyBroadException
             try:
-                actor.stop()
+                if isinstance(actor, Atn2):
+                    actor.stop_and_join_thread()
+                else:
+                    actor.stop()
             except:
                 pass
 
@@ -226,7 +252,8 @@ class FragmentRunner:
     def run_fragment(
         cls, fragment_factory: Callable[["FragmentRunner"], ProtocolFragment]
     ):
-        settings = ScadaSettings()
+        settings = ScadaSettings(logging=LoggingSettings(base_log_level=logging.DEBUG))
+        settings.paths.mkdirs(parents=True)
         runner = FragmentRunner(settings)
         runner.add_fragment(fragment_factory(runner))
         runner.run()
@@ -297,7 +324,9 @@ class AsyncFragmentRunner(FragmentRunner):
             start_time = time.time()
             delimit("STARTING")
             self.start()
-            asyncio.create_task(self.actors.scada2.run_forever(), name="run_forever")
+            if self.actors.atn2.name in self.requested:
+                asyncio.create_task(self.actors.atn2.run_forever(), name="atn_run_forever")
+            asyncio.create_task(self.actors.scada2.run_forever(), name="scada_run_forever")
             await self.await_connect()
             delimit("CONNECTED")
             for fragment in self.fragments:

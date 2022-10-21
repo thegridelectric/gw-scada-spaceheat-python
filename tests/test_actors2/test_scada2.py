@@ -2,9 +2,8 @@
 import argparse
 import logging
 import time
-import typing
+from typing import cast
 
-from config import LoggingSettings
 from logging_setup import setup_logging
 from tests.fragment_runner import Actors
 from tests.fragment_runner import AsyncFragmentRunner
@@ -65,7 +64,7 @@ def test_scada2_small():
     # Testing making status messages
     ###########################################
 
-    s = scada._data.make_simple_telemetry_status(node=typing.cast(ShNode, "garbage"))
+    s = scada._data.make_simple_telemetry_status(node=cast(ShNode, "garbage"))
     assert s is None
 
     scada._data.recent_simple_read_times_unix_ms[temp_node] = [int(time.time() * 1000)]
@@ -85,7 +84,7 @@ def test_scada2_small():
     s = scada._data.make_multipurpose_telemetry_status(tt=tt)
     assert isinstance(s, GtShMultipurposeTelemetryStatus)
     s = scada._data.make_multipurpose_telemetry_status(
-        tt=typing.cast(TelemetryTuple, "garbage")
+        tt=cast(TelemetryTuple, "garbage")
     )
     assert s is None
 
@@ -134,9 +133,11 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     logging.basicConfig(level="DEBUG")
-    debug_logs_path = tmp_path / "output/debug_logs"
-    debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings(seconds_per_report=2)
+    settings.paths.mkdirs(parents=True)
+    errors = []
+    setup_logging(args=argparse.Namespace(verbose=True), settings=settings, errors=errors)
+    assert not errors
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,
@@ -150,13 +151,13 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
 
     class Fragment(ProtocolFragment):
         def get_requested_actors(self):
-            return [self.runner.actors.scada2, self.runner.actors.atn]
+            return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         def get_requested_actors2(self):
             return [self.runner.actors.relay2]
 
         async def async_run(self):
-            atn = self.runner.actors.atn
+            atn = self.runner.actors.atn2
             relay2 = self.runner.actors.relay2
             scada2 = self.runner.actors.scada2
             relay_alias = relay2.alias
@@ -192,15 +193,15 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
 
             # Verify relay is off
-            assert atn.latest_snapshot_payload is None
-            atn.status()
+            assert atn.data.latest_snapshot is None
+            atn.get_snapshot()
             await await_for(
-                lambda: atn.latest_snapshot_payload is not None,
+                lambda: atn.data.latest_snapshot is not None,
                 3,
                 "atn did not receive first status",
             )
-            snapshot1: SnapshotSpaceheat = typing.cast(
-                SnapshotSpaceheat, atn.latest_snapshot_payload
+            snapshot1: SnapshotSpaceheat = cast(
+                SnapshotSpaceheat, atn.data.latest_snapshot
             )
             assert isinstance(snapshot1, SnapshotSpaceheat)
             if snapshot1.Snapshot.AboutNodeAliasList:
@@ -231,14 +232,14 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay2.alias
 
             # Verify Atn gets updated info for relay
-            atn.status()
+            atn.get_snapshot()
             await await_for(
-                lambda: atn.latest_snapshot_payload is not None
-                and id(atn.latest_snapshot_payload) != id(snapshot1),
+                lambda: atn.data.latest_snapshot is not None
+                and id(atn.data.latest_snapshot) != id(snapshot1),
                 3,
                 "atn did not receive status",
             )
-            snapshot2 = atn.latest_snapshot_payload
+            snapshot2 = atn.data.latest_snapshot
             assert isinstance(snapshot2, SnapshotSpaceheat)
             assert (
                 relay_alias in snapshot2.Snapshot.AboutNodeAliasList
@@ -248,24 +249,24 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             assert relay_value == 1
 
             # Cause scada to send a status (and snapshot) now
-            snapshots_received = atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias]
+            snapshots_received = atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias]
             scada2.suppress_status = False
             # Verify Atn got status and snapshot
             await await_for(
-                lambda: atn.num_received_by_topic[GtShStatus_Maker.type_alias] == 1,
+                lambda: atn.stats.num_received_by_message_type[GtShStatus_Maker.type_alias] == 1,
                 5,
                 "Atn wait for status message",
                 err_str_f=atn.summary_str
             )
             await await_for(
-                lambda: atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias] == snapshots_received + 1,
+                lambda: atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == snapshots_received + 1,
                 5,
                 "Atn wait for snapshot message",
                 err_str_f=atn.summary_str,
             )
 
             # Verify contents of status and snapshot are as expected
-            status = atn.latest_status_payload
+            status = atn.data.latest_status
             assert isinstance(status, GtShStatus)
             assert len(status.SimpleTelemetryList) == 1
             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
@@ -274,7 +275,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay2.alias
-            snapshot = atn.latest_snapshot_payload
+            snapshot = atn.data.latest_snapshot
             assert isinstance(snapshot, SnapshotSpaceheat)
             assert snapshot.Snapshot.AboutNodeAliasList == [relay2.alias]
             assert snapshot.Snapshot.ValueList == [1]
@@ -308,21 +309,21 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
     class Fragment(ProtocolFragment):
 
         def get_requested_actors(self):
-            return [self.runner.actors.scada2, self.runner.actors.atn]
+            return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         async def async_run(self):
             scada2 = self.runner.actors.scada2
-            atn = self.runner.actors.atn
-            assert atn.num_received_by_topic[GtShStatus_Maker.type_alias] == 0
-            assert atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias] == 0
+            atn = self.runner.actors.atn2
+            assert atn.stats.num_received_by_message_type[GtShStatus_Maker.type_alias] == 0
+            assert atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == 0
             scada2.suppress_status = False
             await await_for(
-                lambda: atn.num_received_by_topic[GtShStatus_Maker.type_alias] == 1,
+                lambda: atn.stats.num_received_by_message_type[GtShStatus_Maker.type_alias] == 1,
                 5,
                 "Atn wait for status message"
             )
             await await_for(
-                lambda: atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias] == 1,
+                lambda: atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == 1,
                 5,
                 "Atn wait for snapshot message"
             )
@@ -337,23 +338,26 @@ async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch):
     """Verify scada sends snapshot upon request from Atn"""
 
     monkeypatch.chdir(tmp_path)
-    settings = ScadaSettings(seconds_per_report=2, logging=LoggingSettings(base_log_level=logging.DEBUG))
+    settings = ScadaSettings(seconds_per_report=2)
     settings.paths.mkdirs(parents=True)
     errors = []
-    setup_logging(args=argparse.Namespace(), settings=settings, errors=errors)
+    setup_logging(args=argparse.Namespace(verbose=True), settings=settings, errors=errors)
     assert not errors
 
     class Fragment(ProtocolFragment):
 
         def get_requested_actors(self):
-            return [self.runner.actors.scada2, self.runner.actors.atn]
+            return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         async def async_run(self):
-            atn = self.runner.actors.atn
-            assert atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias] == 0
-            atn.status()
+            atn = self.runner.actors.atn2
+            atn._logger.setLevel(logging.DEBUG)
+            assert atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == 0
+            atn._logger.info(SnapshotSpaceheat_Maker.type_alias)
+            atn._logger.info(atn.summary_str())
+            atn.get_snapshot()
             await await_for(
-                lambda: atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias] == 1,
+                lambda: atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == 1,
                 3,
                 "Atn wait for snapshot message",
                 err_str_f=atn.summary_str
@@ -382,10 +386,10 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     class Fragment(ProtocolFragment):
 
         def get_requested_actors(self):
-            return [self.runner.actors.scada2, self.runner.actors.atn]
+            return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         async def async_run(self):
-            atn = self.runner.actors.atn
+            atn = self.runner.actors.atn2
             scada = self.runner.actors.scada2
             relay = self.runner.actors.relay2
             meter = self.runner.actors.meter2
@@ -440,20 +444,20 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
 
             # Verify Atn got status and snapshot
             await await_for(
-                lambda: atn.num_received_by_topic[GtShStatus_Maker.type_alias] == 1,
+                lambda: atn.stats.num_received_by_message_type[GtShStatus_Maker.type_alias] == 1,
                 5,
                 "Atn wait for status message",
                 err_str_f=atn.summary_str
             )
             await await_for(
-                lambda: atn.num_received_by_topic[SnapshotSpaceheat_Maker.type_alias] == 1,
+                lambda: atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == 1,
                 5,
                 "Atn wait for snapshot message",
                 err_str_f=atn.summary_str
             )
 
             # Verify contents of status and snapshot are as expected
-            status = atn.latest_status_payload
+            status = atn.data.latest_status
             assert isinstance(status, GtShStatus)
             assert len(status.SimpleTelemetryList) == 2
             assert status.SimpleTelemetryList[0].ValueList == [0, 1]
@@ -467,7 +471,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
-            snapshot = atn.latest_snapshot_payload
+            snapshot = atn.data.latest_snapshot
             # import pprint
             # pprint.pprint(status.asdict())
             # pprint.pprint(snapshot.asdict())
@@ -487,9 +491,9 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             for actor in [thermo, relay, meter]:
                 await actor.join()
             # Wait for scada to send at least one more status.
-            statuses_received = atn.num_received_by_topic[GtShStatus_Maker.type_alias]
+            statuses_received = atn.stats.num_status_received
             await await_for(
-                lambda: atn.num_received_by_topic[GtShStatus_Maker.type_alias] > statuses_received,
+                lambda: atn.stats.num_status_received > statuses_received,
                 5,
                 "Atn wait for status message 2",
                 err_str_f=atn.summary_str

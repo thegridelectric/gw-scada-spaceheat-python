@@ -1,6 +1,5 @@
 """Scada implementation"""
 import asyncio
-import json
 import logging
 import sys
 import threading
@@ -64,7 +63,7 @@ class AtnMQTTCodec(ScadaMQTTCodec):
                 message_payload_discriminator=AtnMessageDecoder,
             ).add_decoder(
             "p",
-            lambda decoded: GsPwr_Maker(json.loads(decoded)[0]).tuple
+            lambda decoded: GsPwr_Maker(decoded[0]).tuple
         )
         )
 
@@ -91,6 +90,7 @@ class MessageStats:
         self.num_received_by_message_type[message.header.message_type] += 1
 
     def add_mqtt_message(self, message: Message[MQTTReceiptPayload]) -> None:
+        self.num_received_by_message_type[message.header.message_type] += 1
         self.num_received_by_topic[message.payload.message.topic] += 1
 
     @property
@@ -114,7 +114,7 @@ class Atn2(ActorInterface, Proactor):
     data: AtnData
     stats: MessageStats
     my_sensors: Sequence[ShNode]
-    event_loop_thread: threading.Thread
+    event_loop_thread: Optional[threading.Thread] = None
 
     def __init__(
         self,
@@ -155,7 +155,6 @@ class Atn2(ActorInterface, Proactor):
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
         self.stats = MessageStats()
-        self.event_loop_thread = threading.Thread(target=asyncio.run, args=[self.run_forever()])
 
     @property
     def alias(self) -> str:
@@ -210,16 +209,17 @@ class Atn2(ActorInterface, Proactor):
                 f"There are no messages expected to be received from [{message.payload.client_name}] mqtt broker. "
                 f"Received\n\t topic: [{message.payload.message.topic}]"
             )
-        match decoded:
+        self.stats.add_message(decoded)
+        match decoded.payload:
             case GsPwr():
                 path_dbg |= 0x00000001
-                self._process_pwr(decoded)
+                self._process_pwr(decoded.payload)
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000002
-                self._process_snapshot(decoded)
+                self._process_snapshot(decoded.payload)
             case GtShStatus():
                 path_dbg |= 0x00000004
-                self._process_status(decoded)
+                self._process_status(decoded.payload)
             case _:
                 path_dbg |= 0x00000008
         self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
@@ -265,40 +265,48 @@ class Atn2(ActorInterface, Proactor):
                 src=self.name,
                 dst=self.name,
                 payload=GtDispatchBoolean_Maker(
+                    about_node_alias=name,
                     to_g_node_alias=self.layout.scada_g_node_alias,
                     from_g_node_alias=self.layout.atn_g_node_alias,
                     from_g_node_id=self.layout.atn_g_node_id,
-                    about_node_alias=name,
                     relay_state=int(state),
                     send_time_unix_ms=int(time.time() * 1000),
                 )
             )
         )
 
-    def turn_on(self, name):
-        self.set_relay(name, True)
+    def turn_on(self, relay_node: ShNode):
+        self.set_relay(relay_node.alias, True)
 
-    def turn_off(self, name):
-        self.set_relay(name, False)
+    def turn_off(self, relay_node: ShNode):
+        self.set_relay(relay_node.alias, False)
 
     def start(self):
+        if self.event_loop_thread is not None:
+            raise ValueError("ERROR. start() already called once.")
+        self.event_loop_thread = threading.Thread(target=asyncio.run, args=[self.run_forever()])
         self.event_loop_thread.start()
 
     def stop_and_join_thread(self):
         self.stop()
-        if self.event_loop_thread.is_alive():
+        if self.event_loop_thread is not None and self.event_loop_thread.is_alive():
             self.event_loop_thread.join()
 
     def summary_str(self) -> str:
         """Summarize results in a string"""
-
         s = (
             f"Atn [{self.node.alias}] total: {self.stats.num_received}  "
-            f"status:{self.stats.num_status_received}  snapshot:{self.stats.num_snapshot_received}\n"
-            "\tnum_received_by_topic:\n"
+            f"status:{self.stats.num_status_received}  snapshot:{self.stats.num_snapshot_received}"
         )
-        for topic in sorted(self.stats.num_received_by_topic.keys()):
-            s += f"\t\t{topic:70s}  {self.stats.num_received_by_topic[topic]:2d}\n"
+        if self.stats.num_received_by_topic:
+            s += "\n  Received by topic:"
+            for topic in sorted(self.stats.num_received_by_topic):
+                s += f"\n    {self.stats.num_received_by_topic[topic]:3d}: [{topic}]"
+        if self.stats.num_received_by_message_type:
+            s += "\n  Received by message_type:"
+            for message_type in sorted(self.stats.num_received_by_message_type):
+                s += f"\n    {self.stats.num_received_by_message_type[message_type]:3d}: [{message_type}]"
+
         return s
 
     @classmethod

@@ -322,11 +322,13 @@ class ScadaRecorder(Scada):
     """Record data about a PrimaryScada execution during test"""
 
     num_received_by_topic: Dict[str, int]
+    num_received_by_type: Dict[str, int]
     comm_events: List[CommEvent]
     comm_event_counts: Dict[CommEvents, int]
 
     def __init__(self, alias: str, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self.num_received_by_topic = defaultdict(int)
+        self.num_received_by_type = defaultdict(int)
         self.comm_events = []
         self.comm_event_counts = defaultdict(int)
         super().__init__(alias=alias, settings=settings, hardware_layout=hardware_layout)
@@ -379,12 +381,15 @@ class ScadaRecorder(Scada):
     def on_mqtt_message(self, client, userdata, message):
         self._record_comm_event("local", CommEvents.message, userdata, message)
         self.num_received_by_topic[message.topic] += 1
+        self.num_received_by_type[message.topic.split("/")[-1]] += 1
         super().on_mqtt_message(client, userdata, message)
 
     def on_gw_mqtt_message(self, client, userdata, message):
         self._record_comm_event("gridworks", CommEvents.message, userdata, message)
         self.num_received_by_topic[message.topic] += 1
+        self.num_received_by_type[message.topic.split("/")[-1]] += 1
         super().on_gw_mqtt_message(client, userdata, message)
+
 
     def on_gw_connect(self, client, userdata, flags, rc):
         self._record_comm_event("gridworks", CommEvents.connect, userdata, flags, rc)
@@ -429,7 +434,11 @@ class ScadaRecorder(Scada):
         """Summarize results in a string"""
         s = f"ScadaRecorder  {self.node.alias}  num_received: {self.num_received}  comm events: {len(self.comm_events)}"
         for topic in sorted(self.num_received_by_topic):
-            s += f"\n  {self.num_received_by_topic[topic]:3d}: [{topic}]"
+            s += f"\n    {self.num_received_by_topic[topic]:3d}: [{topic}]"
+        if self.num_received_by_type:
+            s += "\n  Received by message_type:"
+            for message_type in sorted(self.num_received_by_type):
+                s += f"\n    {self.num_received_by_type[message_type]:3d}: [{message_type}]"
         if self.comm_event_counts:
             s += f"\n{textwrap.indent(pprint.pformat(self.comm_event_counts), '  ')}"
         if self.comm_events:
