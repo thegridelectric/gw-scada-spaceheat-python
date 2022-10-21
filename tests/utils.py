@@ -390,7 +390,6 @@ class ScadaRecorder(Scada):
         self.num_received_by_type[message.topic.split("/")[-1]] += 1
         super().on_gw_mqtt_message(client, userdata, message)
 
-
     def on_gw_connect(self, client, userdata, flags, rc):
         self._record_comm_event("gridworks", CommEvents.connect, userdata, flags, rc)
         super().on_gw_connect(client, userdata, flags, rc)

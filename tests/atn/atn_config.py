@@ -8,6 +8,7 @@ from config import LoggingSettings
 
 DEFAULT_NAME = "atn"
 
+
 class AtnSettings(BaseSettings):
     scada_mqtt: MQTTClient = MQTTClient()
     paths: Paths = None
@@ -33,4 +34,3 @@ class AtnSettings(BaseSettings):
         v.base_log_name = str(paths.name)
         v.file_handler.filename = "atn.log"
         return v
-

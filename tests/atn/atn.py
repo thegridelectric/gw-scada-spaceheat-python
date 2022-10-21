@@ -38,7 +38,7 @@ from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor
 from schema.enums import Role
 from tests.atn.atn_config import AtnSettings
-from tests.atn  import messages
+from tests.atn import messages
 
 AtnMessageDecoder = create_message_payload_discriminator(
     model_name="AtnMessageDecoder",
@@ -62,9 +62,9 @@ class AtnMQTTCodec(ScadaMQTTCodec):
                 ],
                 message_payload_discriminator=AtnMessageDecoder,
             ).add_decoder(
-            "p",
-            lambda decoded: GsPwr_Maker(decoded[0]).tuple
-        )
+                "p",
+                lambda decoded: GsPwr_Maker(decoded[0]).tuple
+            )
         )
 
     def validate_source_alias(self, source_alias: str):
@@ -101,9 +101,11 @@ class MessageStats:
     def num_snapshot_received(self) -> int:
         return self.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias]
 
+
 class AtnData:
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_status: Optional[GtShStatus] = None
+
 
 class Atn2(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
@@ -133,11 +135,11 @@ class Atn2(ActorInterface, Proactor):
         self.my_sensors = list(
             filter(
                 lambda x: (
-                        x.role == Role.TANK_WATER_TEMP_SENSOR
-                        or x.role == Role.BOOLEAN_ACTUATOR
-                        or x.role == Role.PIPE_TEMP_SENSOR
-                        or x.role == Role.PIPE_FLOW_METER
-                        or x.role == Role.POWER_METER
+                    x.role == Role.TANK_WATER_TEMP_SENSOR
+                    or x.role == Role.BOOLEAN_ACTUATOR
+                    or x.role == Role.PIPE_TEMP_SENSOR
+                    or x.role == Role.PIPE_FLOW_METER
+                    or x.role == Role.POWER_METER
                 ),
                 list(self.layout.nodes.values()),
             )
@@ -183,7 +185,6 @@ class Atn2(ActorInterface, Proactor):
         self.stats.add_mqtt_message(message)
         await super()._process_mqtt_message(message)
 
-
     async def _derived_process_message(self, message: Message):
         self._logger.path("++Atn2._derived_process_message %s/%s", message.header.src, message.header.message_type)
         path_dbg = 0
@@ -224,7 +225,6 @@ class Atn2(ActorInterface, Proactor):
                 path_dbg |= 0x00000008
         self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-
     def _process_pwr(self, pwr: GsPwr) -> None:
         pass
 
@@ -244,7 +244,6 @@ class Atn2(ActorInterface, Proactor):
 
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
-
 
     def get_snapshot(self):
         self.send_threadsafe(
@@ -334,5 +333,3 @@ class Atn2(ActorInterface, Proactor):
         if start:
             a.start()
         return a
-
-
