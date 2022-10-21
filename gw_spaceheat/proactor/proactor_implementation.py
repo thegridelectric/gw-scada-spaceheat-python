@@ -54,8 +54,7 @@ class Proactor(ServicesInterface, Runnable):
     def __init__(self, name: str, logger: ProactorLogger):
         self._name = name
         self._logger = logger
-        # TODO: Figure out and remove the deprecation warning this produces.
-        self._mqtt_clients = MQTTClients(AsyncQueueWriter())
+        self._mqtt_clients = MQTTClients()
         self._mqtt_codecs = dict()
         self._communicators = dict()
         self._tasks = []
