@@ -63,17 +63,17 @@ class BooleanActuator(SimpleSensor):
             GtDriverBooleanactuatorCmdResponse(
                 src=self.name,
                 dst=self.services.name,
-                relay_state=message.payload.RelayState,
+                relay_state=message.Payload.RelayState,
             )
         )
         self.send_driver_message(
-            DispatchRelay(relay_state=bool(message.payload.RelayState))
+            DispatchRelay(relay_state=bool(message.Payload.RelayState))
         )
 
     async def process_message(self, message: Message):
-        if isinstance(message.payload, GtDispatchBooleanLocal):
+        if isinstance(message.Payload, GtDispatchBooleanLocal):
             self._process_dispatch_message(message)
         else:
             ValueError(
-                f"Error. BooleanActuator {self.name} receieved unexpected message: {message.header}"
+                f"Error. BooleanActuator {self.name} receieved unexpected message: {message.Header}"
             )

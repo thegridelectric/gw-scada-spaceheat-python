@@ -91,11 +91,11 @@ class MessageStats:
 
     def add_message(self, message: Message) -> None:
         self.num_received += 1
-        self.num_received_by_message_type[message.header.message_type] += 1
+        self.num_received_by_message_type[message.Header.MessageType] += 1
 
     def add_mqtt_message(self, message: Message[MQTTReceiptPayload]) -> None:
-        self.num_received_by_message_type[message.header.message_type] += 1
-        self.num_received_by_topic[message.payload.message.topic] += 1
+        self.num_received_by_message_type[message.Header.MessageType] += 1
+        self.num_received_by_topic[message.Payload.message.topic] += 1
 
     @property
     def num_status_received(self) -> int:
@@ -173,7 +173,7 @@ class Atn2(ActorInterface, Proactor):
     def _publish_to_scada(
         self, payload, qos: QOS = QOS.AtMostOnce
     ) -> MQTTMessageInfo:
-        message = Message(src=self.layout.atn_g_node_alias, payload=payload)
+        message = Message(Src=self.layout.atn_g_node_alias, Payload=payload)
         return self._encode_and_publish(
             Atn2.SCADA_MQTT,
             topic=gw_mqtt_topic_encode(message.mqtt_topic()),
@@ -190,15 +190,15 @@ class Atn2(ActorInterface, Proactor):
         await super()._process_mqtt_message(message)
 
     async def _derived_process_message(self, message: Message):
-        self._logger.path("++Atn2._derived_process_message %s/%s", message.header.src, message.header.message_type)
+        self._logger.path("++Atn2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
-        match message.payload:
+        match message.Payload:
             case GtShCliAtnCmd_Maker():
                 path_dbg |= 0x00000001
-                self._publish_to_scada(message.payload.tuple.asdict())
+                self._publish_to_scada(message.Payload.tuple.asdict())
             case GtDispatchBoolean_Maker():
                 path_dbg |= 0x00000002
-                self._publish_to_scada(message.payload.tuple.asdict())
+                self._publish_to_scada(message.Payload.tuple.asdict())
             case _:
                 path_dbg |= 0x00000004
 
@@ -207,24 +207,24 @@ class Atn2(ActorInterface, Proactor):
     async def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
-        self._logger.path("++Atn2._derived_process_mqtt_message %s", message.payload.message.topic)
+        self._logger.path("++Atn2._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
-        if message.payload.client_name != self.SCADA_MQTT:
+        if message.Payload.client_name != self.SCADA_MQTT:
             raise ValueError(
-                f"There are no messages expected to be received from [{message.payload.client_name}] mqtt broker. "
-                f"Received\n\t topic: [{message.payload.message.topic}]"
+                f"There are no messages expected to be received from [{message.Payload.client_name}] mqtt broker. "
+                f"Received\n\t topic: [{message.Payload.message.topic}]"
             )
         self.stats.add_message(decoded)
-        match decoded.payload:
+        match decoded.Payload:
             case GsPwr():
                 path_dbg |= 0x00000001
-                self._process_pwr(decoded.payload)
+                self._process_pwr(decoded.Payload)
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000002
-                self._process_snapshot(decoded.payload)
+                self._process_snapshot(decoded.Payload)
             case GtShStatus():
                 path_dbg |= 0x00000004
-                self._process_status(decoded.payload)
+                self._process_status(decoded.Payload)
             case _:
                 path_dbg |= 0x00000008
         self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
@@ -252,9 +252,9 @@ class Atn2(ActorInterface, Proactor):
     def get_snapshot(self):
         self.send_threadsafe(
             Message(
-                src=self.name,
-                dst=self.name,
-                payload=GtShCliAtnCmd_Maker(
+                Src=self.name,
+                Dst=self.name,
+                Payload=GtShCliAtnCmd_Maker(
                     from_g_node_alias=self.layout.atn_g_node_alias,
                     from_g_node_id=self.layout.atn_g_node_id,
                     send_snapshot=True,
@@ -265,9 +265,9 @@ class Atn2(ActorInterface, Proactor):
     def set_relay(self, name: str, state: bool) -> None:
         self.send_threadsafe(
             Message(
-                src=self.name,
-                dst=self.name,
-                payload=GtDispatchBoolean_Maker(
+                Src=self.name,
+                Dst=self.name,
+                Payload=GtDispatchBoolean_Maker(
                     about_node_alias=name,
                     to_g_node_alias=self.layout.scada_g_node_alias,
                     from_g_node_alias=self.layout.atn_g_node_alias,

@@ -44,12 +44,12 @@ class GtTelemetryMessage(Message[GtTelemetry]):
             scada_read_time_unix_ms=scada_read_time_unix_ms,
         ).tuple
         super().__init__(
-            header=Header(
-                src=src,
-                dst=dst,
-                message_type=payload.TypeAlias,
+            Header=Header(
+                Src=src,
+                Dst=dst,
+                MessageType=payload.TypeAlias,
             ),
-            payload=payload,
+            Payload=payload,
         )
 
 
@@ -66,12 +66,12 @@ class GtDriverBooleanactuatorCmdResponse(Message[GtDriverBooleanactuatorCmd]):
             sh_node_alias=src,
         ).tuple
         super().__init__(
-            header=Header(
-                src=src,
-                dst=dst,
-                message_type=payload.TypeAlias,
+            Header=Header(
+                Src=src,
+                Dst=dst,
+                MessageType=payload.TypeAlias,
             ),
-            payload=payload,
+            Payload=payload,
         )
 
 
@@ -89,12 +89,12 @@ class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
             send_time_unix_ms=int(time.time() * 1000),
         ).tuple
         super().__init__(
-            header=Header(
-                src=src,
-                dst=dst,
-                message_type=payload.TypeAlias,
+            Header=Header(
+                Src=src,
+                Dst=dst,
+                MessageType=payload.TypeAlias,
             ),
-            payload=payload,
+            Payload=payload,
         )
 
 
@@ -107,12 +107,12 @@ class GsPwrMessage(Message[GsPwr]):
     ):
         payload = cast(GsPwr, GsPwr_Maker(power=power).tuple)
         super().__init__(
-            header=Header(
-                src=src,
-                dst=dst,
-                message_type=payload.TypeAlias,
+            Header=Header(
+                Src=src,
+                Dst=dst,
+                MessageType=payload.TypeAlias,
             ),
-            payload=payload,
+            Payload=payload,
         )
 
 
@@ -132,12 +132,12 @@ class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSe
             scada_read_time_unix_ms=int(1000 * time.time()),
         ).tuple
         super().__init__(
-            header=Header(
-                src=src,
-                dst=dst,
-                message_type=payload.TypeAlias,
+            Header=Header(
+                Src=src,
+                Dst=dst,
+                MessageType=payload.TypeAlias,
             ),
-            payload=payload,
+            Payload=payload,
         )
 
 
@@ -146,14 +146,14 @@ class ScadaDBGCommands(Enum):
 
 
 class ScadaDBG(BaseModel):
-    levels: LoggerLevels = LoggerLevels(
+    Levels: LoggerLevels = LoggerLevels(
         message_summary=-1,
         lifecycle=-1,
         comm_event=-1,
     )
-    command: Optional[ScadaDBGCommands] = None
-    type_name: Literal["gridworks.scada.dbg.000"] = "gridworks.scada.dbg.000"
+    Command: Optional[ScadaDBGCommands] = None
+    TypeName: Literal["gridworks.scada.dbg"] = "gridworks.scada.dbg"
 
-    @validator("command", pre=True)
+    @validator("Command", pre=True)
     def command_value(cls, v):
         return as_enum(v, ScadaDBGCommands)
