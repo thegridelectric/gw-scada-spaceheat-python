@@ -9,6 +9,7 @@ from typing import Any
 from typing import List
 from typing import Optional
 
+from gwproto import Message
 from gwproto import DecoderExtractor
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
@@ -24,6 +25,7 @@ from gwproto.messages import GtShTelemetryFromMultipurposeSensor
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
 from gwproto.messages import GtTelemetry_Maker
+from gwproto import MQTTTopic
 from paho.mqtt.client import MQTTMessageInfo
 
 from actors2.actor_interface import ActorInterface
@@ -34,7 +36,6 @@ from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
 from actors.scada import ScadaCmdDiagnostic
 from actors.utils import QOS
-from actors.utils import gw_mqtt_topic_decode
 from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
@@ -42,7 +43,6 @@ from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.logger import ProactorLogger
-from proactor.message import Message
 from proactor.message import MQTTReceiptPayload
 from proactor.proactor_implementation import MQTTCodec
 from proactor.proactor_implementation import Proactor
@@ -73,19 +73,15 @@ class ScadaMQTTCodec(MQTTCodec, ABC):
         return encoded
 
     def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
-        try:
-            decoded_topic = gw_mqtt_topic_decode(receipt_payload.message.topic)
-            (from_alias, type_alias) = decoded_topic.split("/")
-        except IndexError:
-            raise Exception("topic must be of format A/B")
-        if type_alias not in self.decoders:
+        decoded_topic = MQTTTopic.decode(receipt_payload.message.topic)
+        if decoded_topic.envelope_type not in self.decoders:
             raise Exception(
-                f"Type {type_alias} not recognized. Available decoders: {self.decoders.types()}"
+                f"Type {decoded_topic.envelope_type} not recognized. Available decoders: {self.decoders.types()}"
             )
-        self.validate_source_alias(from_alias)
+        self.validate_source_alias(decoded_topic.src)
         # TODO: This should probably be decode_str so that we can handle payloads that are not json, e.g.
         #       GSPwr over mqtt.
-        return self.decoders.decode_json(type_alias, receipt_payload.message.payload, encoding=self.ENCODING)
+        return self.decoders.decode_json(decoded_topic.envelope_type, receipt_payload.message.payload, encoding=self.ENCODING)
 
     @abstractmethod
     def validate_source_alias(self, source_alias: str):
@@ -180,9 +176,9 @@ class Scada2(ScadaInterface, Proactor):
             GridworksMQTTCodec(self._layout),
         )
         for topic in [
-            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{Message.__fields__['type_name'].default}"),
-            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"),
-            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}"),
+            MQTTTopic.encode_subscription(self._layout.atn_g_node_alias, Message.get_type_name()),
+            f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}".replace(".", "-"),
+            f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}".replace(".", "-"),
         ]:
             self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
 

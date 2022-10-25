@@ -25,6 +25,7 @@ from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import GsPwr_Maker
 from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
+from gwproto import MQTTTopic
 
 from actors.utils import gw_mqtt_topic_encode
 from actors.utils import QOS
@@ -150,12 +151,12 @@ class Atn2(ActorInterface, Proactor):
         self._add_mqtt_client(
             Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout)
         )
-        # TODO: take care of subscriptions better. They should be registered here and only subscribed on connect.
         self._mqtt_clients.subscribe(
             Atn2.SCADA_MQTT,
-            gw_mqtt_topic_encode(f"{self.layout.scada_g_node_alias}/{Message.__fields__['type_name'].default}"),
+            MQTTTopic.encode_subscription(self.layout.scada_g_node_alias, Message.get_type_name()),
             QOS.AtMostOnce,
         )
+
         self.latest_status: Optional[GtShStatus] = None
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
