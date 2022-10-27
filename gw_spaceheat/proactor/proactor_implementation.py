@@ -2,8 +2,6 @@
 
 import asyncio
 import traceback
-from abc import ABC
-from abc import abstractmethod
 from typing import Any
 from typing import Awaitable
 from typing import Dict
@@ -11,7 +9,9 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
+from gwproto import MQTTCodec
 from paho.mqtt.client import MQTTMessageInfo
+
 
 import config
 from proactor.logger import ProactorLogger
@@ -26,16 +26,6 @@ from proactor.mqtt import MQTTClients
 from proactor.proactor_interface import CommunicatorInterface
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
-
-
-class MQTTCodec(ABC):
-    @abstractmethod
-    def encode(self, content: Any) -> bytes:
-        pass
-
-    @abstractmethod
-    def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
-        pass
 
 
 class Proactor(ServicesInterface, Runnable):
@@ -169,7 +159,7 @@ class Proactor(ServicesInterface, Runnable):
         if decoder is not None:
             path_dbg |= 0x00000001
             try:
-                decoded = decoder.decode(message.Payload)
+                decoded = decoder.decode(message.Payload.message.topic, message.Payload.message.payload)
             except:
                 self._logger.exception("ERROR decoding [%s]", message.Payload)
                 raise

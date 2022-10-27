@@ -3,14 +3,11 @@
 import asyncio
 import time
 import typing
-from abc import ABC
-from abc import abstractmethod
 from typing import Any
 from typing import List
 from typing import Optional
 
 from gwproto import Message
-from gwproto import DecoderExtractor
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
 from gwproto.messages import GsPwr
@@ -25,6 +22,7 @@ from gwproto.messages import GtShTelemetryFromMultipurposeSensor
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
 from gwproto.messages import GtTelemetry_Maker
+from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from paho.mqtt.client import MQTTMessageInfo
 
@@ -44,49 +42,7 @@ from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload
-from proactor.proactor_implementation import MQTTCodec
 from proactor.proactor_implementation import Proactor
-
-
-class ScadaMQTTCodec(MQTTCodec, ABC):
-    ENCODING = "utf-8"
-    hardware_layout: HardwareLayout
-    decoders: Decoders
-
-    def __init__(self, hardware_layout: HardwareLayout, decoders: Decoders):
-        self.hardware_layout = hardware_layout
-        self.decoders = Decoders().merge(decoders)
-        super().__init__()
-
-    def encode(self, content: Any) -> bytes:
-        if isinstance(content, bytes):
-            encoded = content
-        else:
-            if hasattr(content, "as_type"):
-                payload_as_str = content.as_type()
-            else:
-                payload_as_str = content.json()
-            if isinstance(payload_as_str, bytes):
-                encoded = payload_as_str
-            else:
-                encoded = payload_as_str.encode(self.ENCODING)
-        return encoded
-
-    def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
-        decoded_topic = MQTTTopic.decode(receipt_payload.message.topic)
-        if decoded_topic.envelope_type not in self.decoders:
-            raise Exception(
-                f"Type {decoded_topic.envelope_type} not recognized. Available decoders: {self.decoders.types()}"
-            )
-        self.validate_source_alias(decoded_topic.src)
-        # TODO: This should probably be decode_str so that we can handle payloads that are not json, e.g.
-        #       GSPwr over mqtt.
-        return self.decoders.decode_json(decoded_topic.envelope_type, receipt_payload.message.payload, encoding=self.ENCODING)
-
-    @abstractmethod
-    def validate_source_alias(self, source_alias: str):
-        pass
-
 
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
@@ -97,12 +53,13 @@ ScadaMessageDecoder = create_message_payload_discriminator(
 )
 
 
-class GridworksMQTTCodec(ScadaMQTTCodec):
+class GridworksMQTTCodec(MQTTCodec):
+    hardware_layout: HardwareLayout
 
     def __init__(self, hardware_layout: HardwareLayout):
+        self.hardware_layout = hardware_layout
         super().__init__(
-            hardware_layout,
-            decoders=DecoderExtractor().from_objects(
+            Decoders.from_objects(
                 [
                     GtDispatchBoolean_Maker,
                     GtShCliAtnCmd_Maker,
@@ -118,12 +75,12 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
             )
 
 
-class LocalMQTTCodec(ScadaMQTTCodec):
+class LocalMQTTCodec(MQTTCodec):
 
     def __init__(self, hardware_layout: HardwareLayout):
+        self.hardware_layout = hardware_layout
         super().__init__(
-            hardware_layout,
-            decoders=DecoderExtractor().from_objects(
+            Decoders.from_objects(
                 [
                     GtDriverBooleanactuatorCmd_Maker,
                     GtShTelemetryFromMultipurposeSensor_Maker,
@@ -311,7 +268,7 @@ class Scada2(ScadaInterface, Proactor):
         elif isinstance(message.Payload, ScadaDBG):
             path_dbg |= 0x00000400
             # TODO: mqtt????
-            match message.Payload.command:
+            match message.Payload.Command:
                 case ScadaDBGCommands.show_subscriptions:
                     path_dbg |= 0x00000400
                     self.log_subscriptions("message")

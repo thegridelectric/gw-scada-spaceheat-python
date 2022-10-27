@@ -13,9 +13,10 @@ from typing import Sequence
 
 import dotenv
 import rich
+from gwproto import CallableDecoder
 from paho.mqtt.client import MQTTMessageInfo
 
-from gwproto import DecoderExtractor
+from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
 from gwproto.messages import GsPwr
 from gwproto.messages import GtDispatchBoolean_Maker
@@ -25,12 +26,12 @@ from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import GsPwr_Maker
 from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
+from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 
 from actors.utils import gw_mqtt_topic_encode
 from actors.utils import QOS
 from actors2 import ActorInterface
-from actors2.scada2 import ScadaMQTTCodec
 from command_line_utils import parse_args
 from config import LoggingSettings
 from config import Paths
@@ -54,12 +55,13 @@ AtnMessageDecoder = create_message_payload_discriminator(
 )
 
 
-class AtnMQTTCodec(ScadaMQTTCodec):
+class AtnMQTTCodec(MQTTCodec):
+    hardware_layout: HardwareLayout
 
     def __init__(self, hardware_layout: HardwareLayout):
+        self.hardware_layout = hardware_layout
         super().__init__(
-            hardware_layout,
-            decoders=DecoderExtractor().from_objects(
+            Decoders.from_objects(
                 [
                     GtShStatus_Maker,
                     SnapshotSpaceheat_Maker,
@@ -67,7 +69,7 @@ class AtnMQTTCodec(ScadaMQTTCodec):
                 message_payload_discriminator=AtnMessageDecoder,
             ).add_decoder(
                 "p",
-                lambda decoded: GsPwr_Maker(decoded[0]).tuple
+                CallableDecoder(lambda decoded: GsPwr_Maker(decoded[0]).tuple)
             )
         )
 
