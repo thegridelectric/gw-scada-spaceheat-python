@@ -10,6 +10,7 @@ from typing import Optional
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
+from gwproto.messages import EventT
 from gwproto.messages import GsPwr
 from gwproto.messages import GtDispatchBoolean
 from gwproto.messages import GtDispatchBoolean_Maker
@@ -34,7 +35,6 @@ from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
 from actors.scada import ScadaCmdDiagnostic
 from actors.utils import QOS
-from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
@@ -155,6 +155,22 @@ class Scada2(ScadaInterface, Proactor):
                     )
                 )
 
+    @property
+    def alias(self):
+        return self._name
+
+    @property
+    def node(self) -> ShNode:
+        return self._node
+
+    @property
+    def settings(self):
+        return self._settings
+
+    @property
+    def hardware_layout(self) -> HardwareLayout:
+        return self._layout
+
     def _start_derived_tasks(self):
         self._tasks.append(
             asyncio.create_task(self.update_status(), name="update_status")
@@ -188,41 +204,20 @@ class Scada2(ScadaInterface, Proactor):
     def time_to_send_status(self) -> bool:
         return time.time() > self.next_status_second()
 
-    @property
-    def alias(self):
-        return self._name
+    def generate_event(self, event: EventT) -> None:
+        if not event.Src:
+            event.Src = self._layout.scada_g_node_alias
+        self._publish_to_gridworks(event, AckRequired=True)
 
-    @property
-    def node(self) -> ShNode:
-        return self._node
-
-    def gridworks_mqtt_topic(self, payload: Any) -> str:
-        return gw_mqtt_topic_encode(f"{self._layout.scada_g_node_alias}/{payload.TypeAlias}")
-
-    @classmethod
-    def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
-        return f"{from_alias}/{payload.TypeAlias}"
-
-    # TODO: gw_mqtt_topic_encode belongs in a better place
     def _publish_to_gridworks(
-        self, payload, qos: QOS = QOS.AtMostOnce
+        self, payload, qos: QOS = QOS.AtMostOnce, **message_args: Any
     ) -> MQTTMessageInfo:
-        message = Message(Src=self._layout.scada_g_node_alias, Payload=payload)
-        return self._encode_and_publish(
-            Scada2.GRIDWORKS_MQTT,
-            topic=gw_mqtt_topic_encode(message.mqtt_topic()),
-            payload=message,
-            qos=qos,
-        )
+        message = Message(Src=self._layout.scada_g_node_alias, Payload=payload, **message_args)
+        return self._publish_message(Scada2.GRIDWORKS_MQTT, message, qos=qos)
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
         message = Message(Src=from_node.alias, Payload=payload)
-        return self._encode_and_publish(
-            Scada2.LOCAL_MQTT,
-            topic=message.mqtt_topic(),
-            payload=message,
-            qos=qos,
-        )
+        return self._publish_message(Scada2.LOCAL_MQTT, message, qos=qos)
 
     async def _derived_process_message(self, message: Message):
         self._logger.path("++Scada2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
@@ -395,14 +390,6 @@ class Scada2(ScadaInterface, Proactor):
            alive.
         """
         return self._scada_atn_fast_dispatch_contract_is_alive_stub
-
-    @property
-    def settings(self):
-        return self._settings
-
-    @property
-    def hardware_layout(self) -> HardwareLayout:
-        return self._layout
 
     def gs_pwr_received(self, payload: GsPwr):
         """The highest priority of the SCADA, from the perspective of the electric grid,

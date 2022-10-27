@@ -7,6 +7,8 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Optional
 
+from gwproto.messages import EventT
+
 from proactor.message import Message
 
 
@@ -88,4 +90,8 @@ class ServicesInterface(CommunicatorInterface):
     @property
     @abstractmethod
     def event_loop(self) -> Optional[asyncio.AbstractEventLoop]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_event(self, event: EventT) -> None:
         raise NotImplementedError
