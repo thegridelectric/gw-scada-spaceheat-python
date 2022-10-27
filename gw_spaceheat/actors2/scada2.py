@@ -3,13 +3,11 @@
 import asyncio
 import time
 import typing
-from abc import ABC
-from abc import abstractmethod
 from typing import Any
 from typing import List
 from typing import Optional
 
-from gwproto import DecoderExtractor
+from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
 from gwproto.messages import GsPwr
@@ -24,6 +22,8 @@ from gwproto.messages import GtShTelemetryFromMultipurposeSensor
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
 from gwproto.messages import GtTelemetry_Maker
+from gwproto import MQTTCodec
+from gwproto import MQTTTopic
 from paho.mqtt.client import MQTTMessageInfo
 
 from actors2.actor_interface import ActorInterface
@@ -34,7 +34,6 @@ from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
 from actors.scada import ScadaCmdDiagnostic
 from actors.utils import QOS
-from actors.utils import gw_mqtt_topic_decode
 from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
@@ -42,55 +41,8 @@ from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.logger import ProactorLogger
-from proactor.message import Message
 from proactor.message import MQTTReceiptPayload
-from proactor.proactor_implementation import MQTTCodec
 from proactor.proactor_implementation import Proactor
-
-
-class ScadaMQTTCodec(MQTTCodec, ABC):
-    ENCODING = "utf-8"
-    hardware_layout: HardwareLayout
-    decoders: Decoders
-
-    def __init__(self, hardware_layout: HardwareLayout, decoders: Decoders):
-        self.hardware_layout = hardware_layout
-        self.decoders = Decoders().merge(decoders)
-        super().__init__()
-
-    def encode(self, content: Any) -> bytes:
-        if isinstance(content, bytes):
-            encoded = content
-        else:
-            if hasattr(content, "as_type"):
-                payload_as_str = content.as_type()
-            else:
-                payload_as_str = content.json()
-            if isinstance(payload_as_str, bytes):
-                encoded = payload_as_str
-            else:
-                encoded = payload_as_str.encode(self.ENCODING)
-        return encoded
-
-    def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
-        try:
-            decoded_topic = gw_mqtt_topic_decode(receipt_payload.message.topic)
-            (from_alias, type_alias) = decoded_topic.split("/")
-        except IndexError:
-            raise Exception("topic must be of format A/B")
-        if type_alias not in self.decoders:
-            raise Exception(
-                f"Type {type_alias} not recognized. Available decoders: {self.decoders.types()}"
-            )
-        self.validate_source_alias(from_alias)
-        # TODO: This should probably be decode_str so that we can handle payloads that are not json, e.g.
-        #       GSPwr over mqtt.
-        return self.decoders.decode_json(type_alias, receipt_payload.message.payload, encoding=self.ENCODING)
-
-    @abstractmethod
-    def validate_source_alias(self, source_alias: str):
-        pass
-
 
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
@@ -101,12 +53,13 @@ ScadaMessageDecoder = create_message_payload_discriminator(
 )
 
 
-class GridworksMQTTCodec(ScadaMQTTCodec):
+class GridworksMQTTCodec(MQTTCodec):
+    hardware_layout: HardwareLayout
 
     def __init__(self, hardware_layout: HardwareLayout):
+        self.hardware_layout = hardware_layout
         super().__init__(
-            hardware_layout,
-            decoders=DecoderExtractor().from_objects(
+            Decoders.from_objects(
                 [
                     GtDispatchBoolean_Maker,
                     GtShCliAtnCmd_Maker,
@@ -122,12 +75,12 @@ class GridworksMQTTCodec(ScadaMQTTCodec):
             )
 
 
-class LocalMQTTCodec(ScadaMQTTCodec):
+class LocalMQTTCodec(MQTTCodec):
 
     def __init__(self, hardware_layout: HardwareLayout):
+        self.hardware_layout = hardware_layout
         super().__init__(
-            hardware_layout,
-            decoders=DecoderExtractor().from_objects(
+            Decoders.from_objects(
                 [
                     GtDriverBooleanactuatorCmd_Maker,
                     GtShTelemetryFromMultipurposeSensor_Maker,
@@ -180,9 +133,9 @@ class Scada2(ScadaInterface, Proactor):
             GridworksMQTTCodec(self._layout),
         )
         for topic in [
-            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{Message.__fields__['type_name'].default}"),
-            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}"),
-            gw_mqtt_topic_encode(f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}"),
+            MQTTTopic.encode_subscription(self._layout.atn_g_node_alias, Message.type_name()),
+            f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}".replace(".", "-"),
+            f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}".replace(".", "-"),
         ]:
             self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
 
@@ -254,7 +207,7 @@ class Scada2(ScadaInterface, Proactor):
     def _publish_to_gridworks(
         self, payload, qos: QOS = QOS.AtMostOnce
     ) -> MQTTMessageInfo:
-        message = Message(src=self._layout.scada_g_node_alias, payload=payload)
+        message = Message(Src=self._layout.scada_g_node_alias, Payload=payload)
         return self._encode_and_publish(
             Scada2.GRIDWORKS_MQTT,
             topic=gw_mqtt_topic_encode(message.mqtt_topic()),
@@ -263,7 +216,7 @@ class Scada2(ScadaInterface, Proactor):
         )
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
-        message = Message(src=from_node.alias, payload=payload)
+        message = Message(Src=from_node.alias, Payload=payload)
         return self._encode_and_publish(
             Scada2.LOCAL_MQTT,
             topic=message.mqtt_topic(),
@@ -272,56 +225,56 @@ class Scada2(ScadaInterface, Proactor):
         )
 
     async def _derived_process_message(self, message: Message):
-        self._logger.path("++Scada2._derived_process_message %s/%s", message.header.src, message.header.message_type)
+        self._logger.path("++Scada2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
-        from_node = self._layout.node(message.header.src, None)
-        if isinstance(message.payload, GsPwr):
+        from_node = self._layout.node(message.Header.Src, None)
+        if isinstance(message.Payload, GsPwr):
             path_dbg |= 0x00000001
             if from_node is self._layout.power_meter_node:
                 path_dbg |= 0x00000002
-                self.gs_pwr_received(message.payload)
+                self.gs_pwr_received(message.Payload)
             else:
                 raise Exception(
-                    f"message.header.src {message.header.src} must be from {self._layout.power_meter_node} for GsPwr message"
+                    f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for GsPwr message"
                 )
-        elif isinstance(message.payload, GtDispatchBooleanLocal):
+        elif isinstance(message.Payload, GtDispatchBooleanLocal):
             path_dbg |= 0x00000004
-            if message.header.src == "a.home":
+            if message.Header.Src == "a.home":
                 path_dbg |= 0x00000008
-                await self.local_boolean_dispatch_received(message.payload)
+                await self.local_boolean_dispatch_received(message.Payload)
             else:
                 raise Exception(
-                    "message.header.src must be a.home for GsDispatchBooleanLocal message"
+                    "message.Header.Src must be a.home for GsDispatchBooleanLocal message"
                 )
-        elif isinstance(message.payload, GtTelemetry):
+        elif isinstance(message.Payload, GtTelemetry):
             path_dbg |= 0x00000010
             if from_node in self._layout.my_simple_sensors:
                 path_dbg |= 0x00000020
-                self.gt_telemetry_received(from_node, message.payload)
-        elif isinstance(message.payload, GtShTelemetryFromMultipurposeSensor):
+                self.gt_telemetry_received(from_node, message.Payload)
+        elif isinstance(message.Payload, GtShTelemetryFromMultipurposeSensor):
             path_dbg |= 0x00000040
             if from_node in self._layout.my_multipurpose_sensors:
                 path_dbg |= 0x00000080
                 self.gt_sh_telemetry_from_multipurpose_sensor_received(
-                    from_node, message.payload
+                    from_node, message.Payload
                 )
-        elif isinstance(message.payload, GtDriverBooleanactuatorCmd):
+        elif isinstance(message.Payload, GtDriverBooleanactuatorCmd):
             path_dbg |= 0x00000100
             if from_node in self._layout.my_boolean_actuators:
                 path_dbg |= 0x00000200
                 self.gt_driver_booleanactuator_cmd_record_received(
-                    from_node, message.payload
+                    from_node, message.Payload
                 )
-        elif isinstance(message.payload, ScadaDBG):
+        elif isinstance(message.Payload, ScadaDBG):
             path_dbg |= 0x00000400
             # TODO: mqtt????
-            match message.payload.command:
+            match message.Payload.Command:
                 case ScadaDBGCommands.show_subscriptions:
                     path_dbg |= 0x00000400
                     self.log_subscriptions("message")
         else:
             raise ValueError(
-                f"There is not handler for mqtt message payload type [{type(message.payload)}]"
+                f"There is not handler for mqtt message payload type [{type(message.Payload)}]"
             )
         self._logger.path("--Scada2._derived_process_message  path:0x%08X", path_dbg)
 
@@ -339,31 +292,31 @@ class Scada2(ScadaInterface, Proactor):
     async def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
-        self._logger.path("++Scada2._derived_process_mqtt_message %s", message.payload.message.topic)
+        self._logger.path("++Scada2._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
-        if message.payload.client_name != self.GRIDWORKS_MQTT:
+        if message.Payload.client_name != self.GRIDWORKS_MQTT:
             raise ValueError(
-                f"There are no messages expected to be received from [{message.payload.client_name}] mqtt broker. "
-                f"Received\n\t topic: [{message.payload.message.topic}]"
+                f"There are no messages expected to be received from [{message.Payload.client_name}] mqtt broker. "
+                f"Received\n\t topic: [{message.Payload.message.topic}]"
             )
-        if isinstance(decoded.payload, GtDispatchBoolean):
+        if isinstance(decoded.Payload, GtDispatchBoolean):
             path_dbg |= 0x00000001
-            await self._boolean_dispatch_received(decoded.payload)
-        elif isinstance(decoded.payload, GtShCliAtnCmd):
+            await self._boolean_dispatch_received(decoded.Payload)
+        elif isinstance(decoded.Payload, GtShCliAtnCmd):
             path_dbg |= 0x00000002
-            self._gt_sh_cli_atn_cmd_received(decoded.payload)
-        elif isinstance(decoded.payload, GtTelemetry):
+            self._gt_sh_cli_atn_cmd_received(decoded.Payload)
+        elif isinstance(decoded.Payload, GtTelemetry):
             path_dbg |= 0x00000004
-            self._process_telemetry(message, decoded.payload)
+            self._process_telemetry(message, decoded.Payload)
         else:
             raise ValueError(
                 f"There is not handler for mqtt message payload type [{type(decoded)}]\n"
-                f"Received\n\t topic: [{message.payload.message.topic}]"
+                f"Received\n\t topic: [{message.Payload.message.topic}]"
             )
         self._logger.path("--Scada2._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_telemetry(self, message: Message, decoded: GtTelemetry):
-        from_node = self._layout.node(message.header.src)
+        from_node = self._layout.node(message.Header.Src)
         if from_node in self._layout.my_simple_sensors:
             self._data.recent_simple_values[from_node].append(decoded.Value)
             self._data.recent_simple_read_times_unix_ms[from_node].append(

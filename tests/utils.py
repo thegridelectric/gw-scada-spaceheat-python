@@ -255,7 +255,7 @@ class AtnRecorder(Atn):
         self.logger.info(
             f"type_alias: [{type_alias}] present in {self.decoders.types()}? {type_alias in self.decoders.types()}")
         if type_alias not in TypeMakerByAliasDict.keys():
-            topic = self.decoders.decode_str(type_alias, message.payload).header.message_type
+            topic = self.decoders.decode_str(type_alias, message.Payload).Header.MessageType
         else:
             topic = message.topic
         old_num_received_by_topic = self.num_received_by_topic[topic]
@@ -488,57 +488,57 @@ class Scada2Recorder(Scada2):
 
     async def process_message(self, message: Message):
         self._record_comm_event(
-            message.header.src,
+            message.Header.Src,
             CommEvents.message,
-            message.header.message_type,
-            message.payload,
+            message.Header.MessageType,
+            message.Payload,
         )
-        self.num_received_by_type[message.header.message_type] += 1
+        self.num_received_by_type[message.Header.MessageType] += 1
         await super().process_message(message)
 
     async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         self._record_comm_event(
-            message.payload.client_name,
+            message.Payload.client_name,
             CommEvents.mqtt_message,
-            message.payload.userdata,
-            message.payload.message
+            message.Payload.userdata,
+            message.Payload.message
         )
-        self.num_received_by_topic[message.payload.message.topic] += 1
+        self.num_received_by_topic[message.Payload.message.topic] += 1
         await super()._process_mqtt_message(message)
 
     def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
         self._record_comm_event(
-            message.payload.client_name,
+            message.Payload.client_name,
             CommEvents.connect,
-            message.payload.userdata,
-            message.payload.flags,
-            message.payload.rc
+            message.Payload.userdata,
+            message.Payload.flags,
+            message.Payload.rc
         )
         super()._process_mqtt_connected(message)
 
     def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
         self._record_comm_event(
-            message.payload.client_name,
+            message.Payload.client_name,
             CommEvents.disconnect,
-            message.payload.userdata,
-            message.payload.rc
+            message.Payload.userdata,
+            message.Payload.rc
         )
         super()._process_mqtt_disconnected(message)
 
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
         self._record_comm_event(
-            message.payload.client_name,
+            message.Payload.client_name,
             CommEvents.connect_fail,
-            message.payload.userdata
+            message.Payload.userdata
         )
         super()._process_mqtt_connect_fail(message)
 
     def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
         self._record_comm_event(
-            message.payload.client_name,
+            message.Payload.client_name,
             CommEvents.subscribe,
-            message.payload.userdata,
-            message.payload.mid, message.payload.granted_qos
+            message.Payload.userdata,
+            message.Payload.mid, message.Payload.granted_qos
         )
         super()._process_mqtt_suback(message)
 

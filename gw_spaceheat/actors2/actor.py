@@ -55,7 +55,7 @@ class SyncThreadActor(Actor, Generic[SyncThreadT]):
         self._sync_thread = sync_thread
 
     async def process_message(self, message: Message):
-        raise ValueError(f"Error. {self.__class__.__name__} does not process any messages. Received {message.header}")
+        raise ValueError(f"Error. {self.__class__.__name__} does not process any messages. Received {message.Header}")
 
     def send_driver_message(self, message: Any) -> None:
         self._sync_thread.put_to_sync_queue(message)

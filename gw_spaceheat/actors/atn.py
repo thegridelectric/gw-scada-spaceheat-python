@@ -74,7 +74,7 @@ class Atn(CloudBase):
                 Qos=QOS.AtLeastOnce,
             ),
             Subscription(
-                Topic=f"{self.scada_g_node_alias}/{Message.__fields__['type_name'].default}",
+                Topic=f"{self.scada_g_node_alias}/{Message.type_name()}",
                 Qos=QOS.AtMostOnce,
             ),
         ]

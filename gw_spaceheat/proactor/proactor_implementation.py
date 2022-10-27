@@ -2,8 +2,6 @@
 
 import asyncio
 import traceback
-from abc import ABC
-from abc import abstractmethod
 from typing import Any
 from typing import Awaitable
 from typing import Dict
@@ -11,7 +9,9 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
+from gwproto import MQTTCodec
 from paho.mqtt.client import MQTTMessageInfo
+
 
 import config
 from proactor.logger import ProactorLogger
@@ -26,17 +26,6 @@ from proactor.mqtt import MQTTClients
 from proactor.proactor_interface import CommunicatorInterface
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
-from proactor.sync_thread import AsyncQueueWriter
-
-
-class MQTTCodec(ABC):
-    @abstractmethod
-    def encode(self, content: Any) -> bytes:
-        pass
-
-    @abstractmethod
-    def decode(self, receipt_payload: MQTTReceiptPayload) -> Any:
-        pass
 
 
 class Proactor(ServicesInterface, Runnable):
@@ -135,28 +124,28 @@ class Proactor(ServicesInterface, Runnable):
         pass
 
     async def process_message(self, message: Message):
-        self._logger.path("++Proactor.process_message %s/%s", message.header.src, message.header.message_type)
+        self._logger.path("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         self._logger.message_summary(
             "INx ",
             self.name,
-            f"{message.header.src}/{message.header.message_type}",
-            message.payload,
+            f"{message.Header.Src}/{message.Header.MessageType}",
+            message.Payload,
         )
         # TODO: be easier on the eyes
-        if message.header.message_type == MessageType.mqtt_message.value:
+        if message.Header.MessageType == MessageType.mqtt_message.value:
             path_dbg |= 0x00000001
             await self._process_mqtt_message(message)
-        elif message.header.message_type == MessageType.mqtt_connected.value:
+        elif message.Header.MessageType == MessageType.mqtt_connected.value:
             path_dbg |= 0x00000002
             self._process_mqtt_connected(message)
-        elif message.header.message_type == MessageType.mqtt_disconnected.value:
+        elif message.Header.MessageType == MessageType.mqtt_disconnected.value:
             path_dbg |= 0x00000004
             self._process_mqtt_disconnected(message)
-        elif message.header.message_type == MessageType.mqtt_connect_failed.value:
+        elif message.Header.MessageType == MessageType.mqtt_connect_failed.value:
             path_dbg |= 0x00000008
             self._process_mqtt_connect_fail(message)
-        elif message.header.message_type == MessageType.mqtt_suback.value:
+        elif message.Header.MessageType == MessageType.mqtt_suback.value:
             self._process_mqtt_suback(message)
         else:
             path_dbg |= 0x00000010
@@ -164,25 +153,25 @@ class Proactor(ServicesInterface, Runnable):
         self._logger.path("--Proactor.process_message  path:0x%08X", path_dbg)
 
     async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
-        self._logger.path("++Proactor._process_mqtt_message %s/%s", message.header.src, message.header.message_type)
+        self._logger.path("++Proactor._process_mqtt_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
-        decoder = self._mqtt_codecs.get(message.payload.client_name, None)
+        decoder = self._mqtt_codecs.get(message.Payload.client_name, None)
         if decoder is not None:
             path_dbg |= 0x00000001
             try:
-                decoded = decoder.decode(message.payload)
+                decoded = decoder.decode(message.Payload.message.topic, message.Payload.message.payload)
             except:
-                self._logger.exception("ERROR decoding [%s]", message.payload)
+                self._logger.exception("ERROR decoding [%s]", message.Payload)
                 raise
         else:
             path_dbg |= 0x00000002
-            decoded = message.payload
-        self._logger.message_summary("INq ", self.name, message.payload.message.topic, decoded)
+            decoded = message.Payload
+        self._logger.message_summary("INq ", self.name, message.Payload.message.topic, decoded)
         await self._derived_process_mqtt_message(message, decoded)
         self._logger.path("--Proactor._process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
-        self._mqtt_clients.subscribe_all(message.payload.client_name)
+        self._mqtt_clients.subscribe_all(message.Payload.client_name)
 
     def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
         pass
@@ -259,9 +248,9 @@ class Proactor(ServicesInterface, Runnable):
     def send(self, message: Message):
         self._logger.message_summary(
             "OUTx",
-            message.header.src,
-            f"{message.header.dst}/{message.header.message_type}",
-            message.payload,
+            message.Header.Src,
+            f"{message.Header.Dst}/{message.Header.MessageType}",
+            message.Payload,
         )
         self._receive_queue.put_nowait(message)
 

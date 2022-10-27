@@ -8,9 +8,10 @@ from abc import abstractmethod
 from typing import List
 
 import paho.mqtt.client as mqtt
-from gwproto import DecoderExtractor
+from gwproto import Decoders
+from gwproto import MakerExtractor
 from gwproto import OneDecoderExtractor
-from gwproto import PydanticExtractor
+from gwproto import CallableDecoder
 from gwproto.messages import GsDispatch
 from gwproto.messages import GsPwr
 from gwproto.messages import GsPwr_Maker
@@ -49,18 +50,19 @@ class CloudBase(ABC):
         self.gw_client.on_connect = self.on_connect
         self.gw_client.on_connect_fail = self.on_connect_fail
         self.gw_client.on_disconnect = self.on_disconnect
-        self.decoders = DecoderExtractor(extractors=[
-            OneDecoderExtractor(decoder_function_name="type_to_tuple"),
-            PydanticExtractor(decoder_function_name="parse_raw"),
-        ]).from_objects(
+        self.decoders = Decoders.from_objects(
             [
                 GtShStatus_Maker,
                 SnapshotSpaceheat_Maker,
             ],
             message_payload_discriminator=ScadaMessageDecoder,
+            extractors=[
+                MakerExtractor(decoder_function_name="type_to_tuple"),
+                OneDecoderExtractor(decoder_function_name="parse_raw"),
+            ]
         ).add_decoder(
             "p",
-            lambda decoded: GsPwr_Maker(json.loads(decoded)[0]).tuple
+            CallableDecoder(lambda decoded: GsPwr_Maker(json.loads(decoded)[0]).tuple)
         )
 
 
