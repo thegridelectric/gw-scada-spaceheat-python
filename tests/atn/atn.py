@@ -155,7 +155,7 @@ class Atn2(ActorInterface, Proactor):
         )
         self._mqtt_clients.subscribe(
             Atn2.SCADA_MQTT,
-            MQTTTopic.encode_subscription(self.layout.scada_g_node_alias, Message.get_type_name()),
+            MQTTTopic.encode_subscription(self.layout.scada_g_node_alias, Message.type_name()),
             QOS.AtMostOnce,
         )
 

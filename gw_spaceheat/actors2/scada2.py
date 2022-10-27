@@ -133,7 +133,7 @@ class Scada2(ScadaInterface, Proactor):
             GridworksMQTTCodec(self._layout),
         )
         for topic in [
-            MQTTTopic.encode_subscription(self._layout.atn_g_node_alias, Message.get_type_name()),
+            MQTTTopic.encode_subscription(self._layout.atn_g_node_alias, Message.type_name()),
             f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}".replace(".", "-"),
             f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}".replace(".", "-"),
         ]:
