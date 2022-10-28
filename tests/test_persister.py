@@ -10,6 +10,7 @@ from gwproto.messages import ProblemEvent
 from result import Result
 
 from config import ScadaSettings
+from proactor.persister import _PersistedItem
 from proactor.persister import FileExistedWarning
 from proactor.persister import FileMissing
 from proactor.persister import FileMissingWarning
@@ -17,6 +18,7 @@ from proactor.persister import PersisterError
 from proactor.persister import PersisterException
 from proactor.persister import PersisterWarning
 from proactor.persister import Problems
+from proactor.persister import ReindexError
 from proactor.persister import TimedRollingFilePersister
 from proactor.persister import TrimFailed
 from proactor.persister import UIDExistedWarning
@@ -787,21 +789,32 @@ def test_persister_problems():
         assert isinstance(problems.errors[0], FileMissing)
 
         # reindex, _persisted_item_from_file_path exception
-        # This has an error
-        # p.persist(uids[-1], buf).expect("")
-        # class BrokenRoller3(TimedRollingFilePersister):
-        #     @classmethod
-        #     def _persisted_item_from_file_path(cls, filepath: Path):
-        #         raise ValueError("arg")
-
-        # p = BrokenRoller3(settings.paths.event_dir, max_bytes=len(buf) + 50)
-        # # This is not generating an error
-        # problems = p.reindex().unwrap_err()
+        shutil.rmtree(p.base_dir)
+        settings.paths.mkdirs()
+        p = TimedRollingFilePersister(settings.paths.event_dir, max_bytes=len(buf) + 50)
+        p.persist(uids[-1], buf).unwrap()
+        class BrokenRoller3(TimedRollingFilePersister):
+            @classmethod
+            def _persisted_item_from_file_path(cls, filepath: Path):
+                raise ValueError("arg")
+        p = BrokenRoller3(settings.paths.event_dir, max_bytes=len(buf) + 50)
+        problems = p.reindex().unwrap_err()
+        assert len(problems.errors) == 2
+        assert len(problems.warnings) == 0
+        assert isinstance(problems.errors[0], ValueError)
+        assert isinstance(problems.errors[1], ReindexError)
 
         # reindex, _is_iso_parseable exception
-
-        # _persisted_item_from_file_path, _is_iso_parseable exception
-
+        class BrokenRoller4(TimedRollingFilePersister):
+            @classmethod
+            def _is_iso_parseable(cls, s: str | Path) -> bool:
+                raise ValueError("arg")
+        p = BrokenRoller4(settings.paths.event_dir, max_bytes=len(buf) + 50)
+        problems = p.reindex().unwrap_err()
+        assert len(problems.errors) == 2
+        assert len(problems.warnings) == 0
+        assert isinstance(problems.errors[0], ValueError)
+        assert isinstance(problems.errors[1], ReindexError)
 
     finally:
         pendulum.set_test_now()

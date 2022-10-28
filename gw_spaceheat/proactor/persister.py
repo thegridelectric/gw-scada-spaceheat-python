@@ -2,6 +2,7 @@ import abc
 import re
 import shutil
 from abc import abstractmethod
+from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 from typing import Optional
@@ -163,6 +164,7 @@ class PersisterInterface(abc.ABC):
         """Re-created pending index from persisted storage"""
 
 
+@dataclass
 class _PersistedItem(NamedTuple):
     uid: str
     path: Path
@@ -379,7 +381,7 @@ class TimedRollingFilePersister(PersisterInterface):
             match = cls.FILENAME_RGX.match(filepath.name)
             if match and cls._is_iso_parseable(match.group("dt")):
                 item = _PersistedItem(match.group("uid"), filepath)
-        except:
+        except: # pragma: no cover
             pass
         return item
 
