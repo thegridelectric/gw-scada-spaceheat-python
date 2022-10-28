@@ -13,7 +13,7 @@ from result import Ok
 from result import Result
 
 
-class Problems(Exception):
+class Problems(ValueError):
     MAX_PROBLEMS = 10
 
     errors: list[BaseException]
@@ -135,32 +135,32 @@ class PersisterInterface(abc.ABC):
 
     @abstractmethod
     def persist(self, uid: str, content: bytes) -> Result[bool, Problems]:
-        ...
+        """Persist content, indexed by uid"""
 
     @abstractmethod
     def clear(self, uid: str) -> Result[bool, Problems]:
-        ...
+        """Delete content persisted for uid. It is error to clear a uid which is not currently persisted."""
 
     @abstractmethod
     def pending(self) -> list[str]:
-        ...
+        """Get list of pending (persisted and not cleared) uids"""
 
     @property
     @abstractmethod
     def num_pending(self) -> int:
-        ...
+        """Get number of pending uids"""
 
     @abstractmethod
     def __contains__(self, uid: str) -> bool:
-        ...
+        """Check whether a uid is pending"""
 
     @abstractmethod
     def retrieve(self, uid: str) -> Result[Optional[bytes], Problems]:
-        ...
+        """Load and return persisted content for uid"""
 
     @abstractmethod
     def reindex(self) -> Result[Optional[bool], Problems]:
-        ...
+        """Re-created pending index from persisted storage"""
 
 
 class _PersistedItem(NamedTuple):
@@ -170,7 +170,7 @@ class _PersistedItem(NamedTuple):
 
 class TimedRollingFilePersister(PersisterInterface):
     DEFAULT_MAX_BYTES: int = 500 * 1024 * 1024
-    FILENAME_RGX: re.Pattern = re.compile("(?P<dt>.*)\.uid\[(?P<uid>.*)].(?i)json")
+    FILENAME_RGX: re.Pattern = re.compile(r"(?P<dt>.*)\.uid\[(?P<uid>.*)].json$")
 
     _base_dir: Path
     _max_bytes: int = DEFAULT_MAX_BYTES
@@ -187,6 +187,22 @@ class TimedRollingFilePersister(PersisterInterface):
         self._max_bytes = max_bytes
         self._curr_dir = self._today_dir()
         self.reindex()
+
+    @property
+    def max_bytes(self) -> int:
+        return self._max_bytes
+
+    @property
+    def curr_bytes(self) -> int:
+        return self._curr_bytes
+
+    @property
+    def base_dir(self) -> Path:
+        return self._base_dir
+
+    @property
+    def curr_dir(self) -> Path:
+        return self._curr_dir
 
     def persist(self, uid: str, content: bytes) -> Result[bool, Problems]:
         problems = Problems()
@@ -221,7 +237,7 @@ class TimedRollingFilePersister(PersisterInterface):
                 with self._pending[uid].open("wb") as f:
                     f.write(content)
                 self._curr_bytes += len(content)
-            except BaseException as e:
+            except BaseException as e: # pragma: no cover
                 return Err(
                     problems.add_error(e).add_error(
                         WriteFailed(f"Open or write failed", uid=uid, path=existing_path)
@@ -256,9 +272,9 @@ class TimedRollingFilePersister(PersisterInterface):
                 break
         try:
             if last_day_dir is not None:
-                if not self._pending or next(iter(self._pending.values())) != last_day_dir:
+                if not self._pending or next(iter(self._pending.values())).parent != last_day_dir:
                     shutil.rmtree(last_day_dir, ignore_errors=True)
-        except BaseException as e:
+        except BaseException as e: # pragma: no cover
             problems.add_error(e)
             problems.add_error(PersisterError("Unexpected error"))
         if problems:
@@ -269,14 +285,16 @@ class TimedRollingFilePersister(PersisterInterface):
     def clear(self, uid: str) -> Result[bool, Problems]:
         problems = Problems()
         path = self._pending.pop(uid, None)
-        if path and path.exists():
+        if path:
             if path.exists():
                 self._curr_bytes -= path.stat().st_size
                 path.unlink()
+                if next(path.parent.iterdir(), None) is None:
+                    shutil.rmtree(path.parent, ignore_errors=True)
             else:
-                problems.add_warning(UIDMissingWarning(uid=uid, path=path))
+                problems.add_warning(FileMissingWarning(uid=uid, path=path))
         else:
-            problems.add_warning(FileMissingWarning(uid=uid, path=path))
+            problems.add_warning(UIDMissingWarning(uid=uid, path=path))
         if problems:
             return Err(problems)
         else:
@@ -304,7 +322,7 @@ class TimedRollingFilePersister(PersisterInterface):
                 try:
                     with path.open("rb") as f:
                         content: bytes = f.read()
-                except BaseException as e:
+                except BaseException as e: # pragma: no cover
                     problems.add_error(e).add_error(
                         ReadFailed(f"Open or read failed", uid=uid, path=path)
                     )

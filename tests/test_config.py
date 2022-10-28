@@ -44,6 +44,7 @@ def exp_paths_dict(**kwargs) -> dict:
         config_home=default_config_home,
         data_dir=default_data_home / default_relative_path,
         config_dir=default_config_dir,
+        event_dir=default_data_home / default_relative_path / "event",
         log_dir=default_state_home / default_relative_path / "log",
         hardware_layout=default_config_dir / "hardware-layout.json",
     )
@@ -76,6 +77,7 @@ def test_paths(clean_scada_env, tmp_path):
         relative_path=Path("foo/bar"),
         data_dir=tmp_path / ".local/share/foo/bar",
         config_dir=tmp_path / ".config/foo/bar",
+        event_dir=tmp_path / ".local/share/foo/bar/event",
         log_dir=tmp_path / ".local/state/foo/bar/log",
         hardware_layout=tmp_path / ".config/foo/bar/hardware-layout.json",
     )
@@ -87,6 +89,7 @@ def test_paths(clean_scada_env, tmp_path):
         relative_path=Path("foo/bar"),
         data_dir=tmp_path / ".local/share/foo/bar",
         config_dir=tmp_path / ".config/foo/bar",
+        event_dir=tmp_path / ".local/share/foo/bar/event",
         log_dir=tmp_path / ".local/state/foo/bar/log",
         hardware_layout=tmp_path / ".config/foo/bar/hardware-layout.json",
     )
@@ -99,6 +102,7 @@ def test_paths(clean_scada_env, tmp_path):
         state_home="y",
         config_home="z",
         data_dir="x/gridworks/scada",
+        event_dir="x/gridworks/scada/event",
         log_dir="y/gridworks/scada/log",
         config_dir="z/gridworks/scada",
         hardware_layout="z/gridworks/scada/hardware-layout.json",
@@ -106,11 +110,12 @@ def test_paths(clean_scada_env, tmp_path):
 
     # explicit working dirs
     assert_paths(
-        Paths(data_dir="x", log_dir="y", config_dir="z"),
+        Paths(data_dir="x", log_dir="y", config_dir="z", event_dir="q"),
         home=tmp_path,
         data_dir="x",
         log_dir="y",
         config_dir="z",
+        event_dir="q",
         hardware_layout="z/hardware-layout.json",
     )
 
@@ -134,6 +139,7 @@ def test_paths(clean_scada_env, tmp_path):
         data_dir="/x/gridworks/scada",
         log_dir="/y/gridworks/scada/log",
         config_dir="/z/gridworks/scada",
+        event_dir="/x/gridworks/scada/event",
         hardware_layout="/z/gridworks/scada/hardware-layout.json",
     )
 
