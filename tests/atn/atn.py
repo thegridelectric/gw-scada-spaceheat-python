@@ -173,10 +173,14 @@ class Atn2(ActorInterface, Proactor):
     def node(self) -> ShNode:
         return self._node
 
+    @property
+    def publication_name(self) -> str:
+        return self.layout.atn_g_node_alias
+
     def _publish_to_scada(
         self, payload, qos: QOS = QOS.AtMostOnce
     ) -> MQTTMessageInfo:
-        message = Message(Src=self.layout.atn_g_node_alias, Payload=payload)
+        message = Message(Src=self.publication_name, Payload=payload)
         return self._publish_message(Atn2.SCADA_MQTT, message, qos=qos)
 
     async def process_message(self, message: Message):
@@ -261,7 +265,6 @@ class Atn2(ActorInterface, Proactor):
         event_file = self.settings.paths.event_dir / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
         with event_file.open("w") as f:
             f.write(event.json(sort_keys=True, indent=2))
-        self._logger.info(f"Wrote event file [{event_file}]")
 
     def get_snapshot(self):
         self.send_threadsafe(

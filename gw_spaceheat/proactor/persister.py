@@ -50,7 +50,7 @@ class Problems(Exception):
         self.warnings.extend(other.warnings[:self.max_problems - len(self.warnings)])
         return self
 
-    def __str__(self):
+    def __str__(self) -> str:
         if bool(self):
             s = f"Problems: {len(self.errors)} errors, {len(self.warnings)} warnings, max: {self.max_problems}"
             for attr_name in ["errors", "warnings"]:
@@ -61,6 +61,9 @@ class Problems(Exception):
                         s += f"  {i:2d}: {entry}\n"
             return s
         return ""
+
+    def __repr__(self) -> str:
+        return str(self)
 
 class PersisterException(Exception):
     path: Optional[Path] = None
@@ -289,6 +292,9 @@ class TimedRollingFilePersister(PersisterInterface):
     def __contains__(self, uid: str) -> bool:
         return uid in self._pending
 
+    def get_path(self, uid: str) -> Optional[Path]:
+        return self._pending.get(uid, None)
+
     def retrieve(self, uid: str) -> Result[Optional[bytes], Problems]:
         problems = Problems()
         content: Optional[bytes] = None
@@ -296,7 +302,7 @@ class TimedRollingFilePersister(PersisterInterface):
         if path:
             if path.exists():
                 try:
-                    with path.open("b") as f:
+                    with path.open("rb") as f:
                         content: bytes = f.read()
                 except BaseException as e:
                     problems.add_error(e).add_error(
@@ -340,6 +346,7 @@ class TimedRollingFilePersister(PersisterInterface):
         today_dir = self._today_dir()
         if today_dir != self._curr_dir:
             self._curr_dir = today_dir
+        if not self._curr_dir.exists():
             self._curr_dir.mkdir(parents=True, exist_ok=True)
 
     @classmethod

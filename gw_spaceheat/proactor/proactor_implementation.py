@@ -235,16 +235,18 @@ class Proactor(ServicesInterface, Runnable):
                 case _:
                     path_dbg |= 0x00000008
                     await self._derived_process_mqtt_message(message, result.value)
-        if result.is_ok() and message.Header.AckRequired:
-            if message.Header.MessageId:
+        if result.is_ok() and result.value.Header.AckRequired:
+            path_dbg |= 0x00000010
+            if result.value.Header.MessageId:
+                path_dbg |= 0x00000020
                 self._publish_message(
                     message.Payload.client_name,
                     Message(
                         Src=self.publication_name,
-                        Payload=Ack(AckMessageID=message.Header.MessageId)
+                        Payload=Ack(AckMessageID=result.value.Header.MessageId)
                     )
                 )
-        self._logger.path("--Proactor._process_mqtt_message  path:0x%08X", path_dbg)
+        self._logger.path("--Proactor._process_mqtt_message:%s  path:0x%08X", int(result.is_ok()), path_dbg)
 
     def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
         self._mqtt_clients.subscribe_all(message.Payload.client_name)
