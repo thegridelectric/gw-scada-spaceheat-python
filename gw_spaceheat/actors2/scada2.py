@@ -1,6 +1,7 @@
 """Scada implementation"""
 
 import asyncio
+import json
 import time
 import typing
 from typing import Any
@@ -26,6 +27,8 @@ from gwproto.messages import GtTelemetry_Maker
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from paho.mqtt.client import MQTTMessageInfo
+from result import Err
+from result import Ok
 
 from actors2.actor_interface import ActorInterface
 from actors2.message import GtDispatchBooleanLocalMessage
@@ -42,7 +45,10 @@ from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload
+from proactor.message import MQTTSubackPayload
+from proactor.persister import TimedRollingFilePersister
 from proactor.proactor_implementation import Proactor
+from proactor.proactor_implementation import WaitResult
 
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
@@ -106,8 +112,10 @@ class Scada2(ScadaInterface, Proactor):
     _nodes: HardwareLayout
     _node: ShNode
     _data: ScadaData
+    _event_persister: TimedRollingFilePersister
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
+
 
     def __init__(
         self,
@@ -138,12 +146,12 @@ class Scada2(ScadaInterface, Proactor):
             f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}".replace(".", "-"),
         ]:
             self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
-
         # TODO: clean this up
         self.log_subscriptions("construction")
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
+        self._event_persister = TimedRollingFilePersister(self.settings.paths.event_dir)
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -155,6 +163,7 @@ class Scada2(ScadaInterface, Proactor):
                     )
                 )
 
+
     @property
     def alias(self):
         return self._name
@@ -162,6 +171,10 @@ class Scada2(ScadaInterface, Proactor):
     @property
     def node(self) -> ShNode:
         return self._node
+
+    @property
+    def publication_name(self) -> str:
+        return self._layout.scada_g_node_alias
 
     @property
     def settings(self):
@@ -206,13 +219,18 @@ class Scada2(ScadaInterface, Proactor):
 
     def generate_event(self, event: EventT) -> None:
         if not event.Src:
-            event.Src = self._layout.scada_g_node_alias
+            event.Src = self.publication_name
         self._publish_to_gridworks(event, AckRequired=True)
+        self._event_persister.persist(event.MessageId, event.json(sort_keys=True, indent=2).encode("utf-8"))
+
+    async def _derived_process_wait_result(self, result: WaitResult):
+        if result.ok() and result.wait_info.message_id in self._event_persister:
+            self._event_persister.clear(result.wait_info.message_id)
 
     def _publish_to_gridworks(
         self, payload, qos: QOS = QOS.AtMostOnce, **message_args: Any
     ) -> MQTTMessageInfo:
-        message = Message(Src=self._layout.scada_g_node_alias, Payload=payload, **message_args)
+        message = Message(Src=self.publication_name, Payload=payload, **message_args)
         return self._publish_message(Scada2.GRIDWORKS_MQTT, message, qos=qos)
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
@@ -483,3 +501,17 @@ class Scada2(ScadaInterface, Proactor):
         return await self._process_boolean_dispatch(
             typing.cast(GtDispatchBoolean, payload)
         )
+
+    async def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+        if message.Payload.num_pending_subscriptions == 0:
+            for message_id in self._event_persister.pending():
+                match self._event_persister.retrieve(message_id):
+                    case Ok(content):
+                        self._publish_to_gridworks(
+                            json.loads(content.decode("utf-8")),
+                            AckRequired=True
+                        )
+                    case Err(problems):
+                        self._logger.error(problems)
+                        raise ValueError(str(problems))
+        await super()._process_mqtt_suback(message)

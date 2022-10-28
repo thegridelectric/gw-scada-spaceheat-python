@@ -4,6 +4,7 @@ import argparse
 from typing import Optional, Sequence, Dict, Callable, Tuple, List
 
 import dotenv
+import rich
 
 import load_house
 from logging_setup import setup_logging
@@ -146,6 +147,7 @@ async def run_async_actors_main(
     settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
     settings.paths.mkdirs()
     setup_logging(args, settings)
+    rich.print(settings)
     layout = load_house.load_all(settings)
     if not args.nodes:
         args.nodes = [

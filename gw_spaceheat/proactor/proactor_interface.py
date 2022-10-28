@@ -95,3 +95,8 @@ class ServicesInterface(CommunicatorInterface):
     @abstractmethod
     def generate_event(self, event: EventT) -> None:
         raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def publication_name(self) -> str:
+        raise NotImplementedError

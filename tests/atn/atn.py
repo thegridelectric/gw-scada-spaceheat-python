@@ -12,6 +12,7 @@ from typing import Optional
 from typing import Sequence
 
 import dotenv
+import pendulum
 import rich
 from gwproto import CallableDecoder
 from gwproto.messages import EventBase
@@ -248,11 +249,19 @@ class Atn2(ActorInterface, Proactor):
 
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
+        status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
+        with status_file.open("w") as f:
+            f.write(status.as_type())
+        self._logger.info(f"Wrote status file [{status_file}]")
+
 
     # noinspection PyMethodMayBeStatic
     def _process_event(self, event: EventBase) -> None:
-        if self._logger.isEnabledFor(logging.INFO):
-            self._logger.info("%s: %s", type(event), event)
+        event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
+        event_file = self.settings.paths.event_dir / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
+        with event_file.open("w") as f:
+            f.write(event.json(sort_keys=True, indent=2))
+        self._logger.info(f"Wrote event file [{event_file}]")
 
     def get_snapshot(self):
         self.send_threadsafe(

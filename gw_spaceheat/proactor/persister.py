@@ -50,6 +50,17 @@ class Problems(Exception):
         self.warnings.extend(other.warnings[:self.max_problems - len(self.warnings)])
         return self
 
+    def __str__(self):
+        if bool(self):
+            s = f"Problems: {len(self.errors)} errors, {len(self.warnings)} warnings, max: {self.max_problems}"
+            for attr_name in ["errors", "warnings"]:
+                lst = getattr(self, attr_name)
+                if lst:
+                    s += f"\n{attr_name.capitalize()}:\n"
+                    for i, entry in enumerate(lst):
+                        s += f"  {i:2d}: {entry}\n"
+            return s
+        return ""
 
 class PersisterException(Exception):
     path: Optional[Path] = None
@@ -61,7 +72,12 @@ class PersisterException(Exception):
         super().__init__(msg)
 
     def __str__(self):
-        return f"[{super().__str__()}] in {self.__class__.__name__}  for uid: {self.uid}  path:{self.path}"
+        s =  self.__class__.__name__
+        super_str = super().__str__()
+        if super_str:
+            s += f" [{super_str}]"
+        s += f"  for uid: {self.uid}  path:{self.path}"
+        return s
 
 
 class PersisterError(PersisterException):
@@ -123,12 +139,16 @@ class PersisterInterface(abc.ABC):
         ...
 
     @abstractmethod
-    def pending(self) -> set[str]:
+    def pending(self) -> list[str]:
         ...
 
     @property
     @abstractmethod
     def num_pending(self) -> int:
+        ...
+
+    @abstractmethod
+    def __contains__(self, uid: str) -> bool:
         ...
 
     @abstractmethod
@@ -259,12 +279,15 @@ class TimedRollingFilePersister(PersisterInterface):
         else:
             return Ok()
 
-    def pending(self) -> set[str]:
-        return set(self._pending.keys())
+    def pending(self) -> list[str]:
+        return list(self._pending.keys())
 
     @property
     def num_pending(self) -> int:
         return len(self._pending)
+
+    def __contains__(self, uid: str) -> bool:
+        return uid in self._pending
 
     def retrieve(self, uid: str) -> Result[Optional[bytes], Problems]:
         problems = Problems()

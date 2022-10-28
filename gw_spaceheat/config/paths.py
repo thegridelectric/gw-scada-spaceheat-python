@@ -27,6 +27,7 @@ class Paths(BaseModel):
     # Base working paths, defaulting to home/relative_path/...
     data_dir: str | Path = ""
     config_dir: str | Path = ""
+    event_dir: str | Path = ""
     log_dir: str | Path = ""
     hardware_layout: str | Path = ""
 
@@ -54,6 +55,12 @@ class Paths(BaseModel):
             v = values["data_home"] / values["relative_path"]
         return Path(v)
 
+    @validator("event_dir", always=True)
+    def get_event_dir(cls, v: str | Path, values: Dict[str, Path | str]) -> Path:
+        if not v:
+            v = values["data_dir"] / "event"
+        return Path(v)
+
     @validator("log_dir", always=True)
     def get_log_dir(cls, v: str | Path, values: Dict[str, Path | str]) -> Path:
         if not v:
@@ -75,4 +82,5 @@ class Paths(BaseModel):
     def mkdirs(self, mode: int = 0o777, parents: bool = True, exist_ok: bool = True):
         self.data_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
         self.config_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
+        self.event_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
         self.log_dir.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
