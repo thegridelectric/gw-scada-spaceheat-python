@@ -27,6 +27,7 @@ from gwproto.messages import  GsPwr_Maker
 
 def test_power_meter_small2():
     settings = ScadaSettings()
+    settings.paths.mkdirs()
     layout = load_all(settings)
     scada = Scada2("a.s", settings, layout)
     # Raise exception if initiating node is anything except the unique power meter node

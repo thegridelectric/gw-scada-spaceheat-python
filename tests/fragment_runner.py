@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import time
 from typing import Callable
 from typing import Dict
@@ -13,7 +12,6 @@ from actors.actor_base import ActorBase
 from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
-from config import LoggingSettings
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from tests.atn import Atn2
@@ -145,6 +143,7 @@ class ProtocolFragment:
 
 class FragmentRunner:
     settings: ScadaSettings
+    atn_settings: AtnSettings
     layout: HardwareLayout
     actors: Actors
     requested: Dict[str, ActorBase]
@@ -155,15 +154,21 @@ class FragmentRunner:
     def __init__(
         self,
         settings: ScadaSettings,
+        atn_settings: AtnSettings,
         wait_at_least: float = 0.0,
         do_nothing_time: float = 0.0,
         actors: Optional[Actors] = None,
     ):
         self.settings = settings
+        self.atn_settings = atn_settings
         self.layout = HardwareLayout.load(settings.paths.hardware_layout)
         self.wait_at_least = wait_at_least
         self.do_nothing_time = do_nothing_time
-        self.actors = Actors(settings, self.layout) if actors is None else actors
+        self.actors = Actors(
+            settings,
+            self.layout,
+            atn_settings=atn_settings,
+        ) if actors is None else actors
         self.requested = dict()
         self.fragments = []
 
@@ -250,11 +255,18 @@ class FragmentRunner:
 
     @classmethod
     def run_fragment(
-        cls, fragment_factory: Callable[["FragmentRunner"], ProtocolFragment]
+        cls,
+        fragment_factory: Callable[["FragmentRunner"], ProtocolFragment],
+        settings: Optional[ScadaSettings] = None,
+        atn_settings: Optional[AtnSettings] = None,
     ):
-        settings = ScadaSettings(logging=LoggingSettings(base_log_level=logging.DEBUG))
+        if settings is None:
+            settings = ScadaSettings()
+        if atn_settings is None:
+            atn_settings = AtnSettings()
         settings.paths.mkdirs(parents=True)
-        runner = FragmentRunner(settings)
+        atn_settings.paths.mkdirs(parents=True)
+        runner = FragmentRunner(settings, atn_settings=atn_settings)
         runner.add_fragment(fragment_factory(runner))
         runner.run()
 
@@ -350,11 +362,16 @@ class AsyncFragmentRunner(FragmentRunner):
     async def async_run_fragment(
         cls,
         fragment_factory: Callable[["AsyncFragmentRunner"], ProtocolFragment],
-        settings: Optional[ScadaSettings] = None
+        settings: Optional[ScadaSettings] = None,
+        atn_settings: Optional[AtnSettings] = None,
     ):
         if settings is None:
             settings = ScadaSettings()
-        runner = AsyncFragmentRunner(settings)
+        if atn_settings is None:
+            atn_settings = AtnSettings()
+        settings.paths.mkdirs(parents=True)
+        atn_settings.paths.mkdirs(parents=True)
+        runner = AsyncFragmentRunner(settings, atn_settings=atn_settings)
         runner.add_fragment(fragment_factory(runner))
         await runner.async_run()
 

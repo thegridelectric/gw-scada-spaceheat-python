@@ -5,6 +5,7 @@ import time
 from typing import cast
 
 from logging_setup import setup_logging
+from tests.atn import AtnSettings
 from tests.fragment_runner import Actors
 from tests.fragment_runner import AsyncFragmentRunner
 from tests.fragment_runner import ProtocolFragment
@@ -30,6 +31,7 @@ from gwproto.messages import  SnapshotSpaceheat_Maker
 
 def test_scada2_small():
     settings = ScadaSettings()
+    settings.paths.mkdirs()
     layout = load_house.load_all(settings)
     scada = Scada2("a.s", settings=settings, hardware_layout=layout)
     assert layout.power_meter_node == layout.node("a.m")
@@ -135,6 +137,8 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     logging.basicConfig(level="DEBUG")
     settings = ScadaSettings(seconds_per_report=2)
     settings.paths.mkdirs(parents=True)
+    atn_settings = AtnSettings()
+    atn_settings.paths.mkdirs(parents=True)
     errors = []
     setup_logging(args=argparse.Namespace(verbose=True), settings=settings, errors=errors)
     assert not errors
@@ -147,7 +151,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     actors.scada2._scada_atn_fast_dispatch_contract_is_alive_stub = True
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
-    runner = AsyncFragmentRunner(settings, actors=actors)
+    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings)
 
     class Fragment(ProtocolFragment):
         def get_requested_actors(self):
@@ -297,11 +301,14 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     settings = ScadaSettings(seconds_per_report=2)
     settings.paths.mkdirs()
+    atn_settings = AtnSettings()
+    atn_settings.paths.mkdirs()
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,
         layout=layout,
-        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout)
+        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout),
+        atn_settings=atn_settings,
     )
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
@@ -328,7 +335,7 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
                 "Atn wait for snapshot message"
             )
 
-    runner = AsyncFragmentRunner(settings, actors=actors)
+    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings)
     runner.add_fragment(Fragment(runner))
     await runner.async_run()
 
@@ -374,11 +381,14 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     settings = ScadaSettings(seconds_per_report=2)
     settings.paths.mkdirs(parents=True)
+    atn_settings = AtnSettings()
+    atn_settings.paths.mkdirs(parents=True)
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,
         layout=layout,
-        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout)
+        scada2=Scada2Recorder("a.s", settings, hardware_layout=layout),
+        atn_settings=atn_settings,
     )
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
@@ -505,6 +515,6 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             assert len(status.BooleanactuatorCmdList) == 0
             assert len(status.MultipurposeTelemetryList) == 0
 
-    runner = AsyncFragmentRunner(settings, actors=actors)
+    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings)
     runner.add_fragment(Fragment(runner))
     await runner.async_run()

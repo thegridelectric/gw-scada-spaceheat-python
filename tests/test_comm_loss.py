@@ -14,9 +14,8 @@ from paho.mqtt.client import MQTT_ERR_CONN_LOST
 
 def test_simple_resubscribe_on_comm_restore(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    debug_logs_path = tmp_path / "output/debug_logs"
-    debug_logs_path.mkdir(parents=True, exist_ok=True)
     settings = ScadaSettings()
+    settings.paths.mkdirs()
     layout = load_house.load_all(settings)
     scada = ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
     actors = [scada]
