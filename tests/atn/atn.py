@@ -258,11 +258,12 @@ class Atn2(ActorInterface, Proactor):
             f.write(status.as_type())
         self._logger.info(f"Wrote status file [{status_file}]")
 
-
     # noinspection PyMethodMayBeStatic
+
     def _process_event(self, event: EventBase) -> None:
         event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
-        event_file = self.settings.paths.event_dir / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
+        event_file = self.settings.paths.event_dir / \
+            f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
         with event_file.open("w") as f:
             f.write(event.json(sort_keys=True, indent=2))
 

@@ -75,7 +75,7 @@ class PersisterException(Exception):
         super().__init__(msg)
 
     def __str__(self):
-        s =  self.__class__.__name__
+        s = self.__class__.__name__
         super_str = super().__str__()
         if super_str:
             s += f" [{super_str}]"
@@ -237,7 +237,7 @@ class TimedRollingFilePersister(PersisterInterface):
                 with self._pending[uid].open("wb") as f:
                     f.write(content)
                 self._curr_bytes += len(content)
-            except BaseException as e: # pragma: no cover
+            except BaseException as e:  # pragma: no cover
                 return Err(
                     problems.add_error(e).add_error(
                         WriteFailed(f"Open or write failed", uid=uid, path=existing_path)
@@ -274,7 +274,7 @@ class TimedRollingFilePersister(PersisterInterface):
             if last_day_dir is not None:
                 if not self._pending or next(iter(self._pending.values())).parent != last_day_dir:
                     shutil.rmtree(last_day_dir, ignore_errors=True)
-        except BaseException as e: # pragma: no cover
+        except BaseException as e:  # pragma: no cover
             problems.add_error(e)
             problems.add_error(PersisterError("Unexpected error"))
         if problems:
@@ -322,7 +322,7 @@ class TimedRollingFilePersister(PersisterInterface):
                 try:
                     with path.open("rb") as f:
                         content: bytes = f.read()
-                except BaseException as e: # pragma: no cover
+                except BaseException as e:  # pragma: no cover
                     problems.add_error(e).add_error(
                         ReadFailed(f"Open or read failed", uid=uid, path=path)
                     )
@@ -379,7 +379,7 @@ class TimedRollingFilePersister(PersisterInterface):
             match = cls.FILENAME_RGX.match(filepath.name)
             if match and cls._is_iso_parseable(match.group("dt")):
                 item = _PersistedItem(match.group("uid"), filepath)
-        except: # pragma: no cover
+        except:  # pragma: no cover
             pass
         return item
 

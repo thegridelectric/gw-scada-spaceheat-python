@@ -116,7 +116,6 @@ class Scada2(ScadaInterface, Proactor):
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
 
-
     def __init__(
         self,
         name: str,
@@ -162,7 +161,6 @@ class Scada2(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
-
 
     @property
     def alias(self):

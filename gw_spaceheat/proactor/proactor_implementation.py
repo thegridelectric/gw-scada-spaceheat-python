@@ -40,26 +40,30 @@ from proactor.proactor_interface import CommunicatorInterface
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
 
+
 @dataclass
 class WaitInfo:
     message_id: str
     context: Any = None
+
 
 class WaitSummary(enum.Enum):
     success = "success"
     timeout = "timeout"
     connection_failure = "connection_failure"
 
+
 @dataclass
 class WaitResult:
     summary: WaitSummary
     wait_info: WaitInfo
 
-    def __bool__(self) -> bool  :
+    def __bool__(self) -> bool:
         return self.ok()
 
     def ok(self) -> bool:
         return self.summary == WaitSummary.success
+
 
 class Proactor(ServicesInterface, Runnable):
     _name: str
@@ -83,7 +87,6 @@ class Proactor(ServicesInterface, Runnable):
         self._tasks = []
         self._waits = dict()
         self._stop_requested = False
-
 
     def _add_mqtt_client(
         self,
