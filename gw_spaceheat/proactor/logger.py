@@ -9,7 +9,7 @@ class MessageSummary:
     """Helper class for formating message summaries message receipt/publication single line summaries."""
 
     DEFAULT_FORMAT = (
-        "{timestamp}  {direction:4s}  {actor_alias:33s}  {broker_flag}  {arrow:2s}  {topic:80s}"
+        "  {direction:15s}  {actor_alias:40s}  {broker_flag}  {arrow:2s}  {topic:90s}"
         "  {payload_type}"
     )
 
@@ -22,6 +22,7 @@ class MessageSummary:
         payload_object: Any = None,
         broker_flag=" ",
         timestamp: Optional[pendulum.datetime] = None,
+        include_timestamp: bool = False,
     ) -> str:
         """
         Formats a single line summary of message receipt/publication.
@@ -32,7 +33,8 @@ class MessageSummary:
             topic: The destination or source topic.
             payload_object: The payload of the message.
             broker_flag: "*" for the "gw" broker.
-            timestamp: "pendulum.now("UTC") by default.
+            timestamp: pendulum.now("UTC") by default.
+            include_timestamp: whether timestamp is prepended to output.
 
         Returns:
             Formatted string.
@@ -40,8 +42,12 @@ class MessageSummary:
         try:
             if timestamp is None:
                 timestamp = pendulum.now("UTC")
-            direction = direction[:3].strip().upper()
-            if direction in ["OUT", "SND"]:
+            if include_timestamp:
+                format_ = "{timestamp}  " + cls.DEFAULT_FORMAT
+            else:
+                format_ = cls.DEFAULT_FORMAT
+            direction = direction.strip()
+            if direction.startswith("OUT") or direction.startswith("SND"):
                 arrow = "->"
             elif direction.startswith("IN") or direction.startswith("RCV"):
                 arrow = "<-"
@@ -53,7 +59,7 @@ class MessageSummary:
                 payload_str = payload_object.__class__.__name__
             else:
                 payload_str = type(payload_object)
-            return cls.DEFAULT_FORMAT.format(
+            return format_.format(
                 timestamp=timestamp.isoformat(),
                 direction=direction,
                 actor_alias=actor_alias,

@@ -1,6 +1,7 @@
 """Scada implementation"""
 
 import asyncio
+import json
 import time
 import typing
 from typing import Any
@@ -10,6 +11,7 @@ from typing import Optional
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
+from gwproto.messages import EventT
 from gwproto.messages import GsPwr
 from gwproto.messages import GtDispatchBoolean
 from gwproto.messages import GtDispatchBoolean_Maker
@@ -25,6 +27,8 @@ from gwproto.messages import GtTelemetry_Maker
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from paho.mqtt.client import MQTTMessageInfo
+from result import Err
+from result import Ok
 
 from actors2.actor_interface import ActorInterface
 from actors2.message import GtDispatchBooleanLocalMessage
@@ -34,7 +38,6 @@ from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
 from actors.scada import ScadaCmdDiagnostic
 from actors.utils import QOS
-from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
@@ -42,7 +45,10 @@ from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload
+from proactor.message import MQTTSubackPayload
+from proactor.persister import TimedRollingFilePersister
 from proactor.proactor_implementation import Proactor
+from proactor.proactor_implementation import WaitResult
 
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
@@ -106,6 +112,7 @@ class Scada2(ScadaInterface, Proactor):
     _nodes: HardwareLayout
     _node: ShNode
     _data: ScadaData
+    _event_persister: TimedRollingFilePersister
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
 
@@ -138,12 +145,12 @@ class Scada2(ScadaInterface, Proactor):
             f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}".replace(".", "-"),
         ]:
             self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
-
         # TODO: clean this up
         self.log_subscriptions("construction")
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
+        self._event_persister = TimedRollingFilePersister(self.settings.paths.event_dir)
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -154,6 +161,26 @@ class Scada2(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
+
+    @property
+    def alias(self):
+        return self._name
+
+    @property
+    def node(self) -> ShNode:
+        return self._node
+
+    @property
+    def publication_name(self) -> str:
+        return self._layout.scada_g_node_alias
+
+    @property
+    def settings(self):
+        return self._settings
+
+    @property
+    def hardware_layout(self) -> HardwareLayout:
+        return self._layout
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -188,41 +215,25 @@ class Scada2(ScadaInterface, Proactor):
     def time_to_send_status(self) -> bool:
         return time.time() > self.next_status_second()
 
-    @property
-    def alias(self):
-        return self._name
+    def generate_event(self, event: EventT) -> None:
+        if not event.Src:
+            event.Src = self.publication_name
+        self._publish_to_gridworks(event, AckRequired=True)
+        self._event_persister.persist(event.MessageId, event.json(sort_keys=True, indent=2).encode("utf-8"))
 
-    @property
-    def node(self) -> ShNode:
-        return self._node
+    async def _derived_process_wait_result(self, result: WaitResult):
+        if result.ok() and result.wait_info.message_id in self._event_persister:
+            self._event_persister.clear(result.wait_info.message_id)
 
-    def gridworks_mqtt_topic(self, payload: Any) -> str:
-        return gw_mqtt_topic_encode(f"{self._layout.scada_g_node_alias}/{payload.TypeAlias}")
-
-    @classmethod
-    def local_mqtt_topic(cls, from_alias: str, payload: Any) -> str:
-        return f"{from_alias}/{payload.TypeAlias}"
-
-    # TODO: gw_mqtt_topic_encode belongs in a better place
     def _publish_to_gridworks(
-        self, payload, qos: QOS = QOS.AtMostOnce
+        self, payload, qos: QOS = QOS.AtMostOnce, **message_args: Any
     ) -> MQTTMessageInfo:
-        message = Message(Src=self._layout.scada_g_node_alias, Payload=payload)
-        return self._encode_and_publish(
-            Scada2.GRIDWORKS_MQTT,
-            topic=gw_mqtt_topic_encode(message.mqtt_topic()),
-            payload=message,
-            qos=qos,
-        )
+        message = Message(Src=self.publication_name, Payload=payload, **message_args)
+        return self._publish_message(Scada2.GRIDWORKS_MQTT, message, qos=qos)
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
         message = Message(Src=from_node.alias, Payload=payload)
-        return self._encode_and_publish(
-            Scada2.LOCAL_MQTT,
-            topic=message.mqtt_topic(),
-            payload=message,
-            qos=qos,
-        )
+        return self._publish_message(Scada2.LOCAL_MQTT, message, qos=qos)
 
     async def _derived_process_message(self, message: Message):
         self._logger.path("++Scada2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
@@ -396,14 +407,6 @@ class Scada2(ScadaInterface, Proactor):
         """
         return self._scada_atn_fast_dispatch_contract_is_alive_stub
 
-    @property
-    def settings(self):
-        return self._settings
-
-    @property
-    def hardware_layout(self) -> HardwareLayout:
-        return self._layout
-
     def gs_pwr_received(self, payload: GsPwr):
         """The highest priority of the SCADA, from the perspective of the electric grid,
         is to report power changes as quickly as possible (i.e. milliseconds matter) on
@@ -496,3 +499,17 @@ class Scada2(ScadaInterface, Proactor):
         return await self._process_boolean_dispatch(
             typing.cast(GtDispatchBoolean, payload)
         )
+
+    async def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+        if message.Payload.num_pending_subscriptions == 0:
+            for message_id in self._event_persister.pending():
+                match self._event_persister.retrieve(message_id):
+                    case Ok(content):
+                        self._publish_to_gridworks(
+                            json.loads(content.decode("utf-8")),
+                            AckRequired=True
+                        )
+                    case Err(problems):
+                        self._logger.error(problems)
+                        raise ValueError(str(problems))
+        await super()._process_mqtt_suback(message)

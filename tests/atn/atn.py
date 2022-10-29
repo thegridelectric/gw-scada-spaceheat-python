@@ -12,8 +12,10 @@ from typing import Optional
 from typing import Sequence
 
 import dotenv
+import pendulum
 import rich
 from gwproto import CallableDecoder
+from gwproto.messages import EventBase
 from paho.mqtt.client import MQTTMessageInfo
 
 from gwproto import Decoders
@@ -29,7 +31,6 @@ from gwproto.messages import SnapshotSpaceheat_Maker
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 
-from actors.utils import gw_mqtt_topic_encode
 from actors.utils import QOS
 from actors2 import ActorInterface
 from command_line_utils import parse_args
@@ -172,16 +173,15 @@ class Atn2(ActorInterface, Proactor):
     def node(self) -> ShNode:
         return self._node
 
+    @property
+    def publication_name(self) -> str:
+        return self.layout.atn_g_node_alias
+
     def _publish_to_scada(
         self, payload, qos: QOS = QOS.AtMostOnce
     ) -> MQTTMessageInfo:
-        message = Message(Src=self.layout.atn_g_node_alias, Payload=payload)
-        return self._encode_and_publish(
-            Atn2.SCADA_MQTT,
-            topic=gw_mqtt_topic_encode(message.mqtt_topic()),
-            payload=message,
-            qos=qos,
-        )
+        message = Message(Src=self.publication_name, Payload=payload)
+        return self._publish_message(Atn2.SCADA_MQTT, message, qos=qos)
 
     async def process_message(self, message: Message):
         self.stats.add_message(message)
@@ -227,8 +227,11 @@ class Atn2(ActorInterface, Proactor):
             case GtShStatus():
                 path_dbg |= 0x00000004
                 self._process_status(decoded.Payload)
-            case _:
+            case EventBase():
                 path_dbg |= 0x00000008
+                self._process_event(decoded.Payload)
+            case _:
+                path_dbg |= 0x00000010
         self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_pwr(self, pwr: GsPwr) -> None:
@@ -250,6 +253,19 @@ class Atn2(ActorInterface, Proactor):
 
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
+        status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
+        with status_file.open("w") as f:
+            f.write(status.as_type())
+        self._logger.info(f"Wrote status file [{status_file}]")
+
+    # noinspection PyMethodMayBeStatic
+
+    def _process_event(self, event: EventBase) -> None:
+        event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
+        event_file = self.settings.paths.event_dir / \
+            f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
+        with event_file.open("w") as f:
+            f.write(event.json(sort_keys=True, indent=2))
 
     def get_snapshot(self):
         self.send_threadsafe(

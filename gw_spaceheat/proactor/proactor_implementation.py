@@ -1,7 +1,9 @@
 """Proactor implementation"""
 
 import asyncio
+import enum
 import traceback
+from dataclasses import dataclass
 from typing import Any
 from typing import Awaitable
 from typing import Dict
@@ -9,14 +11,25 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
+import gwproto
 from gwproto import MQTTCodec
+from gwproto.messages import Ack
+from gwproto.messages import EventT
+from gwproto.messages import MQTTConnectEvent
+from gwproto.messages import MQTTConnectFailedEvent
+from gwproto.messages import MQTTDisconnectEvent
+from gwproto.messages import MQTTFullySubscribedEvent
+from gwproto.messages import ProblemEvent
+from gwproto.messages import ShutdownEvent
+from gwproto.messages import StartupEvent
 from paho.mqtt.client import MQTTMessageInfo
-
+from result import Err
+from result import Ok
+from result import Result
 
 import config
 from proactor.logger import ProactorLogger
 from proactor.message import Message
-from proactor.message import MessageType
 from proactor.message import MQTTConnectFailPayload
 from proactor.message import MQTTConnectPayload
 from proactor.message import MQTTDisconnectPayload
@@ -26,6 +39,30 @@ from proactor.mqtt import MQTTClients
 from proactor.proactor_interface import CommunicatorInterface
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
+
+
+@dataclass
+class WaitInfo:
+    message_id: str
+    context: Any = None
+
+
+class WaitSummary(enum.Enum):
+    success = "success"
+    timeout = "timeout"
+    connection_failure = "connection_failure"
+
+
+@dataclass
+class WaitResult:
+    summary: WaitSummary
+    wait_info: WaitInfo
+
+    def __bool__(self) -> bool:
+        return self.ok()
+
+    def ok(self) -> bool:
+        return self.summary == WaitSummary.success
 
 
 class Proactor(ServicesInterface, Runnable):
@@ -38,6 +75,7 @@ class Proactor(ServicesInterface, Runnable):
     _stop_requested: bool
     _tasks: List[asyncio.Task]
     _logger: ProactorLogger
+    _waits: dict[str, WaitInfo]
 
     # TODO: Clean up loop control
     def __init__(self, name: str, logger: ProactorLogger):
@@ -47,6 +85,7 @@ class Proactor(ServicesInterface, Runnable):
         self._mqtt_codecs = dict()
         self._communicators = dict()
         self._tasks = []
+        self._waits = dict()
         self._stop_requested = False
 
     def _add_mqtt_client(
@@ -59,18 +98,17 @@ class Proactor(ServicesInterface, Runnable):
         if codec is not None:
             self._mqtt_codecs[name] = codec
 
-    def _encode_and_publish(
-        self, client: str, topic: str, payload: Any, qos: int
-    ) -> MQTTMessageInfo:
-        self._logger.message_summary("OUTq", client, topic, payload)
-        encoder = self._mqtt_codecs[client]
-        return self._mqtt_clients.publish(client, topic, encoder.encode(payload), qos)
+    def _register_wait(self, wait_info: WaitInfo) -> None:
+        self._waits[wait_info.message_id] = wait_info
 
     # TODO: QOS out of actors
-    def _publish_message(self, client, message: Message, qos: int = 0) -> MQTTMessageInfo:
+    def _publish_message(self, client, message: Message, qos: int = 0, context: Any = None) -> MQTTMessageInfo:
         topic = message.mqtt_topic()
-        self._logger.message_summary("OUTq", client, topic, message)
-        return self._mqtt_clients.publish(client, topic, self._mqtt_codecs[client].encode(message), qos)
+        payload = self._mqtt_codecs[client].encode(message)
+        self._logger.message_summary("OUT mqtt    ", message.Header.Src, topic, message.Payload)
+        if message.Header.AckRequired:
+            self._register_wait(WaitInfo(message.Header.MessageId, context))
+        return self._mqtt_clients.publish(client, topic, payload, qos)
 
     def add_communicator(self, communicator: CommunicatorInterface):
         if communicator.name in self._communicators:
@@ -100,6 +138,18 @@ class Proactor(ServicesInterface, Runnable):
             if not isinstance(e, asyncio.exceptions.CancelledError):
                 self._logger.exception(f"ERROR in process_message")
                 self._logger.error("Stopping proactor")
+                # noinspection PyBroadException
+                try:
+                    self.generate_event(
+                        ShutdownEvent(
+                            Reason=(
+                                f"ERROR in process_message {e}\n"
+                                f"{traceback.format_exception(e)}"
+                            )
+                        )
+                    )
+                except:
+                    self._logger.exception(f"ERROR generating exception event")
             # noinspection PyBroadException
             try:
                 self.stop()
@@ -126,61 +176,111 @@ class Proactor(ServicesInterface, Runnable):
     async def process_message(self, message: Message):
         self._logger.path("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
-        self._logger.message_summary(
-            "INx ",
-            self.name,
-            f"{message.Header.Src}/{message.Header.MessageType}",
-            message.Payload,
-        )
-        # TODO: be easier on the eyes
-        if message.Header.MessageType == MessageType.mqtt_message.value:
+        if not isinstance(message.Payload, MQTTReceiptPayload):
             path_dbg |= 0x00000001
-            await self._process_mqtt_message(message)
-        elif message.Header.MessageType == MessageType.mqtt_connected.value:
-            path_dbg |= 0x00000002
-            self._process_mqtt_connected(message)
-        elif message.Header.MessageType == MessageType.mqtt_disconnected.value:
-            path_dbg |= 0x00000004
-            self._process_mqtt_disconnected(message)
-        elif message.Header.MessageType == MessageType.mqtt_connect_failed.value:
-            path_dbg |= 0x00000008
-            self._process_mqtt_connect_fail(message)
-        elif message.Header.MessageType == MessageType.mqtt_suback.value:
-            self._process_mqtt_suback(message)
-        else:
-            path_dbg |= 0x00000010
-            await self._derived_process_message(message)
+            self._logger.message_summary(
+                "IN  internal",
+                self.name,
+                f"{message.Header.Src}/{message.Header.MessageType}",
+                message.Payload,
+            )
+        match message.Payload:
+            case MQTTReceiptPayload():
+                path_dbg |= 0x00000002
+                await self._process_mqtt_message(message)
+            case MQTTConnectPayload():
+                path_dbg |= 0x00000004
+                self._process_mqtt_connected(message)
+            case MQTTDisconnectPayload():
+                path_dbg |= 0x00000008
+                await self._process_mqtt_disconnected(message)
+            case MQTTConnectFailPayload():
+                path_dbg |= 0x00000010
+                self._process_mqtt_connect_fail(message)
+            case MQTTSubackPayload():
+                path_dbg |= 0x00000020
+                await self._process_mqtt_suback(message)
+            case _:
+                path_dbg |= 0x00000040
+                await self._derived_process_message(message)
         self._logger.path("--Proactor.process_message  path:0x%08X", path_dbg)
 
     async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         self._logger.path("++Proactor._process_mqtt_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         decoder = self._mqtt_codecs.get(message.Payload.client_name, None)
-        if decoder is not None:
+        result: Result[Message[Any], Exception]
+        try:
+            result = Ok(decoder.decode(message.Payload.message.topic, message.Payload.message.payload))
+        except Exception as e:
             path_dbg |= 0x00000001
-            try:
-                decoded = decoder.decode(message.Payload.message.topic, message.Payload.message.payload)
-            except:
-                self._logger.exception("ERROR decoding [%s]", message.Payload)
-                raise
-        else:
+            self._logger.exception("ERROR decoding [%s]", message.Payload)
+            self.generate_event(
+                ProblemEvent(
+                    ProblemType=gwproto.messages.Problems.warning,
+                    Summary=f"Decoding error topic [{message.Payload.message.topic}]  error [{type(e)}]",
+                    Details=(
+                        f"Topic: {message.Payload.message.topic}\n"
+                        f"Message: {message.Payload.message.payload[:70]}"
+                        f"{'...' if len(message.Payload.message.payload)> 70 else ''}\n"
+                        f"{traceback.format_exception(e)}\n"
+                        f"Exception: {e}"
+                    )
+                )
+            )
+            result = Err(e)
+        if result:
             path_dbg |= 0x00000002
-            decoded = message.Payload
-        self._logger.message_summary("INq ", self.name, message.Payload.message.topic, decoded)
-        await self._derived_process_mqtt_message(message, decoded)
-        self._logger.path("--Proactor._process_mqtt_message  path:0x%08X", path_dbg)
+            self._logger.message_summary("IN  mqtt    ", self.name, message.Payload.message.topic, result.value.Payload)
+            match result.value.Payload:
+                case Ack():
+                    await self._process_wait_result(result.value.Payload.AckMessageID, WaitSummary.success)
+                case _:
+                    path_dbg |= 0x00000008
+                    await self._derived_process_mqtt_message(message, result.value)
+        if result.is_ok() and result.value.Header.AckRequired:
+            path_dbg |= 0x00000010
+            if result.value.Header.MessageId:
+                path_dbg |= 0x00000020
+                self._publish_message(
+                    message.Payload.client_name,
+                    Message(
+                        Src=self.publication_name,
+                        Payload=Ack(AckMessageID=result.value.Header.MessageId)
+                    )
+                )
+        self._logger.path("--Proactor._process_mqtt_message:%s  path:0x%08X", int(result.is_ok()), path_dbg)
 
     def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
         self._mqtt_clients.subscribe_all(message.Payload.client_name)
+        self.generate_event(MQTTConnectEvent())
 
-    def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
-        pass
+    async def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
+        waits = self._waits
+        self._waits = dict()
+        for message_id, wait_info in waits.items():
+            await self._derived_process_wait_result(
+                WaitResult(
+                    summary=WaitSummary.connection_failure,
+                    wait_info=wait_info
+                )
+            )
+        self.generate_event(MQTTDisconnectEvent())
 
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
-        pass
+        self.generate_event(MQTTConnectFailedEvent())
 
-    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
-        pass
+    async def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+        if message.Payload.num_pending_subscriptions == 0:
+            self.generate_event(MQTTFullySubscribedEvent())
+
+    async def _derived_process_wait_result(self, result: WaitResult):
+        ...
+
+    async def _process_wait_result(self, message_id: str, reason: WaitSummary):
+        wait_info = self._waits.pop(message_id, None)
+        if wait_info is not None:
+            await self._derived_process_wait_result(WaitResult(summary=reason, wait_info=wait_info))
 
     async def run_forever(self):
         self._loop = asyncio.get_running_loop()
@@ -190,9 +290,8 @@ class Proactor(ServicesInterface, Runnable):
             if isinstance(communicator, Runnable):
                 communicator.start()
         self.start_tasks()
+        self.generate_event(StartupEvent())
         await self.join()
-
-
 
     def stop_mqtt(self):
         self._mqtt_clients.stop()
@@ -247,7 +346,7 @@ class Proactor(ServicesInterface, Runnable):
 
     def send(self, message: Message):
         self._logger.message_summary(
-            "OUTx",
+            "OUT internal",
             message.Header.Src,
             f"{message.Header.Dst}/{message.Header.MessageType}",
             message.Payload,
@@ -264,9 +363,15 @@ class Proactor(ServicesInterface, Runnable):
     def name(self) -> str:
         return self._name
 
+    @property
+    def publication_name(self) -> str:
+        return self._name
+
     def _send(self, message: Message):
         self.send(message)
 
+    def generate_event(self, event: EventT) -> None:
+        ...
 
 def str_tasks(loop_: asyncio.AbstractEventLoop, tag: str = "", tasks: Optional[Iterable[Awaitable]] = None) -> str:
     s = ""

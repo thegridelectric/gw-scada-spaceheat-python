@@ -516,14 +516,14 @@ class Scada2Recorder(Scada2):
         )
         super()._process_mqtt_connected(message)
 
-    def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
+    async def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
         self._record_comm_event(
             message.Payload.client_name,
             CommEvents.disconnect,
             message.Payload.userdata,
             message.Payload.rc
         )
-        super()._process_mqtt_disconnected(message)
+        await super()._process_mqtt_disconnected(message)
 
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
         self._record_comm_event(
@@ -533,14 +533,14 @@ class Scada2Recorder(Scada2):
         )
         super()._process_mqtt_connect_fail(message)
 
-    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+    async def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
         self._record_comm_event(
             message.Payload.client_name,
             CommEvents.subscribe,
             message.Payload.userdata,
             message.Payload.mid, message.Payload.granted_qos
         )
-        super()._process_mqtt_suback(message)
+        await super()._process_mqtt_suback(message)
 
     def summary_str(self):
         """Summarize results in a string"""
