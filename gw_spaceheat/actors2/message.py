@@ -11,6 +11,7 @@ from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.message import as_enum
+from gwproto.messages import EventBase
 from gwproto.messages import GsPwr
 from gwproto.messages import GsPwr_Maker
 from gwproto.messages import GtDispatchBooleanLocal
@@ -157,3 +158,10 @@ class ScadaDBG(BaseModel):
     @validator("Command", pre=True)
     def command_value(cls, v):
         return as_enum(v, ScadaDBGCommands)
+
+class ScadaDBGEvent(EventBase):
+    Command: ScadaDBG
+    Path: str = ""
+    Count: int = 0
+    Msg: str = ""
+    TypeName: Literal["gridworks.event.scada-dbg"] = "gridworks.event.scada-dbg"

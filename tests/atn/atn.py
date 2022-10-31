@@ -33,7 +33,10 @@ from gwproto import MQTTTopic
 
 from actors.utils import QOS
 from actors2 import ActorInterface
+from actors2.message import ScadaDBG
+from actors2.message import ScadaDBGCommands
 from command_line_utils import parse_args
+from config import LoggerLevels
 from config import LoggingSettings
 from config import Paths
 from logging_setup import setup_logging
@@ -201,8 +204,11 @@ class Atn2(ActorInterface, Proactor):
             case GtDispatchBoolean_Maker():
                 path_dbg |= 0x00000002
                 self._publish_to_scada(message.Payload.tuple.asdict())
-            case _:
+            case ScadaDBG():
                 path_dbg |= 0x00000004
+                self._publish_to_scada(message.Payload)
+            case _:
+                path_dbg |= 0x00000008
 
         self._logger.path("--Atn2._derived_process_message  path:0x%08X", path_dbg)
 
@@ -251,6 +257,9 @@ class Atn2(ActorInterface, Proactor):
                 snapshot.Snapshot.TelemetryNameList[i].value
             )
 
+    def _process_dbg_command(self, dbg: ScadaDBG):
+        pass
+
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
         status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
@@ -267,7 +276,7 @@ class Atn2(ActorInterface, Proactor):
         with event_file.open("w") as f:
             f.write(event.json(sort_keys=True, indent=2))
 
-    def get_snapshot(self):
+    def snap(self):
         self.send_threadsafe(
             Message(
                 Src=self.name,
@@ -280,6 +289,29 @@ class Atn2(ActorInterface, Proactor):
             )
         )
 
+    def dbg(
+        self,
+        message_summary: int = -1,
+        lifecycle: int = -1,
+        comm_event: int = -1,
+        command: Optional[ScadaDBGCommands | str] = None,
+    ):
+        if isinstance(command, str):
+            command = ScadaDBGCommands(command)
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaDBG(
+                    Levels=LoggerLevels(
+                        message_summary=message_summary,
+                        lifecycle=lifecycle,
+                        comm_event=comm_event,
+                    ),
+                    Command=command,
+                )
+            )
+        )
     def set_relay(self, name: str, state: bool) -> None:
         self.send_threadsafe(
             Message(

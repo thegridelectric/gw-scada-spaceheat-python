@@ -516,14 +516,14 @@ class Scada2Recorder(Scada2):
         )
         super()._process_mqtt_connected(message)
 
-    async def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
+    def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
         self._record_comm_event(
             message.Payload.client_name,
             CommEvents.disconnect,
             message.Payload.userdata,
             message.Payload.rc
         )
-        await super()._process_mqtt_disconnected(message)
+        super()._process_mqtt_disconnected(message)
 
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
         self._record_comm_event(
