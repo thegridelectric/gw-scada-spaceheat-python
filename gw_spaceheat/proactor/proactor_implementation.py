@@ -109,7 +109,7 @@ class Proactor(ServicesInterface, Runnable):
                 delay,
                 functools.partial(self._process_ack_timeout, message_id),
             ),
-            context = context,
+            context=context,
         )
 
     def _cancel_ack_timer(self, message_id: str) -> Optional[AckWaitInfo]:
@@ -126,7 +126,6 @@ class Proactor(ServicesInterface, Runnable):
         self._logger.path("++Proactor._process_ack_timeout %s", message_id)
         self._process_ack_result(message_id, AckWaitSummary.timeout)
         self._logger.path("--Proactor._process_ack_timeout")
-
 
     def _derived_process_ack_result(self, result: AckWaitResult):
         ...

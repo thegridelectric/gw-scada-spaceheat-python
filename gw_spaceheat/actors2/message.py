@@ -159,6 +159,7 @@ class ScadaDBG(BaseModel):
     def command_value(cls, v):
         return as_enum(v, ScadaDBGCommands)
 
+
 class ScadaDBGEvent(EventBase):
     Command: ScadaDBG
     Path: str = ""
