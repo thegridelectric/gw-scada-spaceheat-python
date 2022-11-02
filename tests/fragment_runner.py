@@ -39,7 +39,7 @@ except ImportError:
 
 
 def delimit_str(text: str = "") -> str:
-    return "\n## " + text + ("#" * (100 - len(text)))
+    return "\n## " + text + ("#" * (150 - len(text)))
 
 
 def delimit(text: str = "", logger: Optional[logging.Logger] = None):
@@ -47,8 +47,7 @@ def delimit(text: str = "", logger: Optional[logging.Logger] = None):
     if logger is None:
         print(s)
     else:
-        logger.info(s)
-
+        logger.error(s.lstrip())
 
 def do_nothing(seconds: float, logger: Optional[logging.Logger] = None):
     """Let the actors run on their own for a while"""
@@ -174,7 +173,22 @@ class FragmentRunner:
         do_nothing_time: float = 0.0,
         actors: Optional[Actors] = None,
         tag: str = "",
+        args: Optional[argparse.Namespace] = None,
     ):
+        if settings is None:
+            settings = ScadaSettings()
+        if atn_settings is None:
+            atn_settings = AtnSettings()
+        settings.paths.mkdirs(parents=True)
+        atn_settings.paths.mkdirs(parents=True)
+        errors = []
+        if args is None:
+            args = argparse.Namespace(verbose=True)
+        setup_logging(args, settings, errors, add_screen_handler=True)
+        assert not errors
+        setup_logging(args, cast(ScadaSettings, atn_settings), errors, add_screen_handler=False)
+        assert not errors
+
         self.settings = settings
         self.logger = logging.getLogger(self.settings.logging.base_log_name)
         self.atn_settings = atn_settings
@@ -192,7 +206,13 @@ class FragmentRunner:
         self.fragments = []
 
     def delimit(self, text: str = "") -> None:
-        delimit(f"{text}  [{self.tag}]  [{self.uid}]", self.logger)
+        if self.logger:
+            self.logger.error("\n")
+        else:
+            print()
+        delimit(text + " ", self.logger)
+        delimit(f"{text}  [{self.tag}]  [{self.uid}] ", self.logger)
+        delimit(text + " ", self.logger)
 
     def add_fragment(self, fragment: "ProtocolFragment") -> "FragmentRunner":
         self.fragments.append(fragment)
@@ -284,20 +304,7 @@ class FragmentRunner:
         args: Optional[argparse.Namespace] = None,
         tag: str = ""
     ):
-        if settings is None:
-            settings = ScadaSettings()
-        if atn_settings is None:
-            atn_settings = AtnSettings()
-        settings.paths.mkdirs(parents=True)
-        atn_settings.paths.mkdirs(parents=True)
-        errors = []
-        if args is None:
-            args = argparse.Namespace(verbose=True)
-        setup_logging(args, settings, errors)
-        assert not errors
-        setup_logging(args, cast(ScadaSettings, atn_settings), errors)
-        assert not errors
-        runner = FragmentRunner(settings, atn_settings=atn_settings, tag=tag)
+        runner = FragmentRunner(settings, atn_settings=atn_settings, tag=tag, args=args)
         runner.add_fragment(fragment_factory(runner))
         runner.run()
 
@@ -376,7 +383,7 @@ class AsyncFragmentRunner(FragmentRunner):
     async def async_run(self, *args, **kwargs):
         try:
             start_time = time.time()
-            self.delimit("STARTING {}")
+            self.delimit("STARTING")
             self.start()
             if self.actors.atn2.name in self.requested:
                 asyncio.create_task(self.actors.atn2.run_forever(), name="atn_run_forever")
@@ -399,6 +406,11 @@ class AsyncFragmentRunner(FragmentRunner):
             #       apparently due to cancelling tasks without the loop being able to clean them up.
             #       What is the right way of dealing with this?
             await asyncio.sleep(0.1)
+            # noinspection PyBroadException
+            try:
+                self.delimit("COMPLETE")
+            except:
+                pass
 
     @classmethod
     async def async_run_fragment(
@@ -409,20 +421,7 @@ class AsyncFragmentRunner(FragmentRunner):
         args: Optional[argparse.Namespace] = None,
         tag: str = ""
     ):
-        if settings is None:
-            settings = ScadaSettings()
-        if atn_settings is None:
-            atn_settings = AtnSettings()
-        settings.paths.mkdirs(parents=True)
-        atn_settings.paths.mkdirs(parents=True)
-        errors = []
-        if args is None:
-            args = argparse.Namespace()
-        setup_logging(args, settings, errors)
-        assert not errors
-        setup_logging(args, cast(ScadaSettings, atn_settings), errors)
-        assert not errors
-        runner = AsyncFragmentRunner(settings, atn_settings=atn_settings, tag=tag)
+        runner = AsyncFragmentRunner(settings, atn_settings=atn_settings, tag=tag, args=args)
         runner.add_fragment(fragment_factory(runner))
         await runner.async_run()
 
