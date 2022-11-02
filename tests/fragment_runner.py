@@ -292,7 +292,7 @@ class FragmentRunner:
         atn_settings.paths.mkdirs(parents=True)
         errors = []
         if args is None:
-            args = argparse.Namespace()
+            args = argparse.Namespace(verbose=True)
         setup_logging(args, settings, errors)
         assert not errors
         setup_logging(args, cast(ScadaSettings, atn_settings), errors)
