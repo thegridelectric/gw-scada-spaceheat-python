@@ -65,7 +65,7 @@ def test_simple_resubscribe_on_comm_restore(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_simple_resubscribe_on_comm_restore2(tmp_path, monkeypatch):
+async def test_simple_resubscribe_on_comm_restore2(tmp_path, monkeypatch, request):
 
     class Fragment(ProtocolFragment):
 
@@ -110,4 +110,4 @@ async def test_simple_resubscribe_on_comm_restore2(tmp_path, monkeypatch):
             assert scada.comm_event_counts[CommEvents.subscribe] == 2
             assert scada.comm_event_counts[CommEvents.disconnect] == 1
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, tag=request.node.name)

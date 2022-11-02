@@ -137,12 +137,11 @@ def test_power_meter_small2():
 
 
 @pytest.mark.asyncio
-async def test_power_meter_periodic_update(tmp_path, monkeypatch):
+async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
     """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (GsPwr sending is
     _not_ tested here."""
 
     monkeypatch.chdir(tmp_path)
-    logging.basicConfig(level="DEBUG")
 
     class Fragment(ProtocolFragment):
 
@@ -197,11 +196,11 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch):
                     f"wait for PowerMeter periodic update [{tt.TelemetryName}]"
                 )
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, args=argparse.Namespace(verbose=True), tag=request.node.name)
 
 
 @pytest.mark.asyncio
-async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch):
+async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, request):
     """Verify that when a simulated change in power is generated, Scadd and Atn both get a GsPwr message"""
 
     monkeypatch.chdir(tmp_path)
@@ -213,10 +212,6 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch):
             )
         )
     )
-    settings.paths.mkdirs()
-    errors = []
-    setup_logging(args=argparse.Namespace(), settings=settings, errors=errors)
-    assert not errors
 
     class Fragment(ProtocolFragment):
 
@@ -281,4 +276,4 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch):
                     err_str_f=atn.summary_str,
                 )
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment, settings=settings)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, settings=settings, tag=request.node.name)
