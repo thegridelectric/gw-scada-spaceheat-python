@@ -34,6 +34,7 @@ from actors2.actor_interface import ActorInterface
 from actors2.message import GtDispatchBooleanLocalMessage
 from actors2.message import ScadaDBG
 from actors2.message import ScadaDBGCommands
+from actors2.message import ScadaDBGEvent
 from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
 from actors.scada import ScadaCmdDiagnostic
@@ -48,7 +49,7 @@ from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
 from proactor.persister import TimedRollingFilePersister
 from proactor.proactor_implementation import Proactor
-from proactor.proactor_implementation import WaitResult
+from proactor.proactor_implementation import AckWaitResult
 
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
@@ -221,9 +222,13 @@ class Scada2(ScadaInterface, Proactor):
         self._publish_to_gridworks(event, AckRequired=True)
         self._event_persister.persist(event.MessageId, event.json(sort_keys=True, indent=2).encode("utf-8"))
 
-    async def _derived_process_wait_result(self, result: WaitResult):
+    def _derived_process_ack_result(self, result: AckWaitResult):
+        self._logger.path("++Scada2._derived_process_ack_result %s %s", result.wait_info.message_id, result.summary)
+        path_dbg = 0
         if result.ok() and result.wait_info.message_id in self._event_persister:
+            path_dbg |= 0x00000001
             self._event_persister.clear(result.wait_info.message_id)
+        self._logger.path("--Scada2._derived_process_ack_result path:0x%08X", path_dbg)
 
     def _publish_to_gridworks(
         self, payload, qos: QOS = QOS.AtMostOnce, **message_args: Any
@@ -239,54 +244,48 @@ class Scada2(ScadaInterface, Proactor):
         self._logger.path("++Scada2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
-        if isinstance(message.Payload, GsPwr):
-            path_dbg |= 0x00000001
-            if from_node is self._layout.power_meter_node:
-                path_dbg |= 0x00000002
-                self.gs_pwr_received(message.Payload)
-            else:
-                raise Exception(
-                    f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for GsPwr message"
+        match message.Payload:
+            case GsPwr():
+                path_dbg |= 0x00000001
+                if from_node is self._layout.power_meter_node:
+                    path_dbg |= 0x00000002
+                    self.gs_pwr_received(message.Payload)
+                else:
+                    raise Exception(
+                        f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for GsPwr message"
+                    )
+            case GtDispatchBooleanLocal():
+                path_dbg |= 0x00000004
+                if message.Header.Src == "a.home":
+                    path_dbg |= 0x00000008
+                    await self.local_boolean_dispatch_received(message.Payload)
+                else:
+                    raise Exception(
+                        "message.Header.Src must be a.home for GsDispatchBooleanLocal message"
+                    )
+            case GtTelemetry():
+                path_dbg |= 0x00000010
+                if from_node in self._layout.my_simple_sensors:
+                    path_dbg |= 0x00000020
+                    self.gt_telemetry_received(from_node, message.Payload)
+            case GtShTelemetryFromMultipurposeSensor():
+                path_dbg |= 0x00000040
+                if from_node in self._layout.my_multipurpose_sensors:
+                    path_dbg |= 0x00000080
+                    self.gt_sh_telemetry_from_multipurpose_sensor_received(
+                        from_node, message.Payload
+                    )
+            case GtDriverBooleanactuatorCmd():
+                path_dbg |= 0x00000100
+                if from_node in self._layout.my_boolean_actuators:
+                    path_dbg |= 0x00000200
+                    self.gt_driver_booleanactuator_cmd_record_received(
+                        from_node, message.Payload
+                    )
+            case _:
+                raise ValueError(
+                    f"There is no handler for mqtt message payload type [{type(message.Payload)}]"
                 )
-        elif isinstance(message.Payload, GtDispatchBooleanLocal):
-            path_dbg |= 0x00000004
-            if message.Header.Src == "a.home":
-                path_dbg |= 0x00000008
-                await self.local_boolean_dispatch_received(message.Payload)
-            else:
-                raise Exception(
-                    "message.Header.Src must be a.home for GsDispatchBooleanLocal message"
-                )
-        elif isinstance(message.Payload, GtTelemetry):
-            path_dbg |= 0x00000010
-            if from_node in self._layout.my_simple_sensors:
-                path_dbg |= 0x00000020
-                self.gt_telemetry_received(from_node, message.Payload)
-        elif isinstance(message.Payload, GtShTelemetryFromMultipurposeSensor):
-            path_dbg |= 0x00000040
-            if from_node in self._layout.my_multipurpose_sensors:
-                path_dbg |= 0x00000080
-                self.gt_sh_telemetry_from_multipurpose_sensor_received(
-                    from_node, message.Payload
-                )
-        elif isinstance(message.Payload, GtDriverBooleanactuatorCmd):
-            path_dbg |= 0x00000100
-            if from_node in self._layout.my_boolean_actuators:
-                path_dbg |= 0x00000200
-                self.gt_driver_booleanactuator_cmd_record_received(
-                    from_node, message.Payload
-                )
-        elif isinstance(message.Payload, ScadaDBG):
-            path_dbg |= 0x00000400
-            # TODO: mqtt????
-            match message.Payload.Command:
-                case ScadaDBGCommands.show_subscriptions:
-                    path_dbg |= 0x00000400
-                    self.log_subscriptions("message")
-        else:
-            raise ValueError(
-                f"There is not handler for mqtt message payload type [{type(message.Payload)}]"
-            )
         self._logger.path("--Scada2._derived_process_message  path:0x%08X", path_dbg)
 
     # TODO: Clean this up
@@ -310,20 +309,24 @@ class Scada2(ScadaInterface, Proactor):
                 f"There are no messages expected to be received from [{message.Payload.client_name}] mqtt broker. "
                 f"Received\n\t topic: [{message.Payload.message.topic}]"
             )
-        if isinstance(decoded.Payload, GtDispatchBoolean):
-            path_dbg |= 0x00000001
-            await self._boolean_dispatch_received(decoded.Payload)
-        elif isinstance(decoded.Payload, GtShCliAtnCmd):
-            path_dbg |= 0x00000002
-            self._gt_sh_cli_atn_cmd_received(decoded.Payload)
-        elif isinstance(decoded.Payload, GtTelemetry):
-            path_dbg |= 0x00000004
-            self._process_telemetry(message, decoded.Payload)
-        else:
-            raise ValueError(
-                f"There is not handler for mqtt message payload type [{type(decoded)}]\n"
-                f"Received\n\t topic: [{message.Payload.message.topic}]"
-            )
+        match decoded.Payload:
+            case GtDispatchBoolean():
+                path_dbg |= 0x00000001
+                await self._boolean_dispatch_received(decoded.Payload)
+            case GtShCliAtnCmd():
+                path_dbg |= 0x00000002
+                self._gt_sh_cli_atn_cmd_received(decoded.Payload)
+            case GtTelemetry():
+                path_dbg |= 0x00000004
+                self._process_telemetry(message, decoded.Payload)
+            case ScadaDBG():
+                path_dbg |= 0x00000008
+                self._process_scada_dbg(decoded.Payload)
+            case _:
+                raise ValueError(
+                    f"There is no handler for mqtt message payload type [{type(decoded.Payload)}]\n"
+                    f"Received\n\t topic: [{message.Payload.message.topic}]"
+                )
         self._logger.path("--Scada2._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_telemetry(self, message: Message, decoded: GtTelemetry):
@@ -513,3 +516,30 @@ class Scada2(ScadaInterface, Proactor):
                         self._logger.error(problems)
                         raise ValueError(str(problems))
         await super()._process_mqtt_suback(message)
+
+    def _process_scada_dbg(self, dbg: ScadaDBG):
+        self._logger.path("++_process_scada_dbg")
+        path_dbg = 0
+        count_dbg = 0
+        for logger_name in ["message_summary", "lifecycle", "comm_event"]:
+            requested_level = getattr(dbg.Levels, logger_name)
+            if requested_level > -1:
+                path_dbg |= 0x00000001
+                count_dbg += 1
+                logger = getattr(self._logger, logger_name + "_logger")
+                old_level = logger.getEffectiveLevel()
+                logger.setLevel(requested_level)
+                self._logger.debug(
+                    "%s logger level %s -> %s",
+                    logger_name,
+                    old_level,
+                    logger.getEffectiveLevel()
+                )
+        match dbg.Command:
+            case ScadaDBGCommands.show_subscriptions:
+                path_dbg |= 0x00000002
+                self.log_subscriptions("message")
+            case _:
+                path_dbg |= 0x00000004
+        self.generate_event(ScadaDBGEvent(Command=dbg, Path=f"0x{path_dbg:08X}", Count=count_dbg, Msg=""))
+        self._logger.path("--_process_scada_dbg  path:0x%08X  count:%d", path_dbg, count_dbg)

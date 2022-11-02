@@ -198,7 +198,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
 
             # Verify relay is off
             assert atn.data.latest_snapshot is None
-            atn.get_snapshot()
+            atn.snap()
             await await_for(
                 lambda: atn.data.latest_snapshot is not None,
                 3,
@@ -236,7 +236,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay2.alias
 
             # Verify Atn gets updated info for relay
-            atn.get_snapshot()
+            atn.snap()
             await await_for(
                 lambda: atn.data.latest_snapshot is not None
                 and id(atn.data.latest_snapshot) != id(snapshot1),
@@ -362,7 +362,7 @@ async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch):
             assert atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == 0
             atn._logger.info(SnapshotSpaceheat_Maker.type_alias)
             atn._logger.info(atn.summary_str())
-            atn.get_snapshot()
+            atn.snap()
             await await_for(
                 lambda: atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == 1,
                 3,
