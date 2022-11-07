@@ -8,7 +8,7 @@ from paho.mqtt.client import MQTTMessage
 from result import Result
 
 from proactor.link_state import InvalidCommStateInput
-from proactor.link_state import Links
+from proactor.link_state import LinkStates
 from proactor.link_state import StateName
 from proactor.link_state import Transition
 from proactor.link_state import TransitionName
@@ -62,7 +62,7 @@ class _Case:
                     pass
         return content
 
-    def assert_case(self, links:Links, name:str, got:Result[Transition, InvalidCommStateInput]):
+    def assert_case(self, links:LinkStates, name:str, got:Result[Transition, InvalidCommStateInput]):
         assert links[name].name == name
         assert links.link(name).name == name
         if self.ok:
@@ -77,7 +77,7 @@ class _Case:
 
     def _test(self):
         name = "a"
-        links = Links([name])
+        links = LinkStates([name])
         link = links[name]
         assert link.state == StateName.not_started
         link.curr_state = link.states[self.start]

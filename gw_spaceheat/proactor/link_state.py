@@ -20,37 +20,12 @@ from proactor.message import MQTTSubackPayload
 class StateName(enum.Enum):
     none = "none"
     not_started = "not_started"
-        # start()                               ->  start_called         (1)       -> connecting                   *** which start()?
-
     connecting = "connecting"
-        # _process_mqtt_connected               -> mqtt_connected        (2)       -> awaiting_setup_and_peer
-        # _process_mqtt_connect_fail            -> mqtt_connect_failed   (3)       -> connecting
-
     awaiting_setup_and_peer = "awaiting_setup_and_peer"
-        # _process_mqtt_suback                  -> mqtt_suback           (4)      -> awaiting_setup_and_peer
-        # _process_mqtt_suback                  -> mqtt_suback           (5)      -> awaiting_peer
-        # _process_mqtt_message                 -> message_from_peer     (6)      -> awaiting_setup
-        # _process_mqtt_disconnected            -> mqtt_disconnected     (7)      -> connecting
-        # _process_ack_timeout                  -> response_timeout     (17)      -> awaiting_setup_and_peer
-
     awaiting_setup = "awaiting_setup"
-        # _process_mqtt_suback                  -> mqtt_suback           (8)      -> awaiting_setup
-        # _process_mqtt_suback                  -> mqtt_suback           (9)      -> active
-        # _process_ack_timeout                  -> response_timeout     (10)      -> awaiting_setup_and_peer
-        # _process_mqtt_disconnected            -> mqtt_disconnected    (11)      -> connecting
-        # _process_mqtt_message                 -> message_from_peer    (16)      -> awaiting_setup
-
     awaiting_peer = "awaiting_peer"
-        # _process_mqtt_message                 -> message_from_peer    (12)      -> awaiting_setup
-        # _process_mqtt_disconnected            -> mqtt_disconnected    (13)      -> connecting
-        # _process_ack_timeout                  -> response_timeout     (19)      -> awaiting_peer
-
     active = "active"
-        # _process_ack_timeout                  -> response_timeout     (14)      -> awaiting_peer
-        # _process_mqtt_disconnected            -> mqtt_disconnected    (15)      -> connecting
-
     stopped = "stopped"
-        # stop()                               ->  stop_called          (18)      -> stopped                   *** which stop()?
 
 class TransitionName(enum.Enum):
     none = "none"
@@ -247,7 +222,7 @@ class Stopped(State):
     def name(self) -> StateName:
         return StateName.stopped
 
-class Link:
+class LinkState:
     name: str
     states: dict[StateName, State]
     curr_state: State
@@ -304,8 +279,8 @@ class Link:
     def process_ack_timeout(self) -> Result[Transition, InvalidCommStateInput]:
         return self._handle(self.curr_state.process_ack_timeout())
 
-class Links:
-    _links: dict[str, Link]
+class LinkStates:
+    _links: dict[str, LinkState]
 
     def __init__(self, names: Optional[Sequence[str]] = None):
         self._links = dict()
@@ -313,7 +288,7 @@ class Links:
             for name in names:
                 self.add(name)
 
-    def link(self, name) -> Optional[Link]:
+    def link(self, name) -> Optional[LinkState]:
         return self._links.get(name, None)
 
     def link_state(self, name) -> Optional[StateName]:
@@ -324,16 +299,16 @@ class Links:
     def __contains__(self, name: str) -> bool:
         return name in self._links
 
-    def __getitem__(self, name: str) -> Link:
+    def __getitem__(self, name: str) -> LinkState:
         try:
             return self._links[name]
         except KeyError:
             raise CommLinkMissing(name)
 
-    def add(self, name: str, state: StateName = StateName.not_started) -> Link:
+    def add(self, name: str, state: StateName = StateName.not_started) -> LinkState:
         if name in self._links:
             raise CommLinkAlreadyExists(name, current_state=self._links[name].curr_state.name)
-        self._links[name] = Link(name, state)
+        self._links[name] = LinkState(name, state)
         return self._links[name]
 
     def start(self, name:str) -> Result[Transition, InvalidCommStateInput]:
