@@ -82,23 +82,6 @@ class Transition:
     def deactivated(self):
         return self.old_state == StateName.active and self.new_state != StateName.active
 
-    def set_state(self, state: StateName) -> "Transition":
-        self.new_state = state
-        return self
-
-@dataclass
-class Link:
-    name: str = ""
-    state: StateName = StateName.not_started
-
-    def active(self):
-        return self.state == StateName.active
-
-    def set_state(self, state: StateName, transition_name: TransitionName) -> Transition:
-        transition = Transition(self.name, transition_name, self.state)
-        self.state = state
-        return transition.set_state(self.state)
-
 class InvalidCommStateInput(Exception):
     name: str = ""
     current_state: StateName = StateName.none
@@ -264,7 +247,7 @@ class Stopped(State):
     def name(self) -> StateName:
         return StateName.stopped
 
-class Link2:
+class Link:
     name: str
     states: dict[StateName, State]
     curr_state: State
@@ -287,11 +270,6 @@ class Link2:
     @property
     def state(self) -> StateName:
         return self.curr_state.name
-
-    def set_state(self, state: StateName, transition_name: TransitionName) -> Transition:
-        transition = Transition(self.name, transition_name, self.state)
-        self.curr_state = self.states[state]
-        return transition.set_state(self.state)
 
     def _handle(self, result) -> Result[Transition, InvalidCommStateInput]:
         match result:
@@ -326,8 +304,8 @@ class Link2:
     def process_ack_timeout(self) -> Result[Transition, InvalidCommStateInput]:
         return self._handle(self.curr_state.process_ack_timeout())
 
-class Links2:
-    _links: dict[str, Link2]
+class Links:
+    _links: dict[str, Link]
 
     def __init__(self, names: Optional[Sequence[str]] = None):
         self._links = dict()
@@ -335,7 +313,7 @@ class Links2:
             for name in names:
                 self.add(name)
 
-    def link(self, name) -> Optional[Link2]:
+    def link(self, name) -> Optional[Link]:
         return self._links.get(name, None)
 
     def link_state(self, name) -> Optional[StateName]:
@@ -346,16 +324,16 @@ class Links2:
     def __contains__(self, name: str) -> bool:
         return name in self._links
 
-    def __getitem__(self, name: str) -> Link2:
+    def __getitem__(self, name: str) -> Link:
         try:
             return self._links[name]
         except KeyError:
             raise CommLinkMissing(name)
 
-    def add(self, name: str, state: StateName = StateName.not_started) -> Link2:
+    def add(self, name: str, state: StateName = StateName.not_started) -> Link:
         if name in self._links:
             raise CommLinkAlreadyExists(name, current_state=self._links[name].curr_state.name)
-        self._links[name] = Link2(name, state)
+        self._links[name] = Link(name, state)
         return self._links[name]
 
     def start(self, name:str) -> Result[Transition, InvalidCommStateInput]:
@@ -381,109 +359,5 @@ class Links2:
 
     def process_ack_timeout(self, name: str) -> Result[Transition, InvalidCommStateInput]:
         return self[name].process_ack_timeout()
-
-
-class Links:
-    _links: dict[str, Link]
-
-    def __init__(self, names: Optional[Sequence[str]] = None):
-        self._links = dict()
-        if names is not None:
-            for name in names:
-                self.add(name)
-
-    def link(self, name) -> Optional[Link]:
-        return self._links.get(name, None)
-
-    def link_state(self, name) -> Optional[StateName]:
-        if name in self._links:
-            return self._links[name].state
-        return None
-
-    def __contains__(self, name: str) -> bool:
-        return name in self._links
-
-    def __getitem__(self, name: str) -> Link:
-        try:
-            return self._links[name]
-        except KeyError:
-            raise CommLinkMissing(name)
-
-    def add(self, name: str, state: StateName = StateName.not_started) -> Link:
-        if name in self._links:
-            raise CommLinkAlreadyExists(name, current_state=self._links[name].state)
-        self._links[name] = Link(name, state)
-        return self._links[name]
-
-    def start(self, name:str) -> Result[Transition, InvalidCommStateInput]:
-        link = self[name]
-        if link.state != StateName.not_started:
-            return Err(InvalidCommStateInput(name, current_state=link.state, transition=TransitionName.start_called))
-        return Ok(link.set_state(StateName.connecting, TransitionName.start_called))
-
-    def stop(self, name: str) -> Result[Transition, InvalidCommStateInput]:
-        return Ok(self[name].set_state(StateName.stopped, TransitionName.stop_called))
-
-    def process_mqtt_connected(self, message: Message[MQTTConnectPayload]) -> Result[Transition, InvalidCommStateInput]:
-        transition_name = TransitionName.mqtt_connected
-        link = self[message.Payload.client_name]
-        if link.state != StateName.connecting:
-            return Err(InvalidCommStateInput(message.Payload.client_name, link.state, transition_name))
-        return Ok(link.set_state(StateName.awaiting_setup_and_peer, transition_name))
-
-    def process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]) -> Result[Transition, InvalidCommStateInput]:
-        transition_name = TransitionName.mqtt_disconnected
-        link = self[message.Payload.client_name]
-        if link.state not in [StateName.awaiting_setup_and_peer, StateName.awaiting_setup, StateName.awaiting_peer, StateName.active]:
-            return Err(InvalidCommStateInput(message.Payload.client_name, link.state, transition_name))
-        return Ok(link.set_state(StateName.connecting, transition_name))
-
-    def process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]) -> Result[Transition, InvalidCommStateInput]:
-        transition_name = TransitionName.mqtt_connect_failed
-        link = self[message.Payload.client_name]
-        if link.state != StateName.connecting:
-            return Err(InvalidCommStateInput(message.Payload.client_name, link.state, transition_name))
-        return Ok(link.set_state(link.state, transition_name))
-
-    def process_mqtt_suback(self, message: Message[MQTTSubackPayload]) -> Result[Transition, InvalidCommStateInput]:
-        transition_name = TransitionName.mqtt_suback
-        link = self[message.Payload.client_name]
-        if link.state not in [StateName.awaiting_setup_and_peer, StateName.awaiting_setup]:
-            return Err(InvalidCommStateInput(message.Payload.client_name, link.state, transition_name))
-        new_state = link.state
-        if message.Payload.num_pending_subscriptions == 0:
-            if link.state == StateName.awaiting_setup_and_peer:
-                new_state = StateName.awaiting_peer
-            else:
-                new_state = StateName.active
-        return Ok(link.set_state(new_state, transition_name))
-
-    def process_mqtt_message(self, message: Message[MQTTReceiptPayload]) -> Result[Transition, InvalidCommStateInput]:
-        transition_name = TransitionName.message_from_peer
-        link = self[message.Payload.client_name]
-        if link.state == StateName.active or link.state == StateName.awaiting_setup:
-            new_state = link.state
-        elif link.state == StateName.awaiting_setup_and_peer:
-            new_state = StateName.awaiting_setup
-        elif link.state == StateName.awaiting_peer:
-            new_state = StateName.active
-        else:
-            return Err(InvalidCommStateInput(message.Payload.client_name, link.state, transition_name))
-        return Ok(link.set_state(new_state, transition_name))
-
-    def process_ack_timeout(self, name: str) -> Result[Transition, InvalidCommStateInput]:
-        transition_name = TransitionName.response_timeout
-        link = self[name]
-        match link.state:
-            case StateName.awaiting_setup_and_peer | StateName.awaiting_peer:
-                new_state = link.state
-            case StateName.awaiting_setup:
-                new_state = StateName.awaiting_setup_and_peer
-            case StateName.active:
-                new_state = StateName.awaiting_peer
-            case _:
-                return Err(InvalidCommStateInput(name, link.state, transition_name))
-        return Ok(link.set_state(new_state, transition_name))
-
 
 
