@@ -70,7 +70,7 @@ class BooleanActuator(SimpleSensor):
             DispatchRelay(relay_state=bool(message.Payload.RelayState))
         )
 
-    async def process_message(self, message: Message):
+    def process_message(self, message: Message):
         if isinstance(message.Payload, GtDispatchBooleanLocal):
             self._process_dispatch_message(message)
         else:

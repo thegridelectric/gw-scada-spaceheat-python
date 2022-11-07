@@ -496,7 +496,7 @@ class Scada2Recorder(Scada2):
         self.num_received_by_type[message.Header.MessageType] += 1
         await super().process_message(message)
 
-    async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
+    def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         self._record_comm_event(
             message.Payload.client_name,
             CommEvents.mqtt_message,
@@ -504,7 +504,7 @@ class Scada2Recorder(Scada2):
             message.Payload.message
         )
         self.num_received_by_topic[message.Payload.message.topic] += 1
-        await super()._process_mqtt_message(message)
+        super()._process_mqtt_message(message)
 
     def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
         self._record_comm_event(
@@ -533,14 +533,14 @@ class Scada2Recorder(Scada2):
         )
         super()._process_mqtt_connect_fail(message)
 
-    async def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
         self._record_comm_event(
             message.Payload.client_name,
             CommEvents.subscribe,
             message.Payload.userdata,
             message.Payload.mid, message.Payload.granted_qos
         )
-        await super()._process_mqtt_suback(message)
+        super()._process_mqtt_suback(message)
 
     def summary_str(self):
         """Summarize results in a string"""

@@ -240,7 +240,7 @@ class Scada2(ScadaInterface, Proactor):
         message = Message(Src=from_node.alias, Payload=payload)
         return self._publish_message(Scada2.LOCAL_MQTT, message, qos=qos)
 
-    async def _derived_process_message(self, message: Message):
+    def _derived_process_message(self, message: Message):
         self._logger.path("++Scada2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
@@ -258,7 +258,7 @@ class Scada2(ScadaInterface, Proactor):
                 path_dbg |= 0x00000004
                 if message.Header.Src == "a.home":
                     path_dbg |= 0x00000008
-                    await self.local_boolean_dispatch_received(message.Payload)
+                    self.local_boolean_dispatch_received(message.Payload)
                 else:
                     raise Exception(
                         "message.Header.Src must be a.home for GsDispatchBooleanLocal message"
@@ -299,7 +299,7 @@ class Scada2(ScadaInterface, Proactor):
                     s += f"\t\t[{subscription}]\n"
             self._logger.lifecycle(s)
 
-    async def _derived_process_mqtt_message(
+    def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
         self._logger.path("++Scada2._derived_process_mqtt_message %s", message.Payload.message.topic)
@@ -312,7 +312,7 @@ class Scada2(ScadaInterface, Proactor):
         match decoded.Payload:
             case GtDispatchBoolean():
                 path_dbg |= 0x00000001
-                await self._boolean_dispatch_received(decoded.Payload)
+                self._boolean_dispatch_received(decoded.Payload)
             case GtShCliAtnCmd():
                 path_dbg |= 0x00000002
                 self._gt_sh_cli_atn_cmd_received(decoded.Payload)
@@ -338,22 +338,22 @@ class Scada2(ScadaInterface, Proactor):
             )
             self._data.latest_simple_value[from_node] = decoded.Value
 
-    async def _boolean_dispatch_received(
+    def _boolean_dispatch_received(
         self, payload: GtDispatchBoolean
     ) -> ScadaCmdDiagnostic:
         """This is a dispatch message received from the atn. It is
         honored whenever DispatchContract with the Atn is live."""
         if not self.scada_atn_fast_dispatch_contract_is_alive:
             return ScadaCmdDiagnostic.IGNORING_ATN_DISPATCH
-        return await self._process_boolean_dispatch(payload)
+        return self._process_boolean_dispatch(payload)
 
-    async def _process_boolean_dispatch(
+    def _process_boolean_dispatch(
         self, payload: GtDispatchBoolean
     ) -> ScadaCmdDiagnostic:
         ba = self._layout.node(payload.AboutNodeAlias)
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
-        await self._communicators[ba.alias].process_message(
+        self._communicators[ba.alias].process_message(
             GtDispatchBooleanLocalMessage(
                 src=self.name, dst=ba.alias, relay_state=payload.RelayState
             )
@@ -492,18 +492,18 @@ class Scada2(ScadaInterface, Proactor):
             payload.CommandTimeUnixMs
         )
 
-    async def local_boolean_dispatch_received(
+    def local_boolean_dispatch_received(
         self, payload: GtDispatchBooleanLocal
     ) -> ScadaCmdDiagnostic:
         """This will be a message from HomeAlone, honored when the DispatchContract
         with the Atn is not live."""
         if self.scada_atn_fast_dispatch_contract_is_alive:
             return ScadaCmdDiagnostic.IGNORING_HOMEALONE_DISPATCH
-        return await self._process_boolean_dispatch(
+        return self._process_boolean_dispatch(
             typing.cast(GtDispatchBoolean, payload)
         )
 
-    async def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
         if message.Payload.num_pending_subscriptions == 0:
             for message_id in self._event_persister.pending():
                 match self._event_persister.retrieve(message_id):
@@ -515,7 +515,7 @@ class Scada2(ScadaInterface, Proactor):
                     case Err(problems):
                         self._logger.error(problems)
                         raise ValueError(str(problems))
-        await super()._process_mqtt_suback(message)
+        super()._process_mqtt_suback(message)
 
     def _process_scada_dbg(self, dbg: ScadaDBG):
         self._logger.path("++_process_scada_dbg")

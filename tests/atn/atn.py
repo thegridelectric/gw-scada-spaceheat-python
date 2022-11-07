@@ -190,11 +190,11 @@ class Atn2(ActorInterface, Proactor):
         self.stats.add_message(message)
         await super().process_message(message)
 
-    async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
+    def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         self.stats.add_mqtt_message(message)
-        await super()._process_mqtt_message(message)
+        super()._process_mqtt_message(message)
 
-    async def _derived_process_message(self, message: Message):
+    def _derived_process_message(self, message: Message):
         self._logger.path("++Atn2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         match message.Payload:
@@ -212,7 +212,7 @@ class Atn2(ActorInterface, Proactor):
 
         self._logger.path("--Atn2._derived_process_message  path:0x%08X", path_dbg)
 
-    async def _derived_process_mqtt_message(
+    def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
         self._logger.path("++Atn2._derived_process_mqtt_message %s", message.Payload.message.topic)

@@ -79,7 +79,6 @@ class Proactor(ServicesInterface, Runnable):
     _logger: ProactorLogger
     _acks: dict[str, AckWaitInfo]
 
-    # TODO: Clean up loop control
     def __init__(self, name: str, logger: ProactorLogger):
         self._name = name
         self._logger = logger
@@ -203,10 +202,10 @@ class Proactor(ServicesInterface, Runnable):
     def _start_derived_tasks(self):
         pass
 
-    async def _derived_process_message(self, message: Message):
+    def _derived_process_message(self, message: Message):
         pass
 
-    async def _derived_process_mqtt_message(
+    def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
         pass
@@ -225,7 +224,7 @@ class Proactor(ServicesInterface, Runnable):
         match message.Payload:
             case MQTTReceiptPayload():
                 path_dbg |= 0x00000002
-                await self._process_mqtt_message(message)
+                self._process_mqtt_message(message)
             case MQTTConnectPayload():
                 path_dbg |= 0x00000004
                 self._process_mqtt_connected(message)
@@ -237,13 +236,13 @@ class Proactor(ServicesInterface, Runnable):
                 self._process_mqtt_connect_fail(message)
             case MQTTSubackPayload():
                 path_dbg |= 0x00000020
-                await self._process_mqtt_suback(message)
+                self._process_mqtt_suback(message)
             case _:
                 path_dbg |= 0x00000040
-                await self._derived_process_message(message)
+                self._derived_process_message(message)
         self._logger.path("--Proactor.process_message  path:0x%08X", path_dbg)
 
-    async def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
+    def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         self._logger.path("++Proactor._process_mqtt_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         decoder = self._mqtt_codecs.get(message.Payload.client_name, None)
@@ -275,7 +274,7 @@ class Proactor(ServicesInterface, Runnable):
                     self._process_ack_result(result.value.Payload.AckMessageID, AckWaitSummary.acked)
                 case _:
                     path_dbg |= 0x00000008
-                    await self._derived_process_mqtt_message(message, result.value)
+                    self._derived_process_mqtt_message(message, result.value)
         if result.is_ok() and result.value.Header.AckRequired:
             path_dbg |= 0x00000010
             if result.value.Header.MessageId:
@@ -301,7 +300,7 @@ class Proactor(ServicesInterface, Runnable):
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
         self.generate_event(MQTTConnectFailedEvent())
 
-    async def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
         if message.Payload.num_pending_subscriptions == 0:
             self.generate_event(MQTTFullySubscribedEvent())
 
