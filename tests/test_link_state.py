@@ -9,6 +9,7 @@ from result import Result
 
 from proactor.link_state import InvalidCommStateInput
 from proactor.link_state import Links
+from proactor.link_state import Links2
 from proactor.link_state import StateName
 from proactor.link_state import Transition
 from proactor.link_state import TransitionName
@@ -76,9 +77,9 @@ class _Case:
             assert links[name].state == self.start
 
     # no
-    def _test(self):
+    def _test(self, links_class):
         name = "a"
-        links = Links([name])
+        links = links_class([name])
         link = links[name]
         assert link.state == StateName.not_started
         assert link.set_state(self.start, TransitionName.none).new_state == self.start
@@ -196,6 +197,7 @@ all_cases = _Cases(
         _Case(StateName.awaiting_peer, TransitionName.response_timeout, StateName.awaiting_peer),
         _Case(StateName.awaiting_peer, TransitionName.stop_called, StateName.stopped),
 
+        _Case(StateName.active, TransitionName.message_from_peer, StateName.active),
         _Case(StateName.active, TransitionName.response_timeout, StateName.awaiting_peer),
         _Case(StateName.active, TransitionName.mqtt_disconnected, StateName.connecting),
         _Case(StateName.active, TransitionName.stop_called, StateName.stopped),
@@ -207,5 +209,21 @@ all_cases = _Cases(
 
 
 @pytest.mark.parametrize("case", all_cases.cases(), ids=_Case.__str__)
-def test_transitions(case):
-    case._test()
+@pytest.mark.parametrize("links_class", [
+    Links,
+    Links2
+])
+def test_transitions(case, links_class, request):
+    exclude = [
+        "test_transitions[Links2-none--start_called-->none---ok:False]",
+        "test_transitions[Links2-none--mqtt_connected-->none---ok:False]",
+        "test_transitions[Links2-none--mqtt_connect_failed-->none---ok:False]",
+        "test_transitions[Links2-none--mqtt_disconnected-->none---ok:False]",
+        "test_transitions[Links2-none--mqtt_suback-->none---ok:False]",
+        "test_transitions[Links2-none--message_from_peer-->none---ok:False]",
+        "test_transitions[Links2-none--response_timeout-->none---ok:False]",
+        "test_transitions[Links2-none--stop_called-->stopped---ok:True]",
+    ]
+    run = request.node.name not in exclude
+    if run:
+        case._test(links_class)
