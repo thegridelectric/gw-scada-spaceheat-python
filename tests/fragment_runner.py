@@ -47,7 +47,7 @@ def delimit(text: str = "", logger: Optional[logging.Logger] = None):
     if logger is None:
         print(s)
     else:
-        logger.error(s.lstrip())
+        logger.log(logging.ERROR - 1, s.lstrip())
 
 def do_nothing(seconds: float, logger: Optional[logging.Logger] = None):
     """Let the actors run on their own for a while"""
@@ -207,7 +207,7 @@ class FragmentRunner:
 
     def delimit(self, text: str = "") -> None:
         if self.logger:
-            self.logger.error("\n")
+            self.logger.log(logging.ERROR - 1, "\n")
         else:
             print()
         delimit(text + " ", self.logger)

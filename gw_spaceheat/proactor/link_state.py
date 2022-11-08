@@ -250,7 +250,7 @@ class LinkState:
         match result:
             case Ok(transition):
                 transition.link_name = self.name
-                self.curr_state = self.states[result.unwrap().new_state]
+                self.curr_state = self.states[transition.new_state]
             case Err(exception):
                 exception.name = self.name
         return result
@@ -310,6 +310,17 @@ class LinkStates:
             raise CommLinkAlreadyExists(name, current_state=self._links[name].curr_state.name)
         self._links[name] = LinkState(name, state)
         return self._links[name]
+
+    def start_all(self) -> Result[bool, Sequence[BaseException]]:
+        errors = []
+        for link in self._links.values():
+            match link.start():
+                case Err(exception):
+                    errors.append(exception)
+        if errors:
+            return Err(errors)
+        else:
+            return Ok()
 
     def start(self, name:str) -> Result[Transition, InvalidCommStateInput]:
         return self[name].start()

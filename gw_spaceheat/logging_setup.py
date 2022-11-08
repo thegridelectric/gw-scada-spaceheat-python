@@ -92,7 +92,6 @@ def setup_logging(
             logging.getLogger().addHandler(file_handler)
         except BaseException as e:
             errors.append(e)
-
         config_finished = True
     except BaseException as e:
         config_finished = False

@@ -11,6 +11,7 @@ from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Sequence
 
 import gwproto
 from gwproto import MQTTCodec
@@ -29,6 +30,10 @@ from result import Ok
 from result import Result
 
 import config
+from proactor.link_state import InvalidCommStateInput
+from proactor.link_state import LinkStates
+from proactor.link_state import RuntimeLinkStateError
+from proactor.link_state import Transition
 from proactor.logger import ProactorLogger
 from proactor.message import Message
 from proactor.message import MQTTConnectFailPayload
@@ -40,12 +45,14 @@ from proactor.mqtt import MQTTClients
 from proactor.proactor_interface import CommunicatorInterface
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
+from proactor.problems import Problems
 
 
 @dataclass
 class AckWaitInfo:
     message_id: str
     timer_handle: asyncio.TimerHandle
+    client_name: str
     context: Any = None
 
 
@@ -73,6 +80,7 @@ class Proactor(ServicesInterface, Runnable):
     _receive_queue: Optional[asyncio.Queue] = None
     _mqtt_clients: MQTTClients
     _mqtt_codecs: Dict[str, MQTTCodec]
+    _link_states: LinkStates
     _communicators: Dict[str, CommunicatorInterface]
     _stop_requested: bool
     _tasks: List[asyncio.Task]
@@ -84,6 +92,7 @@ class Proactor(ServicesInterface, Runnable):
         self._logger = logger
         self._mqtt_clients = MQTTClients()
         self._mqtt_codecs = dict()
+        self._link_states = LinkStates()
         self._communicators = dict()
         self._tasks = []
         self._acks = dict()
@@ -98,8 +107,9 @@ class Proactor(ServicesInterface, Runnable):
         self._mqtt_clients.add_client(name, client_config)
         if codec is not None:
             self._mqtt_codecs[name] = codec
+        self._link_states.add(name)
 
-    def _start_ack_timer(self, message_id: str, context: Any = None, delay: Optional[float] = None) -> None:
+    def _start_ack_timer(self, client_name: str, message_id: str, context: Any = None, delay: Optional[float] = None) -> None:
         if delay is None:
             delay = 5
         self._acks[message_id] = AckWaitInfo(
@@ -108,6 +118,7 @@ class Proactor(ServicesInterface, Runnable):
                 delay,
                 functools.partial(self._process_ack_timeout, message_id),
             ),
+            client_name=client_name,
             context=context,
         )
 
@@ -129,12 +140,40 @@ class Proactor(ServicesInterface, Runnable):
     def _derived_process_ack_result(self, result: AckWaitResult):
         ...
 
+    @classmethod
+    def _validate_link_state_result(cls, result: Result[Transition, InvalidCommStateInput], client_name: str):
+        # TODO: percolate these errors better
+        match result:
+            case Ok():
+                pass
+            case Err(exception):
+                raise exception
+            case _:
+                raise RuntimeLinkStateError(
+                    client_name,
+                    msg=f"Unexpected return type {type(result)}/{result}"
+                )
+
     def _process_ack_result(self, message_id: str, reason: AckWaitSummary):
         self._logger.path("++Proactor._process_ack_result %s", message_id)
         path_dbg = 0
         wait_info = self._cancel_ack_timer(message_id)
         if wait_info is not None:
             path_dbg |= 0x00000001
+            if reason == AckWaitSummary.timeout:
+                path_dbg |= 0x00000002
+                result = self._link_states.process_ack_timeout(wait_info.client_name)
+                match result:
+                    case Ok(transition):
+                        path_dbg |= 0x00000004
+                        if transition.deactivated():
+                            path_dbg |= 0x00000008
+                            # TODO: generate comm event?
+                            self._logger.comm_event(str(transition))
+                    # TODO: percolate this better
+                    case _:
+                        path_dbg |= 0x00000010
+                        self._validate_link_state_result(result, wait_info.client_name)
             self._derived_process_ack_result(AckWaitResult(summary=reason, wait_info=wait_info))
         self._logger.path("--Proactor._process_ack_result path:0x%08X", path_dbg)
 
@@ -144,7 +183,7 @@ class Proactor(ServicesInterface, Runnable):
         payload = self._mqtt_codecs[client].encode(message)
         self._logger.message_summary("OUT mqtt    ", message.Header.Src, topic, message.Payload)
         if message.Header.AckRequired:
-            self._start_ack_timer(message.Header.MessageId, context)
+            self._start_ack_timer(client, message.Header.MessageId, context)
         return self._mqtt_clients.publish(client, topic, payload, qos)
 
     def add_communicator(self, communicator: CommunicatorInterface):
@@ -165,6 +204,7 @@ class Proactor(ServicesInterface, Runnable):
     async def process_messages(self):
         # noinspection PyBroadException
         try:
+            self._start_processing_messages()
             while not self._stop_requested:
                 message = await self._receive_queue.get()
                 if not self._stop_requested:
@@ -209,6 +249,18 @@ class Proactor(ServicesInterface, Runnable):
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
         pass
+
+    def _report_errors(self, errors: Sequence[BaseException], msg: str) -> Result[bool, bool]:
+        # TODO pull msg from stack?
+        self.generate_event(Problems(errors=errors).problem_event(msg))
+        return Ok()
+
+    def _start_processing_messages(self):
+        """Processing before any messages are pulled from queue"""
+        self.generate_event(StartupEvent())
+        self._link_states.start_all().or_else(
+            functools.partial(self._report_errors, "Proactor._start_processing_messages error")
+        )
 
     async def process_message(self, message: Message):
         self._logger.path("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
@@ -269,8 +321,12 @@ class Proactor(ServicesInterface, Runnable):
         if result:
             path_dbg |= 0x00000002
             self._logger.message_summary("IN  mqtt    ", self.name, message.Payload.message.topic, result.value.Payload)
+            # TODO: how interact with processing?
+            # TODO: come out of comm fail!!!
+            self._link_states.process_mqtt_message(message)
             match result.value.Payload:
                 case Ack():
+                    path_dbg |= 0x00000004
                     self._process_ack_result(result.value.Payload.AckMessageID, AckWaitSummary.acked)
                 case _:
                     path_dbg |= 0x00000008
@@ -289,18 +345,33 @@ class Proactor(ServicesInterface, Runnable):
         self._logger.path("--Proactor._process_mqtt_message:%s  path:0x%08X", int(result.is_ok()), path_dbg)
 
     def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
+        self._link_states.process_mqtt_connected(message).or_else(
+            functools.partial(self._report_errors, "Proactor._process_mqtt_connected error")
+        )
+        # TODO: log message?
         self._mqtt_clients.subscribe_all(message.Payload.client_name)
         self.generate_event(MQTTConnectEvent())
 
     def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
+        self._link_states.process_mqtt_disconnected(message).or_else(
+            functools.partial(self._report_errors, "Proactor._process_mqtt_disconnected error")
+        )
         for message_id in list(self._acks.keys()):
             self._process_ack_result(message_id, AckWaitSummary.connection_failure)
         self.generate_event(MQTTDisconnectEvent())
+        # TODO: notify home alone!!!
 
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
+        self._link_states.process_mqtt_connect_fail(message).or_else(
+            functools.partial(self._report_errors, "Proactor._process_mqtt_connect_fail error")
+        )
         self.generate_event(MQTTConnectFailedEvent())
 
     def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+        self._link_states.process_mqtt_suback(message).or_else(
+            functools.partial(self._report_errors, "Proactor._process_mqtt_suback error")
+        )
+        # TODO use result to change state... send message to show ready.
         if message.Payload.num_pending_subscriptions == 0:
             self.generate_event(MQTTFullySubscribedEvent())
 
@@ -312,7 +383,6 @@ class Proactor(ServicesInterface, Runnable):
             if isinstance(communicator, Runnable):
                 communicator.start()
         self.start_tasks()
-        self.generate_event(StartupEvent())
         await self.join()
 
     def stop_mqtt(self):
@@ -323,8 +393,10 @@ class Proactor(ServicesInterface, Runnable):
         raise RuntimeError("ERROR. Proactor must be started by awaiting run_forever()")
 
     def stop(self):
+        # TODO: where does _link_states.stop() get called? never?
         self._stop_requested = True
         for task in self._tasks:
+            # TODO: Send self a shutdown message instead?
             if not task.done():
                 task.cancel()
         self.stop_mqtt()
