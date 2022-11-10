@@ -27,6 +27,15 @@ class StateName(enum.Enum):
     active = "active"
     stopped = "stopped"
 
+def state_is_active(state: StateName) -> bool:
+    return state == StateName.active
+
+def state_is_active_for_send(state: StateName) -> bool:
+    return state in [StateName.active, StateName.awaiting_peer]
+
+def state_is_active_for_recv(state: StateName) -> bool:
+    return state_is_active(state)
+
 class TransitionName(enum.Enum):
     none = "none"
     start_called = "start_called"
@@ -49,13 +58,28 @@ class Transition:
         return self.old_state != self.new_state
 
     def active(self):
-        return self.new_state == StateName.active
+        return state_is_active(self.new_state)
 
     def activated(self):
-        return self.old_state != StateName.active and self.new_state == StateName.active
+        return not state_is_active(self.old_state) and state_is_active(self.new_state)
 
     def deactivated(self):
-        return self.old_state == StateName.active and self.new_state != StateName.active
+        return state_is_active(self.old_state) and not state_is_active(self.new_state)
+
+    def send_is_active(self) -> bool:
+        return state_is_active_for_send(self.new_state)
+
+    def send_activated(self) -> bool:
+        return self.send_is_active() and not state_is_active_for_send(self.old_state)
+
+    def send_deactivated(self) -> bool:
+        return not self.send_is_active() and state_is_active_for_send(self.old_state)
+
+    def recv_activated(self) -> bool:
+        return self.activated()
+
+    def recv_deactivated(self) -> bool:
+        return self.deactivated()
 
 class InvalidCommStateInput(Exception):
     name: str = ""
@@ -124,6 +148,15 @@ class State(abc.ABC):
 
     def process_ack_timeout(self) -> Result[Transition, InvalidCommStateInput]:
         return Err(InvalidCommStateInput("", current_state=self.name, transition=TransitionName.response_timeout))
+
+    def active(self):
+        return state_is_active(self.name)
+
+    def active_for_send(self):
+        return state_is_active_for_send(self.name)
+
+    def active_for_recv(self):
+        return state_is_active_for_recv(self.name)
 
 class NotStarted(State):
 
@@ -245,6 +278,15 @@ class LinkState:
     @property
     def state(self) -> StateName:
         return self.curr_state.name
+
+    def active(self):
+        return self.curr_state.active()
+
+    def active_for_send(self):
+        return self.curr_state.active_for_send()
+
+    def active_for_recv(self):
+        return self.curr_state.active_for_recv()
 
     def _handle(self, result) -> Result[Transition, InvalidCommStateInput]:
         match result:

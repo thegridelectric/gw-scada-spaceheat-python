@@ -190,7 +190,7 @@ class Scada2(ScadaInterface, Proactor):
 
     async def update_status(self):
         while not self._stop_requested:
-            if self.time_to_send_status():
+            if self.time_to_send_status() and self._link_states[Scada2.GRIDWORKS_MQTT].active_for_send():
                 self.send_status()
                 self._last_status_second = int(time.time())
             await asyncio.sleep(self.seconds_until_next_status())
