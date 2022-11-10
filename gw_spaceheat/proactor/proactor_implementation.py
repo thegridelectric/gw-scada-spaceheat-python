@@ -23,6 +23,7 @@ from gwproto.messages import EventT
 from gwproto.messages import MQTTConnectEvent
 from gwproto.messages import MQTTDisconnectEvent
 from gwproto.messages import MQTTFullySubscribedEvent
+from gwproto.messages import PeerActiveEvent
 from gwproto.messages import Ping
 from gwproto.messages import PingMessage
 from gwproto.messages import ProblemEvent
@@ -172,7 +173,7 @@ class Proactor(ServicesInterface, Runnable):
         ...
 
     def _process_ack_result(self, message_id: str, reason: AckWaitSummary):
-        self._logger.path("++Proactor._process_ack_result %s", message_id)
+        self._logger.path("++Proactor._process_ack_result  %s", message_id)
         path_dbg = 0
         wait_info = self._cancel_ack_timer(message_id)
         if wait_info is not None:
@@ -185,7 +186,7 @@ class Proactor(ServicesInterface, Runnable):
                         path_dbg |= 0x00000004
                         if transition.deactivated():
                             path_dbg |= 0x00000008
-                            self.generate_event(ResponseTimeoutEvent())
+                            self.generate_event(ResponseTimeoutEvent(PeerName=wait_info.client_name))
                             self._logger.comm_event(transition)
                             if transition.recv_deactivated():
                                 path_dbg |= 0x00000010
@@ -301,7 +302,11 @@ class Proactor(ServicesInterface, Runnable):
     def _start_processing_messages(self):
         """Processing before any messages are pulled from queue"""
         self.generate_event(StartupEvent())
-        self._link_states.start_all().or_else(self._report_errors)
+        match self._link_states.start_all():
+            case Ok(transition):
+                self._logger.comm_event(transition)
+            case Err(errors):
+                self._report_error(errors, "_start_processing_messages")
 
     async def process_message(self, message: Message):
         self._logger.path("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
@@ -369,8 +374,11 @@ class Proactor(ServicesInterface, Runnable):
                     case Ok(transition):
                         path_dbg |= 0x00000004
                         self._link_message_times[mqtt_receipt_message.Payload.client_name].last_recv = time.time()
+                        if transition:
+                            self._logger.comm_event(transition)
                         if transition.recv_activated():
                             path_dbg |= 0x00000008
+                            self.generate_event(PeerActiveEvent(PeerName=mqtt_receipt_message.Payload.client_name))
                             self._derived_recv_activated(transition)
                     case Err(error):
                         path_dbg |= 0x00000010
@@ -407,7 +415,7 @@ class Proactor(ServicesInterface, Runnable):
                 self._logger.comm_event(transition)
             case Err(error):
                 self._report_error(error, "_process_mqtt_connected")
-        self.generate_event(MQTTConnectEvent())
+        self.generate_event(MQTTConnectEvent(PeerName=message.Payload.client_name))
         self._mqtt_clients.subscribe_all(message.Payload.client_name)
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
@@ -422,7 +430,7 @@ class Proactor(ServicesInterface, Runnable):
         result: Result[bool, BaseException] = Ok()
         match self._link_states.process_mqtt_disconnected(message):
             case Ok(transition):
-                self.generate_event(MQTTDisconnectEvent())
+                self.generate_event(MQTTDisconnectEvent(PeerName=message.Payload.client_name))
                 self._logger.comm_event(transition)
                 if transition.recv_deactivated():
                     result = self._derived_recv_deactivated(transition)
@@ -442,7 +450,7 @@ class Proactor(ServicesInterface, Runnable):
                 if transition:
                     self._logger.comm_event(transition)
                 if transition.recv_activated():
-                    self.generate_event(MQTTFullySubscribedEvent())
+                    self.generate_event(MQTTFullySubscribedEvent(PeerName=message.Payload.client_name))
                     result = self._derived_recv_activated(transition)
                 if transition.send_activated():
                     self._publish_message(

@@ -219,7 +219,8 @@ class Scada2(ScadaInterface, Proactor):
     def generate_event(self, event: EventT) -> None:
         if not event.Src:
             event.Src = self.publication_name
-        self._publish_to_gridworks(event, AckRequired=True)
+        if self._link_states[self.GRIDWORKS_MQTT].active_for_send():
+            self._publish_to_gridworks(event, AckRequired=True)
         self._event_persister.persist(event.MessageId, event.json(sort_keys=True, indent=2).encode("utf-8"))
 
     def _derived_process_ack_result(self, result: AckWaitResult):

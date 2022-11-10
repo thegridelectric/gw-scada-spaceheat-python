@@ -54,6 +54,9 @@ class Transition:
     old_state: StateName = StateName.not_started
     new_state: StateName = StateName.not_started
 
+    def __str__(self) -> str:
+        return f"{self.link_name}:  {self.old_state.value} -- {self.transition_name.value} --> {self.new_state.value}"
+
     def __bool__(self) -> bool:
         return self.old_state != self.new_state
 
