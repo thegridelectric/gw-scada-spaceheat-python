@@ -7,17 +7,14 @@ from gwproto import Message
 from gwproto.gt.gt_sh_status import GtShStatus_Maker
 from gwproto.gt.snapshot_spaceheat import SnapshotSpaceheat_Maker
 from gwproto.messages import CommEvent
+from gwproto.messages import EventT
 
 from actors.utils import gw_mqtt_topic_encode
 from actors2 import Scada2
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from proactor.message import MQTTConnectFailPayload
-from proactor.message import MQTTConnectPayload
-from proactor.message import MQTTDisconnectPayload
 from proactor.message import MQTTReceiptPayload
-from proactor.message import MQTTSubackPayload
 
 
 class Scada2Recorder(Scada2):
@@ -51,69 +48,18 @@ class Scada2Recorder(Scada2):
     def num_received(self) -> int:
         return self.comm_event_counts[Message.type_name()]
 
-    # def _record_comm_event(self, broker: str, event: CommEvents, *params: Any):
-    #     self.comm_event_counts[event] += 1
-    #     self.comm_events.append(
-    #         CommEvent(
-    #             datetime.datetime.now(), broker=broker, event=event, params=list(params)
-    #         )
-    #     )
+    def generate_event(self, event: EventT) -> None:
+        self.comm_event_counts[event.TypeName] += 1
+        self.comm_events.append(event)
+        super().generate_event(event)
 
     async def process_message(self, message: Message):
-        # self._record_comm_event(
-        #     message.Header.Src,
-        #     CommEvents.message,
-        #     message.Header.MessageType,
-        #     message.Payload,
-        # )
         self.num_received_by_type[message.Header.MessageType] += 1
         await super().process_message(message)
 
     def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
-        # self._record_comm_event(
-        #     message.Payload.client_name,
-        #     CommEvents.mqtt_message,
-        #     message.Payload.userdata,
-        #     message.Payload.message
-        # )
         self.num_received_by_topic[message.Payload.message.topic] += 1
         super()._process_mqtt_message(message)
-
-    def _process_mqtt_connected(self, message: Message[MQTTConnectPayload]):
-        # self._record_comm_event(
-        #     message.Payload.client_name,
-        #     CommEvents.connect,
-        #     message.Payload.userdata,
-        #     message.Payload.flags,
-        #     message.Payload.rc
-        # )
-        super()._process_mqtt_connected(message)
-
-    def _process_mqtt_disconnected(self, message: Message[MQTTDisconnectPayload]):
-        # self._record_comm_event(
-        #     message.Payload.client_name,
-        #     CommEvents.disconnect,
-        #     message.Payload.userdata,
-        #     message.Payload.rc
-        # )
-        super()._process_mqtt_disconnected(message)
-
-    def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]):
-        # self._record_comm_event(
-        #     message.Payload.client_name,
-        #     CommEvents.connect_fail,
-        #     message.Payload.userdata
-        # )
-        super()._process_mqtt_connect_fail(message)
-
-    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
-        # self._record_comm_event(
-        #     message.Payload.client_name,
-        #     CommEvents.subscribe,
-        #     message.Payload.userdata,
-        #     message.Payload.mid, message.Payload.granted_qos
-        # )
-        super()._process_mqtt_suback(message)
 
     def summary_str(self):
         """Summarize results in a string"""
