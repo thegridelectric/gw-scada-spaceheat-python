@@ -1,3 +1,5 @@
+import time
+
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.components.boolean_actuator_component import BooleanActuatorCac
@@ -50,4 +52,20 @@ def flush_all():
     flush_components()
     flush_cacs()
     flush_spaceheat_nodes()
+
+
+class StopWatch(object):
+    """Measure time with context manager"""
+
+    start: float = 0
+    end: float = 0
+    elapsed: float = 0
+
+    def __enter__(self):
+        self.start = time.time()
+
+    def __exit__(self, type_, value, traceback):
+        self.end = time.time()
+        self.elapsed = self.end - self.start
+
 

@@ -4,21 +4,7 @@ import threading
 import time
 
 from actors.utils import responsive_sleep
-
-
-class StopWatch(object):
-    """Measure time with context manager"""
-
-    start: float = 0
-    end: float = 0
-    elapsed: float = 0
-
-    def __enter__(self):
-        self.start = time.time()
-
-    def __exit__(self, type_, value, traceback):
-        self.end = time.time()
-        self.elapsed = self.end - self.start
+from tests.utils import StopWatch
 
 
 class StopMe:
