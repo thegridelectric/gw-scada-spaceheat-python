@@ -1,8 +1,8 @@
 
 """Test SimpleSensor actor"""
 import typing
-from tests.fragment_runner import AsyncFragmentRunner
-from tests.fragment_runner import ProtocolFragment
+from tests.utils.fragment_runner import AsyncFragmentRunner
+from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import await_for
 
 import actors2

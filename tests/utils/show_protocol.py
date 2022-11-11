@@ -21,11 +21,12 @@ from config import ScadaSettings
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
-from fragment_runner import FragmentRunner
-from fragment_runner import ProtocolFragment
-from fragment_runner import delimit
-from fragment_runner import do_nothing
-from utils import wait_for
+from tests.atn import AtnSettings
+from .fragment_runner import FragmentRunner
+from .fragment_runner import ProtocolFragment
+from .fragment_runner import delimit
+from .fragment_runner import do_nothing
+from .wait import wait_for
 
 
 # noinspection PyUnusedLocal
@@ -217,6 +218,7 @@ def show_protocol(argv: Optional[List[str]] = None):
     load_house.load_all(settings)
     runner = FragmentRunner(
         settings,
+        AtnSettings(),
         wait_at_least=args.wait_at_least,
         do_nothing_time=args.do_nothing_time,
     )

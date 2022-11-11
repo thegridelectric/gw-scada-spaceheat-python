@@ -25,17 +25,17 @@ from tests.atn import AtnSettings
 from tests.utils import AtnRecorder
 
 try:
-    from tests.utils import HomeAloneRecorder
-    from tests.utils import Scada2Recorder
-    from tests.utils import ScadaRecorder
-    from tests.utils import await_for
-    from tests.utils import wait_for
+    from tests.utils.home_alone_recorder import HomeAloneRecorder
+    from tests.utils.scada2_recorder import Scada2Recorder
+    from tests.utils.scada_recorder import ScadaRecorder
+    from tests.utils.wait import await_for
+    from tests.utils.wait import wait_for
 except ImportError:
-    from utils import HomeAloneRecorder
-    from utils import Scada2Recorder
-    from utils import ScadaRecorder
-    from utils import await_for
-    from utils import wait_for
+    from .home_alone_recorder import HomeAloneRecorder
+    from .scada2_recorder import Scada2Recorder
+    from .scada_recorder import ScadaRecorder
+    from .wait import await_for
+    from .wait import wait_for
 
 
 def delimit_str(text: str = "") -> str:

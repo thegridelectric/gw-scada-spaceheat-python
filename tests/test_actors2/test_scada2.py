@@ -4,9 +4,9 @@ import time
 from typing import cast
 
 from tests.atn import AtnSettings
-from tests.fragment_runner import Actors
-from tests.fragment_runner import AsyncFragmentRunner
-from tests.fragment_runner import ProtocolFragment
+from tests.utils.fragment_runner import Actors
+from tests.utils.fragment_runner import AsyncFragmentRunner
+from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import Scada2Recorder
 from tests.utils import await_for
 

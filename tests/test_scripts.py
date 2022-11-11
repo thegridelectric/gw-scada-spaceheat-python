@@ -3,8 +3,8 @@ import asyncio
 import os
 from tests.conftest import TEST_DOTENV_PATH
 from tests.conftest import TEST_DOTENV_PATH_VAR
-from tests.fragment_runner import AsyncFragmentRunner
-from tests.fragment_runner import ProtocolFragment
+from tests.utils.fragment_runner import AsyncFragmentRunner
+from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import await_for
 
 import load_house
