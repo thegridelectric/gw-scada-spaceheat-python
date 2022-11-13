@@ -302,11 +302,7 @@ class Proactor(ServicesInterface, Runnable):
     def _start_processing_messages(self):
         """Processing before any messages are pulled from queue"""
         self.generate_event(StartupEvent())
-        match self._link_states.start_all():
-            case Ok(transition):
-                self._logger.comm_event(transition)
-            case Err(errors):
-                self._report_error(errors, "_start_processing_messages")
+        self._link_states.start_all().or_else(self._report_errors)
 
     async def process_message(self, message: Message):
         self._logger.path("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
@@ -449,14 +445,15 @@ class Proactor(ServicesInterface, Runnable):
             case Ok(transition):
                 if transition:
                     self._logger.comm_event(transition)
-                if transition.recv_activated():
-                    self.generate_event(MQTTFullySubscribedEvent(PeerName=message.Payload.client_name))
-                    result = self._derived_recv_activated(transition)
                 if transition.send_activated():
+                    self.generate_event(MQTTFullySubscribedEvent(PeerName=message.Payload.client_name))
                     self._publish_message(
                         message.Payload.client_name,
                         PingMessage(Src=self.publication_name)
                     )
+                if transition.recv_activated():
+                    self.generate_event(PeerActiveEvent(PeerName=message.Payload.client_name))
+                    result = self._derived_recv_activated(transition)
             case Err(error):
                 result = Err(error)
         return result
