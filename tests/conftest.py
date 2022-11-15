@@ -5,6 +5,8 @@ import logging
 import os
 import shutil
 from pathlib import Path
+
+from config import LoggingSettings
 from tests.utils import flush_all
 from types import NoneType
 from typing import Generator
@@ -222,7 +224,7 @@ class LoggerGuards:
 
     @classmethod
     def default_logger_names(cls) -> list[str]:
-        return ["root"] + list(LoggerLevels().qualified_logger_names(DEFAULT_BASE_NAME).values())
+        return ["root", LoggingSettings().base_log_name] + list(LoggerLevels().qualified_logger_names(DEFAULT_BASE_NAME).values())
 
 
 @pytest.fixture(autouse=True)

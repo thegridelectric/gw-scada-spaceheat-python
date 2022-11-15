@@ -533,7 +533,7 @@ class Scada2(ScadaInterface, Proactor):
         )
 
     def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]) -> Result[bool, BaseException]:
-        self._logger.path("++Scada2._process_mqtt_suback client")
+        self._logger.path("++Scada2._process_mqtt_suback")
         path_dbg = 0
         if message.Payload.num_pending_subscriptions == 0:
             path_dbg |= 0x00000001

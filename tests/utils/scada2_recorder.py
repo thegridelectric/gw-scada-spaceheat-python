@@ -1,3 +1,4 @@
+import functools
 from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
@@ -14,6 +15,7 @@ from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor.message import MQTTReceiptPayload
+from proactor.message import MQTTSubackMessage
 from proactor.message import MQTTSubackPayload
 
 
@@ -74,6 +76,24 @@ class Stats:
             s += str(self.links[link_name])
         return s
 
+
+# noinspection PyProtectedMember
+def split_suback(_, userdata, mid, granted_qos, paho_client_wrapper):
+    topics = paho_client_wrapper._pending_subacks.pop(mid, [])
+    if topics:
+        for topic in topics:
+            paho_client_wrapper._pending_subscriptions.remove(topic)
+            paho_client_wrapper._receive_queue.put(
+                MQTTSubackMessage(
+                    client_name=paho_client_wrapper.name,
+                    userdata=userdata,
+                    mid=mid,
+                    granted_qos=granted_qos,
+                    num_pending_subscriptions=len(paho_client_wrapper._pending_subscriptions),
+                )
+            )
+
+
 class Scada2Recorder(Scada2):
 
     suppress_status: bool
@@ -99,12 +119,24 @@ class Scada2Recorder(Scada2):
             link_stats.comm_events.append(event)
         super().generate_event(event)
 
+    # noinspection PyProtectedMember
+    def split_client_subacks(self, client_name: str):
+        paho_client_wrapper = self._mqtt_clients._clients[client_name]
+        # that's a lot of clients. Here's another.
+        paho_client = paho_client_wrapper._client
+        paho_client.on_subscribe = functools.partial(split_suback, paho_client_wrapper=paho_client_wrapper)
+
+
     def pause_subacks(self):
         self.subacks_paused = True
 
-    def release_subacks(self):
+    def release_subacks(self, num_released: int = -1):
         self.subacks_paused = False
-        for message in self.pending_subacks:
+        if num_released < 0:
+            num_released = len(self.pending_subacks)
+        release = self.pending_subacks[:num_released]
+        self.pending_subacks = self.pending_subacks[num_released:]
+        for message in release:
             self._receive_queue.put_nowait(message)
 
     async def process_message(self, message: Message):
@@ -121,4 +153,9 @@ class Scada2Recorder(Scada2):
         super()._process_mqtt_message(message)
 
     def summary_str(self):
-        return str(self.stats)
+        s = str(self.stats)
+        s += f"subacks_paused: {self.subacks_paused}  pending_subacks: {len(self.pending_subacks)}\n"
+        s += "Link states:\n"
+        for link_name in self.stats.links:
+            s += f"  {link_name:10s}  {self._link_states.link_state(link_name).value}\n"
+        return s

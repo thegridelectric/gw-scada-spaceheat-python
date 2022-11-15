@@ -312,3 +312,107 @@ async def test_basic_atn_comm_loss():
         assert len(scada_stats.comm_events) == 7
         assert scada._event_persister.num_pending == 0
 
+
+        # Tell *both* clients we lost comm.
+        atn._mqtt_clients._clients[atn.SCADA_MQTT]._client._loop_rc_handle(MQTT_ERR_CONN_LOST)
+        scada._mqtt_clients._clients[scada.GRIDWORKS_MQTT]._client._loop_rc_handle(MQTT_ERR_CONN_LOST)
+
+        # Wait for reconnect
+        await await_for(
+            lambda: scada_stats.comm_event_counts["gridworks.event.comm.peer_active"] > 2,
+            3,
+            "ERROR waiting link to resubscribe after comm loss",
+            err_str_f=scada.summary_str
+        )
+        assert scada_link.active_for_send()
+        assert scada_link.active_for_recv()
+        assert scada_link.active()
+        assert scada_link.state == StateName.active
+        assert scada_comm_event_counts["gridworks.event.comm.mqtt.connect"] == 3
+        assert scada_comm_event_counts["gridworks.event.comm.mqtt.fully_subscribed"] == 3
+        assert scada_comm_event_counts["gridworks.event.comm.mqtt.disconnect"] == 2
+        assert scada_comm_event_counts["gridworks.event.comm.peer_active"] == 3
+        assert len(scada_stats.comm_events) == 11
+
+        # wait for all events to be acked
+        await await_for(
+            lambda: scada._event_persister.num_pending == 0,
+            1,
+            "ERROR waiting for events to be acked",
+            err_str_f=scada.summary_str
+        )
+
+
+@pytest.mark.asyncio
+async def test_separated_subacks_awaiting_setup_and_peer():
+    async with CommTestHelper(add_scada=True, verbose=True) as h:
+        scada = h.scada
+        stats = scada.stats.link(scada.GRIDWORKS_MQTT)
+        comm_event_counts = stats.comm_event_counts
+        link = scada._link_states.link(scada.GRIDWORKS_MQTT)
+
+        # unstarted scada
+        assert stats.num_received == 0
+        assert link.state == StateName.not_started
+
+        # start scada
+        scada.split_client_subacks(scada.GRIDWORKS_MQTT)
+        h.start_scada()
+        await await_for(
+            link.active_for_send,
+            1,
+            "ERROR waiting link active_for_send",
+            err_str_f=scada.summary_str
+        )
+        assert not link.active_for_recv()
+        assert not link.active()
+        assert link.state == StateName.awaiting_peer
+        assert comm_event_counts["gridworks.event.comm.mqtt.connect"] == 1
+        assert comm_event_counts["gridworks.event.comm.mqtt.fully_subscribed"] == 1
+        assert comm_event_counts["gridworks.event.comm.mqtt.disconnect"] == 0
+        assert len(stats.comm_events) == 2
+        for comm_event in stats.comm_events:
+            assert comm_event.MessageId in scada._event_persister
+
+        # Tell client we lost comm.
+        scada.pause_subacks()
+        scada._mqtt_clients._clients["gridworks"]._client._loop_rc_handle(MQTT_ERR_CONN_LOST)
+
+        await await_for(
+            lambda: len(scada.pending_subacks) == 3,
+            3,
+            "ERROR waiting link reconnect",
+            err_str_f=scada.summary_str
+        )
+        assert link.state == StateName.awaiting_setup_and_peer
+
+        num_subacks = scada.stats.num_received_by_type["mqtt_suback"]
+        scada.release_subacks(1)
+        exp_subacks = num_subacks + 1
+        await await_for(
+            lambda: scada.stats.num_received_by_type["mqtt_suback"] == exp_subacks,
+            1,
+            f"ERROR waiting mqtt_suback {exp_subacks} (1/3)",
+            err_str_f=scada.summary_str
+        )
+        assert link.state == StateName.awaiting_setup_and_peer
+
+        scada.release_subacks(1)
+        exp_subacks += 1
+        await await_for(
+            lambda: scada.stats.num_received_by_type["mqtt_suback"] == exp_subacks,
+            1,
+            f"ERROR waiting mqtt_suback {exp_subacks} (2/3)",
+            err_str_f=scada.summary_str
+        )
+        assert link.state == StateName.awaiting_setup_and_peer
+
+        scada.release_subacks(1)
+        exp_subacks += 1
+        await await_for(
+            lambda: scada.stats.num_received_by_type["mqtt_suback"] == exp_subacks,
+            1,
+            f"ERROR waiting mqtt_suback {exp_subacks} (3/3)",
+            err_str_f=scada.summary_str
+        )
+        assert link.state == StateName.awaiting_peer
