@@ -14,6 +14,8 @@ from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor.message import MQTTReceiptPayload
+from proactor.message import MQTTSubackPayload
+
 
 @dataclass
 class LinkStats:
@@ -76,12 +78,16 @@ class Scada2Recorder(Scada2):
 
     suppress_status: bool
     stats: Stats
+    subacks_paused: bool
+    pending_subacks: list[Message]
 
     def __init__(self, name: str, settings: ScadaSettings, hardware_layout: HardwareLayout, actor_nodes: Optional[List[ShNode]] = None):
         self.suppress_status = False
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout, actor_nodes=actor_nodes)
         # noinspection PyProtectedMember
         self.stats = Stats(self._mqtt_clients._clients)
+        self.subacks_paused = False
+        self.pending_subacks = []
 
     def time_to_send_status(self) -> bool:
         return not self.suppress_status and super().time_to_send_status()
@@ -93,11 +99,22 @@ class Scada2Recorder(Scada2):
             link_stats.comm_events.append(event)
         super().generate_event(event)
 
+    def pause_subacks(self):
+        self.subacks_paused = True
+
+    def release_subacks(self):
+        self.subacks_paused = False
+        for message in self.pending_subacks:
+            self._receive_queue.put_nowait(message)
+
     async def process_message(self, message: Message):
-        self.stats.num_received_by_type[message.Header.MessageType] += 1
-        if isinstance(message.Payload, MQTTReceiptPayload):
-            self.stats.links[message.Payload.client_name].num_received_by_type[message.Header.MessageType] += 1
-        await super().process_message(message)
+        if self.subacks_paused and isinstance(message.Payload, MQTTSubackPayload):
+            self.pending_subacks.append(message)
+        else:
+            self.stats.num_received_by_type[message.Header.MessageType] += 1
+            if isinstance(message.Payload, MQTTReceiptPayload):
+                self.stats.links[message.Payload.client_name].num_received_by_type[message.Header.MessageType] += 1
+            await super().process_message(message)
 
     def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         self.stats.links[message.Payload.client_name].num_received_by_topic[message.Payload.message.topic] += 1

@@ -1,11 +1,13 @@
 """Scada implementation"""
 import asyncio
+import dataclasses
 import logging
 import os
 import sys
 import threading
 import time
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from typing import Optional
@@ -116,6 +118,13 @@ class AtnData:
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_status: Optional[GtShStatus] = None
 
+@dataclass
+class _PausedAck:
+    client: str
+    message: Message
+    qos: int
+    context: Optional[Any]
+
 
 class Atn2(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
@@ -127,6 +136,8 @@ class Atn2(ActorInterface, Proactor):
     stats: MessageStats
     my_sensors: Sequence[ShNode]
     event_loop_thread: Optional[threading.Thread] = None
+    acks_paused: bool
+    needs_ack: list[_PausedAck]
 
     def __init__(
         self,
@@ -167,6 +178,8 @@ class Atn2(ActorInterface, Proactor):
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
         self.stats = MessageStats()
+        self.acks_paused = False
+        self.needs_ack = []
 
     @property
     def alias(self) -> str:
@@ -179,6 +192,21 @@ class Atn2(ActorInterface, Proactor):
     @property
     def publication_name(self) -> str:
         return self.layout.atn_g_node_alias
+
+    def pause_acks(self):
+        self.acks_paused = True
+
+    def release_acks(self):
+        self.acks_paused = False
+        for paused_ack in self.needs_ack:
+            self._publish_message(**dataclasses.asdict(paused_ack))
+
+    def _publish_message(self, client, message: Message, qos: int = 0, context: Any = None) -> MQTTMessageInfo:
+        if self.acks_paused:
+            self.needs_ack.append(_PausedAck(client, message, qos, context))
+            return MQTTMessageInfo(-1)
+        else:
+            return super()._publish_message(client, message, qos=qos, context=context)
 
     def _publish_to_scada(
         self, payload, qos: QOS = QOS.AtMostOnce
