@@ -282,6 +282,9 @@ class LinkState:
     def state(self) -> StateName:
         return self.curr_state.name
 
+    def in_state(self, state: StateName) -> bool:
+        return self.state == state
+
     def active(self):
         return self.curr_state.active()
 

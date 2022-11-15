@@ -160,7 +160,18 @@ class Proactor(ServicesInterface, Runnable):
         wait_info = self._acks.pop(message_id, None)
         if wait_info is not None:
             path_dbg |= 0x00000001
+            # self._logger.info(
+            #     f"cancelling timer {wait_info.timer_handle}  {id(wait_info.timer_handle)}  "
+            #     f"canceled? {wait_info.timer_handle.cancelled()}  "
+            #     f"when:{wait_info.timer_handle.when()}"
+            # )
             wait_info.timer_handle.cancel()
+            # self._logger.info(
+            #     f"canceled timer   {wait_info.timer_handle}  {id(wait_info.timer_handle)}  "
+            #     f"canceled? {wait_info.timer_handle.cancelled()}  "
+            #     f"when:{wait_info.timer_handle.when()}"
+            # )
+
         self._logger.path("--cancel_ack_timer path:0x%08X", path_dbg)
         return wait_info
 
@@ -440,22 +451,38 @@ class Proactor(ServicesInterface, Runnable):
         return self._link_states.process_mqtt_connect_fail(message)
 
     def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]) -> Result[bool, BaseException]:
+        self._logger.path(
+            "++Proactor._process_mqtt_suback client:%s/%d",
+            message.Payload.client_name,
+            message.Payload.num_pending_subscriptions
+        )
+        path_dbg = 0
         result: Result[bool, BaseException] = Ok()
         match self._link_states.process_mqtt_suback(message):
             case Ok(transition):
+                path_dbg |= 0x00000001
                 if transition:
+                    path_dbg |= 0x00000002
                     self._logger.comm_event(transition)
                 if transition.send_activated():
+                    path_dbg |= 0x00000004
                     self.generate_event(MQTTFullySubscribedEvent(PeerName=message.Payload.client_name))
                     self._publish_message(
                         message.Payload.client_name,
                         PingMessage(Src=self.publication_name)
                     )
                 if transition.recv_activated():
+                    path_dbg |= 0x00000008
                     self.generate_event(PeerActiveEvent(PeerName=message.Payload.client_name))
                     result = self._derived_recv_activated(transition)
             case Err(error):
+                path_dbg |= 0x00000010
                 result = Err(error)
+        self._logger.path(
+            "--Proactor._process_mqtt_suback:%d  path:0x%08X",
+            result.is_ok(),
+            path_dbg,
+        )
         return result
 
     async def run_forever(self):

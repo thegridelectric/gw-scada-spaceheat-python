@@ -63,6 +63,9 @@ class TrimFailed(PersisterError):
 class ReindexError(PersisterError):
     ...
 
+class JSONDecodingError(PersisterException):
+    ...
+
 
 class UIDExistedWarning(PersisterWarning):
     ...
@@ -78,7 +81,6 @@ class FileMissingWarning(PersisterWarning):
 
 class UIDMissingWarning(PersisterWarning):
     ...
-
 
 class PersisterInterface(abc.ABC):
 

@@ -35,6 +35,7 @@ def setup_logging(
         settings: ScadaSettings,
         errors: Optional[list[BaseException]] = None,
         add_screen_handler: bool = True,
+        root_gets_handlers: bool = True,
 ) -> None:
     """Get python logging config based on parsed command line args, defaults, environment variables and logging config file.
 
@@ -77,19 +78,24 @@ def setup_logging(
                 errors.append(e)
 
         # Create handlers from settings, add them to root logger
+        if root_gets_handlers:
+            base_logger = logging.getLogger()
+        else:
+            base_logger = logging.getLogger(settings.logging.base_log_name)
+            base_logger.propagate = False
         if add_screen_handler:
             try:
                 screen_handler = logging.StreamHandler()
                 if formatter is not None:
                     screen_handler.setFormatter(formatter)
-                logging.getLogger().addHandler(screen_handler)
+                base_logger.addHandler(screen_handler)
             except BaseException as e:
                 errors.append(e)
         try:
             file_handler = settings.logging.file_handler.create(settings.paths.log_dir, formatter)
             if formatter is not None:
                 file_handler.setFormatter(formatter)
-            logging.getLogger().addHandler(file_handler)
+            base_logger.addHandler(file_handler)
         except BaseException as e:
             errors.append(e)
         config_finished = True

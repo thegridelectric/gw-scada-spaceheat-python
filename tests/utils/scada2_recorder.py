@@ -58,6 +58,9 @@ class Stats:
             link_names = []
         self.links = {link_name: LinkStats(link_name) for link_name in link_names}
 
+    def link(self, name: str):
+        return self.links[name]
+
     def __str__(self) -> str:
         s = "ScadaRecorder2 Stats\n"
         if self.num_received_by_type:

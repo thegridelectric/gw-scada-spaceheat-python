@@ -29,6 +29,7 @@ from gwproto import MQTTTopic
 from paho.mqtt.client import MQTTMessageInfo
 from result import Err
 from result import Ok
+from result import Result
 
 from actors2.actor_interface import ActorInterface
 from actors2.message import GtDispatchBooleanLocalMessage
@@ -44,12 +45,16 @@ from data_classes.components.boolean_actuator_component import BooleanActuatorCo
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
+from proactor.link_state import Transition
 from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
+from proactor.persister import JSONDecodingError
 from proactor.persister import TimedRollingFilePersister
+from proactor.persister import UIDMissingWarning
 from proactor.proactor_implementation import Proactor
 from proactor.proactor_implementation import AckWaitResult
+from proactor.problems import Problems
 
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
@@ -108,6 +113,7 @@ class Scada2(ScadaInterface, Proactor):
     DEFAULT_ACTORS_MODULE = "actors2"
     GRIDWORKS_MQTT = "gridworks"
     LOCAL_MQTT = "local"
+    PERSISTER_ENCODING = "utf-8"
 
     _settings: ScadaSettings
     _nodes: HardwareLayout
@@ -221,7 +227,29 @@ class Scada2(ScadaInterface, Proactor):
             event.Src = self.publication_name
         if self._link_states[self.GRIDWORKS_MQTT].active_for_send():
             self._publish_to_gridworks(event, AckRequired=True)
-        self._event_persister.persist(event.MessageId, event.json(sort_keys=True, indent=2).encode("utf-8"))
+        self._event_persister.persist(event.MessageId, event.json(sort_keys=True, indent=2).encode(self.PERSISTER_ENCODING))
+
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
+        errors = []
+        for pending_message_id in self._event_persister.pending():
+            match self._event_persister.retrieve(pending_message_id):
+                case Ok(event_bytes):
+                    if event_bytes is None:
+                        errors.append(UIDMissingWarning("_derived_recv_activated", uid=pending_message_id))
+                    else:
+                        try:
+                            event = json.loads(event_bytes.decode(encoding=self.PERSISTER_ENCODING))
+                        except BaseException as e:
+                            errors.append(e)
+                            errors.append(JSONDecodingError("_derived_recv_activated", uid=pending_message_id))
+                        else:
+                            self._publish_to_gridworks(event, AckRequired=True)
+                case Err(error):
+                    errors.append(error)
+        if errors:
+            return Err(Problems(errors=errors))
+        return Ok()
 
     def _derived_process_ack_result(self, result: AckWaitResult):
         self._logger.path("++Scada2._derived_process_ack_result %s %s", result.wait_info.message_id, result.summary)
@@ -504,19 +532,30 @@ class Scada2(ScadaInterface, Proactor):
             typing.cast(GtDispatchBoolean, payload)
         )
 
-    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]):
+    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]) -> Result[bool, BaseException]:
+        self._logger.path("++Scada2._process_mqtt_suback client")
+        path_dbg = 0
         if message.Payload.num_pending_subscriptions == 0:
+            path_dbg |= 0x00000001
             for message_id in self._event_persister.pending():
                 match self._event_persister.retrieve(message_id):
                     case Ok(content):
+                        path_dbg |= 0x00000002
                         self._publish_to_gridworks(
                             json.loads(content.decode("utf-8")),
                             AckRequired=True
                         )
                     case Err(problems):
+                        path_dbg |= 0x00000004
                         self._logger.error(problems)
                         raise ValueError(str(problems))
-        super()._process_mqtt_suback(message)
+        result = super()._process_mqtt_suback(message)
+        self._logger.path(
+            "--Scada2._process_mqtt_suback:%d  path:0x%08X",
+            result.is_ok(),
+            path_dbg,
+        )
+        return result
 
     def _process_scada_dbg(self, dbg: ScadaDBG):
         self._logger.path("++_process_scada_dbg")
