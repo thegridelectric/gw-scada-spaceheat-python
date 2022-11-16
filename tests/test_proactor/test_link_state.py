@@ -176,14 +176,12 @@ all_cases = _Cases(
         ],
         _Case(StateName.awaiting_setup_and_peer, TransitionName.message_from_peer, StateName.awaiting_setup),
         _Case(StateName.awaiting_setup_and_peer, TransitionName.mqtt_disconnected, StateName.connecting),
-        _Case(StateName.awaiting_setup_and_peer, TransitionName.response_timeout, StateName.awaiting_setup_and_peer),
         _Case(StateName.awaiting_setup_and_peer, TransitionName.stop_called, StateName.stopped),
 
         [
             _Case(StateName.awaiting_setup, TransitionName.mqtt_suback, StateName.awaiting_setup, input_content=1),
             _Case(StateName.awaiting_setup, TransitionName.mqtt_suback, StateName.active, input_content=0),
         ],
-        _Case(StateName.awaiting_setup, TransitionName.response_timeout, StateName.awaiting_setup_and_peer),
         _Case(StateName.awaiting_setup, TransitionName.mqtt_disconnected, StateName.connecting),
         _Case(StateName.awaiting_setup, TransitionName.message_from_peer, StateName.awaiting_setup),
         _Case(StateName.awaiting_setup, TransitionName.stop_called, StateName.stopped),

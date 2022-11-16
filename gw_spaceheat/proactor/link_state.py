@@ -200,9 +200,6 @@ class AwaitingSetupAndPeer(State):
     def process_mqtt_message(self) -> Result[Transition, InvalidCommStateInput]:
         return Ok(Transition("", TransitionName.message_from_peer, self.name, StateName.awaiting_setup))
 
-    def process_ack_timeout(self) -> Result[Transition, InvalidCommStateInput]:
-        return Ok(Transition("", TransitionName.response_timeout, self.name, self.name))
-
 class AwaitingSetup(State):
 
     @property
@@ -221,9 +218,6 @@ class AwaitingSetup(State):
 
     def process_mqtt_message(self) -> Result[Transition, InvalidCommStateInput]:
         return Ok(Transition("", TransitionName.message_from_peer, self.name, self.name))
-
-    def process_ack_timeout(self) -> Result[Transition, InvalidCommStateInput]:
-        return Ok(Transition("", TransitionName.response_timeout, self.name, StateName.awaiting_setup_and_peer))
 
 class AwaitingPeer(State):
     @property

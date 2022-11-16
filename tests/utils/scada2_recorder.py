@@ -2,6 +2,7 @@ import functools
 from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
+from typing import Any
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -9,6 +10,7 @@ from typing import Sequence
 from gwproto import Message
 from gwproto.messages import CommEvent
 from gwproto.messages import EventT
+from gwproto.messages import PingMessage
 
 from actors2 import Scada2
 from config import ScadaSettings
@@ -26,13 +28,14 @@ class LinkStats:
     num_received_by_topic: dict[str, int] = field(default_factory=lambda: defaultdict(int))
     comm_events: list[CommEvent] = field(default_factory=list)
     comm_event_counts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    timeouts: int = 0
 
     @property
     def num_received(self) -> int:
         return self.comm_event_counts[Message.type_name()]
 
     def __str__(self) -> str:
-        s = f"LinkStats [{self.name}]  num_received: {self.num_received}  comm events: {len(self.comm_events)}"
+        s = f"LinkStats [{self.name}]  num_received: {self.num_received}  timeouts: {self.timeouts}  comm events: {len(self.comm_events)}"
         if self.num_received_by_type:
             s += "\n  Received by message_type:"
             for message_type in sorted(self.num_received_by_type):
@@ -100,6 +103,7 @@ class Scada2Recorder(Scada2):
     stats: Stats
     subacks_paused: bool
     pending_subacks: list[Message]
+    ack_timeout_seconds: float = 5.0
 
     def __init__(self, name: str, settings: ScadaSettings, hardware_layout: HardwareLayout, actor_nodes: Optional[List[ShNode]] = None):
         self.suppress_status = False
@@ -126,6 +130,11 @@ class Scada2Recorder(Scada2):
         paho_client = paho_client_wrapper._client
         paho_client.on_subscribe = functools.partial(split_suback, paho_client_wrapper=paho_client_wrapper)
 
+    # noinspection PyProtectedMember
+    def restore_client_subacks(self, client_name: str):
+        paho_client_wrapper = self._mqtt_clients._clients[client_name]
+        paho_client = paho_client_wrapper._client
+        paho_client.on_subscribe = paho_client_wrapper.on_subscribe
 
     def pause_subacks(self):
         self.subacks_paused = True
@@ -154,8 +163,28 @@ class Scada2Recorder(Scada2):
 
     def summary_str(self):
         s = str(self.stats)
-        s += f"subacks_paused: {self.subacks_paused}  pending_subacks: {len(self.pending_subacks)}\n"
+        s += f"\nsubacks_paused: {self.subacks_paused}  pending_subacks: {len(self.pending_subacks)}\n"
         s += "Link states:\n"
         for link_name in self.stats.links:
             s += f"  {link_name:10s}  {self._link_states.link_state(link_name).value}\n"
         return s
+
+    def _start_ack_timer(self, client_name: str, message_id: str, context: Any = None, delay: Optional[float] = None) -> None:
+        if delay is None:
+            delay = self.ack_timeout_seconds
+        super()._start_ack_timer(client_name, message_id, context=context, delay=delay)
+
+    def _process_ack_timeout(self, message_id: str):
+        wait_info = self._acks.get(message_id, None)
+        if wait_info is not None:
+            self.stats.links[wait_info.client_name].timeouts += 1
+        super()._process_ack_timeout(message_id)
+
+    def ping_atn(self):
+        self._publish_message(
+            self.GRIDWORKS_MQTT,
+            PingMessage(Src=self.publication_name)
+        )
+
+    def summarize(self):
+        self._logger.info(self.summary_str())

@@ -138,6 +138,7 @@ class Atn2(ActorInterface, Proactor):
     event_loop_thread: Optional[threading.Thread] = None
     acks_paused: bool
     needs_ack: list[_PausedAck]
+    mqtt_messages_dropped: bool
 
     def __init__(
         self,
@@ -180,6 +181,7 @@ class Atn2(ActorInterface, Proactor):
         self.stats = MessageStats()
         self.acks_paused = False
         self.needs_ack = []
+        self.mqtt_messages_dropped = False
 
     @property
     def alias(self) -> str:
@@ -196,10 +198,13 @@ class Atn2(ActorInterface, Proactor):
     def pause_acks(self):
         self.acks_paused = True
 
-    def release_acks(self):
+    def release_acks(self, clear: bool = False):
         self.acks_paused = False
-        for paused_ack in self.needs_ack:
-            self._publish_message(**dataclasses.asdict(paused_ack))
+        needs_ack = self.needs_ack
+        self.needs_ack = []
+        if not clear:
+            for paused_ack in needs_ack:
+                self._publish_message(**dataclasses.asdict(paused_ack))
 
     def _publish_message(self, client, message: Message, qos: int = 0, context: Any = None) -> MQTTMessageInfo:
         if self.acks_paused:
@@ -207,6 +212,9 @@ class Atn2(ActorInterface, Proactor):
             return MQTTMessageInfo(-1)
         else:
             return super()._publish_message(client, message, qos=qos, context=context)
+
+    def drop_mqtt(self, drop: bool):
+        self.mqtt_messages_dropped = drop
 
     def _publish_to_scada(
         self, payload, qos: QOS = QOS.AtMostOnce
@@ -219,8 +227,9 @@ class Atn2(ActorInterface, Proactor):
         await super().process_message(message)
 
     def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
-        self.stats.add_mqtt_message(message)
-        super()._process_mqtt_message(message)
+        if not self.mqtt_messages_dropped:
+            self.stats.add_mqtt_message(message)
+            super()._process_mqtt_message(message)
 
     def _derived_process_message(self, message: Message):
         self._logger.path("++Atn2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)

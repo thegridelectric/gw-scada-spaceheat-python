@@ -10,6 +10,7 @@ from logging_setup import setup_logging
 from proactor import Proactor
 from tests.atn import Atn2
 from tests.atn import AtnSettings
+from tests.conftest import LoggerGuards
 from tests.utils import Scada2Recorder
 
 
@@ -21,8 +22,10 @@ class CommTestHelper:
     settings: ScadaSettings
     atn_settings: AtnSettings
     verbose: bool
+    atn_on_screen: bool
     lifecycle_logging: bool
     layout: HardwareLayout
+    logger_guards: LoggerGuards
 
     def __init__(
         self,
@@ -34,10 +37,12 @@ class CommTestHelper:
         add_atn: bool = False,
         start_scada: bool = False,
         start_atn: bool = False,
+        atn_on_screen = False,
     ):
         self.settings = ScadaSettings() if settings is None else settings
         self.atn_settings = AtnSettings() if atn_settings is None else atn_settings
         self.verbose = verbose
+        self.atn_on_screen = atn_on_screen
         self.lifecycle_logging = lifecycle_logging
         self.layout = HardwareLayout.load(self.settings.paths.hardware_layout)
         self.setup_logging()
@@ -107,12 +112,14 @@ class CommTestHelper:
         self.settings.paths.mkdirs(parents=True)
         self.atn_settings.paths.mkdirs(parents=True)
         errors = []
-        if not self.verbose and not self.lifecycle_logging:
+        if not self.lifecycle_logging:
             self.settings.logging.levels.lifecycle = logging.WARNING
+            self.atn_settings.logging.levels.lifecycle = logging.WARNING
         args = argparse.Namespace(verbose=self.verbose)
+        self.logger_guards = LoggerGuards()
         setup_logging(args, self.settings, errors, add_screen_handler=True, root_gets_handlers=False)
         assert not errors
-        setup_logging(args, cast(ScadaSettings, self.atn_settings), errors, add_screen_handler=False, root_gets_handlers=False)
+        setup_logging(args, cast(ScadaSettings, self.atn_settings), errors, add_screen_handler=self.atn_on_screen, root_gets_handlers=False)
         assert not errors
 
     async def stop_and_join(self):
@@ -141,3 +148,4 @@ class CommTestHelper:
                 self.settings.paths.log_dir,
                 self.atn_settings.paths.log_dir,
             )
+        self.logger_guards.restore()
