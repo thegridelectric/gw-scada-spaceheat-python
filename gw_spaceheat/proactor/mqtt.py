@@ -7,12 +7,14 @@ Main current limitation: each interaction between asyncio code and the mqtt clie
 
 """
 import asyncio
+import logging
 import uuid
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from paho.mqtt.client import Client as PahoMQTTClient
@@ -162,6 +164,12 @@ class MQTTClientWrapper:
             )
         )
 
+    def enable_logger(self, logger: Optional[Union[logging.Logger, logging.LoggerAdapter]] = None):
+        self._client.enable_logger(logger)
+
+    def disable_logger(self):
+        self._client.disable_logger()
+
 
 class MQTTClients:
     _clients: Dict[str, MQTTClientWrapper]
@@ -214,3 +222,11 @@ class MQTTClients:
 
     def subscribed(self, client: str) -> bool:
         return self._clients[client].subscribed()
+
+    def enable_loggers(self, logger: Optional[Union[logging.Logger, logging.LoggerAdapter]] = None):
+        for client_name in self._clients:
+            self._clients[client_name].enable_logger(logger)
+
+    def disable_loggers(self):
+        for client_name in self._clients:
+            self._clients[client_name].disable_logger()

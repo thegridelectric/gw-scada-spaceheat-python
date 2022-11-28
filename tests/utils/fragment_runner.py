@@ -329,7 +329,7 @@ class AsyncFragmentRunner(FragmentRunner):
             if not isinstance(actor, Proactor):
                 actor.start()
 
-    async def await_connect(self):
+    async def await_connect(self, logger:Optional[logging.Logger] = None):
         for actor in self.requested.values():
             if hasattr(actor, "client"):
                 await await_for(
@@ -363,6 +363,8 @@ class AsyncFragmentRunner(FragmentRunner):
                             f"  connected:{int(client.connected())} ({client._client_config.host}:{client._client_config.port})" 
                             f"  subs:{client.num_subscriptions()}   subs pending: {client.num_pending_subscriptions()}\n"
                         )
+                    if logger is not None:
+                        logger.info(s)
                     raise ValueError(s)
 
     async def stop_and_join(self):
@@ -384,11 +386,18 @@ class AsyncFragmentRunner(FragmentRunner):
         try:
             start_time = time.time()
             self.delimit("STARTING")
+            # TODO: Make this public access
+            # noinspection PyProtectedMember
+            self.actors.scada2._mqtt_clients.enable_loggers(self.actors.scada2._logger)
             self.start()
             if self.actors.atn2.name in self.requested:
                 asyncio.create_task(self.actors.atn2.run_forever(), name="atn_run_forever")
             asyncio.create_task(self.actors.scada2.run_forever(), name="scada_run_forever")
-            await self.await_connect()
+            # TODO: Make _logger public
+            # noinspection PyProtectedMember
+            await self.await_connect(cast(logging.Logger, self.actors.scada2._logger))
+            # noinspection PyProtectedMember
+            self.actors.scada2._mqtt_clients.disable_loggers()
             self.delimit("CONNECTED")
             for fragment in self.fragments:
                 await fragment.async_run(*args, **kwargs)

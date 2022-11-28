@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import logging
 import textwrap
 import time
 from inspect import getframeinfo
@@ -55,6 +56,8 @@ async def await_for(
     raise_timeout: bool = True,
     retry_duration: float = 0.1,
     err_str_f: Optional[ErrorStringFunction] = None,
+    logger: Optional[logging.Logger] = None,
+    error_dict: Optional[dict] = None,
 ) -> bool:
     """Similar to wait_for(), but awaitable. Instead of sleeping after a False resoinse from function f, await_for
     will asyncio.sleep(), allowing the event loop to continue. Additionally, f may be either a function or a coroutine.
@@ -94,17 +97,24 @@ async def await_for(
     if result is True:
         return True
     else:
-        if raise_timeout:
-            caller = getframeinfo(stack()[1][0])
-            raise ValueError(
-                err_format.format(
-                    tag=tag,
-                    file=Path(caller.filename).name,
-                    line=caller.lineno,
-                    seconds=time.time() - start,
-                    f=f,
-                    err_str=err_str_f_()
-                )
+        caller = getframeinfo(stack()[1][0])
+        format_dict = dict(
+            tag=tag,
+            file=Path(caller.filename).name,
+            line=caller.lineno,
+            seconds=time.time() - start,
+            f=f,
+            err_str=err_str_f_()
+        )
+        err_str = err_format.format(**format_dict)
+        if error_dict is not None:
+            error_dict.update(
+                format_dict,
+                err_str=err_str,
             )
+        if logger is not None:
+            logger.error(err_str)
+        if raise_timeout:
+            raise ValueError(err_str)
         else:
             return False
