@@ -94,7 +94,6 @@ class MQTTReceiptMessage(MQTTClientMessage[MQTTReceiptPayload]):
 class MQTTSubackPayload(MQTTClientsPayload):
     mid: int
     granted_qos: List[int]
-    num_pending_subscriptions: int
 
 
 class MQTTSubackMessage(MQTTClientMessage[MQTTSubackPayload]):
@@ -104,7 +103,6 @@ class MQTTSubackMessage(MQTTClientMessage[MQTTSubackPayload]):
         userdata: Optional[Any],
         mid: int,
         granted_qos: List[int],
-        num_pending_subscriptions: int,
     ):
         super().__init__(
             message_type=MessageType.mqtt_suback,
@@ -113,7 +111,6 @@ class MQTTSubackMessage(MQTTClientMessage[MQTTSubackPayload]):
                 userdata=userdata,
                 mid=mid,
                 granted_qos=granted_qos,
-                num_pending_subscriptions=num_pending_subscriptions,
             ),
         )
 

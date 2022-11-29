@@ -450,15 +450,18 @@ class Proactor(ServicesInterface, Runnable):
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]) -> Result[bool, BaseException]:
         return self._link_states.process_mqtt_connect_fail(message)
 
+    def _upload_pending_events(self):
+        ...
+
     def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]) -> Result[bool, BaseException]:
-        self._logger.path(
-            "++Proactor._process_mqtt_suback client:%s/%d",
-            message.Payload.client_name,
-            message.Payload.num_pending_subscriptions
-        )
+        self._logger.path("++Proactor._process_mqtt_suback client:%s", message.Payload.client_name)
         path_dbg = 0
+
         result: Result[bool, BaseException] = Ok()
-        match self._link_states.process_mqtt_suback(message):
+        match self._link_states.process_mqtt_suback(
+            message.Payload.client_name,
+            self._mqtt_clients.handle_suback(message.Payload)
+        ):
             case Ok(transition):
                 path_dbg |= 0x00000001
                 if transition:
@@ -466,6 +469,7 @@ class Proactor(ServicesInterface, Runnable):
                     self._logger.comm_event(transition)
                 if transition.send_activated():
                     path_dbg |= 0x00000004
+                    self._upload_pending_events()
                     self.generate_event(MQTTFullySubscribedEvent(PeerName=message.Payload.client_name))
                     self._publish_message(
                         message.Payload.client_name,

@@ -532,30 +532,17 @@ class Scada2(ScadaInterface, Proactor):
             typing.cast(GtDispatchBoolean, payload)
         )
 
-    def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]) -> Result[bool, BaseException]:
-        self._logger.path("++Scada2._process_mqtt_suback")
-        path_dbg = 0
-        if message.Payload.num_pending_subscriptions == 0:
-            path_dbg |= 0x00000001
-            for message_id in self._event_persister.pending():
-                match self._event_persister.retrieve(message_id):
-                    case Ok(content):
-                        path_dbg |= 0x00000002
-                        self._publish_to_gridworks(
-                            json.loads(content.decode("utf-8")),
-                            AckRequired=True
-                        )
-                    case Err(problems):
-                        path_dbg |= 0x00000004
-                        self._logger.error(problems)
-                        raise ValueError(str(problems))
-        result = super()._process_mqtt_suback(message)
-        self._logger.path(
-            "--Scada2._process_mqtt_suback:%d  path:0x%08X",
-            result.is_ok(),
-            path_dbg,
-        )
-        return result
+    def _upload_pending_events(self):
+        for message_id in self._event_persister.pending():
+            match self._event_persister.retrieve(message_id):
+                case Ok(content):
+                    self._publish_to_gridworks(
+                        json.loads(content.decode("utf-8")),
+                        AckRequired=True
+                    )
+                case Err(problems):
+                    self._logger.error(problems)
+                    raise ValueError(str(problems))
 
     def _process_scada_dbg(self, dbg: ScadaDBG):
         self._logger.path("++_process_scada_dbg")
