@@ -63,6 +63,7 @@ class TrimFailed(PersisterError):
 class ReindexError(PersisterError):
     ...
 
+
 class JSONDecodingError(PersisterException):
     ...
 

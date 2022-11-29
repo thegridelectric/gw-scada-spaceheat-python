@@ -12,10 +12,10 @@ from actors.utils import gw_mqtt_topic_encode
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from gwproto.messages import  GtDispatchBooleanLocal
-from gwproto.messages import  GtShStatus_Maker
-from gwproto.messages import  SnapshotSpaceheat_Maker
-from gwproto.messages import  GsDispatch
+from gwproto.messages import GtDispatchBooleanLocal
+from gwproto.messages import GtShStatus_Maker
+from gwproto.messages import SnapshotSpaceheat_Maker
+from gwproto.messages import GsDispatch
 
 from tests.utils.comm_events import CommEvent
 from tests.utils.comm_events import CommEvents

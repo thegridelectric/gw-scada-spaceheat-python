@@ -118,6 +118,7 @@ class AtnData:
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_status: Optional[GtShStatus] = None
 
+
 @dataclass
 class _PausedAck:
     client: str

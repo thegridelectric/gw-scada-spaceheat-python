@@ -67,5 +67,3 @@ class StopWatch(object):
     def __exit__(self, type_, value, traceback):
         self.end = time.time()
         self.elapsed = self.end - self.start
-
-

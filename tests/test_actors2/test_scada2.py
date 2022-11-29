@@ -508,7 +508,6 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch, request):
             assert len(status.BooleanactuatorCmdList) == 0
             assert len(status.MultipurposeTelemetryList) == 0
 
-
     runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
     runner.add_fragment(Fragment(runner))
     await runner.async_run()

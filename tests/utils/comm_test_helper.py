@@ -37,7 +37,7 @@ class CommTestHelper:
         add_atn: bool = False,
         start_scada: bool = False,
         start_atn: bool = False,
-        atn_on_screen = False,
+        atn_on_screen=False,
     ):
         self.settings = ScadaSettings() if settings is None else settings
         self.atn_settings = AtnSettings() if atn_settings is None else atn_settings
@@ -62,7 +62,7 @@ class CommTestHelper:
     def start_atn(self) -> "CommTestHelper":
         return self.start_proactor(self.ATN)
 
-    def start_proactor(self, name: str) ->  "CommTestHelper":
+    def start_proactor(self, name: str) -> "CommTestHelper":
         asyncio.create_task(self.proactors[name].run_forever(), name=f"{name}_run_forever")
         return self
 
@@ -119,7 +119,8 @@ class CommTestHelper:
         self.logger_guards = LoggerGuards()
         setup_logging(args, self.settings, errors, add_screen_handler=True, root_gets_handlers=False)
         assert not errors
-        setup_logging(args, cast(ScadaSettings, self.atn_settings), errors, add_screen_handler=self.atn_on_screen, root_gets_handlers=False)
+        setup_logging(args, cast(ScadaSettings, self.atn_settings), errors,
+                      add_screen_handler=self.atn_on_screen, root_gets_handlers=False)
         assert not errors
 
     async def stop_and_join(self):

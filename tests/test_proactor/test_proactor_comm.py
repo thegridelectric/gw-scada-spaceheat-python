@@ -31,6 +31,7 @@ async def test_no_broker():
             print(f"{i}...")
             await asyncio.sleep(1)
 
+
 @pytest.mark.asyncio
 async def test_no_atn():
     async with CommTestHelper(add_scada=True) as h:
@@ -222,6 +223,7 @@ async def test_basic_atn_comm_atn_first():
             err_str_f=scada.summary_str
         )
 
+
 @pytest.mark.asyncio
 async def test_basic_atn_comm_loss():
     async with CommTestHelper(add_scada=True, add_atn=True, verbose=True) as h:
@@ -313,7 +315,6 @@ async def test_basic_atn_comm_loss():
         assert scada_comm_event_counts["gridworks.event.comm.peer_active"] == 2
         assert len(scada_stats.comm_events) == 7
         assert scada._event_persister.num_pending == 0
-
 
         # Tell *both* clients we lost comm.
         atn._mqtt_clients._clients[atn.SCADA_MQTT]._client._loop_rc_handle(MQTT_ERR_CONN_LOST)
@@ -464,6 +465,7 @@ async def test_awaiting_setup_and_peer():
         for comm_event in stats.comm_events:
             assert comm_event.MessageId in scada._event_persister
 
+
 @pytest.mark.asyncio
 async def test_awaiting_setup_and_peer_corner_cases():
     """
@@ -611,6 +613,7 @@ async def test_awaiting_setup_and_peer_corner_cases():
         assert comm_event_counts["gridworks.event.comm.mqtt.fully_subscribed"] == 1
         assert comm_event_counts["gridworks.event.comm.mqtt.disconnect"] == 1
         assert len(stats.comm_events) == 4
+
 
 @pytest.mark.asyncio
 async def test_awaiting_setup__():
@@ -774,6 +777,7 @@ async def test_awaiting_setup__():
             err_str_f=scada.summary_str
         )
 
+
 @pytest.mark.asyncio
 async def test_response_timeout():
     """
@@ -834,7 +838,7 @@ async def test_response_timeout():
         # wait for all events to be acked
         await await_for(
             lambda: scada._event_persister.num_pending == 0,
-                1,
+            1,
             "ERROR waiting for events to be acked",
             err_str_f=scada.summary_str
         )
@@ -925,9 +929,11 @@ async def test_ping(monkeypatch):
         pings_from_scada = end_pings_from_scada - start_pings_from_scada
         exp_pings = [0, 1, 2]
         if pings_from_atn not in exp_pings:
-            warnings.warn(f"Pings not suppressed by other message exchange: pings_from_atn ({pings_from_atn}) not in {exp_pings}")
+            warnings.warn(
+                f"Pings not suppressed by other message exchange: pings_from_atn ({pings_from_atn}) not in {exp_pings}")
         if pings_from_scada not in exp_pings:
-            warnings.warn(f"Pings not suppressed by other message exchange: pings_from_scada ({pings_from_scada}) not in {exp_pings}")
+            warnings.warn(
+                f"Pings not suppressed by other message exchange: pings_from_scada ({pings_from_scada}) not in {exp_pings}")
 
         atn.pause_acks()
         await await_for(

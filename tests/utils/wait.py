@@ -11,6 +11,7 @@ from typing import Callable
 from typing import Optional
 from typing import Union
 
+
 def wait_for(
     f: Callable[[], bool],
     timeout: float,

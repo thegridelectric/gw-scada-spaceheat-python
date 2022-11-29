@@ -4,7 +4,8 @@ from actors.home_alone import HomeAlone
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from gwproto.messages import  GtShStatus
+from gwproto.messages import GtShStatus
+
 
 class HomeAloneRecorder(HomeAlone):
     status_received: int

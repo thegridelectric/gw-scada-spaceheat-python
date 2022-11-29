@@ -21,6 +21,7 @@ from proactor.message import MQTTReceiptMessage
 def assert_transition(got: Transition, exp: Transition):
     assert got.__dict__ == exp.__dict__
 
+
 @dataclass
 class _Case:
     start: StateName
@@ -61,7 +62,7 @@ class _Case:
                     pass
         return content
 
-    def assert_case(self, links:LinkStates, name:str, got:Result[Transition, InvalidCommStateInput]):
+    def assert_case(self, links: LinkStates, name: str, got: Result[Transition, InvalidCommStateInput]):
         assert links[name].name == name
         assert links.link(name).name == name
         if self.ok:
@@ -101,6 +102,7 @@ class _Case:
             case _:
                 raise ValueError(f"ERROR. Unexpected transition {self.input}")
 
+
 class _State:
     start: StateName
     transitions: dict[TransitionName, list[_Case]]
@@ -123,7 +125,8 @@ class _State:
             starts = [case.start for case in cases]
             inputs = [case.input for case in cases]
             if any([start != cases[0].start for start in starts]):
-                raise ValueError(f"If multiple cases added they must share the same start state. Found states: {starts}")
+                raise ValueError(
+                    f"If multiple cases added they must share the same start state. Found states: {starts}")
             if any([input_ != cases[0].input for input_ in inputs]):
                 raise ValueError(f"If multiple cases added they must share the same input. Found inputs: {inputs}")
             start = cases[0].start
@@ -131,6 +134,7 @@ class _State:
         if start != self.start:
             raise ValueError(f"Whoops {start} != {self.start}")
         self.transitions[input_] = cases
+
 
 class _Cases:
     states: dict[StateName, _State]
@@ -149,7 +153,8 @@ class _Cases:
             cases: list[_Case] = case
             starts = [case.start for case in cases]
             if any([start != cases[0].start for start in starts]):
-                raise ValueError(f"If multiple cases added they must share the same start state. Found states: {starts}")
+                raise ValueError(
+                    f"If multiple cases added they must share the same start state. Found states: {starts}")
             start = cases[0].start
         self.states[start].set_case(case)
 
@@ -159,6 +164,7 @@ class _Cases:
             for transition_cases in state.transitions.values():
                 cases.extend(transition_cases)
         return cases
+
 
 all_cases = _Cases(
     [
@@ -170,7 +176,8 @@ all_cases = _Cases(
         _Case(StateName.connecting, TransitionName.stop_called, StateName.stopped),
 
         [
-            _Case(StateName.awaiting_setup_and_peer, TransitionName.mqtt_suback, StateName.awaiting_setup_and_peer, input_content=1),
+            _Case(StateName.awaiting_setup_and_peer, TransitionName.mqtt_suback,
+                  StateName.awaiting_setup_and_peer, input_content=1),
             _Case(StateName.awaiting_setup_and_peer, TransitionName.mqtt_suback, StateName.awaiting_peer, input_content=0),
         ],
         _Case(StateName.awaiting_setup_and_peer, TransitionName.message_from_peer, StateName.awaiting_setup),

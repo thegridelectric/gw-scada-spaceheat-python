@@ -77,7 +77,9 @@ class AckWaitResult:
     def ok(self) -> bool:
         return self.summary == AckWaitSummary.acked
 
+
 LINK_POLL_SECONDS = 60
+
 
 @dataclass
 class MessageTimes:
@@ -139,7 +141,6 @@ class Proactor(ServicesInterface, Runnable):
             if message_times.time_to_send_ping(LINK_POLL_SECONDS) and link_state.active_for_send():
                 self._publish_message(client, PingMessage(Src=self.publication_name))
             await asyncio.sleep(message_times.seconds_until_next_ping(LINK_POLL_SECONDS))
-
 
     def _start_ack_timer(self, client_name: str, message_id: str, context: Any = None, delay: Optional[float] = None) -> None:
         if delay is None:
@@ -371,12 +372,14 @@ class Proactor(ServicesInterface, Runnable):
         return result
 
     def _process_mqtt_message(self, mqtt_receipt_message: Message[MQTTReceiptPayload]) -> Result[Message[Any], BaseException]:
-        self._logger.path("++Proactor._process_mqtt_message %s/%s", mqtt_receipt_message.Header.Src, mqtt_receipt_message.Header.MessageType)
+        self._logger.path("++Proactor._process_mqtt_message %s/%s",
+                          mqtt_receipt_message.Header.Src, mqtt_receipt_message.Header.MessageType)
         path_dbg = 0
         match result := self._decode_mqtt_message(mqtt_receipt_message.Payload):
             case Ok(decoded_message):
                 path_dbg |= 0x00000002
-                self._logger.message_summary("IN  mqtt    ", self.name, mqtt_receipt_message.Payload.message.topic, decoded_message.Payload)
+                self._logger.message_summary("IN  mqtt    ", self.name,
+                                             mqtt_receipt_message.Payload.message.topic, decoded_message.Payload)
                 match self._link_states.process_mqtt_message(mqtt_receipt_message):
                     case Ok(transition):
                         path_dbg |= 0x00000004
@@ -615,4 +618,3 @@ def str_tasks(loop_: asyncio.AbstractEventLoop, tag: str = "", tasks: Optional[I
         except:
             pass
     return s
-

@@ -7,8 +7,8 @@ from actors.utils import gw_mqtt_topic_decode
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from gwproto.messages import  GtShStatus
-from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import GtShStatus
+from gwproto.messages import SnapshotSpaceheat
 from schema.schema_switcher import TypeMakerByAliasDict
 
 

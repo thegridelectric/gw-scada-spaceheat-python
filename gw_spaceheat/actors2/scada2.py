@@ -227,7 +227,8 @@ class Scada2(ScadaInterface, Proactor):
             event.Src = self.publication_name
         if self._link_states[self.GRIDWORKS_MQTT].active_for_send():
             self._publish_to_gridworks(event, AckRequired=True)
-        self._event_persister.persist(event.MessageId, event.json(sort_keys=True, indent=2).encode(self.PERSISTER_ENCODING))
+        self._event_persister.persist(event.MessageId, event.json(
+            sort_keys=True, indent=2).encode(self.PERSISTER_ENCODING))
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:

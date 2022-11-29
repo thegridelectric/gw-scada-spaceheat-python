@@ -58,5 +58,3 @@ def test_simple_resubscribe_on_comm_restore(tmp_path, monkeypatch):
                 actor.stop()
             except:
                 pass
-
-

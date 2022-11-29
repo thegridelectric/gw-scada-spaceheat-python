@@ -27,14 +27,18 @@ class StateName(enum.Enum):
     active = "active"
     stopped = "stopped"
 
+
 def state_is_active(state: StateName) -> bool:
     return state == StateName.active
+
 
 def state_is_active_for_send(state: StateName) -> bool:
     return state in [StateName.active, StateName.awaiting_peer]
 
+
 def state_is_active_for_recv(state: StateName) -> bool:
     return state_is_active(state)
+
 
 class TransitionName(enum.Enum):
     none = "none"
@@ -46,6 +50,7 @@ class TransitionName(enum.Enum):
     message_from_peer = "message_from_peer"
     response_timeout = "response_timeout"
     stop_called = "stop_called"
+
 
 @dataclass
 class Transition:
@@ -84,6 +89,7 @@ class Transition:
     def recv_deactivated(self) -> bool:
         return self.deactivated()
 
+
 class InvalidCommStateInput(Exception):
     name: str = ""
     current_state: StateName = StateName.none
@@ -110,15 +116,19 @@ class InvalidCommStateInput(Exception):
         s += f"  for link: [{self.name}]  current state:{self.current_state}  requested transition: {self.transition}"
         return s
 
+
 class CommLinkMissing(InvalidCommStateInput):
     def __init__(self, name: str, *, msg=""):
         super().__init__(name, msg=msg)
 
+
 class CommLinkAlreadyExists(InvalidCommStateInput):
     ...
 
+
 class RuntimeLinkStateError(InvalidCommStateInput):
     ...
+
 
 class State(abc.ABC):
     """By default all transitions disallowed except stopping, which is always allowed and leads to stopped."""
@@ -161,6 +171,7 @@ class State(abc.ABC):
     def active_for_recv(self):
         return state_is_active_for_recv(self.name)
 
+
 class NotStarted(State):
 
     @property
@@ -169,6 +180,7 @@ class NotStarted(State):
 
     def start(self) -> Result[Transition, InvalidCommStateInput]:
         return Ok(Transition("", TransitionName.start_called, self.name, StateName.connecting))
+
 
 class Connecting(State):
 
@@ -181,6 +193,7 @@ class Connecting(State):
 
     def process_mqtt_connect_fail(self) -> Result[Transition, InvalidCommStateInput]:
         return Ok(Transition("", TransitionName.mqtt_connect_failed, self.name, StateName.connecting))
+
 
 class AwaitingSetupAndPeer(State):
     @property
@@ -199,6 +212,7 @@ class AwaitingSetupAndPeer(State):
 
     def process_mqtt_message(self) -> Result[Transition, InvalidCommStateInput]:
         return Ok(Transition("", TransitionName.message_from_peer, self.name, StateName.awaiting_setup))
+
 
 class AwaitingSetup(State):
 
@@ -219,6 +233,7 @@ class AwaitingSetup(State):
     def process_mqtt_message(self) -> Result[Transition, InvalidCommStateInput]:
         return Ok(Transition("", TransitionName.message_from_peer, self.name, self.name))
 
+
 class AwaitingPeer(State):
     @property
     def name(self) -> StateName:
@@ -232,6 +247,7 @@ class AwaitingPeer(State):
 
     def process_ack_timeout(self) -> Result[Transition, InvalidCommStateInput]:
         return Ok(Transition("", TransitionName.response_timeout, self.name, self.name))
+
 
 class Active(State):
     @property
@@ -247,10 +263,12 @@ class Active(State):
     def process_ack_timeout(self) -> Result[Transition, InvalidCommStateInput]:
         return Ok(Transition("", TransitionName.response_timeout, self.name, StateName.awaiting_peer))
 
+
 class Stopped(State):
     @property
     def name(self) -> StateName:
         return StateName.stopped
+
 
 class LinkState:
     name: str
@@ -321,6 +339,7 @@ class LinkState:
     def process_ack_timeout(self) -> Result[Transition, InvalidCommStateInput]:
         return self._handle(self.curr_state.process_ack_timeout())
 
+
 class LinkStates:
     _links: dict[str, LinkState]
 
@@ -364,7 +383,7 @@ class LinkStates:
         else:
             return Ok()
 
-    def start(self, name:str) -> Result[Transition, InvalidCommStateInput]:
+    def start(self, name: str) -> Result[Transition, InvalidCommStateInput]:
         return self[name].start()
 
     def stop(self, name: str) -> Result[Transition, InvalidCommStateInput]:
@@ -387,5 +406,3 @@ class LinkStates:
 
     def process_ack_timeout(self, name: str) -> Result[Transition, InvalidCommStateInput]:
         return self[name].process_ack_timeout()
-
-

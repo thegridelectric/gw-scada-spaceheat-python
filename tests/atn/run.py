@@ -36,5 +36,6 @@ def main(argv: Optional[Sequence[str]] = None):
     finally:
         a.stop_and_join_thread()
 
+
 if __name__ == "__main__":
     main()
