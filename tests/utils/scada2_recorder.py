@@ -115,6 +115,7 @@ class Scada2Recorder(Scada2):
 
     def split_client_subacks(self, client_name: str):
         client_wrapper = self._mqtt_clients.client_wrapper(client_name)
+
         def member_split_subscriptions():
             return split_subscriptions(client_wrapper)
         client_wrapper.subscribe_all = member_split_subscriptions

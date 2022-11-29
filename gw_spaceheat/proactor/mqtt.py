@@ -134,7 +134,6 @@ class MQTTClientWrapper:
                 self._pending_subscriptions.remove(topic)
         return len(self._pending_subscriptions)
 
-
     def on_subscribe(self, _, userdata, mid, granted_qos):
         self._receive_queue.put(
             MQTTSubackMessage(
@@ -243,5 +242,5 @@ class MQTTClients:
         for client_name in self._clients:
             self._clients[client_name].disable_logger()
 
-    def client_wrapper(self, client:str) -> MQTTClientWrapper:
+    def client_wrapper(self, client: str) -> MQTTClientWrapper:
         return self._clients[client]
