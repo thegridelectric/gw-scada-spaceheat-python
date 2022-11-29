@@ -7,12 +7,15 @@ Main current limitation: each interaction between asyncio code and the mqtt clie
 
 """
 import asyncio
+import logging
 import uuid
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Set
 from typing import Tuple
+from typing import Union
 
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 from paho.mqtt.client import Client as PahoMQTTClient
@@ -24,6 +27,7 @@ from proactor.message import MQTTConnectMessage
 from proactor.message import MQTTDisconnectMessage
 from proactor.message import MQTTReceiptMessage
 from proactor.message import MQTTSubackMessage
+from proactor.message import MQTTSubackPayload
 from proactor.sync_thread import AsyncQueueWriter
 
 
@@ -74,6 +78,7 @@ class MQTTClientWrapper:
         self._subscriptions[topic] = qos
         self._pending_subscriptions.add(topic)
         subscribe_result = self._client.subscribe(topic, qos)
+        print(f"subscribe_result: {subscribe_result}")
         if subscribe_result[0] == MQTT_ERR_SUCCESS:
             self._pending_subacks[subscribe_result[1]] = [topic]
         return subscribe_result
@@ -110,6 +115,9 @@ class MQTTClientWrapper:
             not self.num_subscriptions() or not self.num_pending_subscriptions()
         )
 
+    def subscription_items(self) -> list[Tuple[str, int]]:
+        return list(cast(list[Tuple[str, int]], self._subscriptions.items()))
+
     def on_message(self, _, userdata, message):
         self._receive_queue.put(
             MQTTReceiptMessage(
@@ -119,20 +127,22 @@ class MQTTClientWrapper:
             )
         )
 
-    def on_subscribe(self, _, userdata, mid, granted_qos):
-        topics = self._pending_subacks.pop(mid, [])
+    def handle_suback(self, suback: MQTTSubackPayload) -> int:
+        topics = self._pending_subacks.pop(suback.mid, [])
         if topics:
             for topic in topics:
                 self._pending_subscriptions.remove(topic)
-            self._receive_queue.put(
-                MQTTSubackMessage(
-                    client_name=self.name,
-                    userdata=userdata,
-                    mid=mid,
-                    granted_qos=granted_qos,
-                    num_pending_subscriptions=len(self._pending_subscriptions),
-                )
+        return len(self._pending_subscriptions)
+
+    def on_subscribe(self, _, userdata, mid, granted_qos):
+        self._receive_queue.put(
+            MQTTSubackMessage(
+                client_name=self.name,
+                userdata=userdata,
+                mid=mid,
+                granted_qos=granted_qos,
             )
+        )
 
     def on_connect(self, _, userdata, flags, rc):
         self._receive_queue.put(
@@ -161,6 +171,12 @@ class MQTTClientWrapper:
                 rc=rc,
             )
         )
+
+    def enable_logger(self, logger: Optional[Union[logging.Logger, logging.LoggerAdapter]] = None):
+        self._client.enable_logger(logger)
+
+    def disable_logger(self):
+        self._client.disable_logger()
 
 
 class MQTTClients:
@@ -194,6 +210,9 @@ class MQTTClients:
     def unsubscribe(self, client: str, topic: str) -> Tuple[int, Optional[int]]:
         return self._clients[client].unsubscribe(topic)
 
+    def handle_suback(self, suback: MQTTSubackPayload) -> int:
+        return self._clients[suback.client_name].handle_suback(suback)
+
     def stop(self):
         for client in self._clients.values():
             client.stop()
@@ -214,3 +233,14 @@ class MQTTClients:
 
     def subscribed(self, client: str) -> bool:
         return self._clients[client].subscribed()
+
+    def enable_loggers(self, logger: Optional[Union[logging.Logger, logging.LoggerAdapter]] = None):
+        for client_name in self._clients:
+            self._clients[client_name].enable_logger(logger)
+
+    def disable_loggers(self):
+        for client_name in self._clients:
+            self._clients[client_name].disable_logger()
+
+    def client_wrapper(self, client: str) -> MQTTClientWrapper:
+        return self._clients[client]

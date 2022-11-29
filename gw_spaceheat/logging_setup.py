@@ -34,6 +34,8 @@ def setup_logging(
         args: argparse.Namespace,
         settings: ScadaSettings,
         errors: Optional[list[BaseException]] = None,
+        add_screen_handler: bool = True,
+        root_gets_handlers: bool = True,
 ) -> None:
     """Get python logging config based on parsed command line args, defaults, environment variables and logging config file.
 
@@ -55,7 +57,7 @@ def setup_logging(
             if getattr(args, "verbose", None):
                 settings.logging.base_log_level = logging.INFO
                 settings.logging.levels.message_summary = logging.DEBUG
-            if getattr(args, "message_summary", None):
+            elif getattr(args, "message_summary", None):
                 settings.logging.levels.message_summary = logging.INFO
         except BaseException as e:
             errors.append(e)
@@ -67,20 +69,6 @@ def setup_logging(
             formatter = None
             errors.append(e)
 
-        # Create handlers from settings
-        try:
-            screen_handler = logging.StreamHandler()
-            if formatter is not None:
-                screen_handler.setFormatter(formatter)
-        except BaseException as e:
-            screen_handler = None
-            errors.append(e)
-        try:
-            file_handler = settings.logging.file_handler.create(settings.paths.log_dir, formatter)
-        except BaseException as e:
-            file_handler = None
-            errors.append(e)
-
         # Set application logger levels
         for logger_name, logger_settings in settings.logging.logger_levels().items():
             try:
@@ -89,14 +77,27 @@ def setup_logging(
             except BaseException as e:
                 errors.append(e)
 
-        # Assign handlers to root logger
-        root_logger = logging.getLogger()
-        for handler in [screen_handler, file_handler]:
-            if handler is not None:
-                try:
-                    root_logger.addHandler(handler)
-                except BaseException as e:
-                    errors.append(e)
+        # Create handlers from settings, add them to root logger
+        if root_gets_handlers:
+            base_logger = logging.getLogger()
+        else:
+            base_logger = logging.getLogger(settings.logging.base_log_name)
+            base_logger.propagate = False
+        if add_screen_handler:
+            try:
+                screen_handler = logging.StreamHandler()
+                if formatter is not None:
+                    screen_handler.setFormatter(formatter)
+                base_logger.addHandler(screen_handler)
+            except BaseException as e:
+                errors.append(e)
+        try:
+            file_handler = settings.logging.file_handler.create(settings.paths.log_dir, formatter)
+            if formatter is not None:
+                file_handler.setFormatter(formatter)
+            base_logger.addHandler(file_handler)
+        except BaseException as e:
+            errors.append(e)
         config_finished = True
     except BaseException as e:
         config_finished = False

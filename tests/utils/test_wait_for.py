@@ -1,6 +1,6 @@
 import asyncio
 import time
-from tests.test_actor_utils import StopWatch
+from tests.utils import StopWatch
 from tests.utils import AwaitablePredicate
 from tests.utils import await_for
 from tests.utils import wait_for

@@ -1,14 +1,12 @@
 """Test Scada2"""
-import argparse
 import logging
 import time
 from typing import cast
 
-from logging_setup import setup_logging
 from tests.atn import AtnSettings
-from tests.fragment_runner import Actors
-from tests.fragment_runner import AsyncFragmentRunner
-from tests.fragment_runner import ProtocolFragment
+from tests.utils.fragment_runner import Actors
+from tests.utils.fragment_runner import AsyncFragmentRunner
+from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import Scada2Recorder
 from tests.utils import await_for
 
@@ -129,7 +127,7 @@ def test_scada2_small():
 
 
 @pytest.mark.asyncio
-async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
+async def test_scada2_relay_dispatch(tmp_path, monkeypatch, request):
     """Verify Scada forwards relay dispatch from Atn to relay and that resulting state changes in the relay are
     included in next status and shapshot"""
 
@@ -139,9 +137,6 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     settings.paths.mkdirs(parents=True)
     atn_settings = AtnSettings()
     atn_settings.paths.mkdirs(parents=True)
-    errors = []
-    setup_logging(args=argparse.Namespace(verbose=True), settings=settings, errors=errors)
-    assert not errors
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,
@@ -151,7 +146,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
     actors.scada2._scada_atn_fast_dispatch_contract_is_alive_stub = True
     actors.scada2._last_status_second = int(time.time())
     actors.scada2.suppress_status = True
-    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings)
+    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
 
     class Fragment(ProtocolFragment):
         def get_requested_actors(self):
@@ -164,6 +159,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             atn = self.runner.actors.atn2
             relay2 = self.runner.actors.relay2
             scada2 = self.runner.actors.scada2
+            link_stats = scada2.stats.links["gridworks"]
             relay_alias = relay2.alias
             relay_node = relay2.node
 
@@ -181,14 +177,15 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
             relay_state_message_type = "gt.telemetry.110"
             relay_state_topic = f"{relay2.alias}/{relay_state_message_type}"
             relay_command_received_topic = f"{relay2.alias}/gt.driver.booleanactuator.cmd.100"
-            assert scada2.num_received_by_topic[relay_state_topic] == 0
-            assert scada2.num_received_by_topic[relay_command_received_topic] == 0
+            assert link_stats.num_received_by_topic[relay_state_topic] == 0
+            assert link_stats.num_received_by_topic[relay_command_received_topic] == 0
 
             # Wait for relay to report its initial state
             await await_for(
-                lambda: scada2.num_received_by_type["gt.telemetry.110"] == 1,
+                lambda: scada2.stats.num_received_by_type["gt.telemetry.110"] == 1,
                 5,
                 "Scada wait for relay state change",
+                err_str_f=scada2.summary_str
             )
             status = scada2._data.make_status(int(time.time()))
             assert len(status.SimpleTelemetryList) == 1
@@ -295,7 +292,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
+async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch, request):
     """Verify scada periodic status and snapshot"""
 
     monkeypatch.chdir(tmp_path)
@@ -335,21 +332,17 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch):
                 "Atn wait for snapshot message"
             )
 
-    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings)
+    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
     runner.add_fragment(Fragment(runner))
     await runner.async_run()
 
 
 @pytest.mark.asyncio
-async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch):
+async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch, request):
     """Verify scada sends snapshot upon request from Atn"""
 
     monkeypatch.chdir(tmp_path)
     settings = ScadaSettings(seconds_per_report=2)
-    settings.paths.mkdirs(parents=True)
-    errors = []
-    setup_logging(args=argparse.Namespace(verbose=True), settings=settings, errors=errors)
-    assert not errors
 
     class Fragment(ProtocolFragment):
 
@@ -370,11 +363,11 @@ async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch):
                 err_str_f=atn.summary_str
             )
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, settings=settings, tag=request.node.name)
 
 
 @pytest.mark.asyncio
-async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
+async def test_scada2_status_content_dynamics(tmp_path, monkeypatch, request):
     """Verify Scada status contains command acks from BooleanActuators and telemetry from SimpleSensor and
     MultipurposeSensor."""
 
@@ -382,7 +375,6 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
     settings = ScadaSettings(seconds_per_report=2)
     settings.paths.mkdirs(parents=True)
     atn_settings = AtnSettings()
-    atn_settings.paths.mkdirs(parents=True)
     layout = load_house.load_all(settings)
     actors = Actors(
         settings,
@@ -401,6 +393,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
         async def async_run(self):
             atn = self.runner.actors.atn2
             scada = self.runner.actors.scada2
+            link_stats = scada.stats.links["gridworks"]
             relay = self.runner.actors.relay2
             meter = self.runner.actors.meter2
             thermo = self.runner.actors.thermo2
@@ -416,8 +409,8 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             assert len(snapshot.Snapshot.TelemetryNameList) == 0
             assert len(snapshot.Snapshot.AboutNodeAliasList) == 0
             assert len(snapshot.Snapshot.ValueList) == 0
-            assert scada.num_received_by_type[telemetry_message_type] == 0
-            assert scada.num_received_by_type[meter_telemetry_message_type] == 0
+            assert link_stats.num_received_by_type[telemetry_message_type] == 0
+            assert link_stats.num_received_by_type[meter_telemetry_message_type] == 0
 
             # Make sub-actors send their reports
             for actor in [thermo, relay, meter]:
@@ -427,8 +420,8 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
 
             await await_for(
                 lambda: (
-                    scada.num_received_by_type[telemetry_message_type] >= 3
-                    and scada.num_received_by_type[meter_telemetry_message_type] >= 1
+                    scada.stats.num_received_by_type[telemetry_message_type] >= 3
+                    and scada.stats.num_received_by_type[meter_telemetry_message_type] >= 1
                 ),
                 5,
                 "Scada wait for reports",
@@ -515,6 +508,6 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch):
             assert len(status.BooleanactuatorCmdList) == 0
             assert len(status.MultipurposeTelemetryList) == 0
 
-    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings)
+    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
     runner.add_fragment(Fragment(runner))
     await runner.async_run()

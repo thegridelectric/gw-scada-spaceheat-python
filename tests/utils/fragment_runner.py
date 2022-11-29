@@ -1,6 +1,10 @@
+import argparse
 import asyncio
+import logging
 import time
+import uuid
 from typing import Callable
+from typing import cast
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -14,46 +18,50 @@ from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
+from logging_setup import setup_logging
 from tests.atn import Atn2
 from proactor import Proactor
 from tests.atn import AtnSettings
 from tests.utils import AtnRecorder
 
 try:
-    from tests.utils import HomeAloneRecorder
-    from tests.utils import Scada2Recorder
-    from tests.utils import ScadaRecorder
-    from tests.utils import await_for
-    from tests.utils import wait_for
+    from tests.utils.home_alone_recorder import HomeAloneRecorder
+    from tests.utils.scada2_recorder import Scada2Recorder
+    from tests.utils.scada_recorder import ScadaRecorder
+    from tests.utils.wait import await_for
+    from tests.utils.wait import wait_for
 except ImportError:
-    from utils import HomeAloneRecorder
-    from utils import Scada2Recorder
-    from utils import ScadaRecorder
-    from utils import await_for
-    from utils import wait_for
+    from .home_alone_recorder import HomeAloneRecorder
+    from .scada2_recorder import Scada2Recorder
+    from .scada_recorder import ScadaRecorder
+    from .wait import await_for
+    from .wait import wait_for
 
 
 def delimit_str(text: str = "") -> str:
-    return "\n## " + text + ("#" * (100 - len(text)))
+    return "\n## " + text + ("#" * (150 - len(text)))
 
 
-def delimit(text: str = ""):
-    print(delimit_str(text))
+def delimit(text: str = "", logger: Optional[logging.Logger] = None):
+    s = delimit_str(text)
+    if logger is None:
+        print(s)
+    else:
+        logger.log(logging.ERROR - 1, s.lstrip())
 
-
-def do_nothing(seconds: float):
+def do_nothing(seconds: float, logger: Optional[logging.Logger] = None):
     """Let the actors run on their own for a while"""
     if seconds > 0:
-        delimit(f"DOING NOTHING FOR {int(seconds):4d} SECONDS")
+        delimit(f"DOING NOTHING FOR {int(seconds):4d} SECONDS", logger)
         time.sleep(seconds)
-        delimit("DONE DOING NOTHING")
+        delimit("DONE DOING NOTHING", logger)
 
 
-async def async_do_nothing(seconds: float):
+async def async_do_nothing(seconds: float, logger: Optional[logging.Logger] = None):
     if seconds > 0:
-        delimit(f"DOING NOTHING FOR {int(seconds):4d} SECONDS")
+        delimit(f"DOING NOTHING FOR {int(seconds):4d} SECONDS", logger)
         await asyncio.sleep(seconds)
-        delimit("DONE DOING NOTHING")
+        delimit("DONE DOING NOTHING", logger)
 
 
 class Actors:
@@ -74,6 +82,9 @@ class Actors:
             layout: HardwareLayout,
             **kwargs
     ):
+        settings.paths.mkdirs(parents=True)
+        atn_settings = kwargs.get("atn_settings", AtnSettings())
+        atn_settings.paths.mkdirs(parents=True)
         self.scada = kwargs.get(
             "scada",
             ScadaRecorder("a.s", settings=settings, hardware_layout=layout)
@@ -100,7 +111,7 @@ class Actors:
         )
         self.atn2 = kwargs.get(
             "atn",
-            Atn2("a", settings=kwargs.get("atn_settings", AtnSettings()), hardware_layout=layout)
+            Atn2("a", settings=atn_settings, hardware_layout=layout)
         )
         self.scada2 = kwargs.get(
             "scada2",
@@ -150,6 +161,9 @@ class FragmentRunner:
     fragments: List[ProtocolFragment]
     wait_at_least: float
     do_nothing_time: float
+    tag: str
+    logger: logging.Logger
+    uid: str
 
     def __init__(
         self,
@@ -158,9 +172,28 @@ class FragmentRunner:
         wait_at_least: float = 0.0,
         do_nothing_time: float = 0.0,
         actors: Optional[Actors] = None,
+        tag: str = "",
+        args: Optional[argparse.Namespace] = None,
     ):
+        if settings is None:
+            settings = ScadaSettings()
+        if atn_settings is None:
+            atn_settings = AtnSettings()
+        settings.paths.mkdirs(parents=True)
+        atn_settings.paths.mkdirs(parents=True)
+        errors = []
+        if args is None:
+            args = argparse.Namespace(verbose=True)
+        setup_logging(args, settings, errors, add_screen_handler=True)
+        assert not errors
+        setup_logging(args, cast(ScadaSettings, atn_settings), errors, add_screen_handler=False)
+        assert not errors
+
         self.settings = settings
+        self.logger = logging.getLogger(self.settings.logging.base_log_name)
         self.atn_settings = atn_settings
+        self.tag = tag
+        self.uid = str(uuid.uuid4())
         self.layout = HardwareLayout.load(settings.paths.hardware_layout)
         self.wait_at_least = wait_at_least
         self.do_nothing_time = do_nothing_time
@@ -171,6 +204,15 @@ class FragmentRunner:
         ) if actors is None else actors
         self.requested = dict()
         self.fragments = []
+
+    def delimit(self, text: str = "") -> None:
+        if self.logger:
+            self.logger.log(logging.ERROR - 1, "\n")
+        else:
+            print()
+        delimit(text + " ", self.logger)
+        delimit(f"{text}  [{self.tag}]  [{self.uid}] ", self.logger)
+        delimit(text + " ", self.logger)
 
     def add_fragment(self, fragment: "ProtocolFragment") -> "FragmentRunner":
         self.fragments.append(fragment)
@@ -242,14 +284,14 @@ class FragmentRunner:
     def run(self, *args, **kwargs):
         try:
             start_time = time.time()
-            delimit("STARTING")
+            self.delimit("STARTING")
             self.start()
             self.wait_connect()
-            delimit("CONNECTED")
+            self.delimit("CONNECTED")
             for fragment in self.fragments:
                 fragment.run(*args, **kwargs)
             if (time_left := self.wait_at_least - (time.time() - start_time)) > 0:
-                do_nothing(time_left)
+                do_nothing(time_left, self.logger)
         finally:
             self.stop()
 
@@ -259,14 +301,10 @@ class FragmentRunner:
         fragment_factory: Callable[["FragmentRunner"], ProtocolFragment],
         settings: Optional[ScadaSettings] = None,
         atn_settings: Optional[AtnSettings] = None,
+        args: Optional[argparse.Namespace] = None,
+        tag: str = ""
     ):
-        if settings is None:
-            settings = ScadaSettings()
-        if atn_settings is None:
-            atn_settings = AtnSettings()
-        settings.paths.mkdirs(parents=True)
-        atn_settings.paths.mkdirs(parents=True)
-        runner = FragmentRunner(settings, atn_settings=atn_settings)
+        runner = FragmentRunner(settings, atn_settings=atn_settings, tag=tag, args=args)
         runner.add_fragment(fragment_factory(runner))
         runner.run()
 
@@ -291,7 +329,7 @@ class AsyncFragmentRunner(FragmentRunner):
             if not isinstance(actor, Proactor):
                 actor.start()
 
-    async def await_connect(self):
+    async def await_connect(self, logger:Optional[logging.Logger] = None):
         for actor in self.requested.values():
             if hasattr(actor, "client"):
                 await await_for(
@@ -307,14 +345,27 @@ class AsyncFragmentRunner(FragmentRunner):
                 )
             # TODO: make some test-public form of this
             if hasattr(actor, "_mqtt_clients"):
-                # noinspection PyProtectedMember
-                for client_name in actor._mqtt_clients._clients:
-                    # noinspection PyProtectedMember
-                    await await_for(
-                        lambda: actor._mqtt_clients.subscribed(client_name),
-                        3,
-                        f"waiting for {client_name} connect",
-                    )
+                # noinspection PyProtectedMember, PyShadowingNames
+                connected = await await_for(
+                    lambda: all([actor._mqtt_clients.subscribed(client_name) for client_name in actor._mqtt_clients._clients.keys()]),
+                    10,
+                    raise_timeout=False
+                )
+                if not connected:
+                    s = "MQTT CONNECTION ERROR\n"
+                    # noinspection PyProtectedMember, PyShadowingNames
+                    for client_name in sorted(actor._mqtt_clients._clients.keys()):
+                        # noinspection PyProtectedMember
+                        client = actor._mqtt_clients._clients[client_name]
+                        # noinspection PyProtectedMember
+                        s += (
+                            f"  {client_name:20s}  subscribed:{int(client.subscribed())}"
+                            f"  connected:{int(client.connected())} ({client._client_config.host}:{client._client_config.port})" 
+                            f"  subs:{client.num_subscriptions()}   subs pending: {client.num_pending_subscriptions()}\n"
+                        )
+                    if logger is not None:
+                        logger.info(s)
+                    raise ValueError(s)
 
     async def stop_and_join(self):
         for actor in self.requested.values():
@@ -334,17 +385,24 @@ class AsyncFragmentRunner(FragmentRunner):
     async def async_run(self, *args, **kwargs):
         try:
             start_time = time.time()
-            delimit("STARTING")
+            self.delimit("STARTING")
+            # TODO: Make this public access
+            # noinspection PyProtectedMember
+            self.actors.scada2._mqtt_clients.enable_loggers(self.actors.scada2._logger)
             self.start()
             if self.actors.atn2.name in self.requested:
                 asyncio.create_task(self.actors.atn2.run_forever(), name="atn_run_forever")
             asyncio.create_task(self.actors.scada2.run_forever(), name="scada_run_forever")
-            await self.await_connect()
-            delimit("CONNECTED")
+            # TODO: Make _logger public
+            # noinspection PyProtectedMember
+            await self.await_connect(cast(logging.Logger, self.actors.scada2._logger))
+            # noinspection PyProtectedMember
+            self.actors.scada2._mqtt_clients.disable_loggers()
+            self.delimit("CONNECTED")
             for fragment in self.fragments:
                 await fragment.async_run(*args, **kwargs)
             if (time_left := self.wait_at_least - (time.time() - start_time)) > 0:
-                await async_do_nothing(time_left)
+                await async_do_nothing(time_left, self.logger)
         finally:
             # noinspection PyBroadException
             try:
@@ -357,6 +415,11 @@ class AsyncFragmentRunner(FragmentRunner):
             #       apparently due to cancelling tasks without the loop being able to clean them up.
             #       What is the right way of dealing with this?
             await asyncio.sleep(0.1)
+            # noinspection PyBroadException
+            try:
+                self.delimit("COMPLETE")
+            except:
+                pass
 
     @classmethod
     async def async_run_fragment(
@@ -364,14 +427,10 @@ class AsyncFragmentRunner(FragmentRunner):
         fragment_factory: Callable[["AsyncFragmentRunner"], ProtocolFragment],
         settings: Optional[ScadaSettings] = None,
         atn_settings: Optional[AtnSettings] = None,
+        args: Optional[argparse.Namespace] = None,
+        tag: str = ""
     ):
-        if settings is None:
-            settings = ScadaSettings()
-        if atn_settings is None:
-            atn_settings = AtnSettings()
-        settings.paths.mkdirs(parents=True)
-        atn_settings.paths.mkdirs(parents=True)
-        runner = AsyncFragmentRunner(settings, atn_settings=atn_settings)
+        runner = AsyncFragmentRunner(settings, atn_settings=atn_settings, tag=tag, args=args)
         runner.add_fragment(fragment_factory(runner))
         await runner.async_run()
 

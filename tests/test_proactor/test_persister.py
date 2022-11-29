@@ -10,14 +10,13 @@ from gwproto.messages import ProblemEvent
 from result import Result
 
 from config import ScadaSettings
-from proactor.persister import _PersistedItem
 from proactor.persister import FileExistedWarning
 from proactor.persister import FileMissing
 from proactor.persister import FileMissingWarning
 from proactor.persister import PersisterError
 from proactor.persister import PersisterException
 from proactor.persister import PersisterWarning
-from proactor.persister import Problems
+from proactor.problems import Problems
 from proactor.persister import ReindexError
 from proactor.persister import TimedRollingFilePersister
 from proactor.persister import TrimFailed

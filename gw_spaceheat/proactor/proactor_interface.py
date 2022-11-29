@@ -25,7 +25,7 @@ class CommunicatorInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def process_message(self, message: Message):
+    def process_message(self, message: Message):
         raise NotImplementedError
 
 

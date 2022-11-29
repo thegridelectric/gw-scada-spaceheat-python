@@ -3,8 +3,8 @@ import asyncio
 import os
 from tests.conftest import TEST_DOTENV_PATH
 from tests.conftest import TEST_DOTENV_PATH_VAR
-from tests.fragment_runner import AsyncFragmentRunner
-from tests.fragment_runner import ProtocolFragment
+from tests.utils.fragment_runner import AsyncFragmentRunner
+from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import await_for
 
 import load_house
@@ -58,12 +58,11 @@ def test_run_local(tmp_path):
 
 @pytest.mark.skip
 @pytest.mark.asyncio
-async def test_run_local2(tmp_path, monkeypatch):
+async def test_run_local2(tmp_path, monkeypatch, request):
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("SCADA_SECONDS_PER_REPORT", "2")
     settings = ScadaSettings()
-    settings.paths.mkdirs()
     assert settings.seconds_per_report == 2
     status_topic = GtShStatus_Maker.type_alias
     snapshot_topic = SnapshotSpaceheat_Maker.type_alias
@@ -116,4 +115,4 @@ async def test_run_local2(tmp_path, monkeypatch):
                 except Exception as e:
                     print(e)
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, tag=request.node.name)

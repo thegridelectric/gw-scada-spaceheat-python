@@ -11,59 +11,8 @@ from pendulum import DateTime
 from result import Err
 from result import Ok
 from result import Result
+from proactor.problems import Problems
 
-
-class Problems(ValueError):
-    MAX_PROBLEMS = 10
-
-    errors: list[BaseException]
-    warnings: list[BaseException]
-    max_problems: Optional[int] = MAX_PROBLEMS
-
-    def __init__(
-            self,
-            msg: str = "",
-            warnings: Optional[list[BaseException]] = None,
-            errors: Optional[list[BaseException]] = None,
-            max_problems: Optional[int] = MAX_PROBLEMS
-    ):
-        self.errors = errors or []
-        self.warnings = warnings or []
-        self.max_problems = max_problems
-        super().__init__(msg)
-
-    def __bool__(self) -> bool:
-        return bool(self.errors) or bool(self.warnings)
-
-    def add_error(self, error: BaseException) -> "Problems":
-        if len(self.errors) < self.max_problems:
-            self.errors.append(error)
-        return self
-
-    def add_warning(self, warning: BaseException) -> "Problems":
-        if len(self.warnings) < self.max_problems:
-            self.warnings.append(warning)
-        return self
-
-    def add_problems(self, other: "Problems") -> "Problems":
-        self.errors.extend(other.errors[:self.max_problems - len(self.errors)])
-        self.warnings.extend(other.warnings[:self.max_problems - len(self.warnings)])
-        return self
-
-    def __str__(self) -> str:
-        if bool(self):
-            s = f"Problems: {len(self.errors)} errors, {len(self.warnings)} warnings, max: {self.max_problems}"
-            for attr_name in ["errors", "warnings"]:
-                lst = getattr(self, attr_name)
-                if lst:
-                    s += f"\n{attr_name.capitalize()}:\n"
-                    for i, entry in enumerate(lst):
-                        s += f"  {i:2d}: {entry}\n"
-            return s
-        return ""
-
-    def __repr__(self) -> str:
-        return str(self)
 
 class PersisterException(Exception):
     path: Optional[Path] = None
@@ -115,6 +64,10 @@ class ReindexError(PersisterError):
     ...
 
 
+class JSONDecodingError(PersisterException):
+    ...
+
+
 class UIDExistedWarning(PersisterWarning):
     ...
 
@@ -129,7 +82,6 @@ class FileMissingWarning(PersisterWarning):
 
 class UIDMissingWarning(PersisterWarning):
     ...
-
 
 class PersisterInterface(abc.ABC):
 

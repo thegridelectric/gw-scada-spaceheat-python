@@ -1,9 +1,8 @@
 
 """Test SimpleSensor actor"""
-import logging
 import typing
-from tests.fragment_runner import AsyncFragmentRunner
-from tests.fragment_runner import ProtocolFragment
+from tests.utils.fragment_runner import AsyncFragmentRunner
+from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import await_for
 
 import actors2
@@ -12,13 +11,10 @@ from data_classes.components.temp_sensor_component import TempSensorComponent
 
 
 @pytest.mark.asyncio
-async def test_simple_sensor_periodic_update(tmp_path, monkeypatch):
+async def test_simple_sensor_periodic_update(tmp_path, monkeypatch, request):
     """Verify that SimpleSensor sends its periodic GtTelemetry message."""
 
     monkeypatch.chdir(tmp_path)
-    logging.basicConfig(level="DEBUG")
-    debug_logs_path = tmp_path / "output/debug_logs"
-    debug_logs_path.mkdir(parents=True, exist_ok=True)
 
     class Fragment(ProtocolFragment):
 
@@ -56,4 +52,4 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch):
                 "wait for SimpleSensor periodic update"
             )
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, tag=request.node.name)

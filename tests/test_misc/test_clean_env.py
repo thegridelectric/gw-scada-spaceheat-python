@@ -1,4 +1,3 @@
-import json
 from tests.conftest import DUMMY_TEST_HARDWARE_LAYOUT_PATH
 
 import pytest
