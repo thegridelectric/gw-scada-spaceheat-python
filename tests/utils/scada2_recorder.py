@@ -1,4 +1,3 @@
-import functools
 from collections import defaultdict
 from dataclasses import dataclass
 from dataclasses import field
@@ -6,19 +5,21 @@ from typing import Any
 from typing import List
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
 
 from gwproto import Message
 from gwproto.messages import CommEvent
 from gwproto.messages import EventT
 from gwproto.messages import PingMessage
+from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from actors2 import Scada2
 from config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor.message import MQTTReceiptPayload
-from proactor.message import MQTTSubackMessage
 from proactor.message import MQTTSubackPayload
+from proactor.mqtt import MQTTClientWrapper
 
 
 @dataclass
@@ -80,21 +81,10 @@ class Stats:
         return s
 
 
-# noinspection PyProtectedMember
-def split_suback(_, userdata, mid, granted_qos, paho_client_wrapper):
-    topics = paho_client_wrapper._pending_subacks.pop(mid, [])
-    if topics:
-        for topic in topics:
-            paho_client_wrapper._pending_subscriptions.remove(topic)
-            paho_client_wrapper._receive_queue.put(
-                MQTTSubackMessage(
-                    client_name=paho_client_wrapper.name,
-                    userdata=userdata,
-                    mid=mid,
-                    granted_qos=granted_qos,
-                    num_pending_subscriptions=len(paho_client_wrapper._pending_subscriptions),
-                )
-            )
+def split_subscriptions(client_wrapper: MQTTClientWrapper) -> Tuple[int, Optional[int]]:
+    for i, (topic, qos) in enumerate(client_wrapper.subscription_items()):
+        MQTTClientWrapper.subscribe(client_wrapper, topic, qos)
+    return MQTT_ERR_SUCCESS, None
 
 
 class Scada2Recorder(Scada2):
@@ -123,18 +113,16 @@ class Scada2Recorder(Scada2):
             link_stats.comm_events.append(event)
         super().generate_event(event)
 
-    # noinspection PyProtectedMember
     def split_client_subacks(self, client_name: str):
-        paho_client_wrapper = self._mqtt_clients._clients[client_name]
-        # that's a lot of clients. Here's another.
-        paho_client = paho_client_wrapper._client
-        paho_client.on_subscribe = functools.partial(split_suback, paho_client_wrapper=paho_client_wrapper)
+        client_wrapper = self._mqtt_clients.client_wrapper(client_name)
 
-    # noinspection PyProtectedMember
+        def member_split_subscriptions():
+            return split_subscriptions(client_wrapper)
+        client_wrapper.subscribe_all = member_split_subscriptions
+
     def restore_client_subacks(self, client_name: str):
-        paho_client_wrapper = self._mqtt_clients._clients[client_name]
-        paho_client = paho_client_wrapper._client
-        paho_client.on_subscribe = paho_client_wrapper.on_subscribe
+        client_wrapper = self._mqtt_clients.client_wrapper(client_name)
+        client_wrapper.subscribe_all = MQTTClientWrapper.subscribe_all
 
     def pause_subacks(self):
         self.subacks_paused = True

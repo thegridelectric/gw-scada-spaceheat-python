@@ -379,8 +379,8 @@ class LinkStates:
     def process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]) -> Result[Transition, InvalidCommStateInput]:
         return self[message.Payload.client_name].process_mqtt_connect_fail()
 
-    def process_mqtt_suback(self, message: Message[MQTTSubackPayload]) -> Result[Transition, InvalidCommStateInput]:
-        return self[message.Payload.client_name].process_mqtt_suback(message.Payload.num_pending_subscriptions)
+    def process_mqtt_suback(self, name: str, num_pending_subscriptions: int) -> Result[Transition, InvalidCommStateInput]:
+        return self[name].process_mqtt_suback(num_pending_subscriptions)
 
     def process_mqtt_message(self, message: Message[MQTTReceiptPayload]) -> Result[Transition, InvalidCommStateInput]:
         return self[message.Payload.client_name].process_mqtt_message()

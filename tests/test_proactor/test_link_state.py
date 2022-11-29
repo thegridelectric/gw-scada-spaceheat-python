@@ -16,7 +16,6 @@ from proactor.message import MQTTConnectFailMessage
 from proactor.message import MQTTConnectMessage
 from proactor.message import MQTTDisconnectMessage
 from proactor.message import MQTTReceiptMessage
-from proactor.message import MQTTSubackMessage
 
 
 def assert_transition(got: Transition, exp: Transition):
@@ -55,7 +54,7 @@ class _Case:
                 case TransitionName.mqtt_suback:
                     if content is None:
                         content = 1
-                    content = MQTTSubackMessage(client_name=name, userdata=None, mid=1, granted_qos=[1], num_pending_subscriptions=content)
+                    content = name, content
                 case TransitionName.message_from_peer:
                     content = MQTTReceiptMessage(client_name=name, userdata=None, message=MQTTMessage())
                 case _:
@@ -92,7 +91,7 @@ class _Case:
             case TransitionName.mqtt_disconnected:
                 self.assert_case(links, name, links.process_mqtt_disconnected(self.get_input_content(name)))
             case TransitionName.mqtt_suback:
-                self.assert_case(links, name, links.process_mqtt_suback(self.get_input_content(name)))
+                self.assert_case(links, name, links.process_mqtt_suback(*self.get_input_content(name)))
             case TransitionName.message_from_peer:
                 self.assert_case(links, name, links.process_mqtt_message(self.get_input_content(name)))
             case TransitionName.response_timeout:
