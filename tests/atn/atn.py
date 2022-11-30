@@ -1,19 +1,14 @@
 """Scada implementation"""
 import asyncio
 import dataclasses
-import logging
-import os
-import sys
 import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 from typing import Optional
 from typing import Sequence
 
-import dotenv
 import pendulum
 import rich
 from gwproto import CallableDecoder
@@ -32,16 +27,11 @@ from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
-
 from actors.utils import QOS
 from actors2 import ActorInterface
 from actors2.message import ScadaDBG
 from actors2.message import ScadaDBGCommands
-from command_line_utils import parse_args
 from config import LoggerLevels
-from config import LoggingSettings
-from config import Paths
-from logging_setup import setup_logging
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor.logger import ProactorLogger
@@ -283,17 +273,19 @@ class Atn2(ActorInterface, Proactor):
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
-        self._logger.info("Snapshot received:")
+        s = "\n\nSnapshot received:\n"
         for node in self.my_sensors:
             if node.alias not in snapshot.Snapshot.AboutNodeAliasList:
-                self._logger.info("  No data for node %s present in snapshot", node.alias)
+                s += f"  No data for node {node.alias} present in snapshot"
         for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
-            self._logger.info(
-                "  %s: %s %s",
-                snapshot.Snapshot.AboutNodeAliasList[i],
-                snapshot.Snapshot.ValueList[i],
-                snapshot.Snapshot.TelemetryNameList[i].value
+            s += (
+                f"  {snapshot.Snapshot.AboutNodeAliasList[i]}: "
+                f"{snapshot.Snapshot.ValueList[i]} "
+                f"{snapshot.Snapshot.TelemetryNameList[i].value}\n"
             )
+        s += "\nrich.print(snapshot):"
+        self._logger.warning(s)
+        rich.print(snapshot)
 
     def _process_dbg_command(self, dbg: ScadaDBG):
         pass
@@ -304,8 +296,6 @@ class Atn2(ActorInterface, Proactor):
         with status_file.open("w") as f:
             f.write(status.as_type())
         self._logger.info(f"Wrote status file [{status_file}]")
-
-    # noinspection PyMethodMayBeStatic
 
     def _process_event(self, event: EventBase) -> None:
         event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
@@ -350,6 +340,7 @@ class Atn2(ActorInterface, Proactor):
                 )
             )
         )
+
     def set_relay(self, name: str, state: bool) -> None:
         self.send_threadsafe(
             Message(
@@ -399,31 +390,3 @@ class Atn2(ActorInterface, Proactor):
                 s += f"\n    {self.stats.num_received_by_message_type[message_type]:3d}: [{message_type}]"
 
         return s
-
-    @classmethod
-    def get_atn(
-        cls, argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn2":
-        if argv is None:
-            argv = sys.argv[1:]
-            if "-v" not in argv and "--verbose" not in argv:
-                argv.append("-v")
-        args = parse_args(argv)
-        env_path = Path(dotenv.find_dotenv(args.env_file))
-        dotenv.load_dotenv(env_path)
-        settings = AtnSettings(
-            paths=Paths(
-                name="atn",
-                hardware_layout=os.getenv("ATN_PATHS__HARDWARE_LAYOUT", Paths().hardware_layout)
-            ),
-            logging=LoggingSettings(base_log_name="gridworks.atn")
-        )
-        settings.paths.mkdirs()
-        setup_logging(args, settings)  # type: ignore
-        logger = logging.getLogger(settings.logging.base_log_name)
-        logger.log(logging.ERROR + 1, f"Env file: [{env_path}]")
-        rich.print(settings)
-        layout = HardwareLayout.load(settings.paths.hardware_layout)
-        a = Atn2("a", settings, layout)
-        if start:
-            a.start()
-        return a
