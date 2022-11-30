@@ -35,6 +35,7 @@ def test_gt_temp_sensor_component():
         component_id=gw_tuple.ComponentId,
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
         hw_uid=gw_tuple.HwUid,
+        channel=None,
         #
     ).tuple
     assert t == gw_tuple
@@ -134,3 +135,5 @@ def test_gt_temp_sensor_component():
     gw_dict["ComponentId"] = "2ca9e65a-5e85-4eaa-811b-901e940f8d09"
 
     # End of Test
+
+
