@@ -30,7 +30,6 @@ if DRIVER_IS_REAL:
     from data_classes.components.temp_sensor_component import TempSensorComponent
     from schema.enums.make_model.make_model_map import MakeModel
 
-
     class G1_NcdAds1115_Ntc10k(TempSensorDriver):
         def __init__(self, component: TempSensorComponent):
             super(G1_NcdAds1115_Ntc10k, self).__init__(component=component)

@@ -53,11 +53,11 @@ class Adafruit642_TempSensorDriver(TempSensorDriver):
             equals_pos = lines[1].find("t=")
         except:
             return None
-            
+
         if equals_pos == -1:
             return None
         try:
-            temp_string = lines[1][equals_pos + 2 :]
+            temp_string = lines[1][equals_pos + 2:]
         except:
             return None
         temp_c_times_1000 = int(temp_string)
@@ -68,7 +68,7 @@ class Adafruit642_TempSensorDriver(TempSensorDriver):
         i = 0
         while temp_c_times_1000 is None:
             time.sleep(0.2)
-            temp_c_times_1000  = self.read_temp_c_times_1000()
+            temp_c_times_1000 = self.read_temp_c_times_1000()
             i += 1
             if i == 10:
                 return DEFAULT_BAD_TEMP_C_TIMES_1000_VALUE

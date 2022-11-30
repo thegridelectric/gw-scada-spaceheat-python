@@ -135,5 +135,3 @@ def test_gt_temp_sensor_component():
     gw_dict["ComponentId"] = "2ca9e65a-5e85-4eaa-811b-901e940f8d09"
 
     # End of Test
-
-
