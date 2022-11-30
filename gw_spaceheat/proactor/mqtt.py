@@ -78,7 +78,6 @@ class MQTTClientWrapper:
         self._subscriptions[topic] = qos
         self._pending_subscriptions.add(topic)
         subscribe_result = self._client.subscribe(topic, qos)
-        print(f"subscribe_result: {subscribe_result}")
         if subscribe_result[0] == MQTT_ERR_SUCCESS:
             self._pending_subacks[subscribe_result[1]] = [topic]
         return subscribe_result

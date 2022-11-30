@@ -416,7 +416,14 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch, request):
             for actor in [thermo, relay, meter]:
                 scada.add_communicator(actor)
                 actor.start()
-            scada.turn_on(relay.node)
+            await await_for(
+                scada._link_states.link(scada.GRIDWORKS_MQTT).active,
+                10,
+                "ERROR waiting link active",
+                err_str_f=scada.summary_str
+            )
+            assert scada.scada_atn_fast_dispatch_contract_is_alive
+            atn.turn_on(relay.node)
 
             await await_for(
                 lambda: (

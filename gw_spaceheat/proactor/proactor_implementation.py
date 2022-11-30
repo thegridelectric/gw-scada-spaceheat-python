@@ -390,22 +390,25 @@ class Proactor(ServicesInterface, Runnable):
                             path_dbg |= 0x00000008
                             self.generate_event(PeerActiveEvent(PeerName=mqtt_receipt_message.Payload.client_name))
                             self._derived_recv_activated(transition)
+                        elif transition.recv_deactivated():
+                            path_dbg |= 0x00000010
+                            self._derived_recv_deactivated(transition)
                     case Err(error):
-                        path_dbg |= 0x00000010
+                        path_dbg |= 0x00000020
                         self._report_error(error, "_process_mqtt_message/_link_states.process_mqtt_message")
                 match decoded_message.Payload:
                     case Ack():
-                        path_dbg |= 0x00000020
+                        path_dbg |= 0x00000040
                         self._process_ack_result(decoded_message.Payload.AckMessageID, AckWaitSummary.acked)
                     case Ping():
-                        path_dbg |= 0x00000020
+                        path_dbg |= 0x00000080
                     case _:
-                        path_dbg |= 0x00000040
+                        path_dbg |= 0x00000100
                         self._derived_process_mqtt_message(mqtt_receipt_message, decoded_message)
                 if decoded_message.Header.AckRequired:
-                    path_dbg |= 0x00000080
+                    path_dbg |= 0x00000200
                     if decoded_message.Header.MessageId:
-                        path_dbg |= 0x00000100
+                        path_dbg |= 0x00000400
                         self._publish_message(
                             mqtt_receipt_message.Payload.client_name,
                             Message(
@@ -414,7 +417,7 @@ class Proactor(ServicesInterface, Runnable):
                             )
                         )
             case Err(error):
-                path_dbg |= 0x00000200
+                path_dbg |= 0x00000800
                 result = Err(error)
         self._logger.path("--Proactor._process_mqtt_message:%s  path:0x%08X", int(result.is_ok()), path_dbg)
         return result

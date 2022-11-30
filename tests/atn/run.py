@@ -3,6 +3,10 @@ import sys
 from typing import Optional
 from typing import Sequence
 
+# noinspection PyUnresolvedReferences
+import rich
+
+
 try:
     from tests.atn import Atn2
 except ImportError as e:
@@ -24,7 +28,9 @@ def main(argv: Optional[Sequence[str]] = None):
         time.sleep(1)
         while True:
             text = input("> ? ")
-            if text:
+            if text == "exit()":
+                break
+            elif text:
                 # noinspection PyProtectedMember
                 a._logger.info(f"eval(\"{text}\")")
                 # noinspection PyBroadException

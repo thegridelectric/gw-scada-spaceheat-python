@@ -48,7 +48,6 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.link_state import Transition
 from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload
-from proactor.message import MQTTSubackPayload
 from proactor.persister import JSONDecodingError
 from proactor.persister import TimedRollingFilePersister
 from proactor.persister import UIDMissingWarning
@@ -231,8 +230,15 @@ class Scada2(ScadaInterface, Proactor):
             sort_keys=True, indent=2).encode(self.PERSISTER_ENCODING))
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    def _derived_recv_deactivated(self, transition: Transition) -> Result[bool, BaseException]:
+        self._scada_atn_fast_dispatch_contract_is_alive_stub = False
+        return Ok()
+
+
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
         errors = []
+        self._scada_atn_fast_dispatch_contract_is_alive_stub = True
         for pending_message_id in self._event_persister.pending():
             match self._event_persister.retrieve(pending_message_id):
                 case Ok(event_bytes):

@@ -420,7 +420,7 @@ class Atn2(ActorInterface, Proactor):
         settings.paths.mkdirs()
         setup_logging(args, settings)  # type: ignore
         logger = logging.getLogger(settings.logging.base_log_name)
-        logger.info(f"Env file: {env_path}")
+        logger.log(logging.ERROR + 1, f"Env file: [{env_path}]")
         rich.print(settings)
         layout = HardwareLayout.load(settings.paths.hardware_layout)
         a = Atn2("a", settings, layout)
