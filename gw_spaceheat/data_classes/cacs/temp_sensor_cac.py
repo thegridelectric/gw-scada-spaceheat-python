@@ -2,9 +2,9 @@
 from typing import Dict, Optional
 
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.enums import MakeModelMap
-from schema.enums import TelemetryNameMap
-from schema.enums import Unit, UnitMap
+from schema.enums.make_model.make_model_map import MakeModelMap
+from schema.enums.unit.unit_map import Unit, UnitMap
+from gwproto.enums.telemetry_name.telemetry_name_map import TelemetryNameMap
 
 
 class TempSensorCac(ComponentAttributeClass):
@@ -34,8 +34,8 @@ class TempSensorCac(ComponentAttributeClass):
 
         TempSensorCac.by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
-        if self.temp_unit not in [Unit.CELCIUS, Unit.FAHRENHEIT]:
-            raise Exception("TempSensorCac units must be Fahrenheit or Celsius")
+        if self.temp_unit not in [Unit.CELCIUS, Unit.FAHRENHEIT, Unit.UNITLESS]:
+            raise Exception("TempSensorCac units must be Fahrenheit, Celsius or Unitless")
         self.telemetry_name
 
     def __repr__(self):

@@ -10,6 +10,7 @@ from drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBool
 from drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver import UnknownPipeFlowSensorDriver
 
 from drivers.temp_sensor.adafruit_642__temp_sensor_driver import Adafruit642_TempSensorDriver
+from drivers.temp_sensor.g1_ncdads1115_ntc10k__temp_sensor_driver import G1_NcdAds1115_Ntc10k
 from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import (
     GridworksWaterTempSensorHighPrecision_TempSensorDriver,
 )
@@ -18,8 +19,8 @@ from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker impor
     GtSensorReportingConfig_Maker as ConfigMaker,
 )
 
-from schema.enums import Unit
-from schema.enums import MakeModel
+from schema.enums.unit.unit_map import Unit
+from schema.enums.make_model.make_model_map import MakeModel
 
 
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
@@ -89,6 +90,10 @@ class NodeConfig:
         ).tuple
         if cac.make_model == MakeModel.ADAFRUIT__642:
             self.driver = Adafruit642_TempSensorDriver(component=component)
+        elif cac.make_model == MakeModel.G1__NCD_ADS1115__AMPH_NTC_10K_A:
+            self.driver = G1_NcdAds1115_Ntc10k(component=component)
+        elif cac.make_model == MakeModel.G1__NCD_ADS1115__TEWA_NTC_10K_A:
+            self.driver = G1_NcdAds1115_Ntc10k(component=component)
         elif cac.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             self.driver = GridworksWaterTempSensorHighPrecision_TempSensorDriver(
                 component=component

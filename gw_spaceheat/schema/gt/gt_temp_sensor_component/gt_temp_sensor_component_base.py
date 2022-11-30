@@ -9,6 +9,7 @@ class GtTempSensorComponentBase(NamedTuple):
     ComponentAttributeClassId: str
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
+    Channel: Optional[int] = None
     TypeAlias: str = "gt.temp.sensor.component.100"
 
     def as_type(self):

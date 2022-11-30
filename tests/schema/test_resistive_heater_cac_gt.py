@@ -13,7 +13,7 @@ def test_resistive_heater_cac_gt():
         "DisplayName": "Fake Boost Element",
         "NameplateMaxPowerW": 4500,
         "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-        "MakeModelGtEnumSymbol": "b6a32d9b",
+        "MakeModelGtEnumSymbol": "00000000",
         "TypeAlias": "resistive.heater.cac.gt.100",
     }
 

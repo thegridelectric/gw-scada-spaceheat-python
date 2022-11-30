@@ -460,7 +460,7 @@
   "ResistiveHeaterCacs": [
     {
       "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-      "MakeModelGtEnumSymbol": "b6a32d9b",
+      "MakeModelGtEnumSymbol": "00000000",
       "DisplayName": "Fake Boost Element",
       "NameplateMaxPowerW": 4500,
       "RatedVoltageV": 240,
@@ -479,7 +479,7 @@
   "PipeFlowSensorCacs": [
     {
       "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
-      "MakeModelGtEnumSymbol": "b6a32d9b",
+      "MakeModelGtEnumSymbol": "00000000",
       "CommsMethod": "Remove this Comms Method",
       "DisplayName": "Some pipe flow sensor",
       "TypeAlias": "gt.pipe.flow.sensor.cac.100"
@@ -509,7 +509,7 @@
     },
     {
       "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
-      "MakeModelGtEnumSymbol": "b6a32d9b",
+      "MakeModelGtEnumSymbol": "00000000",
       "TempUnitGtEnumSymbol": "ec14bd47",
       "TelemetryNameGtEnumSymbol": "793505aa",
       "TypicalResponseTimeMs": 0,
@@ -518,7 +518,7 @@
     },
     {
       "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
-      "MakeModelGtEnumSymbol": "b6a32d9b",
+      "MakeModelGtEnumSymbol": "00000000",
       "TempUnitGtEnumSymbol": "ec14bd47",
       "TelemetryNameGtEnumSymbol": "793505aa",
       "TypicalResponseTimeMs": 0,
@@ -529,19 +529,19 @@
   "OtherCacs": [
     {
       "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407",
-      "MakeModelGtEnumSymbol": "b6a32d9b"
+      "MakeModelGtEnumSymbol": "00000000"
     },
     {
       "ComponentAttributeClassId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa",
-      "MakeModelGtEnumSymbol": "b6a32d9b"
+      "MakeModelGtEnumSymbol": "00000000"
     },
     {
       "ComponentAttributeClassId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776",
-      "MakeModelGtEnumSymbol": "b6a32d9b"
+      "MakeModelGtEnumSymbol": "00000000"
     },
     {
       "ComponentAttributeClassId": "c884aafe-99e0-4468-8bff-ffa74f672f9d",
-      "MakeModelGtEnumSymbol": "b6a32d9b"
+      "MakeModelGtEnumSymbol": "00000000"
     }
   ]
 }

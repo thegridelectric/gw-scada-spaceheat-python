@@ -17,6 +17,9 @@ class MakeModel(enum.Enum):
     NCD__PR814SPST = "NCD__PR8-14-SPST"
     UNKNOWNMAKE__UNKNOWNMODEL = "UnknownMake__UnknownModel"
     OPENENERGY__EMONPI = "OpenEnergy__EmonPi"
+    G1__NCD_ADS1115__TEWA_NTC_10K_A = "G1__NcdAds1115__TewaNtc10kA"
+    G1__NCD_ADS1115__AMPH_NTC_10K_A = "G1__NcdAds1115__AmphNtc10kA"
+
     #
 
 
@@ -28,7 +31,10 @@ class SpaceheatMakeModel100GtEnum(ABC):
         "e81d74a8",
         "acd93fb3",
         "fabfa505",
-        "b6a32d9b",
-        "c75d269f"
+        "00000000",
+        "c75d269f",
+        "e3364590",
+        "90566a90",
+
         #
     ]

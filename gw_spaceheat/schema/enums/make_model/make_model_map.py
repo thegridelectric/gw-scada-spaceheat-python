@@ -30,6 +30,7 @@ class MakeModelMap:
         return cls.local_to_gt_dict[make_model]
 
     gt_to_local_dict: Dict[str, MakeModel] = {
+        "00000000": MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
         "f8b497e8": MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION,
         "076da322": MakeModel.GRIDWORKS__SIMPM1,
         "d300635e": MakeModel.SCHNEIDERELECTRIC__IEM3455,
@@ -37,17 +38,20 @@ class MakeModelMap:
         "c75d269f": MakeModel.OPENENERGY__EMONPI,
         "acd93fb3": MakeModel.ADAFRUIT__642,
         "fabfa505": MakeModel.NCD__PR814SPST,
-        "b6a32d9b": MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
+        "e3364590": MakeModel.G1__NCD_ADS1115__TEWA_NTC_10K_A,
+        "90566a90": MakeModel.G1__NCD_ADS1115__AMPH_NTC_10K_A
     }
 
     local_to_gt_dict: Dict[MakeModel, str] = {
+        MakeModel.UNKNOWNMAKE__UNKNOWNMODEL: "00000000",
         MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION: "f8b497e8",
         MakeModel.GRIDWORKS__SIMPM1: "076da322",
         MakeModel.SCHNEIDERELECTRIC__IEM3455: "d300635e",
         MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY: "e81d74a8",
         MakeModel.ADAFRUIT__642: "acd93fb3",
         MakeModel.NCD__PR814SPST: "fabfa505",
-        MakeModel.UNKNOWNMAKE__UNKNOWNMODEL: "b6a32d9b",
-        MakeModel.OPENENERGY__EMONPI: "c75d269f"
+        MakeModel.OPENENERGY__EMONPI: "c75d269f",
+        MakeModel.G1__NCD_ADS1115__TEWA_NTC_10K_A: "e3364590",
+        MakeModel.G1__NCD_ADS1115__AMPH_NTC_10K_A: "90566a90",
         #
     }

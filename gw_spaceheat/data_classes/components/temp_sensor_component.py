@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from data_classes.cacs.temp_sensor_cac import TempSensorCac
 from data_classes.component import Component
-from schema.enums import MakeModel
+from schema.enums.make_model.make_model_map import MakeModel
 
 
 class TempSensorComponent(Component):
@@ -15,6 +15,7 @@ class TempSensorComponent(Component):
         component_attribute_class_id: str,
         display_name: Optional[str] = None,
         hw_uid: Optional[str] = None,
+        channel: Optional[int] = None,
     ):
         super(self.__class__, self).__init__(
             display_name=display_name,
@@ -22,8 +23,10 @@ class TempSensorComponent(Component):
             hw_uid=hw_uid,
             component_attribute_class_id=component_attribute_class_id,
         )
+        self.channel: Optional[int] = channel
         TempSensorComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
+
 
     @property
     def cac(self) -> TempSensorCac:
