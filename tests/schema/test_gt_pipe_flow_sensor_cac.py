@@ -12,7 +12,7 @@ def test_gt_pipe_flow_sensor_cac():
         "DisplayName": "Some pipe flow sensor",
         "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
         "CommsMethod": "Remove this Comms Method",
-        "MakeModelGtEnumSymbol": "b6a32d9b",
+        "MakeModelGtEnumSymbol": "00000000",
         "TypeAlias": "gt.pipe.flow.sensor.cac.100",
     }
 

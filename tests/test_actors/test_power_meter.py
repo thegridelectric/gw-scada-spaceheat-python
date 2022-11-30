@@ -40,7 +40,7 @@ def test_driver_loading():
 
     layout_dict["ElectricMeterCacs"][0] = {
         "ComponentAttributeClassId": "c1f17330-6269-4bc5-aa4b-82e939e9b70c",
-        "MakeModelGtEnumSymbol": "b6a32d9b",
+        "MakeModelGtEnumSymbol": "00000000",
         "DisplayName": "Unknown Power Meter",
         "LocalCommInterfaceGtEnumSymbol": "829549d1",
         "TypeAlias": "gt.electric.meter.cac.100",

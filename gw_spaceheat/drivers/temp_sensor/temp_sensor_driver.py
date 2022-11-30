@@ -10,5 +10,5 @@ class TempSensorDriver(ABC):
         self.component = component
 
     @abstractmethod
-    def read_telemetry_value(self) -> Optional[int]:
+    def read_telemetry_value(self) -> int:
         raise NotImplementedError

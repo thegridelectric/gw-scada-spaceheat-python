@@ -14,13 +14,15 @@ class GtTempSensorComponent_Maker:
                  component_id: str,
                  component_attribute_class_id: str,
                  display_name: Optional[str],
-                 hw_uid: Optional[str]):
+                 hw_uid: Optional[str],
+                 channel: Optional[int],):
 
         gw_tuple = GtTempSensorComponent(
             DisplayName=display_name,
             ComponentId=component_id,
             ComponentAttributeClassId=component_attribute_class_id,
             HwUid=hw_uid,
+            Channel=channel,
             #
         )
         gw_tuple.check_for_errors()
@@ -56,6 +58,8 @@ class GtTempSensorComponent_Maker:
             raise MpSchemaError(f"dict {new_d} missing ComponentAttributeClassId")
         if "HwUid" not in new_d.keys():
             new_d["HwUid"] = None
+        if "Channel" not in new_d.keys():
+            new_d["Channel"] = None
 
         gw_tuple = GtTempSensorComponent(
             TypeAlias=new_d["TypeAlias"],
@@ -63,6 +67,7 @@ class GtTempSensorComponent_Maker:
             ComponentId=new_d["ComponentId"],
             ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
             HwUid=new_d["HwUid"],
+            Channel=new_d["Channel"]
             #
         )
         gw_tuple.check_for_errors()
@@ -74,6 +79,7 @@ class GtTempSensorComponent_Maker:
             "display_name": t.DisplayName,
             "component_id": t.ComponentId,
             "hw_uid": t.HwUid,
+            "channel": t.Channel,
             "component_attribute_class_id": t.ComponentAttributeClassId,
             #
         }
@@ -91,6 +97,7 @@ class GtTempSensorComponent_Maker:
             DisplayName=dc.display_name,
             ComponentId=dc.component_id,
             HwUid=dc.hw_uid,
+            Channel=dc.channel,
             ComponentAttributeClassId=dc.component_attribute_class_id,
             #
         )

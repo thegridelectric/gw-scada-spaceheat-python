@@ -3,4 +3,6 @@ smbus2
 
 pymodbus
 pyserial
+adafruit-circuitpython-ads1x15
+
 #git+https://github.com/bivab/smbus-cffi.git  #used by i2c devices: NCD relay board
