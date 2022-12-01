@@ -281,7 +281,7 @@ class Atn2(ActorInterface, Proactor):
                 f"{snapshot.Snapshot.ValueList[i]} "
                 f"{snapshot.Snapshot.TelemetryNameList[i].value}\n"
             )
-        s += "\nrich.print(snapshot):"
+        #s += "\nrich.print(snapshot):"
         self._logger.warning(s)
         #rich.print(snapshot)
 
