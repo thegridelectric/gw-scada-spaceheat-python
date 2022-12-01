@@ -283,7 +283,7 @@ class Atn2(ActorInterface, Proactor):
             )
         #s += "\nrich.print(snapshot):"
         self._logger.warning(s)
-        #rich.print(snapshot)
+        # rich.print(snapshot)
 
     def _process_dbg_command(self, dbg: ScadaDBG):
         pass
