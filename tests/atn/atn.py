@@ -274,18 +274,16 @@ class Atn2(ActorInterface, Proactor):
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
         s = "\n\nSnapshot received:\n"
-        for node in self.my_sensors:
-            if node.alias not in snapshot.Snapshot.AboutNodeAliasList:
-                s += f"  No data for node {node.alias} present in snapshot"
+
         for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
             s += (
                 f"  {snapshot.Snapshot.AboutNodeAliasList[i]}: "
                 f"{snapshot.Snapshot.ValueList[i]} "
                 f"{snapshot.Snapshot.TelemetryNameList[i].value}\n"
             )
-        s += "\nrich.print(snapshot):"
+        #s += "\nrich.print(snapshot):"
         self._logger.warning(s)
-        rich.print(snapshot)
+        # rich.print(snapshot)
 
     def _process_dbg_command(self, dbg: ScadaDBG):
         pass
