@@ -296,7 +296,7 @@ async def test_basic_atn_comm_loss():
         # Tell *atn* client we lost comm.
         atn._mqtt_clients._clients[atn.SCADA_MQTT]._client._loop_rc_handle(MQTT_ERR_CONN_LOST)
         # wait for scada to get ping from atn when atn reconnects to mqtt
-        atn_ping_topic = MQTTTopic.encode(atn.publication_name, "gw", "gridworks-ping")
+        atn_ping_topic = MQTTTopic.encode("gw",atn.publication_name, "gridworks-ping")
         num_atn_pings = scada_stats.num_received_by_topic[atn_ping_topic]
         await await_for(
             lambda: scada_stats.num_received_by_topic[atn_ping_topic] == num_atn_pings + 1,
@@ -713,7 +713,7 @@ async def test_awaiting_setup__():
 
         # (awaiting_setup -> message_from_peer -> awaiting_setup)
         # Receive another message from peer, remaining in awaiting_setup
-        dbg_topic = MQTTTopic.encode(atn.publication_name, "gw", "gridworks.scada.dbg")
+        dbg_topic = MQTTTopic.encode("gw", atn.publication_name, "gridworks.scada.dbg")
         assert stats.num_received_by_topic[dbg_topic] == 0
         atn.dbg()
         await await_for(
@@ -888,10 +888,10 @@ async def test_ping(monkeypatch):
         scada.ack_timeout_seconds = .1
         link = scada._link_states.link(scada.GRIDWORKS_MQTT)
         stats = scada.stats.link(scada.GRIDWORKS_MQTT)
-        scada_ping_topic = MQTTTopic.encode(scada.publication_name, "gw", "gridworks-ping")
+        scada_ping_topic = MQTTTopic.encode("gw", scada.publication_name, "gridworks-ping")
         atn = h.atn
         atn_stats = atn.stats
-        atn_ping_topic = MQTTTopic.encode(atn.publication_name, "gw", "gridworks-ping")
+        atn_ping_topic = MQTTTopic.encode("gw", atn.publication_name, "gridworks-ping")
 
         # start atn and scada
         h.start_atn()
