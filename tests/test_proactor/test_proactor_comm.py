@@ -1,6 +1,5 @@
 """Test communication issues"""
 import asyncio
-import warnings
 
 import pytest
 from gwproto import MQTTTopic
@@ -904,36 +903,53 @@ async def test_ping(monkeypatch):
         )
 
         # Test that ping sent peridoically if no messages sent
-        wait_seconds = .5
         start_pings_from_atn = stats.num_received_by_topic[atn_ping_topic]
         start_pings_from_scada = atn_stats.num_received_by_topic[scada_ping_topic]
+        start_messages_from_atn = stats.num_received
+        start_messages_from_scada = atn_stats.num_received
+        wait_seconds = .5
         await asyncio.sleep(wait_seconds)
-        end_pings_from_atn = stats.num_received_by_topic[atn_ping_topic]
-        end_pings_from_scada = atn_stats.num_received_by_topic[scada_ping_topic]
-        pings_from_atn = end_pings_from_atn - start_pings_from_atn
-        pings_from_scada = end_pings_from_scada - start_pings_from_scada
+        pings_from_atn = stats.num_received_by_topic[atn_ping_topic] - start_pings_from_atn
+        pings_from_scada = atn_stats.num_received_by_topic[scada_ping_topic] - start_pings_from_scada
+        messages_from_atn = stats.num_received - start_messages_from_atn
+        messages_from_scada = atn_stats.num_received - start_messages_from_scada
         exp_pings_nominal = wait_seconds / proactor_implementation.LINK_POLL_SECONDS
-        exp_pings = [exp_pings_nominal - 1, exp_pings_nominal, exp_pings_nominal + 1]
-        assert pings_from_atn in exp_pings
-        assert pings_from_scada in exp_pings
+        err_str = (
+            f"pings_from_atn: {pings_from_atn}\n"
+            f"messages_from_atn: {messages_from_atn}\n"
+            f"pings_from_scada: {pings_from_scada}\n"
+            f"messages_from_scada: {messages_from_scada}\n"
+            f"exp_pings_nominal: {exp_pings_nominal}\n"
+        )
+        assert (pings_from_scada + pings_from_atn) >= exp_pings_nominal, err_str
+        assert messages_from_scada >= exp_pings_nominal, err_str
+        assert messages_from_atn >= exp_pings_nominal, err_str
 
         # Test that ping not sent peridoically if messages are sent
         start_pings_from_atn = stats.num_received_by_topic[atn_ping_topic]
         start_pings_from_scada = atn_stats.num_received_by_topic[scada_ping_topic]
-        for _ in range(50):
+        start_messages_from_atn = stats.num_received
+        start_messages_from_scada = atn_stats.num_received
+        reps = 50
+        for _ in range(reps):
             atn.dbg()
             await asyncio.sleep(.01)
-        end_pings_from_atn = stats.num_received_by_topic[atn_ping_topic]
-        end_pings_from_scada = atn_stats.num_received_by_topic[scada_ping_topic]
-        pings_from_atn = end_pings_from_atn - start_pings_from_atn
-        pings_from_scada = end_pings_from_scada - start_pings_from_scada
-        exp_pings = [0, 1, 2]
-        if pings_from_atn not in exp_pings:
-            warnings.warn(
-                f"Pings not suppressed by other message exchange: pings_from_atn ({pings_from_atn}) not in {exp_pings}")
-        if pings_from_scada not in exp_pings:
-            warnings.warn(
-                f"Pings not suppressed by other message exchange: pings_from_scada ({pings_from_scada}) not in {exp_pings}")
+        pings_from_atn = stats.num_received_by_topic[atn_ping_topic] - start_pings_from_atn
+        pings_from_scada = atn_stats.num_received_by_topic[scada_ping_topic] - start_pings_from_scada
+        messages_from_atn = stats.num_received - start_messages_from_atn
+        messages_from_scada = atn_stats.num_received - start_messages_from_scada
+        exp_pings_nominal = 2
+        err_str = (
+            f"pings_from_atn: {pings_from_atn}\n"
+            f"messages_from_atn: {messages_from_atn}\n"
+            f"pings_from_scada: {pings_from_scada}\n"
+            f"messages_from_scada: {messages_from_scada}\n"
+            f"exp_pings_nominal: {exp_pings_nominal}\n"
+        )
+        assert pings_from_atn <= exp_pings_nominal, err_str
+        assert pings_from_scada <= exp_pings_nominal, err_str
+        assert messages_from_atn >= reps, err_str
+        assert messages_from_scada >= 2*reps, err_str
 
         atn.pause_acks()
         await await_for(

@@ -79,7 +79,7 @@ class AckWaitResult:
 
 
 LINK_POLL_SECONDS = 60
-
+import_time = time.time()
 
 @dataclass
 class MessageTimes:
@@ -93,7 +93,23 @@ class MessageTimes:
         return self.next_ping_second(link_poll_seconds) - time.time()
 
     def time_to_send_ping(self, link_poll_seconds: float) -> bool:
-        return time.time() > self.seconds_until_next_ping(link_poll_seconds)
+        return time.time() > self.next_ping_second(link_poll_seconds)
+
+    def get_str(self, link_poll_seconds: float = LINK_POLL_SECONDS, relative: bool = True) -> str:
+        if relative:
+            adjust = import_time
+        else:
+            adjust = 0
+        return (
+            f"n:{time.time() - adjust:5.2f}  lps:{link_poll_seconds:5.2f}  "
+            f"ls:{self.last_send - adjust:5.2f}  lr:{self.last_recv - adjust:5.2f}  "
+            f"nps:{self.next_ping_second(link_poll_seconds) - adjust:5.2f}  "
+            f"snp:{self.next_ping_second(link_poll_seconds):5.2f}  "
+            f"tsp:{int(self.time_to_send_ping(link_poll_seconds))}"
+        )
+
+    def __str__(self) -> str:
+        return self.get_str()
 
 
 class Proactor(ServicesInterface, Runnable):
