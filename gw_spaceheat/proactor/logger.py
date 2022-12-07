@@ -74,6 +74,9 @@ class MessageSummary:
 
 
 class ProactorLogger(logging.LoggerAdapter):
+    MESSAGE_DELIMITER_WIDTH = 88
+    MESSAGE_ENTRY_DELIMITER = "+" * MESSAGE_DELIMITER_WIDTH
+    MESSAGE_EXIT_DELIMITER = "-" * MESSAGE_DELIMITER_WIDTH
 
     message_summary_logger: logging.Logger
     lifecycle_logger: logging.Logger
@@ -134,6 +137,18 @@ class ProactorLogger(logging.LoggerAdapter):
 
     def comm_event(self, msg: str, *args, **kwargs) -> None:
         self.comm_event_logger.info(msg, *args, **kwargs)
+
+    def message_enter(self, msg: str, *args, **kwargs):
+        if self.path_enabled:
+            self.path("")
+            self.path(self.MESSAGE_ENTRY_DELIMITER)
+            self.path(msg, *args, **kwargs)
+
+    def message_exit(self, msg: str, *args, **kwargs):
+        if self.path_enabled:
+            self.path(msg, *args, **kwargs)
+            self.path(self.MESSAGE_EXIT_DELIMITER)
+
 
     def __repr__(self):
         return (
