@@ -33,7 +33,7 @@ class LinkStats:
 
     @property
     def num_received(self) -> int:
-        return self.comm_event_counts[Message.type_name()]
+        return self.num_received_by_type[Message.type_name()]
 
     def __str__(self) -> str:
         s = f"LinkStats [{self.name}]  num_received: {self.num_received}  timeouts: {self.timeouts}  comm events: {len(self.comm_events)}"
@@ -62,6 +62,7 @@ class Stats:
 
     def __init__(self, link_names: Optional[Sequence[str]] = None):
         self.num_received_by_type = defaultdict(int)
+        self.num_received = 0
         if link_names is None:
             link_names = []
         self.links = {link_name: LinkStats(link_name) for link_name in link_names}
@@ -142,6 +143,7 @@ class Scada2Recorder(Scada2):
         else:
             self.stats.num_received_by_type[message.Header.MessageType] += 1
             if isinstance(message.Payload, MQTTReceiptPayload):
+                self.stats.links[message.Payload.client_name].num_received_by_type[Message.type_name()] += 1
                 self.stats.links[message.Payload.client_name].num_received_by_type[message.Header.MessageType] += 1
             await super().process_message(message)
 

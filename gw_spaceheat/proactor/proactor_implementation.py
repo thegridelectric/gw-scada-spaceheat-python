@@ -79,7 +79,7 @@ class AckWaitResult:
 
 
 LINK_POLL_SECONDS = 60
-
+import_time = time.time()
 
 @dataclass
 class MessageTimes:
@@ -93,7 +93,23 @@ class MessageTimes:
         return self.next_ping_second(link_poll_seconds) - time.time()
 
     def time_to_send_ping(self, link_poll_seconds: float) -> bool:
-        return time.time() > self.seconds_until_next_ping(link_poll_seconds)
+        return time.time() > self.next_ping_second(link_poll_seconds)
+
+    def get_str(self, link_poll_seconds: float = LINK_POLL_SECONDS, relative: bool = True) -> str:
+        if relative:
+            adjust = import_time
+        else:
+            adjust = 0
+        return (
+            f"n:{time.time() - adjust:5.2f}  lps:{link_poll_seconds:5.2f}  "
+            f"ls:{self.last_send - adjust:5.2f}  lr:{self.last_recv - adjust:5.2f}  "
+            f"nps:{self.next_ping_second(link_poll_seconds) - adjust:5.2f}  "
+            f"snp:{self.next_ping_second(link_poll_seconds):5.2f}  "
+            f"tsp:{int(self.time_to_send_ping(link_poll_seconds))}"
+        )
+
+    def __str__(self) -> str:
+        return self.get_str()
 
 
 class Proactor(ServicesInterface, Runnable):
@@ -177,9 +193,9 @@ class Proactor(ServicesInterface, Runnable):
         return wait_info
 
     def _process_ack_timeout(self, message_id: str):
-        self._logger.path("++Proactor._process_ack_timeout %s", message_id)
+        self._logger.message_enter("++Proactor._process_ack_timeout %s", message_id)
         self._process_ack_result(message_id, AckWaitSummary.timeout)
-        self._logger.path("--Proactor._process_ack_timeout")
+        self._logger.message_exit("--Proactor._process_ack_timeout")
 
     def _derived_process_ack_result(self, result: AckWaitResult):
         ...
@@ -215,6 +231,8 @@ class Proactor(ServicesInterface, Runnable):
         payload = self._mqtt_codecs[client].encode(message)
         self._logger.message_summary("OUT mqtt    ", message.Header.Src, topic, message.Payload)
         if message.Header.AckRequired:
+            if message.Header.MessageId in self._acks:
+                self._cancel_ack_timer(message.Header.MessageId)
             self._start_ack_timer(client, message.Header.MessageId, context)
         self._link_message_times[client].last_send = time.time()
         return self._mqtt_clients.publish(client, topic, payload, qos)
@@ -317,7 +335,7 @@ class Proactor(ServicesInterface, Runnable):
         self._link_states.start_all().or_else(self._report_errors)
 
     async def process_message(self, message: Message):
-        self._logger.path("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
+        self._logger.message_enter("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         if not isinstance(message.Payload, MQTTReceiptPayload):
             path_dbg |= 0x00000001
@@ -346,7 +364,7 @@ class Proactor(ServicesInterface, Runnable):
             case _:
                 path_dbg |= 0x00000040
                 self._derived_process_message(message)
-        self._logger.path("--Proactor.process_message  path:0x%08X", path_dbg)
+        self._logger.message_exit("--Proactor.process_message  path:0x%08X", path_dbg)
 
     def _decode_mqtt_message(self, mqtt_payload) -> Result[Message[Any], BaseException]:
         decoder = self._mqtt_codecs.get(mqtt_payload.client_name, None)
