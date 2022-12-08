@@ -57,7 +57,7 @@ async def await_for(
     raise_timeout: bool = True,
     retry_duration: float = 0.1,
     err_str_f: Optional[ErrorStringFunction] = None,
-    logger: Optional[logging.Logger] = None,
+    logger: Optional[logging.Logger | logging.LoggerAdapter] = None,
     error_dict: Optional[dict] = None,
 ) -> bool:
     """Similar to wait_for(), but awaitable. Instead of sleeping after a False resoinse from function f, await_for

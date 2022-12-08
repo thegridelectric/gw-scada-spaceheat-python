@@ -1,6 +1,7 @@
 """Scada implementation"""
 import asyncio
 import dataclasses
+import json
 import threading
 import time
 from collections import defaultdict
@@ -281,7 +282,10 @@ class Atn2(ActorInterface, Proactor):
                 f"{snapshot.Snapshot.ValueList[i]} "
                 f"{snapshot.Snapshot.TelemetryNameList[i].value}\n"
             )
-        #s += "\nrich.print(snapshot):"
+        # s += f"snapshot is None:{snapshot is None}\n"
+        # s += "json.dumps(snapshot.asdict()):\n"
+        # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
+        # s += "\n"
         self._logger.warning(s)
         # rich.print(snapshot)
 

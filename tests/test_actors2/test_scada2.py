@@ -347,6 +347,7 @@ async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch, request):
     class Fragment(ProtocolFragment):
 
         def get_requested_actors(self):
+            self.runner.actors.scada2.suppress_status = True
             return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         async def async_run(self):
@@ -359,8 +360,9 @@ async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch, request):
             await await_for(
                 lambda: atn.stats.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias] == 1,
                 3,
-                "Atn wait for snapshot message",
-                err_str_f=atn.summary_str
+                "Atn wait for snapshot message [test_scada2_snaphot_request_delivery]",
+                err_str_f=atn.summary_str,
+                logger=atn._logger,
             )
 
     await AsyncFragmentRunner.async_run_fragment(Fragment, settings=settings, tag=request.node.name)
