@@ -46,6 +46,7 @@ from proactor.message import MQTTDisconnectPayload
 from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
 from proactor.message import PatWatchdog
+from proactor.message import Shutdown
 from proactor.mqtt import MQTTClients
 from proactor.proactor_interface import CommunicatorInterface
 from proactor.proactor_interface import MonitoredName
@@ -275,12 +276,11 @@ class Proactor(ServicesInterface, Runnable):
                     )
                 except:
                     self._logger.exception(f"ERROR generating exception event")
-
-            # noinspection PyBroadException
-            try:
-                self.stop()
-            except:
-                self._logger.exception(f"ERROR stopping proactor")
+        # noinspection PyBroadException
+        try:
+            self.stop()
+        except:
+            self._logger.exception(f"ERROR stopping proactor")
 
     def start_tasks(self):
         self._tasks = [
@@ -362,8 +362,11 @@ class Proactor(ServicesInterface, Runnable):
             case PatWatchdog():
                 path_dbg |= 0x00000040
                 self._watchdog.process_message(message)
-            case _:
+            case Shutdown():
                 path_dbg |= 0x00000080
+                self._process_shutdown_message(message)
+            case _:
+                path_dbg |= 0x00000100
                 self._derived_process_message(message)
         self._logger.message_exit("--Proactor.process_message  path:0x%08X", path_dbg)
 
@@ -513,6 +516,11 @@ class Proactor(ServicesInterface, Runnable):
             path_dbg,
         )
         return result
+
+    def _process_shutdown_message(self, message:Message[Shutdown]):
+        self._stop_requested = True
+        self.generate_event(ShutdownEvent(Reason=message.Payload.Reason))
+        self._logger.lifecycle(f"Shutting down due to ShutdownMessage, [{message.Payload.Reason}]")
 
     async def run_forever(self):
         self._loop = asyncio.get_running_loop()
