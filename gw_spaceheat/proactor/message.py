@@ -1,13 +1,17 @@
 """Message structures for use between proactor and its sub-objects."""
+import uuid
 from enum import Enum
 from typing import Any
 from typing import Dict
 from typing import Generic
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import TypeVar
 
-from gwproto.message import Message, Header
+from gwproto.message import ensure_arg
+from gwproto.message import Header
+from gwproto.message import Message
 from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel
 
@@ -27,6 +31,7 @@ class MessageType(Enum):
 class KnownNames(Enum):
     proactor = "proactor"
     mqtt_clients = "mqtt_clients"
+    watchdog_manager = "watchdog_manager"
 
 class MQTTClientsPayload(BaseModel):
     client_name: str
@@ -171,4 +176,51 @@ class MQTTDisconnectMessage(MQTTClientMessage[MQTTDisconnectPayload]):
                 rc=rc,
             ),
         )
+
+class PatWatchdog(BaseModel):
+    ...
+
+class PatInternalWatchdog(PatWatchdog):
+    TypeName: Literal["gridworks.watchdog.pat.internal"] = "gridworks.watchdog.pat.internal"
+
+class PatExternalWatchdog(PatWatchdog):
+    TypeName: Literal["gridworks.watchdog.pat.external"] = "gridworks.watchdog.pat.external"
+
+class PatInternalWatchdogMessage(Message[PatInternalWatchdog]):
+    def __init__(self, src: str):
+        super().__init__(Src=src, Dst=KnownNames.watchdog_manager.value, Payload=PatInternalWatchdog())
+
+class PatExternalWatchdogMessage(Message[PatExternalWatchdog]):
+    def __init__(self):
+        super().__init__(
+            Src=KnownNames.watchdog_manager.value,
+            Dst=KnownNames.watchdog_manager.value,
+            Payload=PatExternalWatchdog()
+        )
+
+
+class Command(BaseModel):
+    ...
+
+CommandT = TypeVar("CommandT", bound=Command)
+
+class CommandMessage(Message[CommandT], Generic[CommandT]):
+    def __init__(self, **data: Any):
+        ensure_arg("AckRequired", True, data)
+        ensure_arg("MessageId", str(uuid.uuid4()), data)
+        super().__init__(**data)
+
+class Shutdown(Command):
+    Reason: str = ""
+    TypeName: Literal["gridworks.shutdown"] = "gridworks.shutdown"
+
+class ShutdownMessage(CommandMessage[Shutdown]):
+    def __init__(self, **data: Any):
+        ensure_arg("Payload", Shutdown(Reason=data.get("Reason", "")), data)
+        super().__init__(**data)
+
+class InternalShutdownMessage(ShutdownMessage):
+    def __init__(self, **data: Any):
+        ensure_arg("AckRequired", False, data)
+        super().__init__(**data)
 

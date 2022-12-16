@@ -3,11 +3,15 @@
 import asyncio
 import queue
 import threading
+import time
+import traceback
 from abc import ABC
 from typing import Any
 from typing import Optional
 
 from actors.utils import responsive_sleep
+from proactor.message import InternalShutdownMessage
+from proactor.message import PatInternalWatchdogMessage
 
 
 class AsyncQueueWriter:
@@ -72,18 +76,22 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
     """
 
     SLEEP_STEP_SECONDS = 0.01
+    PAT_TIMEOUT = 20
 
     _channel: SyncAsyncQueueWriter
     running: Optional[bool]
     _iterate_sleep_seconds: Optional[float]
     _responsive_sleep_step_seconds: float
+    pat_timeout: Optional[float]
+    _last_pat_time: float
 
     def __init__(
         self,
         channel: Optional[SyncAsyncQueueWriter] = None,
         name: Optional[str] = None,
         iterate_sleep_seconds: Optional[float] = None,
-        responsive_sleep_step_seconds=SLEEP_STEP_SECONDS,
+        responsive_sleep_step_seconds: float = SLEEP_STEP_SECONDS,
+        pat_timeout: Optional[float] = PAT_TIMEOUT,
         daemon: bool = True,
     ):
         super().__init__(name=name, daemon=daemon)
@@ -94,6 +102,8 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
         self._iterate_sleep_seconds = iterate_sleep_seconds
         self._responsive_sleep_step_seconds = responsive_sleep_step_seconds
         self.running = None
+        self.pat_timeout = pat_timeout
+        self._last_pat_time = 0.0
 
     def _preiterate(self) -> None:
         pass
@@ -103,6 +113,10 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
 
     def _handle_message(self, message: Any) -> None:
         pass
+
+    # noinspection PyUnusedLocal,PyMethodMayBeStatic
+    def _handle_exception(self, exception: BaseException) -> bool:
+        return False
 
     def request_stop(self) -> None:
         self.running = False
@@ -125,24 +139,56 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
     def run(self):
         if self.running is None:
             self.running = True
+            self._last_pat_time = time.time()
             self._preiterate()
             while self.running:
-                if self._iterate_sleep_seconds is not None:
-                    responsive_sleep(
-                        self,
-                        self._iterate_sleep_seconds,
-                        running_field_name="running",
-                        step_duration=self._responsive_sleep_step_seconds,
-                    )
-                if self.running:
-                    self._iterate()
-                if self.running and self._channel.sync_queue is not None:
+                try:
+                    if self._iterate_sleep_seconds is not None:
+                        responsive_sleep(
+                            self,
+                            self._iterate_sleep_seconds,
+                            running_field_name="running",
+                            step_duration=self._responsive_sleep_step_seconds,
+                        )
+                    if self.running:
+                        self._iterate()
+                    if self.running and self.time_to_pat():
+                        self.pat_watchdog()
+                    if self.running and self._channel.sync_queue is not None:
+                        try:
+                            message = self._channel.get_from_sync_queue(block=False)
+                            if self.running:
+                                self._handle_message(message)
+                        except queue.Empty:
+                            pass
+                except BaseException as e:
+                    handle_exception_str = ""
                     try:
-                        message = self._channel.get_from_sync_queue(block=False)
-                        if self.running:
-                            self._handle_message(message)
-                    except queue.Empty:
-                        pass
+                        handled = self._handle_exception(e)
+                    except BaseException as e2:
+                        handled = False
+                        handle_exception_str = traceback.format_exception(e2)
+                    if not handled:
+                        self.running = False
+                        reason = (
+                            f"SyncAsyncInteractionThread ({self.name}) caught exception:\n"
+                            f"{traceback.format_exception(e)}\n"
+                        )
+                        if handle_exception_str:
+                            reason += (
+                                "While handling that exception, _handle_exception caused exception:\n"
+                                f"{handle_exception_str}\n"
+                            )
+                        self._put_to_async_queue(
+                            InternalShutdownMessage(Src=self.name, Reason=reason)
+                        )
+
+    def time_to_pat(self) -> bool:
+        return time.time() >= (self._last_pat_time + (self.pat_timeout / 2))
+
+    def pat_watchdog(self):
+        self._last_pat_time = time.time()
+        self._put_to_async_queue(PatInternalWatchdogMessage(src=self.name))
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     async def async_join(self, timeout: float = None) -> None:

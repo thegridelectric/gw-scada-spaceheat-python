@@ -1,6 +1,5 @@
 import random
 import time
-from typing import Optional
 
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
@@ -10,6 +9,11 @@ from schema.enums.unit.unit_map import Unit
 
 class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
     READ_TIME_FUZZ_MULTIPLIER = 6
+    read_count: int
+    except_on_read: bool = False
+    except_on_read_after: int = 0
+    hang_on_read: bool = False
+    hang_on_read_after: int = 0
 
     def __init__(self, component: TempSensorComponent):
         super(GridworksWaterTempSensorHighPrecision_TempSensorDriver, self).__init__(
@@ -23,6 +27,12 @@ class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
             self._fake_temp_times_1000 = 19444
         else:
             raise Exception(f"TempSensor unit {component.cac.temp_unit} not recognized!")
+        self.read_count = 0
+        self.except_on_read = False
+        self.except_on_read_after = 0
+        self.hang_on_read = False
+        self.hang_on_read_after = 0
+
 
     def cmd_delay(self):
         typical_delay_ms = self.component.cac.typical_response_time_ms
@@ -30,6 +40,15 @@ class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
         time.sleep(read_delay_ms / 1000)
 
     def read_telemetry_value(self) -> int:
+        self.read_count += 1
+        if self.except_on_read or self.except_on_read_after or self.hang_on_read or self.hang_on_read_after:
+            print(f"read_count: {self.read_count}")
         self.cmd_delay()
         self._fake_temp_times_1000 += 250 - int(500 * random.random())
+        if self.except_on_read or 0 < self.except_on_read_after <= self.read_count:
+            raise IOError("arg fizzle pop squark simulated driver error")
+        if self.hang_on_read or 0 < self.hang_on_read_after <= self.read_count:
+            while True:
+                print("Lunch time for this driver")
+                time.sleep(10)
         return self._fake_temp_times_1000

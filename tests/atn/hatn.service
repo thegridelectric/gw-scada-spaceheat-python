@@ -1,0 +1,18 @@
+[Unit]
+Description=Keep the pipes from freezing
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+User=pi
+Environment=PYTHONPATH=/home/pi/gw-scada-spaceheat-python/gw_spaceheat
+Environment=GRIDWORKS_SCADA_RUNNING_AS_SERVICE=1
+ExecStart=/usr/local/bin/python3.10 \
+    /home/pi/gw-scada-spaceheat-python/tests/atn/nofreeze.py
+RestartSec=1
+WatchdogSec=20
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target

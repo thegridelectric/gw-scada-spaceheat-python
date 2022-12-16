@@ -5,12 +5,18 @@ create forward references for implementation hiearchies
 import asyncio
 from abc import ABC
 from abc import abstractmethod
+from dataclasses import dataclass
 from typing import Optional
+from typing import Sequence
 
 from gwproto.messages import EventT
 
 from proactor.message import Message
 
+@dataclass
+class MonitoredName:
+    name: str
+    timeout_seconds: float
 
 class CommunicatorInterface(ABC):
     """Pure interface necessary for interaction between a sub-object and the system services proactor"""
@@ -27,6 +33,11 @@ class CommunicatorInterface(ABC):
     @abstractmethod
     def process_message(self, message: Message):
         raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        pass
 
 
 class Communicator(CommunicatorInterface, ABC):
@@ -46,6 +57,9 @@ class Communicator(CommunicatorInterface, ABC):
     def _send(self, message: Message):
         self._services.send(message)
 
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return []
 
 class Runnable(ABC):
     """Pure interface to an object which is expected to support starting, stopping and joining."""
@@ -100,3 +114,4 @@ class ServicesInterface(CommunicatorInterface):
     @abstractmethod
     def publication_name(self) -> str:
         raise NotImplementedError
+

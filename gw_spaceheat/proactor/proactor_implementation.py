@@ -45,11 +45,15 @@ from proactor.message import MQTTConnectPayload
 from proactor.message import MQTTDisconnectPayload
 from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
+from proactor.message import PatWatchdog
+from proactor.message import Shutdown
 from proactor.mqtt import MQTTClients
 from proactor.proactor_interface import CommunicatorInterface
+from proactor.proactor_interface import MonitoredName
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
 from proactor.problems import Problems
+from proactor.watchdog import WatchdogManager
 
 
 @dataclass
@@ -111,8 +115,8 @@ class MessageTimes:
     def __str__(self) -> str:
         return self.get_str()
 
-
 class Proactor(ServicesInterface, Runnable):
+
     _name: str
     _loop: Optional[asyncio.AbstractEventLoop] = None
     _receive_queue: Optional[asyncio.Queue] = None
@@ -125,6 +129,7 @@ class Proactor(ServicesInterface, Runnable):
     _stop_requested: bool
     _tasks: List[asyncio.Task]
     _logger: ProactorLogger
+    _watchdog: WatchdogManager
 
     def __init__(self, name: str, logger: ProactorLogger):
         self._name = name
@@ -137,6 +142,8 @@ class Proactor(ServicesInterface, Runnable):
         self._communicators = dict()
         self._tasks = []
         self._stop_requested = False
+        self._watchdog = WatchdogManager(10, self)
+        self.add_communicator(self._watchdog)
 
     def _add_mqtt_client(
         self,
@@ -177,17 +184,7 @@ class Proactor(ServicesInterface, Runnable):
         wait_info = self._acks.pop(message_id, None)
         if wait_info is not None:
             path_dbg |= 0x00000001
-            # self._logger.info(
-            #     f"cancelling timer {wait_info.timer_handle}  {id(wait_info.timer_handle)}  "
-            #     f"canceled? {wait_info.timer_handle.cancelled()}  "
-            #     f"when:{wait_info.timer_handle.when()}"
-            # )
             wait_info.timer_handle.cancel()
-            # self._logger.info(
-            #     f"canceled timer   {wait_info.timer_handle}  {id(wait_info.timer_handle)}  "
-            #     f"canceled? {wait_info.timer_handle.cancelled()}  "
-            #     f"when:{wait_info.timer_handle.when()}"
-            # )
 
         self._logger.path("--cancel_ack_timer path:0x%08X", path_dbg)
         return wait_info
@@ -243,6 +240,8 @@ class Proactor(ServicesInterface, Runnable):
                 f"ERROR. Communicator with name [{communicator.name}] already present"
             )
         self._communicators[communicator.name] = communicator
+        for monitored in communicator.monitored_names:
+            self._watchdog.add_monitored_name(monitored)
 
     @property
     def async_receive_queue(self) -> Optional[asyncio.Queue]:
@@ -277,12 +276,11 @@ class Proactor(ServicesInterface, Runnable):
                     )
                 except:
                     self._logger.exception(f"ERROR generating exception event")
-
-            # noinspection PyBroadException
-            try:
-                self.stop()
-            except:
-                self._logger.exception(f"ERROR stopping proactor")
+        # noinspection PyBroadException
+        try:
+            self.stop()
+        except:
+            self._logger.exception(f"ERROR stopping proactor")
 
     def start_tasks(self):
         self._tasks = [
@@ -337,7 +335,7 @@ class Proactor(ServicesInterface, Runnable):
     async def process_message(self, message: Message):
         self._logger.message_enter("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
-        if not isinstance(message.Payload, MQTTReceiptPayload):
+        if not isinstance(message.Payload, (MQTTReceiptPayload, PatWatchdog)):
             path_dbg |= 0x00000001
             self._logger.message_summary(
                 "IN  internal",
@@ -361,8 +359,14 @@ class Proactor(ServicesInterface, Runnable):
             case MQTTSubackPayload():
                 path_dbg |= 0x00000020
                 self._process_mqtt_suback(message)
-            case _:
+            case PatWatchdog():
                 path_dbg |= 0x00000040
+                self._watchdog.process_message(message)
+            case Shutdown():
+                path_dbg |= 0x00000080
+                self._process_shutdown_message(message)
+            case _:
+                path_dbg |= 0x00000100
                 self._derived_process_message(message)
         self._logger.message_exit("--Proactor.process_message  path:0x%08X", path_dbg)
 
@@ -513,6 +517,11 @@ class Proactor(ServicesInterface, Runnable):
         )
         return result
 
+    def _process_shutdown_message(self, message:Message[Shutdown]):
+        self._stop_requested = True
+        self.generate_event(ShutdownEvent(Reason=message.Payload.Reason))
+        self._logger.lifecycle(f"Shutting down due to ShutdownMessage, [{message.Payload.Reason}]")
+
     async def run_forever(self):
         self._loop = asyncio.get_running_loop()
         self._receive_queue = asyncio.Queue()
@@ -578,12 +587,13 @@ class Proactor(ServicesInterface, Runnable):
         self._mqtt_clients.publish(client, topic, payload, qos)
 
     def send(self, message: Message):
-        self._logger.message_summary(
-            "OUT internal",
-            message.Header.Src,
-            f"{message.Header.Dst}/{message.Header.MessageType}",
-            message.Payload,
-        )
+        if not isinstance(message.Payload, PatWatchdog):
+            self._logger.message_summary(
+                "OUT internal",
+                message.Header.Src,
+                f"{message.Header.Dst}/{message.Header.MessageType}",
+                message.Payload,
+            )
         self._receive_queue.put_nowait(message)
 
     def send_threadsafe(self, message: Message) -> None:
@@ -599,6 +609,10 @@ class Proactor(ServicesInterface, Runnable):
     @property
     def publication_name(self) -> str:
         return self._name
+
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return []
 
     def _send(self, message: Message):
         self.send(message)
