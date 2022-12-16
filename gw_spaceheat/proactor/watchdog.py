@@ -39,18 +39,17 @@ class WatchdogManager(Communicator, Runnable):
         self.lg = cast(Proactor, services)._logger
         self._seconds_per_pat = seconds_per_pat
         self._monitored_names = dict()
-        if os.getenv(self.RUNNING_AS_SERIVCE_ENV_NAME, "").lower() in ["1", "true"]:
-            self._pat_external_watchdog_process_args = [
-                "systemd-notify",
-                f"--pid={os.getpid()}",
-                "WATCHDOG=1",
-            ]
-        else:
-            self._pat_external_watchdog_process_args = []
-        self.lg.lifecycle(f"WatchdogManager: [{' '.join(self._pat_external_watchdog_process_args)}]")
+        self._pat_external_watchdog_process_args = []
 
     def start(self):
         if self._watchdog_task is None:
+            if os.getenv(self.RUNNING_AS_SERIVCE_ENV_NAME, "").lower() in ["1", "true"]:
+                self._pat_external_watchdog_process_args = [
+                    "systemd-notify",
+                    f"--pid={os.getpid()}",
+                    "WATCHDOG=1",
+                ]
+            self.lg.lifecycle(f"WatchdogManager: [{' '.join(self._pat_external_watchdog_process_args)}]")
             now = time.time()
             for monitored in self._monitored_names.values():
                 monitored.last_pat = now
