@@ -21,6 +21,7 @@ from proactor.proactor_implementation import MQTTCodec
 from proactor.proactor_implementation import Proactor
 from proactor.proactor_interface import Communicator
 from proactor.proactor_interface import CommunicatorInterface
+from proactor.proactor_interface import MonitoredName
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
 from proactor.sync_thread import AsyncQueueWriter
@@ -31,6 +32,7 @@ __all__ = [
     "AsyncQueueWriter",
     "Communicator",
     "CommunicatorInterface",
+    "MonitoredName",
     "Header",
     "Message",
     "MQTTCodec",

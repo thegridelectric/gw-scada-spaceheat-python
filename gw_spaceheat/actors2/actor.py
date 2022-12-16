@@ -8,6 +8,7 @@ SyncAsyncInteractionThread
 from abc import ABC
 from typing import Any
 from typing import Generic
+from typing import Sequence
 from typing import TypeVar
 
 from actors2.actor_interface import ActorInterface
@@ -16,6 +17,7 @@ from data_classes.sh_node import ShNode
 from proactor import Message
 from proactor import SyncAsyncInteractionThread
 from proactor.proactor_interface import Communicator
+from proactor.proactor_interface import MonitoredName
 
 
 class Actor(ActorInterface, Communicator, ABC):
@@ -37,7 +39,6 @@ class Actor(ActorInterface, Communicator, ABC):
     @property
     def node(self):
         return self._node
-
 
 SyncThreadT = TypeVar("SyncThreadT", bound=SyncAsyncInteractionThread)
 
@@ -68,3 +69,10 @@ class SyncThreadActor(Actor, Generic[SyncThreadT]):
 
     async def join(self):
         await self._sync_thread.async_join()
+
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        monitored_names = []
+        if self._sync_thread.pat_timeout is not None:
+            monitored_names.append(MonitoredName(self.name, self._sync_thread.pat_timeout))
+        return monitored_names

@@ -4,6 +4,7 @@ from typing import Any
 from typing import Dict
 from typing import Generic
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import TypeVar
 
@@ -27,6 +28,7 @@ class MessageType(Enum):
 class KnownNames(Enum):
     proactor = "proactor"
     mqtt_clients = "mqtt_clients"
+    watchdog_manager = "watchdog_manager"
 
 class MQTTClientsPayload(BaseModel):
     client_name: str
@@ -172,3 +174,23 @@ class MQTTDisconnectMessage(MQTTClientMessage[MQTTDisconnectPayload]):
             ),
         )
 
+class PatWatchdog(BaseModel):
+    ...
+
+class PatInternalWatchdog(PatWatchdog):
+    TypeName: Literal["gridworks.watchdog.pat.internal"] = "gridworks.watchdog.pat.internal"
+
+class PatExternalWatchdog(PatWatchdog):
+    TypeName: Literal["gridworks.watchdog.pat.external"] = "gridworks.watchdog.pat.external"
+
+class PatInternalWatchdogMessage(Message[PatInternalWatchdog]):
+    def __init__(self, src: str):
+        super().__init__(Src=src, Dst=KnownNames.watchdog_manager.value, Payload=PatInternalWatchdog())
+
+class PatExternalWatchdogMessage(Message[PatExternalWatchdog]):
+    def __init__(self):
+        super().__init__(
+            Src=KnownNames.watchdog_manager.value,
+            Dst=KnownNames.watchdog_manager.value,
+            Payload=PatExternalWatchdog()
+        )

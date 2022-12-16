@@ -1,0 +1,16 @@
+[Unit]
+Description=My test service
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+Environment=VIRTUAL_ENV=/home/pi/gw-scada-spaceheat-python/venv
+Environment=PYTHONPATH=/home/pi/gw-scada-spaceheat-python/gw_spaceheat
+Environment=GRIDWORKS_SCADA_RUNNING_AS_SERVICE=1
+ExecStart=python /home/pi/gw-scada-spaceheat-python/gw_spaceheat/run_scada.py
+RestartSec=1
+WatchdogSec=20
+
+[Install]
+WantedBy=multi-user.target
