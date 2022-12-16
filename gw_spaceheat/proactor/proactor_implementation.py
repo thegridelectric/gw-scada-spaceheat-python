@@ -335,8 +335,7 @@ class Proactor(ServicesInterface, Runnable):
     async def process_message(self, message: Message):
         self._logger.message_enter("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
-        # if not isinstance(message.Payload, (MQTTReceiptPayload, PatWatchdog)):
-        if not isinstance(message.Payload, MQTTReceiptPayload):
+        if not isinstance(message.Payload, (MQTTReceiptPayload, PatWatchdog)):
             path_dbg |= 0x00000001
             self._logger.message_summary(
                 "IN  internal",
@@ -580,12 +579,13 @@ class Proactor(ServicesInterface, Runnable):
         self._mqtt_clients.publish(client, topic, payload, qos)
 
     def send(self, message: Message):
-        self._logger.message_summary(
-            "OUT internal",
-            message.Header.Src,
-            f"{message.Header.Dst}/{message.Header.MessageType}",
-            message.Payload,
-        )
+        if not isinstance(message.Payload, PatWatchdog):
+            self._logger.message_summary(
+                "OUT internal",
+                message.Header.Src,
+                f"{message.Header.Dst}/{message.Header.MessageType}",
+                message.Payload,
+            )
         self._receive_queue.put_nowait(message)
 
     def send_threadsafe(self, message: Message) -> None:
