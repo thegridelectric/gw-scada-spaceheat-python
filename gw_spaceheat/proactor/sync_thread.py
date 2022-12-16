@@ -76,7 +76,7 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
     """
 
     SLEEP_STEP_SECONDS = 0.01
-    PAT_TIMEOUT = 300
+    PAT_TIMEOUT = 20
 
     _channel: SyncAsyncQueueWriter
     running: Optional[bool]
@@ -180,7 +180,7 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
                                 f"{handle_exception_str}\n"
                             )
                         self._put_to_async_queue(
-                            InternalShutdownMessage(Reason=reason)
+                            InternalShutdownMessage(Src=self.name, Reason=reason)
                         )
 
     def time_to_pat(self) -> bool:

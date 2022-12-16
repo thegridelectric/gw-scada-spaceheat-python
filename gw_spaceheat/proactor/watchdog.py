@@ -7,6 +7,7 @@ from typing import Optional
 
 from gwproto import Message
 
+from proactor.message import InternalShutdownMessage
 from proactor.proactor_interface import Communicator
 from proactor.proactor_interface import MonitoredName
 from proactor.proactor_interface import Runnable
@@ -97,25 +98,41 @@ class WatchdogManager(Communicator, Runnable):
             raise ValueError(f"ERROR. Name {monitored.name} is already being monitored with {self._monitored_names[monitored.name]}")
         self._monitored_names[monitored.name] = _MonitoredName(monitored.name, monitored.timeout_seconds)
 
-    def timeout_expired(self) -> bool:
-        self.lg.path("++timeout_expired")
+    def _timeout_expired(self) -> Optional[_MonitoredName]:
+        # self.lg.path("++timeout_expired")
         path_dbg = 0
-        expired = False
+        expired: Optional[_MonitoredName] = None
         now = time.time()
         for monitored in self._monitored_names.values():
             path_dbg |= 0x0000001
             required_pat_time = monitored.last_pat + monitored.timeout_seconds
+            # self.lg.info(
+            #     f"  {monitored.name:50s}  "
+            #     f"{monitored.timeout_seconds:4d}  last_pat:{monitored.last_pat:11.1f}  "
+            #     f"required_pat_time: {required_pat_time:11.1f}  "
+            #     f"now:{now:11.1f}  "
+            #     f"remaining: {int(required_pat_time - now):4d}  "
+            #     f"required_pat_time < now ? {int(required_pat_time < now)}"
+            # )
             if required_pat_time < now:
                 path_dbg |= 0x0000002
-                expired = True
+                expired = monitored
                 break
-        self.lg.path(f"--timeout_expired: {int(expired)}  0x{path_dbg:08X}")
+        # self.lg.path(f"--timeout_expired: {int(expired is not None)}  0x{path_dbg:08X}")
         return expired
 
     async def _check_pats(self) -> None:
-        while not self.timeout_expired():
+        while (expired := self._timeout_expired()) is None:
             self._send(PatExternalWatchdogMessage())
             await asyncio.sleep(self._seconds_per_pat)
+        self._send(InternalShutdownMessage(
+            Src=self.name,
+            Reason=(
+                f"Monitored object ({expired.name}) failed to pat internal watchdog.  \n"
+                f"  Last pat from {expired.name}: {int(time.time() - expired.last_pat)} seconds ago\n"
+                f"  Allowed seconds: {int(expired.timeout_seconds)}"
+            )
+        ))
 
     def _pat_external_watchdog(self):
         if self._pat_external_watchdog_process_args:
