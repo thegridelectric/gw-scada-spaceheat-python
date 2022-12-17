@@ -1,7 +1,10 @@
 # FROM TOP_LEVEL DIR: export PYTHONPATH=gw_spaceheat:$PYTHONPATH
 import logging
 import time
+
 from tests.atn import get_atn
+from tests.utils import wait_for
+
 atn = get_atn()
 
 time.sleep(1)
@@ -26,6 +29,9 @@ fan = atn.layout.node( "a.tank.out.pump.baseboard1.fan.relay")
 logger.message_summary_logger.setLevel(logging.INFO)
 logger.setLevel(logging.INFO)
 
+while not atn._link_states[atn.SCADA_MQTT].active():
+    logger.info(f"Scada link not read ({atn._link_states[atn.SCADA_MQTT].state.value})")
+    time.sleep(10)
 i = 0
 
 while True:
