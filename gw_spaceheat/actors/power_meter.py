@@ -12,7 +12,7 @@ from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from actors.actor_base import ActorBase
 from actors.utils import Subscription
 from actors.utils import responsive_sleep
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
 from data_classes.hardware_layout import HardwareLayout

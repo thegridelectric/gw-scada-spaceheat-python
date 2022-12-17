@@ -4,7 +4,7 @@ from abc import ABC
 from abc import abstractmethod
 
 from actors2.actor_interface import ActorInterface
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from proactor.proactor_interface import ServicesInterface
 

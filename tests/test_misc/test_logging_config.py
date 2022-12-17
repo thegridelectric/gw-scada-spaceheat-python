@@ -2,14 +2,14 @@ import logging
 import time
 
 import pytest
-from config import DEFAULT_BASE_NAME
-from config import DEFAULT_BYTES_PER_LOG_FILE
-from config import DEFAULT_LOG_FILE_NAME
-from config import DEFAULT_NUM_LOG_FILES
-from config import FormatterSettings
-from config import LoggerLevels
-from config import LoggingSettings
-from config import RotatingFileHandlerSettings
+from proactor.config import DEFAULT_BASE_NAME
+from proactor.config import DEFAULT_BYTES_PER_LOG_FILE
+from proactor.config import DEFAULT_LOG_FILE_NAME
+from proactor.config import DEFAULT_NUM_LOG_FILES
+from proactor.config import FormatterSettings
+from proactor.config import LoggerLevels
+from proactor.config import LoggingSettings
+from proactor.config import RotatingFileHandlerSettings
 from pydantic import ValidationError
 
 

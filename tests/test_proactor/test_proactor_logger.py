@@ -4,8 +4,8 @@ import warnings
 
 from tests.conftest import LoggerGuards
 
-from config import Paths
-from config import ScadaSettings
+from proactor.config import Paths
+from actors2.config import ScadaSettings
 from logging_setup import setup_logging
 from proactor import ProactorLogger
 

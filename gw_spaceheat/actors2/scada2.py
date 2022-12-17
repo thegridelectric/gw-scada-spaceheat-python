@@ -40,7 +40,7 @@ from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
 from actors.scada import ScadaCmdDiagnostic
 from actors.utils import QOS
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode

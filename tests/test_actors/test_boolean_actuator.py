@@ -5,7 +5,7 @@ import time
 import load_house
 import pytest
 from actors.boolean_actuator import BooleanActuator
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from gwproto.messages import  GtDispatchBooleanLocal_Maker
 
 

@@ -3,7 +3,7 @@
 import load_house
 import pytest
 from actors.home_alone import HomeAlone
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from gwproto.messages import  GtShStatus_Maker
 
 

@@ -21,7 +21,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 from paho.mqtt.client import Client as PahoMQTTClient
 from paho.mqtt.client import MQTTMessageInfo
 
-import config
+from proactor import config
 from proactor.message import MQTTConnectFailMessage
 from proactor.message import MQTTConnectMessage
 from proactor.message import MQTTDisconnectMessage

@@ -14,7 +14,7 @@ import load_house
 import pytest
 from actors2 import Scada2
 from actors.scada import ScadaCmdDiagnostic
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName

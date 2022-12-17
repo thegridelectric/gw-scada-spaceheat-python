@@ -1,5 +1,5 @@
 
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 
 

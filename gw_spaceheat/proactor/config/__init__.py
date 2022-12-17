@@ -15,7 +15,6 @@ from .paths import DEFAULT_LAYOUT_FILE
 from .paths import DEFAULT_NAME
 from .paths import DEFAULT_NAME_DIR
 from .paths import Paths
-from .scada import ScadaSettings
 
 DEFAULT_ENV_FILE = ".env"
 
@@ -42,10 +41,6 @@ __all__ = [
     "DEFAULT_NAME_DIR",
     "DEFAULT_LAYOUT_FILE",
     "Paths",
-
-    # scada
-    "ScadaSettings",
-
 ]
 
 

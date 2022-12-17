@@ -16,7 +16,7 @@ from actors.actor_base import ActorBase
 from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
 from tests.atn import Atn2

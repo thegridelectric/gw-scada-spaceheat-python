@@ -4,8 +4,8 @@ import asyncio
 import pytest
 from gwproto import MQTTTopic
 
-from config import MQTTClient
-from config import ScadaSettings
+from proactor.config import MQTTClient
+from actors2.config import ScadaSettings
 from proactor.link_state import StateName
 from proactor import proactor_implementation
 from tests.utils.comm_test_helper import CommTestHelper

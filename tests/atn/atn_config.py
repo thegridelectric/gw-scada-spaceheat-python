@@ -2,9 +2,9 @@ from typing import Optional, Any
 
 from pydantic import BaseSettings, validator
 
-from config import MQTTClient
-from config import Paths
-from config import LoggingSettings
+from proactor.config import MQTTClient
+from proactor.config import Paths
+from proactor.config import LoggingSettings
 
 DEFAULT_NAME = "atn"
 

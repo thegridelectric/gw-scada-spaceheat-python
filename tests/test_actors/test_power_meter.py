@@ -11,7 +11,7 @@ import pytest
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.utils import gw_mqtt_topic_encode
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.hardware_layout import HardwareLayout
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (

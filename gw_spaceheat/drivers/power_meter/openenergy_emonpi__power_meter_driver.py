@@ -1,5 +1,5 @@
 from typing import Optional
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 import uuid
 from actors.utils import QOS, Subscription
 import paho.mqtt.client as mqtt

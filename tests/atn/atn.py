@@ -1,7 +1,6 @@
 """Scada implementation"""
 import asyncio
 import dataclasses
-import json
 import threading
 import time
 from collections import defaultdict
@@ -11,7 +10,6 @@ from typing import Optional
 from typing import Sequence
 
 import pendulum
-import rich
 from gwproto import CallableDecoder
 from gwproto.messages import EventBase
 from paho.mqtt.client import MQTTMessageInfo
@@ -32,7 +30,7 @@ from actors.utils import QOS
 from actors2 import ActorInterface
 from actors2.message import ScadaDBG
 from actors2.message import ScadaDBGCommands
-from config import LoggerLevels
+from proactor.config import LoggerLevels
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor.logger import ProactorLogger

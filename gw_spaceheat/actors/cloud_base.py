@@ -24,7 +24,7 @@ from actors.utils import QOS
 from actors.utils import Subscription
 from actors.utils import gw_mqtt_topic_decode
 from actors.utils import gw_mqtt_topic_encode
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from proactor.logger import MessageSummary

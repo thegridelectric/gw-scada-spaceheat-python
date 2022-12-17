@@ -9,8 +9,8 @@ from pathlib import Path
 import dotenv
 import rich
 from command_line_utils import parse_args
-from config import LoggingSettings
-from config import Paths
+from proactor.config import LoggingSettings
+from proactor.config import Paths
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
 from tests.atn import AtnSettings

@@ -35,7 +35,7 @@ from result import Err
 from result import Ok
 from result import Result
 
-import config
+from proactor import config
 from proactor.link_state import LinkStates
 from proactor.link_state import Transition
 from proactor.logger import ProactorLogger

@@ -12,15 +12,14 @@ from actors2 import Scada2
 from actors2.power_meter import DriverThreadSetupHelper
 from actors2.power_meter import PowerMeter
 from actors2.power_meter import PowerMeterDriverThread
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
 from load_house import load_all
-from config import LoggerLevels
-from config import LoggingSettings
-from logging_setup import setup_logging
+from proactor.config import LoggerLevels
+from proactor.config import LoggingSettings
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
 from gwproto.messages import  GsPwr_Maker

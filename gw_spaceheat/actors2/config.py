@@ -1,9 +1,9 @@
 from pydantic import BaseSettings
 from pydantic import validator
 
-from .logging import LoggingSettings
-from .mqtt import MQTTClient
-from .paths import Paths
+from proactor.config.logging import LoggingSettings
+from proactor.config.mqtt import MQTTClient
+from proactor.config.paths import Paths
 
 
 class ScadaSettings(BaseSettings):

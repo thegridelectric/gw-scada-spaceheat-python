@@ -4,7 +4,7 @@ from tests.utils import ScadaRecorder
 from tests.utils import wait_for
 
 import load_house
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from paho.mqtt.client import MQTT_ERR_CONN_LOST
 
 

@@ -10,7 +10,7 @@ from actors.actor_base import ActorBase
 from actors.utils import QOS
 from actors.utils import gw_mqtt_topic_decode
 from actors.utils import gw_mqtt_topic_encode
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from proactor.logger import MessageSummary
 from schema.schema_switcher import TypeMakerByAliasDict

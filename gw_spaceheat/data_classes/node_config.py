@@ -1,4 +1,4 @@
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.sh_node import ShNode
 from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import (
     GridworksSimBool30AmpRelay_BooleanActuatorDriver,

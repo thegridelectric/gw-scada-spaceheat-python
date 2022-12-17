@@ -12,7 +12,7 @@ from gwproto.messages import GsPwr
 import helpers
 from actors.utils import QOS
 from actors.utils import Subscription
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple

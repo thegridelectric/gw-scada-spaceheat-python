@@ -10,7 +10,7 @@ import load_house
 from logging_setup import setup_logging
 from actors.strategy_switcher import strategy_from_node
 from actors2 import Scada2
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from schema.enums import Role
