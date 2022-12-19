@@ -2,14 +2,10 @@ from pydantic import BaseSettings
 from pydantic import validator
 
 from proactor.config.logging import LoggingSettings
-from proactor.config.mqtt import MQTTClient
 from proactor.config.paths import Paths
 
 
 class ProactorSettings(BaseSettings):
-    """Settings for the GridWorks scada."""
-    local_mqtt: MQTTClient = MQTTClient()
-    gridworks_mqtt: MQTTClient = MQTTClient()
     paths: Paths = None
     logging: LoggingSettings = LoggingSettings()
 

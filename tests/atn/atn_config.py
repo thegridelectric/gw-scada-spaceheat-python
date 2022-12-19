@@ -1,7 +1,8 @@
 from typing import Optional, Any
 
-from pydantic import BaseSettings, validator
+from pydantic import validator
 
+from proactor import ProactorSettings
 from proactor.config import MQTTClient
 from proactor.config import Paths
 from proactor.config import LoggingSettings
@@ -9,20 +10,11 @@ from proactor.config import LoggingSettings
 DEFAULT_NAME = "atn"
 
 
-class AtnSettings(BaseSettings):
+class AtnSettings(ProactorSettings):
     scada_mqtt: MQTTClient = MQTTClient()
-    paths: Paths = None
-    logging: LoggingSettings = None
 
-    class Config:
+    class Config(ProactorSettings.Config):
         env_prefix = "ATN_"
-        env_nested_delimiter = "__"
-
-    @validator("paths", always=True)
-    def get_paths(cls, v: Optional[Paths]) -> Paths:
-        if v is None:
-            v = Paths(name=DEFAULT_NAME)
-        return v
 
     @validator("logging", always=True)
     def get_logging(cls, v: Optional[LoggingSettings], values: dict[str, Any]) -> LoggingSettings:
