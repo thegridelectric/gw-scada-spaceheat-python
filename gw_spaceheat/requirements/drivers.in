@@ -1,6 +1,6 @@
 -r base.in
 smbus2
-
+board
 pymodbus
 pyserial
 adafruit-circuitpython-ads1x15
