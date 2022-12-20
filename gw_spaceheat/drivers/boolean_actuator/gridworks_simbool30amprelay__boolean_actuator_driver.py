@@ -1,12 +1,16 @@
-from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
-from drivers.boolean_actuator.boolean_actuator_driver import BooleanActuatorDriver
-from schema.enums import MakeModel
 import time
+
+from actors2.config import ScadaSettings
+from data_classes.components.boolean_actuator_component import \
+    BooleanActuatorComponent
+from drivers.boolean_actuator.boolean_actuator_driver import \
+    BooleanActuatorDriver
+from schema.enums import MakeModel
 
 
 class GridworksSimBool30AmpRelay_BooleanActuatorDriver(BooleanActuatorDriver):
-    def __init__(self, component: BooleanActuatorComponent):
-        super(GridworksSimBool30AmpRelay_BooleanActuatorDriver, self).__init__(component=component)
+    def __init__(self, component: BooleanActuatorComponent, settings: ScadaSettings):
+        super(GridworksSimBool30AmpRelay_BooleanActuatorDriver, self).__init__(component=component, settings=settings)
         if component.cac.make_model != MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             raise Exception(
                 f"Expected {MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY}, got {component.cac}"

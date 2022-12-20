@@ -1,24 +1,23 @@
-from typing import Optional
-from actors2.config import ScadaSettings
 import uuid
-from actors.utils import QOS, Subscription
-import paho.mqtt.client as mqtt
-from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from data_classes.components.electric_meter_component import ElectricMeterComponent
+from typing import Optional
 
+import paho.mqtt.client as mqtt
+from actors.utils import QOS, Subscription
+from actors2.config import ScadaSettings
+from data_classes.components.electric_meter_component import \
+    ElectricMeterComponent
+from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from schema.enums import MakeModel
 
 
 class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
-        super(OpenenergyEmonpi_PowerMeterDriver, self).__init__(component=component)
+        super(OpenenergyEmonpi_PowerMeterDriver, self).__init__(component=component, settings=settings)
         if component.cac.make_model != MakeModel.OPENENERGY__EMONPI:
             raise Exception(f"Expected {MakeModel.OPENENERGY__EMONPI}, got {component.cac}")
         self.component = component
         self.power_w: Optional[int] = None
         self.voltage_rms: Optional[float] = None
-
-        self.settings = settings
         self.client_id = "-".join(str(uuid.uuid4()).split("-")[:-1])
         self.client = mqtt.Client(self.client_id)
         self.client.username_pw_set(

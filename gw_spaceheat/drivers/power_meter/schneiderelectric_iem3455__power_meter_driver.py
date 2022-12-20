@@ -1,13 +1,12 @@
-from typing import Tuple, Optional, List
-from pymodbus.client.sync import ModbusSerialClient
-import serial.rs485
+from typing import List, Optional, Tuple
+
 import numpy as np
-from drivers.power_meter.power_meter_driver import PowerMeterDriver
+import serial.rs485
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
-
-from schema.enums import MakeModel
-from schema.enums import TelemetryName
-
+from drivers.power_meter.power_meter_driver import PowerMeterDriver
+from pymodbus.client.sync import ModbusSerialClient
+from schema.enums import MakeModel, TelemetryName
 
 PORT = "/dev/ttyUSB0"
 BAUD = 9600
@@ -17,8 +16,10 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
     SERIAL_NUMBER_ADDR = 130
     CURRENT_RMS_MICRO_A_ADDR = 3000
 
-    def __init__(self, component: ElectricMeterComponent):
-        super(SchneiderElectricIem3455_PowerMeterDriver, self).__init__(component=component)
+    def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
+        super(SchneiderElectricIem3455_PowerMeterDriver, self).__init__(
+            component=component, settings=settings
+        )
         if component.cac.make_model != MakeModel.SCHNEIDERELECTRIC__IEM3455:
             raise Exception(f"Expected {MakeModel.SCHNEIDERELECTRIC__IEM3455}, got {component.cac}")
         self.component = component
