@@ -1,6 +1,7 @@
 from typing import List
 import importlib.util
 
+
 DRIVER_IS_REAL = True
 for module_name in [
     "board",
@@ -15,6 +16,7 @@ for module_name in [
         break
 
 DEFAULT_BAD_VALUE = -5
+DEVICE_I2C_ADDRESS = 0x48
 
 if DRIVER_IS_REAL:
     # noinspection PyUnresolvedReferences
@@ -49,7 +51,7 @@ if DRIVER_IS_REAL:
             except:
                 raise Exception("Error creating busio.I2C device!")
             try:
-                self.ads = ADS.ADS1115(i2c)
+                self.ads = ADS.ADS1115(address=DEVICE_I2C_ADDRESS, channel=i2c)
             except:
                 raise Exception("Error creating ADS.ADS1115(i2c) object")
 
