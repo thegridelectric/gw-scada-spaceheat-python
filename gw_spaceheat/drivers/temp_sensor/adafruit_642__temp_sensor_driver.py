@@ -14,6 +14,8 @@ BASE_DIR = "/sys/bus/w1/devices/"
 ONE_WIRE_FILE_START_ID = "28"
 
 DEFAULT_BAD_TEMP_C_TIMES_1000_VALUE = 10 ** 6
+
+
 class Adafruit642_TempSensorDriver(TempSensorDriver):
     def __init__(self, component: TempSensorComponent, settings: ScadaSettings):
         super(Adafruit642_TempSensorDriver, self).__init__(component=component, settings=settings)
