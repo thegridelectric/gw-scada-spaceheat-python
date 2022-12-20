@@ -1,6 +1,6 @@
 import random
 import time
-
+from config import ScadaSettings
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
 from schema.enums.make_model.make_model_map import MakeModel
@@ -15,9 +15,10 @@ class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
     hang_on_read: bool = False
     hang_on_read_after: int = 0
 
-    def __init__(self, component: TempSensorComponent):
+    def __init__(self, component: TempSensorComponent, settings: ScadaSettings):
         super(GridworksWaterTempSensorHighPrecision_TempSensorDriver, self).__init__(
-            component=component
+            component=component,
+            settings=settings,
         )
         if component.cac.make_model != MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             raise Exception(f"Expected GridWorks__WaterTempHighPrecision, got {component.cac}")

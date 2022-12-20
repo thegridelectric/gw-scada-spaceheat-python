@@ -117,11 +117,11 @@ class PowerMeter(ActorBase):
     def set_power_meter_driver(self, component: ElectricMeterComponent) -> PowerMeterDriver:
         cac = component.cac
         if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver = UnknownPowerMeterDriver(component=component)
+            driver = UnknownPowerMeterDriver(component=component, settings=self.settings)
         elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
-            driver = SchneiderElectricIem3455_PowerMeterDriver(component=component)
+            driver = SchneiderElectricIem3455_PowerMeterDriver(component=component, settings=self.settings)
         elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
-            driver = GridworksSimPm1_PowerMeterDriver(component=component)
+            driver = GridworksSimPm1_PowerMeterDriver(component=component, settings=self.settings)
         elif cac.make_model == MakeModel.OPENENERGY__EMONPI:
             driver = OpenenergyEmonpi_PowerMeterDriver(component=component, settings=self.settings)
         else:

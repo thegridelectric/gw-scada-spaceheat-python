@@ -129,11 +129,11 @@ class DriverThreadSetupHelper:
     def make_power_meter_driver(self) -> PowerMeterDriver:
         cac = self.component.cac
         if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver = UnknownPowerMeterDriver(component=self.component)
+            driver = UnknownPowerMeterDriver(component=self.component, settings=self.settings)
         elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
-            driver = SchneiderElectricIem3455_PowerMeterDriver(component=self.component)
+            driver = SchneiderElectricIem3455_PowerMeterDriver(component=self.component, settings=self.settings)
         elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
-            driver = GridworksSimPm1_PowerMeterDriver(component=self.component)
+            driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
         elif cac.make_model == MakeModel.OPENENERGY__EMONPI:
             driver = OpenenergyEmonpi_PowerMeterDriver(
                 component=self.component, settings=self.settings

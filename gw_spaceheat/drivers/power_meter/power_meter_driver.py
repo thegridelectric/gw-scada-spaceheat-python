@@ -1,14 +1,20 @@
+import logging
 from abc import ABC, abstractmethod
-from typing import Optional, List
-from data_classes.components.electric_meter_component import ElectricMeterComponent
+from typing import List, Optional
+
+from config import ScadaSettings
+from data_classes.components.electric_meter_component import \
+    ElectricMeterComponent
 from schema.enums import TelemetryName
 
 
 class PowerMeterDriver(ABC):
-    def __init__(self, component: ElectricMeterComponent):
+    def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         if not isinstance(component, ElectricMeterComponent):
             raise Exception(f"ElectricMeterDriver requires ElectricMeterComponent. Got {component}")
         self.component = component
+        self.settings: ScadaSettings = settings
+        self.logger = logging.getLogger(settings.logging.base_log_name)
 
     def start(self):
         pass
