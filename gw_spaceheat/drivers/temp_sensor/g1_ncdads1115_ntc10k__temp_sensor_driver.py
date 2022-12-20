@@ -19,6 +19,7 @@ for module_name in [
 DEFAULT_BAD_VALUE = -5
 COMPONENT_I2C_ADDRESS = 0x48
 
+
 class I2CErrorEnum(Enum):
     NO_ADDRESS_ERROR = -100000
     READ_ERROR = -200000
@@ -56,7 +57,7 @@ if DRIVER_IS_REAL:
                 self.i2c = busio.I2C(board.SCL, board.SDA)
             except:
                 raise Exception("Error creating busio.I2C device!")
-        
+
         def read_telemetry_value(self) -> int:
             try:
                 ads = ADS.ADS1115(address=COMPONENT_I2C_ADDRESS, channel=self.i2c)

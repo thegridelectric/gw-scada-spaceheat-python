@@ -12,9 +12,11 @@ from schema.enums import MakeModel
 
 COMPONENT_I2C_ADDRESS = 0x20
 
+
 class I2CErrorEnum(Enum):
     NO_ADDRESS_ERROR = -100000
     READ_ERROR = -200000
+
 
 class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
     def __init__(self, component: BooleanActuatorComponent, settings: ScadaSettings):
