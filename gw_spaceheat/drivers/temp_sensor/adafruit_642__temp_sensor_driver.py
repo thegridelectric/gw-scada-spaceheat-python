@@ -4,6 +4,7 @@ import os
 import platform
 import time
 from typing import Optional
+from config import ScadaSettings
 import schema.property_format as property_format
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
@@ -13,9 +14,11 @@ BASE_DIR = "/sys/bus/w1/devices/"
 ONE_WIRE_FILE_START_ID = "28"
 
 DEFAULT_BAD_TEMP_C_TIMES_1000_VALUE = 10 ** 6
+
+
 class Adafruit642_TempSensorDriver(TempSensorDriver):
-    def __init__(self, component: TempSensorComponent):
-        super(Adafruit642_TempSensorDriver, self).__init__(component=component)
+    def __init__(self, component: TempSensorComponent, settings: ScadaSettings):
+        super(Adafruit642_TempSensorDriver, self).__init__(component=component, settings=settings)
         if component.cac.make_model != MakeModel.ADAFRUIT__642:
             raise Exception(f"Expected Adafruit__642, got {component.cac}")
         property_format.is_64_bit_hex(component.hw_uid)

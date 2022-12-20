@@ -1,7 +1,8 @@
 from typing import List
 import importlib.util
+from enum import Enum
 
-
+from config import ScadaSettings
 DRIVER_IS_REAL = True
 for module_name in [
     "board",
@@ -16,7 +17,13 @@ for module_name in [
         break
 
 DEFAULT_BAD_VALUE = -5
-DEVICE_I2C_ADDRESS = 0x48
+COMPONENT_I2C_ADDRESS = 0x48
+
+
+class I2CErrorEnum(Enum):
+    NO_ADDRESS_ERROR = -100000
+    READ_ERROR = -200000
+
 
 if DRIVER_IS_REAL:
     # noinspection PyUnresolvedReferences
@@ -33,8 +40,8 @@ if DRIVER_IS_REAL:
     from schema.enums.make_model.make_model_map import MakeModel
 
     class G1_NcdAds1115_Ntc10k(TempSensorDriver):
-        def __init__(self, component: TempSensorComponent):
-            super(G1_NcdAds1115_Ntc10k, self).__init__(component=component)
+        def __init__(self, component: TempSensorComponent, settings: ScadaSettings):
+            super(G1_NcdAds1115_Ntc10k, self).__init__(component=component, settings=settings)
             self.channel_idx = component.channel
             models: List[MakeModel] = [
                 MakeModel.G1__NCD_ADS1115__TEWA_NTC_10K_A,
@@ -47,28 +54,30 @@ if DRIVER_IS_REAL:
             if component.channel not in range(4):
                 raise Exception(f"Channel {component.channel} must be 0,1,2 or 3!")
             try:
-                i2c = busio.I2C(board.SCL, board.SDA)
+                self.i2c = busio.I2C(board.SCL, board.SDA)
             except:
                 raise Exception("Error creating busio.I2C device!")
-            try:
-                self.ads = ADS.ADS1115(address=DEVICE_I2C_ADDRESS, channel=i2c)
-            except:
-                raise Exception("Error creating ADS.ADS1115(i2c) object")
 
         def read_telemetry_value(self) -> int:
+            try:
+                ads = ADS.ADS1115(address=COMPONENT_I2C_ADDRESS, channel=self.i2c)
+            except:
+                self.logger.warning(f"Failed to detect i2c at address {COMPONENT_I2C_ADDRESS}")
+                return I2CErrorEnum.NO_ADDRESS_ERROR.value
             if self.channel_idx == 0:
-                channel = AnalogIn(self.ads, ADS.P0)
+                channel = AnalogIn(ads, ADS.P0)
             elif self.channel_idx == 1:
-                channel = AnalogIn(self.ads, ADS.P1)
+                channel = AnalogIn(ads, ADS.P1)
             elif self.channel_idx == 2:
-                channel = AnalogIn(self.ads, ADS.P2)
+                channel = AnalogIn(ads, ADS.P2)
             elif self.channel_idx == 3:
-                channel = AnalogIn(self.ads, ADS.P3)
+                channel = AnalogIn(ads, ADS.P3)
             try:
                 value = channel.voltage
                 # value = self.channel.value
             except:
-                return DEFAULT_BAD_VALUE
+                self.logger.warning(f"Read bad value for {COMPONENT_I2C_ADDRESS}, channel {self.channel_idx}")
+                return I2CErrorEnum.READ_ERROR.value
             return int(value * 1000)
 else:
     from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
