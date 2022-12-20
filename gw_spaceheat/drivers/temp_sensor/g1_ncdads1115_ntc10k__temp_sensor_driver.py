@@ -64,13 +64,13 @@ if DRIVER_IS_REAL:
                 self.logger.warning(f"Failed to detect i2c at address {COMPONENT_I2C_ADDRESS}")
                 return I2CErrorEnum.NO_ADDRESS_ERROR.value
             if self.channel_idx == 0:
-                channel = AnalogIn(self.ads, ADS.P0)
+                channel = AnalogIn(ads, ADS.P0)
             elif self.channel_idx == 1:
-                channel = AnalogIn(self.ads, ADS.P1)
+                channel = AnalogIn(ads, ADS.P1)
             elif self.channel_idx == 2:
-                channel = AnalogIn(self.ads, ADS.P2)
+                channel = AnalogIn(ads, ADS.P2)
             elif self.channel_idx == 3:
-                channel = AnalogIn(self.ads, ADS.P3)
+                channel = AnalogIn(ads, ADS.P3)
             try:
                 value = channel.voltage
                 # value = self.channel.value

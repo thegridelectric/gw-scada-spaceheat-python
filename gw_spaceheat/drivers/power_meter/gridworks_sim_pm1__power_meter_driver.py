@@ -1,10 +1,10 @@
-from typing import List, Optional
+from typing import Optional
 
 from config import ScadaSettings
 from data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from schema.enums import MakeModel, TelemetryName
+from schema.enums import MakeModel
 
 
 class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
