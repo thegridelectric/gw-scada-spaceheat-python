@@ -39,7 +39,7 @@ jobs:
           source: "tests/config/.env-ci"
           target: "tests/.env-gw-spaceheat-test"
       - name: Run tests with pytest under coverage
-        run: coverage run -m pytest -s
+        run: coverage run -m pytest -s --ignore tests/test_actors/
       - name: Upload coverage data
         uses: "actions/upload-artifact@v3"
         with:
