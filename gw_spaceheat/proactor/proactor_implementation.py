@@ -36,6 +36,7 @@ from result import Ok
 from result import Result
 
 from proactor import config
+from proactor import ProactorSettings
 from proactor.link_state import LinkStates
 from proactor.link_state import Transition
 from proactor.logger import ProactorLogger
@@ -53,6 +54,7 @@ from proactor.proactor_interface import MonitoredName
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
 from proactor.problems import Problems
+from proactor.stats import ProactorStats
 from proactor.watchdog import WatchdogManager
 
 
@@ -118,6 +120,9 @@ class MessageTimes:
 class Proactor(ServicesInterface, Runnable):
 
     _name: str
+    _settings: ProactorSettings
+    _logger: ProactorLogger
+    _stats: ProactorStats
     _loop: Optional[asyncio.AbstractEventLoop] = None
     _receive_queue: Optional[asyncio.Queue] = None
     _mqtt_clients: MQTTClients
@@ -128,12 +133,12 @@ class Proactor(ServicesInterface, Runnable):
     _communicators: Dict[str, CommunicatorInterface]
     _stop_requested: bool
     _tasks: List[asyncio.Task]
-    _logger: ProactorLogger
     _watchdog: WatchdogManager
 
-    def __init__(self, name: str, logger: ProactorLogger):
+    def __init__(self, name: str, settings: ProactorSettings):
         self._name = name
-        self._logger = logger
+        self._settings = settings
+        self._logger = ProactorLogger(**settings.logging.qualified_logger_names())
         self._mqtt_clients = MQTTClients()
         self._mqtt_codecs = dict()
         self._link_states = LinkStates()
@@ -144,6 +149,53 @@ class Proactor(ServicesInterface, Runnable):
         self._stop_requested = False
         self._watchdog = WatchdogManager(10, self)
         self.add_communicator(self._watchdog)
+        self._stats = ProactorStats()
+
+    def send(self, message: Message):
+        if not isinstance(message.Payload, PatWatchdog):
+            self._logger.message_summary(
+                "OUT internal",
+                message.Header.Src,
+                f"{message.Header.Dst}/{message.Header.MessageType}",
+                message.Payload,
+            )
+        self._receive_queue.put_nowait(message)
+
+    def send_threadsafe(self, message: Message) -> None:
+        self._loop.call_soon_threadsafe(self._receive_queue.put_nowait, message)
+
+    def get_communicator(self, name: str) -> CommunicatorInterface:
+        return self._communicators[name]
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def publication_name(self) -> str:
+        return self._name
+
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return []
+
+    @property
+    def settings(self) -> ProactorSettings:
+        return self._settings
+
+    @property
+    def logger(self) -> ProactorLogger:
+        return self._logger
+
+    @property
+    def stats(self) -> ProactorStats:
+        return self._stats
+
+    def _send(self, message: Message):
+        self.send(message)
+
+    def generate_event(self, event: EventT) -> None:
+        ...
 
     def _add_mqtt_client(
         self,
@@ -156,6 +208,7 @@ class Proactor(ServicesInterface, Runnable):
             self._mqtt_codecs[name] = codec
         self._link_states.add(name)
         self._link_message_times[name] = MessageTimes()
+        self._stats.add_link(name)
 
     async def _send_ping(self, client: str):
         while not self._stop_requested:
@@ -585,40 +638,6 @@ class Proactor(ServicesInterface, Runnable):
 
     def publish(self, client: str, topic: str, payload: bytes, qos: int):
         self._mqtt_clients.publish(client, topic, payload, qos)
-
-    def send(self, message: Message):
-        if not isinstance(message.Payload, PatWatchdog):
-            self._logger.message_summary(
-                "OUT internal",
-                message.Header.Src,
-                f"{message.Header.Dst}/{message.Header.MessageType}",
-                message.Payload,
-            )
-        self._receive_queue.put_nowait(message)
-
-    def send_threadsafe(self, message: Message) -> None:
-        self._loop.call_soon_threadsafe(self._receive_queue.put_nowait, message)
-
-    def get_communicator(self, name: str) -> CommunicatorInterface:
-        return self._communicators[name]
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def publication_name(self) -> str:
-        return self._name
-
-    @property
-    def monitored_names(self) -> Sequence[MonitoredName]:
-        return []
-
-    def _send(self, message: Message):
-        self.send(message)
-
-    def generate_event(self, event: EventT) -> None:
-        ...
 
 def str_tasks(loop_: asyncio.AbstractEventLoop, tag: str = "", tasks: Optional[Iterable[Awaitable]] = None) -> str:
     s = ""

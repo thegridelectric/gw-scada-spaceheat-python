@@ -12,10 +12,10 @@ from proactor.proactor_interface import ServicesInterface
 class ScadaInterface(ServicesInterface, ActorInterface, ABC):
     @property
     @abstractmethod
-    def settings(self) -> ScadaSettings:
+    def hardware_layout(self) -> HardwareLayout:
         pass
 
     @property
     @abstractmethod
-    def hardware_layout(self) -> HardwareLayout:
+    def settings(self) -> ScadaSettings:
         pass

@@ -46,7 +46,6 @@ from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.link_state import Transition
-from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload
 from proactor.persister import JSONDecodingError
 from proactor.persister import TimedRollingFilePersister
@@ -114,7 +113,6 @@ class Scada2(ScadaInterface, Proactor):
     LOCAL_MQTT = "local"
     PERSISTER_ENCODING = "utf-8"
 
-    _settings: ScadaSettings
     _nodes: HardwareLayout
     _node: ShNode
     _data: ScadaData
@@ -129,12 +127,8 @@ class Scada2(ScadaInterface, Proactor):
         hardware_layout: HardwareLayout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
-        super().__init__(
-            name=name,
-            logger=ProactorLogger(**settings.logging.qualified_logger_names())
-        )
+        super().__init__(name=name, settings=settings)
         self._node = hardware_layout.node(name)
-        self._settings = settings
         self._layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
         self._add_mqtt_client(
@@ -329,9 +323,9 @@ class Scada2(ScadaInterface, Proactor):
     def log_subscriptions(self, tag=""):
         if self._logger.lifecycle_enabled:
             s = f"Scada2 subscriptions: [{tag}]]\n"
-            for client in self._mqtt_clients._clients:
+            for client in self._mqtt_clients.clients:
                 s += f"\t{client}\n"
-                for subscription in self._mqtt_clients._clients[client]._subscriptions:
+                for subscription in self._mqtt_clients.clients[client]._subscriptions:
                     s += f"\t\t[{subscription}]\n"
             self._logger.lifecycle(s)
 

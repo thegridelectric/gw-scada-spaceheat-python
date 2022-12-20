@@ -6,6 +6,7 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
+from typing import cast
 from typing import Optional
 from typing import Sequence
 
@@ -33,7 +34,6 @@ from actors2.message import ScadaDBGCommands
 from proactor.config import LoggerLevels
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from proactor.logger import ProactorLogger
 from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor
 from schema.enums import Role
@@ -72,7 +72,7 @@ class AtnMQTTCodec(MQTTCodec):
         if source_alias != self.hardware_layout.scada_g_node_alias:
             raise Exception(f"alias {source_alias} not my Scada!")
 
-
+# TODO: replace this
 class MessageStats:
     num_received: int
     num_received_by_topic: dict[str, int]
@@ -102,6 +102,9 @@ class MessageStats:
     def num_snapshot_received(self) -> int:
         return self.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias]
 
+    def add_link(self, link_name: str) -> None:
+        pass
+
 
 class AtnData:
     latest_snapshot: Optional[SnapshotSpaceheat] = None
@@ -119,7 +122,6 @@ class _PausedAck:
 class Atn2(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
-    settings: AtnSettings
     layout: HardwareLayout
     _node: ShNode
     data: AtnData
@@ -136,13 +138,9 @@ class Atn2(ActorInterface, Proactor):
         settings: AtnSettings,
         hardware_layout: HardwareLayout,
     ):
-        super().__init__(
-            name=name,
-            logger=ProactorLogger(**settings.logging.qualified_logger_names())
-        )
+        super().__init__(name=name, settings=settings)
         self._node = hardware_layout.node(name)
         self.data = AtnData()
-        self.settings = settings
         self.layout = hardware_layout
         self.my_sensors = list(
             filter(
@@ -156,6 +154,8 @@ class Atn2(ActorInterface, Proactor):
                 list(self.layout.nodes.values()),
             )
         )
+        # noinspection PyTypeChecker
+        self._stats = MessageStats()
         self._add_mqtt_client(
             Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout)
         )
@@ -168,7 +168,6 @@ class Atn2(ActorInterface, Proactor):
         self.latest_status: Optional[GtShStatus] = None
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
-        self.stats = MessageStats()
         self.acks_paused = False
         self.needs_ack = []
         self.mqtt_messages_dropped = False
@@ -184,6 +183,20 @@ class Atn2(ActorInterface, Proactor):
     @property
     def publication_name(self) -> str:
         return self.layout.atn_g_node_alias
+
+    @property
+    def settings(self) -> AtnSettings:
+        return cast(AtnSettings, self._settings)
+
+    @property
+    def stats(self) -> MessageStats:
+        # noinspection PyTypeChecker
+        return self._stats
+
+    @stats.setter
+    def stats(self, stats: MessageStats) -> None:
+        # noinspection PyTypeChecker
+        self._stats = stats
 
     def pause_acks(self):
         self.acks_paused = True

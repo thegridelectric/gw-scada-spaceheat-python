@@ -247,7 +247,7 @@ class FragmentRunner:
             # TODO: make some test-public form of this
             if hasattr(actor, "_mqtt_clients"):
                 # noinspection PyProtectedMember
-                for client_name in actor._mqtt_clients._clients:
+                for client_name in actor._mqtt_clients.clients:
                     # noinspection PyProtectedMember
                     wait_for(
                         lambda: actor._mqtt_clients.subscribed(client_name),
@@ -347,16 +347,16 @@ class AsyncFragmentRunner(FragmentRunner):
             if hasattr(actor, "_mqtt_clients"):
                 # noinspection PyProtectedMember, PyShadowingNames
                 connected = await await_for(
-                    lambda: all([actor._mqtt_clients.subscribed(client_name) for client_name in actor._mqtt_clients._clients.keys()]),
+                    lambda: all([actor._mqtt_clients.subscribed(client_name) for client_name in actor._mqtt_clients.clients.keys()]),
                     10,
                     raise_timeout=False
                 )
                 if not connected:
                     s = "MQTT CONNECTION ERROR\n"
                     # noinspection PyProtectedMember, PyShadowingNames
-                    for client_name in sorted(actor._mqtt_clients._clients.keys()):
+                    for client_name in sorted(actor._mqtt_clients.clients.keys()):
                         # noinspection PyProtectedMember
-                        client = actor._mqtt_clients._clients[client_name]
+                        client = actor._mqtt_clients.clients[client_name]
                         # noinspection PyProtectedMember
                         s += (
                             f"  {client_name:20s}  subscribed:{int(client.subscribed())}"
