@@ -60,7 +60,7 @@ if DRIVER_IS_REAL:
 
         def read_telemetry_value(self) -> int:
             try:
-                ads = ADS.ADS1115(address=COMPONENT_I2C_ADDRESS, channel=self.i2c)
+                ads = ADS.ADS1115(address=COMPONENT_I2C_ADDRESS, i2c=self.i2c)
             except:
                 self.logger.warning(f"Failed to detect i2c at address {COMPONENT_I2C_ADDRESS}")
                 return I2CErrorEnum.NO_ADDRESS_ERROR.value
