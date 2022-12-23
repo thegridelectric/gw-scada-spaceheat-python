@@ -68,7 +68,7 @@ if DRIVER_IS_REAL:
             except:
                 raise Exception("Error creating busio.I2C device!")
 
-        def thermistor_temp_f_beta_formula(
+        def thermistor_temp_c_beta_formula(
             self,
             voltage: float) -> float:
             """We are using the beta formula instead of the Steinhart-Hart equation. 
@@ -86,7 +86,7 @@ if DRIVER_IS_REAL:
                 voltage divider resistor 
 
             Returns:
-                float: The temperature getting measured by the thermistor in degrees F 
+                float: The temperature getting measured by the thermistor in degrees Celcius
             """
             rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
             r0: int = int(THERMISTOR_R0_OHMS)
@@ -101,10 +101,9 @@ if DRIVER_IS_REAL:
 
             temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
 
-            # Convert the temperature to degrees Fahrenheit
-            temp_f = (temp_c * 9/5) + 32
 
-            return temp_f
+
+            return temp_c
     
 
         def read_telemetry_value(self) -> int:
@@ -123,11 +122,11 @@ if DRIVER_IS_REAL:
                 channel = AnalogIn(ads, ADS.P3)
             try:
                 voltage = channel.voltage 
-                temp_f = self.thermistor_temp_f_beta_formula(voltage)
+                temp_c = self.thermistor_temp_c_beta_formula(voltage)
             except:
                 self.logger.warning(f"Read bad value for {COMPONENT_I2C_ADDRESS}, channel {self.channel_idx}")
                 return I2CErrorEnum.READ_ERROR.value
-            return int(temp_f * 1000)
+            return int(temp_c * 1000)
 else:
     from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
 
