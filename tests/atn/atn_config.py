@@ -1,10 +1,7 @@
-from typing import Optional, Any
+from typing import Any, Optional
 
+from config import LoggingSettings, MQTTClient, Paths
 from pydantic import BaseSettings, validator
-
-from config import MQTTClient
-from config import Paths
-from config import LoggingSettings
 
 DEFAULT_NAME = "atn"
 
@@ -13,6 +10,9 @@ class AtnSettings(BaseSettings):
     scada_mqtt: MQTTClient = MQTTClient()
     paths: Paths = None
     logging: LoggingSettings = None
+    minute_cron_file: str = "cron_last_minute.txt"
+    hour_cron_file: str = "cron_last_hour.txt"
+    day_cron_file: str = "cron_last_day.txt"
 
     class Config:
         env_prefix = "ATN_"
