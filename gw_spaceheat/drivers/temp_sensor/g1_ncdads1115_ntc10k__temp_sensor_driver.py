@@ -1,7 +1,7 @@
 from typing import List
 import importlib.util
 from enum import Enum
-
+import math
 from config import ScadaSettings
 DRIVER_IS_REAL = True
 for module_name in [
@@ -18,6 +18,16 @@ for module_name in [
 
 DEFAULT_BAD_VALUE = -5
 COMPONENT_I2C_ADDRESS = 0x48
+
+PI_VOLTAGE = 5
+# 298 Kelvin is 25 Celcius
+THERMISTOR_T0_DEGREES_KELVIN = 298
+# NTC THermistors are 10 kOhms at 25 deg C
+THERMISTOR_R0_OHMS = 10000
+# NTC Thermistors have a "rated beta" on their data sheet
+THERMISTOR_BETA = 3977
+# Then, there is our pull-up resistor
+VOLTAGE_DIVIDER_R_OHMS = 8200
 
 
 class I2CErrorEnum(Enum):
@@ -58,6 +68,41 @@ if DRIVER_IS_REAL:
             except:
                 raise Exception("Error creating busio.I2C device!")
 
+        def thermistor_temp_c_beta_formula(
+                self,
+                voltage: float) -> float:
+            """We are using the beta formula instead of the Steinhart-Hart equation.
+            Thermistor data sheets typically provide the three parameters needed
+            for the beta formula (R0, beta, and T0) and do not provide the
+            three parameters needed for the better beta function.
+            "Under the best conditions, the beta formula is accurate to approximately
+            +/- 1 C over the temperature range of 0 to 100C
+
+            For more information go here:
+            https://www.newport.com/medias/sys_master/images/images/hdb/hac/8797291479070/TN-STEIN-1-Thermistor-Constant-Conversions-Beta-to-Steinhart-Hart.pdf
+
+            Args:
+                voltage (float): The voltage measured between the thermistor and the
+                voltage divider resistor
+
+            Returns:
+                float: The temperature getting measured by the thermistor in degrees Celcius
+            """
+            rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
+            r0: int = int(THERMISTOR_R0_OHMS)
+            beta: int = int(THERMISTOR_BETA)
+            t0: int = int(THERMISTOR_T0_DEGREES_KELVIN)
+
+            # Calculate the resistance of the thermistor
+            rt = rd * voltage / (PI_VOLTAGE - voltage)
+
+            # Calculate the temperature in degrees Celsius. Note that 273 is
+            # 0 degrees Celcius as measured in Kelvin.
+
+            temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
+
+            return temp_c
+
         def read_telemetry_value(self) -> int:
             try:
                 ads = ADS.ADS1115(address=COMPONENT_I2C_ADDRESS, i2c=self.i2c)
@@ -73,12 +118,12 @@ if DRIVER_IS_REAL:
             elif self.channel_idx == 3:
                 channel = AnalogIn(ads, ADS.P3)
             try:
-                value = channel.voltage
-                # value = self.channel.value
+                voltage = channel.voltage
+                temp_c = self.thermistor_temp_c_beta_formula(voltage)
             except:
                 self.logger.warning(f"Read bad value for {COMPONENT_I2C_ADDRESS}, channel {self.channel_idx}")
                 return I2CErrorEnum.READ_ERROR.value
-            return int(value * 1000)
+            return int(temp_c * 1000)
 else:
     from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
 
