@@ -71,7 +71,7 @@ if DRIVER_IS_REAL:
         def thermistor_temp_c_beta_formula(
                 self,
                 voltage: float) -> float:
-            """We are using the beta formula instead of the Steinhart-Hart equation. 
+            """We are using the beta formula instead of the Steinhart-Hart equation.
             Thermistor data sheets typically provide the three parameters needed
             for the beta formula (R0, beta, and T0) and do not provide the
             three parameters needed for the better beta function.
@@ -83,7 +83,7 @@ if DRIVER_IS_REAL:
 
             Args:
                 voltage (float): The voltage measured between the thermistor and the
-                voltage divider resistor 
+                voltage divider resistor
 
             Returns:
                 float: The temperature getting measured by the thermistor in degrees Celcius
