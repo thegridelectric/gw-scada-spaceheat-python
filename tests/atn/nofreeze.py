@@ -187,7 +187,7 @@ class SimpleOrange:
         self.atn.snap()
         time.sleep(1)
         self.initialize_relays()
-        
+
         while self._main_loop_running is True:
             if self.time_for_min_cron():
                 try:
