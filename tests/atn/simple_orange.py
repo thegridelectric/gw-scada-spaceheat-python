@@ -169,9 +169,9 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
             filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, list(self.layout.nodes.values()))
         )
         self.relay_state = {x: RecentRelayState() for x in self.my_relays}
-        self._add_mqtt_client(Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout))
+        self._add_mqtt_client(SimpleOrangeAtn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout))
         self._mqtt_clients.subscribe(
-            Atn2.SCADA_MQTT,
+            SimpleOrangeAtn.SCADA_MQTT,
             MQTTTopic.encode_subscription(Message.type_name(), self.layout.scada_g_node_alias),
             QOS.AtMostOnce,
         )
@@ -221,7 +221,7 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         message = Message(Src=self.publication_name, Payload=payload)
-        return self._publish_message(Atn2.SCADA_MQTT, message, qos=qos)
+        return self._publish_message(SimpleOrangeAtn.SCADA_MQTT, message, qos=qos)
 
     async def process_message(self, message: Message):
         self.stats.add_message(message)
@@ -234,7 +234,7 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
 
     def _derived_process_message(self, message: Message):
         self._logger.path(
-            "++Atn2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType
+            "++SimpleOrangeAtn._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType
         )
         path_dbg = 0
         match message.Payload:
@@ -250,10 +250,10 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
             case _:
                 path_dbg |= 0x00000008
 
-        self._logger.path("--Atn2._derived_process_message  path:0x%08X", path_dbg)
+        self._logger.path("--SimpleOrangeAtn._derived_process_message  path:0x%08X", path_dbg)
 
     def _derived_process_mqtt_message(self, message: Message[MQTTReceiptPayload], decoded: Any):
-        self._logger.path("++Atn2._derived_process_mqtt_message %s", message.Payload.message.topic)
+        self._logger.path("++SimpleOrangeAtn._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if message.Payload.client_name != self.SCADA_MQTT:
             raise ValueError(
@@ -276,7 +276,7 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
                 self._process_event(decoded.Payload)
             case _:
                 path_dbg |= 0x00000010
-        self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
+        self._logger.path("--SimpleOrangeAtn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_pwr(self, pwr: GsPwr) -> None:
         pass
