@@ -53,7 +53,7 @@ def get_orange_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> 
 def main(argv: Optional[Sequence[str]] = None):
     if argv is None:
         argv = sys.argv[1:]
-    a = get_atn(argv)
+    a = get_orange_atn(argv)
     try:
         time.sleep(1)
         a.snap()

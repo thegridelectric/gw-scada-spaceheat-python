@@ -106,9 +106,9 @@ class SimpleOrange:
 
     def cron_every_min_success(self):
         self._last_min_cron_s = int(time.time())
-        if self.min_cron_failing == True:
+        if self.min_cron_failing is True:
             self.logger.info(f"{self.strategy_name} min cron working again")
-        self.min_cron_failing = False
+        self.min_cron_failing is False
         os.utime(self.atn.settings.minute_cron_file, (time.time(), time.time()))
 
     def cron_every_hour_success(self):
@@ -187,12 +187,13 @@ class SimpleOrange:
         self.atn.snap()
         time.sleep(1)
         self.initialize_relays()
+        
         while self._main_loop_running is True:
             if self.time_for_min_cron():
                 try:
                     self.cron_every_min()
                 except:
-                    if self.min_cron_failing == False:
+                    if self.min_cron_failing is False:
                         self.logger.warning(f"{self.strategy_name} MIN CRON FAILED!!")
                         self.min_cron_failing = True
                     else:
