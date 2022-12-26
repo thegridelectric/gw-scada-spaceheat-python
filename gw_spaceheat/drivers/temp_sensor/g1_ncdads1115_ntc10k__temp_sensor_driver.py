@@ -69,8 +69,8 @@ if DRIVER_IS_REAL:
                 raise Exception("Error creating busio.I2C device!")
 
         def thermistor_temp_c_beta_formula(
-            self,
-            voltage: float) -> float:
+                self,
+                voltage: float) -> float:
             """We are using the beta formula instead of the Steinhart-Hart equation. 
             Thermistor data sheets typically provide the three parameters needed
             for the beta formula (R0, beta, and T0) and do not provide the
@@ -96,15 +96,12 @@ if DRIVER_IS_REAL:
             # Calculate the resistance of the thermistor
             rt = rd * voltage / (PI_VOLTAGE - voltage)
 
-            # Calculate the temperature in degrees Celsius. Note that 273 is 
-            # 0 degrees Celcius as measured in Kelvin. 
+            # Calculate the temperature in degrees Celsius. Note that 273 is
+            # 0 degrees Celcius as measured in Kelvin.
 
             temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
 
-
-
             return temp_c
-    
 
         def read_telemetry_value(self) -> int:
             try:
@@ -121,7 +118,7 @@ if DRIVER_IS_REAL:
             elif self.channel_idx == 3:
                 channel = AnalogIn(ads, ADS.P3)
             try:
-                voltage = channel.voltage 
+                voltage = channel.voltage
                 temp_c = self.thermistor_temp_c_beta_formula(voltage)
             except:
                 self.logger.warning(f"Read bad value for {COMPONENT_I2C_ADDRESS}, channel {self.channel_idx}")
