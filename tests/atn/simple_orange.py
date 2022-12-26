@@ -1,15 +1,13 @@
 """Scada implementation"""
 import asyncio
 import dataclasses
-import json
 import threading
 import time
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence
 
 import pendulum
-import rich
 from actors2 import ActorInterface
 from actors2.message import ScadaDBG, ScadaDBGCommands
 from actors.utils import QOS
@@ -23,6 +21,7 @@ from gwproto import (
     MQTTTopic,
     create_message_payload_discriminator,
 )
+from gwproto.enums import TelemetryName
 from gwproto.messages import (
     EventBase,
     GsPwr,
@@ -38,6 +37,7 @@ from paho.mqtt.client import MQTTMessageInfo
 from proactor.logger import ProactorLogger
 from proactor.message import Message, MQTTReceiptPayload
 from proactor.proactor_implementation import Proactor
+from pydantic import BaseModel
 from schema.enums import Role
 
 from tests.atn import messages
@@ -100,6 +100,16 @@ class MessageStats:
         return self.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias]
 
 
+class Telemetry(BaseModel):
+    Value: int
+    Unit: TelemetryName
+
+
+class RecentRelayState(BaseModel):
+    State: Optional[int] = None
+    LastChangeTimeUnixMs: Optional[int] = None
+
+
 class AtnData:
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_status: Optional[GtShStatus] = None
@@ -113,7 +123,7 @@ class _PausedAck:
     context: Optional[Any]
 
 
-class Atn2(ActorInterface, Proactor):
+class SimpleOrangeAtn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
     settings: AtnSettings
@@ -122,10 +132,12 @@ class Atn2(ActorInterface, Proactor):
     data: AtnData
     stats: MessageStats
     my_sensors: Sequence[ShNode]
+    my_relays: Sequence[ShNode]
     event_loop_thread: Optional[threading.Thread] = None
     acks_paused: bool
     needs_ack: list[_PausedAck]
     mqtt_messages_dropped: bool
+    relay_state: Dict[ShNode, RecentRelayState]
 
     def __init__(
         self,
@@ -138,6 +150,7 @@ class Atn2(ActorInterface, Proactor):
         )
         self._node = hardware_layout.node(name)
         self.data = AtnData()
+
         self.settings = settings
         self.layout = hardware_layout
         self.my_sensors = list(
@@ -152,6 +165,10 @@ class Atn2(ActorInterface, Proactor):
                 list(self.layout.nodes.values()),
             )
         )
+        self.my_relays = list(
+            filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, list(self.layout.nodes.values()))
+        )
+        self.relay_state = {x: RecentRelayState() for x in self.my_relays}
         self._add_mqtt_client(Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout))
         self._mqtt_clients.subscribe(
             Atn2.SCADA_MQTT,
@@ -266,6 +283,24 @@ class Atn2(ActorInterface, Proactor):
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
+        for node in self.my_relays:
+            possible_indices = []
+            for idx in range(len(snapshot.Snapshot.AboutNodeAliasList)):
+                if (
+                    snapshot.Snapshot.AboutNodeAliasList[idx] == node.alias
+                    and snapshot.Snapshot.TelemetryNameList[idx] == TelemetryName.RELAY_STATE
+                ):
+                    possible_indices.append(idx)
+            if len(possible_indices) != 1:
+                raise Exception(
+                    f"{node.alias} has {len(possible_indices)} possibilities for relay state! Should be 1"
+                )
+            idx = possible_indices[0]
+            old_state = self.relay_state[node].State
+            if old_state != snapshot.Snapshot.ValueList[idx]:
+                self.relay_state[node].State = snapshot.Snapshot.ValueList[idx]
+                self.relay_state[node].LastChangeTimeUnixMs = int(time.time() * 1000)
+
         s = "\n\nSnapshot received:\n"
 
         for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
@@ -358,6 +393,26 @@ class Atn2(ActorInterface, Proactor):
 
     def turn_off(self, relay_node: ShNode):
         self.set_relay(relay_node.alias, False)
+
+    def latest_simple_reading(self, node: ShNode) -> Optional[Telemetry]:
+        """Provides the latest reported Telemetry value as reported in a snapshot
+        message from the Scada, for a simple sensor.
+
+        Args:
+            node (ShNode): A Spaceheat Node associated to a simple sensor.
+
+        Returns:
+            Optional[int]: Returns None if no value has been reported.
+            This will happen for example if the node is not associated to
+            a simple sensor.
+        """
+        snap = self.data.latest_snapshot.Snapshot
+        try:
+            idx = snap.AboutNodeAliasList.index(node.alias)
+        except ValueError:
+            return None
+
+        return Telemetry(Value=snap.ValueList[idx], Unit=snap.TelemetryNameList[idx])
 
     def start(self):
         if self.event_loop_thread is not None:

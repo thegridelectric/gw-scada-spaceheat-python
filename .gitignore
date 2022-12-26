@@ -23,3 +23,8 @@ gw_spaceheat/output/**
 !gw_spaceheat/output/**/
 !gw_spaceheat/output/**/__init__.py
 output/**
+
+# ignore files for managing scheduled home alone jobs
+cron_last_day.txt
+cron_last_hour.txt
+cron_last_minute.txt
