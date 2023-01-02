@@ -7,11 +7,13 @@ Main current limitation: each interaction between asyncio code and the mqtt clie
 
 """
 import asyncio
+import enum
 import logging
 import uuid
 from typing import cast
 from typing import Dict
 from typing import List
+from typing import NamedTuple
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -29,6 +31,15 @@ from proactor.message import MQTTReceiptMessage
 from proactor.message import MQTTSubackMessage
 from proactor.message import MQTTSubackPayload
 from proactor.sync_thread import AsyncQueueWriter
+
+class QOS(enum.IntEnum):
+    AtMostOnce = 0
+    AtLeastOnce = 1
+    ExactlyOnce = 2
+
+class Subscription(NamedTuple):
+    Topic: str
+    Qos: QOS
 
 
 class MQTTClientWrapper:
@@ -181,6 +192,7 @@ class MQTTClientWrapper:
 class MQTTClients:
     clients: Dict[str, MQTTClientWrapper]
     _send_queue: AsyncQueueWriter
+    upstream_client: str = ""
 
     def __init__(self):
         self._send_queue = AsyncQueueWriter()
@@ -190,9 +202,14 @@ class MQTTClients:
         self,
         name: str,
         client_config: config.MQTTClient,
+        upstream: bool = False,
     ):
         if name in self.clients:
             raise ValueError(f"ERROR. MQTT client named {name} already exists")
+        if upstream:
+            if self.upstream_client:
+                raise ValueError(f"ERROR. upstream client already set as {self.upstream_client}. Client {name} may not be set as upstream.")
+            self.upstream_client = name
         self.clients[name] = MQTTClientWrapper(name, client_config, self._send_queue)
 
     def publish(
@@ -243,3 +260,6 @@ class MQTTClients:
 
     def client_wrapper(self, client: str) -> MQTTClientWrapper:
         return self.clients[client]
+
+    def upstream(self) -> MQTTClientWrapper:
+        return self.clients[self.upstream_client]

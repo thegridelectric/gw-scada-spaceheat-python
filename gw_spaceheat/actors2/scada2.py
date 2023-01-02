@@ -1,7 +1,6 @@
 """Scada implementation"""
 
 import asyncio
-import json
 import time
 import typing
 from typing import Any
@@ -11,8 +10,6 @@ from typing import Optional
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
-from gwproto.messages import CommEvent
-from gwproto.messages import EventT
 from gwproto.messages import GsPwr
 from gwproto.messages import GtDispatchBoolean
 from gwproto.messages import GtDispatchBoolean_Maker
@@ -27,8 +24,6 @@ from gwproto.messages import GtTelemetry
 from gwproto.messages import GtTelemetry_Maker
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
-from paho.mqtt.client import MQTTMessageInfo
-from result import Err
 from result import Ok
 from result import Result
 
@@ -40,20 +35,16 @@ from actors2.message import ScadaDBGEvent
 from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
 from actors.scada import ScadaCmdDiagnostic
-from actors.utils import QOS
 from actors2.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.link_state import Transition
+from proactor.mqtt import QOS
 from proactor.message import MQTTReceiptPayload
-from proactor.persister import JSONDecodingError
 from proactor.persister import TimedRollingFilePersister
-from proactor.persister import UIDMissingWarning
 from proactor.proactor_implementation import Proactor
-from proactor.proactor_implementation import AckWaitResult
-from proactor.problems import Problems
 
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
@@ -112,12 +103,10 @@ class Scada2(ScadaInterface, Proactor):
     DEFAULT_ACTORS_MODULE = "actors2"
     GRIDWORKS_MQTT = "gridworks"
     LOCAL_MQTT = "local"
-    PERSISTER_ENCODING = "utf-8"
 
     _nodes: HardwareLayout
     _node: ShNode
     _data: ScadaData
-    _event_persister: TimedRollingFilePersister
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
 
@@ -139,6 +128,7 @@ class Scada2(ScadaInterface, Proactor):
             Scada2.GRIDWORKS_MQTT,
             self.settings.gridworks_mqtt,
             GridworksMQTTCodec(self._layout),
+            upstream=True,
         )
         for topic in [
             MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
@@ -151,7 +141,6 @@ class Scada2(ScadaInterface, Proactor):
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
-        self._event_persister = TimedRollingFilePersister(self.settings.paths.event_dir)
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -162,6 +151,10 @@ class Scada2(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
+
+    @classmethod
+    def make_event_persister(cls, settings:ScadaSettings) -> TimedRollingFilePersister:
+        return TimedRollingFilePersister(settings.paths.event_dir)
 
     @property
     def alias(self):
@@ -198,9 +191,9 @@ class Scada2(ScadaInterface, Proactor):
     def send_status(self):
         status = self._data.make_status(self._last_status_second)
         self._data.status_to_store[status.StatusUid] = status
-        self._publish_to_gridworks(status.asdict())
+        self._publish_upstream(status.asdict())
         self._publish_to_local(self._node, status)
-        self._publish_to_gridworks(self._data.make_snaphsot_payload())
+        self._publish_upstream(self._data.make_snaphsot_payload())
         self._data.flush_latest_readings()
 
     def next_status_second(self) -> int:
@@ -216,58 +209,16 @@ class Scada2(ScadaInterface, Proactor):
     def time_to_send_status(self) -> bool:
         return time.time() > self.next_status_second()
 
-    def generate_event(self, event: EventT) -> None:
-        if isinstance(event, CommEvent):
-            self.stats.link(event.PeerName).comm_event_counts[event.TypeName] += 1
-        if not event.Src:
-            event.Src = self.publication_name
-        if self._link_states[self.GRIDWORKS_MQTT].active_for_send():
-            self._publish_to_gridworks(event, AckRequired=True)
-        self._event_persister.persist(event.MessageId, event.json(
-            sort_keys=True, indent=2).encode(self.PERSISTER_ENCODING))
-
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def _derived_recv_deactivated(self, transition: Transition) -> Result[bool, BaseException]:
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
         return Ok()
 
 
-    # noinspection PyMethodMayBeStatic,PyUnusedLocal
+    # noinspection PyUnusedLocal
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
-        errors = []
         self._scada_atn_fast_dispatch_contract_is_alive_stub = True
-        for pending_message_id in self._event_persister.pending():
-            match self._event_persister.retrieve(pending_message_id):
-                case Ok(event_bytes):
-                    if event_bytes is None:
-                        errors.append(UIDMissingWarning("_derived_recv_activated", uid=pending_message_id))
-                    else:
-                        try:
-                            event = json.loads(event_bytes.decode(encoding=self.PERSISTER_ENCODING))
-                        except BaseException as e:
-                            errors.append(e)
-                            errors.append(JSONDecodingError("_derived_recv_activated", uid=pending_message_id))
-                        else:
-                            self._publish_to_gridworks(event, AckRequired=True)
-                case Err(error):
-                    errors.append(error)
-        if errors:
-            return Err(Problems(errors=errors))
         return Ok()
-
-    def _derived_process_ack_result(self, result: AckWaitResult):
-        self._logger.path("++Scada2._derived_process_ack_result %s %s", result.wait_info.message_id, result.summary)
-        path_dbg = 0
-        if result.ok() and result.wait_info.message_id in self._event_persister:
-            path_dbg |= 0x00000001
-            self._event_persister.clear(result.wait_info.message_id)
-        self._logger.path("--Scada2._derived_process_ack_result path:0x%08X", path_dbg)
-
-    def _publish_to_gridworks(
-        self, payload, qos: QOS = QOS.AtMostOnce, **message_args: Any
-    ) -> MQTTMessageInfo:
-        message = Message(Src=self.publication_name, Payload=payload, **message_args)
-        return self._publish_message(Scada2.GRIDWORKS_MQTT, message, qos=qos)
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
         message = Message(Src=from_node.alias, Payload=payload)
@@ -412,7 +363,7 @@ class Scada2(ScadaInterface, Proactor):
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
             return
-        self._publish_to_gridworks(self._data.make_snaphsot_payload())
+        self._publish_upstream(self._data.make_snaphsot_payload())
 
     @property
     def scada_atn_fast_dispatch_contract_is_alive(self):
@@ -456,7 +407,7 @@ class Scada2(ScadaInterface, Proactor):
         The allocation to separate metered nodes is done ex-poste using the multipurpose
         telemetry data."""
 
-        self._publish_to_gridworks(payload, QOS.AtMostOnce)
+        self._publish_upstream(payload, QOS.AtMostOnce)
         self._data.latest_total_power_w = self.GS_PWR_MULTIPLIER * payload.Power
 
     def gt_sh_telemetry_from_multipurpose_sensor_received(
@@ -535,18 +486,6 @@ class Scada2(ScadaInterface, Proactor):
         return self._process_boolean_dispatch(
             typing.cast(GtDispatchBoolean, payload)
         )
-
-    def _upload_pending_events(self):
-        for message_id in self._event_persister.pending():
-            match self._event_persister.retrieve(message_id):
-                case Ok(content):
-                    self._publish_to_gridworks(
-                        json.loads(content.decode("utf-8")),
-                        AckRequired=True
-                    )
-                case Err(problems):
-                    self._logger.error(problems)
-                    raise ValueError(str(problems))
 
     def _process_scada_dbg(self, dbg: ScadaDBG):
         self._logger.path("++_process_scada_dbg")

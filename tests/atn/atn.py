@@ -10,12 +10,15 @@ from typing import Optional
 from typing import Sequence
 
 import pendulum
-from gwproto import CallableDecoder
-from gwproto.messages import EventBase
+
 from paho.mqtt.client import MQTTMessageInfo
 
+from gwproto import CallableDecoder
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
+from gwproto import MQTTCodec
+from gwproto import MQTTTopic
+from gwproto.messages import EventBase
 from gwproto.messages import GsPwr
 from gwproto.messages import GtDispatchBoolean_Maker
 from gwproto.messages import GtShCliAtnCmd_Maker
@@ -24,15 +27,14 @@ from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import GsPwr_Maker
 from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
-from gwproto import MQTTCodec
-from gwproto import MQTTTopic
-from actors.utils import QOS
+
 from actors2 import ActorInterface
 from actors2.message import ScadaDBG
 from actors2.message import ScadaDBGCommands
-from proactor.config import LoggerLevels
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
+from proactor.mqtt import QOS
+from proactor.config import LoggerLevels
 from proactor.message import MQTTReceiptPayload, Message
 from proactor.proactor_implementation import Proactor
 from schema.enums import Role

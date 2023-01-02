@@ -2,7 +2,8 @@ import uuid
 from typing import Optional
 
 import paho.mqtt.client as mqtt
-from actors.utils import QOS, Subscription
+from proactor.mqtt import QOS
+from proactor.mqtt import Subscription
 from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import \
     ElectricMeterComponent
