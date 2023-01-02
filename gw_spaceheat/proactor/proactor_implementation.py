@@ -304,7 +304,6 @@ class Proactor(ServicesInterface, Runnable):
                 self._event_persister.clear(message_id)
         self._logger.path("--Proactor._process_ack_result path:0x%08X", path_dbg)
 
-    # TODO: QOS out of actors
     def _publish_message(self, client, message: Message, qos: int = 0, context: Any = None) -> MQTTMessageInfo:
         topic = message.mqtt_topic()
         payload = self._mqtt_codecs[client].encode(message)
