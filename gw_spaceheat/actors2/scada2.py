@@ -11,6 +11,7 @@ from typing import Optional
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
+from gwproto.messages import CommEvent
 from gwproto.messages import EventT
 from gwproto.messages import GsPwr
 from gwproto.messages import GtDispatchBoolean
@@ -216,6 +217,8 @@ class Scada2(ScadaInterface, Proactor):
         return time.time() > self.next_status_second()
 
     def generate_event(self, event: EventT) -> None:
+        if isinstance(event, CommEvent):
+            self.stats.link(event.PeerName).comm_event_counts[event.TypeName] += 1
         if not event.Src:
             event.Src = self.publication_name
         if self._link_states[self.GRIDWORKS_MQTT].active_for_send():

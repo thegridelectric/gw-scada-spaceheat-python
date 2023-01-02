@@ -149,7 +149,11 @@ class Proactor(ServicesInterface, Runnable):
         self._stop_requested = False
         self._watchdog = WatchdogManager(10, self)
         self.add_communicator(self._watchdog)
-        self._stats = ProactorStats()
+        self._stats = self.make_stats()
+
+    @classmethod
+    def make_stats(cls) -> ProactorStats:
+        return ProactorStats()
 
     def send(self, message: Message):
         if not isinstance(message.Payload, PatWatchdog):
@@ -244,6 +248,9 @@ class Proactor(ServicesInterface, Runnable):
 
     def _process_ack_timeout(self, message_id: str):
         self._logger.message_enter("++Proactor._process_ack_timeout %s", message_id)
+        wait_info = self._acks.get(message_id, None)
+        if wait_info is not None:
+            self.stats.link(wait_info.client_name).timeouts += 1
         self._process_ack_result(message_id, AckWaitSummary.timeout)
         self._logger.message_exit("--Proactor._process_ack_timeout")
 
@@ -396,6 +403,7 @@ class Proactor(ServicesInterface, Runnable):
                 f"{message.Header.Src}/{message.Header.MessageType}",
                 message.Payload,
             )
+        self._stats.add_message(message)
         match message.Payload:
             case MQTTReceiptPayload():
                 path_dbg |= 0x00000002
@@ -450,6 +458,7 @@ class Proactor(ServicesInterface, Runnable):
         self._logger.path("++Proactor._process_mqtt_message %s/%s",
                           mqtt_receipt_message.Header.Src, mqtt_receipt_message.Header.MessageType)
         path_dbg = 0
+        self._stats.add_mqtt_message(mqtt_receipt_message)
         match result := self._decode_mqtt_message(mqtt_receipt_message.Payload):
             case Ok(decoded_message):
                 path_dbg |= 0x00000002

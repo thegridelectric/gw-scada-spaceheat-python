@@ -3,7 +3,6 @@ import asyncio
 import dataclasses
 import threading
 import time
-from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 from typing import cast
@@ -72,40 +71,6 @@ class AtnMQTTCodec(MQTTCodec):
         if source_alias != self.hardware_layout.scada_g_node_alias:
             raise Exception(f"alias {source_alias} not my Scada!")
 
-# TODO: replace this
-class MessageStats:
-    num_received: int
-    num_received_by_topic: dict[str, int]
-    num_received_by_message_type: dict[str, int]
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.num_received = 0
-        self.num_received_by_topic = defaultdict(int)
-        self.num_received_by_message_type = defaultdict(int)
-
-    def add_message(self, message: Message) -> None:
-        self.num_received += 1
-        self.num_received_by_message_type[message.Header.MessageType] += 1
-
-    def add_mqtt_message(self, message: Message[MQTTReceiptPayload]) -> None:
-        self.num_received_by_message_type[message.Header.MessageType] += 1
-        self.num_received_by_topic[message.Payload.message.topic] += 1
-
-    @property
-    def num_status_received(self) -> int:
-        return self.num_received_by_message_type[GtShStatus_Maker.type_alias]
-
-    @property
-    def num_snapshot_received(self) -> int:
-        return self.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias]
-
-    def add_link(self, link_name: str) -> None:
-        pass
-
-
 class AtnData:
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_status: Optional[GtShStatus] = None
@@ -125,7 +90,6 @@ class Atn2(ActorInterface, Proactor):
     layout: HardwareLayout
     _node: ShNode
     data: AtnData
-    stats: MessageStats
     my_sensors: Sequence[ShNode]
     event_loop_thread: Optional[threading.Thread] = None
     acks_paused: bool
@@ -154,8 +118,6 @@ class Atn2(ActorInterface, Proactor):
                 list(self.layout.nodes.values()),
             )
         )
-        # noinspection PyTypeChecker
-        self._stats = MessageStats()
         self._add_mqtt_client(
             Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout)
         )
@@ -187,16 +149,6 @@ class Atn2(ActorInterface, Proactor):
     @property
     def settings(self) -> AtnSettings:
         return cast(AtnSettings, self._settings)
-
-    @property
-    def stats(self) -> MessageStats:
-        # noinspection PyTypeChecker
-        return self._stats
-
-    @stats.setter
-    def stats(self, stats: MessageStats) -> None:
-        # noinspection PyTypeChecker
-        self._stats = stats
 
     def pause_acks(self):
         self.acks_paused = True
@@ -390,16 +342,17 @@ class Atn2(ActorInterface, Proactor):
     def summary_str(self) -> str:
         """Summarize results in a string"""
         s = (
-            f"Atn [{self.node.alias}] total: {self.stats.num_received}  "
-            f"status:{self.stats.num_status_received}  snapshot:{self.stats.num_snapshot_received}"
+            f"Atn [{self.node.alias}] total: {self._stats.num_received}  "
+            f"status:{self._stats.total_received(GtShStatus_Maker.type_alias)}  "
+            f"snapshot:{self._stats.total_received(SnapshotSpaceheat_Maker.type_alias)}"
         )
-        if self.stats.num_received_by_topic:
+        if self._stats.num_received_by_topic:
             s += "\n  Received by topic:"
-            for topic in sorted(self.stats.num_received_by_topic):
-                s += f"\n    {self.stats.num_received_by_topic[topic]:3d}: [{topic}]"
-        if self.stats.num_received_by_message_type:
+            for topic in sorted(self._stats.num_received_by_topic):
+                s += f"\n    {self._stats.num_received_by_topic[topic]:3d}: [{topic}]"
+        if self._stats.num_received_by_type:
             s += "\n  Received by message_type:"
-            for message_type in sorted(self.stats.num_received_by_message_type):
-                s += f"\n    {self.stats.num_received_by_message_type[message_type]:3d}: [{message_type}]"
+            for message_type in sorted(self._stats.num_received_by_type):
+                s += f"\n    {self._stats.num_received_by_type[message_type]:3d}: [{message_type}]"
 
         return s

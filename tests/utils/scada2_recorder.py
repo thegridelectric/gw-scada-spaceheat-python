@@ -1,4 +1,7 @@
+from dataclasses import dataclass
+from dataclasses import field
 from typing import Any
+from typing import cast
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -13,15 +16,35 @@ from actors2 import Scada2
 from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
 from proactor.mqtt import MQTTClientWrapper
+from proactor.stats import LinkStats
+from proactor.stats import ProactorStats
 
 
 def split_subscriptions(client_wrapper: MQTTClientWrapper) -> Tuple[int, Optional[int]]:
     for i, (topic, qos) in enumerate(client_wrapper.subscription_items()):
         MQTTClientWrapper.subscribe(client_wrapper, topic, qos)
     return MQTT_ERR_SUCCESS, None
+
+@dataclass
+class LinkStats2(LinkStats):
+    comm_events: list[CommEvent] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        s = super().__str__()
+        if self.comm_events:
+            s += "\n  Comm events:"
+            for comm_event in self.comm_events:
+                s += f"\n    {comm_event}"
+        return s
+
+class ProactorStats2(ProactorStats):
+
+    @classmethod
+    def make_link(cls, link_name: str) -> LinkStats2:
+        return LinkStats2(link_name)
+
 
 class Scada2Recorder(Scada2):
 
@@ -36,14 +59,16 @@ class Scada2Recorder(Scada2):
         self.subacks_paused = False
         self.pending_subacks = []
 
+    @classmethod
+    def make_stats(cls) -> ProactorStats2:
+        return ProactorStats2()
+
     def time_to_send_status(self) -> bool:
         return not self.suppress_status and super().time_to_send_status()
 
     def generate_event(self, event: EventT) -> None:
         if isinstance(event, CommEvent):
-            link_stats = self.stats.links[event.PeerName]
-            link_stats.comm_event_counts[event.TypeName] += 1
-            link_stats.comm_events.append(event)
+            cast(LinkStats2, self.stats.link(event.PeerName)).comm_events.append(event)
         super().generate_event(event)
 
     def split_client_subacks(self, client_name: str):
@@ -73,15 +98,7 @@ class Scada2Recorder(Scada2):
         if self.subacks_paused and isinstance(message.Payload, MQTTSubackPayload):
             self.pending_subacks.append(message)
         else:
-            self.stats.num_received_by_type[message.Header.MessageType] += 1
-            if isinstance(message.Payload, MQTTReceiptPayload):
-                self.stats.links[message.Payload.client_name].num_received_by_type[Message.type_name()] += 1
-                self.stats.links[message.Payload.client_name].num_received_by_type[message.Header.MessageType] += 1
             await super().process_message(message)
-
-    def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
-        self.stats.links[message.Payload.client_name].num_received_by_topic[message.Payload.message.topic] += 1
-        super()._process_mqtt_message(message)
 
     def summary_str(self):
         s = str(self.stats)
@@ -95,12 +112,6 @@ class Scada2Recorder(Scada2):
         if delay is None:
             delay = self.ack_timeout_seconds
         super()._start_ack_timer(client_name, message_id, context=context, delay=delay)
-
-    def _process_ack_timeout(self, message_id: str):
-        wait_info = self._acks.get(message_id, None)
-        if wait_info is not None:
-            self.stats.links[wait_info.client_name].timeouts += 1
-        super()._process_ack_timeout(message_id)
 
     def ping_atn(self):
         self._publish_message(
