@@ -16,8 +16,8 @@ from gwproto.messages import SnapshotSpaceheat_Maker
 from actors.cloud_base import CloudBase
 from actors.utils import QOS
 from actors.utils import Subscription
-from actors.utils import responsive_sleep
-from config import ScadaSettings
+from proactor import responsive_sleep
+from actors2.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode

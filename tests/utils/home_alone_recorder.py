@@ -1,7 +1,7 @@
 from typing import Optional
 
 from actors.home_alone import HomeAlone
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from gwproto.messages import GtShStatus

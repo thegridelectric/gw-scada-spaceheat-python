@@ -119,6 +119,69 @@ class _PersistedItem(NamedTuple):
     uid: str
     path: Path
 
+class StubPersister(PersisterInterface):
+
+    def persist(self, uid: str, content: bytes) -> Result[bool, Problems]:
+        return Ok()
+
+    def clear(self, uid: str) -> Result[bool, Problems]:
+        return Ok()
+
+    def pending(self) -> list[str]:
+        return []
+
+    @property
+    def num_pending(self) -> int:
+        return 0
+
+    def __contains__(self, uid: str) -> bool:
+        return False
+
+    def retrieve(self, uid: str) -> Result[Optional[bytes], Problems]:
+        return Ok(None)
+
+    def reindex(self) -> Result[Optional[bool], Problems]:
+        return Ok()
+
+
+class SimpleDirectoryWriter(StubPersister):
+
+    _base_dir: Path
+
+    def __init__(
+        self,
+        base_dir: Path | str,
+    ):
+        self._base_dir = Path(base_dir).resolve()
+
+    @classmethod
+    def _make_name(cls, dt: DateTime, uid: str) -> str:
+        return f"{dt.isoformat()}.uid[{uid}].json"
+
+    def persist(self, uid: str, content: bytes) -> Result[bool, Problems]:
+        problems = Problems()
+        try:
+            if not self._base_dir.exists():
+                self._base_dir.mkdir(parents=True, exist_ok=True)
+            path = self._base_dir / self._make_name(pendulum.now("utc"), uid)
+            try:
+                with path.open("wb") as f:
+                    f.write(content)
+            except BaseException as e:  # pragma: no cover
+                return Err(
+                    problems.add_error(e).add_error(
+                        WriteFailed(f"Open or write failed", uid=uid, path=path)
+                    )
+                )
+        except BaseException as e:
+            return Err(problems.add_error(e).add_error(PersisterError(
+                f"Unexpected error", uid=uid
+            )))
+        if problems:
+            return Err(problems)
+        else:
+            return Ok()
+
 
 class TimedRollingFilePersister(PersisterInterface):
     DEFAULT_MAX_BYTES: int = 500 * 1024 * 1024

@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from schema.enums import TelemetryName

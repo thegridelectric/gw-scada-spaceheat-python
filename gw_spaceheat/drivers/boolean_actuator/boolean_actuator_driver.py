@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 

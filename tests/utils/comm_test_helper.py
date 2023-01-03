@@ -4,7 +4,7 @@ import logging
 from typing import cast
 from typing import Optional
 
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
 from proactor import Proactor

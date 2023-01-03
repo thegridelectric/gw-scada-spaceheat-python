@@ -25,7 +25,7 @@ from gwproto.messages import GtTelemetry_Maker
 from pydantic import BaseModel
 from pydantic import validator
 
-from config import LoggerLevels
+from proactor.config import LoggerLevels
 
 
 class GtTelemetryMessage(Message[GtTelemetry]):

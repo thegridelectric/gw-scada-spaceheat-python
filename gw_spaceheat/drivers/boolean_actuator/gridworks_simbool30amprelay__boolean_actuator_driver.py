@@ -1,6 +1,6 @@
 import time
 
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from drivers.boolean_actuator.boolean_actuator_driver import \

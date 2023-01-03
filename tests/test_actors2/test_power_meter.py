@@ -12,15 +12,14 @@ from actors2 import Scada2
 from actors2.power_meter import DriverThreadSetupHelper
 from actors2.power_meter import PowerMeter
 from actors2.power_meter import PowerMeterDriverThread
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
 from load_house import load_all
-from config import LoggerLevels
-from config import LoggingSettings
-from logging_setup import setup_logging
+from proactor.config import LoggerLevels
+from proactor.config import LoggingSettings
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
 from gwproto.messages import  GsPwr_Maker
@@ -250,7 +249,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
             for i in range(num_changes):
                 scada._logger.info(f"Generating GsPwr change {i + 1}/{num_changes}")
                 latest_total_power_w = scada._data.latest_total_power_w
-                num_atn_gs_pwr = atn.stats.num_received_by_message_type[GsPwr_Maker.type_alias]
+                num_atn_gs_pwr = atn.stats.num_received_by_type[GsPwr_Maker.type_alias]
 
                 # Simulate a change in aggregate power that should trigger a GsPwr message
                 increment = int(
@@ -270,7 +269,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
 
                 # Verify Atn gets the forwarded message
                 await await_for(
-                    lambda: atn.stats.num_received_by_message_type[GsPwr_Maker.type_alias] > num_atn_gs_pwr,
+                    lambda: atn.stats.num_received_by_type[GsPwr_Maker.type_alias] > num_atn_gs_pwr,
                     1,
                     "Atn wait for GsPwr",
                     err_str_f=atn.summary_str,

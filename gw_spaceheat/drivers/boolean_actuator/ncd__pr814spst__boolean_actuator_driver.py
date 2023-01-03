@@ -2,7 +2,7 @@ from enum import Enum
 
 import schema.property_format as property_format
 import smbus2 as smbus
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from drivers.base.mcp23008 import mcp23008

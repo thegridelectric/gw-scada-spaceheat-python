@@ -1,42 +1,42 @@
 """Scada implementation"""
 import asyncio
 import dataclasses
-import json
 import threading
 import time
-from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Optional, Sequence
+from typing import Any
+from typing import cast
+from typing import Optional
+from typing import Sequence
 
 import pendulum
-import rich
+
+from paho.mqtt.client import MQTTMessageInfo
+
+from gwproto import CallableDecoder
+from gwproto import Decoders
+from gwproto import create_message_payload_discriminator
+from gwproto import MQTTCodec
+from gwproto import MQTTTopic
+from gwproto.messages import EventBase
+from gwproto.messages import GsPwr
+from gwproto.messages import GtDispatchBoolean_Maker
+from gwproto.messages import GtShCliAtnCmd_Maker
+from gwproto.messages import GtShStatus
+from gwproto.messages import SnapshotSpaceheat
+from gwproto.messages import GsPwr_Maker
+from gwproto.messages import GtShStatus_Maker
+from gwproto.messages import SnapshotSpaceheat_Maker
+
 from actors2 import ActorInterface
-from actors2.message import ScadaDBG, ScadaDBGCommands
-from actors.utils import QOS
-from config import LoggerLevels
+from actors2.message import ScadaDBG
+from actors2.message import ScadaDBGCommands
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from gwproto import (
-    CallableDecoder,
-    Decoders,
-    MQTTCodec,
-    MQTTTopic,
-    create_message_payload_discriminator,
-)
-from gwproto.messages import (
-    EventBase,
-    GsPwr,
-    GsPwr_Maker,
-    GtDispatchBoolean_Maker,
-    GtShCliAtnCmd_Maker,
-    GtShStatus,
-    GtShStatus_Maker,
-    SnapshotSpaceheat,
-    SnapshotSpaceheat_Maker,
-)
-from paho.mqtt.client import MQTTMessageInfo
-from proactor.logger import ProactorLogger
-from proactor.message import Message, MQTTReceiptPayload
+from proactor.mqtt import QOS
+from proactor.config import LoggerLevels
+from proactor.message import MQTTReceiptPayload, Message
+
 from proactor.proactor_implementation import Proactor
 from schema.enums import Role
 
@@ -69,37 +69,6 @@ class AtnMQTTCodec(MQTTCodec):
         if source_alias != self.hardware_layout.scada_g_node_alias:
             raise Exception(f"alias {source_alias} not my Scada!")
 
-
-class MessageStats:
-    num_received: int
-    num_received_by_topic: dict[str, int]
-    num_received_by_message_type: dict[str, int]
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.num_received = 0
-        self.num_received_by_topic = defaultdict(int)
-        self.num_received_by_message_type = defaultdict(int)
-
-    def add_message(self, message: Message) -> None:
-        self.num_received += 1
-        self.num_received_by_message_type[message.Header.MessageType] += 1
-
-    def add_mqtt_message(self, message: Message[MQTTReceiptPayload]) -> None:
-        self.num_received_by_message_type[message.Header.MessageType] += 1
-        self.num_received_by_topic[message.Payload.message.topic] += 1
-
-    @property
-    def num_status_received(self) -> int:
-        return self.num_received_by_message_type[GtShStatus_Maker.type_alias]
-
-    @property
-    def num_snapshot_received(self) -> int:
-        return self.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias]
-
-
 class AtnData:
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_status: Optional[GtShStatus] = None
@@ -116,11 +85,9 @@ class _PausedAck:
 class Atn2(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
-    settings: AtnSettings
     layout: HardwareLayout
     _node: ShNode
     data: AtnData
-    stats: MessageStats
     my_sensors: Sequence[ShNode]
     event_loop_thread: Optional[threading.Thread] = None
     acks_paused: bool
@@ -133,12 +100,9 @@ class Atn2(ActorInterface, Proactor):
         settings: AtnSettings,
         hardware_layout: HardwareLayout,
     ):
-        super().__init__(
-            name=name, logger=ProactorLogger(**settings.logging.qualified_logger_names())
-        )
+        super().__init__(name=name, settings=settings)
         self._node = hardware_layout.node(name)
         self.data = AtnData()
-        self.settings = settings
         self.layout = hardware_layout
         self.my_sensors = list(
             filter(
@@ -162,7 +126,6 @@ class Atn2(ActorInterface, Proactor):
         self.latest_status: Optional[GtShStatus] = None
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
-        self.stats = MessageStats()
         self.acks_paused = False
         self.needs_ack = []
         self.mqtt_messages_dropped = False
@@ -178,6 +141,10 @@ class Atn2(ActorInterface, Proactor):
     @property
     def publication_name(self) -> str:
         return self.layout.atn_g_node_alias
+
+    @property
+    def settings(self) -> AtnSettings:
+        return cast(AtnSettings, self._settings)
 
     def pause_acks(self):
         self.acks_paused = True
@@ -373,16 +340,17 @@ class Atn2(ActorInterface, Proactor):
     def summary_str(self) -> str:
         """Summarize results in a string"""
         s = (
-            f"Atn [{self.node.alias}] total: {self.stats.num_received}  "
-            f"status:{self.stats.num_status_received}  snapshot:{self.stats.num_snapshot_received}"
+            f"Atn [{self.node.alias}] total: {self._stats.num_received}  "
+            f"status:{self._stats.total_received(GtShStatus_Maker.type_alias)}  "
+            f"snapshot:{self._stats.total_received(SnapshotSpaceheat_Maker.type_alias)}"
         )
-        if self.stats.num_received_by_topic:
+        if self._stats.num_received_by_topic:
             s += "\n  Received by topic:"
-            for topic in sorted(self.stats.num_received_by_topic):
-                s += f"\n    {self.stats.num_received_by_topic[topic]:3d}: [{topic}]"
-        if self.stats.num_received_by_message_type:
+            for topic in sorted(self._stats.num_received_by_topic):
+                s += f"\n    {self._stats.num_received_by_topic[topic]:3d}: [{topic}]"
+        if self._stats.num_received_by_type:
             s += "\n  Received by message_type:"
-            for message_type in sorted(self.stats.num_received_by_message_type):
-                s += f"\n    {self.stats.num_received_by_message_type[message_type]:3d}: [{message_type}]"
+            for message_type in sorted(self._stats.num_received_by_type):
+                s += f"\n    {self._stats.num_received_by_type[message_type]:3d}: [{message_type}]"
 
         return s

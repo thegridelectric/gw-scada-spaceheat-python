@@ -3,6 +3,7 @@
 import asyncio
 import enum
 import functools
+import json
 import sys
 import time
 import traceback
@@ -19,6 +20,7 @@ from typing import Sequence
 import gwproto
 from gwproto import MQTTCodec
 from gwproto.messages import Ack
+from gwproto.messages import CommEvent
 from gwproto.messages import EventT
 from gwproto.messages import MQTTConnectEvent
 from gwproto.messages import MQTTDisconnectEvent
@@ -35,7 +37,8 @@ from result import Err
 from result import Ok
 from result import Result
 
-import config
+from proactor import config
+from proactor import ProactorSettings
 from proactor.link_state import LinkStates
 from proactor.link_state import Transition
 from proactor.logger import ProactorLogger
@@ -48,11 +51,17 @@ from proactor.message import MQTTSubackPayload
 from proactor.message import PatWatchdog
 from proactor.message import Shutdown
 from proactor.mqtt import MQTTClients
+from proactor.mqtt import QOS
+from proactor.persister import JSONDecodingError
+from proactor.persister import PersisterInterface
+from proactor.persister import StubPersister
+from proactor.persister import UIDMissingWarning
 from proactor.proactor_interface import CommunicatorInterface
 from proactor.proactor_interface import MonitoredName
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
 from proactor.problems import Problems
+from proactor.stats import ProactorStats
 from proactor.watchdog import WatchdogManager
 
 
@@ -117,7 +126,13 @@ class MessageTimes:
 
 class Proactor(ServicesInterface, Runnable):
 
+    PERSISTER_ENCODING = "utf-8"
+
     _name: str
+    _settings: ProactorSettings
+    _logger: ProactorLogger
+    _stats: ProactorStats
+    _event_persister: PersisterInterface
     _loop: Optional[asyncio.AbstractEventLoop] = None
     _receive_queue: Optional[asyncio.Queue] = None
     _mqtt_clients: MQTTClients
@@ -128,12 +143,14 @@ class Proactor(ServicesInterface, Runnable):
     _communicators: Dict[str, CommunicatorInterface]
     _stop_requested: bool
     _tasks: List[asyncio.Task]
-    _logger: ProactorLogger
     _watchdog: WatchdogManager
 
-    def __init__(self, name: str, logger: ProactorLogger):
+    def __init__(self, name: str, settings: ProactorSettings):
         self._name = name
-        self._logger = logger
+        self._settings = settings
+        self._logger = ProactorLogger(**settings.logging.qualified_logger_names())
+        self._stats = self.make_stats()
+        self._event_persister = self.make_event_persister(settings)
         self._mqtt_clients = MQTTClients()
         self._mqtt_codecs = dict()
         self._link_states = LinkStates()
@@ -145,17 +162,80 @@ class Proactor(ServicesInterface, Runnable):
         self._watchdog = WatchdogManager(10, self)
         self.add_communicator(self._watchdog)
 
+    @classmethod
+    def make_stats(cls) -> ProactorStats:
+        return ProactorStats()
+
+    @classmethod
+    def make_event_persister(cls, settings:ProactorSettings) -> PersisterInterface:
+        return StubPersister()
+
+    def send(self, message: Message):
+        if not isinstance(message.Payload, PatWatchdog):
+            self._logger.message_summary(
+                "OUT internal",
+                message.Header.Src,
+                f"{message.Header.Dst}/{message.Header.MessageType}",
+                message.Payload,
+            )
+        self._receive_queue.put_nowait(message)
+
+    def send_threadsafe(self, message: Message) -> None:
+        self._loop.call_soon_threadsafe(self._receive_queue.put_nowait, message)
+
+    def get_communicator(self, name: str) -> CommunicatorInterface:
+        return self._communicators[name]
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def publication_name(self) -> str:
+        return self._name
+
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return []
+
+    @property
+    def settings(self) -> ProactorSettings:
+        return self._settings
+
+    @property
+    def logger(self) -> ProactorLogger:
+        return self._logger
+
+    @property
+    def stats(self) -> ProactorStats:
+        return self._stats
+
+    def _send(self, message: Message):
+        self.send(message)
+
+    def generate_event(self, event: EventT) -> Result[bool, BaseException]:
+        if isinstance(event, CommEvent):
+            self.stats.link(event.PeerName).comm_event_counts[event.TypeName] += 1
+        if not event.Src:
+            event.Src = self.publication_name
+        if self._mqtt_clients.upstream_client and self._link_states[self._mqtt_clients.upstream_client].active_for_send():
+            self._publish_upstream(event, AckRequired=True)
+        return self._event_persister.persist(event.MessageId, event.json(
+            sort_keys=True, indent=2).encode(self.PERSISTER_ENCODING))
+
     def _add_mqtt_client(
         self,
         name: str,
         client_config: config.MQTTClient,
         codec: Optional[MQTTCodec] = None,
+        upstream: bool = False,
     ):
-        self._mqtt_clients.add_client(name, client_config)
+        self._mqtt_clients.add_client(name, client_config, upstream=upstream)
         if codec is not None:
             self._mqtt_codecs[name] = codec
         self._link_states.add(name)
         self._link_message_times[name] = MessageTimes()
+        self._stats.add_link(name)
 
     async def _send_ping(self, client: str):
         while not self._stop_requested:
@@ -191,11 +271,11 @@ class Proactor(ServicesInterface, Runnable):
 
     def _process_ack_timeout(self, message_id: str):
         self._logger.message_enter("++Proactor._process_ack_timeout %s", message_id)
+        wait_info = self._acks.get(message_id, None)
+        if wait_info is not None:
+            self.stats.link(wait_info.client_name).timeouts += 1
         self._process_ack_result(message_id, AckWaitSummary.timeout)
         self._logger.message_exit("--Proactor._process_ack_timeout")
-
-    def _derived_process_ack_result(self, result: AckWaitResult):
-        ...
 
     def _process_ack_result(self, message_id: str, reason: AckWaitSummary):
         self._logger.path("++Proactor._process_ack_result  %s", message_id)
@@ -219,10 +299,11 @@ class Proactor(ServicesInterface, Runnable):
                                 for message_id in list(self._acks.keys()):
                                     path_dbg |= 0x00000020
                                     self._process_ack_result(message_id, AckWaitSummary.connection_failure)
-            self._derived_process_ack_result(AckWaitResult(summary=reason, wait_info=wait_info))
+            elif reason == AckWaitSummary.acked and message_id in self._event_persister:
+                path_dbg |= 0x00000040
+                self._event_persister.clear(message_id)
         self._logger.path("--Proactor._process_ack_result path:0x%08X", path_dbg)
 
-    # TODO: QOS out of actors
     def _publish_message(self, client, message: Message, qos: int = 0, context: Any = None) -> MQTTMessageInfo:
         topic = message.mqtt_topic()
         payload = self._mqtt_codecs[client].encode(message)
@@ -233,6 +314,13 @@ class Proactor(ServicesInterface, Runnable):
             self._start_ack_timer(client, message.Header.MessageId, context)
         self._link_message_times[client].last_send = time.time()
         return self._mqtt_clients.publish(client, topic, payload, qos)
+
+    def _publish_upstream(
+        self, payload, qos: QOS = QOS.AtMostOnce, **message_args: Any
+    ) -> MQTTMessageInfo:
+        message = Message(Src=self.publication_name, Payload=payload, **message_args)
+        return self._publish_message(self._mqtt_clients.upstream_client, message, qos=qos)
+
 
     def add_communicator(self, communicator: CommunicatorInterface):
         if communicator.name in self._communicators:
@@ -343,6 +431,7 @@ class Proactor(ServicesInterface, Runnable):
                 f"{message.Header.Src}/{message.Header.MessageType}",
                 message.Payload,
             )
+        self._stats.add_message(message)
         match message.Payload:
             case MQTTReceiptPayload():
                 path_dbg |= 0x00000002
@@ -397,6 +486,7 @@ class Proactor(ServicesInterface, Runnable):
         self._logger.path("++Proactor._process_mqtt_message %s/%s",
                           mqtt_receipt_message.Header.Src, mqtt_receipt_message.Header.MessageType)
         path_dbg = 0
+        self._stats.add_mqtt_message(mqtt_receipt_message)
         match result := self._decode_mqtt_message(mqtt_receipt_message.Payload):
             case Ok(decoded_message):
                 path_dbg |= 0x00000002
@@ -410,8 +500,7 @@ class Proactor(ServicesInterface, Runnable):
                             self._logger.comm_event(transition)
                         if transition.recv_activated():
                             path_dbg |= 0x00000008
-                            self.generate_event(PeerActiveEvent(PeerName=mqtt_receipt_message.Payload.client_name))
-                            self._derived_recv_activated(transition)
+                            self._recv_activated(transition)
                         elif transition.recv_deactivated():
                             path_dbg |= 0x00000010
                             self._derived_recv_deactivated(transition)
@@ -457,6 +546,12 @@ class Proactor(ServicesInterface, Runnable):
     def _derived_recv_deactivated(self, transition: Transition) -> Result[bool, BaseException]:
         return Ok()
 
+    def _recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
+        self.generate_event(PeerActiveEvent(PeerName=transition.link_name))
+        self._upload_pending_events()
+        self._derived_recv_activated(transition)
+        return Ok()
+
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
         return Ok()
@@ -478,8 +573,26 @@ class Proactor(ServicesInterface, Runnable):
     def _process_mqtt_connect_fail(self, message: Message[MQTTConnectFailPayload]) -> Result[bool, BaseException]:
         return self._link_states.process_mqtt_connect_fail(message)
 
-    def _upload_pending_events(self):
-        ...
+    def _upload_pending_events(self) -> Result[bool, BaseException]:
+        errors = []
+        for message_id in self._event_persister.pending():
+            match self._event_persister.retrieve(message_id):
+                case Ok(event_bytes):
+                    if event_bytes is None:
+                        errors.append(UIDMissingWarning("_upload_pending_events", uid=message_id))
+                    else:
+                        try:
+                            event = json.loads(event_bytes.decode(encoding=self.PERSISTER_ENCODING))
+                        except BaseException as e:
+                            errors.append(e)
+                            errors.append(JSONDecodingError("_upload_pending_events", uid=message_id))
+                        else:
+                            self._publish_upstream(event, AckRequired=True)
+                case Err(error):
+                    errors.append(error)
+        if errors:
+            return Err(Problems(errors=errors))
+        return Ok()
 
     def _process_mqtt_suback(self, message: Message[MQTTSubackPayload]) -> Result[bool, BaseException]:
         self._logger.path("++Proactor._process_mqtt_suback client:%s", message.Payload.client_name)
@@ -505,8 +618,7 @@ class Proactor(ServicesInterface, Runnable):
                     )
                 if transition.recv_activated():
                     path_dbg |= 0x00000008
-                    self.generate_event(PeerActiveEvent(PeerName=message.Payload.client_name))
-                    result = self._derived_recv_activated(transition)
+                    result = self._recv_activated(transition)
             case Err(error):
                 path_dbg |= 0x00000010
                 result = Err(error)
@@ -585,40 +697,6 @@ class Proactor(ServicesInterface, Runnable):
 
     def publish(self, client: str, topic: str, payload: bytes, qos: int):
         self._mqtt_clients.publish(client, topic, payload, qos)
-
-    def send(self, message: Message):
-        if not isinstance(message.Payload, PatWatchdog):
-            self._logger.message_summary(
-                "OUT internal",
-                message.Header.Src,
-                f"{message.Header.Dst}/{message.Header.MessageType}",
-                message.Payload,
-            )
-        self._receive_queue.put_nowait(message)
-
-    def send_threadsafe(self, message: Message) -> None:
-        self._loop.call_soon_threadsafe(self._receive_queue.put_nowait, message)
-
-    def get_communicator(self, name: str) -> CommunicatorInterface:
-        return self._communicators[name]
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def publication_name(self) -> str:
-        return self._name
-
-    @property
-    def monitored_names(self) -> Sequence[MonitoredName]:
-        return []
-
-    def _send(self, message: Message):
-        self.send(message)
-
-    def generate_event(self, event: EventT) -> None:
-        ...
 
 def str_tasks(loop_: asyncio.AbstractEventLoop, tag: str = "", tasks: Optional[Iterable[Awaitable]] = None) -> str:
     s = ""

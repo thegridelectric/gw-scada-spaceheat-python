@@ -7,8 +7,8 @@ import dotenv
 import load_house
 from actors.atn import Atn
 from command_line_utils import parse_args, setup_logging
-from config import ScadaSettings, Paths
-from config import LoggingSettings
+from actors2.config import ScadaSettings, Paths
+from proactor.config import LoggingSettings
 
 
 def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> Atn:

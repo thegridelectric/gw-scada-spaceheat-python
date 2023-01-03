@@ -8,7 +8,8 @@ from typing import Optional, Sequence
 import dotenv
 import rich
 from command_line_utils import parse_args
-from config import LoggingSettings, Paths
+from proactor.config import LoggingSettings
+from proactor.config import Paths
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
 

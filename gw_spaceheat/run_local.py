@@ -4,7 +4,7 @@ import dotenv
 
 import load_house
 from command_line_utils import run_nodes_main, parse_args
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from schema.enums import Role
 
 if __name__ == "__main__":

@@ -1,7 +1,6 @@
-"""Test actors.utils module"""
+"""Test responsive_sleep"""
 
 import threading
-import time
 
 from actors.utils import responsive_sleep
 from tests.utils import StopWatch

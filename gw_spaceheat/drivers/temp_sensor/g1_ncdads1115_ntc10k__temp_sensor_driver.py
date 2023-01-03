@@ -2,7 +2,9 @@ from typing import List
 import importlib.util
 from enum import Enum
 import math
-from config import ScadaSettings
+
+from actors2.config import ScadaSettings
+
 DRIVER_IS_REAL = True
 for module_name in [
     "board",

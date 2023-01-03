@@ -1,28 +1,23 @@
 from typing import Any, Optional
 
-from config import LoggingSettings, MQTTClient, Paths
-from pydantic import BaseSettings, validator
+from pydantic import validator
+
+from proactor import ProactorSettings
+from proactor.config import MQTTClient
+from proactor.config import Paths
+from proactor.config import LoggingSettings
 
 DEFAULT_NAME = "atn"
 
 
-class AtnSettings(BaseSettings):
+class AtnSettings(ProactorSettings):
     scada_mqtt: MQTTClient = MQTTClient()
-    paths: Paths = None
-    logging: LoggingSettings = None
     minute_cron_file: str = "cron_last_minute.txt"
     hour_cron_file: str = "cron_last_hour.txt"
     day_cron_file: str = "cron_last_day.txt"
 
-    class Config:
+    class Config(ProactorSettings.Config):
         env_prefix = "ATN_"
-        env_nested_delimiter = "__"
-
-    @validator("paths", always=True)
-    def get_paths(cls, v: Optional[Paths]) -> Paths:
-        if v is None:
-            v = Paths(name=DEFAULT_NAME)
-        return v
 
     @validator("logging", always=True)
     def get_logging(cls, v: Optional[LoggingSettings], values: dict[str, Any]) -> LoggingSettings:

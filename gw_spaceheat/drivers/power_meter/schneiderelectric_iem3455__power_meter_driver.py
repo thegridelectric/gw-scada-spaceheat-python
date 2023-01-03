@@ -2,7 +2,7 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import serial.rs485
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from pymodbus.client.sync import ModbusSerialClient

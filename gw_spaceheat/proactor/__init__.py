@@ -15,6 +15,7 @@ Particular questions:
 """
 
 from proactor.logger import ProactorLogger
+from proactor.config import ProactorSettings
 from proactor.message import Header
 from proactor.message import Message
 from proactor.proactor_implementation import MQTTCodec
@@ -27,6 +28,7 @@ from proactor.proactor_interface import ServicesInterface
 from proactor.sync_thread import AsyncQueueWriter
 from proactor.sync_thread import SyncAsyncInteractionThread
 from proactor.sync_thread import SyncAsyncQueueWriter
+from proactor.sync_thread import responsive_sleep
 
 __all__ = [
     "AsyncQueueWriter",
@@ -38,6 +40,8 @@ __all__ = [
     "MQTTCodec",
     "Proactor",
     "ProactorLogger",
+    "ProactorSettings",
+    "responsive_sleep",
     "Runnable",
     "ServicesInterface",
     "SyncAsyncInteractionThread",

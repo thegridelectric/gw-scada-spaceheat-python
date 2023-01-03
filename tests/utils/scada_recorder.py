@@ -9,7 +9,7 @@ from typing import List
 
 from actors.scada import Scada
 from actors.utils import gw_mqtt_topic_encode
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from gwproto.messages import GtDispatchBooleanLocal

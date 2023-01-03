@@ -3,15 +3,22 @@ create forward references for implementation hiearchies
 """
 
 import asyncio
+import logging
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
+from typing import Any
 from typing import Optional
 from typing import Sequence
 
+import pendulum
 from gwproto.messages import EventT
 
+from proactor import ProactorLogger
+from proactor import ProactorSettings
 from proactor.message import Message
+from proactor.stats import ProactorStats
+
 
 @dataclass
 class MonitoredName:
@@ -113,5 +120,20 @@ class ServicesInterface(CommunicatorInterface):
     @property
     @abstractmethod
     def publication_name(self) -> str:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def settings(self) -> ProactorSettings:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def logger(self) -> ProactorLogger:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def stats(self) -> ProactorStats:
         raise NotImplementedError
 

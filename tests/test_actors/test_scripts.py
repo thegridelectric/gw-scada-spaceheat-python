@@ -11,7 +11,7 @@ import load_house
 import pytest
 from command_line_utils import run_async_actors_main
 from command_line_utils import run_nodes_main
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from schema.enums import Role
 from gwproto.messages import  GtShStatus
 from gwproto.messages import  GtShStatus_Maker

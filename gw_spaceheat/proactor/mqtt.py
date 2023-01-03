@@ -7,11 +7,13 @@ Main current limitation: each interaction between asyncio code and the mqtt clie
 
 """
 import asyncio
+import enum
 import logging
 import uuid
 from typing import cast
 from typing import Dict
 from typing import List
+from typing import NamedTuple
 from typing import Optional
 from typing import Set
 from typing import Tuple
@@ -21,7 +23,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 from paho.mqtt.client import Client as PahoMQTTClient
 from paho.mqtt.client import MQTTMessageInfo
 
-import config
+from proactor import config
 from proactor.message import MQTTConnectFailMessage
 from proactor.message import MQTTConnectMessage
 from proactor.message import MQTTDisconnectMessage
@@ -29,6 +31,15 @@ from proactor.message import MQTTReceiptMessage
 from proactor.message import MQTTSubackMessage
 from proactor.message import MQTTSubackPayload
 from proactor.sync_thread import AsyncQueueWriter
+
+class QOS(enum.IntEnum):
+    AtMostOnce = 0
+    AtLeastOnce = 1
+    ExactlyOnce = 2
+
+class Subscription(NamedTuple):
+    Topic: str
+    Qos: QOS
 
 
 class MQTTClientWrapper:
@@ -179,67 +190,76 @@ class MQTTClientWrapper:
 
 
 class MQTTClients:
-    _clients: Dict[str, MQTTClientWrapper]
+    clients: Dict[str, MQTTClientWrapper]
     _send_queue: AsyncQueueWriter
+    upstream_client: str = ""
 
     def __init__(self):
         self._send_queue = AsyncQueueWriter()
-        self._clients = dict()
+        self.clients = dict()
 
     def add_client(
         self,
         name: str,
         client_config: config.MQTTClient,
+        upstream: bool = False,
     ):
-        if name in self._clients:
+        if name in self.clients:
             raise ValueError(f"ERROR. MQTT client named {name} already exists")
-        self._clients[name] = MQTTClientWrapper(name, client_config, self._send_queue)
+        if upstream:
+            if self.upstream_client:
+                raise ValueError(f"ERROR. upstream client already set as {self.upstream_client}. Client {name} may not be set as upstream.")
+            self.upstream_client = name
+        self.clients[name] = MQTTClientWrapper(name, client_config, self._send_queue)
 
     def publish(
         self, client: str, topic: str, payload: bytes, qos: int
     ) -> MQTTMessageInfo:
-        return self._clients[client].publish(topic, payload, qos)
+        return self.clients[client].publish(topic, payload, qos)
 
     def subscribe(self, client: str, topic: str, qos: int) -> Tuple[int, Optional[int]]:
-        return self._clients[client].subscribe(topic, qos)
+        return self.clients[client].subscribe(topic, qos)
 
     def subscribe_all(self, client: str) -> Tuple[int, Optional[int]]:
-        return self._clients[client].subscribe_all()
+        return self.clients[client].subscribe_all()
 
     def unsubscribe(self, client: str, topic: str) -> Tuple[int, Optional[int]]:
-        return self._clients[client].unsubscribe(topic)
+        return self.clients[client].unsubscribe(topic)
 
     def handle_suback(self, suback: MQTTSubackPayload) -> int:
-        return self._clients[suback.client_name].handle_suback(suback)
+        return self.clients[suback.client_name].handle_suback(suback)
 
     def stop(self):
-        for client in self._clients.values():
+        for client in self.clients.values():
             client.stop()
 
     def start(self, loop: asyncio.AbstractEventLoop, async_queue: asyncio.Queue):
         self._send_queue.set_async_loop(loop, async_queue)
-        for client in self._clients.values():
+        for client in self.clients.values():
             client.start()
 
     def connected(self, client: str) -> bool:
-        return self._clients[client].connected()
+        return self.clients[client].connected()
 
     def num_subscriptions(self, client: str) -> int:
-        return self._clients[client].num_subscriptions()
+        return self.clients[client].num_subscriptions()
 
     def num_pending_subscriptions(self, client: str) -> int:
-        return self._clients[client].num_pending_subscriptions()
+        return self.clients[client].num_pending_subscriptions()
 
     def subscribed(self, client: str) -> bool:
-        return self._clients[client].subscribed()
+        return self.clients[client].subscribed()
 
     def enable_loggers(self, logger: Optional[Union[logging.Logger, logging.LoggerAdapter]] = None):
-        for client_name in self._clients:
-            self._clients[client_name].enable_logger(logger)
+        for client_name in self.clients:
+            self.clients[client_name].enable_logger(logger)
 
     def disable_loggers(self):
-        for client_name in self._clients:
-            self._clients[client_name].disable_logger()
+        for client_name in self.clients:
+            self.clients[client_name].disable_logger()
 
     def client_wrapper(self, client: str) -> MQTTClientWrapper:
-        return self._clients[client]
+        return self.clients[client]
+
+    def upstream(self) -> MQTTClientWrapper:
+        return self.clients[self.upstream_client]

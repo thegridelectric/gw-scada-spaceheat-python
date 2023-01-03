@@ -4,7 +4,7 @@ import os
 import platform
 import time
 from typing import Optional
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 import schema.property_format as property_format
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver

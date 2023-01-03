@@ -1,5 +1,5 @@
 from typing import Optional
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.temp_sensor_component import TempSensorComponent
 from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
 from schema.enums import MakeModel

@@ -5,7 +5,7 @@ import syslog
 import traceback
 from typing import Optional
 
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 
 
 def format_exceptions(exceptions: list[BaseException]) -> str:

@@ -14,7 +14,7 @@ from actors2.actor import SyncThreadActor
 from actors2.message import GsPwrMessage
 from actors2.message import MultipurposeSensorTelemetryMessage
 from actors2.scada_interface import ScadaInterface
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
 from data_classes.hardware_layout import HardwareLayout

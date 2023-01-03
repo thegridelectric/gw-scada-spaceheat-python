@@ -11,7 +11,7 @@ from actors.boolean_actuator import BooleanActuator
 from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from actors.utils import gw_mqtt_topic_encode
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from gwproto.messages import  GtDispatchBoolean_Maker
 from gwproto.messages import  GtDispatchBooleanLocal_Maker
 

@@ -14,7 +14,6 @@ from proactor.message import MQTTConnectFailPayload
 from proactor.message import MQTTConnectPayload
 from proactor.message import MQTTDisconnectPayload
 from proactor.message import MQTTReceiptPayload
-from proactor.message import MQTTSubackPayload
 
 
 class StateName(enum.Enum):

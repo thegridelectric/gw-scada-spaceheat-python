@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import logging
 from typing import Optional
 from data_classes.components.temp_sensor_component import TempSensorComponent
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 
 
 class TempSensorDriver(ABC):

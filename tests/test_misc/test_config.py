@@ -4,10 +4,10 @@ import textwrap
 from pathlib import Path
 
 import dotenv
-from config import LoggingSettings
-from config import MQTTClient
-from config import Paths
-from config import ScadaSettings
+from proactor.config import LoggingSettings
+from proactor.config import MQTTClient
+from proactor.config import Paths
+from actors2.config import ScadaSettings
 from pydantic import SecretStr
 
 

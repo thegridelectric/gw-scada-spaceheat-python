@@ -5,7 +5,7 @@ from tests.utils import wait_for
 import load_house
 from actors.scada import Scada
 from actors.simple_sensor import SimpleSensor
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.temp_sensor_component import TempSensorComponent
 
 

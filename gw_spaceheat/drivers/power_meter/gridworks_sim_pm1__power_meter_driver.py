@@ -1,6 +1,6 @@
 from typing import Optional
 
-from config import ScadaSettings
+from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
