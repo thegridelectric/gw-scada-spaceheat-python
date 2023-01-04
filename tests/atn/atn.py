@@ -173,13 +173,8 @@ class Atn2(ActorInterface, Proactor):
         message = Message(Src=self.publication_name, Payload=payload)
         return self._publish_message(Atn2.SCADA_MQTT, message, qos=qos)
 
-    async def process_message(self, message: Message):
-        self.stats.add_message(message)
-        await super().process_message(message)
-
     def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         if not self.mqtt_messages_dropped:
-            self.stats.add_mqtt_message(message)
             super()._process_mqtt_message(message)
 
     def _derived_process_message(self, message: Message):
