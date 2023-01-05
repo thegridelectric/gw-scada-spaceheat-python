@@ -11,7 +11,7 @@ import pendulum
 from actors2 import ActorInterface
 from actors2.message import ScadaDBG, ScadaDBGCommands
 from actors.utils import QOS
-from config import LoggerLevels
+from proactor.config import LoggerLevels
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from gwproto import (
