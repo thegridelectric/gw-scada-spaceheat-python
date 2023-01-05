@@ -6,7 +6,7 @@ After=multi-user.target
 Type=simple
 Restart=always
 User=pi
-Environment=PYTHONPATH=/home/pi/gw-scada-spaceheat-python/gw_spaceheat
+Environment=PYTHONPATH=/home/pi/gw-scada-spaceheat-python:/home/pi/gw-scada-spaceheat-python/gw_spaceheat
 Environment=GRIDWORKS_SCADA_RUNNING_AS_SERVICE=1
 ExecStart=/usr/local/bin/python3.10 \
     /home/pi/gw-scada-spaceheat-python/tests/atn/nofreeze.py
