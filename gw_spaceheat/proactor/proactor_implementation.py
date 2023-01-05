@@ -432,7 +432,8 @@ class Proactor(ServicesInterface, Runnable):
 
     async def process_message(self, message: Message):
         if not isinstance(message.Payload, PatWatchdog):
-            self._logger.message_enter("++Proactor.process_message %s/%s", message.Header.Src, message.Header.MessageType)
+            self._logger.message_enter("++Proactor.process_message %s/%s",
+                                       message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         if not isinstance(message.Payload, (MQTTReceiptPayload, PatWatchdog)):
             path_dbg |= 0x00000001

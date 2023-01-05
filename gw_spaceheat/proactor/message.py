@@ -178,6 +178,7 @@ class MQTTDisconnectMessage(MQTTClientMessage[MQTTDisconnectPayload]):
             ),
         )
 
+
 class MQTTProblemsPayload(MQTTCommEventPayload):
     problems: Problems
 
