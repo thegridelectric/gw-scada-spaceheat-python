@@ -15,7 +15,7 @@ from logging_setup import setup_logging
 from tests.atn import AtnSettings
 
 try:
-    from tests.atn.simple_orange import SimpleOrangeAtn
+    from tests.atn.atn import Atn2
 except ImportError as e:
     raise ImportError(
         f"ERROR. ({e})\n\n"
@@ -25,7 +25,7 @@ except ImportError as e:
     )
 
 
-def get_orange_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "SimpleOrangeAtn":
+def get_orange_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn2":
     if argv is None:
         argv = sys.argv[1:]
     args = parse_args(argv)
@@ -44,7 +44,7 @@ def get_orange_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> 
     logger.log(logging.ERROR + 1, f"Env file: [{env_path}]")
     rich.print(settings)
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    a = SimpleOrangeAtn("a", settings, layout)
+    a = Atn2("a", settings, layout)
     if start:
         a.start()
     return a

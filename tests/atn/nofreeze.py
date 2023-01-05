@@ -11,9 +11,8 @@ from data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
 
 from gw_spaceheat.schema.enums.role import Role
-from tests.atn.run_orange import get_orange_atn
-from tests.atn.simple_orange import RecentRelayState
-from tests.utils import wait_for
+from tests.atn.run import get_atn
+from tests.atn.atn import RecentRelayState
 
 
 class SimpleOrange:
@@ -23,7 +22,7 @@ class SimpleOrange:
     BOOST_ON_MINUTES = 30
 
     def __init__(self):
-        self.atn = get_orange_atn()
+        self.atn = get_atn()
         self.relays_initialized: bool = False
         self.strategy_name: str = "SimpleOrange"
         self.actor_main_stopped: bool = True
@@ -133,7 +132,7 @@ class SimpleOrange:
                 f" Circulator pump {self.pipe_circulator_pump.alias} on"
             )
         else:
-            ps = self.atn.relay_state[self.pipe_circulator_pump]
+            ps = self.atn.data.relay_state[self.pipe_circulator_pump]
             if ps.State == 1:
                 if time.time() - (ps.LastChangeTimeUnixMs / 1000) > 60 * self.PUMP_ON_MINUTES - 5:
                     self.atn.turn_off(self.pipe_circulator_pump)
@@ -143,7 +142,7 @@ class SimpleOrange:
                         f"Turning pump {self.pipe_circulator_pump.alias} off "
                     )
 
-        bs = self.atn.relay_state[self.tank_boost]
+        bs = self.atn.data.relay_state[self.tank_boost]
         if bs.State == 1:
             if time.time() - (ps.LastChangeTimeUnixMs / 1000) > 60 * self.BOOST_ON_MINUTES - 5:
                 self.atn.turn_off(self.tank_boost)
@@ -171,8 +170,8 @@ class SimpleOrange:
         )
         for node in relay_nodes:
             self.atn.turn_off(node)
-            self.atn.relay_state[node] = RecentRelayState(
-                State=0, LastChangeTimeUnixS=int(time.time())
+            self.atn.data.relay_state[node] = RecentRelayState(
+                State=0, LastChangeTimeUnixMs=int(time.time())
             )
             self.logger.info(f"Turning off {node.alias} on initialization")
         self.relays_initialized = True
