@@ -16,8 +16,8 @@ from tests.atn.atn import RecentRelayState
 
 
 class SimpleOrange:
-    TANK_TEMP_THRESHOLD_C = 10
-    PIPE_TEMP_THRESHOLD_C = 14
+    TANK_TEMP_THRESHOLD_C = 20
+    PIPE_TEMP_THRESHOLD_C = 5
     PUMP_ON_MINUTES = 3
     BOOST_ON_MINUTES = 30
 
