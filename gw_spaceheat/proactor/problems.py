@@ -1,3 +1,5 @@
+import textwrap
+import traceback
 from typing import Optional
 from typing import Sequence
 
@@ -53,6 +55,14 @@ class Problems(ValueError):
                         s += f"  {i:2d}: {entry}\n"
             return s
         return ""
+
+    def error_traceback_str(self) -> str:
+        s = ""
+        for i, error in enumerate(self.errors):
+            s += f"Traceback for error {i+1} / {len(self.errors)}:\n"
+            for line in traceback.format_exception(error):
+                s += textwrap.indent(line, "  ")
+        return s
 
     def __repr__(self) -> str:
         return str(self)

@@ -34,6 +34,7 @@ from proactor.message import MQTTSubackMessage
 from proactor.message import MQTTSubackPayload
 from proactor.problems import Problems
 from proactor.sync_thread import AsyncQueueWriter
+from proactor.sync_thread import responsive_sleep
 
 class QOS(enum.IntEnum):
     AtMostOnce = 0
@@ -81,6 +82,8 @@ class MQTTClientWrapper:
         self._stop_requested = False
 
     def _client_thread(self):
+        MAX_BACK_OFF = 1024
+        backoff = 1
         while not self._stop_requested:
             try:
                 self._client.connect(self._client_config.host, port=self._client_config.port)
@@ -98,6 +101,12 @@ class MQTTClientWrapper:
                     self._client.disconnect()
                 except:
                     pass
+            if not self._stop_requested:
+                if backoff >= MAX_BACK_OFF:
+                    backoff = 1
+                else:
+                    backoff = min(backoff * 2, MAX_BACK_OFF)
+                responsive_sleep(self, backoff, running_field_name="_stop_requested", running_field=False)
 
     def start(self):
         self._thread.start()

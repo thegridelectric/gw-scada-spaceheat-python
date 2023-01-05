@@ -68,7 +68,7 @@ class WatchdogManager(Communicator, Runnable):
                 pass
 
     def process_message(self, message: Message) -> None:
-        self.lg.path("++WatchdogManager.process_message")
+        # self.lg.path("++WatchdogManager.process_message")
         path_dbg = 0
         match message.Payload:
             case PatInternalWatchdog():
@@ -80,7 +80,7 @@ class WatchdogManager(Communicator, Runnable):
             case _:
                 path_dbg |= 0x00000004
                 raise ValueError(f"WatchdogManager does not handle message payloads of type {type(message.Payload)}")
-        self.lg.path(f"--WatchdogManager.process_message  0x{path_dbg:08X}")
+        # self.lg.path(f"--WatchdogManager.process_message  0x{path_dbg:08X}")
 
     def _pat_internal_watchdog(self, name: str):
         if name not in self._monitored_names:
