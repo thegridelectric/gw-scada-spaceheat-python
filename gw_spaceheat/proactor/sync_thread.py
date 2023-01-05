@@ -20,20 +20,23 @@ def responsive_sleep(
     seconds: float,
     step_duration: float = DEFAULT_STEP_DURATION,
     running_field_name: str = "_main_loop_running",
+    running_field: bool = True,
 ) -> bool:
     """Sleep in way that is more responsive to thread termination: sleep in step_duration increments up to
-    specificed seconds, at after each step checking self._main_loop_running"""
+    specificed seconds, at after each step checking obj._main_loop_running. If the designated running_field_name actually
+    indicates that a stop has been requested (e.g. what you would expect from a field named '_stop_requested'),
+    set running_field parameter to False."""
     sleeps = int(seconds / step_duration)
     if sleeps * step_duration != seconds:
         last_sleep = seconds - (sleeps * step_duration)
     else:
         last_sleep = 0
     for _ in range(sleeps):
-        if getattr(obj, running_field_name):
+        if getattr(obj, running_field_name) == running_field:
             time.sleep(step_duration)
-    if getattr(obj, running_field_name) and last_sleep > 0:
+    if getattr(obj, running_field_name) == running_field and last_sleep > 0:
         time.sleep(last_sleep)
-    return getattr(obj, running_field_name)
+    return getattr(obj, running_field_name) == running_field
 
 class AsyncQueueWriter:
     """Allow synchronous code to write to an asyncio Queue.
