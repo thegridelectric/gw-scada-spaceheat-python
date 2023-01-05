@@ -46,6 +46,7 @@ from proactor.message import Message
 from proactor.message import MQTTConnectFailPayload
 from proactor.message import MQTTConnectPayload
 from proactor.message import MQTTDisconnectPayload
+from proactor.message import MQTTProblemsPayload
 from proactor.message import MQTTReceiptPayload
 from proactor.message import MQTTSubackPayload
 from proactor.message import PatWatchdog
@@ -448,14 +449,17 @@ class Proactor(ServicesInterface, Runnable):
             case MQTTSubackPayload():
                 path_dbg |= 0x00000020
                 self._process_mqtt_suback(message)
-            case PatWatchdog():
+            case MQTTProblemsPayload():
                 path_dbg |= 0x00000040
+                self._process_mqtt_problems(message)
+            case PatWatchdog():
+                path_dbg |= 0x00000080
                 self._watchdog.process_message(message)
             case Shutdown():
-                path_dbg |= 0x00000080
+                path_dbg |= 0x00000100
                 self._process_shutdown_message(message)
             case _:
-                path_dbg |= 0x00000100
+                path_dbg |= 0x00000200
                 self._derived_process_message(message)
         self._logger.message_exit("--Proactor.process_message  path:0x%08X", path_dbg)
 
@@ -628,6 +632,19 @@ class Proactor(ServicesInterface, Runnable):
             path_dbg,
         )
         return result
+
+    def _process_mqtt_problems(self, message: Message[MQTTProblemsPayload]) -> Result[bool, BaseException]:
+        self.generate_event(
+            ProblemEvent(
+                ProblemType=gwproto.messages.Problems.error,
+                Summary=f"Error in mqtt event loop for client [{message.Payload.client_name}]",
+                Details=(
+                    f"{traceback.format_exception(message.Payload.problems)}\n"
+                    f"Exception: {message.Payload.problems}"
+                )
+            )
+        )
+        return Ok()
 
     def _process_shutdown_message(self, message:Message[Shutdown]):
         self._stop_requested = True

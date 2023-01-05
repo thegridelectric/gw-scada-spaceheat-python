@@ -12,21 +12,22 @@ from typing import TypeVar
 from gwproto.message import ensure_arg
 from gwproto.message import Header
 from gwproto.message import Message
+from paho.mqtt.client import MQTT_ERR_UNKNOWN
 from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel
+
+from proactor.problems import Problems
+
 
 class MessageType(Enum):
     invalid = "invalid"
     mqtt_subscribe = "mqtt_subscribe"
     mqtt_message = "mqtt_message"
-
     mqtt_connected = "mqtt_connected"
     mqtt_disconnected = "mqtt_disconnected"
     mqtt_connect_failed = "mqtt_connect_failed"
-
     mqtt_suback = "mqtt_suback"
-
-    event_report = "event_report"
+    mqtt_problems = "mqtt_problems"
 
 class KnownNames(Enum):
     proactor = "proactor"
@@ -174,6 +175,24 @@ class MQTTDisconnectMessage(MQTTClientMessage[MQTTDisconnectPayload]):
                 client_name=client_name,
                 userdata=userdata,
                 rc=rc,
+            ),
+        )
+
+class MQTTProblemsPayload(MQTTCommEventPayload):
+    problems: Problems
+
+    class Config:
+        arbitrary_types_allowed = True
+
+
+class MQTTProblemsMessage(MQTTClientMessage[MQTTCommEventPayload]):
+    def __init__(self, client_name: str, problems: Problems, rc: int = MQTT_ERR_UNKNOWN):
+        super().__init__(
+            message_type=MessageType.mqtt_problems,
+            payload=MQTTProblemsPayload(
+                client_name=client_name,
+                rc=rc,
+                problems=problems
             ),
         )
 

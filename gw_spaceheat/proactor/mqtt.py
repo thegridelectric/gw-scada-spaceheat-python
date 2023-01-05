@@ -9,6 +9,7 @@ Main current limitation: each interaction between asyncio code and the mqtt clie
 import asyncio
 import enum
 import logging
+import threading
 import uuid
 from typing import cast
 from typing import Dict
@@ -27,9 +28,11 @@ from proactor import config
 from proactor.message import MQTTConnectFailMessage
 from proactor.message import MQTTConnectMessage
 from proactor.message import MQTTDisconnectMessage
+from proactor.message import MQTTProblemsMessage
 from proactor.message import MQTTReceiptMessage
 from proactor.message import MQTTSubackMessage
 from proactor.message import MQTTSubackPayload
+from proactor.problems import Problems
 from proactor.sync_thread import AsyncQueueWriter
 
 class QOS(enum.IntEnum):
@@ -46,6 +49,7 @@ class MQTTClientWrapper:
     _name: str
     _client_config: config.MQTTClient
     _client: PahoMQTTClient
+    _stop_requested: bool
     _receive_queue: AsyncQueueWriter
     _subscriptions: Dict[str, int]
     _pending_subscriptions: Set[str]
@@ -73,14 +77,35 @@ class MQTTClientWrapper:
         self._subscriptions = dict()
         self._pending_subscriptions = set()
         self._pending_subacks = dict()
+        self._thread = threading.Thread(target=self._client_thread)
+        self._stop_requested = False
+
+    def _client_thread(self):
+        while not self._stop_requested:
+            try:
+                self._client.connect(self._client_config.host, port=self._client_config.port)
+                self._client.loop_forever(retry_first_connection=True)
+            except BaseException as e:
+                self._receive_queue.put(
+                    MQTTProblemsMessage(
+                        client_name=self.name,
+                        problems=Problems(errors=[e])
+                    )
+                )
+            finally:
+                # noinspection PyBroadException
+                try:
+                    self._client.disconnect()
+                except:
+                    pass
 
     def start(self):
-        self._client.connect(self._client_config.host, port=self._client_config.port)
-        self._client.loop_start()
+        self._thread.start()
 
     def stop(self):
+        self._stop_requested = True
         self._client.disconnect()
-        self._client.loop_stop()
+        self._thread.join()
 
     def publish(self, topic: str, payload: bytes, qos: int) -> MQTTMessageInfo:
         return self._client.publish(topic, payload, qos)
