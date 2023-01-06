@@ -27,6 +27,7 @@ from gwproto import MQTTTopic
 from result import Ok
 from result import Result
 
+from actors2.home_alone import HomeAlone
 from actors2.actor_interface import ActorInterface
 from actors2.message import GtDispatchBooleanLocalMessage
 from actors2.message import ScadaDBG
@@ -109,6 +110,7 @@ class Scada2(ScadaInterface, Proactor):
     _data: ScadaData
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
+    _home_alone: HomeAlone
 
     def __init__(
         self,
@@ -138,6 +140,8 @@ class Scada2(ScadaInterface, Proactor):
             self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
         self.log_subscriptions("construction")
+        self._home_alone = HomeAlone(self.hardware_layout.my_home_alone.alias, self)
+        self.add_communicator(self._home_alone)
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
@@ -175,6 +179,10 @@ class Scada2(ScadaInterface, Proactor):
     @property
     def hardware_layout(self) -> HardwareLayout:
         return self._layout
+
+    @property
+    def data(self) -> ScadaData:
+        return self._data
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -344,7 +352,14 @@ class Scada2(ScadaInterface, Proactor):
         )
         return ScadaCmdDiagnostic.SUCCESS
 
-    def _set_relay_state(self, ba: ShNode, on: bool):
+    def set_relay_state(self, name: str, state: bool) -> Result[bool, BaseException]:
+        return self._communicators[name].process_message(
+            GtDispatchBooleanLocalMessage(
+                src=self.name, dst=name, relay_state=int(state)
+            )
+        )
+
+    def _set_relay_state_threadsafe(self, ba: ShNode, on: bool):
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         self.send_threadsafe(
@@ -354,11 +369,11 @@ class Scada2(ScadaInterface, Proactor):
         )
         return ScadaCmdDiagnostic.SUCCESS
 
-    def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._set_relay_state(ba, True)
+    def turn_on_threadsafe(self, ba: ShNode) -> ScadaCmdDiagnostic:
+        return self._set_relay_state_threadsafe(ba, True)
 
-    def turn_off(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._set_relay_state(ba, False)
+    def turn_off_threadsafe(self, ba: ShNode) -> ScadaCmdDiagnostic:
+        return self._set_relay_state_threadsafe(ba, False)
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:

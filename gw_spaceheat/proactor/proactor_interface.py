@@ -3,16 +3,14 @@ create forward references for implementation hiearchies
 """
 
 import asyncio
-import logging
 from abc import ABC
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any
 from typing import Optional
 from typing import Sequence
 
-import pendulum
 from gwproto.messages import EventT
+from result import Result
 
 from proactor import ProactorLogger
 from proactor import ProactorSettings
@@ -38,7 +36,7 @@ class CommunicatorInterface(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def process_message(self, message: Message):
+    def process_message(self, message: Message) -> Result[bool, BaseException]:
         raise NotImplementedError
 
     @property
