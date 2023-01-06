@@ -201,7 +201,13 @@ class Scada2(ScadaInterface, Proactor):
         self._data.status_to_store[status.StatusUid] = status
         self._publish_upstream(status.asdict())
         self._publish_to_local(self._node, status)
-        self._publish_upstream(self._data.make_snaphsot_payload())
+        snapshot = self._data.make_snapshot()
+        self._publish_upstream(snapshot.asdict())
+        try:
+            self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
+        except BaseException as e:
+            self._logger.exception(e)
+            raise e
         self._data.flush_latest_readings()
 
     def next_status_second(self) -> int:
@@ -248,7 +254,7 @@ class Scada2(ScadaInterface, Proactor):
                     )
             case GtDispatchBooleanLocal():
                 path_dbg |= 0x00000004
-                if message.Header.Src == "a.home":
+                if message.Header.Src == self._home_alone.name:
                     path_dbg |= 0x00000008
                     self.local_boolean_dispatch_received(message.Payload)
                 else:
@@ -352,13 +358,6 @@ class Scada2(ScadaInterface, Proactor):
         )
         return ScadaCmdDiagnostic.SUCCESS
 
-    def set_relay_state(self, name: str, state: bool) -> Result[bool, BaseException]:
-        return self._communicators[name].process_message(
-            GtDispatchBooleanLocalMessage(
-                src=self.name, dst=name, relay_state=int(state)
-            )
-        )
-
     def _set_relay_state_threadsafe(self, ba: ShNode, on: bool):
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
@@ -369,10 +368,10 @@ class Scada2(ScadaInterface, Proactor):
         )
         return ScadaCmdDiagnostic.SUCCESS
 
-    def turn_on_threadsafe(self, ba: ShNode) -> ScadaCmdDiagnostic:
+    def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
         return self._set_relay_state_threadsafe(ba, True)
 
-    def turn_off_threadsafe(self, ba: ShNode) -> ScadaCmdDiagnostic:
+    def turn_off(self, ba: ShNode) -> ScadaCmdDiagnostic:
         return self._set_relay_state_threadsafe(ba, False)
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):

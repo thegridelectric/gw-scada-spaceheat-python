@@ -29,6 +29,3 @@ class ScadaInterface(ServicesInterface, ActorInterface, ABC):
     def data(self) -> ScadaData:
         ...
 
-    @abstractmethod
-    def set_relay_state(self, name: str, state: bool) -> Result[bool, BaseException]:
-        ...
