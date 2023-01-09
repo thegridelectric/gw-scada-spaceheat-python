@@ -28,4 +28,3 @@ class ScadaInterface(ServicesInterface, ActorInterface, ABC):
     @abstractmethod
     def data(self) -> ScadaData:
         ...
-

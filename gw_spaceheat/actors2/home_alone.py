@@ -25,6 +25,7 @@ class RecentRelayState:
     state: Optional[int] = None
     last_change_time_unix_ms: Optional[int] = None
 
+
 @dataclass
 class HomeAloneData:
     latest_snapshot: Optional[SnapshotSpaceheat] = None
@@ -51,6 +52,7 @@ class HomeAloneData:
 # TODO: HomeAlone should be able to handle flexible units; e.g. not require
 #       thermo to report in Celsius.
 
+
 @dataclass
 class _LoopTimes:
     last_minute_s: int = 0
@@ -74,6 +76,7 @@ class _LoopTimes:
 
     def update_last_day(self, now):
         self.last_day_s = int(now)
+
 
 class HomeAlone(Actor):
     LOOP_SLEEP_SECONDS: float = 60
@@ -211,7 +214,6 @@ class HomeAlone(Actor):
     def per_day_job(self) -> None:
         ...
 
-
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
-        return [MonitoredName(self.name, self.LOOP_SLEEP_SECONDS*2)]
+        return [MonitoredName(self.name, self.LOOP_SLEEP_SECONDS * 2)]
