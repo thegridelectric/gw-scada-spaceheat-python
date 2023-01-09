@@ -43,11 +43,13 @@ class HomeAloneData:
             This will happen for example if the node is not associated to
             a simple sensor.
         """
+        # noinspection PyBroadException
         try:
+            # self.latest_snapshot might be None or 'name' might not be present
             idx = self.latest_snapshot.Snapshot.AboutNodeAliasList.index(name)
-        except ValueError:
+            return self.latest_snapshot.Snapshot.ValueList[idx]
+        except:
             return None
-        return self.latest_snapshot.Snapshot.ValueList[idx]
 
 # TODO: HomeAlone should be able to handle flexible units; e.g. not require
 #       thermo to report in Celsius.
@@ -181,23 +183,24 @@ class HomeAlone(Actor):
 
     def per_minute_job(self, now: float) -> None:
         latest_pipe_reading = self._data.latest_simple_reading(self.PIPE_THERMO_NAME)
-        pipe_temp_c = latest_pipe_reading / 1000
-        if pipe_temp_c < self.PIPE_TEMP_THRESHOLD_C:
-            self._set_relay(self.PUMP_NAME, True)
-            self.services.logger.info(
-                f"Pipe temp {pipe_temp_c}C below threshold {self.PIPE_TEMP_THRESHOLD_C}C."
-                f" Circulator pump {self.PUMP_NAME} on"
-            )
-        else:
-            pipe_state = self._data.relay_state[self.PUMP_NAME]
-            if pipe_state.state == 1:
-                if now - (pipe_state.last_change_time_unix_ms / 1000) > 60 * self.PUMP_ON_MINUTES - 5:
-                    self._set_relay(self.PUMP_NAME, False)
-                    self.services.logger.info(
-                        f"Pump has been on for at least {self.PUMP_ON_MINUTES} minutes "
-                        f"and pipe temp {pipe_temp_c}C above threshold {self.PIPE_TEMP_THRESHOLD_C}C. "
-                        f"Turning pump {self.PUMP_NAME} off "
-                    )
+        if latest_pipe_reading is not None:
+            pipe_temp_c = latest_pipe_reading / 1000
+            if pipe_temp_c < self.PIPE_TEMP_THRESHOLD_C:
+                self._set_relay(self.PUMP_NAME, True)
+                self.services.logger.info(
+                    f"Pipe temp {pipe_temp_c}C below threshold {self.PIPE_TEMP_THRESHOLD_C}C."
+                    f" Circulator pump {self.PUMP_NAME} on"
+                )
+            else:
+                pipe_state = self._data.relay_state[self.PUMP_NAME]
+                if pipe_state.state == 1:
+                    if now - (pipe_state.last_change_time_unix_ms / 1000) > 60 * self.PUMP_ON_MINUTES - 5:
+                        self._set_relay(self.PUMP_NAME, False)
+                        self.services.logger.info(
+                            f"Pump has been on for at least {self.PUMP_ON_MINUTES} minutes "
+                            f"and pipe temp {pipe_temp_c}C above threshold {self.PIPE_TEMP_THRESHOLD_C}C. "
+                            f"Turning pump {self.PUMP_NAME} off "
+                        )
 
         boost_state = self._data.relay_state[self.TANK_BOOST_NAME]
         if boost_state.state == 1:
