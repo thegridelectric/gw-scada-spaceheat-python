@@ -81,7 +81,7 @@ class _LoopTimes:
 class HomeAlone(Actor):
     LOOP_SLEEP_SECONDS: float = 60
     TANK_TEMP_THRESHOLD_C: float = 20
-    PIPE_TEMP_THRESHOLD_C: float = 5
+    PIPE_TEMP_THRESHOLD_C: float = 15
     PUMP_ON_MINUTES: int = 3
     BOOST_ON_MINUTES: int = 30
     TANK_THERMO_NAME: str = "a.tank.temp0"
