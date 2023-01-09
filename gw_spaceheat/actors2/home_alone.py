@@ -3,6 +3,7 @@ import dataclasses
 import time
 from dataclasses import dataclass
 from typing import Optional
+from typing import Sequence
 
 from gwproto import Message
 from gwproto.enums import TelemetryName
@@ -15,6 +16,9 @@ from actors2.actor import Actor
 from actors2.message import GtDispatchBooleanLocalMessage
 from actors2.scada_interface import ScadaInterface
 from data_classes.sh_node import ShNode
+from proactor import MonitoredName
+from proactor.message import PatInternalWatchdogMessage
+
 
 @dataclass
 class RecentRelayState:
@@ -54,19 +58,22 @@ class _LoopTimes:
     last_day_s: int = 0
 
     def minute_passed(self, now) -> bool:
-        if passed := (now >= self.last_minute_s + 60):
-            self.last_minute_s = int(now)
-        return passed
+        return now >= self.last_minute_s + 60
 
     def hour_passed(self, now) -> bool:
-        if passed := (now >= self.last_hour_s + 3600):
-            self.last_hour_s = int(now)
-        return passed
+        return now >= self.last_hour_s + 3600
 
     def day_passed(self, now) -> bool:
-        if passed := (now >= self.last_day_s + (24 * 3600)):
-            self.last_day_s = int(now)
-        return passed
+        return now >= self.last_day_s + (24 * 3600)
+
+    def update_last_minute(self, now):
+        self.last_minute_s = int(now)
+
+    def update_last_hour(self, now):
+        self.last_hour_s = int(now)
+
+    def update_last_day(self, now):
+        self.last_day_s = int(now)
 
 class HomeAlone(Actor):
     LOOP_SLEEP_SECONDS: float = 60
@@ -154,12 +161,16 @@ class HomeAlone(Actor):
     async def _monitor(self):
         while not self._stop_requested:
             now = time.time()
+            self._send(PatInternalWatchdogMessage(src=self.name))
             if self._loop_times.minute_passed(now):
                 self.per_minute_job(now)
+                self._loop_times.update_last_minute(now)
             if self._loop_times.hour_passed(now):
                 self.per_hour_job()
+                self._loop_times.update_last_hour(now)
             if self._loop_times.day_passed(now):
                 self.per_day_job()
+                self._loop_times.update_last_day(now)
             await asyncio.sleep(self.LOOP_SLEEP_SECONDS)
 
     def _set_relay(self, relay_name: str, state: bool):
@@ -168,7 +179,6 @@ class HomeAlone(Actor):
     def per_minute_job(self, now: float) -> None:
         latest_pipe_reading = self._data.latest_simple_reading(self.PIPE_THERMO_NAME)
         pipe_temp_c = latest_pipe_reading / 1000
-        pipe_state = self._data.relay_state[self.PUMP_NAME]
         if pipe_temp_c < self.PIPE_TEMP_THRESHOLD_C:
             self._set_relay(self.PUMP_NAME, True)
             self.services.logger.info(
@@ -176,6 +186,7 @@ class HomeAlone(Actor):
                 f" Circulator pump {self.PUMP_NAME} on"
             )
         else:
+            pipe_state = self._data.relay_state[self.PUMP_NAME]
             if pipe_state.state == 1:
                 if now - (pipe_state.last_change_time_unix_ms / 1000) > 60 * self.PUMP_ON_MINUTES - 5:
                     self._set_relay(self.PUMP_NAME, False)
@@ -187,7 +198,7 @@ class HomeAlone(Actor):
 
         boost_state = self._data.relay_state[self.TANK_BOOST_NAME]
         if boost_state.state == 1:
-            if now - (pipe_state.last_change_time_unix_ms / 1000) > 60 * self.BOOST_ON_MINUTES - 5:
+            if now - (boost_state.last_change_time_unix_ms / 1000) > 60 * self.BOOST_ON_MINUTES - 5:
                 self._set_relay(self.TANK_BOOST_NAME, False)
 
     def per_hour_job(self) -> None:
@@ -199,3 +210,8 @@ class HomeAlone(Actor):
 
     def per_day_job(self) -> None:
         ...
+
+
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.LOOP_SLEEP_SECONDS*2)]
