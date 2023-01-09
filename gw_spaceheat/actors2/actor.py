@@ -7,9 +7,12 @@ SyncAsyncInteractionThread
 
 from abc import ABC
 from typing import Any
+from typing import cast
 from typing import Generic
 from typing import Sequence
 from typing import TypeVar
+
+from result import Result
 
 from actors2.actor_interface import ActorInterface
 from actors2.scada_interface import ScadaInterface
@@ -29,8 +32,8 @@ class Actor(ActorInterface, Communicator, ABC):
         super().__init__(name, services)
 
     @property
-    def services(self):
-        return self._services
+    def services(self) -> ScadaInterface:
+        return cast(ScadaInterface, self._services)
 
     @property
     def alias(self):
@@ -55,7 +58,7 @@ class SyncThreadActor(Actor, Generic[SyncThreadT]):
         super().__init__(name, services)
         self._sync_thread = sync_thread
 
-    def process_message(self, message: Message):
+    def process_message(self, message: Message) -> Result[bool, BaseException]:
         raise ValueError(f"Error. {self.__class__.__name__} does not process any messages. Received {message.Header}")
 
     def send_driver_message(self, message: Any) -> None:

@@ -27,6 +27,7 @@ from gwproto import MQTTTopic
 from result import Ok
 from result import Result
 
+from actors2.home_alone import HomeAlone
 from actors2.actor_interface import ActorInterface
 from actors2.message import GtDispatchBooleanLocalMessage
 from actors2.message import ScadaDBG
@@ -109,6 +110,7 @@ class Scada2(ScadaInterface, Proactor):
     _data: ScadaData
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
+    _home_alone: HomeAlone
 
     def __init__(
         self,
@@ -138,6 +140,8 @@ class Scada2(ScadaInterface, Proactor):
             self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
         self.log_subscriptions("construction")
+        self._home_alone = HomeAlone(self.hardware_layout.my_home_alone.alias, self)
+        self.add_communicator(self._home_alone)
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
@@ -176,6 +180,10 @@ class Scada2(ScadaInterface, Proactor):
     def hardware_layout(self) -> HardwareLayout:
         return self._layout
 
+    @property
+    def data(self) -> ScadaData:
+        return self._data
+
     def _start_derived_tasks(self):
         self._tasks.append(
             asyncio.create_task(self.update_status(), name="update_status")
@@ -193,7 +201,13 @@ class Scada2(ScadaInterface, Proactor):
         self._data.status_to_store[status.StatusUid] = status
         self._publish_upstream(status.asdict())
         self._publish_to_local(self._node, status)
-        self._publish_upstream(self._data.make_snaphsot_payload())
+        snapshot = self._data.make_snapshot()
+        self._publish_upstream(snapshot.asdict())
+        try:
+            self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
+        except BaseException as e:
+            self._logger.exception(e)
+            raise e
         self._data.flush_latest_readings()
 
     def next_status_second(self) -> int:
@@ -240,7 +254,7 @@ class Scada2(ScadaInterface, Proactor):
                     )
             case GtDispatchBooleanLocal():
                 path_dbg |= 0x00000004
-                if message.Header.Src == "a.home":
+                if message.Header.Src == self._home_alone.name:
                     path_dbg |= 0x00000008
                     self.local_boolean_dispatch_received(message.Payload)
                 else:
@@ -344,7 +358,7 @@ class Scada2(ScadaInterface, Proactor):
         )
         return ScadaCmdDiagnostic.SUCCESS
 
-    def _set_relay_state(self, ba: ShNode, on: bool):
+    def _set_relay_state_threadsafe(self, ba: ShNode, on: bool):
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         self.send_threadsafe(
@@ -355,10 +369,10 @@ class Scada2(ScadaInterface, Proactor):
         return ScadaCmdDiagnostic.SUCCESS
 
     def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._set_relay_state(ba, True)
+        return self._set_relay_state_threadsafe(ba, True)
 
     def turn_off(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._set_relay_state(ba, False)
+        return self._set_relay_state_threadsafe(ba, False)
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:

@@ -2,7 +2,6 @@ import asyncio
 import os
 import subprocess
 import time
-from typing import cast
 from typing import Optional
 
 from gwproto import Message
@@ -35,9 +34,7 @@ class WatchdogManager(Communicator, Runnable):
         services: ServicesInterface
     ):
         super().__init__(KnownNames.watchdog_manager.value, services)
-        from proactor.proactor_implementation import Proactor
-        # noinspection PyProtectedMember
-        self.lg = cast(Proactor, services)._logger
+        self.lg = services.logger
         self._seconds_per_pat = seconds_per_pat
         self._monitored_names = dict()
         self._pat_external_watchdog_process_args = []

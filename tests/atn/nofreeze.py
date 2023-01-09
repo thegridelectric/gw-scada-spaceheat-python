@@ -144,7 +144,7 @@ class SimpleOrange:
 
         bs = self.atn.data.relay_state[self.tank_boost]
         if bs.State == 1:
-            if time.time() - (ps.LastChangeTimeUnixMs / 1000) > 60 * self.BOOST_ON_MINUTES - 5:
+            if time.time() - (bs.LastChangeTimeUnixMs / 1000) > 60 * self.BOOST_ON_MINUTES - 5:
                 self.atn.turn_off(self.tank_boost)
 
         self.cron_every_min_success()

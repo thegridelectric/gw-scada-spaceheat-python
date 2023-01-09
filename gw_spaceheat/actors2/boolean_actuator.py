@@ -5,6 +5,9 @@ from typing import Optional
 
 from gwproto.messages import GtDispatchBooleanLocal
 from pydantic import BaseModel
+from result import Err
+from result import Ok
+from result import Result
 
 from actors2.message import GtDriverBooleanactuatorCmdResponse
 from actors2.scada_interface import ScadaInterface
@@ -58,7 +61,7 @@ class BooleanActuator(SimpleSensor):
             daemon=daemon,
         )
 
-    def _process_dispatch_message(self, message: Message[GtDispatchBooleanLocal]):
+    def _process_dispatch_message(self, message: Message[GtDispatchBooleanLocal]) -> Result[bool, BaseException]:
         self.services.send(
             GtDriverBooleanactuatorCmdResponse(
                 src=self.name,
@@ -69,11 +72,9 @@ class BooleanActuator(SimpleSensor):
         self.send_driver_message(
             DispatchRelay(relay_state=bool(message.Payload.RelayState))
         )
+        return Ok()
 
-    def process_message(self, message: Message):
+    def process_message(self, message: Message) -> Result[bool, BaseException]:
         if isinstance(message.Payload, GtDispatchBooleanLocal):
-            self._process_dispatch_message(message)
-        else:
-            ValueError(
-                f"Error. BooleanActuator {self.name} receieved unexpected message: {message.Header}"
-            )
+            return self._process_dispatch_message(message)
+        return Err(ValueError(f"Error. BooleanActuator {self.name} receieved unexpected message: {message.Header}"))
