@@ -1,10 +1,11 @@
 import importlib
+import logging
 import sys
 import argparse
+from pathlib import Path
 from typing import Optional, Sequence, Dict, Callable, Tuple, List
 
 import dotenv
-import rich
 
 import load_house
 from logging_setup import setup_logging
@@ -144,10 +145,22 @@ async def run_async_actors_main(
     default_nodes: Optional[Sequence[str]] = None,
 ):
     args = parse_args(argv, default_nodes=default_nodes)
-    settings = ScadaSettings(_env_file=dotenv.find_dotenv(args.env_file))
+    dotenv_file = dotenv.find_dotenv(args.env_file)
+    settings = ScadaSettings(_env_file=dotenv_file)
     settings.paths.mkdirs()
     setup_logging(args, settings)
-    rich.print(settings)
+    logger = logging.getLogger(settings.logging.qualified_logger_names()["lifecycle"])
+    logger.info("")
+    logger.info("run_async_actors_main() starting")
+    logger.info("Env file: [%s]  exists:%s", dotenv_file, Path(dotenv_file).exists())
+    logger.info("Settings:")
+    logger.info(settings.json(sort_keys=True, indent=2))
+    try:
+        # noinspection PyUnresolvedReferences
+        import rich
+        rich.print(settings)
+    except ImportError:
+        pass
     layout = load_house.load_all(settings)
     if not args.nodes:
         args.nodes = [
