@@ -14,13 +14,15 @@ class GtElectricMeterComponent_Maker:
                  component_attribute_class_id: str,
                  component_id: str,
                  display_name: Optional[str],
-                 hw_uid: Optional[str]):
+                 hw_uid: Optional[str],
+                 power_modbus_register: Optional[int]):
 
         gw_tuple = GtElectricMeterComponent(
             ComponentAttributeClassId=component_attribute_class_id,
             DisplayName=display_name,
             ComponentId=component_id,
             HwUid=hw_uid,
+            PowerModbusRegister=power_modbus_register,
             #
         )
         gw_tuple.check_for_errors()
@@ -56,6 +58,8 @@ class GtElectricMeterComponent_Maker:
             raise MpSchemaError(f"dict {new_d} missing ComponentId")
         if "HwUid" not in new_d.keys():
             new_d["HwUid"] = None
+        if "PowerModbusRegister" not in new_d.keys():
+            new_d["PowerModbusRegister"] = None
 
         gw_tuple = GtElectricMeterComponent(
             TypeAlias=new_d["TypeAlias"],
@@ -63,6 +67,7 @@ class GtElectricMeterComponent_Maker:
             DisplayName=new_d["DisplayName"],
             ComponentId=new_d["ComponentId"],
             HwUid=new_d["HwUid"],
+            PowerModbusRegister=new_d["PowerModbusRegister"],
             #
         )
         gw_tuple.check_for_errors()
@@ -74,6 +79,7 @@ class GtElectricMeterComponent_Maker:
             "display_name": t.DisplayName,
             "component_id": t.ComponentId,
             "hw_uid": t.HwUid,
+            "power_modbus_register": t.PowerModbusRegister,
             "component_attribute_class_id": t.ComponentAttributeClassId,
             #
         }
@@ -91,6 +97,7 @@ class GtElectricMeterComponent_Maker:
             DisplayName=dc.display_name,
             ComponentId=dc.component_id,
             HwUid=dc.hw_uid,
+            PowerModbusRegister=dc.power_modbus_register,
             ComponentAttributeClassId=dc.component_attribute_class_id,
             #
         )

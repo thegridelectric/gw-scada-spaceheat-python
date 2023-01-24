@@ -9,6 +9,7 @@ class GtElectricMeterComponentBase(NamedTuple):
     ComponentId: str  #
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
+    PowerModbusRegister: Optional[str] = None
     TypeAlias: str = "gt.electric.meter.component.100"
 
     def as_type(self):
@@ -20,6 +21,8 @@ class GtElectricMeterComponentBase(NamedTuple):
             del d["DisplayName"]
         if d["HwUid"] is None:
             del d["HwUid"]
+        if d["PowerModbusRegister"] is None:
+            del d["PowerModbusRegister"]
         return d
 
     def derived_errors(self) -> List[str]:
@@ -51,6 +54,11 @@ class GtElectricMeterComponentBase(NamedTuple):
             if not isinstance(self.HwUid, str):
                 errors.append(
                     f"HwUid {self.HwUid} must have type str."
+                )
+        if self.PowerModbusRegister:
+            if not isinstance(self.PowerModbusRegister, int):
+                errors.append(
+                    f"PowerModbusRegister {self.PowerModbusRegister} must have type int."
                 )
         if self.TypeAlias != "gt.electric.meter.component.100":
             errors.append(
