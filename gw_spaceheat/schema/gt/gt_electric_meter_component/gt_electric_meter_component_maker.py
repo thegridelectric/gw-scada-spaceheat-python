@@ -15,7 +15,8 @@ class GtElectricMeterComponent_Maker:
                  component_id: str,
                  display_name: Optional[str],
                  hw_uid: Optional[str],
-                 power_modbus_register: Optional[int]):
+                 power_modbus_register: Optional[int],
+                 ip_address: Optional[str]):
 
         gw_tuple = GtElectricMeterComponent(
             ComponentAttributeClassId=component_attribute_class_id,
@@ -23,7 +24,7 @@ class GtElectricMeterComponent_Maker:
             ComponentId=component_id,
             HwUid=hw_uid,
             PowerModbusRegister=power_modbus_register,
-            #
+            IpAddress=ip_address,
         )
         gw_tuple.check_for_errors()
         self.tuple = gw_tuple
@@ -60,7 +61,9 @@ class GtElectricMeterComponent_Maker:
             new_d["HwUid"] = None
         if "PowerModbusRegister" not in new_d.keys():
             new_d["PowerModbusRegister"] = None
-
+        if "IpAddress" not in new_d.keys():
+            new_d["IpAddress"] = None
+ 
         gw_tuple = GtElectricMeterComponent(
             TypeAlias=new_d["TypeAlias"],
             ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
@@ -68,6 +71,7 @@ class GtElectricMeterComponent_Maker:
             ComponentId=new_d["ComponentId"],
             HwUid=new_d["HwUid"],
             PowerModbusRegister=new_d["PowerModbusRegister"],
+            IpAddress=new_d["IpAddress"],
             #
         )
         gw_tuple.check_for_errors()
@@ -80,6 +84,7 @@ class GtElectricMeterComponent_Maker:
             "component_id": t.ComponentId,
             "hw_uid": t.HwUid,
             "power_modbus_register": t.PowerModbusRegister,
+            "ip_address": t.IpAddress,
             "component_attribute_class_id": t.ComponentAttributeClassId,
             #
         }
@@ -98,6 +103,7 @@ class GtElectricMeterComponent_Maker:
             ComponentId=dc.component_id,
             HwUid=dc.hw_uid,
             PowerModbusRegister=dc.power_modbus_register,
+            IpAddress=dc.ip_address,
             ComponentAttributeClassId=dc.component_attribute_class_id,
             #
         )

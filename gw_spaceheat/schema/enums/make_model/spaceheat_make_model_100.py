@@ -19,6 +19,7 @@ class MakeModel(enum.Enum):
     OPENENERGY__EMONPI = "OpenEnergy__EmonPi"
     G1__NCD_ADS1115__TEWA_NTC_10K_A = "G1__NcdAds1115__TewaNtc10kA"
     G1__NCD_ADS1115__AMPH_NTC_10K_A = "G1__NcdAds1115__AmphNtc10kA"
+    EGAUGE__4030 = "Egauge__4030"
 
     #
 
@@ -35,6 +36,7 @@ class SpaceheatMakeModel100GtEnum(ABC):
         "c75d269f",
         "e3364590",
         "90566a90",
+        "beb6d3fb",
 
         #
     ]
