@@ -19,6 +19,7 @@ from data_classes.components.electric_meter_component import ElectricMeterCompon
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
+from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
@@ -138,6 +139,8 @@ class DriverThreadSetupHelper:
             driver = OpenenergyEmonpi_PowerMeterDriver(
                 component=self.component, settings=self.settings
             )
+        elif cac.make_model == MakeModel.EGAUGE__4030:
+            driver = EGuage4030_PowerMeterDriver(component=self.component, settings=self.settings)
         else:
             raise NotImplementedError(
                 f"No ElectricMeter driver yet for {cac.make_model}"
