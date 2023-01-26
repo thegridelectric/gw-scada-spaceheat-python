@@ -50,15 +50,15 @@ def watch():
     parser.add_argument("-p", "--port", type=int, default=502, help="TCP port (default: 502)")
     parser.add_argument(
         "--register-csv",
-        default=Path(f"{xdg.xdg_config_home()} / gridworks/scada/egauge-modbus-map.csv")
+        default=Path(f"{xdg.xdg_config_home()}/gridworks/scada/egauge-modbus-map.csv")
     )
     parser.add_argument(
         "--register-table-svg",
-        default=Path(f"{xdg.xdg_state_home()} / gridworks/scada/eguage-register-table.svg")
+        default=Path(f"{xdg.xdg_state_home()}/gridworks/scada/eguage-register-table.svg")
     )
     parser.add_argument(
         "--register-values-svg",
-        default=Path(f"{xdg.xdg_state_home()} / gridworks/scada/eguage-register-values.svg")
+        default=Path(f"{xdg.xdg_state_home()}/gridworks/scada/eguage-register-values.svg")
     )
     args = parser.parse_args()
     register_csv_path = Path(args.register_csv)
