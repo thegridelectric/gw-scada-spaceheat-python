@@ -35,8 +35,10 @@ def test_gt_electric_meter_component():
         display_name=gw_tuple.DisplayName,
         component_id=gw_tuple.ComponentId,
         hw_uid=gw_tuple.HwUid,
-        power_modbus_register=None,
-        ip_address=None,
+        modbus_host=None,
+        modbus_port=None,
+        modbus_power_register=None,
+        modbus_hw_uid_register=None,
         #
     ).tuple
     assert t == gw_tuple
