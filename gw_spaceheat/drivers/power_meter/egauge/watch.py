@@ -1,6 +1,7 @@
 import argparse
 import time
 from pathlib import Path
+import socket
 
 import xdg
 from pyModbusTCP.client import ModbusClient
@@ -65,7 +66,7 @@ def watch():
     console = Console(record=True)
     if not register_csv_path.exists():
         console.print(
-            f" [bold]:thumbs_down: register csv path {register_csv_path} does not exist.\n\n[\]"
+            f" [bold]:thumbs_down: register csv path {register_csv_path} does not exist.\n\n[/]"
             f" Export it from the Eguage website for this device under 'settings/Modbus Server/Export Modbus Map'"
         )
         return
@@ -88,9 +89,10 @@ def watch():
             not register.Name.startswith("Virtual")
         )
     ]
-    c = ModbusClient(host=args.host, port=args.port, unit_id=1, timeout=5.0, auto_open=True, debug=False)
-    console.print(f"ModbusClient: {c}")
-    console.print(f"host: {args.host}")
+    unresolved_host = args.host
+    args.host = socket.gethostbyname(args.host)
+    console.print(f"Modbus host: {unresolved_host} -> {args.host}")
+    c = ModbusClient(host=args.host, port=args.port, unit_id=1, timeout=5.0, auto_open=True, debug=True)
     try:
         c.open()
         if c.is_open:
@@ -112,7 +114,6 @@ def watch():
                         save_console = Console(record=True, file=f)
                         save_console.print(table)
                         save_console.save_svg(str(register_values_path), clear=True)
-
     except KeyboardInterrupt:
         pass
 
