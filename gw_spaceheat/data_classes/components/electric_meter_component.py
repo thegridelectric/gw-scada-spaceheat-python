@@ -15,8 +15,11 @@ class ElectricMeterComponent(Component):
         component_attribute_class_id: str,
         display_name: Optional[str] = None,
         hw_uid: Optional[str] = None, 
-        power_modbus_register: Optional[int] = None, #e.g. 39004 for orange ("garage power")
-        ip_address: Optional[str] = None,
+        modbus_host: Optional[str] = None,
+        modbus_port: Optional[int] = None,
+        modbus_power_register: Optional[int] = None,
+        modbus_hw_uid_register: Optional[int] = None,
+        
     ):
         super(self.__class__, self).__init__(
             display_name=display_name,
@@ -24,8 +27,10 @@ class ElectricMeterComponent(Component):
             hw_uid=hw_uid,
             component_attribute_class_id=component_attribute_class_id,
         )
-        self.power_modbus_register = power_modbus_register
-        self.ip_address = ip_address
+        self.modbus_host = modbus_host
+        self.modbus_port = modbus_port
+        self.modbus_power_register = modbus_power_register
+        self.modbus_hw_uid_register = modbus_hw_uid_register
         ElectricMeterComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
 
