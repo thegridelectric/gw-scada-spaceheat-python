@@ -37,7 +37,7 @@ class ProxyDataBank(DataBank):
         :rtype: list or None
         """
         # secure extract of data from list used by server thread
-        print(f"get_input_registers: address:{address}  registers:{number}  from server: {srv_info is not None}")
+        # print(f"get_input_registers: address:{address}  registers:{number}  from server: {srv_info is not None}")
         if srv_info is not None:
             if not self.real_client.is_open:
                 self.real_client.open()
