@@ -33,8 +33,10 @@ def generate_table(registers: list[EGaugeRegister], raw_values: list) -> Table:
             value = f"{raw_value / register.Denominator: 10.4f}"
         elif register.Type in (RegisterType.u32, RegisterType.s64):
             value = f"{int(raw_value / int(register.Denominator))}"
-        else:
+        elif isinstance(register, bytes):
             value = raw_value.decode("utf-8").rstrip('\x00')
+        else:
+            value = str(raw_value)
         table.add_row(
             str(register.offset),
             register.Name,
@@ -103,17 +105,21 @@ def watch():
                 ),
                 console=console
             ) as live:
-                while c.is_open:
-                    time.sleep(1)
-                    table = generate_table(
-                        registers,
-                        [read_register(c, register)[2] for register in registers]
-                    )
-                    live.update(table)
-                    with register_values_path.open("w") as f:
-                        save_console = Console(record=True, file=f)
-                        save_console.print(table)
-                        save_console.save_svg(str(register_values_path), clear=True)
+                if not c.is_open:
+                    c.open()
+                    if not c.is_open:
+                        raise ValueError("ERROR. Connection to Modbus server lost")
+                time.sleep(1)
+                table = generate_table(
+                    registers,
+                    [read_register(c, register)[2] for register in registers]
+                )
+                live.update(table)
+                with register_values_path.open("w") as f:
+                    save_console = Console(record=True, file=f)
+                    save_console.print(table)
+                    save_console.save_svg(str(register_values_path), clear=True)
+
     except KeyboardInterrupt:
         pass
 

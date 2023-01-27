@@ -18,7 +18,11 @@ def repack(response: list[int], pack_format:str, unpack_format:str) -> Tuple[byt
 
 def read(c: ModbusClient, addr: int, num_regs:int, pack_format:str, unpack_format:str) -> Tuple[list[int], bytes, Any]:
     regs = c.read_input_registers(addr, num_regs)
-    packed, unpacked = repack(regs, pack_format, unpack_format)
+    if not regs:
+        packed = bytes()
+        unpacked = None
+    else:
+        packed, unpacked = repack(regs, pack_format, unpack_format)
     return regs, packed, unpacked
 
 def readF32(c: ModbusClient, addr: int) -> Tuple[list[int], bytes, float]:
