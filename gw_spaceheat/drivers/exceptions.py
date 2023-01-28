@@ -1,0 +1,9 @@
+
+class DriverException(Exception):
+    ...
+
+class DriverError(DriverException):
+    ...
+
+class DriverWarning(DriverException):
+    ...

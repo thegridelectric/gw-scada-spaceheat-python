@@ -10,6 +10,9 @@ from pyModbusTCP.server import ModbusServer
 from rich import print
 from rich.console import Console
 import rich.traceback
+
+from drivers.power_meter.egauge.settings import ModbusClientSettings
+
 console = Console()
 rich.traceback.install(console=console)
 
@@ -49,14 +52,9 @@ class ProxyDataBank(DataBank):
             self.set_input_registers(address, word_list=word_list)
         return super().get_input_registers(address, number)
 
-class ModbusClientSettings(BaseSettings):
-    host: str = ""
-    port: int = 502
-    unit_id: int = 1
-    timeout: float = 30.0
-    debug: bool = False
-    auto_open: bool = True
-    auto_close: bool = False
+class ModbusProxySettings(BaseSettings):
+    client: ModbusClientSettings
+
 
 def be_the_proxy():
     logging.basicConfig()
@@ -75,7 +73,7 @@ def be_the_proxy():
         cmd_line_args["port"] = args.real_port
     if args.debug:
         logging.getLogger("pyModbusTCP.server").setLevel(logging.DEBUG)
-    settings = ModbusClientSettings(
+    settings = ModbusProxySettings(
         _env_file=dotenv.find_dotenv(args.env_file),
         **cmd_line_args
     )
@@ -86,7 +84,7 @@ def be_the_proxy():
     server = ModbusServer(
         host=args.host,
         port=args.port,
-        data_bank=ProxyDataBank(ModbusClient(**settings.dict()))
+        data_bank=ProxyDataBank(ModbusClient(**settings.client.dict()))
     )
     server.start()
 

@@ -1,15 +1,16 @@
 import csv
 import struct
-from enum import Enum
 from pathlib import Path
 from typing import Any
 from typing import Callable
 from typing import Optional
 from typing import Tuple
 
-from pydantic import BaseModel
 from pyModbusTCP.client import ModbusClient
 from rich.table import Table
+
+from drivers.power_meter.egauge.settings import EGaugeRegister
+from drivers.power_meter.egauge.settings import RegisterType
 
 
 def repack(response: list[int], pack_format:str, unpack_format:str) -> Tuple[bytes, Any]:
@@ -37,40 +38,22 @@ def readS64(c: ModbusClient, addr: int) -> Tuple[list[int], bytes, int]:
 def readT16(c: ModbusClient, addr: int) -> Tuple[list[int], bytes, bytes]:
     return read(c, addr, 8, ">HHHHHHHH", ">16s")
 
-class RegisterType(Enum):
-    f32 = "f32"
-    u32 = "u32"
-    s64 = "s64"
-    t16 = "t16"
+def read_function(type_: RegisterType) -> Callable:
+    match type_:
+        case RegisterType.f32:
+            f = readF32
+        case RegisterType.s64:
+            f = readS64
+        case RegisterType.u32:
+            f = readU32
+        case RegisterType.t16:
+            f = readT16
+        case _:
+            raise ValueError(f"No read function for {type}")
+    return f
 
-    @classmethod
-    def read_function(cls, type_: "RegisterType") -> Callable:
-        match type_:
-            case RegisterType.f32:
-                f = readF32
-            case RegisterType.s64:
-                f = readS64
-            case RegisterType.u32:
-                f = readU32
-            case RegisterType.t16:
-                f = readT16
-            case _:
-                raise ValueError(f"No read function for {type}")
-        return f
-
-class EGaugeRegister(BaseModel):
-    Address: int
-    Name: str
-    Description: str
-    Type: RegisterType
-    Denominator: float
-    Unit: str
-    Deprecated: bool
-    BaseAddress: int = 0
-
-    @property
-    def offset(self) -> int:
-        return self.Address - self.BaseAddress
+def read_register(c: ModbusClient, register: EGaugeRegister) -> Tuple[list[int], bytes, Any]:
+    return read_function(register.Type)(c, register.offset)
 
 class EGaugeRegisters:
 
@@ -121,8 +104,5 @@ class EGaugeRegisters:
         for register in self.registers():
             table.add_row(*[str(getattr(register, field)) for field in fields])
         return table
-
-def read_register(c: ModbusClient, register: EGaugeRegister) -> Tuple[list[int], bytes, Any]:
-    return RegisterType.read_function(register.Type)(c, register.offset)
 
 

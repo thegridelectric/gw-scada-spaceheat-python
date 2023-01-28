@@ -2,8 +2,12 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import serial.rs485
+from result import Ok
+from result import Result
+
 from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
+from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from pymodbus.client.sync import ModbusSerialClient
 from schema.enums import MakeModel, TelemetryName
@@ -23,7 +27,7 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         if component.cac.make_model != MakeModel.SCHNEIDERELECTRIC__IEM3455:
             raise Exception(f"Expected {MakeModel.SCHNEIDERELECTRIC__IEM3455}, got {component.cac}")
         self.component = component
-        self.current_rms_micro_amps: int = None
+        self.current_rms_micro_amps: Optional[int] = None
         serial_connection = serial.rs485.RS485(port=PORT, baudrate=BAUD)
         serial_connection.rs485_mode = serial.rs485.RS485Settings(
             rts_level_for_tx=False, rts_level_for_rx=True, delay_before_tx=0.0, delay_before_rx=-0.0
@@ -32,12 +36,12 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         self.client.socket = serial_connection
         self.client.connect()
 
-    def close_conn(self, interface):
+    def close_conn(self, _):
         self.client.close()
 
     def read_register_raw(
         self, reg_addr, bytes_to_read=2, dtype=np.uint16
-    ) -> Tuple[np.uint32, np.uint16]:
+    ) -> np.ndarray:
         result = self.client.read_holding_registers(
             address=reg_addr - 1, count=bytes_to_read, unit=12
         )
@@ -49,16 +53,16 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         data_as_float = data_bytes.view(dtype=np.float32)
         return int(10**6 * data_as_float[0])
 
-    def read_current_rms_micro_amps(self) -> Optional[int]:
-        return self.read_register_exp_6(self.CURRENT_RMS_MICRO_A_ADDR)
+    def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
+        return Ok(DriverResult(self.read_register_exp_6(self.CURRENT_RMS_MICRO_A_ADDR)))
 
-    def read_hw_uid(self) -> Optional[str]:
+    def read_hw_uid(self) -> Result[DriverResult[str], Exception]:
         """returns the serial number of the Schneider Electric meter as a string"""
         data_bytes = self.read_register_raw(self.SERIAL_NUMBER_ADDR, 2, np.uint32)
-        return f"{str(data_bytes[0])}_{str(data_bytes[1])}"
+        return Ok(DriverResult(f"{str(data_bytes[0])}_{str(data_bytes[1])}"))
 
-    def read_power_w(self) -> Optional[int]:
-        return None
+    def read_power_w(self) -> Result[DriverResult[int], Exception]:
+        raise NotImplementedError
 
     def telemetry_name_list(self) -> List[TelemetryName]:
         return [TelemetryName.CURRENT_RMS_MICRO_AMPS]

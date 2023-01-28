@@ -8,6 +8,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
+from gwproto import Message
 from gwproto.enums import TelemetryName
 
 from actors2.actor import SyncThreadActor
@@ -33,6 +34,7 @@ from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.sync_thread import SyncAsyncInteractionThread
+from problems import Problems
 from schema.enums import MakeModel
 from schema.enums import Role
 from schema.enums import Unit
@@ -244,8 +246,23 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         }
         self.async_power_reporting_threshold = settings.async_power_reporting_threshold
 
+    def _report_problems(self, problems: Problems, tag: str):
+        self.put_to_sync_queue(
+            Message(
+                Payload=problems.problem_event(
+                    summary=f"Driver problems: {tag} for {self.driver.component}",
+                    src=str(self.driver.component)
+                )
+            )
+        )
+
     def _preiterate(self) -> None:
-        self.driver.start()
+        result = self.driver.start()
+        if result.is_ok():
+            if result.value.warnings:
+                self._report_problems(Problems(warnings=result.value.warnings), "startup warning")
+        else:
+            self._report_problems(Problems(errors=result.err()), "startup error")
 
     def _iterate(self) -> None:
         start_s = time.time()
@@ -267,9 +284,13 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
 
     def update_latest_value_dicts(self):
         for tt in self._hardware_layout.all_power_meter_telemetry_tuples:
-            self.latest_telemetry_value[tt] = self.driver.read_telemetry_value(
-                tt.TelemetryName
-            )
+            read = self.driver.read_telemetry_value(tt.TelemetryName)
+            if read.is_ok():
+                self.latest_telemetry_value[tt] = read.value.value
+                if read.value.warnings:
+                    self._report_problems(Problems(warnings=read.value.warnings), "read warnings")
+            else:
+                raise read.value
 
     def report_sampled_telemetry_values(
         self, telemetry_sample_report_list: List[TelemetryTuple]

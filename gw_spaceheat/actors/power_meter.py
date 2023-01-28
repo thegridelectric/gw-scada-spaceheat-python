@@ -196,11 +196,15 @@ class PowerMeter(ActorBase):
         return response_dict
 
     def check_hw_uid(self):
-        if self.reporting_config.HwUid != self.driver.read_hw_uid():
-            raise Exception(
-                f"HwUid associated to component {self.reporting_config.HwUid} "
-                f"does not match HwUid read by driver {self.driver.read_hw_uid()}"
-            )
+        result = self.driver.read_hw_uid()
+        if result.is_ok():
+            if self.reporting_config.HwUid != result.value.value:
+                raise Exception(
+                    f"HwUid associated to component {self.reporting_config.HwUid} "
+                    f"does not match HwUid read by driver {result.value.value}"
+                )
+        else:
+            raise result.value
 
     ###############################
     # Stubs for receiving MQTT messages
@@ -218,7 +222,11 @@ class PowerMeter(ActorBase):
 
     def update_latest_value_dicts(self):
         for tt in self.all_power_meter_telemetry_tuples():
-            self.latest_telemetry_value[tt] = self.driver.read_telemetry_value(tt.TelemetryName)
+            read = self.driver.read_telemetry_value(tt.TelemetryName)
+            if read.is_ok():
+                self.latest_telemetry_value[tt] = read.value.value
+            else:
+                raise read.value
 
     def report_sampled_telemetry_values(self, telemetry_sample_report_list: List[TelemetryTuple]):
         about_node_alias_list = list(map(lambda x: x.AboutNode.alias, telemetry_sample_report_list))
