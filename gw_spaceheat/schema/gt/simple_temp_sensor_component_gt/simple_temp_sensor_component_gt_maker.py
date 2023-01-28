@@ -1,14 +1,14 @@
-"""Makes gt.temp.sensor.component.100 type"""
+"""Makes simple.temp.sensor.component.gt.000 type"""
 import json
 from typing import Optional
-from data_classes.components.temp_sensor_component import TempSensorComponent
+from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 
-from schema.gt.gt_temp_sensor_component.gt_temp_sensor_component import GtTempSensorComponent
+from schema.gt.simple_temp_sensor_component_gt.simple_temp_sensor_component_gt import SimpleTempSensorComponentGt
 from schema.errors import MpSchemaError
 
 
-class GtTempSensorComponent_Maker:
-    type_alias = "gt.temp.sensor.component.100"
+class SimpleTempSensorComponentGt_Maker:
+    type_alias = "simple.temp.sensor.component.gt.000"
 
     def __init__(self,
                  component_id: str,
@@ -17,7 +17,7 @@ class GtTempSensorComponent_Maker:
                  hw_uid: Optional[str],
                  channel: Optional[int],):
 
-        gw_tuple = GtTempSensorComponent(
+        gw_tuple = SimpleTempSensorComponentGt(
             DisplayName=display_name,
             ComponentId=component_id,
             ComponentAttributeClassId=component_attribute_class_id,
@@ -29,12 +29,12 @@ class GtTempSensorComponent_Maker:
         self.tuple = gw_tuple
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtTempSensorComponent) -> str:
+    def tuple_to_type(cls, tuple: SimpleTempSensorComponentGt) -> str:
         tuple.check_for_errors()
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtTempSensorComponent:
+    def type_to_tuple(cls, t: str) -> SimpleTempSensorComponentGt:
         try:
             d = json.loads(t)
         except TypeError:
@@ -44,7 +44,7 @@ class GtTempSensorComponent_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) -> GtTempSensorComponent:
+    def dict_to_tuple(cls, d: dict) -> SimpleTempSensorComponentGt:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
@@ -61,7 +61,7 @@ class GtTempSensorComponent_Maker:
         if "Channel" not in new_d.keys():
             new_d["Channel"] = None
 
-        gw_tuple = GtTempSensorComponent(
+        gw_tuple = SimpleTempSensorComponentGt(
             TypeAlias=new_d["TypeAlias"],
             DisplayName=new_d["DisplayName"],
             ComponentId=new_d["ComponentId"],
@@ -74,7 +74,7 @@ class GtTempSensorComponent_Maker:
         return gw_tuple
 
     @classmethod
-    def tuple_to_dc(cls, t: GtTempSensorComponent) -> TempSensorComponent:
+    def tuple_to_dc(cls, t: SimpleTempSensorComponentGt) -> SimpleTempSensorComponent:
         s = {
             "display_name": t.DisplayName,
             "component_id": t.ComponentId,
@@ -83,17 +83,17 @@ class GtTempSensorComponent_Maker:
             "component_attribute_class_id": t.ComponentAttributeClassId,
             #
         }
-        if s["component_id"] in TempSensorComponent.by_id.keys():
-            dc = TempSensorComponent.by_id[s["component_id"]]
+        if s["component_id"] in SimpleTempSensorComponent.by_id.keys():
+            dc = SimpleTempSensorComponent.by_id[s["component_id"]]
         else:
-            dc = TempSensorComponent(**s)
+            dc = SimpleTempSensorComponent(**s)
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: TempSensorComponent) -> GtTempSensorComponent:
+    def dc_to_tuple(cls, dc: SimpleTempSensorComponent) -> SimpleTempSensorComponentGt:
         if dc is None:
             return None
-        t = GtTempSensorComponent(
+        t = SimpleTempSensorComponentGt(
             DisplayName=dc.display_name,
             ComponentId=dc.component_id,
             HwUid=dc.hw_uid,
@@ -105,13 +105,13 @@ class GtTempSensorComponent_Maker:
         return t
 
     @classmethod
-    def type_to_dc(cls, t: str) -> TempSensorComponent:
+    def type_to_dc(cls, t: str) -> SimpleTempSensorComponent:
         return cls.tuple_to_dc(cls.type_to_tuple(t))
 
     @classmethod
-    def dc_to_type(cls, dc: TempSensorComponent) -> str:
+    def dc_to_type(cls, dc: SimpleTempSensorComponent) -> str:
         return cls.dc_to_tuple(dc).as_type()
 
     @classmethod
-    def dict_to_dc(cls, d: dict) -> TempSensorComponent:
+    def dict_to_dc(cls, d: dict) -> SimpleTempSensorComponent:
         return cls.tuple_to_dc(cls.dict_to_tuple(d))

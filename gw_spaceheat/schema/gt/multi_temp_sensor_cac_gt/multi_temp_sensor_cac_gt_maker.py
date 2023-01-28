@@ -1,9 +1,9 @@
-"""Makes gt.temp.sensor.cac.100 type"""
+"""Makes multi.temp.sensor.cac.gt.000 type"""
 import json
 from typing import Optional
-from data_classes.cacs.temp_sensor_cac import TempSensorCac
+from data_classes.cacs.multi_temp_sensor_cac import MultiTempSensorCac
 
-from schema.gt.gt_temp_sensor_cac.gt_temp_sensor_cac import GtTempSensorCac
+from schema.gt.multi_temp_sensor_cac_gt.multi_temp_sensor_cac_gt import MultiTempSensorCacGt
 from schema.errors import MpSchemaError
 from schema.enums import (
     TelemetryName,
@@ -19,8 +19,8 @@ from schema.enums import (
 )
 
 
-class GtTempSensorCac_Maker:
-    type_alias = "gt.temp.sensor.cac.100"
+class MultiTempSensorCacGt_Maker:
+    type_alias = "multi.temp.sensor.cac.gt.000"
 
     def __init__(self,
                  telemetry_name: TelemetryName,
@@ -29,10 +29,11 @@ class GtTempSensorCac_Maker:
                  component_attribute_class_id: str,
                  exponent: int,
                  typical_response_time_ms: int,
+                 max_thermistors: int,
                  display_name: Optional[str],
                  comms_method: Optional[str]):
 
-        gw_tuple = GtTempSensorCac(
+        gw_tuple = MultiTempSensorCacGt(
             TelemetryName=telemetry_name,
             DisplayName=display_name,
             TempUnit=temp_unit,
@@ -41,18 +42,19 @@ class GtTempSensorCac_Maker:
             Exponent=exponent,
             CommsMethod=comms_method,
             TypicalResponseTimeMs=typical_response_time_ms,
+            MaxThermistors=max_thermistors,
             #
         )
         gw_tuple.check_for_errors()
         self.tuple = gw_tuple
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtTempSensorCac) -> str:
+    def tuple_to_type(cls, tuple: MultiTempSensorCacGt) -> str:
         tuple.check_for_errors()
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtTempSensorCac:
+    def type_to_tuple(cls, t: str) -> MultiTempSensorCacGt:
         try:
             d = json.loads(t)
         except TypeError:
@@ -62,7 +64,7 @@ class GtTempSensorCac_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) -> GtTempSensorCac:
+    def dict_to_tuple(cls, d: dict) -> MultiTempSensorCacGt:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
@@ -87,8 +89,10 @@ class GtTempSensorCac_Maker:
             new_d["CommsMethod"] = None
         if "TypicalResponseTimeMs" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TypicalResponseTimeMs")
+        if "MaxThermistors" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing MaxThermistors")
 
-        gw_tuple = GtTempSensorCac(
+        gw_tuple = MultiTempSensorCacGt(
             TypeAlias=new_d["TypeAlias"],
             TelemetryName=new_d["TelemetryName"],
             DisplayName=new_d["DisplayName"],
@@ -98,35 +102,37 @@ class GtTempSensorCac_Maker:
             Exponent=new_d["Exponent"],
             CommsMethod=new_d["CommsMethod"],
             TypicalResponseTimeMs=new_d["TypicalResponseTimeMs"],
+            MaxThermistors=new_d["MaxThermistors"],
             #
         )
         gw_tuple.check_for_errors()
         return gw_tuple
 
     @classmethod
-    def tuple_to_dc(cls, t: GtTempSensorCac) -> TempSensorCac:
+    def tuple_to_dc(cls, t: MultiTempSensorCacGt) -> MultiTempSensorCac:
         s = {
             "display_name": t.DisplayName,
             "component_attribute_class_id": t.ComponentAttributeClassId,
             "exponent": t.Exponent,
             "comms_method": t.CommsMethod,
             "typical_response_time_ms": t.TypicalResponseTimeMs,
+            "max_thermistors": t.MaxThermistors,
             "telemetry_name_gt_enum_symbol": TelemetryNameMap.local_to_gt(t.TelemetryName),
             "temp_unit_gt_enum_symbol": UnitMap.local_to_gt(t.TempUnit),
             "make_model_gt_enum_symbol": MakeModelMap.local_to_gt(t.MakeModel),
             #
         }
-        if s["component_attribute_class_id"] in TempSensorCac.by_id.keys():
-            dc = TempSensorCac.by_id[s["component_attribute_class_id"]]
+        if s["component_attribute_class_id"] in MultiTempSensorCac.by_id.keys():
+            dc = MultiTempSensorCac.by_id[s["component_attribute_class_id"]]
         else:
-            dc = TempSensorCac(**s)
+            dc = MultiTempSensorCac(**s)
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: TempSensorCac) -> GtTempSensorCac:
+    def dc_to_tuple(cls, dc: MultiTempSensorCac) -> MultiTempSensorCacGt:
         if dc is None:
             return None
-        t = GtTempSensorCac(
+        t = MultiTempSensorCacGt(
             TelemetryName=dc.telemetry_name,
             DisplayName=dc.display_name,
             TempUnit=dc.temp_unit,
@@ -135,19 +141,20 @@ class GtTempSensorCac_Maker:
             Exponent=dc.exponent,
             CommsMethod=dc.comms_method,
             TypicalResponseTimeMs=dc.typical_response_time_ms,
+            MaxThermistors=dc.max_thermistors
             #
         )
         t.check_for_errors()
         return t
 
     @classmethod
-    def type_to_dc(cls, t: str) -> TempSensorCac:
+    def type_to_dc(cls, t: str) -> MultiTempSensorCac:
         return cls.tuple_to_dc(cls.type_to_tuple(t))
 
     @classmethod
-    def dc_to_type(cls, dc: TempSensorCac) -> str:
+    def dc_to_type(cls, dc: MultiTempSensorCac) -> str:
         return cls.dc_to_tuple(dc).as_type()
 
     @classmethod
-    def dict_to_dc(cls, d: dict) -> TempSensorCac:
+    def dict_to_dc(cls, d: dict) -> MultiTempSensorCac:
         return cls.tuple_to_dc(cls.dict_to_tuple(d))

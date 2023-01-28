@@ -1,4 +1,4 @@
-"""Base for gt.temp.sensor.cac.100"""
+"""Base for multi.temp.sensor.cac.gt.000"""
 import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
@@ -16,16 +16,17 @@ from schema.enums import (
 )
 
 
-class GtTempSensorCacBase(NamedTuple):
+class MultiTempSensorCacGtBase(NamedTuple):
     TelemetryName: TelemetryName  #
     TempUnit: Unit  #
     MakeModel: MakeModel  #
     ComponentAttributeClassId: str  #
     Exponent: int  #
     TypicalResponseTimeMs: int  #
+    MaxThermistors: int #
     DisplayName: Optional[str] = None
     CommsMethod: Optional[str] = None
-    TypeAlias: str = "gt.temp.sensor.cac.100"
+    TypeAlias: str = "multi.temp.sensor.cac.gt.000"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -85,9 +86,13 @@ class GtTempSensorCacBase(NamedTuple):
             errors.append(
                 f"TypicalResponseTimeMs {self.TypicalResponseTimeMs} must have type int."
             )
-        if self.TypeAlias != "gt.temp.sensor.cac.100":
+        if not isinstance(self.MaxThermistors, int):
             errors.append(
-                f"Type requires TypeAlias of gt.temp.sensor.cac.100, not {self.TypeAlias}."
+                f"TypicalResponseTimeMs {self.MaxThermistors} must have type int."
+            )
+        if self.TypeAlias != "multi.temp.sensor.cac.gt.000":
+            errors.append(
+                f"Type requires TypeAlias of multi.temp.sensor.cac.gt.000, not {self.TypeAlias}."
             )
 
         return errors

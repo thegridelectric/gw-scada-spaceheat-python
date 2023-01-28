@@ -18,6 +18,8 @@ tmp.csv
 htmlcov
 hacking
 
+cook.sh
+
 # ignore output
 gw_spaceheat/output/**
 !gw_spaceheat/output/**/
@@ -28,3 +30,6 @@ output/**
 cron_last_day.txt
 cron_last_hour.txt
 cron_last_minute.txt
+
+
+layouts/**

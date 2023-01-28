@@ -52,7 +52,7 @@
   ],
   "BooleanActuatorComponents": [
   ],
-  "TempSensorComponents": [
+  "SimpleTempSensorComponents": [
   ],
   "ElectricMeterComponents": [
   ],
@@ -68,7 +68,7 @@
   ],
   "ElectricMeterCacs": [
   ],
-  "TempSensorCacs": [
+  "SimpleTempSensorCacs": [
   ],
   "OtherCacs": [
   ]

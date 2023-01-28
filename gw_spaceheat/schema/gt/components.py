@@ -11,8 +11,8 @@ __all__ = [
     "GtElectricMeterComponent_Maker",
     "GtPipeFlowSensorComponent",
     "GtPipeFlowSensorComponent_Maker",
-    "GtTempSensorComponent",
-    "GtTempSensorComponent_Maker",
+    "SimpleTempSensorComponentGt",
+    "SimpleTempSensorComponentGt_Maker",
     "ResistiveHeaterComponentGt",
     "ResistiveHeaterComponentGt_Maker",
 ]

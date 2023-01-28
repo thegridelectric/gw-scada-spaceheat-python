@@ -292,7 +292,7 @@
                 "TypeAlias": "gt.boolean.actuator.component.100"
             }
         ],
-        "TempSensorComponents": [
+        "SimpleTempSensorComponents": [
             {
                 "ComponentId": "a9d43bb7-f838-4b7c-89ed-186eb8c89f23",
                 "DisplayName": "Outdoor Temperature Sensor",
@@ -408,7 +408,7 @@
                 "TypeAlias": "gt.electric.meter.cac.100"
             }
         ],
-        "TempSensorCacs": [
+        "SimpleTempSensorCacs": [
             {
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
                 "MakeModelGtEnumSymbol": "acd93fb3",
@@ -664,7 +664,7 @@
                 "TypeAlias": "gt.boolean.actuator.component.100"
             }
         ],
-        "TempSensorComponents": [
+        "SimpleTempSensorComponents": [
             {
                 "ComponentId": "a9d43bb7-f838-4b7c-89ed-186eb8c89f23",
                 "DisplayName": "Outdoor Temperature Sensor",
@@ -779,7 +779,7 @@
                 "TypeAlias": "gt.electric.meter.cac.100"
             }
         ],
-        "TempSensorCacs": [
+        "SimpleTempSensorCacs": [
             {
                 "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
                 "MakeModelGtEnumSymbol": "acd93fb3",
@@ -1185,7 +1185,7 @@
                 "HwUid": "ddd321"
             }
         ],
-        "TempSensorComponents": [
+        "SimpleTempSensorComponents": [
             {
                 "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",
                 "DisplayName": "Outdoor Temperature Sensor",
@@ -1330,7 +1330,7 @@
                 "TypeAlias": "gt.electric.meter.cac.100"
             }
         ],
-        "TempSensorCacs": [
+        "SimpleTempSensorCacs": [
             {
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
                 "MakeModelGtEnumSymbol": "f8b497e8",
@@ -1736,7 +1736,7 @@
                 "HwUid": "ddd321"
             }
         ],
-        "TempSensorComponents": [
+        "SimpleTempSensorComponents": [
             {
                 "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",
                 "DisplayName": "Outdoor Temperature Sensor",
@@ -1881,7 +1881,7 @@
                 "TypeAlias": "gt.electric.meter.cac.100"
             }
         ],
-        "TempSensorCacs": [
+        "SimpleTempSensorCacs": [
             {
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
                 "MakeModelGtEnumSymbol": "f8b497e8",
@@ -2287,7 +2287,7 @@
                 "HwUid": "ddd321"
             }
         ],
-        "TempSensorComponents": [
+        "SimpleTempSensorComponents": [
             {
                 "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",
                 "DisplayName": "Outdoor Temperature Sensor",
@@ -2432,7 +2432,7 @@
                 "TypeAlias": "gt.electric.meter.cac.100"
             }
         ],
-        "TempSensorCacs": [
+        "SimpleTempSensorCacs": [
             {
                 "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
                 "MakeModelGtEnumSymbol": "f8b497e8",

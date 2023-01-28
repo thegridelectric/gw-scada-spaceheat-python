@@ -52,9 +52,9 @@ from schema.gt.cacs import (
 from schema.gt.components import (
     GtPipeFlowSensorComponent_Maker,
 )
-from schema.gt.cacs import GtTempSensorCac_Maker
+from schema.gt.cacs import SimpleTempSensorCacGt_Maker
 from schema.gt.components import (
-    GtTempSensorComponent_Maker,
+    SimpleTempSensorComponentGt_Maker,
 )
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 
@@ -68,8 +68,8 @@ def load_cacs(layout):
         GtElectricMeterCac_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorCacs"]:
         GtPipeFlowSensorCac_Maker.dict_to_dc(d)
-    for d in layout["TempSensorCacs"]:
-        GtTempSensorCac_Maker.dict_to_dc(d)
+    for d in layout["SimpleTempSensorCacs"]:
+        SimpleTempSensorCacGt_Maker.dict_to_dc(d)
     for d in layout["OtherCacs"]:
         ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"])
 
@@ -83,8 +83,8 @@ def load_components(layout):
         GtElectricMeterComponent_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorComponents"]:
         GtPipeFlowSensorComponent_Maker.dict_to_dc(d)
-    for d in layout["TempSensorComponents"]:
-        GtTempSensorComponent_Maker.dict_to_dc(d)
+    for d in layout["SimpleTempSensorComponents"]:
+        SimpleTempSensorComponentGt_Maker.dict_to_dc(d)
     for camel in layout["OtherComponents"]:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         Component(**snake_dict)

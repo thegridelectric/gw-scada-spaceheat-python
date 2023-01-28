@@ -1,12 +1,12 @@
-"""Tests gt.temp.sensor.cac.100 type"""
+"""Tests simple.temp.sensor.cac.gt.000 type"""
 import json
 
 import pytest
 from gwproto import MpSchemaError
-from schema.gt.cacs import GtTempSensorCac_Maker as Maker
+from schema.gt.cacs import SimpleTempSensorCacGt_Maker as Maker
 
 
-def test_gt_temp_sensor_cac():
+def test_simple_temp_sensor_cac_gt():
 
     gw_dict = {
         "DisplayName": "Simulated GridWorks high precision water temp sensor",
@@ -17,7 +17,7 @@ def test_gt_temp_sensor_cac():
         "TelemetryNameGtEnumSymbol": "793505aa",
         "TempUnitGtEnumSymbol": "7d8832f8",
         "MakeModelGtEnumSymbol": "f8b497e8",
-        "TypeAlias": "gt.temp.sensor.cac.100",
+        "TypeAlias": "simple.temp.sensor.cac.gt.000",
     }
 
     with pytest.raises(MpSchemaError):
@@ -196,7 +196,7 @@ def test_gt_temp_sensor_cac():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.temp.sensor.cac.100"
+    gw_dict["TypeAlias"] = "simple.temp.sensor.cac.gt.000"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format

@@ -1,13 +1,13 @@
-"""TempSensorComponent definition"""
+"""SimpleTempSensorComponent definition"""
 from typing import Dict, Optional
 
-from data_classes.cacs.temp_sensor_cac import TempSensorCac
+from data_classes.cacs.simple_temp_sensor_cac import SimpleTempSensorCac
 from data_classes.component import Component
 from schema.enums.make_model.make_model_map import MakeModel
 
 
-class TempSensorComponent(Component):
-    by_id: Dict[str, "TempSensorComponent"] = {}
+class SimpleTempSensorComponent(Component):
+    by_id: Dict[str, "SimpleTempSensorComponent"] = {}
 
     def __init__(
         self,
@@ -24,13 +24,13 @@ class TempSensorComponent(Component):
             component_attribute_class_id=component_attribute_class_id,
         )
         self.channel: Optional[int] = channel
-        TempSensorComponent.by_id[self.component_id] = self
+        SimpleTempSensorComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
 
 
     @property
-    def cac(self) -> TempSensorCac:
-        return TempSensorCac.by_id[self.component_attribute_class_id]
+    def cac(self) -> SimpleTempSensorCac:
+        return SimpleTempSensorCac.by_id[self.component_attribute_class_id]
 
     @property
     def make_model(self) -> MakeModel:
