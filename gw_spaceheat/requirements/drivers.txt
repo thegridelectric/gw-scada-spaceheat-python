@@ -53,6 +53,8 @@ pygments==2.14.0
     # via rich
 pymodbus==2.5.3
     # via -r requirements/base.in
+pymodbustcp==0.2.0
+    # via -r requirements/base.in
 pyserial==3.5
     # via
     #   -r requirements/base.in

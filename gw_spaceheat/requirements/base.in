@@ -11,3 +11,4 @@ rich
 smbus2
 pymodbus
 pyserial
+pyModbusTCP
