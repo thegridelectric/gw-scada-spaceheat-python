@@ -2,14 +2,19 @@
 import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
+from schema.enums import (
+    TelemetryName,
+    TelemetryNameMap,
+)
 
-
-class MultiTempSensorComponentGtBase(NamedTuple):
+class MultipurposeSensorComponentGtBase(NamedTuple):
     ComponentId: str  #
     ComponentAttributeClassId: str
+    ChannelList: List[int]
+    TelemetryNameList: List[TelemetryName]
+    AboutNodeNameList: List[str]
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
-    Channel: Optional[int] = None
     TypeAlias: str = "multi.temp.sensor.component.gt.000"
 
     def as_type(self):
@@ -21,6 +26,11 @@ class MultiTempSensorComponentGtBase(NamedTuple):
             del d["DisplayName"]
         if d["HwUid"] is None:
             del d["HwUid"]
+        del d["TelemetryNameList"]
+        telemetry_name_list = []
+        for elt in self.TelemetryNameList:
+            telemetry_name_list.append(TelemetryNameMap.local_to_gt(elt))
+        d["TelemetryNameList"] = telemetry_name_list
         return d
 
     def derived_errors(self) -> List[str]:
@@ -48,6 +58,36 @@ class MultiTempSensorComponentGtBase(NamedTuple):
                 f"ComponentAttributeClassId {self.ComponentAttributeClassId}"
                 " must have format UuidCanonicalTextual"
             )
+        if not isinstance(self.ChannelList, list):
+            errors.append(
+                f"ChannelList {self.ChannelList} must have type list."
+            )
+        else:
+            for elt in self.ChannelList:
+                if not isinstance(elt, int):
+                    errors.append(
+                        f"elt {elt} of ChannelList must have type int"
+                    )
+        if not isinstance(self.TelemetryNameList, list):
+            errors.append(
+                f"TelemetryNameList {self.TelemetryNameList} must have type list."
+            )
+        else:
+            for elt in self.TelemetryNameList:
+                if not isinstance(elt, TelemetryName):
+                    errors.append(
+                        f"elt {elt} of TelemetryNameList must have type TelemetryName."
+                    )
+        if not isinstance(self.AboutNodeNameList, list):
+            errors.append(
+                f"AboutNodeNameList {self.AboutNodeNameList} must have type list"
+            )
+        else:
+            for elt in self.AboutNodeNameList:
+                if not isinstance(elt, str):
+                    errors.append(
+                        f"elt {elt} of AboutNodeNameList must have type str"
+                    )
         if self.HwUid:
             if not isinstance(self.HwUid, str):
                 errors.append(

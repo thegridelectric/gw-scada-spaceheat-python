@@ -16,14 +16,14 @@ from schema.enums import (
 )
 
 
-class MultiTempSensorCacGtBase(NamedTuple):
-    TelemetryName: TelemetryName  #
+class MultipurposeSensorCacGtBase(NamedTuple):
+    TelemetryNameList: List[TelemetryName]  #
     TempUnit: Unit  #
     MakeModel: MakeModel  #
     ComponentAttributeClassId: str  #
     Exponent: int  #
     TypicalResponseTimeMs: int  #
-    MaxThermistors: int #
+    MaxThermistors: Optional[int] = None #
     DisplayName: Optional[str] = None
     CommsMethod: Optional[str] = None
     TypeAlias: str = "multi.temp.sensor.cac.gt.000"
@@ -33,8 +33,11 @@ class MultiTempSensorCacGtBase(NamedTuple):
 
     def asdict(self):
         d = self._asdict()
-        del d["TelemetryName"]
-        d["TelemetryNameGtEnumSymbol"] = TelemetryNameMap.local_to_gt(self.TelemetryName)
+        del d["TelemetryNameList"]
+        telemetry_name_list = []
+        for elt in self.TelemetryNameList:
+            telemetry_name_list.append(TelemetryNameMap.local_to_gt(elt))
+        d["TelemetryNameList"] = telemetry_name_list
         if d["DisplayName"] is None:
             del d["DisplayName"]
         del d["TempUnit"]
@@ -43,14 +46,22 @@ class MultiTempSensorCacGtBase(NamedTuple):
         d["MakeModelGtEnumSymbol"] = MakeModelMap.local_to_gt(self.MakeModel)
         if d["CommsMethod"] is None:
             del d["CommsMethod"]
+        if d["MaxThermistors"] is None:
+            del d["MaxThermistors"]
         return d
 
     def derived_errors(self) -> List[str]:
         errors = []
-        if not isinstance(self.TelemetryName, TelemetryName):
+        if not isinstance(self.TelemetryNameList, list):
             errors.append(
-                f"TelemetryName {self.TelemetryName} must have type {TelemetryName}."
+                f"TelemetryNameList {self.TelemetryNameList} must have type list."
             )
+        else:
+            for elt in self.TelemetryNameList:
+                if not isinstance(elt, TelemetryName):
+                    errors.append(
+                        f"elt {elt} of TelemetryNameList must have type TelemetryName."
+                    )
         if self.DisplayName:
             if not isinstance(self.DisplayName, str):
                 errors.append(
@@ -86,10 +97,11 @@ class MultiTempSensorCacGtBase(NamedTuple):
             errors.append(
                 f"TypicalResponseTimeMs {self.TypicalResponseTimeMs} must have type int."
             )
-        if not isinstance(self.MaxThermistors, int):
-            errors.append(
-                f"TypicalResponseTimeMs {self.MaxThermistors} must have type int."
-            )
+        if self.MaxThermistors:
+            if not isinstance(self.MaxThermistors, int):
+                errors.append(
+                    f"TypicalResponseTimeMs {self.MaxThermistors} must have type int."
+                )
         if self.TypeAlias != "multi.temp.sensor.cac.gt.000":
             errors.append(
                 f"Type requires TypeAlias of multi.temp.sensor.cac.gt.000, not {self.TypeAlias}."

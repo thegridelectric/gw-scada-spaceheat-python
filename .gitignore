@@ -17,7 +17,7 @@ tmp.csv
 .coverage
 htmlcov
 hacking
-
+scratch*
 cook.sh
 
 # ignore output

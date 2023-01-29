@@ -47,20 +47,29 @@ if DRIVER_IS_REAL:
     # noinspection PyUnresolvedReferences
     from adafruit_ads1x15.analog_in import AnalogIn
 
-    from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
-    from data_classes.components.temp_sensor_component import TempSensorComponent
+    from drivers.multipurpose_sensor.multipurpose_sensor_driver import MultipurposeSensorDriver
+    from data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
     from schema.enums.make_model.make_model_map import MakeModel
 
-    class G1_NcdAds1115_Ntc10k(TempSensorDriver):
-        def __init__(self, component: TempSensorComponent, settings: ScadaSettings):
-            super(G1_NcdAds1115_Ntc10k, self).__init__(component=component, settings=settings)
-            self.channel_idx = component.channel
+    class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
+        def __init__(self, component: MultipurposeSensorComponent, settings: ScadaSettings):
+            """
+            GridWorks TSnap1 has 12 terminal screwblocks, channels 1-12, with
+            [1-4], [5-8], [9-12] each going to individual ADS components
+            """
+            super(GridworksTsnap1_MultipurposeSensorDriver, self).__init__(component=component, settings=settings)
             models: List[MakeModel] = [
-                MakeModel.G1__NCD_ADS1115__TEWA_NTC_10K_A,
-                MakeModel.G1__NCD_ADS1115__AMPH_NTC_10K_A,
+                MakeModel.GRIDWORKS__TSNAP1,
             ]
             if component.cac.make_model not in models:
                 raise Exception(f"Expected make model in {models}, got {component.cac.make_model}")
+            self.channel_list = component.channel_list
+            self.telemetry_name_list = component.telemetry_name_list
+            self.about_node_name_list = component.about_node_name_list
+
+            # Channel List needs to be a subset of [1, .., 12]
+            if not set(self.channel_list).issubset(set(range(1, 13))):
+                raise Exception("Channel List needs to be a subset of [1, .., 12]")
             if component.channel is None:
                 raise Exception(f"Need a channel 0-3 from Ads1115 temp sensor!")
             if component.channel not in range(4):
@@ -105,7 +114,7 @@ if DRIVER_IS_REAL:
 
             return temp_c
 
-        def read_telemetry_value(self) -> int:
+        def read_telemetry_values(self) -> List[int]:
             try:
                 ads = ADS.ADS1115(address=COMPONENT_I2C_ADDRESS, i2c=self.i2c)
             except:
@@ -127,9 +136,9 @@ if DRIVER_IS_REAL:
                 return I2CErrorEnum.READ_ERROR.value
             return int(temp_c * 1000)
 else:
-    from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
+    from drivers.multipurpose_sensor.multipurpose_sensor_driver import MultipurposeSensorDriver
 
-    class G1_NcdAds1115_Ntc10k(TempSensorDriver):
+    class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
 
         def read_telemetry_value(self) -> int:
             raise NotImplementedError

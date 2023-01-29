@@ -1,12 +1,12 @@
-"""multi.temp.sensor.cac.gt.000 type"""
+"""multipurpose.sensor.cac.gt.000 type"""
 
 from schema.errors import MpSchemaError
-from schema.gt.multi_temp_sensor_cac_gt.multi_temp_sensor_cac_gt_base import (
-    MultiTempSensorCacGtBase,
+from schema.gt.multipurpose_sensor_cac_gt.multipurpose_sensor_cac_gt_base import (
+    MultipurposeSensorCacGtBase,
 )
 
 
-class MultiTempSensorCacGt(MultiTempSensorCacGtBase):
+class MultipurposeSensorCacGt(MultipurposeSensorCacGtBase):
     def check_for_errors(self):
         errors = self.derived_errors() + self.hand_coded_errors()
         if len(errors) > 0:

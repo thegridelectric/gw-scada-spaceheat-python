@@ -1,13 +1,13 @@
 import random
 import time
 from actors2.config import ScadaSettings
-from data_classes.components.temp_sensor_component import TempSensorComponent
-from drivers.temp_sensor.temp_sensor_driver import TempSensorDriver
+from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
+from drivers.simple_temp_sensor.simple_temp_sensor_driver import SimpleTempSensorDriver
 from schema.enums.make_model.make_model_map import MakeModel
 from schema.enums.unit.unit_map import Unit
 
 
-class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
+class Gwsim_SimpleTempSensorDriver(SimpleTempSensorDriver):
     READ_TIME_FUZZ_MULTIPLIER = 6
     read_count: int
     except_on_read: bool = False
@@ -15,8 +15,8 @@ class GridworksWaterTempSensorHighPrecision_TempSensorDriver(TempSensorDriver):
     hang_on_read: bool = False
     hang_on_read_after: int = 0
 
-    def __init__(self, component: TempSensorComponent, settings: ScadaSettings):
-        super(GridworksWaterTempSensorHighPrecision_TempSensorDriver, self).__init__(
+    def __init__(self, component: SimpleTempSensorComponent, settings: ScadaSettings):
+        super(Gwsim_SimpleTempSensorDriver, self).__init__(
             component=component,
             settings=settings,
         )
