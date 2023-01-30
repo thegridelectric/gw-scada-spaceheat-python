@@ -2,6 +2,10 @@ import uuid
 from typing import Optional
 
 import paho.mqtt.client as mqtt
+from result import Ok
+from result import Result
+
+from drivers.driver_result import DriverResult
 from proactor.mqtt import QOS
 from proactor.mqtt import Subscription
 from actors2.config import ScadaSettings
@@ -29,10 +33,12 @@ class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
         self.client.on_message = self.on_mqtt_message
         self.start()
 
+    # noinspection PyUnusedLocal
     def on_connect(self, client, userdata, flags, rc):
         self.subscribe()
 
-    def subscriptions(self):
+    @classmethod
+    def subscriptions(cls):
         return [Subscription(Topic="emon/emonpi/power1", Qos=QOS.AtMostOnce)]
 
     def subscribe(self):
@@ -40,6 +46,7 @@ class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
         if subscriptions:
             self.client.subscribe(subscriptions)
 
+    # noinspection PyUnusedLocal
     def on_mqtt_message(self, client, userdata, message):
         try:
             (emon, emonpi, emon_telemetry_handle) = message.topic.split("/")
@@ -54,15 +61,16 @@ class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
         if emon_telemetry_handle == 'power1':
             self.power_w = int(payload)
 
-    def read_current_rms_micro_amps(self) -> Optional[int]:
+    def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
         raise NotImplementedError
 
-    def read_hw_uid(self) -> Optional[str]:
-        return "1001ab"
+    def read_hw_uid(self) -> Result[DriverResult[str], Exception]:
+        return Ok(DriverResult("1001ab"))
 
-    def read_power_w(self) -> Optional[int]:
-        return self.power_w
+    def read_power_w(self) -> Result[DriverResult[int], Exception]:
+        return Ok(DriverResult(self.power_w))
 
-    def start(self):
+    def start(self) -> Result[DriverResult[bool], Exception]:
         self.client.connect(self.settings.local_mqtt.host, port=self.settings.local_mqtt.port)
         self.client.loop_start()
+        return Ok(DriverResult(True))

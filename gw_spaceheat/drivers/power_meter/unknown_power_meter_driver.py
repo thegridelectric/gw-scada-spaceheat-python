@@ -1,8 +1,12 @@
-from typing import List, Optional
+from typing import List
+
+from result import Ok
+from result import Result
 
 from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import \
     ElectricMeterComponent
+from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from schema.enums import MakeModel, TelemetryName
 
@@ -16,14 +20,14 @@ class UnknownPowerMeterDriver(PowerMeterDriver):
     def __repr__(self):
         return "UnknownPowerMeterDriver"
 
-    def read_current_rms_micro_amps(self) -> Optional[int]:
+    def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
         raise NotImplementedError
 
-    def read_hw_uid(self) -> Optional[str]:
-        return None
+    def read_hw_uid(self) -> Result[DriverResult[str], Exception]:
+        return Ok(DriverResult(""))
 
-    def read_power_w(self) -> Optional[int]:
-        return None
+    def read_power_w(self) -> Result[DriverResult[int], Exception]:
+        return Ok(DriverResult(0))
 
     def telemetry_name_list(self) -> List[TelemetryName]:
         return []

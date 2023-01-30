@@ -94,25 +94,26 @@ class HardwareLayout:
     layout: dict
     nodes: dict
 
-    def __init__(self, layout: dict):
+    def __init__(self, layout: dict, included_node_names: Optional[set[str]] = None):
         self.layout = copy.deepcopy(layout)
         self.nodes = {
             node_dict["Alias"]: SpaceheatNodeGt_Maker.dict_to_dc(node_dict)
             for node_dict in self.layout["ShNodes"]
+            if included_node_names is None or node_dict["Alias"] in included_node_names
         }
 
     @classmethod
-    def load(cls, layout_path: Path | str) -> "HardwareLayout":
+    def load(cls, layout_path: Path | str, included_node_names: Optional[set[str]] = None) -> "HardwareLayout":
         with Path(layout_path).open() as f:
             layout: dict = json.loads(f.read())
-        return cls.load_dict(layout)
+        return cls.load_dict(layout, included_node_names=included_node_names)
 
     @classmethod
-    def load_dict(cls, layout: dict) -> "HardwareLayout":
+    def load_dict(cls, layout: dict, included_node_names: Optional[set[str]] = None) -> "HardwareLayout":
         # TODO layout into GwTuple of a schema type with lots of consistency checking
         load_cacs(layout=layout)
         load_components(layout=layout)
-        return HardwareLayout(layout)
+        return HardwareLayout(layout, included_node_names=included_node_names)
 
     def node(self, alias: str, default: Any = None) -> ShNode:
         return self.nodes.get(alias, default)

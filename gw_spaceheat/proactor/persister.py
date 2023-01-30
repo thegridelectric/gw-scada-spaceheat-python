@@ -11,7 +11,8 @@ from pendulum import DateTime
 from result import Err
 from result import Ok
 from result import Result
-from proactor.problems import Problems
+
+from problems import Problems
 
 
 class PersisterException(Exception):

@@ -1,10 +1,14 @@
+numpy
 pendulum
-pika==1.1.0
 paho-mqtt
 pytz
 python-dotenv
-numpy
 pydantic
 xdg
 result
 gridworks-protocol
+rich
+smbus2
+pymodbus
+pyserial
+pyModbusTCP

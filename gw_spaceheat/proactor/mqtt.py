@@ -24,6 +24,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 from paho.mqtt.client import Client as PahoMQTTClient
 from paho.mqtt.client import MQTTMessageInfo
 
+from problems import Problems
 from proactor import config
 from proactor.message import MQTTConnectFailMessage
 from proactor.message import MQTTConnectMessage
@@ -32,7 +33,6 @@ from proactor.message import MQTTProblemsMessage
 from proactor.message import MQTTReceiptMessage
 from proactor.message import MQTTSubackMessage
 from proactor.message import MQTTSubackPayload
-from proactor.problems import Problems
 from proactor.sync_thread import AsyncQueueWriter
 from proactor.sync_thread import responsive_sleep
 

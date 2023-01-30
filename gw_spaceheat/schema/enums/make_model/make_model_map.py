@@ -39,7 +39,8 @@ class MakeModelMap:
         "acd93fb3": MakeModel.ADAFRUIT__642,
         "fabfa505": MakeModel.NCD__PR814SPST,
         "e3364590": MakeModel.G1__NCD_ADS1115__TEWA_NTC_10K_A,
-        "90566a90": MakeModel.G1__NCD_ADS1115__AMPH_NTC_10K_A
+        "90566a90": MakeModel.G1__NCD_ADS1115__AMPH_NTC_10K_A,
+        "beb6d3fb": MakeModel.EGAUGE__4030,
     }
 
     local_to_gt_dict: Dict[MakeModel, str] = {
@@ -53,5 +54,6 @@ class MakeModelMap:
         MakeModel.OPENENERGY__EMONPI: "c75d269f",
         MakeModel.G1__NCD_ADS1115__TEWA_NTC_10K_A: "e3364590",
         MakeModel.G1__NCD_ADS1115__AMPH_NTC_10K_A: "90566a90",
+        MakeModel.EGAUGE__4030: "beb6d3fb",
         #
     }
