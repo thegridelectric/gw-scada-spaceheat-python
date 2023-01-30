@@ -67,12 +67,13 @@ class Problems(ValueError):
     def __repr__(self) -> str:
         return str(self)
 
-    def problem_event(self, summary: str) -> ProblemEvent:
+    def problem_event(self, summary: str, src: str = "") -> ProblemEvent:
         if self.errors:
             problem_type = ProblemType.error
         else:
             problem_type = ProblemType.warning
         return ProblemEvent(
+            Src=src,
             ProblemType=problem_type,
             Summary=summary,
             Details=str(self)

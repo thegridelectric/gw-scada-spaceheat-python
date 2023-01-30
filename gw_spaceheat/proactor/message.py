@@ -16,7 +16,7 @@ from paho.mqtt.client import MQTT_ERR_UNKNOWN
 from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel
 
-from proactor.problems import Problems
+from problems import Problems
 
 
 class MessageType(Enum):

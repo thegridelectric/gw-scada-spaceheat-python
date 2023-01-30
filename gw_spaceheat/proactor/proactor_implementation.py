@@ -21,6 +21,7 @@ import gwproto
 from gwproto import MQTTCodec
 from gwproto.messages import Ack
 from gwproto.messages import CommEvent
+from gwproto.messages import EventBase
 from gwproto.messages import EventT
 from gwproto.messages import MQTTConnectEvent
 from gwproto.messages import MQTTDisconnectEvent
@@ -37,6 +38,7 @@ from result import Err
 from result import Ok
 from result import Result
 
+from problems import Problems
 from proactor import config
 from proactor import ProactorSettings
 from proactor.link_state import LinkStates
@@ -61,7 +63,6 @@ from proactor.proactor_interface import CommunicatorInterface
 from proactor.proactor_interface import MonitoredName
 from proactor.proactor_interface import Runnable
 from proactor.proactor_interface import ServicesInterface
-from proactor.problems import Problems
 from proactor.stats import ProactorStats
 from proactor.watchdog import WatchdogManager
 
@@ -469,8 +470,11 @@ class Proactor(ServicesInterface, Runnable):
             case Shutdown():
                 path_dbg |= 0x00000100
                 self._process_shutdown_message(message)
-            case _:
+            case EventBase():
                 path_dbg |= 0x00000200
+                self.generate_event(message.Payload)
+            case _:
+                path_dbg |= 0x00000400
                 self._derived_process_message(message)
         if not isinstance(message.Payload, PatWatchdog):
             self._logger.message_exit("--Proactor.process_message  path:0x%08X", path_dbg)

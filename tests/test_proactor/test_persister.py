@@ -16,12 +16,12 @@ from proactor.persister import FileMissingWarning
 from proactor.persister import PersisterError
 from proactor.persister import PersisterException
 from proactor.persister import PersisterWarning
-from proactor.problems import Problems
 from proactor.persister import ReindexError
 from proactor.persister import TimedRollingFilePersister
 from proactor.persister import TrimFailed
 from proactor.persister import UIDExistedWarning
 from proactor.persister import UIDMissingWarning
+from problems import Problems
 
 
 def test_problems():
