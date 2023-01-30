@@ -1,4 +1,4 @@
-"""Base for multi.temp.sensor.component.gt.000"""
+"""Base for multipurpose.sensor.component.gt.000"""
 import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
@@ -15,7 +15,7 @@ class MultipurposeSensorComponentGtBase(NamedTuple):
     AboutNodeNameList: List[str]
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
-    TypeAlias: str = "multi.temp.sensor.component.gt.000"
+    TypeAlias: str = "multipurpose.sensor.component.gt.000"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -93,9 +93,9 @@ class MultipurposeSensorComponentGtBase(NamedTuple):
                 errors.append(
                     f"HwUid {self.HwUid} must have type str."
                 )
-        if self.TypeAlias != "multi.temp.sensor.component.gt.000":
+        if self.TypeAlias != "multipurpose.sensor.component.gt.000":
             errors.append(
-                f"Type requires TypeAlias of multi.temp.sensor.component.gt.000, not {self.TypeAlias}."
+                f"Type requires TypeAlias of multipurpose.sensor.component.gt.000, not {self.TypeAlias}."
             )
 
         return errors

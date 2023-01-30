@@ -21,7 +21,7 @@ from schema.enums import (
 
 
 class MultipurposeSensorCacGt_Maker:
-    type_alias = "multi.temp.sensor.cac.gt.000"
+    type_alias = "multipurpose.sensor.cac.gt.000"
 
     def __init__(self,
                  telemetry_name_list: List[TelemetryName],

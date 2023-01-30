@@ -1,4 +1,4 @@
-"""Base for multi.temp.sensor.cac.gt.000"""
+"""Base for multipurpose.sensor.cac.gt.000"""
 import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
@@ -26,7 +26,7 @@ class MultipurposeSensorCacGtBase(NamedTuple):
     MaxThermistors: Optional[int] = None #
     DisplayName: Optional[str] = None
     CommsMethod: Optional[str] = None
-    TypeAlias: str = "multi.temp.sensor.cac.gt.000"
+    TypeAlias: str = "multipurpose.sensor.cac.gt.000"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -102,9 +102,9 @@ class MultipurposeSensorCacGtBase(NamedTuple):
                 errors.append(
                     f"TypicalResponseTimeMs {self.MaxThermistors} must have type int."
                 )
-        if self.TypeAlias != "multi.temp.sensor.cac.gt.000":
+        if self.TypeAlias != "multipurpose.sensor.cac.gt.000":
             errors.append(
-                f"Type requires TypeAlias of multi.temp.sensor.cac.gt.000, not {self.TypeAlias}."
+                f"Type requires TypeAlias of multipurpose.sensor.cac.gt.000, not {self.TypeAlias}."
             )
 
         return errors

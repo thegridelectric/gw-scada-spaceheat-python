@@ -13,7 +13,7 @@ from schema.errors import MpSchemaError
 
 
 class MultipurposeSensorComponentGt_Maker:
-    type_alias = "multi.temp.sensor.component.gt.000"
+    type_alias = "multipurpose.sensor.component.gt.000"
 
     def __init__(self,
                  component_id: str,
