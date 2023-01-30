@@ -247,7 +247,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self.async_power_reporting_threshold = settings.async_power_reporting_threshold
 
     def _report_problems(self, problems: Problems, tag: str):
-        self.put_to_sync_queue(
+        self._put_to_async_queue(
             Message(
                 Payload=problems.problem_event(
                     summary=f"Driver problems: {tag} for {self.driver.component}",
