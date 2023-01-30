@@ -66,7 +66,6 @@ class EGaugeConnectFailed(EGaugeCommWarning):
 class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     MAX_RECONNECT_DELAY_SECONDS: float = 10
     CLIENT_TIMEOUT: float = 3.0
-    POWER_DENOMINATOR: int = 3600000
 
     _modbus_client: ModbusClient
     _client_settings: ModbusClientSettings
@@ -83,11 +82,12 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         )
         self._modbus_client = ModbusClient(**self._client_settings.dict())
 
-    def try_connect(self) -> Result[DriverResult, Exception]:
+    def try_connect(self, first_time: bool = False) -> Result[DriverResult, Exception]:
         now = time.time()
         comm_warnings = []
         if not self._modbus_client.is_open:
-            comm_warnings.append(EGaugeHadDisconnect())
+            if first_time:
+                comm_warnings.append(EGaugeHadDisconnect())
             if now - self._last_connect_time > self._curr_connect_delay:
                 self._curr_connect_delay = min(
                     self._curr_connect_delay * 2,
@@ -102,7 +102,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             return Err(EGaugeConnectFailed())
 
     def start(self) -> Result[DriverResult[bool], Exception]:
-        return self.try_connect()
+        return self.try_connect(first_time=True)
 
     def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
         raise NotImplementedError
@@ -130,7 +130,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         if connect_result.is_ok():
             _, _, power = readF32(self._modbus_client, self.component.modbus_power_register)
             if power is not None:
-                int_power = int(power / self.POWER_DENOMINATOR)
+                int_power = int(power)
                 if not property_format.is_short_integer(int_power):
                     unclipped_int_power = int_power
                     MIN_POWER = -2**15
