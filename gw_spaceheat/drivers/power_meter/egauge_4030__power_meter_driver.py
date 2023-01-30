@@ -2,6 +2,7 @@ import socket
 import time
 from typing import Any
 
+from gwproto import property_format
 from pyModbusTCP.client import ModbusClient
 from result import Err
 from result import Ok
@@ -48,6 +49,9 @@ class EGaugeReadFailed(DriverWarning):
         )
         return s
 
+class EGaugeReadOutOfRange(EGaugeReadFailed):
+    ...
+
 class EGaugeCommWarning(DriverWarning):
     ...
 
@@ -62,11 +66,13 @@ class EGaugeConnectFailed(EGaugeCommWarning):
 class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     MAX_RECONNECT_DELAY_SECONDS: float = 10
     CLIENT_TIMEOUT: float = 3.0
+    POWER_DENOMINATOR: int = 3600000
 
     _modbus_client: ModbusClient
     _client_settings: ModbusClientSettings
     _curr_connect_delay = 0.5
     _last_connect_time: float = 0.0
+
 
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super().__init__(component, settings)
@@ -124,8 +130,22 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         if connect_result.is_ok():
             _, _, power = readF32(self._modbus_client, self.component.modbus_power_register)
             if power is not None:
-                power = int(power)
-                return Ok(DriverResult(int(power), connect_result.value.warnings))
+                int_power = int(power / self.POWER_DENOMINATOR)
+                if not property_format.is_short_integer(int_power):
+                    unclipped_int_power = int_power
+                    MIN_POWER = -2**15
+                    MAX_POWER = 2**15 - 1
+                    int_power = max(MIN_POWER, min(int(int_power), MAX_POWER))
+                    connect_result.value.warnings.append(
+                        EGaugeReadOutOfRange(
+                            offset=self.component.modbus_power_register,
+                            num_registers=2,
+                            register_type=RegisterType.f32,
+                            value=unclipped_int_power,
+                            msg=f"Power value {unclipped_int_power} clipped to \[{MIN_POWER}, {MAX_POWER}] resultin in: {int_power}",
+                        )
+                    )
+                return Ok(DriverResult(int_power, connect_result.value.warnings))
             else:
                 return Err(
                     EGaugeReadFailed(

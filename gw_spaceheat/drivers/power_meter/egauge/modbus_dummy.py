@@ -20,12 +20,12 @@ class DummyDataBank(DataBank):
         if srv_info is not None:
             if number <= 4:
                 word_list = [
-                    random.randint(0, 2**16)
+                    random.randint(-2**15, (2**15 - 1))
                     for _ in range(number)
                 ]
             else:
                 word_list = [
-                    ((0x00FF & random.randint(33, 126)) | (0x00F0 & random.randint(33, 126) >> 8))
+                    ((0x000F & random.randint(33, 126)) | (0x00F0 & random.randint(33, 126) >> 8))
                     for _ in range(number)
                 ]
                 word_list[-1] = 0
