@@ -8,7 +8,7 @@ class Role(enum.Enum):
     @classmethod
     def values(cls):
         return [elt.value for elt in cls]
-
+    UNKNOWN = "Unknown"
     BOOST_ELEMENT = "BoostElement"
     PIPE_FLOW_METER = "PipeFlowMeter"
     POWER_METER = "PowerMeter"
@@ -33,6 +33,7 @@ class Role(enum.Enum):
 
 class ShNodeRole110GtEnum(ABC):
     symbols: List[str] = [
+        "00000000",
         "99c5f326",
         "ece3b600",
         "9ac68b6e",
