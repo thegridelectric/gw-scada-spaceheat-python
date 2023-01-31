@@ -161,7 +161,12 @@ async def run_async_actors_main(
         rich.print(settings)
     except ImportError:
         pass
-    layout = load_house.load_all(settings)
+    if args.nodes is not None:
+        for required_node in ["a.s", "a.home"]:
+            if required_node not in args.nodes:
+                args.nodes.append(required_node)
+
+    layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=args.nodes)
     if not args.nodes:
         args.nodes = [
             node.alias
