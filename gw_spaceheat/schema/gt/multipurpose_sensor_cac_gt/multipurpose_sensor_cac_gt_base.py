@@ -22,7 +22,7 @@ class MultipurposeSensorCacGtBase(NamedTuple):
     MakeModel: MakeModel  #
     ComponentAttributeClassId: str  #
     Exponent: int  #
-    TypicalResponseTimeMs: int  #
+    PollPeriodMs: int  #
     MaxThermistors: Optional[int] = None #
     DisplayName: Optional[str] = None
     CommsMethod: Optional[str] = None
@@ -93,14 +93,14 @@ class MultipurposeSensorCacGtBase(NamedTuple):
                 errors.append(
                     f"CommsMethod {self.CommsMethod} must have type str."
                 )
-        if not isinstance(self.TypicalResponseTimeMs, int):
+        if not isinstance(self.PollPeriodMs, int):
             errors.append(
-                f"TypicalResponseTimeMs {self.TypicalResponseTimeMs} must have type int."
+                f"PollPeriodMs {self.PollPeriodMs} must have type int."
             )
         if self.MaxThermistors:
             if not isinstance(self.MaxThermistors, int):
                 errors.append(
-                    f"TypicalResponseTimeMs {self.MaxThermistors} must have type int."
+                    f"PollPeriodMs {self.MaxThermistors} must have type int."
                 )
         if self.TypeAlias != "multipurpose.sensor.cac.gt.000":
             errors.append(

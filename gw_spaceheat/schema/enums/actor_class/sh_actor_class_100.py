@@ -16,6 +16,7 @@ class ActorClass(enum.Enum):
     ATN = "Atn"
     SIMPLE_SENSOR = "SimpleSensor"
     NONE = "None"
+    MULTI_PURPOSE_SENSOR = "MultiPurposeSensor"
     #
 
 
@@ -28,5 +29,6 @@ class ShActorClass100GtEnum(ABC):
         "b103058f",
         "dae4b2f0",
         "99a5f20d",
+        "7c483ad0",
         #
     ]

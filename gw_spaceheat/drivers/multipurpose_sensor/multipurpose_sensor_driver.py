@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Optional
+from typing import Optional, List
 from data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
 from actors2.config import ScadaSettings
 

@@ -29,7 +29,7 @@ class MultipurposeSensorCacGt_Maker:
                  make_model: MakeModel,
                  component_attribute_class_id: str,
                  exponent: int,
-                 typical_response_time_ms: int,
+                 poll_period_ms: int,
                  max_thermistors: Optional[int],
                  display_name: Optional[str],
                  comms_method: Optional[str]):
@@ -42,7 +42,7 @@ class MultipurposeSensorCacGt_Maker:
             ComponentAttributeClassId=component_attribute_class_id,
             Exponent=exponent,
             CommsMethod=comms_method,
-            TypicalResponseTimeMs=typical_response_time_ms,
+            PollPeriodMs=poll_period_ms,
             MaxThermistors=max_thermistors,
             #
         )
@@ -91,8 +91,8 @@ class MultipurposeSensorCacGt_Maker:
             raise MpSchemaError(f"dict {new_d} missing Exponent")
         if "CommsMethod" not in new_d.keys():
             new_d["CommsMethod"] = None
-        if "TypicalResponseTimeMs" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing TypicalResponseTimeMs")
+        if "PollPeriodMs" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing PollPeriodMs")
         if "MaxThermistors" not in new_d.keys():
             new_d["MaxThermistors"] = None
 
@@ -105,7 +105,7 @@ class MultipurposeSensorCacGt_Maker:
             ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
             Exponent=new_d["Exponent"],
             CommsMethod=new_d["CommsMethod"],
-            TypicalResponseTimeMs=new_d["TypicalResponseTimeMs"],
+            PollPeriodMs=new_d["PollPeriodMs"],
             MaxThermistors=new_d["MaxThermistors"],
             #
         )
@@ -119,7 +119,7 @@ class MultipurposeSensorCacGt_Maker:
             "component_attribute_class_id": t.ComponentAttributeClassId,
             "exponent": t.Exponent,
             "comms_method": t.CommsMethod,
-            "typical_response_time_ms": t.TypicalResponseTimeMs,
+            "poll_period_ms": t.PollPeriodMs,
             "max_thermistors": t.MaxThermistors,
             "telemetry_name_list": t.asdict()["TelemetryNameList"],
             "temp_unit_gt_enum_symbol": UnitMap.local_to_gt(t.TempUnit),
@@ -144,7 +144,7 @@ class MultipurposeSensorCacGt_Maker:
             ComponentAttributeClassId=dc.component_attribute_class_id,
             Exponent=dc.exponent,
             CommsMethod=dc.comms_method,
-            TypicalResponseTimeMs=dc.typical_response_time_ms,
+            PollPeriodMs=dc.poll_period_ms,
             MaxThermistors=dc.max_thermistors
             #
         )

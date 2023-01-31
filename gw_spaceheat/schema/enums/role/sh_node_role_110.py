@@ -27,6 +27,7 @@ class Role(enum.Enum):
     ATN = "Atn"
     HOME_ALONE = "HomeAlone"
     OUTDOORS = "Outdoors"
+    MULTI_CHANNEL_ANALOG_TEMP_SENSOR = "MultiChannelAnalogTempSensor"
     #
 
 
@@ -50,5 +51,6 @@ class ShNodeRole110GtEnum(ABC):
         "6ddff83b",
         "863e50d1",
         "dd975b31",
+        "661d7e73",
         #
     ]
