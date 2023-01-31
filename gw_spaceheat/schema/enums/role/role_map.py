@@ -30,6 +30,7 @@ class RoleMap:
         return cls.local_to_gt_dict[role]
 
     gt_to_local_dict: Dict[str, Role] = {
+        "00000000": Role.UNKNOWN,
         "99c5f326": Role.BOOST_ELEMENT,
         "ece3b600": Role.PIPE_FLOW_METER,
         "9ac68b6e": Role.POWER_METER,
@@ -51,6 +52,7 @@ class RoleMap:
     }
 
     local_to_gt_dict: Dict[Role, str] = {
+        Role.UNKNOWN: "00000000",
         Role.BOOST_ELEMENT: "99c5f326",
         Role.PIPE_FLOW_METER: "ece3b600",
         Role.POWER_METER: "9ac68b6e",
