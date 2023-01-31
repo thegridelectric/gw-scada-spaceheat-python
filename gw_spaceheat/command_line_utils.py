@@ -165,11 +165,13 @@ async def run_async_actors_main(
         for required_node in ["a.s", "a.home"]:
             if required_node not in args.nodes:
                 args.nodes.append(required_node)
-
     layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=args.nodes)
-    if not args.nodes:
-        args.nodes = [
-            node.alias
-            for node in filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), layout.nodes.values())
-        ]
+    if args.nodes:
+        nodes = [layout.node(alias) for alias in args.nodes]
+    else:
+        nodes = layout.nodes.values()
+    args.nodes = [
+        node.alias
+        for node in filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), nodes)
+    ]
     await run_async_actors(args.nodes, settings, layout)
