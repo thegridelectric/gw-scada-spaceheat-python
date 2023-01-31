@@ -1,4 +1,4 @@
-"""Base for gt.eq.reporting.config.100"""
+"""Base for telemetry.reporting.config.000"""
 import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
@@ -12,15 +12,16 @@ from schema.enums import (
 )
 
 
-class GtEqReportingConfigBase(NamedTuple):
+class TelemetryReportingConfigBase(NamedTuple):
     ReportOnChange: bool  #
     Exponent: int  #
     Unit: Unit  #
-    ShNodeAlias: str  #
+    AboutNodeName: str  #
     SamplePeriodS: int  #
     TelemetryName: TelemetryName  #
     AsyncReportThreshold: Optional[float] = None
-    TypeAlias: str = "gt.eq.reporting.config.100"
+    NameplateMaxValue: Optional[int] = None
+    TypeAlias: str = "telemetry.reporting.config.000"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -31,6 +32,8 @@ class GtEqReportingConfigBase(NamedTuple):
         d["UnitGtEnumSymbol"] = UnitMap.local_to_gt(self.Unit)
         if d["AsyncReportThreshold"] is None:
             del d["AsyncReportThreshold"]
+        if d["NameplateMaxValue"] is None:
+            del d["NameplateMaxValue"]
         del d["TelemetryName"]
         d["TelemetryNameGtEnumSymbol"] = TelemetryNameMap.local_to_gt(self.TelemetryName)
         return d
@@ -49,19 +52,24 @@ class GtEqReportingConfigBase(NamedTuple):
             errors.append(
                 f"Unit {self.Unit} must have type {Unit}."
             )
-        if not isinstance(self.ShNodeAlias, str):
+        if not isinstance(self.AboutNodeName, str):
             errors.append(
-                f"ShNodeAlias {self.ShNodeAlias} must have type str."
+                f"AboutNodeName {self.AboutNodeName} must have type str."
             )
-        if not property_format.is_lrd_alias_format(self.ShNodeAlias):
+        if not property_format.is_lrd_alias_format(self.AboutNodeName):
             errors.append(
-                f"ShNodeAlias {self.ShNodeAlias}"
+                f"AboutNodeName {self.AboutNodeName}"
                 " must have format LrdAliasFormat"
             )
         if self.AsyncReportThreshold:
             if not isinstance(self.AsyncReportThreshold, float):
                 errors.append(
                     f"AsyncReportThreshold {self.AsyncReportThreshold} must have type float."
+                )
+        if self.NameplateMaxValue:
+            if not isinstance(self.NameplateMaxValue, int):
+                errors.append(
+                    f"NameplateMaxValue {self.NameplateMaxValue} must have type int."
                 )
         if not isinstance(self.SamplePeriodS, int):
             errors.append(
@@ -71,9 +79,9 @@ class GtEqReportingConfigBase(NamedTuple):
             errors.append(
                 f"TelemetryName {self.TelemetryName} must have type {TelemetryName}."
             )
-        if self.TypeAlias != "gt.eq.reporting.config.100":
+        if self.TypeAlias != "telemetry.reporting.config.000":
             errors.append(
-                f"Type requires TypeAlias of gt.eq.reporting.config.100, not {self.TypeAlias}."
+                f"Type requires TypeAlias of telemetry.reporting.config.000, not {self.TypeAlias}."
             )
 
         return errors

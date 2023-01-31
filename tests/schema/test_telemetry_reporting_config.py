@@ -1,24 +1,25 @@
-"""Tests gt.eq.reporting.config.100 type"""
+"""Tests telemetry.reporting.config.000 type"""
 import json
 
 import pytest
 from gwproto import MpSchemaError
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
-    GtEqReportingConfig_Maker as Maker,
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
+    TelemetryReportingConfig_Maker as Maker,
 )
 
 
-def test_gt_eq_reporting_config():
+def test_telemetry_reporting_config():
 
     gw_dict = {
         "ReportOnChange": True,
         "Exponent": 6,
-        "ShNodeAlias": "a.elt1",
+        "AboutNodeName": "a.elt1",
         "AsyncReportThreshold": 0.2,
+        "NameplateMaxValue": 10000,
         "SamplePeriodS": 300,
         "UnitGtEnumSymbol": "a969ac7c",
         "TelemetryNameGtEnumSymbol": "ad19e79c",
-        "TypeAlias": "gt.eq.reporting.config.100",
+        "TypeAlias": "telemetry.reporting.config.000",
     }
 
     with pytest.raises(MpSchemaError):
@@ -39,8 +40,9 @@ def test_gt_eq_reporting_config():
         report_on_change=gw_tuple.ReportOnChange,
         exponent=gw_tuple.Exponent,
         unit=gw_tuple.Unit,
-        sh_node_alias=gw_tuple.ShNodeAlias,
+        about_node_name=gw_tuple.AboutNodeName,
         async_report_threshold=gw_tuple.AsyncReportThreshold,
+        nameplate_max_value=None,
         sample_period_s=gw_tuple.SamplePeriodS,
         telemetry_name=gw_tuple.TelemetryName,
         #
@@ -75,11 +77,11 @@ def test_gt_eq_reporting_config():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["UnitGtEnumSymbol"] = orig_value
 
-    orig_value = gw_dict["ShNodeAlias"]
-    del gw_dict["ShNodeAlias"]
+    orig_value = gw_dict["AboutNodeName"]
+    del gw_dict["AboutNodeName"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = orig_value
+    gw_dict["AboutNodeName"] = orig_value
 
     orig_value = gw_dict["SamplePeriodS"]
     del gw_dict["SamplePeriodS"]
@@ -124,18 +126,18 @@ def test_gt_eq_reporting_config():
         Maker(
             report_on_change=gw_tuple.ReportOnChange,
             exponent=gw_tuple.Exponent,
-            sh_node_alias=gw_tuple.ShNodeAlias,
+            sh_node_alias=gw_tuple.AboutNodeName,
             async_report_threshold=gw_tuple.AsyncReportThreshold,
             sample_period_s=gw_tuple.SamplePeriodS,
             telemetry_name=gw_tuple.TelemetryName,
             unit="This is not a Unit Enum.",
         )
 
-    orig_value = gw_dict["ShNodeAlias"]
-    gw_dict["ShNodeAlias"] = 42
+    orig_value = gw_dict["AboutNodeName"]
+    gw_dict["AboutNodeName"] = 42
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = orig_value
+    gw_dict["AboutNodeName"] = orig_value
 
     orig_value = gw_dict["AsyncReportThreshold"]
     gw_dict["AsyncReportThreshold"] = "This string is not a float."
@@ -154,8 +156,9 @@ def test_gt_eq_reporting_config():
             report_on_change=gw_tuple.ReportOnChange,
             exponent=gw_tuple.Exponent,
             unit=gw_tuple.Unit,
-            sh_node_alias=gw_tuple.ShNodeAlias,
+            about_node_name=gw_tuple.AboutNodeName,
             async_report_threshold=gw_tuple.AsyncReportThreshold,
+            nameplate_max_value=None,
             sample_period_s=gw_tuple.SamplePeriodS,
             telemetry_name="This is not a TelemetryName Enum.",
         )
@@ -167,15 +170,15 @@ def test_gt_eq_reporting_config():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.eq.reporting.config.100"
+    gw_dict["TypeAlias"] = "telemetry.reporting.config.000"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["ShNodeAlias"] = "a.b-h"
+    gw_dict["AboutNodeName"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = "a.elt1"
+    gw_dict["AboutNodeName"] = "a.elt1"
 
     # End of Test

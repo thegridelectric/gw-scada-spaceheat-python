@@ -14,7 +14,7 @@ class MultipurposeSensorCac(ComponentAttributeClass):
         self,
         component_attribute_class_id: str,
         exponent: int,
-        typical_response_time_ms: int,
+        poll_period_ms: int,
         temp_unit_gt_enum_symbol: str,
         make_model_gt_enum_symbol: str,
         telemetry_name_list: List[str],
@@ -28,7 +28,7 @@ class MultipurposeSensorCac(ComponentAttributeClass):
 
         self.exponent = exponent
         self.comms_method = comms_method
-        self.typical_response_time_ms = typical_response_time_ms
+        self.poll_period_ms = poll_period_ms
         self.max_thermistors = max_thermistors
         self.telemetry_name_list = [] 
         for enum_symbol in telemetry_name_list:

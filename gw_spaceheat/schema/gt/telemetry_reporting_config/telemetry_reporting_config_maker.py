@@ -1,8 +1,8 @@
-"""Makes gt.eq.reporting.config.100 type"""
+"""Makes telemetry.reporting.config.000 type"""
 import json
 from typing import Optional
 
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config import TelemetryReportingConfig
 from schema.errors import MpSchemaError
 from schema.enums import (
     Unit,
@@ -14,24 +14,26 @@ from schema.enums import (
 )
 
 
-class GtEqReportingConfig_Maker:
-    type_alias = "gt.eq.reporting.config.100"
+class TelemetryReportingConfig_Maker:
+    type_alias = "telemetry.reporting.config.000"
 
     def __init__(self,
                  report_on_change: bool,
                  exponent: int,
                  unit: Unit,
-                 sh_node_alias: str,
+                 about_node_name: str,
                  sample_period_s: int,
                  telemetry_name: TelemetryName,
-                 async_report_threshold: Optional[float]):
+                 async_report_threshold: Optional[float],
+                 nameplate_max_value: Optional[int]):
 
-        gw_tuple = GtEqReportingConfig(
+        gw_tuple = TelemetryReportingConfig(
             ReportOnChange=report_on_change,
             Exponent=exponent,
             Unit=unit,
-            ShNodeAlias=sh_node_alias,
+            AboutNodeName=about_node_name,
             AsyncReportThreshold=async_report_threshold,
+            NameplateMaxValue=nameplate_max_value,
             SamplePeriodS=sample_period_s,
             TelemetryName=telemetry_name,
             #
@@ -40,12 +42,12 @@ class GtEqReportingConfig_Maker:
         self.tuple = gw_tuple
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtEqReportingConfig) -> str:
+    def tuple_to_type(cls, tuple: TelemetryReportingConfig) -> str:
         tuple.check_for_errors()
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtEqReportingConfig:
+    def type_to_tuple(cls, t: str) -> TelemetryReportingConfig:
         try:
             d = json.loads(t)
         except TypeError:
@@ -55,7 +57,7 @@ class GtEqReportingConfig_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) -> GtEqReportingConfig:
+    def dict_to_tuple(cls, d: dict) -> TelemetryReportingConfig:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
@@ -68,23 +70,26 @@ class GtEqReportingConfig_Maker:
         if "UnitGtEnumSymbol" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing UnitGtEnumSymbol")
         new_d["Unit"] = UnitMap.gt_to_local(new_d["UnitGtEnumSymbol"])
-        if "ShNodeAlias" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing ShNodeAlias")
+        if "AboutNodeName" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing AboutNodeName")
         if "AsyncReportThreshold" not in new_d.keys():
             new_d["AsyncReportThreshold"] = None
+        if "NameplateMaxValue" not in new_d.keys():
+            new_d["NameplateMaxValue"] = None
         if "SamplePeriodS" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing SamplePeriodS")
         if "TelemetryNameGtEnumSymbol" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing TelemetryNameGtEnumSymbol")
         new_d["TelemetryName"] = TelemetryNameMap.gt_to_local(new_d["TelemetryNameGtEnumSymbol"])
 
-        gw_tuple = GtEqReportingConfig(
+        gw_tuple = TelemetryReportingConfig(
             TypeAlias=new_d["TypeAlias"],
             ReportOnChange=new_d["ReportOnChange"],
             Exponent=new_d["Exponent"],
             Unit=new_d["Unit"],
-            ShNodeAlias=new_d["ShNodeAlias"],
+            AboutNodeName=new_d["AboutNodeName"],
             AsyncReportThreshold=new_d["AsyncReportThreshold"],
+            NameplateMaxValue=new_d["NameplateMaxValue"],
             SamplePeriodS=new_d["SamplePeriodS"],
             TelemetryName=new_d["TelemetryName"],
             #

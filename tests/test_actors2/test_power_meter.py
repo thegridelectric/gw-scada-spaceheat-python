@@ -61,7 +61,7 @@ def test_power_meter_small2():
     amp_list = list(
         filter(
             lambda x: x.TelemetryName == TelemetryName.CURRENT_RMS_MICRO_AMPS
-            and x.ShNodeAlias == "a.elt1",
+                      and x.AboutNodeName == "a.elt1",
             all_eq_configs,
         )
     )

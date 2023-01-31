@@ -13,6 +13,7 @@ class MultipurposeSensorComponentGtBase(NamedTuple):
     ChannelList: List[int]
     TelemetryNameList: List[TelemetryName]
     AboutNodeNameList: List[str]
+    SamplePeriodSList: List[int]
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
     TypeAlias: str = "multipurpose.sensor.component.gt.000"
@@ -87,6 +88,16 @@ class MultipurposeSensorComponentGtBase(NamedTuple):
                 if not isinstance(elt, str):
                     errors.append(
                         f"elt {elt} of AboutNodeNameList must have type str"
+                    )
+        if not isinstance(self.SamplePeriodSList, list):
+            errors.append(
+                f"SamplePeriodSList{self.SamplePeriodSList} must have type list."
+            )
+        else:
+            for elt in self.SamplePeriodSList:
+                if not isinstance(elt, int):
+                    errors.append(
+                        f"elt {elt} of SamplePeriodSList must have type int"
                     )
         if self.HwUid:
             if not isinstance(self.HwUid, str):

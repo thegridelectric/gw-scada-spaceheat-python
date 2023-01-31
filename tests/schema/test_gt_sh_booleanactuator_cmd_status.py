@@ -9,7 +9,7 @@ from gwproto.messages import  GtShBooleanactuatorCmdStatus_Maker as Maker
 def test_gt_sh_booleanactuator_cmd_status():
 
     gw_dict = {
-        "ShNodeAlias": "a.elt1.relay",
+        "AboutNodeName": "a.elt1.relay",
         "RelayStateCommandList": [0],
         "CommandTimeUnixMsList": [1656443704800],
         "TypeAlias": "gt.sh.booleanactuator.cmd.status.100",
@@ -47,11 +47,11 @@ def test_gt_sh_booleanactuator_cmd_status():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TypeAlias"] = orig_value
 
-    orig_value = gw_dict["ShNodeAlias"]
-    del gw_dict["ShNodeAlias"]
+    orig_value = gw_dict["AboutNodeName"]
+    del gw_dict["AboutNodeName"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = orig_value
+    gw_dict["AboutNodeName"] = orig_value
 
     orig_value = gw_dict["RelayStateCommandList"]
     del gw_dict["RelayStateCommandList"]
@@ -69,11 +69,11 @@ def test_gt_sh_booleanactuator_cmd_status():
     # MpSchemaError raised if attributes have incorrect type
     ######################################
 
-    orig_value = gw_dict["ShNodeAlias"]
-    gw_dict["ShNodeAlias"] = 42
+    orig_value = gw_dict["AboutNodeName"]
+    gw_dict["AboutNodeName"] = 42
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = orig_value
+    gw_dict["AboutNodeName"] = orig_value
 
     orig_value = gw_dict["RelayStateCommandList"]
     gw_dict["RelayStateCommandList"] = "This string is not a list."
@@ -106,10 +106,10 @@ def test_gt_sh_booleanactuator_cmd_status():
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["ShNodeAlias"] = "a.b-h"
+    gw_dict["AboutNodeName"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeAlias"] = "a.elt1.relay"
+    gw_dict["AboutNodeName"] = "a.elt1.relay"
 
     gw_dict["RelayStateCommandList"] = [2]
     with pytest.raises(MpSchemaError):

@@ -1,5 +1,6 @@
-"""Implements PowerMeter via SyncThreadActor and PowerMeterDriverThread. A helper class, DriverThreadSetupHelper,
-isolates code used only in PowerMeterDriverThread constructor. """
+"""Implements MultipurposeSensor via SyncThreadActor and MultipurposeSensorDriverThread.
+A helper class, MultipurposeSensorSetupHelper,
+isolates code used only in  MultipurposeSensorDriverThread constructor. """
 
 import time
 import typing
@@ -21,33 +22,23 @@ from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 
 
-from drivers.multipurpose_sensor.multipurpose_sensor_driver import MultipurposeSensorDriver
-from drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver import  (
-    GridworksTsnap1_MultipurposeSensorDriver
-)
-from drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver import  (
-    UnknownMultipurposeSensorDriver
-)
-
-from named_tuples.telemetry_tuple import TelemetryTuple
+from named_tuples.telemetry_tuple import TelemetryTuple, unit_from_telemetry_name, exponent_from_telemetry_name
 from proactor.sync_thread import SyncAsyncInteractionThread
 from problems import Problems
 from schema.enums import MakeModel
-from schema.enums import Role
-from schema.enums import Unit
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
-    GtEqReportingConfig_Maker,
-)
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
-    GtPowermeterReportingConfig as ReportingConfig,
-)
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
-    GtPowermeterReportingConfig_Maker,
+
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
+    TelemetryReportingConfig,
+    TelemetryReportingConfig_Maker,
 )
 
+from drivers.multipurpose_sensor.multipurpose_sensor_driver import MultipurposeSensorDriver
+from drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver import (
+    GridworksTsnap1_MultipurposeSensorDriver,
+)
+from drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver import UnknownMultipurposeSensorDriver
 
-class DriverThreadSetupHelper:
+class MpDriverThreadSetupHelper:
     """A helper class to isolate code only used in construction of MultipurposeSensorDriverThread"""
 
     FASTEST_POLL_PERIOD_MS = 40
@@ -73,134 +64,52 @@ class DriverThreadSetupHelper:
         self.settings = settings
         self.hardware_layout = hardware_layout
         self.component = typing.cast(MultipurposeSensorComponent, node.component)
-
-    def make_eq_reporting_config(self) -> Dict[TelemetryTuple, GtEqReportingConfig]:
-        eq_reporting_config: Dict[TelemetryTuple, GtEqReportingConfig] = OrderedDict()
-        for about_node in self.hardware_layout.all_metered_nodes:
-            eq_reporting_config[
-                TelemetryTuple(
-                    AboutNode=about_node,
-                    SensorNode=self.node,
-                    TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-                )
-            ] = GtEqReportingConfig_Maker(
-                sh_node_alias=about_node.alias,
-                report_on_change=True,
-                telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-                unit=Unit.AMPS_RMS,
-                exponent=6,
-                sample_period_s=self.settings.seconds_per_report,
-                async_report_threshold=self.settings.async_power_reporting_threshold,
-            ).tuple
-            eq_reporting_config[
-                TelemetryTuple(
-                    AboutNode=about_node,
-                    SensorNode=self.node,
-                    TelemetryName=TelemetryName.POWER_W,
-                )
-            ] = GtEqReportingConfig_Maker(
-                sh_node_alias=about_node.alias,
-                report_on_change=True,
-                telemetry_name=TelemetryName.POWER_W,
-                unit=Unit.W,
-                exponent=0,
-                sample_period_s=self.settings.seconds_per_report,
-                async_report_threshold=self.settings.async_power_reporting_threshold,
-            ).tuple
-        return eq_reporting_config
-
-    def make_reporting_config(
-        self, eq_reporting_config_list: List[GtEqReportingConfig]
-    ) -> ReportingConfig:
-        if self.component.cac.update_period_ms is None:
-            poll_period_ms = self.FASTEST_POLL_PERIOD_MS
-        else:
-            poll_period_ms = max(
+        self.cac = self.component.cac
+        self.poll_period_ms = max(
                 self.FASTEST_POLL_PERIOD_MS,
-                self.component.cac.update_period_ms,
+                self.component.cac.poll_period_ms,
             )
-        return GtPowermeterReportingConfig_Maker(
-            reporting_period_s=self.settings.seconds_per_report,
-            poll_period_ms=poll_period_ms,
-            hw_uid=self.component.hw_uid,
-            electrical_quantity_reporting_config_list=eq_reporting_config_list,
-        ).tuple
 
-    def make_power_meter_driver(self) -> PowerMeterDriver:
-        cac = self.component.cac
-        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver = UnknownPowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
-            driver = SchneiderElectricIem3455_PowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
-            driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.make_model == MakeModel.OPENENERGY__EMONPI:
-            driver = OpenenergyEmonpi_PowerMeterDriver(
-                component=self.component, settings=self.settings
-            )
-        elif cac.make_model == MakeModel.EGAUGE__4030:
-            driver = EGuage4030_PowerMeterDriver(component=self.component, settings=self.settings)
+    def make_reporting_config(self) -> Dict[TelemetryTuple, TelemetryReportingConfig]:
+        config: Dict[TelemetryTuple, TelemetryReportingConfig] = OrderedDict()
+        for node_name in self.component.about_node_name_list:
+            idx = self.component.about_node_name_list.index(node_name)
+            about_node = self.hardware_layout.node(node_name)
+            telemetry_name = self.component.telemetry_name_list[idx]
+            config[
+                TelemetryTuple(
+                    AboutNode=about_node,
+                    SensorNode=self.node,
+                    TelemetryName=self.component.telemetry_name_list[idx],
+                )
+            ] = TelemetryReportingConfig_Maker(
+                about_node_name=about_node.alias,
+                report_on_change=True,
+                telemetry_name=telemetry_name,
+                unit=unit_from_telemetry_name(telemetry_name),
+                exponent=exponent_from_telemetry_name(telemetry_name),
+                sample_period_s=self.component.sample_period_s_list[idx],
+            ).tuple
+        return config
+
+
+    def make_driver(self) -> MultipurposeSensorDriver:
+        if self.cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            driver = UnknownMultipurposeSensorDriver(component=self.component, settings=self.settings)
+        elif self.cac.make_model == MakeModel.GRIDWORKS__TSNAP1:
+            driver = GridworksTsnap1_MultipurposeSensorDriver(component=self.component, settings=self.settings)
         else:
             raise NotImplementedError(
-                f"No ElectricMeter driver yet for {cac.make_model}"
+                f"No ElectricMeter driver yet for {self.cac.make_model}"
             )
         return driver
-
-    @classmethod
-    def get_resistive_heater_component(cls, node: ShNode) -> ResistiveHeaterComponent:
-        if node.role != Role.BOOST_ELEMENT:
-            raise ValueError(
-                "This function should only be called for nodes that are boost elements"
-            )
-        if not isinstance(node.component, ResistiveHeaterComponent):
-            raise ValueError(
-                f"Node component has type {type(node.component)}. Requires type ResistiveHeaterComponent"
-            )
-        return typing.cast(ResistiveHeaterComponent, node.component)
-
-    @classmethod
-    def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
-        return cls.get_resistive_heater_component(node).cac.nameplate_max_power_w
-
-    @classmethod
-    def get_resistive_heater_nameplate_current_amps(cls, node: ShNode) -> float:
-        """Note that all ShNodes of role BOOST_ELEMENT must have a non-zero RatedVoltageV and have a component
-        of type ResistiveHeaterComponent.  Likewise, all ResistiveHeaterCacs have a positive NamePlateMaxPower.
-        This is enforced by schema and not checked here."""
-        return cls.get_resistive_heater_nameplate_power_w(node) / node.rated_voltage_v
-
-    def get_nameplate_telemetry_value(self) -> Dict[TelemetryTuple, int]:
-        response_dict: Dict[TelemetryTuple, int] = {}
-        for about_node in self.hardware_layout.all_resistive_heaters:
-            current_tt = TelemetryTuple(
-                AboutNode=about_node,
-                SensorNode=self.node,
-                TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-            )
-            nameplate_current_amps = self.get_resistive_heater_nameplate_current_amps(
-                node=about_node
-            )
-            response_dict[current_tt] = int(10**6 * nameplate_current_amps)
-
-            power_tt = TelemetryTuple(
-                AboutNode=about_node,
-                SensorNode=self.node,
-                TelemetryName=TelemetryName.POWER_W,
-            )
-            nameplate_power_w = self.get_resistive_heater_nameplate_power_w(
-                node=about_node
-            )
-            response_dict[power_tt] = int(nameplate_power_w)
-        return response_dict
 
 
 class PowerMeterDriverThread(SyncAsyncInteractionThread):
 
-    eq_reporting_config: Dict[TelemetryTuple, GtEqReportingConfig]
-    reporting_config: ReportingConfig
-    driver: PowerMeterDriver
+    reporting_config: Dict[TelemetryTuple, TelemetryReportingConfig]
+    driver: MultipurposeSensorDriver
     nameplate_telemetry_value: Dict[TelemetryTuple, int]
-    last_reported_agg_power_w: Optional[int] = None
     last_reported_telemetry_value: Dict[TelemetryTuple, Optional[int]]
     latest_telemetry_value: Dict[TelemetryTuple, Optional[int]]
     _last_sampled_s: Dict[TelemetryTuple, Optional[int]]
@@ -224,14 +133,10 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         )
         self._hardware_layout = hardware_layout
         self._telemetry_destination = telemetry_destination
-        setup_helper = DriverThreadSetupHelper(node, settings, hardware_layout)
-        self.eq_reporting_config = setup_helper.make_eq_reporting_config()
-        self.reporting_config = setup_helper.make_reporting_config(
-            list(self.eq_reporting_config.values())
-        )
-        self.driver = setup_helper.make_power_meter_driver()
-        self.nameplate_telemetry_value = setup_helper.get_nameplate_telemetry_value()
-        self.last_reported_agg_power_w: Optional[int] = None
+        setup_helper = MpDriverThreadSetupHelper(node, settings, hardware_layout)
+        self.reporting_config = setup_helper.make_reporting_config()
+
+        self.driver = setup_helper.make_driver()
         self.last_reported_telemetry_value = {
             tt: None for tt in self._hardware_layout.all_power_meter_telemetry_tuples
         }
@@ -264,8 +169,6 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     def _iterate(self) -> None:
         start_s = time.time()
         self.update_latest_value_dicts()
-        if self.should_report_aggregated_power():
-            self.report_aggregated_power_w()
         telemetry_tuple_report_list = [
             tpl
             for tpl in self._hardware_layout.all_power_meter_telemetry_tuples
@@ -319,14 +222,17 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
         """
-        telemetry_reporting_config = self.eq_reporting_config[telemetry_tuple]
-        last_reported_value = self.last_reported_telemetry_value[telemetry_tuple]
-        latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
-        abs_telemetry_delta = abs(latest_telemetry_value - last_reported_value)
-        max_telemetry_value = self.nameplate_telemetry_value[telemetry_tuple]
-        change_ratio = abs_telemetry_delta / max_telemetry_value
-        if change_ratio > telemetry_reporting_config.AsyncReportThreshold:
-            return True
+        # redo once MultipurposeSensorComponent is refactored to have a list of TelemetryReportingConfigs
+        # config = self.reporting_config[telemetry_tuple]
+        # if config.AsyncReportThreshold is None:
+        #     return False
+        # last_reported_value = self.last_reported_telemetry_value[telemetry_tuple]
+        # latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
+        # abs_telemetry_delta = abs(latest_telemetry_value - last_reported_value)
+        # max_telemetry_value = self.nameplate_telemetry_value[telemetry_tuple]
+        # change_ratio = abs_telemetry_delta / max_telemetry_value
+        # if change_ratio > config.AsyncReportThreshold:
+        #     return True
         return False
 
     def should_report_telemetry_reading(self, telemetry_tuple: TelemetryTuple) -> bool:
@@ -368,37 +274,6 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             return None
         return int(sum(latest_power_list))
 
-    @property
-    def nameplate_agg_power_w(self) -> int:
-        nameplate_power_list = [
-            v
-            for k, v in self.nameplate_telemetry_value.items()
-            if k in self._hardware_layout.all_power_tuples
-        ]
-        return int(sum(nameplate_power_list))
-
-    def report_aggregated_power_w(self):
-        self._put_to_async_queue(
-            GsPwrMessage(
-                src=self.name,
-                dst=self._telemetry_destination,
-                power=self.latest_agg_power_w,
-            )
-        )
-        self.last_reported_agg_power_w = self.latest_agg_power_w
-
-    def should_report_aggregated_power(self) -> bool:
-        """Aggregated power is sent up asynchronously on change via a GsPwr message, and the last aggregated
-        power sent up is recorded in self.last_reported_agg_power_w."""
-        if self.latest_agg_power_w is None:
-            return False
-        if self.last_reported_agg_power_w is None:
-            return True
-        abs_power_delta = abs(self.latest_agg_power_w - self.last_reported_agg_power_w)
-        change_ratio = abs_power_delta / self.nameplate_agg_power_w
-        if change_ratio > self.async_power_reporting_threshold:
-            return True
-        return False
 
 
 class PowerMeter(SyncThreadActor):

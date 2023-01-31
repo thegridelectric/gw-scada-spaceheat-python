@@ -21,6 +21,7 @@ class MultipurposeSensorComponentGt_Maker:
                  channel_list: List[str],
                  telemetry_name_list: List[TelemetryName],
                  about_node_name_list: List[str],
+                 sample_period_s_list: List[int]
                  display_name: Optional[str],
                  hw_uid: Optional[str],
                  ):
@@ -31,6 +32,7 @@ class MultipurposeSensorComponentGt_Maker:
             ChannelList=channel_list,
             TelemetryNameList=telemetry_name_list,
             AboutNodeNameList=about_node_name_list,
+            SamplePeriodSList=sample_period_s_list,
             DisplayName=display_name,
             HwUid=hw_uid,
             #
@@ -66,6 +68,8 @@ class MultipurposeSensorComponentGt_Maker:
             raise MpSchemaError(f"dict {new_d} missing TelemetryNameList")
         if "ChannelList" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ChannelList")
+        if "SamplePeriodSList" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing SamplePeriodSList")
         telemetry_name_list = []
         for elt in new_d["TelemetryNameList"]:
             telemetry_name_list.append(TelemetryNameMap.gt_to_local(elt))
@@ -85,6 +89,7 @@ class MultipurposeSensorComponentGt_Maker:
             ChannelList=new_d["ChannelList"],
             TelemetryNameList=new_d["TelemetryNameList"],
             AboutNodeNameList=new_d["AboutNodeNameList"],
+            SamplePeriodSList=new_d["SamplePeriodSList"],
             HwUid=new_d["HwUid"],
             DisplayName=new_d["DisplayName"],
             TypeAlias=new_d["TypeAlias"],
@@ -101,6 +106,7 @@ class MultipurposeSensorComponentGt_Maker:
             "channel_list": t.ChannelList,
             "telemetry_name_list": t.TelemetryNameList,
             "about_node_name_list": t.AboutNodeNameList,
+            "sample_period_s_list": t.SamplePeriodSList,
             "hw_uid": t.HwUid,
             "display_name": t.DisplayName,
         }
@@ -120,6 +126,7 @@ class MultipurposeSensorComponentGt_Maker:
             ChannelList=dc.channel_list,
             TelemetryNameList=dc.telemetry_name_list,
             AboutNodeNameList=dc.about_node_name_list,
+            SamplePeriodSList=dc.sample_period_s_list,
             HwUid=dc.hw_uid,
             DisplayName=dc.display_name,
             #

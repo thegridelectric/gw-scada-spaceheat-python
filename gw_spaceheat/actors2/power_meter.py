@@ -38,9 +38,9 @@ from problems import Problems
 from schema.enums import MakeModel
 from schema.enums import Role
 from schema.enums import Unit
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config import GtEqReportingConfig
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
-    GtEqReportingConfig_Maker,
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
+    TelemetryReportingConfig,
+    TelemetryReportingConfig_Maker,
 )
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig as ReportingConfig,
@@ -77,8 +77,8 @@ class DriverThreadSetupHelper:
         self.hardware_layout = hardware_layout
         self.component = typing.cast(ElectricMeterComponent, node.component)
 
-    def make_eq_reporting_config(self) -> Dict[TelemetryTuple, GtEqReportingConfig]:
-        eq_reporting_config: Dict[TelemetryTuple, GtEqReportingConfig] = OrderedDict()
+    def make_eq_reporting_config(self) -> Dict[TelemetryTuple, TelemetryReportingConfig]:
+        eq_reporting_config: Dict[TelemetryTuple, TelemetryReportingConfig] = OrderedDict()
         for about_node in self.hardware_layout.all_metered_nodes:
             eq_reporting_config[
                 TelemetryTuple(
@@ -86,14 +86,15 @@ class DriverThreadSetupHelper:
                     SensorNode=self.node,
                     TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 )
-            ] = GtEqReportingConfig_Maker(
-                sh_node_alias=about_node.alias,
+            ] = TelemetryReportingConfig_Maker(
+                about_node_name=about_node.alias,
                 report_on_change=True,
                 telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 unit=Unit.AMPS_RMS,
                 exponent=6,
                 sample_period_s=self.settings.seconds_per_report,
                 async_report_threshold=self.settings.async_power_reporting_threshold,
+                nameplate_max_value=None,
             ).tuple
             eq_reporting_config[
                 TelemetryTuple(
@@ -101,19 +102,20 @@ class DriverThreadSetupHelper:
                     SensorNode=self.node,
                     TelemetryName=TelemetryName.POWER_W,
                 )
-            ] = GtEqReportingConfig_Maker(
-                sh_node_alias=about_node.alias,
+            ] = TelemetryReportingConfig_Maker(
+                about_node_name=about_node.alias,
                 report_on_change=True,
                 telemetry_name=TelemetryName.POWER_W,
                 unit=Unit.W,
                 exponent=0,
                 sample_period_s=self.settings.seconds_per_report,
                 async_report_threshold=self.settings.async_power_reporting_threshold,
+                nameplate_max_value=None,
             ).tuple
         return eq_reporting_config
 
     def make_reporting_config(
-        self, eq_reporting_config_list: List[GtEqReportingConfig]
+        self, eq_reporting_config_list: List[TelemetryReportingConfig]
     ) -> ReportingConfig:
         if self.component.cac.update_period_ms is None:
             poll_period_ms = self.FASTEST_POWER_METER_POLL_PERIOD_MS
@@ -199,7 +201,7 @@ class DriverThreadSetupHelper:
 
 class PowerMeterDriverThread(SyncAsyncInteractionThread):
 
-    eq_reporting_config: Dict[TelemetryTuple, GtEqReportingConfig]
+    eq_reporting_config: Dict[TelemetryTuple, TelemetryReportingConfig]
     reporting_config: ReportingConfig
     driver: PowerMeterDriver
     nameplate_telemetry_value: Dict[TelemetryTuple, int]
@@ -323,6 +325,8 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         in the EqConfig.
         """
         telemetry_reporting_config = self.eq_reporting_config[telemetry_tuple]
+        if telemetry_reporting_config.AsyncReportThreshold is None:
+            return False
         last_reported_value = self.last_reported_telemetry_value[telemetry_tuple]
         latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
         abs_telemetry_delta = abs(latest_telemetry_value - last_reported_value)

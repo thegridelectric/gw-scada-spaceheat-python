@@ -15,12 +15,13 @@ def test_gt_powermeter_reporting_config():
         "ReportingPeriodS": 300,
         "ElectricalQuantityReportingConfigList": [
             {
-                "ShNodeAlias": "a.elt1",
+                "AboutNodeName": "a.elt1",
                 "ReportOnChange": True,
                 "Exponent": 6,
                 "SamplePeriodS": 5,
                 "AsyncReportThreshold": 0.05,
-                "TypeAlias": "gt.eq.reporting.config.100",
+                "NameplateMaxValue": 20000,
+                "TypeAlias": "telemetry.reporting.config.000",
                 "UnitGtEnumSymbol": "a969ac7c",
                 "TelemetryNameGtEnumSymbol": "ad19e79c",
             }
@@ -128,7 +129,7 @@ def test_gt_powermeter_reporting_config():
             hw_uid=gw_dict["HwUid"],
             reporting_period_s=gw_dict["ReportingPeriodS"],
             poll_period_ms=gw_dict["PollPeriodMs"],
-            electrical_quantity_reporting_config_list=["Not a GtEqReportingConfig"],
+            electrical_quantity_reporting_config_list=["Not a TelemetryReportingConfig"],
         )
 
     with pytest.raises(MpSchemaError):

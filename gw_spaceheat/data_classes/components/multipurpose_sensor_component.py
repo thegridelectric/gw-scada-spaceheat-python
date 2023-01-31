@@ -16,6 +16,7 @@ class MultipurposeSensorComponent(Component):
         channel_list: List[int],
         telemetry_name_list: List[TelemetryName],
         about_node_name_list: List[str],
+        sample_period_s_list: List[int],
         display_name: Optional[str] = None,
         hw_uid: Optional[str] = None,
 
@@ -29,6 +30,7 @@ class MultipurposeSensorComponent(Component):
         self.channel_list = channel_list
         self.telemetry_name_list = telemetry_name_list
         self.about_node_name_list = about_node_name_list
+        self.sample_period_s_list = sample_period_s_list
         MultipurposeSensorComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
 
