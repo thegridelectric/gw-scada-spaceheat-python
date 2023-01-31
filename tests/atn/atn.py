@@ -14,6 +14,8 @@ import pendulum
 
 from paho.mqtt.client import MQTTMessageInfo
 
+import rich
+
 from gwproto import CallableDecoder
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
@@ -239,8 +241,10 @@ class Atn2(ActorInterface, Proactor):
                 path_dbg |= 0x00000010
         self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
+    # noinspection PyMethodMayBeStatic
     def _process_pwr(self, pwr: GsPwr) -> None:
-        pass
+        rich.print("Received GsPwr")
+        rich.print(pwr)
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
@@ -290,6 +294,8 @@ class Atn2(ActorInterface, Proactor):
         with status_file.open("w") as f:
             f.write(status.as_type())
         self._logger.info(f"Wrote status file [{status_file}]")
+        rich.print("Received GtShStatus")
+        rich.print(status)
 
     def _process_event(self, event: EventBase) -> None:
         event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)

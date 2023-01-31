@@ -105,20 +105,22 @@ def watch():
                 ),
                 console=console
             ) as live:
-                if not c.is_open:
-                    c.open()
+                while c.is_open:
+                    time.sleep(1)
+                    table = generate_table(
+                        registers,
+                        [read_register(c, register)[2] for register in registers]
+                    )
+                    live.update(table)
+                    with register_values_path.open("w") as f:
+                        save_console = Console(record=True, file=f)
+                        save_console.print(table)
+                        save_console.save_svg(str(register_values_path), clear=True)
                     if not c.is_open:
-                        raise ValueError("ERROR. Connection to Modbus server lost")
-                time.sleep(1)
-                table = generate_table(
-                    registers,
-                    [read_register(c, register)[2] for register in registers]
-                )
-                live.update(table)
-                with register_values_path.open("w") as f:
-                    save_console = Console(record=True, file=f)
-                    save_console.print(table)
-                    save_console.save_svg(str(register_values_path), clear=True)
+                        time.sleep(1)
+                        c.open()
+                        if not c.is_open:
+                            raise ValueError("ERROR. Connection to Modbus server lost")
 
     except KeyboardInterrupt:
         pass
