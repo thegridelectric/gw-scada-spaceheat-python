@@ -1,9 +1,9 @@
 import math
+
+import adafruit_ads1x15.ads1115 as ADS
 import board
 import busio
-import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
-
 
 PI_VOLTAGE = 5
 # 298 Kelvin is 25 Celcius
@@ -16,8 +16,7 @@ THERMISTOR_BETA = 3977
 VOLTAGE_DIVIDER_R_OHMS = 8200
 
 
-def thermistor_temp_f_beta_formula(
-        voltage: float) -> float:
+def thermistor_temp_f_beta_formula(voltage: float) -> float:
     rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
     r0: int = int(THERMISTOR_R0_OHMS)
     beta: int = int(THERMISTOR_BETA)

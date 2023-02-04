@@ -1,7 +1,6 @@
 from actors.atn import Atn
 from actors.boolean_actuator import BooleanActuator
 from actors.home_alone import HomeAlone
-from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.simple_sensor import SimpleSensor
 from data_classes.sh_node import ShNode
@@ -11,7 +10,6 @@ switcher = {
     ActorClass.ATN: Atn,
     ActorClass.BOOLEAN_ACTUATOR: BooleanActuator,
     ActorClass.HOME_ALONE: HomeAlone,
-    ActorClass.POWER_METER: PowerMeter,
     ActorClass.SCADA: Scada,
     ActorClass.SIMPLE_SENSOR: SimpleSensor,
 }

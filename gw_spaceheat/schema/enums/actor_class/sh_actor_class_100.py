@@ -16,7 +16,7 @@ class ActorClass(enum.Enum):
     ATN = "Atn"
     SIMPLE_SENSOR = "SimpleSensor"
     NONE = "None"
-    MULTI_PURPOSE_SENSOR = "MultiPurposeSensor"
+    MULTIPURPOSE_SENSOR = "MultipurposeSensor"
     #
 
 

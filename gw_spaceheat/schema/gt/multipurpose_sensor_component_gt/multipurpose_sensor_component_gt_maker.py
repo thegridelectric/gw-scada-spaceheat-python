@@ -10,7 +10,10 @@ from schema.enums import (
 
 from schema.gt.multipurpose_sensor_component_gt.multipurpose_sensor_component_gt import MultipurposeSensorComponentGt
 from schema.errors import MpSchemaError
-
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
+    TelemetryReportingConfig,
+    TelemetryReportingConfig_Maker,
+)
 
 class MultipurposeSensorComponentGt_Maker:
     type_alias = "multipurpose.sensor.component.gt.000"
@@ -18,10 +21,8 @@ class MultipurposeSensorComponentGt_Maker:
     def __init__(self,
                  component_id: str,
                  component_attribute_class_id: str,
-                 channel_list: List[str],
-                 telemetry_name_list: List[TelemetryName],
-                 about_node_name_list: List[str],
-                 sample_period_s_list: List[int]
+                 channel_list: List[int],
+                 config_list: List[TelemetryReportingConfig],
                  display_name: Optional[str],
                  hw_uid: Optional[str],
                  ):
@@ -30,9 +31,7 @@ class MultipurposeSensorComponentGt_Maker:
             ComponentId=component_id,
             ComponentAttributeClassId=component_attribute_class_id,
             ChannelList=channel_list,
-            TelemetryNameList=telemetry_name_list,
-            AboutNodeNameList=about_node_name_list,
-            SamplePeriodSList=sample_period_s_list,
+            ConfigList=config_list,
             DisplayName=display_name,
             HwUid=hw_uid,
             #
@@ -64,18 +63,22 @@ class MultipurposeSensorComponentGt_Maker:
             raise MpSchemaError(f"dict {new_d} missing ComponentId")
         if "ComponentAttributeClassId" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ComponentAttributeClassId")
-        if "TelemetryNameList" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing TelemetryNameList")
+
         if "ChannelList" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ChannelList")
-        if "SamplePeriodSList" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing SamplePeriodSList")
-        telemetry_name_list = []
-        for elt in new_d["TelemetryNameList"]:
-            telemetry_name_list.append(TelemetryNameMap.gt_to_local(elt))
-        new_d["TelemetryNameList"] = telemetry_name_list
-        if "AboutNodeNameList" not in new_d.keys():
-            raise MpSchemaError(f"dict {new_d} missing AboutNodeNameList")
+        if "ConfigList" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ConfigList")
+        config_list = []
+        for elt in new_d["ConfigList"]:
+            if not isinstance(elt, dict):
+                raise MpSchemaError(
+                    f"elt {elt} of ConfigList must be "
+                    "TelemetryReportingConfig but not even a dict!"
+                )
+            config_list.append(
+                TelemetryReportingConfig_Maker.dict_to_tuple(elt)
+            )
+            new_d["ConfigList"] =config_list
         if "HwUid" not in new_d.keys():
             new_d["HwUid"] = None
         if "DisplayName" not in new_d.keys():
@@ -87,9 +90,7 @@ class MultipurposeSensorComponentGt_Maker:
             ComponentId=new_d["ComponentId"],
             ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
             ChannelList=new_d["ChannelList"],
-            TelemetryNameList=new_d["TelemetryNameList"],
-            AboutNodeNameList=new_d["AboutNodeNameList"],
-            SamplePeriodSList=new_d["SamplePeriodSList"],
+            ConfigList=new_d["ConfigList"],
             HwUid=new_d["HwUid"],
             DisplayName=new_d["DisplayName"],
             TypeAlias=new_d["TypeAlias"],
@@ -104,9 +105,7 @@ class MultipurposeSensorComponentGt_Maker:
             "component_id": t.ComponentId,
             "component_attribute_class_id": t.ComponentAttributeClassId,
             "channel_list": t.ChannelList,
-            "telemetry_name_list": t.TelemetryNameList,
-            "about_node_name_list": t.AboutNodeNameList,
-            "sample_period_s_list": t.SamplePeriodSList,
+            "config_list": t.ConfigList,
             "hw_uid": t.HwUid,
             "display_name": t.DisplayName,
         }
@@ -124,9 +123,7 @@ class MultipurposeSensorComponentGt_Maker:
             ComponentId=dc.component_id,
             ComponentAttributeClassId=dc.component_attribute_class_id,
             ChannelList=dc.channel_list,
-            TelemetryNameList=dc.telemetry_name_list,
-            AboutNodeNameList=dc.about_node_name_list,
-            SamplePeriodSList=dc.sample_period_s_list,
+            ConfigList=dc.config_list,
             HwUid=dc.hw_uid,
             DisplayName=dc.display_name,
             #

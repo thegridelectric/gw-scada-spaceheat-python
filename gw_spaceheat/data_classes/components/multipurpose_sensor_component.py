@@ -4,7 +4,7 @@ from typing import Dict, Optional, List
 from data_classes.cacs.multipurpose_sensor_cac import MultipurposeSensorCac
 from data_classes.component import Component
 from schema.enums.make_model.make_model_map import MakeModel
-from schema.enums import TelemetryName
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config import TelemetryReportingConfig
 
 class MultipurposeSensorComponent(Component):
     by_id: Dict[str, "MultipurposeSensorComponent"] = {}
@@ -14,9 +14,7 @@ class MultipurposeSensorComponent(Component):
         component_id: str,
         component_attribute_class_id: str,
         channel_list: List[int],
-        telemetry_name_list: List[TelemetryName],
-        about_node_name_list: List[str],
-        sample_period_s_list: List[int],
+        config_list: List[TelemetryReportingConfig],
         display_name: Optional[str] = None,
         hw_uid: Optional[str] = None,
 
@@ -28,9 +26,7 @@ class MultipurposeSensorComponent(Component):
             component_attribute_class_id=component_attribute_class_id,
         )
         self.channel_list = channel_list
-        self.telemetry_name_list = telemetry_name_list
-        self.about_node_name_list = about_node_name_list
-        self.sample_period_s_list = sample_period_s_list
+        self.config_list = config_list
         MultipurposeSensorComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
 

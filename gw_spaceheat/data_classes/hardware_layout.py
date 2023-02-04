@@ -26,6 +26,7 @@ from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriv
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums import MakeModel
 from schema.enums import Role
+from schema.enums import ActorClass
 from schema.enums import TelemetryName
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
@@ -52,6 +53,10 @@ from schema.gt.cacs import (
 from schema.gt.components import (
     GtPipeFlowSensorComponent_Maker,
 )
+from schema.gt.components import (
+    MultipurposeSensorComponentGt_Maker,
+)
+from schema.gt.cacs import MultipurposeSensorCacGt_Maker
 from schema.gt.cacs import SimpleTempSensorCacGt_Maker
 from schema.gt.components import (
     SimpleTempSensorComponentGt_Maker,
@@ -68,6 +73,8 @@ def load_cacs(layout):
         GtElectricMeterCac_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorCacs"]:
         GtPipeFlowSensorCac_Maker.dict_to_dc(d)
+    for d in layout["MultipurposeSensorCacs"]:
+        MultipurposeSensorCacGt_Maker.dict_to_dc(d)
     for d in layout["SimpleTempSensorCacs"]:
         SimpleTempSensorCacGt_Maker.dict_to_dc(d)
     for d in layout["OtherCacs"]:
@@ -83,6 +90,8 @@ def load_components(layout):
         GtElectricMeterComponent_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorComponents"]:
         GtPipeFlowSensorComponent_Maker.dict_to_dc(d)
+    for d in layout["MultipurposeSensorComponents"]:
+        MultipurposeSensorComponentGt_Maker.dict_to_dc(d)
     for d in layout["SimpleTempSensorComponents"]:
         SimpleTempSensorComponentGt_Maker.dict_to_dc(d)
     for camel in layout["OtherComponents"]:
@@ -285,11 +294,8 @@ class HardwareLayout:
         return list(
             filter(
                 lambda x: (
-                    x.role == Role.TANK_WATER_TEMP_SENSOR
-                    or x.role == Role.BOOLEAN_ACTUATOR
-                    or x.role == Role.PIPE_TEMP_SENSOR
-                    or x.role == Role.PIPE_FLOW_METER
-                    or x.role == Role.ROOM_TEMP_SENSOR
+                    x.actor_class == ActorClass.SIMPLE_SENSOR
+                    or x.actor_class == ActorClass.BOOLEAN_ACTUATOR
                 ),
                 all_nodes,
             )

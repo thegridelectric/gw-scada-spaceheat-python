@@ -49,8 +49,6 @@ class NodeConfig:
         self.typical_response_time_ms = 0
         if isinstance(node.component, BooleanActuatorComponent):
             self.set_boolean_actuator_config(component=component, settings=settings)
-        elif isinstance(node.component, MultipurposeSensorComponent):
-            self.set_multipurpose_sensor_config(component=component, settings=settings)
         elif isinstance(node.component, SimpleTempSensorComponent):
             self.set_simple_temp_sensor_config(component=component, settings=settings)
         elif isinstance(node.component, PipeFlowSensorComponent):
@@ -82,26 +80,6 @@ class NodeConfig:
         else:
             raise NotImplementedError(f"No PipeTempSensor driver yet for {cac.make_model}")
 
-    def set_multipurpose_sensor_config(self, component: MultipurposeSensorComponent, settings: ScadaSettings):
-        cac = component.cac
-        self.typical_response_time_ms = cac.typical_response_time_ms
-        if self.node.reporting_sample_period_s is None:
-            raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!")
-        self.reporting = ConfigMaker(
-            report_on_change=False,
-            exponent=cac.exponent,
-            reporting_period_s=self.seconds_per_report,
-            sample_period_s=self.node.reporting_sample_period_s,
-            telemetry_name=cac.telemetry_name,
-            unit=cac.temp_unit,
-            async_report_threshold=None,
-        ).tuple
-        if cac.make_model == MakeModel.GRIDWORKS__TSNAP1:
-            self.driver = GridworksTsnap1_MultipurposeSensorDriver(component=component, settings=settings)
-        elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            self.driver = UnknownMultipurposeSensorDriver(component=component, settings=settings)
-        else:
-            raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}")
     def set_simple_temp_sensor_config(self, component: SimpleTempSensorComponent, settings: ScadaSettings):
         cac = component.cac
         self.typical_response_time_ms = cac.typical_response_time_ms

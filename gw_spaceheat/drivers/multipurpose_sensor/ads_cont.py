@@ -1,9 +1,9 @@
 import time
+
+import adafruit_ads1x15.ads1115 as ADS
 import board
 import busio
-import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
-
 
 # Create the I2C bus
 i2c = busio.I2C(board.SCL, board.SDA)
@@ -28,6 +28,8 @@ while True:
     v10 = round(AnalogIn(ads[2], ADS.P1).voltage, 3)
     v11 = round(AnalogIn(ads[2], ADS.P2).voltage, 3)
     v12 = round(AnalogIn(ads[2], ADS.P3).voltage, 3)
-    print(f"1: {v1}V 2: {v2}V 3: {v3}V 4: {v4}V 5: {v5}V 6: {v6}V 7: {v7}V 8: {v8}V"
-          " 9:{v9}V 10: {v10}V 11: {v11}V 12: {v12}V")
+    print(
+        f"1: {v1}V 2: {v2}V 3: {v3}V 4: {v4}V 5: {v5}V 6: {v6}V 7: {v7}V 8: {v8}V"
+        " 9:{v9}V 10: {v10}V 11: {v11}V 12: {v12}V"
+    )
     time.sleep(0.5)
