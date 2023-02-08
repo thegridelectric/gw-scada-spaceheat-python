@@ -302,6 +302,23 @@ class HardwareLayout:
         )
 
     @cached_property
+    def all_multipurpose_telemetry_tuples(self) -> List[TelemetryTuple]:
+        all_nodes = list(self.nodes.values())
+        multi_nodes = list(filter(lambda x: (x.actor_class == ActorClass.MULTIPURPOSE_SENSOR), all_nodes))
+        telemetry_tuples = []
+        for node in multi_nodes:
+            for config in node.component.config_list:
+                about_node = self.node(config.AboutNodeName)
+                telemetry_tuples.append(
+                    TelemetryTuple(
+                        AboutNode=about_node,
+                        SensorNode=node,
+                        TelemetryName=config.TelemetryName,
+                    )
+                )
+        return telemetry_tuples
+
+    @cached_property
     def my_multipurpose_sensors(self) -> List[ShNode]:
         """This will be a list of all sensing devices that either measure more
         than one ShNode or measure more than one physical quantity type (or both).
@@ -315,4 +332,4 @@ class HardwareLayout:
     def my_telemetry_tuples(self) -> List[TelemetryTuple]:
         """This will include telemetry tuples from all the multipurpose sensors, the most
         important of which is the power meter."""
-        return self.all_power_meter_telemetry_tuples
+        return self.all_power_meter_telemetry_tuples + self.all_multipurpose_telemetry_tuples
