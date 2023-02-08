@@ -14,7 +14,7 @@ def test_gt_sh_status():
             {
                 "ValueList": [0, 1],
                 "ReadTimeUnixMsList": [1656945400527, 1656945414270],
-                "AboutNodeName": "a.elt1.relay",
+                "ShNodeAlias": "a.elt1.relay",
                 "TypeAlias": "gt.sh.simple.telemetry.status.100",
                 "TelemetryNameGtEnumSymbol": "5a71d4b3",
             }
@@ -22,7 +22,7 @@ def test_gt_sh_status():
         "AboutGNodeAlias": "dw1.isone.ct.newhaven.orange1.ta",
         "BooleanactuatorCmdList": [
             {
-                "AboutNodeName": "a.elt1.relay",
+                "ShNodeAlias": "a.elt1.relay",
                 "RelayStateCommandList": [1],
                 "CommandTimeUnixMsList": [1656945413464],
                 "TypeAlias": "gt.sh.booleanactuator.cmd.status.100",

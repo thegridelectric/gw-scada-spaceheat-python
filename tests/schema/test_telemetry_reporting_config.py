@@ -42,7 +42,7 @@ def test_telemetry_reporting_config():
         unit=gw_tuple.Unit,
         about_node_name=gw_tuple.AboutNodeName,
         async_report_threshold=gw_tuple.AsyncReportThreshold,
-        nameplate_max_value=None,
+        nameplate_max_value=10000,
         sample_period_s=gw_tuple.SamplePeriodS,
         telemetry_name=gw_tuple.TelemetryName,
         #
@@ -126,7 +126,8 @@ def test_telemetry_reporting_config():
         Maker(
             report_on_change=gw_tuple.ReportOnChange,
             exponent=gw_tuple.Exponent,
-            sh_node_alias=gw_tuple.AboutNodeName,
+            about_node_name=gw_tuple.AboutNodeName,
+            nameplate_max_value=gw_tuple.NameplateMaxValue,
             async_report_threshold=gw_tuple.AsyncReportThreshold,
             sample_period_s=gw_tuple.SamplePeriodS,
             telemetry_name=gw_tuple.TelemetryName,

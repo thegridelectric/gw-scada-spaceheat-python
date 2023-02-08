@@ -1,4 +1,4 @@
-"""Tests gt.temp.sensor.component.100 type"""
+"""Tests simple.temp.sensor.component.gt.000 type"""
 import json
 
 import pytest
@@ -13,7 +13,7 @@ def test_gt_temp_sensor_component():
         "ComponentId": "2ca9e65a-5e85-4eaa-811b-901e940f8d09",
         "HwUid": "00033ffe",
         "ComponentAttributeClassId": "43564cd2-0e78-41a2-8b67-ad80c02161e8",
-        "TypeAlias": "gt.temp.sensor.component.100",
+        "TypeAlias": "simple.temp.sensor.component.gt.000",
     }
 
     with pytest.raises(MpSchemaError):
@@ -123,7 +123,7 @@ def test_gt_temp_sensor_component():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.temp.sensor.component.100"
+    gw_dict["TypeAlias"] = "simple.temp.sensor.component.gt.000"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format

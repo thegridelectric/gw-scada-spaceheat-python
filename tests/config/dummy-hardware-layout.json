@@ -52,6 +52,9 @@
   ],
   "BooleanActuatorComponents": [
   ],
+  "MultipurposeSensorComponents": [
+
+  ],
   "SimpleTempSensorComponents": [
   ],
   "ElectricMeterComponents": [
@@ -67,6 +70,9 @@
   "PipeFlowSensorCacs": [
   ],
   "ElectricMeterCacs": [
+  ],
+  "MultipurposeSensorCacs": [
+
   ],
   "SimpleTempSensorCacs": [
   ],

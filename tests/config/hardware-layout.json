@@ -350,66 +350,67 @@
       "HwUid": "ddd321"
     }
   ],
+  "MultipurposeSensorComponents": [],
   "SimpleTempSensorComponents": [
     {
       "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",
       "DisplayName": "Outdoor Temperature Sensor",
       "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     },
     {
       "ComponentId": "a16d7bb6-2606-4ad1-b6b4-be80b5d84a6e",
       "DisplayName": "Temp sensor on pipe out of tank",
       "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     },
     {
       "ComponentId": "efabaa6a-e331-491f-9dbb-a3dee0029531",
       "DisplayName": "Temp sensor on pipe into tank",
       "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     },
     {
       "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
       "DisplayName": "Component for a.tank.temp0 (on top)",
       "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
       "HwUid": "1023abcd",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     },
     {
       "ComponentId": "d8d9f2b6-db8b-4a23-a037-20c7308ec56e",
       "DisplayName": "Component for a.tank.temp1 (second from top)",
       "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
       "HwUid": "10032fff",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     },
     {
       "ComponentId": "5453b43b-7940-463c-ae6e-5cfe86ecbd3d",
       "DisplayName": "Component for a.tank.temp2 (third from top)",
       "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
       "HwUid": "1004aaaa",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     },
     {
       "ComponentId": "17110718-b102-4c3b-ae62-5331aec9eed3",
       "DisplayName": "Component for a.tank.temp3 (fourth from top)",
       "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
       "HwUid": "100f2128",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     },
     {
       "ComponentId": "bc2b731d-2b68-4cb8-9c27-8dd84dd2ea82",
       "DisplayName": "Component for a.tank.temp4 (fifth from top)",
       "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
       "HwUid": "1004bbbb",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     },
     {
       "ComponentId": "23a09f17-741a-49b2-afbc-04f17f476594",
       "DisplayName": "First garage temp sensor",
       "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
       "HwUid": "1004aaaa",
-      "TypeAlias": "gt.temp.sensor.component.100"
+      "TypeAlias": "simple.temp.sensor.component.gt.000"
     }
   ],
   "ElectricMeterComponents": [
@@ -495,6 +496,7 @@
       "TypeAlias": "gt.electric.meter.cac.100"
     }
   ],
+  "MultipurposeSensorCacs": [],
   "SimpleTempSensorCacs": [
     {
       "ComponentAttributeClassId": "8a1a1538-ed2d-4829-9c03-f9be1c9f9c83",
@@ -505,7 +507,7 @@
       "TempUnitGtEnumSymbol": "7d8832f8",
       "TelemetryNameGtEnumSymbol": "793505aa",
       "TypicalResponseTimeMs": 880,
-      "TypeAlias": "gt.temp.sensor.cac.100"
+      "TypeAlias": "simple.temp.sensor.cac.gt.000"
     },
     {
       "ComponentAttributeClassId": "5450e92e-8c11-4383-b9b1-c8f412d83608",
@@ -514,7 +516,7 @@
       "TelemetryNameGtEnumSymbol": "793505aa",
       "TypicalResponseTimeMs": 0,
       "Exponent": -3,
-      "TypeAlias": "gt.temp.sensor.cac.100"
+      "TypeAlias": "simple.temp.sensor.cac.gt.000"
     },
     {
       "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
@@ -523,7 +525,7 @@
       "TelemetryNameGtEnumSymbol": "793505aa",
       "TypicalResponseTimeMs": 0,
       "Exponent": -3,
-      "TypeAlias": "gt.temp.sensor.cac.100"
+      "TypeAlias": "simple.temp.sensor.cac.gt.000"
     }
   ],
   "OtherCacs": [

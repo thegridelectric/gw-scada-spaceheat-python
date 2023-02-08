@@ -10,7 +10,7 @@ def test_gt_driver_booleanactuator_cmd():
 
     gw_dict = {
         "RelayState": 0,
-        "AboutNodeName": "a.elt1.relay",
+        "ShNodeAlias": "a.elt1.relay",
         "CommandTimeUnixMs": 1656869326637,
         "TypeAlias": "gt.driver.booleanactuator.cmd.100",
     }
@@ -53,11 +53,11 @@ def test_gt_driver_booleanactuator_cmd():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["RelayState"] = orig_value
 
-    orig_value = gw_dict["AboutNodeName"]
-    del gw_dict["AboutNodeName"]
+    orig_value = gw_dict["ShNodeAlias"]
+    del gw_dict["ShNodeAlias"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["AboutNodeName"] = orig_value
+    gw_dict["ShNodeAlias"] = orig_value
 
     orig_value = gw_dict["CommandTimeUnixMs"]
     del gw_dict["CommandTimeUnixMs"]
@@ -75,11 +75,11 @@ def test_gt_driver_booleanactuator_cmd():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["RelayState"] = orig_value
 
-    orig_value = gw_dict["AboutNodeName"]
-    gw_dict["AboutNodeName"] = 42
+    orig_value = gw_dict["ShNodeAlias"]
+    gw_dict["ShNodeAlias"] = 42
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["AboutNodeName"] = orig_value
+    gw_dict["ShNodeAlias"] = orig_value
 
     orig_value = gw_dict["CommandTimeUnixMs"]
     gw_dict["CommandTimeUnixMs"] = 1.1
@@ -105,10 +105,10 @@ def test_gt_driver_booleanactuator_cmd():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["RelayState"] = 0
 
-    gw_dict["AboutNodeName"] = "a.b-h"
+    gw_dict["ShNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["AboutNodeName"] = "a.elt1.relay"
+    gw_dict["ShNodeAlias"] = "a.elt1.relay"
 
     gw_dict["CommandTimeUnixMs"] = 1656245000
     with pytest.raises(MpSchemaError):

@@ -11,7 +11,7 @@ def test_gt_sh_simple_telemetry_status():
     gw_dict = {
         "ValueList": [0],
         "ReadTimeUnixMsList": [1656443705023],
-        "AboutNodeName": "a.elt1.relay",
+        "ShNodeAlias": "a.elt1.relay",
         "TelemetryNameGtEnumSymbol": "5a71d4b3",
         "TypeAlias": "gt.sh.simple.telemetry.status.100",
     }
@@ -67,11 +67,11 @@ def test_gt_sh_simple_telemetry_status():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["TelemetryNameGtEnumSymbol"] = orig_value
 
-    orig_value = gw_dict["AboutNodeName"]
-    del gw_dict["AboutNodeName"]
+    orig_value = gw_dict["ShNodeAlias"]
+    del gw_dict["ShNodeAlias"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["AboutNodeName"] = orig_value
+    gw_dict["ShNodeAlias"] = orig_value
 
     ######################################
     # MpSchemaError raised if attributes have incorrect type
@@ -103,11 +103,11 @@ def test_gt_sh_simple_telemetry_status():
             telemetry_name="This is not a TelemetryName Enum.",
         )
 
-    orig_value = gw_dict["AboutNodeName"]
-    gw_dict["AboutNodeName"] = 42
+    orig_value = gw_dict["ShNodeAlias"]
+    gw_dict["ShNodeAlias"] = 42
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["AboutNodeName"] = orig_value
+    gw_dict["ShNodeAlias"] = orig_value
 
     ######################################
     # MpSchemaError raised if TypeAlias is incorrect
@@ -127,9 +127,9 @@ def test_gt_sh_simple_telemetry_status():
         Maker.dict_to_tuple(gw_dict)
     gw_dict["ReadTimeUnixMsList"] = [1656443705023]
 
-    gw_dict["AboutNodeName"] = "a.b-h"
+    gw_dict["ShNodeAlias"] = "a.b-h"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["AboutNodeName"] = "a.elt1.relay"
+    gw_dict["ShNodeAlias"] = "a.elt1.relay"
 
     # End of Test
