@@ -156,15 +156,26 @@ async def run_async_actors_main(
     logger.info("Settings:")
     logger.info(settings.json(sort_keys=True, indent=2))
     try:
-        # noinspection PyUnresolvedReferences
-        import rich
-        rich.print(settings)
-    except ImportError:
-        pass
-    layout = load_house.load_all(settings)
-    if not args.nodes:
+        try:
+            # noinspection PyUnresolvedReferences
+            import rich
+            rich.print(settings)
+        except ImportError:
+            pass
+        if args.nodes is not None:
+            for required_node in ["a.s", "a.home"]:
+                if required_node not in args.nodes:
+                    args.nodes.append(required_node)
+        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=args.nodes)
+        if args.nodes:
+            nodes = [layout.node(alias) for alias in args.nodes]
+        else:
+            nodes = layout.nodes.values()
         args.nodes = [
             node.alias
-            for node in filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), layout.nodes.values())
+            for node in filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), nodes)
         ]
-    await run_async_actors(args.nodes, settings, layout)
+        await run_async_actors(args.nodes, settings, layout)
+    except:
+        logger.exception("ERROR in run_async_actors_main. Shutting down")
+        raise
