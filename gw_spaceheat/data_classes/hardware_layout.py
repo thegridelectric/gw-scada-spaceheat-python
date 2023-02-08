@@ -308,7 +308,8 @@ class HardwareLayout:
         This includes the (unique) power meter, but may also include other roles like thermostats
         and heat pumps."""
         all_nodes = list(self.nodes.values())
-        return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
+        multi_purpose_roles = [Role.POWER_METER, Role.MULTI_CHANNEL_ANALOG_TEMP_SENSOR]
+        return list(filter(lambda x: (x.role in multi_purpose_roles), all_nodes))
 
     @cached_property
     def my_telemetry_tuples(self) -> List[TelemetryTuple]:
