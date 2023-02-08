@@ -535,6 +535,7 @@ class Scada2(ScadaInterface, Proactor):
                 await self.run_forever()
             finally:
                 self.stop()
+
         def _run_forever():
             asyncio.run(_async_run_forever())
         thread = threading.Thread(target=_run_forever, daemon=daemon)

@@ -106,6 +106,7 @@ def run_nodes_main(
     setup_logging(args, settings)
     run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
 
+
 def _get_requested_aliases(args: argparse.Namespace) -> set[str]:
     if args.nodes is None:
         requested = set()
@@ -114,6 +115,7 @@ def _get_requested_aliases(args: argparse.Namespace) -> set[str]:
         requested.add("a.s")
         requested.add("a.home")
     return requested
+
 
 def _get_actor_nodes(requested_aliases: set[str], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
     actors_package = importlib.import_module(actors_package_name)
@@ -141,6 +143,7 @@ def _get_actor_nodes(requested_aliases: set[str], layout: HardwareLayout, actors
                 actor_nodes.append(node)
     return scada_node, actor_nodes
 
+
 def get_scada(
     argv: Optional[Sequence[str]] = None,
     run_in_thread: bool = False,
@@ -166,6 +169,7 @@ def get_scada(
     if run_in_thread:
         scada.run_in_thread()
     return scada
+
 
 async def run_async_actors_main(argv: Optional[Sequence[str]] = None):
     exception_logger = logging.getLogger(ScadaSettings().logging.base_log_name)
