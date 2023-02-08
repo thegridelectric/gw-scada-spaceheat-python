@@ -188,8 +188,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     def report_sampled_telemetry_values(
         self, report_list: List[TelemetryReportingConfig]
     ):
-        self._put_to_async_queue(
-            MultipurposeSensorTelemetryMessage(
+        self.message = MultipurposeSensorTelemetryMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
                 about_node_alias_list=list(map(lambda x: x.AboutNodeName, report_list)),
@@ -201,6 +200,8 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 ),
                 telemetry_name_list=list(map(lambda x: x.TelemetryName, report_list)),
             )
+        self._put_to_async_queue(
+            self.message
         )
         for tt in report_list:
             self._last_sampled_s[tt] = int(time.time())
