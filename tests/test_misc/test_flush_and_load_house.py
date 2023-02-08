@@ -14,8 +14,8 @@ from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorCac
 from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterCac
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
-from data_classes.components.temp_sensor_component import TempSensorCac
-from data_classes.components.temp_sensor_component import TempSensorComponent
+from data_classes.components.simple_temp_sensor_component import SimpleTempSensorCac
+from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from schema.enums import Role
@@ -89,14 +89,14 @@ def test_flush_and_load_house():
     assert ElectricMeterComponent.by_id == {}
     assert PipeFlowSensorComponent.by_id == {}
     assert ResistiveHeaterComponent.by_id == {}
-    assert TempSensorComponent.by_id == {}
+    assert SimpleTempSensorComponent.by_id == {}
     assert Component.by_id == {}
 
     assert BooleanActuatorCac.by_id == {}
     assert ElectricMeterCac.by_id == {}
     assert PipeFlowSensorCac.by_id == {}
     assert ResistiveHeaterCac.by_id == {}
-    assert TempSensorCac.by_id == {}
+    assert SimpleTempSensorCac.by_id == {}
     assert ComponentAttributeClass.by_id == {}
     assert ShNode.by_id == {}
 

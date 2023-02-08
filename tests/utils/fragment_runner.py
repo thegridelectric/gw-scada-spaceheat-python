@@ -14,7 +14,6 @@ import actors2
 from actors2 import ActorInterface
 from actors.actor_base import ActorBase
 from actors.boolean_actuator import BooleanActuator
-from actors.power_meter import PowerMeter
 from actors.simple_sensor import SimpleSensor
 from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
@@ -69,7 +68,6 @@ class Actors:
     atn: AtnRecorder
     home_alone: HomeAloneRecorder
     relay: BooleanActuator
-    meter: PowerMeter
     thermo: SimpleSensor
     atn2: Atn2
     scada2: Scada2Recorder
@@ -100,10 +98,6 @@ class Actors:
         self.relay = kwargs.get(
             "relay",
             BooleanActuator("a.elt1.relay", settings=settings, hardware_layout=layout)
-        )
-        self.meter = kwargs.get(
-            "power_meter",
-            PowerMeter("a.m", settings=settings, hardware_layout=layout)
         )
         self.thermo = kwargs.get(
             "thermo",

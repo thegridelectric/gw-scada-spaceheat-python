@@ -10,8 +10,9 @@ from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorCac
 from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterCac
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
-from data_classes.components.temp_sensor_component import TempSensorCac
-from data_classes.components.temp_sensor_component import TempSensorComponent
+from data_classes.components.simple_temp_sensor_component import SimpleTempSensorCac
+from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
+
 from data_classes.sh_node import ShNode
 
 from tests.utils.scada2_recorder import Scada2Recorder
@@ -31,7 +32,7 @@ def flush_components():
     ElectricMeterComponent.by_id = {}
     PipeFlowSensorComponent.by_id = {}
     ResistiveHeaterComponent.by_id = {}
-    TempSensorComponent.by_id = {}
+    SimpleTempSensorComponent.by_id = {}
     Component.by_id = {}
 
 
@@ -40,7 +41,7 @@ def flush_cacs():
     ElectricMeterCac.by_id = {}
     PipeFlowSensorCac.by_id = {}
     ResistiveHeaterCac.by_id = {}
-    TempSensorCac.by_id = {}
+    SimpleTempSensorCac.by_id = {}
     ComponentAttributeClass.by_id = {}
 
 
