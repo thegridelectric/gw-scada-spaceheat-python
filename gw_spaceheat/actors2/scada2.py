@@ -1,6 +1,7 @@
 """Scada implementation"""
 
 import asyncio
+import threading
 import time
 import typing
 from typing import Any
@@ -527,3 +528,15 @@ class Scada2(ScadaInterface, Proactor):
                 path_dbg |= 0x00000004
         self.generate_event(ScadaDBGEvent(Command=dbg, Path=f"0x{path_dbg:08X}", Count=count_dbg, Msg=""))
         self._logger.path("--_process_scada_dbg  path:0x%08X  count:%d", path_dbg, count_dbg)
+
+    def run_in_thread(self, daemon: bool = True) -> threading.Thread:
+        async def _async_run_forever():
+            try:
+                await self.run_forever()
+            finally:
+                self.stop()
+        def _run_forever():
+            asyncio.run(_async_run_forever())
+        thread = threading.Thread(target=_run_forever, daemon=daemon)
+        thread.start()
+        return thread
