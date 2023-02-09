@@ -142,7 +142,7 @@ tomli==2.0.1
     # via
     #   pep517
     #   pytest
-traitlets==5.1.1
+traitlets==5.4
     # via
     #   ipython
     #   matplotlib-inline

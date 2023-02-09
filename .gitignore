@@ -17,6 +17,8 @@ tmp.csv
 .coverage
 htmlcov
 hacking
+scratch*
+cook.sh
 
 # ignore output
 gw_spaceheat/output/**
@@ -28,3 +30,6 @@ output/**
 cron_last_day.txt
 cron_last_hour.txt
 cron_last_minute.txt
+
+
+layouts/**

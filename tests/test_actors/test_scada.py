@@ -113,7 +113,7 @@ def test_scada_small():
 
     elt_relay_node = layout.node("a.elt1.relay")
 
-    # Throws error if the ShNodeAlias is not equal to the from_node.
+    # Throws error if the AboutNodeName is not equal to the from_node.
 
     with pytest.raises(Exception):
         scada.gt_driver_booleanactuator_cmd_record_received(elt_relay_node, payload)

@@ -37,6 +37,7 @@ class ActorClassMap:
         "b103058f": ActorClass.ATN,
         "dae4b2f0": ActorClass.SIMPLE_SENSOR,
         "99a5f20d": ActorClass.NONE,
+        "7c483ad0": ActorClass.MULTIPURPOSE_SENSOR,
     }
 
     local_to_gt_dict: Dict[ActorClass, str] = {
@@ -47,5 +48,6 @@ class ActorClassMap:
         ActorClass.ATN: "b103058f",
         ActorClass.SIMPLE_SENSOR: "dae4b2f0",
         ActorClass.NONE: "99a5f20d",
+        ActorClass.MULTIPURPOSE_SENSOR: "7c483ad0",
         #
     }

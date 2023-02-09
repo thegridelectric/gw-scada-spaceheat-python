@@ -4,8 +4,10 @@ import sys
 import argparse
 from pathlib import Path
 from typing import Optional, Sequence, Dict, Callable, Tuple, List
+import traceback
 
 import dotenv
+import rich
 
 import load_house
 from logging_setup import setup_logging
@@ -43,7 +45,7 @@ def add_default_args(
     parser.add_argument(
         "-n",
         "--nodes",
-        default=default_nodes or [],
+        default=default_nodes or None,
         nargs="*",
         help="ShNode aliases to load.",
     )
@@ -105,77 +107,87 @@ def run_nodes_main(
     run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
 
 
-async def run_async_actors(
-    aliases: Sequence[str],
-    settings: ScadaSettings,
-    layout: HardwareLayout,
-    actors_package_name: str = Scada2.DEFAULT_ACTORS_MODULE,
-):
+def _get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
+    if args.nodes is None:
+        requested = None
+    else:
+        requested = set(args.nodes)
+        requested.add("a.s")
+        requested.add("a.home")
+    return requested
+
+
+def _get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
     actors_package = importlib.import_module(actors_package_name)
-    scada_node: Optional[ShNode] = None
+    if requested_aliases:
+        requested_nodes = [layout.node(alias) for alias in requested_aliases]
+    else:
+        requested_nodes = layout.nodes.values()
     actor_nodes = []
-
-    for node in [layout.node(alias) for alias in aliases]:
-        if not node.has_actor:
-            raise ValueError(f"ERROR. Node {node.alias} has no actor.")
-        if node.actor_class.value == "Scada":
-            if scada_node is not None:
+    scada_node: Optional[ShNode] = None
+    for node in requested_nodes:
+        if node.role not in [Role.ATN, Role.HOME_ALONE] and node.has_actor:
+            if node.actor_class.value == "Scada":
+                if scada_node is not None:
+                    raise ValueError(
+                        "ERROR. Exactly 1 scada node must be present in alaises. Found at least two ("
+                        f"{node.alias} and {node.alias}"
+                    )
+                scada_node = node
+            elif not getattr(actors_package, node.actor_class.value):
                 raise ValueError(
-                    "ERROR. Exactly 1 scada node must be present in alaises. Found at least two ("
-                    f"{scada_node.alias} and {node.alias}"
+                    f"ERROR. Actor class {node.actor_class.value} for node {node.alias} "
+                    f"not in actors package {actors_package_name}"
                 )
-            scada_node = node
-        elif not getattr(actors_package, node.actor_class.value):
-            raise ValueError(
-                f"ERROR. Actor class {node.actor_class.value} for node {node.alias} "
-                f"not in actors package {actors_package_name}"
-            )
-        else:
-            actor_nodes.append(node)
-
-    scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-    try:
-        await scada.run_forever()
-    finally:
-        scada.stop()
+            else:
+                actor_nodes.append(node)
+    return scada_node, actor_nodes
 
 
-async def run_async_actors_main(
+def get_scada(
     argv: Optional[Sequence[str]] = None,
-    default_nodes: Optional[Sequence[str]] = None,
-):
-    args = parse_args(argv, default_nodes=default_nodes)
+    run_in_thread: bool = False,
+    add_screen_handler: bool = True,
+    actors_package_name: str = Scada2.DEFAULT_ACTORS_MODULE,
+) -> Scada2:
+    args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     settings = ScadaSettings(_env_file=dotenv_file)
     settings.paths.mkdirs()
-    setup_logging(args, settings)
+    setup_logging(args, settings, add_screen_handler=add_screen_handler)
     logger = logging.getLogger(settings.logging.qualified_logger_names()["lifecycle"])
     logger.info("")
     logger.info("run_async_actors_main() starting")
     logger.info("Env file: [%s]  exists:%s", dotenv_file, Path(dotenv_file).exists())
     logger.info("Settings:")
     logger.info(settings.json(sort_keys=True, indent=2))
+    rich.print(settings)
+    requested_aliases = _get_requested_aliases(args)
+    layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
+    scada_node, actor_nodes = _get_actor_nodes(requested_aliases, layout, actors_package_name)
+    scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+    if run_in_thread:
+        scada.run_in_thread()
+    return scada
+
+
+async def run_async_actors_main(argv: Optional[Sequence[str]] = None):
+    exception_logger = logging.getLogger(ScadaSettings().logging.base_log_name)
     try:
+        scada = get_scada(argv)
+        exception_logger = scada.logger
         try:
-            # noinspection PyUnresolvedReferences
-            import rich
-            rich.print(settings)
-        except ImportError:
-            pass
-        if args.nodes is not None:
-            for required_node in ["a.s", "a.home"]:
-                if required_node not in args.nodes:
-                    args.nodes.append(required_node)
-        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=args.nodes)
-        if args.nodes:
-            nodes = [layout.node(alias) for alias in args.nodes]
-        else:
-            nodes = layout.nodes.values()
-        args.nodes = [
-            node.alias
-            for node in filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), nodes)
-        ]
-        await run_async_actors(args.nodes, settings, layout)
-    except:
-        logger.exception("ERROR in run_async_actors_main. Shutting down")
-        raise
+            await scada.run_forever()
+        finally:
+            scada.stop()
+    except SystemExit:
+        pass
+    except KeyboardInterrupt:
+        pass
+    except BaseException as e:
+        # noinspection PyBroadException
+        try:
+            exception_logger.exception(f"ERROR in run_async_actors_main. Shutting down: [{e}] / [{type(e)}]")
+        except:
+            traceback.print_exception(e)
+        raise e

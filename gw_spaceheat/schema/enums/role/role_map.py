@@ -49,6 +49,7 @@ class RoleMap:
         "6ddff83b": Role.ATN,
         "863e50d1": Role.HOME_ALONE,
         "dd975b31": Role.OUTDOORS,
+        "661d7e73": Role.MULTI_CHANNEL_ANALOG_TEMP_SENSOR,
     }
 
     local_to_gt_dict: Dict[Role, str] = {
@@ -71,5 +72,6 @@ class RoleMap:
         Role.ATN: "6ddff83b",
         Role.HOME_ALONE: "863e50d1",
         Role.OUTDOORS: "dd975b31",
+        Role.MULTI_CHANNEL_ANALOG_TEMP_SENSOR: "661d7e73",
         #
     }

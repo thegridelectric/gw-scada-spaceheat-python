@@ -11,6 +11,7 @@ from actors2.power_meter import PowerMeter
 from actors2.scada2 import Scada2
 from actors2.scada_interface import ScadaInterface
 from actors2.simple_sensor import SimpleSensor
+from actors2.multipurpose_sensor import MultipurposeSensor
 from actors2.home_alone import HomeAlone
 
 __all__ = [
@@ -20,6 +21,7 @@ __all__ = [
     "Actor",
     "BooleanActuator",
     "SimpleSensor",
+    "MultipurposeSensor",
     "PowerMeter",
     "GtTelemetryMessage",
     "GtDriverBooleanactuatorCmdResponse",

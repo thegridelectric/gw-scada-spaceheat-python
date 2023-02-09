@@ -26,6 +26,7 @@ from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriv
 from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums import MakeModel
 from schema.enums import Role
+from schema.enums import ActorClass
 from schema.enums import TelemetryName
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
@@ -52,9 +53,13 @@ from schema.gt.cacs import (
 from schema.gt.components import (
     GtPipeFlowSensorComponent_Maker,
 )
-from schema.gt.cacs import GtTempSensorCac_Maker
 from schema.gt.components import (
-    GtTempSensorComponent_Maker,
+    MultipurposeSensorComponentGt_Maker,
+)
+from schema.gt.cacs import MultipurposeSensorCacGt_Maker
+from schema.gt.cacs import SimpleTempSensorCacGt_Maker
+from schema.gt.components import (
+    SimpleTempSensorComponentGt_Maker,
 )
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 
@@ -68,8 +73,10 @@ def load_cacs(layout):
         GtElectricMeterCac_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorCacs"]:
         GtPipeFlowSensorCac_Maker.dict_to_dc(d)
-    for d in layout["TempSensorCacs"]:
-        GtTempSensorCac_Maker.dict_to_dc(d)
+    for d in layout["MultipurposeSensorCacs"]:
+        MultipurposeSensorCacGt_Maker.dict_to_dc(d)
+    for d in layout["SimpleTempSensorCacs"]:
+        SimpleTempSensorCacGt_Maker.dict_to_dc(d)
     for d in layout["OtherCacs"]:
         ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"])
 
@@ -83,8 +90,10 @@ def load_components(layout):
         GtElectricMeterComponent_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorComponents"]:
         GtPipeFlowSensorComponent_Maker.dict_to_dc(d)
-    for d in layout["TempSensorComponents"]:
-        GtTempSensorComponent_Maker.dict_to_dc(d)
+    for d in layout["MultipurposeSensorComponents"]:
+        MultipurposeSensorComponentGt_Maker.dict_to_dc(d)
+    for d in layout["SimpleTempSensorComponents"]:
+        SimpleTempSensorComponentGt_Maker.dict_to_dc(d)
     for camel in layout["OtherComponents"]:
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         Component(**snake_dict)
@@ -285,15 +294,29 @@ class HardwareLayout:
         return list(
             filter(
                 lambda x: (
-                    x.role == Role.TANK_WATER_TEMP_SENSOR
-                    or x.role == Role.BOOLEAN_ACTUATOR
-                    or x.role == Role.PIPE_TEMP_SENSOR
-                    or x.role == Role.PIPE_FLOW_METER
-                    or x.role == Role.ROOM_TEMP_SENSOR
+                    x.actor_class == ActorClass.SIMPLE_SENSOR
+                    or x.actor_class == ActorClass.BOOLEAN_ACTUATOR
                 ),
                 all_nodes,
             )
         )
+
+    @cached_property
+    def all_multipurpose_telemetry_tuples(self) -> List[TelemetryTuple]:
+        all_nodes = list(self.nodes.values())
+        multi_nodes = list(filter(lambda x: (x.actor_class == ActorClass.MULTIPURPOSE_SENSOR), all_nodes))
+        telemetry_tuples = []
+        for node in multi_nodes:
+            for config in node.component.config_list:
+                about_node = self.node(config.AboutNodeName)
+                telemetry_tuples.append(
+                    TelemetryTuple(
+                        AboutNode=about_node,
+                        SensorNode=node,
+                        TelemetryName=config.TelemetryName,
+                    )
+                )
+        return telemetry_tuples
 
     @cached_property
     def my_multipurpose_sensors(self) -> List[ShNode]:
@@ -302,10 +325,11 @@ class HardwareLayout:
         This includes the (unique) power meter, but may also include other roles like thermostats
         and heat pumps."""
         all_nodes = list(self.nodes.values())
-        return list(filter(lambda x: (x.role == Role.POWER_METER), all_nodes))
+        multi_purpose_roles = [Role.POWER_METER, Role.MULTI_CHANNEL_ANALOG_TEMP_SENSOR]
+        return list(filter(lambda x: (x.role in multi_purpose_roles), all_nodes))
 
     @cached_property
     def my_telemetry_tuples(self) -> List[TelemetryTuple]:
         """This will include telemetry tuples from all the multipurpose sensors, the most
         important of which is the power meter."""
-        return self.all_power_meter_telemetry_tuples
+        return self.all_power_meter_telemetry_tuples + self.all_multipurpose_telemetry_tuples

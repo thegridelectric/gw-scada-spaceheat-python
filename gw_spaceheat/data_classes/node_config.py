@@ -9,12 +9,11 @@ from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import (
 from drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBooleanActuatorDriver
 from drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver import UnknownPipeFlowSensorDriver
 
-from drivers.temp_sensor.adafruit_642__temp_sensor_driver import Adafruit642_TempSensorDriver
-from drivers.temp_sensor.g1_ncdads1115_ntc10k__temp_sensor_driver import G1_NcdAds1115_Ntc10k
-from drivers.temp_sensor.gridworks_water_temp_high_precision_temp_sensor_driver import (
-    GridworksWaterTempSensorHighPrecision_TempSensorDriver,
+from drivers.simple_temp_sensor.adafruit_642__simple_temp_sensor_driver import Adafruit642_SimpleTempSensorDriver
+from drivers.simple_temp_sensor.gwsim__simple_temp_sensor_driver import (
+    Gwsim_SimpleTempSensorDriver,
 )
-from drivers.temp_sensor.unknown_temp_sensor_driver import UnknownTempSensorDriver
+from drivers.simple_temp_sensor.unknown_simple_temp_sensor_driver import UnknownSimpleTempSensorDriver
 from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import (
     GtSensorReportingConfig_Maker as ConfigMaker,
 )
@@ -25,7 +24,7 @@ from schema.enums.make_model.make_model_map import MakeModel
 
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
-from data_classes.components.temp_sensor_component import TempSensorComponent
+from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 
 
 class NodeConfig:
@@ -43,8 +42,8 @@ class NodeConfig:
         self.typical_response_time_ms = 0
         if isinstance(node.component, BooleanActuatorComponent):
             self.set_boolean_actuator_config(component=component, settings=settings)
-        elif isinstance(node.component, TempSensorComponent):
-            self.set_temp_sensor_config(component=component, settings=settings)
+        elif isinstance(node.component, SimpleTempSensorComponent):
+            self.set_simple_temp_sensor_config(component=component, settings=settings)
         elif isinstance(node.component, PipeFlowSensorComponent):
             self.set_pipe_flow_sensor_config(component=component, settings=settings)
         if self.reporting is None:
@@ -74,7 +73,7 @@ class NodeConfig:
         else:
             raise NotImplementedError(f"No PipeTempSensor driver yet for {cac.make_model}")
 
-    def set_temp_sensor_config(self, component: TempSensorComponent, settings: ScadaSettings):
+    def set_simple_temp_sensor_config(self, component: SimpleTempSensorComponent, settings: ScadaSettings):
         cac = component.cac
         self.typical_response_time_ms = cac.typical_response_time_ms
         if self.node.reporting_sample_period_s is None:
@@ -89,17 +88,13 @@ class NodeConfig:
             async_report_threshold=None,
         ).tuple
         if cac.make_model == MakeModel.ADAFRUIT__642:
-            self.driver = Adafruit642_TempSensorDriver(component=component, settings=settings)
-        elif cac.make_model == MakeModel.G1__NCD_ADS1115__AMPH_NTC_10K_A:
-            self.driver = G1_NcdAds1115_Ntc10k(component=component, settings=settings)
-        elif cac.make_model == MakeModel.G1__NCD_ADS1115__TEWA_NTC_10K_A:
-            self.driver = G1_NcdAds1115_Ntc10k(component=component, settings=settings)
+            self.driver = Adafruit642_SimpleTempSensorDriver(component=component, settings=settings)
         elif cac.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
-            self.driver = GridworksWaterTempSensorHighPrecision_TempSensorDriver(
+            self.driver = Gwsim_SimpleTempSensorDriver(
                 component=component, settings=settings
             )
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            self.driver = UnknownTempSensorDriver(component=component, settings=settings)
+            self.driver = UnknownSimpleTempSensorDriver(component=component, settings=settings)
         else:
             raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}")
 

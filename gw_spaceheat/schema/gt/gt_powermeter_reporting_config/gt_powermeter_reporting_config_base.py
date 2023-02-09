@@ -1,12 +1,12 @@
 """Base for gt.powermeter.reporting.config.100"""
 import json
 from typing import List, NamedTuple, Optional
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import GtEqReportingConfig
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config import TelemetryReportingConfig
 
 
 class GtPowermeterReportingConfigBase(NamedTuple):
     ReportingPeriodS: int  #
-    ElectricalQuantityReportingConfigList: List[GtEqReportingConfig]
+    ElectricalQuantityReportingConfigList: List[TelemetryReportingConfig]
     PollPeriodMs: int  #
     HwUid: Optional[str] = None
     TypeAlias: str = "gt.powermeter.reporting.config.100"
@@ -43,9 +43,9 @@ class GtPowermeterReportingConfigBase(NamedTuple):
             )
         else:
             for elt in self.ElectricalQuantityReportingConfigList:
-                if not isinstance(elt, GtEqReportingConfig):
+                if not isinstance(elt, TelemetryReportingConfig):
                     errors.append(
-                        f"elt {elt} of ElectricalQuantityReportingConfigList must have type GtEqReportingConfig."
+                        f"elt {elt} of ElectricalQuantityReportingConfigList must have type TelemetryReportingConfig."
                     )
         if not isinstance(self.PollPeriodMs, int):
             errors.append(

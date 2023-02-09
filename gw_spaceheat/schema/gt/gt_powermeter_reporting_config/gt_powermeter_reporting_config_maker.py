@@ -4,9 +4,9 @@ from typing import List, Optional
 
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config import GtPowermeterReportingConfig
 from schema.errors import MpSchemaError
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
-    GtEqReportingConfig,
-    GtEqReportingConfig_Maker,
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
+    TelemetryReportingConfig,
+    TelemetryReportingConfig_Maker,
 )
 
 
@@ -15,7 +15,7 @@ class GtPowermeterReportingConfig_Maker:
 
     def __init__(self,
                  reporting_period_s: int,
-                 electrical_quantity_reporting_config_list: List[GtEqReportingConfig],
+                 electrical_quantity_reporting_config_list: List[TelemetryReportingConfig],
                  poll_period_ms: int,
                  hw_uid: Optional[str]):
 
@@ -62,10 +62,10 @@ class GtPowermeterReportingConfig_Maker:
             if not isinstance(elt, dict):
                 raise MpSchemaError(
                     f"elt {elt} of ElectricalQuantityReportingConfigList must be "
-                    "GtEqReportingConfig but not even a dict!"
+                    "TelemetryReportingConfig but not even a dict!"
                 )
             electrical_quantity_reporting_config_list.append(
-                GtEqReportingConfig_Maker.dict_to_tuple(elt)
+                TelemetryReportingConfig_Maker.dict_to_tuple(elt)
             )
         new_d["ElectricalQuantityReportingConfigList"] = electrical_quantity_reporting_config_list
         if "PollPeriodMs" not in new_d.keys():

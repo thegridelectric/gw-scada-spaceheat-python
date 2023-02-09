@@ -32,12 +32,12 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from schema.enums import MakeModel
 from schema.enums import Role
 from schema.enums import Unit
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
-    GtEqReportingConfig,
+
+from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
+    TelemetryReportingConfig,
+    TelemetryReportingConfig_Maker,
 )
-from schema.gt.gt_eq_reporting_config.gt_eq_reporting_config_maker import (
-    GtEqReportingConfig_Maker,
-)
+
 from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
     GtPowermeterReportingConfig as ReportingConfig,
 )
@@ -83,7 +83,7 @@ class PowerMeter(ActorBase):
                 f"PowerMeter node must be the unique Spaceheat Node of role PowerMeter! Not {self.node}"
             )
 
-        self.eq_reporting_config: Dict[TelemetryTuple, GtEqReportingConfig] = {}
+        self.eq_reporting_config: Dict[TelemetryTuple, TelemetryReportingConfig] = {}
         self.reporting_config: ReportingConfig = self.set_reporting_config(
             component=typing.cast(ElectricMeterComponent, self.node.component)
         )
@@ -132,11 +132,12 @@ class PowerMeter(ActorBase):
         cac = component.cac
         eq_reporting_config_list = []
         for about_node in self.all_metered_nodes():
-            current_config = GtEqReportingConfig_Maker(
-                sh_node_alias=about_node.alias,
+            current_config = TelemetryReportingConfig_Maker(
+                about_node_name=about_node.alias,
                 report_on_change=True,
                 telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 unit=Unit.AMPS_RMS,
+                nameplate_max_value=1000,
                 exponent=6,
                 sample_period_s=self.settings.seconds_per_report,
                 async_report_threshold=self.settings.async_power_reporting_threshold
@@ -149,11 +150,12 @@ class PowerMeter(ActorBase):
             eq_reporting_config_list.append(current_config)
             self.eq_reporting_config[tt] = current_config
 
-            power_config = GtEqReportingConfig_Maker(
-                sh_node_alias=about_node.alias,
+            power_config = TelemetryReportingConfig_Maker(
+                about_node_name=about_node.alias,
                 report_on_change=True,
                 telemetry_name=TelemetryName.POWER_W,
                 unit=Unit.W,
+                nameplate_max_value=1000,
                 exponent=0,
                 sample_period_s=self.settings.seconds_per_report,
                 async_report_threshold=self.settings.async_power_reporting_threshold
