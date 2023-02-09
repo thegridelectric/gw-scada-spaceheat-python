@@ -148,6 +148,7 @@ def get_scada(
     argv: Optional[Sequence[str]] = None,
     run_in_thread: bool = False,
     add_screen_handler: bool = True,
+    all_actors: bool = True,
     actors_package_name: str = Scada2.DEFAULT_ACTORS_MODULE,
 ) -> Scada2:
     args = parse_args(argv)
@@ -163,7 +164,15 @@ def get_scada(
     logger.info(settings.json(sort_keys=True, indent=2))
     rich.print(settings)
     requested_aliases = _get_requested_aliases(args)
-    layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
+    if all_actors:
+        layout = load_house.load_all(settings)
+        requested_aliases = [
+            node.alias
+            for node in
+            filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), layout.nodes.values())
+        ]
+    else:
+        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
     scada_node, actor_nodes = _get_actor_nodes(requested_aliases, layout, actors_package_name)
     scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     if run_in_thread:
