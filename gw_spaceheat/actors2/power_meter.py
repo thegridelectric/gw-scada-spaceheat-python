@@ -264,7 +264,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             if result.value.warnings:
                 self._report_problems(Problems(warnings=result.value.warnings), "startup warning")
         else:
-            self._report_problems(Problems(errors=result.err()), "startup error")
+            self._report_problems(Problems(errors=[result.err()]), "startup error")
 
     def _iterate(self) -> None:
         start_s = time.time()
