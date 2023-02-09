@@ -9,12 +9,6 @@ from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import (
 from drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBooleanActuatorDriver
 from drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver import UnknownPipeFlowSensorDriver
 
-from drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver import (
-    GridworksTsnap1_MultipurposeSensorDriver,
-)
-from drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver import   (
-    UnknownMultipurposeSensorDriver,
-)
 from drivers.simple_temp_sensor.adafruit_642__simple_temp_sensor_driver import Adafruit642_SimpleTempSensorDriver
 from drivers.simple_temp_sensor.gwsim__simple_temp_sensor_driver import (
     Gwsim_SimpleTempSensorDriver,
@@ -30,7 +24,6 @@ from schema.enums.make_model.make_model_map import MakeModel
 
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
-from data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
 from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 
 

@@ -1,7 +1,9 @@
 """Implements MultipurposeSensor via SyncThreadActor and MultipurposeSensorDriverThread.
 A helper class, MultipurposeSensorSetupHelper,
 isolates code used only in  MultipurposeSensorDriverThread constructor. """
-
+import importlib
+import importlib.util
+import sys
 import time
 import typing
 from collections import OrderedDict
@@ -16,26 +18,20 @@ from data_classes.components.multipurpose_sensor_component import (
 )
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver import (
-    GridworksTsnap1_MultipurposeSensorDriver,
-)
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
     TelemetrySpec,
 )
-from drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver import (
-    UnknownMultipurposeSensorDriver,
-)
 from gwproto import Message
-from named_tuples.telemetry_tuple import TelemetryTuple
 from proactor.sync_thread import SyncAsyncInteractionThread
 from problems import Problems
 from schema.enums import MakeModel
 from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
     TelemetryReportingConfig,
-    TelemetryReportingConfig_Maker,
 )
 
+UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
+UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"
 
 class MpDriverThreadSetupHelper:
     """A helper class to isolate code only used in construction of MultipurposeSensorDriverThread"""
@@ -73,20 +69,35 @@ class MpDriverThreadSetupHelper:
         return d
 
     def make_driver(self) -> MultipurposeSensorDriver:
+        driver_module_name = ""
+        driver_class_name = ""
         cac = self.component.cac
         if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver = UnknownMultipurposeSensorDriver(
-                component=self.component, settings=self.settings
-            )
+            driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
+            driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
         elif cac.make_model == MakeModel.GRIDWORKS__TSNAP1:
-            driver = GridworksTsnap1_MultipurposeSensorDriver(
-                component=self.component, settings=self.settings
-            )
-        else:
+            driver_module_name = "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
+            driver_class_name = "GridworksTsnap1_MultipurposeSensorDriver"
+            for module_name in [
+                "board",
+                "busio",
+                "adafruit_ads1x15",
+                "adafruit_ads1x15.ads1115",
+                "adafruit_ads1x15.analog_in",
+            ]:
+                found = importlib.util.find_spec(module_name)
+                if found is None:
+                    driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
+                    driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
+                    break
+        if not driver_module_name or not driver_class_name:
             raise NotImplementedError(
                 f"No MultipurposeSensor driver yet for {cac.make_model}"
             )
-        return driver
+        if driver_module_name not in sys.modules:
+            importlib.import_module(driver_module_name)
+        driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
+        return driver_class(component=self.component, settings=self.settings)
 
 
 class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
@@ -188,7 +199,8 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     def report_sampled_telemetry_values(
         self, report_list: List[TelemetryReportingConfig]
     ):
-        self.message = MultipurposeSensorTelemetryMessage(
+        self._put_to_async_queue(
+            MultipurposeSensorTelemetryMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
                 about_node_alias_list=list(map(lambda x: x.AboutNodeName, report_list)),
@@ -200,13 +212,12 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 ),
                 telemetry_name_list=list(map(lambda x: x.TelemetryName, report_list)),
             )
-        self._put_to_async_queue(
-            self.message
         )
         for tt in report_list:
             self._last_sampled_s[tt] = int(time.time())
             self.last_reported_telemetry_value[tt] = self.latest_telemetry_value[tt]
 
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def value_exceeds_async_threshold(
         self, telemetry_config: TelemetryReportingConfig
     ) -> bool:
