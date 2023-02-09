@@ -107,9 +107,9 @@ def run_nodes_main(
     run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
 
 
-def _get_requested_aliases(args: argparse.Namespace) -> set[str]:
+def _get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
     if args.nodes is None:
-        requested = set()
+        requested = None
     else:
         requested = set(args.nodes)
         requested.add("a.s")
@@ -117,7 +117,7 @@ def _get_requested_aliases(args: argparse.Namespace) -> set[str]:
     return requested
 
 
-def _get_actor_nodes(requested_aliases: set[str], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
+def _get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
     actors_package = importlib.import_module(actors_package_name)
     if requested_aliases:
         requested_nodes = [layout.node(alias) for alias in requested_aliases]
@@ -148,7 +148,6 @@ def get_scada(
     argv: Optional[Sequence[str]] = None,
     run_in_thread: bool = False,
     add_screen_handler: bool = True,
-    all_actors: bool = True,
     actors_package_name: str = Scada2.DEFAULT_ACTORS_MODULE,
 ) -> Scada2:
     args = parse_args(argv)
@@ -164,15 +163,7 @@ def get_scada(
     logger.info(settings.json(sort_keys=True, indent=2))
     rich.print(settings)
     requested_aliases = _get_requested_aliases(args)
-    if all_actors:
-        layout = load_house.load_all(settings)
-        requested_aliases = [
-            node.alias
-            for node in
-            filter(lambda x: (x.role != Role.ATN and x.role != Role.HOME_ALONE and x.has_actor), layout.nodes.values())
-        ]
-    else:
-        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
+    layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
     scada_node, actor_nodes = _get_actor_nodes(requested_aliases, layout, actors_package_name)
     scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     if run_in_thread:
@@ -189,10 +180,14 @@ async def run_async_actors_main(argv: Optional[Sequence[str]] = None):
             await scada.run_forever()
         finally:
             scada.stop()
+    except SystemExit:
+        pass
+    except KeyboardInterrupt:
+        pass
     except BaseException as e:
         # noinspection PyBroadException
         try:
-            exception_logger.exception("ERROR in run_async_actors_main. Shutting down")
+            exception_logger.exception(f"ERROR in run_async_actors_main. Shutting down: [{e}] / [{type(e)}]")
         except:
             traceback.print_exception(e)
         raise e
