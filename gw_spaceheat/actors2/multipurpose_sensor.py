@@ -189,10 +189,10 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             for ts in self.telemetry_specs:
                 telemetry_config = self.config_by_spec[ts]
                 self.latest_telemetry_value[telemetry_config] = reading_by_ts[ts]
-                if read.value.warnings:
-                    self._report_problems(
-                        Problems(warnings=read.value.warnings), "read warnings"
-                    )
+            if read.value.warnings:
+                self._report_problems(
+                    Problems(warnings=read.value.warnings), "read warnings"
+                )
         else:
             raise read.value
 
