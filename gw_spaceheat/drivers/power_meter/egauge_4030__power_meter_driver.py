@@ -86,7 +86,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         now = time.time()
         comm_warnings = []
         if not self._modbus_client.is_open:
-            if first_time:
+            if not first_time:
                 comm_warnings.append(EGaugeHadDisconnect())
             if now - self._last_connect_time > self._curr_connect_delay:
                 self._curr_connect_delay = min(
@@ -142,7 +142,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                             num_registers=2,
                             register_type=RegisterType.f32,
                             value=unclipped_int_power,
-                            msg=f"Power value {unclipped_int_power} clipped to \[{MIN_POWER}, {MAX_POWER}] resultin in: {int_power}",
+                            msg=rf"Power value {unclipped_int_power} clipped to \[{MIN_POWER}, {MAX_POWER}] resultin in: {int_power}",
                         )
                     )
                 return Ok(DriverResult(int_power, connect_result.value.warnings))
