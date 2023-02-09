@@ -3,11 +3,7 @@ import sys
 from enum import Enum
 from typing import Dict, List
 
-from actors2.config import ScadaSettings
-from drivers.driver_result import DriverResult
 from result import Err, Ok, Result
-
-DEFAULT_BAD_VALUE = -5
 
 # noinspection PyUnresolvedReferences
 import adafruit_ads1x15.ads1115 as ADS
@@ -22,15 +18,20 @@ import busio
 from adafruit_ads1x15.analog_in import AnalogIn
 
 
+from actors2.config import ScadaSettings
 from data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
+from drivers.driver_result import DriverResult
+from drivers.exceptions import DriverError
 from drivers.exceptions import DriverWarning
-from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
-    MultipurposeSensorDriver, TelemetrySpec)
+from drivers.multipurpose_sensor.multipurpose_sensor_driver import MultipurposeSensorDriver
+from drivers.multipurpose_sensor.multipurpose_sensor_driver import TelemetrySpec
 from schema.enums import TelemetryName
 from schema.enums.make_model.make_model_map import MakeModel
 
+DEFAULT_BAD_VALUE = -5
 
-class SetCompareWarning(DriverWarning):
+
+class SetCompareError(DriverError):
     expected: set
     got: set
 
@@ -56,15 +57,15 @@ class SetCompareWarning(DriverWarning):
         return s
 
 
-class TSnap1WrongTelemetryList(SetCompareWarning):
+class TSnap1WrongTelemetryList(SetCompareError):
     ...
 
 
-class TSnap1BadChannelList(SetCompareWarning):
+class TSnap1BadChannelList(SetCompareError):
     ...
 
 
-class TSnap1NoI2cBus(DriverWarning):
+class TSnap1NoI2cBus(DriverError):
     SCL: str
     SDA: str
 
@@ -107,7 +108,7 @@ class TSnapI2cAddressMissing(DriverWarning):
         return s
 
 
-class TSnap1ComponentMisconfigured(DriverWarning):
+class TSnap1ComponentMisconfigured(DriverError):
     ...
 
 
@@ -181,6 +182,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             return Err(TSnap1NoI2cBus(str(board.SCL), str(board.SDA), msg=str(e)).with_traceback(sys.exc_info()[2]))
 
         self.ads = {}
+        start_result = DriverResult(True)
         for idx, addr in [
             (0, self.ADS_1_I2C_ADDRESS),
             (1, self.ADS_2_I2C_ADDRESS),
@@ -189,32 +191,33 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             try:
                 self.ads[idx] = ADS.ADS1115(address=addr, i2c=self.i2c)
                 self.ads[idx].gain = self.ADS_GAIN
-            except BaseException as e:
-                return Err(TSnapI2cAddressMissing(addr, msg=str(e)).with_traceback(sys.exc_info()[2]))
-        return Ok(DriverResult(True))
+            except ValueError as e:
+                start_result.warnings.append(
+                    TSnapI2cAddressMissing(addr, msg=str(e)).with_traceback(sys.exc_info()[2])
+                )
+        return Ok(start_result)
 
     def read_telemetry_values(
         self, channel_telemetry_list: List[TelemetrySpec]
     ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
         result: Dict[TelemetrySpec, int] = {}
-
         for ts in channel_telemetry_list:
             i = int(ts.ChannelIdx / 4)
-            j = (ts.ChannelIdx - 1) % 4
-            if j == 0:
-                channel = AnalogIn(self.ads[i], ADS.P0)
-            elif j == 1:
-                channel = AnalogIn(self.ads[i], ADS.P1)
-            elif j == 2:
-                channel = AnalogIn(self.ads[i], ADS.P2)
-            else:
-                channel = AnalogIn(self.ads[i], ADS.P3)
-            voltage = channel.voltage
-            temp_c = self.thermistor_temp_c_beta_formula(voltage)
-            if not ts.Type == TelemetryName.WATER_TEMP_C_TIMES1000:
-                return Err(TSnap1ComponentMisconfigured())
-            result[ts] = int(temp_c * 1000)
-
+            if i in self.ads:
+                j = (ts.ChannelIdx - 1) % 4
+                if j == 0:
+                    channel = AnalogIn(self.ads[i], ADS.P0)
+                elif j == 1:
+                    channel = AnalogIn(self.ads[i], ADS.P1)
+                elif j == 2:
+                    channel = AnalogIn(self.ads[i], ADS.P2)
+                else:
+                    channel = AnalogIn(self.ads[i], ADS.P3)
+                voltage = channel.voltage
+                temp_c = self.thermistor_temp_c_beta_formula(voltage)
+                if not ts.Type == TelemetryName.WATER_TEMP_C_TIMES1000:
+                    return Err(TSnap1ComponentMisconfigured(str(ts)))
+                result[ts] = int(temp_c * 1000)
         return Ok(DriverResult(result))
 
     @classmethod

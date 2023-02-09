@@ -23,6 +23,8 @@ from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     TelemetrySpec,
 )
 from gwproto import Message
+
+from proactor.message import InternalShutdownMessage
 from proactor.sync_thread import SyncAsyncInteractionThread
 from problems import Problems
 from schema.enums import MakeModel
@@ -165,6 +167,9 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 )
         else:
             self._report_problems(Problems(errors=[result.err()]), "startup error")
+            self._put_to_async_queue(
+                InternalShutdownMessage(Src=self.name, Reason=f"Driver start error for {self.name}")
+            )
 
     def _iterate(self) -> None:
         start_s = time.time()
@@ -187,8 +192,9 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         if read.is_ok():
             reading_by_ts = read.value.value
             for ts in self.telemetry_specs:
-                telemetry_config = self.config_by_spec[ts]
-                self.latest_telemetry_value[telemetry_config] = reading_by_ts[ts]
+                if ts in reading_by_ts:
+                    telemetry_config = self.config_by_spec[ts]
+                    self.latest_telemetry_value[telemetry_config] = reading_by_ts[ts]
             if read.value.warnings:
                 self._report_problems(
                     Problems(warnings=read.value.warnings), "read warnings"
