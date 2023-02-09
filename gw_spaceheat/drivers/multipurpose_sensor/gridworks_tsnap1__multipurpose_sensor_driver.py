@@ -127,6 +127,7 @@ THERMISTOR_BETA = 3977
 # Then, there is our pull-up resistor
 VOLTAGE_DIVIDER_R_OHMS = 8200
 
+
 class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
     ADS_1_I2C_ADDRESS = 0x48
     ADS_2_I2C_ADDRESS = 0x49

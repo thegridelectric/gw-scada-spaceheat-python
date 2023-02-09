@@ -30,6 +30,5 @@ class UnknownMultipurposeSensorDriver(MultipurposeSensorDriver):
         return "UnknownMultipurposeSensorDriver"
 
     def read_telemetry_values(self, channel_telemetry_list: List[TelemetrySpec]) -> Result[
-        DriverResult[Dict[TelemetrySpec, int]], Exception]:
+            DriverResult[Dict[TelemetrySpec, int]], Exception]:
         pass
-

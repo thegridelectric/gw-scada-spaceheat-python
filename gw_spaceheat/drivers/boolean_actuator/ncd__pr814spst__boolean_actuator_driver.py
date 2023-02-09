@@ -71,4 +71,3 @@ else:
 
         def is_on(self):
             raise NotImplementedError
-

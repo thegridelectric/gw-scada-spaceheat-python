@@ -35,6 +35,7 @@ from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker impor
 UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
 UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"
 
+
 class MpDriverThreadSetupHelper:
     """A helper class to isolate code only used in construction of MultipurposeSensorDriverThread"""
 
