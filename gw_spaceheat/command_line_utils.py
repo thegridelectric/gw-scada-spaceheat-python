@@ -45,7 +45,7 @@ def add_default_args(
     parser.add_argument(
         "-n",
         "--nodes",
-        default=default_nodes or [],
+        default=default_nodes or None,
         nargs="*",
         help="ShNode aliases to load.",
     )
