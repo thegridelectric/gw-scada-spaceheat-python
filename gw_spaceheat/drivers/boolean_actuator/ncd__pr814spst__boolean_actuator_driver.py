@@ -43,6 +43,7 @@ if DRIVER_IS_REAL:
             gpio_output_map = {0, 1, 2, 3}
             kwargs = {"address": COMPONENT_I2C_ADDRESS, "gpio_output_map": gpio_output_map}
             self.mcp23008_driver = mcp23008(bus, kwargs)
+            self.last_val = 0
 
         def turn_on(self):
             self.mcp23008_driver.turn_on_relay(self.component.gpio)
@@ -52,9 +53,11 @@ if DRIVER_IS_REAL:
 
         def is_on(self) -> int:
             try:
-                result = self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
-            except:
-                return I2CErrorEnum.READ_ERROR
+               result = self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
+               self.last_val = result
+            except Exception as e:
+                print(f"READ ERROR: {e} / {type(e)}")
+                result = self.last_val
             if not property_format.is_bit(result):
                 raise Exception(f"{ MakeModel.NCD__PR814SPST} returned {result}, expected 0 or 1!")
             return int(result)
@@ -71,3 +74,4 @@ else:
 
         def is_on(self):
             raise NotImplementedError
+
