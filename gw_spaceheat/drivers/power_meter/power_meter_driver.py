@@ -33,13 +33,13 @@ class PowerMeterDriver(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def read_power_w(self) -> Result[DriverResult[int], Exception]:
+    def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError
 
     def telemetry_name_list(self) -> List[TelemetryName]:
         return self.component.cac.telemetry_name_list()
 
-    def read_telemetry_value(self, telemetry_name: TelemetryName) -> Result[DriverResult[int], Exception]:
+    def read_telemetry_value(self, telemetry_name: TelemetryName) -> Result[DriverResult[int | None], Exception]:
         if telemetry_name not in self.telemetry_name_list():
             raise Exception(f"driver for {self.component.cac} does not read {telemetry_name}")
         if telemetry_name == TelemetryName.CURRENT_RMS_MICRO_AMPS:

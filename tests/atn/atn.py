@@ -271,13 +271,18 @@ class Atn2(ActorInterface, Proactor):
                 self.data.relay_state[node].LastChangeTimeUnixMs = int(time.time() * 1000)
 
         s = "\n\nSnapshot received:\n"
-
         for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
-            s += (
-                f"  {snapshot.Snapshot.AboutNodeAliasList[i]}: "
-                f"{snapshot.Snapshot.ValueList[i]} "
-                f"{snapshot.Snapshot.TelemetryNameList[i].value}\n"
-            )
+            telemetry_name = snapshot.Snapshot.TelemetryNameList[i]
+            if (telemetry_name == TelemetryName.WATER_TEMP_C_TIMES1000 or
+               telemetry_name == TelemetryName.WATER_TEMP_C_TIMES1000.value
+            ):
+                extra = f"{snapshot.Snapshot.ValueList[i]/1000:5.2f} C"
+            else:
+                extra = (
+                    f"{snapshot.Snapshot.ValueList[i]} "
+                    f"{snapshot.Snapshot.TelemetryNameList[i].value}"
+                )
+            s += f"  {snapshot.Snapshot.AboutNodeAliasList[i]}: {extra}\n"
         # s += f"snapshot is None:{snapshot is None}\n"
         # s += "json.dumps(snapshot.asdict()):\n"
         # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
