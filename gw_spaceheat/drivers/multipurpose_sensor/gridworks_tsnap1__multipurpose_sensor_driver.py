@@ -103,7 +103,32 @@ class TSnapI2cAddressMissing(DriverWarning):
         super_str = super().__str__()
         if super_str:
             s += f" <{super_str}>"
-        s += f"   address:{self.address}"
+        s += f"   address:0x{self.address:02X}"
+        return s
+
+class TSnapI2cReadWarning(DriverWarning):
+    idx: int
+    address: int
+    pin: int
+
+    def __init__(
+        self,
+        idx: int,
+        address: int,
+        pin: int,
+        msg: str = "",
+    ):
+        super().__init__(msg)
+        self.idx = idx
+        self.address = address
+        self.pin = pin
+
+    def __str__(self):
+        s = self.__class__.__name__
+        super_str = super().__str__()
+        if super_str:
+            s += f" <{super_str}>"
+        s += f"   idx:{self.idx}  address:0x{self.address:02X}  pin:{self.pin}"
         return s
 
 
@@ -196,26 +221,29 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
     def read_telemetry_values(
         self, channel_telemetry_list: List[TelemetrySpec]
     ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
-        result: Dict[TelemetrySpec, int] = {}
-
+        driver_result = DriverResult[Dict[TelemetrySpec, int]]({})
+        pins = [ADS.P0, ADS.P1, ADS.P2, ADS.P3]
         for ts in channel_telemetry_list:
-            i = int((ts.ChannelIdx - 1) / 4)
-            j = (ts.ChannelIdx - 1) % 4
-            if j == 0:
-                channel = AnalogIn(self.ads[i], ADS.P0)
-            elif j == 1:
-                channel = AnalogIn(self.ads[i], ADS.P1)
-            elif j == 2:
-                channel = AnalogIn(self.ads[i], ADS.P2)
-            else:
-                channel = AnalogIn(self.ads[i], ADS.P3)
-            voltage = channel.voltage
-            temp_c = self.thermistor_temp_c_beta_formula(voltage)
-            if not ts.Type == TelemetryName.WATER_TEMP_C_TIMES1000:
-                return Err(TSnap1ComponentMisconfigured())
-            result[ts] = int(temp_c * 1000)
-
-        return Ok(DriverResult(result))
+            i = int(ts.ChannelIdx / 4)
+            if i in self.ads:
+                j = (ts.ChannelIdx - 1) % 4
+                pin = pins[j]
+                channel = AnalogIn(self.ads[i], pin)
+                voltage = channel.voltage
+                if voltage >= PI_VOLTAGE:
+                    driver_result.warnings.append(
+                        TSnapI2cReadWarning(
+                            idx=i,
+                            address=self.ads[i].i2c_device.device_address,
+                            pin = pin
+                        )
+                    )
+                    continue
+                temp_c = self.thermistor_temp_c_beta_formula(voltage)
+                if not ts.Type == TelemetryName.WATER_TEMP_C_TIMES1000:
+                    return Err(TSnap1ComponentMisconfigured(str(ts)))
+                driver_result.value[ts] = int(temp_c * 1000)
+        return Ok(driver_result)
 
     @classmethod
     def thermistor_temp_c_beta_formula(cls, voltage: float) -> float:
