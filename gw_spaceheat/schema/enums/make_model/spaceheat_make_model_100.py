@@ -13,13 +13,13 @@ class MakeModel(enum.Enum):
     EGAUGE__4030 = "Egauge__4030"
     NCD__PR814SPST = "NCD__PR8-14-SPST"
     ADAFRUIT__642 = "Adafruit__642"
-    GRIDWORKS__TSNAP1 = "Gridworks__TSnap1"
+    GRIDWORKS__TSNAP1 = "GridWorks__TSnap1"
     GRIDWORKS__WATERTEMPHIGHPRECISION = "GridWorks__WaterTempHighPrecision"
     GRIDWORKS__SIMPM1 = "Gridworks__SimPm1"
     SCHNEIDERELECTRIC__IEM3455 = "SchneiderElectric__Iem3455"
     GRIDWORKS__SIMBOOL30AMPRELAY = "GridWorks__SimBool30AmpRelay"
     OPENENERGY__EMONPI = "OpenEnergy__EmonPi"
-    
+    GRIDWORKS__SIMTSNAP1 = "Gridworks__SimTSnap1"
 
     #
 
@@ -36,7 +36,7 @@ class SpaceheatMakeModel100GtEnum(ABC):
         "d300635e",
         "e81d74a8",
         "c75d269f",
-        
+        "3042c432",
 
         #
     ]

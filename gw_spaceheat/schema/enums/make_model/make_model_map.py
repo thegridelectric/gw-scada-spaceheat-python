@@ -40,6 +40,7 @@ class MakeModelMap:
         "d300635e": MakeModel.SCHNEIDERELECTRIC__IEM3455,
         "e81d74a8": MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY,
         "c75d269f": MakeModel.OPENENERGY__EMONPI,
+        "3042c432": MakeModel.GRIDWORKS__SIMTSNAP1,
         
         
 
@@ -57,7 +58,7 @@ class MakeModelMap:
         MakeModel.SCHNEIDERELECTRIC__IEM3455: "d300635e",
         MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY: "e81d74a8",
         MakeModel.OPENENERGY__EMONPI: "c75d269f",
+        MakeModel.GRIDWORKS__SIMTSNAP1: "3042c432",
 
-        
         #
     }
