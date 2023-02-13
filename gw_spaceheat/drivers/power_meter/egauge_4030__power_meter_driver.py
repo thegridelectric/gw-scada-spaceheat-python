@@ -99,6 +99,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         self._modbus_client = ModbusClient(**self._client_settings.dict())
 
     def try_connect(self, first_time: bool = False) -> Result[DriverResult, Exception]:
+
         now = time.time()
         comm_warnings = []
         if not self._modbus_client.is_open:
@@ -136,6 +137,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                         num_registers=8,
                         register_type=RegisterType.t16,
                         value=None,
+                        client=self._modbus_client
                     )
                 )
         else:
@@ -171,7 +173,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                             register_type=RegisterType.f32,
                             value=unclipped_int_power,
                             client=self._modbus_client,
-                            msg=rf"Power value {unclipped_int_power} clipped to \[{MIN_POWER}, {MAX_POWER}] resultin in: {int_power}",
+                            msg=rf"Power value {unclipped_int_power} clipped to \[{MIN_POWER}, {MAX_POWER}] result: {driver_result.value}",
                         )
                     )
             return Ok(driver_result)
