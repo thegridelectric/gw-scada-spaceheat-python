@@ -224,7 +224,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         driver_result = DriverResult[Dict[TelemetrySpec, int]]({})
         pins = [ADS.P0, ADS.P1, ADS.P2, ADS.P3]
         for ts in channel_telemetry_list:
-            i = int(ts.ChannelIdx / 4)
+            i = int((ts.ChannelIdx - 1) / 4)
             if i in self.ads:
                 j = (ts.ChannelIdx - 1) % 4
                 pin = pins[j]
