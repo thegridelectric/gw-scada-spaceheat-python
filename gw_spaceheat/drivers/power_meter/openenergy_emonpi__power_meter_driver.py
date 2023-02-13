@@ -67,7 +67,7 @@ class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
     def read_hw_uid(self) -> Result[DriverResult[str], Exception]:
         return Ok(DriverResult("1001ab"))
 
-    def read_power_w(self) -> Result[DriverResult[int], Exception]:
+    def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
         return Ok(DriverResult(self.power_w))
 
     def start(self) -> Result[DriverResult[bool], Exception]:

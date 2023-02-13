@@ -61,7 +61,7 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         data_bytes = self.read_register_raw(self.SERIAL_NUMBER_ADDR, 2, np.uint32)
         return Ok(DriverResult(f"{str(data_bytes[0])}_{str(data_bytes[1])}"))
 
-    def read_power_w(self) -> Result[DriverResult[int], Exception]:
+    def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError
 
     def telemetry_name_list(self) -> List[TelemetryName]:

@@ -26,7 +26,7 @@ class UnknownPowerMeterDriver(PowerMeterDriver):
     def read_hw_uid(self) -> Result[DriverResult[str], Exception]:
         return Ok(DriverResult(""))
 
-    def read_power_w(self) -> Result[DriverResult[int], Exception]:
+    def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
         return Ok(DriverResult(0))
 
     def telemetry_name_list(self) -> List[TelemetryName]:

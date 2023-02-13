@@ -288,7 +288,8 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         for tt in self._hardware_layout.all_power_meter_telemetry_tuples:
             read = self.driver.read_telemetry_value(tt.TelemetryName)
             if read.is_ok():
-                self.latest_telemetry_value[tt] = read.value.value
+                if read.value.value is not None:
+                    self.latest_telemetry_value[tt] = read.value.value
                 if read.value.warnings:
                     self._report_problems(Problems(warnings=read.value.warnings), "read warnings")
             else:

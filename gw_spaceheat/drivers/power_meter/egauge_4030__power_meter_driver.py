@@ -23,6 +23,12 @@ class EGaugeReadFailed(DriverWarning):
     num_registers: int
     register_type: RegisterType
     value: Any
+    client_error: int
+    client_error_text: str
+    client_except: int
+    client_except_summary: str
+    client_except_details: str
+
 
     def __init__(
             self,
@@ -30,6 +36,7 @@ class EGaugeReadFailed(DriverWarning):
             num_registers: int,
             register_type: RegisterType,
             value: Any,
+            client: ModbusClient,
             msg: str = "",
     ):
         super().__init__(msg)
@@ -37,6 +44,11 @@ class EGaugeReadFailed(DriverWarning):
         self.num_registers = num_registers
         self.register_type = register_type
         self.value = value
+        self.client_error = client.last_error
+        self.client_error_text = client.last_error_as_txt
+        self.client_except = client.last_except
+        self.client_except_summary = client.last_except_as_txt
+        self.client_except_details = client.last_except_as_full_txt
 
     def __str__(self):
         s = self.__class__.__name__
@@ -45,7 +57,11 @@ class EGaugeReadFailed(DriverWarning):
             s += f" <{super_str}>"
         s += (
             f"  offset: {self.offset}  num_registers: {self.num_registers}  "
-            f"  {self.register_type.value}  received: <{self.value}>"
+            f"  {self.register_type.value}  received: <{self.value}>\n"
+            f"  PyModubsTCP client info:\n"
+            f"    error:{self.client_error}  <{self.client_error_text}>\n"
+            f"    except:{self.client_error}  <{self.client_except_summary}>\n"
+            f"    except:<{self.client_except_details}>"
         )
         return s
 
@@ -125,35 +141,39 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         else:
             return connect_result
 
-    def read_power_w(self) -> Result[DriverResult[int], Exception]:
+    def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
         connect_result = self.try_connect()
         if connect_result.is_ok():
             _, _, power = readF32(self._modbus_client, self.component.modbus_power_register)
-            if power is not None:
-                int_power = int(power)
-                if not property_format.is_short_integer(int_power):
-                    unclipped_int_power = int_power
-                    MIN_POWER = -2**15
-                    MAX_POWER = 2**15 - 1
-                    int_power = max(MIN_POWER, min(int(int_power), MAX_POWER))
-                    connect_result.value.warnings.append(
-                        EGaugeReadOutOfRange(
-                            offset=self.component.modbus_power_register,
-                            num_registers=2,
-                            register_type=RegisterType.f32,
-                            value=unclipped_int_power,
-                            msg=rf"Power value {unclipped_int_power} clipped to \[{MIN_POWER}, {MAX_POWER}] resultin in: {int_power}",
-                        )
-                    )
-                return Ok(DriverResult(int_power, connect_result.value.warnings))
-            else:
-                return Err(
+            returned_power: int | None
+            driver_result: DriverResult[int | None] = DriverResult(None, connect_result.value.warnings)
+            if power is None:
+                driver_result.warnings.append(
                     EGaugeReadFailed(
                         offset=self.component.modbus_power_register,
                         num_registers=2,
                         register_type=RegisterType.f32,
                         value=None,
+                        client=self._modbus_client,
                     )
                 )
+            else:
+                driver_result.value = int(power)
+                if not property_format.is_short_integer(driver_result.value):
+                    unclipped_int_power = driver_result.value
+                    MIN_POWER = -2**15
+                    MAX_POWER = 2**15 - 1
+                    driver_result.value = max(MIN_POWER, min(int(driver_result.value), MAX_POWER))
+                    driver_result.warnings.append(
+                        EGaugeReadOutOfRange(
+                            offset=self.component.modbus_power_register,
+                            num_registers=2,
+                            register_type=RegisterType.f32,
+                            value=unclipped_int_power,
+                            client=self._modbus_client,
+                            msg=rf"Power value {unclipped_int_power} clipped to \[{MIN_POWER}, {MAX_POWER}] resultin in: {int_power}",
+                        )
+                    )
+            return Ok(driver_result)
         else:
             return connect_result
