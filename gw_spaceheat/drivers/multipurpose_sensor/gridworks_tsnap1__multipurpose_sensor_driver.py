@@ -199,7 +199,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         result: Dict[TelemetrySpec, int] = {}
 
         for ts in channel_telemetry_list:
-            i = int(ts.ChannelIdx / 4)
+            i = int((ts.ChannelIdx - 1) / 4)
             j = (ts.ChannelIdx - 1) % 4
             if j == 0:
                 channel = AnalogIn(self.ads[i], ADS.P0)
