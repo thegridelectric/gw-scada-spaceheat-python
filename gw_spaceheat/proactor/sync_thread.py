@@ -26,16 +26,9 @@ def responsive_sleep(
     specificed seconds, at after each step checking obj._main_loop_running. If the designated running_field_name actually
     indicates that a stop has been requested (e.g. what you would expect from a field named '_stop_requested'),
     set running_field parameter to False."""
-    sleeps = int(seconds / step_duration)
-    if sleeps * step_duration != seconds:
-        last_sleep = seconds - (sleeps * step_duration)
-    else:
-        last_sleep = 0
-    for _ in range(sleeps):
-        if getattr(obj, running_field_name) == running_field:
-            time.sleep(step_duration)
-    if getattr(obj, running_field_name) == running_field and last_sleep > 0:
-        time.sleep(last_sleep)
+    end_time = time.time() + seconds
+    while getattr(obj, running_field_name) == running_field and (now := time.time()) < end_time:
+        time.sleep(min(end_time - now, step_duration))
     return getattr(obj, running_field_name) == running_field
 
 class AsyncQueueWriter:
@@ -99,7 +92,7 @@ class SyncAsyncInteractionThread(threading.Thread, ABC):
     semantics.
     """
 
-    SLEEP_STEP_SECONDS = 0.01
+    SLEEP_STEP_SECONDS = 0.1
     PAT_TIMEOUT = 20
 
     _channel: SyncAsyncQueueWriter
