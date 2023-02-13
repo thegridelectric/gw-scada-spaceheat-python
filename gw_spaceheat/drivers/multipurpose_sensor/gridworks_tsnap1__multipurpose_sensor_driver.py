@@ -106,6 +106,7 @@ class TSnapI2cAddressMissing(DriverWarning):
         s += f"   address:0x{self.address:02X}"
         return s
 
+
 class TSnapI2cReadWarning(DriverWarning):
     idx: int
     address: int
@@ -235,7 +236,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                         TSnapI2cReadWarning(
                             idx=i,
                             address=self.ads[i].i2c_device.device_address,
-                            pin = pin
+                            pin=pin
                         )
                     )
                     continue
