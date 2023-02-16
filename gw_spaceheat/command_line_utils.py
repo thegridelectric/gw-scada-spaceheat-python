@@ -107,7 +107,7 @@ def run_nodes_main(
     run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
 
 
-def _get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
+def get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
     if args.nodes is None:
         requested = None
     else:
@@ -117,7 +117,7 @@ def _get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
     return requested
 
 
-def _get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
+def get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
     actors_package = importlib.import_module(actors_package_name)
     if requested_aliases:
         requested_nodes = [layout.node(alias) for alias in requested_aliases]
@@ -162,9 +162,9 @@ def get_scada(
     logger.info("Settings:")
     logger.info(settings.json(sort_keys=True, indent=2))
     rich.print(settings)
-    requested_aliases = _get_requested_aliases(args)
+    requested_aliases = get_requested_aliases(args)
     layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
-    scada_node, actor_nodes = _get_actor_nodes(requested_aliases, layout, actors_package_name)
+    scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, actors_package_name)
     scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     if run_in_thread:
         scada.run_in_thread()

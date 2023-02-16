@@ -38,3 +38,6 @@ class Component(ABC, StreamlinedSerializerMixin):
     @property
     def component_attribute_class(self) -> ComponentAttributeClass:
         return ComponentAttributeClass.by_id[self.component_attribute_class_id]
+
+    def __repr__(self):
+        return self.display_name

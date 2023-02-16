@@ -22,3 +22,6 @@ class ComponentAttributeClass(ABC, StreamlinedSerializerMixin):
     def __init__(self, component_attribute_class_id: str, display_name: Optional[str] = None):
         self.component_attribute_class_id = component_attribute_class_id
         self.display_name = display_name
+
+    def __repr__(self):
+        return self.display_name if self.display_name else self.component_attribute_class_id
