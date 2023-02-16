@@ -106,6 +106,7 @@ class TSnapI2cAddressMissing(DriverWarning):
         s += f"   address:0x{self.address:02X}"
         return s
 
+
 class TSnapI2cReadWarning(DriverWarning):
     idx: int
     address: int
