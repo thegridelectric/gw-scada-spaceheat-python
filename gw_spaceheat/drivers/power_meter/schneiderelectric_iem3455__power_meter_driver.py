@@ -53,10 +53,10 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         data_as_float = data_bytes.view(dtype=np.float32)
         return int(10**6 * data_as_float[0])
 
-    def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
+    def read_current_rms_micro_amps(self) -> Result[DriverResult[int | None], Exception]:
         return Ok(DriverResult(self.read_register_exp_6(self.CURRENT_RMS_MICRO_A_ADDR)))
 
-    def read_hw_uid(self) -> Result[DriverResult[str], Exception]:
+    def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
         """returns the serial number of the Schneider Electric meter as a string"""
         data_bytes = self.read_register_raw(self.SERIAL_NUMBER_ADDR, 2, np.uint32)
         return Ok(DriverResult(f"{str(data_bytes[0])}_{str(data_bytes[1])}"))

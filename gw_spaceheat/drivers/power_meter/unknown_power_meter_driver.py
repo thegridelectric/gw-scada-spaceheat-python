@@ -20,7 +20,7 @@ class UnknownPowerMeterDriver(PowerMeterDriver):
     def __repr__(self):
         return "UnknownPowerMeterDriver"
 
-    def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
+    def read_current_rms_micro_amps(self) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError
 
     def read_hw_uid(self) -> Result[DriverResult[str], Exception]:

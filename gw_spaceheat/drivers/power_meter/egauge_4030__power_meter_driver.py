@@ -121,23 +121,28 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     def start(self) -> Result[DriverResult[bool], Exception]:
         return self.try_connect(first_time=True)
 
-    def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
+    def read_current_rms_micro_amps(self) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError
 
-    def read_hw_uid(self) -> Result[DriverResult[str], Exception]:
+    def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
         connect_result = self.try_connect()
         if connect_result.is_ok():
             _, _, bytes_ = readT16(self._modbus_client, self.component.modbus_hw_uid_register)
             if bytes_ is not None:
                 return Ok(DriverResult(bytes_.decode("utf-8"), connect_result.value.warnings))
             else:
-                return Err(
-                    EGaugeReadFailed(
-                        offset=self.component.modbus_hw_uid_register,
-                        num_registers=8,
-                        register_type=RegisterType.t16,
-                        value=None,
-                        client=self._modbus_client
+                return Ok(
+                    DriverResult(
+                        None,
+                        connect_result.value.warnings + [
+                            EGaugeReadFailed(
+                                offset=self.component.modbus_hw_uid_register,
+                                num_registers=8,
+                                register_type=RegisterType.t16,
+                                value=None,
+                                client=self._modbus_client
+                            )
+                        ]
                     )
                 )
         else:

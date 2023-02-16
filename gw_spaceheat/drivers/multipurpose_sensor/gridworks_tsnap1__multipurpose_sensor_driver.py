@@ -205,6 +205,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         except BaseException as e:
             return Err(TSnap1NoI2cBus(str(board.SCL), str(board.SDA), msg=str(e)).with_traceback(sys.exc_info()[2]))
 
+        driver_result = DriverResult(True)
         self.ads = {}
         for idx, addr in [
             (0, self.ADS_1_I2C_ADDRESS),
@@ -212,37 +213,59 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             (2, self.ADS_3_I2C_ADDRESS),
         ]:
             try:
-                self.ads[idx] = ADS.ADS1115(address=addr, i2c=self.i2c)
-                self.ads[idx].gain = self.ADS_GAIN
+                ads1115 = ADS.ADS1115(address=addr, i2c=self.i2c)
+                ads1115.gain = self.ADS_GAIN
             except BaseException as e:
-                return Err(TSnapI2cAddressMissing(addr, msg=str(e)).with_traceback(sys.exc_info()[2]))
-        return Ok(DriverResult(True))
+                driver_result.warnings.append(TSnapI2cAddressMissing(addr, msg=str(e)).with_traceback(sys.exc_info()[2]))
+                continue
+            self.ads[idx] = ads1115
+        return Ok(driver_result)
 
-    def read_telemetry_values(
-        self, channel_telemetry_list: List[TelemetrySpec]
-    ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
-        driver_result = DriverResult[Dict[TelemetrySpec, int]]({})
-        pins = [ADS.P0, ADS.P1, ADS.P2, ADS.P3]
-        for ts in channel_telemetry_list:
-            i = int((ts.ChannelIdx - 1) / 4)
-            if i in self.ads:
-                j = (ts.ChannelIdx - 1) % 4
-                pin = pins[j]
+    def read_voltage(self, ts:TelemetrySpec) -> Result[DriverResult[float | None], Exception]:
+        driver_result = DriverResult[float | None](None)
+        i = int((ts.ChannelIdx - 1) / 4)
+        if i in self.ads:
+            pin = [ADS.P0, ADS.P1, ADS.P2, ADS.P3][(ts.ChannelIdx - 1) % 4]
+            try:
                 channel = AnalogIn(self.ads[i], pin)
                 voltage = channel.voltage
+            except OSError as e:
+                driver_result.warnings.append(e)
+                driver_result.warnings.append(
+                    TSnapI2cReadWarning(
+                        idx=i,
+                        address=self.ads[i].i2c_device.device_address,
+                        pin=pin
+                    )
+                )
+            else:
                 if voltage >= PI_VOLTAGE:
                     driver_result.warnings.append(
                         TSnapI2cReadWarning(
                             idx=i,
                             address=self.ads[i].i2c_device.device_address,
-                            pin = pin
+                            pin=pin
                         )
                     )
-                    continue
-                temp_c = self.thermistor_temp_c_beta_formula(voltage)
-                if not ts.Type == TelemetryName.WATER_TEMP_C_TIMES1000:
-                    return Err(TSnap1ComponentMisconfigured(str(ts)))
-                driver_result.value[ts] = int(temp_c * 1000)
+                else:
+                    driver_result.value = voltage
+        return Ok(driver_result)
+
+    def read_telemetry_values(
+        self, channel_telemetry_list: List[TelemetrySpec]
+    ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
+        for ts in channel_telemetry_list:
+            if not ts.Type == TelemetryName.WATER_TEMP_C_TIMES1000:
+                return Err(TSnap1ComponentMisconfigured(str(ts)))
+        driver_result = DriverResult[Dict[TelemetrySpec, int]]({})
+        for ts in channel_telemetry_list:
+            read_voltage_result = self.read_voltage(ts)
+            if read_voltage_result.is_ok():
+                if read_voltage_result.value.warnings:
+                    driver_result.warnings.extend(read_voltage_result.value.warnings)
+                if read_voltage_result.value.value is not None:
+                    temp_c = self.thermistor_temp_c_beta_formula(read_voltage_result.value.value)
+                    driver_result.value[ts] = int(temp_c * 1000)
         return Ok(driver_result)
 
     @classmethod
