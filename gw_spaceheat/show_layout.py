@@ -131,14 +131,23 @@ def print_layout_table(layout: HardwareLayout):
         table.add_row(node.alias, component_txt, cac_txt, make_model_text, role_text, actor_text)
     print(table)
 
-def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings):
+def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings) -> Optional[Scada2]:
+    settings.paths.mkdirs()
     scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada2.DEFAULT_ACTORS_MODULE)
+    scada = None
     try:
-        Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+        scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     except (DataClassLoadingError, KeyError) as e:
         print(f"ERROR loading Scada2: <{e}> {type(e)}")
+    return scada
 
-def show_layout(argv: Optional[Sequence[str]] = None):
+def show_layout(layout:HardwareLayout, requested_aliases: Optional[set[str]], settings: ScadaSettings) -> Scada2:
+    print_component_dicts(layout)
+    print_layout_table(layout)
+    return try_scada_load(requested_aliases, layout, settings)
+
+
+def main(argv: Optional[Sequence[str]] = None):
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     print(f"Using .env file {dotenv_file}, exists: {Path(dotenv_file).exists()}")
@@ -149,9 +158,7 @@ def show_layout(argv: Optional[Sequence[str]] = None):
         settings.paths.hardware_layout,
         included_node_names=requested_aliases
     )
-    print_component_dicts(layout)
-    print_layout_table(layout)
-    try_scada_load(requested_aliases, layout, settings)
+    show_layout(layout, requested_aliases, settings)
 
 if __name__ == "__main__":
-    show_layout()
+    main()
