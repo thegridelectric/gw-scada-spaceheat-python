@@ -73,25 +73,18 @@ def load_cacs(layout):
 
 def load_components(layout):
     for d in layout["BooleanActuatorComponents"]:
-        print(d["ComponentId"])
         GtBooleanActuatorComponent_Maker.dict_to_dc(d)
     for d in layout["ResistiveHeaterComponents"]:
-        print(d["ComponentId"])
         ResistiveHeaterComponentGt_Maker.dict_to_dc(d)
     for d in layout["ElectricMeterComponents"]:
-        print(d["ComponentId"])
         GtElectricMeterComponent_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorComponents"]:
-        print(d["ComponentId"])
         GtPipeFlowSensorComponent_Maker.dict_to_dc(d)
     for d in layout["MultipurposeSensorComponents"]:
-        print(d["ComponentId"])
         MultipurposeSensorComponentGt_Maker.dict_to_dc(d)
     for d in layout["SimpleTempSensorComponents"]:
-        print(d["ComponentId"])
         SimpleTempSensorComponentGt_Maker.dict_to_dc(d)
     for camel in layout["OtherComponents"]:
-        print(camel["ComponentId"])
         snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
         Component(**snake_dict)
 
