@@ -29,7 +29,7 @@ board==1.0
     # via -r requirements/drivers.in
 click==8.1.3
     # via gridworks-protocol
-gridworks-protocol==0.2.3
+gridworks-protocol==0.2.6
     # via -r requirements/base.in
 markdown-it-py==2.1.0
     # via rich
