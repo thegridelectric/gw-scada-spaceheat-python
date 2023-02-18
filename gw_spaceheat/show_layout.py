@@ -181,11 +181,18 @@ def main(argv: Optional[Sequence[str]] = None):
         settings.paths.hardware_layout = layout_path
     requested_aliases = get_requested_aliases(args)
     print(f"Using layout file: <{settings.paths.hardware_layout}>, exists: {settings.paths.hardware_layout.exists()}")
+    errors = []
     layout = HardwareLayout.load(
         settings.paths.hardware_layout,
-        included_node_names=requested_aliases
+        included_node_names=requested_aliases,
+        raise_errors=False,
+        errors=errors,
     )
     show_layout(layout, requested_aliases, settings)
-
+    if errors:
+        print(f"\nFound {len(errors)} ERRORS in layout:")
+        for i, error in enumerate(errors):
+            print(f"  {i+1:2d}: {error.type_name:30s}  <{error.src_dict.get('DisplayName', '')}>  <{error.exception}> ")
+        
 if __name__ == "__main__":
     main()
