@@ -64,7 +64,7 @@ class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
     def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
         raise NotImplementedError
 
-    def read_hw_uid(self) -> Result[DriverResult[str], Exception]:
+    def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
         return Ok(DriverResult("1001ab"))
 
     def read_power_w(self) -> Result[DriverResult[int | None], Exception]:

@@ -12,19 +12,9 @@ from functools import cached_property
 from pathlib import Path
 
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
-from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.errors import DataClassLoadingError
 from data_classes.sh_node import ShNode
-from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
-    GridworksSimPm1_PowerMeterDriver,
-)
-from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
-    SchneiderElectricIem3455_PowerMeterDriver,
-)
-from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums import MakeModel
 from schema.enums import Role
 from schema.enums import ActorClass
 from schema.enums import TelemetryName
@@ -101,10 +91,14 @@ def load_components(layout):
 
 class HardwareLayout:
     layout: dict
-    nodes: dict
+    cacs: dict[str, ComponentAttributeClass]
+    components: dict[str, Component]
+    nodes: dict[str, ShNode]
 
     def __init__(self, layout: dict, included_node_names: Optional[set[str]] = None):
         self.layout = copy.deepcopy(layout)
+        self.cacs = dict(ComponentAttributeClass.by_id)
+        self.components = dict(Component.by_id)
         self.nodes = {
             node_dict["Alias"]: SpaceheatNodeGt_Maker.dict_to_dc(node_dict)
             for node_dict in self.layout["ShNodes"]
@@ -127,13 +121,31 @@ class HardwareLayout:
     def node(self, alias: str, default: Any = None) -> ShNode:
         return self.nodes.get(alias, default)
 
+    def component(self, alias: str) -> Optional[Component]:
+        return self.component_from_node(self.node(alias, None))
+
+    def cac(self, alias: str) -> Optional[ComponentAttributeClass]:
+        return self.cac_from_component(self.component(alias))
+
+    def component_from_node(self, node: Optional[ShNode]) -> Optional[Component]:
+        return self.components.get(node.component_id if node is not None else None, None)
+
+    def cac_from_component(self, component: Optional[Component]) -> Optional[ComponentAttributeClass]:
+        return self.cacs.get(component.component_attribute_class_id if component is not None else None, None)
+
+    @classmethod
+    def parent_alias(cls, alias: str) -> str:
+        last_delimiter = alias.rfind(".")
+        if last_delimiter == -1:
+            return ""
+        else:
+            return alias[:last_delimiter]
+
     def parent_node(self, alias: str) -> Optional[ShNode]:
-        alias_list = alias.split(".")
-        alias_list.pop()
-        if len(alias_list) == 0:
+        parent_alias = self.parent_alias(alias)
+        if not parent_alias:
             return None
         else:
-            parent_alias = ".".join(alias_list)
             if parent_alias not in self.nodes:
                 raise DataClassLoadingError(f"{alias} is missing parent {parent_alias}!")
             return self.node(parent_alias)
@@ -232,24 +244,6 @@ class HardwareLayout:
         return list(filter(lambda x: (x.role == Role.BOOST_ELEMENT), all_nodes))
 
     @cached_property
-    def power_meter_driver(self) -> PowerMeterDriver:
-        component: ElectricMeterComponent = typing.cast(
-            ElectricMeterComponent, self.power_meter_node.component
-        )
-        cac = component.cac
-        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver = UnknownPowerMeterDriver(component=component)
-        elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
-            driver = SchneiderElectricIem3455_PowerMeterDriver(component=component)
-        elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
-            driver = GridworksSimPm1_PowerMeterDriver(component=component)
-        else:
-            raise NotImplementedError(
-                f"No ElectricMeter driver yet for {cac.make_model}"
-            )
-        return driver
-
-    @cached_property
     def power_meter_node(self) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
         nodes = list(
@@ -304,10 +298,18 @@ class HardwareLayout:
     @cached_property
     def all_multipurpose_telemetry_tuples(self) -> List[TelemetryTuple]:
         all_nodes = list(self.nodes.values())
-        multi_nodes = list(filter(lambda x: (x.actor_class == ActorClass.MULTIPURPOSE_SENSOR), all_nodes))
+        multi_nodes = list(
+            filter(
+                lambda x: (
+                    x.actor_class == ActorClass.MULTIPURPOSE_SENSOR
+                    and hasattr(x, "config_list")
+                ),
+                all_nodes
+            )
+        )
         telemetry_tuples = []
         for node in multi_nodes:
-            for config in node.component.config_list:
+            for config in getattr(node.component, "config_list"):
                 about_node = self.node(config.AboutNodeName)
                 telemetry_tuples.append(
                     TelemetryTuple(

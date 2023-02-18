@@ -20,6 +20,7 @@ from data_classes.components.electric_meter_component import ElectricMeterCompon
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
+from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
@@ -33,6 +34,7 @@ from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
 )
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
+from proactor.message import InternalShutdownMessage
 from proactor.sync_thread import SyncAsyncInteractionThread
 from problems import Problems
 from schema.enums import MakeModel
@@ -49,6 +51,31 @@ from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_mak
     GtPowermeterReportingConfig_Maker,
 )
 
+
+class HWUidMismatch(DriverWarning):
+    expected: str
+    got: str
+
+    def __init__(
+            self,
+            expected: str,
+            got: str,
+            msg: str = "",
+    ):
+        super().__init__(msg)
+        self.expected = expected
+        self.got = got
+
+    def __str__(self):
+        s = self.__class__.__name__
+        super_str = super().__str__()
+        if super_str:
+            s += f" <{super_str}>"
+        s += (
+            f"  exp: {self.expected}\n"
+            f"  got: {self.got}"
+        )
+        return s
 
 class DriverThreadSetupHelper:
     """A helper class to isolate code only used in construction of PowerMeterDriverThread"""
@@ -212,6 +239,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     async_power_reporting_threshold: float
     _telemetry_destination: str
     _hardware_layout: HardwareLayout
+    _hw_uid: str = ""
 
     def __init__(
         self,
@@ -265,9 +293,37 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                 self._report_problems(Problems(warnings=result.value.warnings), "startup warning")
         else:
             self._report_problems(Problems(errors=[result.err()]), "startup error")
+            self._put_to_async_queue(
+                InternalShutdownMessage(Src=self.name, Reason=f"Driver start error for {self.name}")
+            )
+
+    def _ensure_hardware_uid(self):
+        if not self._hw_uid:
+            hw_uid_read_result = self.driver.read_hw_uid()
+            if hw_uid_read_result.is_ok():
+                if hw_uid_read_result.value.value:
+                    self._hw_uid = hw_uid_read_result.value.value.strip("\u0000")
+                    if (
+                            self.driver.component.hw_uid
+                            and self._hw_uid != self.driver.component.hw_uid
+                    ):
+                        self._report_problems(
+                            Problems(
+                                warnings=[
+                                    HWUidMismatch(
+                                        expected=self.driver.component.hw_uid,
+                                        got=self._hw_uid,
+                                    )
+                                ]
+                            ),
+                            "Hardware UID read"
+                        )
+            else:
+                raise hw_uid_read_result.value
 
     def _iterate(self) -> None:
         start_s = time.time()
+        self._ensure_hardware_uid()
         self.update_latest_value_dicts()
         if self.should_report_aggregated_power():
             self.report_aggregated_power_w()
