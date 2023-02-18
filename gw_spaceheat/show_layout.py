@@ -33,12 +33,24 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "-l",
+        "--layout-file",
+        default=None,
+        help=(
+            "Name of layout file (e.g. hardware-layout.json or apple for apple.json). "
+            "If path is relative it will be relative to settings.paths.config_dir. "
+            "If path has no extension, .json will be assumed. "
+            "If not specified default settings.paths.hardware_layout will be used."
+        ),
+    )
+    parser.add_argument(
         "-n",
         "--nodes",
         default=None,
         nargs="*",
         help="ShNode aliases to load.",
     )
+
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
 
@@ -55,6 +67,8 @@ def print_component_dicts(layout: HardwareLayout):
     })
     print("Nodes:")
     print(layout.nodes)
+    print("Raw nodes:")
+    print([n["Alias"] for n in layout.layout["ShNodes"]])
     print("Node Component ids:")
     print({
         node.alias: node.component_id for node in layout.nodes.values()
@@ -158,8 +172,15 @@ def main(argv: Optional[Sequence[str]] = None):
     dotenv_file = dotenv.find_dotenv(args.env_file)
     print(f"Using .env file {dotenv_file}, exists: {Path(dotenv_file).exists()}")
     settings = ScadaSettings(_env_file=dotenv_file)
+    if args.layout_file:
+        layout_path = Path(args.layout_file)
+        if Path(layout_path.name) == layout_path:
+            layout_path = settings.paths.config_dir / layout_path
+        if not layout_path.suffix:
+            layout_path = layout_path.with_suffix(".json")
+        settings.paths.hardware_layout = layout_path
     requested_aliases = get_requested_aliases(args)
-    print(f"Using layout file: {settings.paths.hardware_layout}, exists: {settings.paths.hardware_layout.exists()}")
+    print(f"Using layout file: <{settings.paths.hardware_layout}>, exists: {settings.paths.hardware_layout.exists()}")
     layout = HardwareLayout.load(
         settings.paths.hardware_layout,
         included_node_names=requested_aliases
