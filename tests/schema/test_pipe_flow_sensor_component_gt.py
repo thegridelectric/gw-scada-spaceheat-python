@@ -1,19 +1,20 @@
-"""Tests gt.pipe.flow.sensor.component.100 type"""
+"""Tests pipe.flow.sensor.component.gt.000 type"""
 import json
 
 import pytest
 from gwproto import MpSchemaError
-from schema.gt.components import GtPipeFlowSensorComponent_Maker as Maker
+from schema.gt.components import PipeFlowSensorComponentGt_Maker as Maker
 
 
-def test_gt_pipe_flow_sensor_component():
+def test_pipe_flow_sensor_component_gt():
 
     gw_dict = {
         "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
         "DisplayName": "Flow meter on pipe out of tank",
         "HwUid": "1234",
+        "I2cAddress": 100,
         "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
-        "TypeAlias": "gt.pipe.flow.sensor.component.100",
+        "TypeAlias": "pipe.flow.sensor.component.gt.000",
     }
 
     with pytest.raises(MpSchemaError):
@@ -34,6 +35,7 @@ def test_gt_pipe_flow_sensor_component():
         component_id=gw_tuple.ComponentId,
         display_name=gw_tuple.DisplayName,
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+        i2c_address=gw_tuple.I2cAddress,
         hw_uid=gw_tuple.HwUid,
         #
     ).tuple
@@ -122,7 +124,7 @@ def test_gt_pipe_flow_sensor_component():
     gw_dict["TypeAlias"] = "not the type alias"
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.pipe.flow.sensor.component.100"
+    gw_dict["TypeAlias"] = "pipe.flow.sensor.component.gt.000"
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format

@@ -41,10 +41,8 @@ class MakeModelMap:
         "e81d74a8": MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY,
         "c75d269f": MakeModel.OPENENERGY__EMONPI,
         "3042c432": MakeModel.GRIDWORKS__SIMTSNAP1,
-        
-        
+        "d0b0e375": MakeModel.ATLAS__EZFLO,
 
-        
     }
 
     local_to_gt_dict: Dict[MakeModel, str] = {
@@ -59,6 +57,6 @@ class MakeModelMap:
         MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY: "e81d74a8",
         MakeModel.OPENENERGY__EMONPI: "c75d269f",
         MakeModel.GRIDWORKS__SIMTSNAP1: "3042c432",
-
+        MakeModel.ATLAS__EZFLO: "d0b0e375",
         #
     }
