@@ -20,6 +20,7 @@ class MakeModel(enum.Enum):
     GRIDWORKS__SIMBOOL30AMPRELAY = "GridWorks__SimBool30AmpRelay"
     OPENENERGY__EMONPI = "OpenEnergy__EmonPi"
     GRIDWORKS__SIMTSNAP1 = "Gridworks__SimTSnap1"
+    ATLAS__EZFLO = "Atlas__EzFlo"
 
     #
 
@@ -37,6 +38,6 @@ class SpaceheatMakeModel100GtEnum(ABC):
         "e81d74a8",
         "c75d269f",
         "3042c432",
-
+        "d0b0e375",
         #
     ]

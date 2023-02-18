@@ -1,15 +1,19 @@
-"""Base for gt.pipe.flow.sensor.component.100"""
+"""Base for pipe.flow.sensor.cac.gt.000"""
 import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
+from schema.enums import (
+    MakeModel,
+    MakeModelMap,
+)
 
 
-class GtPipeFlowSensorComponentBase(NamedTuple):
-    ComponentId: str  #
-    ComponentAttributeClassId: str
+class PipeFlowSensorCacGtBase(NamedTuple):
+    ComponentAttributeClassId: str  #
+    MakeModel: MakeModel  #
     DisplayName: Optional[str] = None
-    HwUid: Optional[str] = None
-    TypeAlias: str = "gt.pipe.flow.sensor.component.100"
+    CommsMethod: Optional[str] = None
+    TypeAlias: str = "pipe.flow.sensor.cac.gt.000"
 
     def as_type(self):
         return json.dumps(self.asdict())
@@ -18,21 +22,14 @@ class GtPipeFlowSensorComponentBase(NamedTuple):
         d = self._asdict()
         if d["DisplayName"] is None:
             del d["DisplayName"]
-        if d["HwUid"] is None:
-            del d["HwUid"]
+        if d["CommsMethod"] is None:
+            del d["CommsMethod"]
+        del d["MakeModel"]
+        d["MakeModelGtEnumSymbol"] = MakeModelMap.local_to_gt(self.MakeModel)
         return d
 
     def derived_errors(self) -> List[str]:
         errors = []
-        if not isinstance(self.ComponentId, str):
-            errors.append(
-                f"ComponentId {self.ComponentId} must have type str."
-            )
-        if not property_format.is_uuid_canonical_textual(self.ComponentId):
-            errors.append(
-                f"ComponentId {self.ComponentId}"
-                " must have format UuidCanonicalTextual"
-            )
         if self.DisplayName:
             if not isinstance(self.DisplayName, str):
                 errors.append(
@@ -47,14 +44,18 @@ class GtPipeFlowSensorComponentBase(NamedTuple):
                 f"ComponentAttributeClassId {self.ComponentAttributeClassId}"
                 " must have format UuidCanonicalTextual"
             )
-        if self.HwUid:
-            if not isinstance(self.HwUid, str):
+        if self.CommsMethod:
+            if not isinstance(self.CommsMethod, str):
                 errors.append(
-                    f"HwUid {self.HwUid} must have type str."
+                    f"CommsMethod {self.CommsMethod} must have type str."
                 )
-        if self.TypeAlias != "gt.pipe.flow.sensor.component.100":
+        if not isinstance(self.MakeModel, MakeModel):
             errors.append(
-                f"Type requires TypeAlias of gt.pipe.flow.sensor.component.100, not {self.TypeAlias}."
+                f"MakeModel {self.MakeModel} must have type {MakeModel}."
+            )
+        if self.TypeAlias != "pipe.flow.sensor.cac.gt.000":
+            errors.append(
+                f"Type requires TypeAlias of pipe.flow.sensor.cac.gt.000, not {self.TypeAlias}."
             )
 
         return errors

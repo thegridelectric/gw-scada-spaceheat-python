@@ -1,9 +1,9 @@
-"""Makes gt.pipe.flow.sensor.cac.100 type"""
+"""Makes pipe.flow.sensor.cac.gt.000 type"""
 import json
 from typing import Optional
 from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
 
-from schema.gt.gt_pipe_flow_sensor_cac.gt_pipe_flow_sensor_cac import GtPipeFlowSensorCac
+from schema.gt.pipe_flow_sensor_cac_gt.pipe_flow_sensor_cac_gt import PipeFlowSensorCacGt
 from schema.errors import MpSchemaError
 from schema.enums import (
     MakeModel,
@@ -11,8 +11,8 @@ from schema.enums import (
 )
 
 
-class GtPipeFlowSensorCac_Maker:
-    type_alias = "gt.pipe.flow.sensor.cac.100"
+class PipeFlowSensorCacGt_Maker:
+    type_alias = "pipe.flow.sensor.cac.gt.000"
 
     def __init__(self,
                  component_attribute_class_id: str,
@@ -20,7 +20,7 @@ class GtPipeFlowSensorCac_Maker:
                  display_name: Optional[str],
                  comms_method: Optional[str]):
 
-        gw_tuple = GtPipeFlowSensorCac(
+        gw_tuple = PipeFlowSensorCacGt(
             DisplayName=display_name,
             ComponentAttributeClassId=component_attribute_class_id,
             CommsMethod=comms_method,
@@ -31,12 +31,12 @@ class GtPipeFlowSensorCac_Maker:
         self.tuple = gw_tuple
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtPipeFlowSensorCac) -> str:
+    def tuple_to_type(cls, tuple: PipeFlowSensorCacGt) -> str:
         tuple.check_for_errors()
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtPipeFlowSensorCac:
+    def type_to_tuple(cls, t: str) -> PipeFlowSensorCacGt:
         try:
             d = json.loads(t)
         except TypeError:
@@ -46,7 +46,7 @@ class GtPipeFlowSensorCac_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict) -> GtPipeFlowSensorCac:
+    def dict_to_tuple(cls, d: dict) -> PipeFlowSensorCacGt:
         new_d = {}
         for key in d.keys():
             new_d[key] = d[key]
@@ -62,7 +62,7 @@ class GtPipeFlowSensorCac_Maker:
             raise MpSchemaError(f"dict {new_d} missing MakeModelGtEnumSymbol")
         new_d["MakeModel"] = MakeModelMap.gt_to_local(new_d["MakeModelGtEnumSymbol"])
 
-        gw_tuple = GtPipeFlowSensorCac(
+        gw_tuple = PipeFlowSensorCacGt(
             TypeAlias=new_d["TypeAlias"],
             DisplayName=new_d["DisplayName"],
             ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
@@ -74,7 +74,7 @@ class GtPipeFlowSensorCac_Maker:
         return gw_tuple
 
     @classmethod
-    def tuple_to_dc(cls, t: GtPipeFlowSensorCac) -> PipeFlowSensorCac:
+    def tuple_to_dc(cls, t: PipeFlowSensorCacGt) -> PipeFlowSensorCac:
         s = {
             "display_name": t.DisplayName,
             "component_attribute_class_id": t.ComponentAttributeClassId,
@@ -89,10 +89,10 @@ class GtPipeFlowSensorCac_Maker:
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: PipeFlowSensorCac) -> GtPipeFlowSensorCac:
+    def dc_to_tuple(cls, dc: PipeFlowSensorCac) -> PipeFlowSensorCacGt:
         if dc is None:
             return None
-        t = GtPipeFlowSensorCac(
+        t = PipeFlowSensorCacGt(
             DisplayName=dc.display_name,
             ComponentAttributeClassId=dc.component_attribute_class_id,
             CommsMethod=dc.comms_method,

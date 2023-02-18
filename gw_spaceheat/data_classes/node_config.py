@@ -8,7 +8,7 @@ from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import (
 )
 from drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBooleanActuatorDriver
 from drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver import UnknownPipeFlowSensorDriver
-
+from drivers.pipe_flow_sensor.atlas_ezflo__pipe_flow_sensor_driver import AtlasEzflo_PipeFlowSensorDriver
 from drivers.simple_temp_sensor.adafruit_642__simple_temp_sensor_driver import Adafruit642_SimpleTempSensorDriver
 from drivers.simple_temp_sensor.gwsim__simple_temp_sensor_driver import (
     Gwsim_SimpleTempSensorDriver,
@@ -20,7 +20,7 @@ from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker impor
 
 from schema.enums.unit.unit_map import Unit
 from schema.enums.make_model.make_model_map import MakeModel
-
+from gwproto.enums import TelemetryName
 
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
@@ -57,18 +57,20 @@ class NodeConfig:
     def set_pipe_flow_sensor_config(self, component: PipeFlowSensorComponent, settings: ScadaSettings):
         cac = component.cac
         if self.node.reporting_sample_period_s is None:
-            raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!")
+            raise Exception(f"Pipe Flow sensor node {self.node} is missing ReportingSamplePeriodS!")
         pass
         self.reporting = ConfigMaker(
             report_on_change=False,
-            exponent=5,
+            exponent=-2,
             reporting_period_s=self.seconds_per_report,
             sample_period_s=self.node.reporting_sample_period_s,
-            telemetry_name=cac.telemetry_name,
+            telemetry_name=TelemetryName.WATER_FLOW_GPM_TIMES100,
             unit=Unit.GPM,
             async_report_threshold=None,
         ).tuple
-        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+        if cac.make_model == MakeModel.ATLAS__EZFLO:
+            self.driver = AtlasEzflo_PipeFlowSensorDriver(component=component, settings=settings)
+        elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             self.driver = UnknownPipeFlowSensorDriver(component=component, settings=settings)
         else:
             raise NotImplementedError(f"No PipeTempSensor driver yet for {cac.make_model}")

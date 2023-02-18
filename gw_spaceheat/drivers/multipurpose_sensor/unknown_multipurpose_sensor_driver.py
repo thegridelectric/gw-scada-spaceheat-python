@@ -21,10 +21,6 @@ class UnknownMultipurposeSensorDriver(MultipurposeSensorDriver):
         super(UnknownMultipurposeSensorDriver, self).__init__(
             component=component, settings=settings
         )
-        if component.cac.make_model != MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            raise Exception(
-                f"Expected {MakeModel.UNKNOWNMAKE__UNKNOWNMODEL}, got {component.cac}"
-            )
 
     def __repr__(self):
         return "UnknownMultipurposeSensorDriver"

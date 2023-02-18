@@ -38,10 +38,10 @@ from schema.gt.components import (
     GtElectricMeterComponent_Maker,
 )
 from schema.gt.cacs import (
-    GtPipeFlowSensorCac_Maker,
+    PipeFlowSensorCacGt_Maker,
 )
 from schema.gt.components import (
-    GtPipeFlowSensorComponent_Maker,
+    PipeFlowSensorComponentGt_Maker,
 )
 from schema.gt.components import (
     MultipurposeSensorComponentGt_Maker,
@@ -62,7 +62,7 @@ def load_cacs(layout):
     for d in layout["ElectricMeterCacs"]:
         GtElectricMeterCac_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorCacs"]:
-        GtPipeFlowSensorCac_Maker.dict_to_dc(d)
+        PipeFlowSensorCacGt_Maker.dict_to_dc(d)
     for d in layout["MultipurposeSensorCacs"]:
         MultipurposeSensorCacGt_Maker.dict_to_dc(d)
     for d in layout["SimpleTempSensorCacs"]:
@@ -79,7 +79,7 @@ def load_components(layout):
     for d in layout["ElectricMeterComponents"]:
         GtElectricMeterComponent_Maker.dict_to_dc(d)
     for d in layout["PipeFlowSensorComponents"]:
-        GtPipeFlowSensorComponent_Maker.dict_to_dc(d)
+        PipeFlowSensorComponentGt_Maker.dict_to_dc(d)
     for d in layout["MultipurposeSensorComponents"]:
         MultipurposeSensorComponentGt_Maker.dict_to_dc(d)
     for d in layout["SimpleTempSensorComponents"]:
