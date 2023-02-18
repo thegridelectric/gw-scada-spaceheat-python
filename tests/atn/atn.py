@@ -275,7 +275,7 @@ class Atn2(ActorInterface, Proactor):
             telemetry_name = snapshot.Snapshot.TelemetryNameList[i]
             if (telemetry_name == TelemetryName.WATER_TEMP_C_TIMES1000
                or telemetry_name == TelemetryName.WATER_TEMP_C_TIMES1000.value
-                ):
+                    ):
                 extra = f"{snapshot.Snapshot.ValueList[i]/1000:5.2f} C"
             else:
                 extra = (

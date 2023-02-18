@@ -51,14 +51,15 @@ from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_mak
     GtPowermeterReportingConfig_Maker,
 )
 
+
 class HWUidMismatch(DriverWarning):
     expected: str
     got: str
 
     def __init__(
             self,
-            expected:str,
-            got:str,
+            expected: str,
+            got: str,
             msg: str = "",
     ):
         super().__init__(msg)

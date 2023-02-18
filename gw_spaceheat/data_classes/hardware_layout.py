@@ -105,7 +105,6 @@ class HardwareLayout:
             if included_node_names is None or node_dict["Alias"] in included_node_names
         }
 
-
     @classmethod
     def load(cls, layout_path: Path | str, included_node_names: Optional[set[str]] = None) -> "HardwareLayout":
         with Path(layout_path).open() as f:

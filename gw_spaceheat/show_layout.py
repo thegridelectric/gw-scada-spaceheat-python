@@ -41,6 +41,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     )
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
+
 def print_component_dicts(layout: HardwareLayout):
     print("All Components:")
     print({
@@ -84,6 +85,7 @@ def print_component_dicts(layout: HardwareLayout):
         print("Components with cac id but not cac:")
         print(sorted(dangling_cac_components))
 
+
 def print_layout_table(layout: HardwareLayout):
     table = Table()
     table.add_column("Name", header_style="bold green", style="green")
@@ -97,7 +99,8 @@ def print_layout_table(layout: HardwareLayout):
         component = layout.component(node.alias)
         if component is None:
             if node.component_id:
-                component_txt = Text("MISSING", style="red") + Text(f" Component {node.component_id[:8]}", style=none_text.style)
+                component_txt = Text("MISSING", style="red") + \
+                    Text(f" Component {node.component_id[:8]}", style=none_text.style)
             else:
                 component_txt = none_text
         else:
@@ -106,7 +109,8 @@ def print_layout_table(layout: HardwareLayout):
         if cac is None:
             make_model_text = none_text
             if component is not None and component.component_attribute_class_id:
-                cac_txt = Text("MISSING", style="red") + Text(f" Cac {component.component_attribute_class_id[:8]}", style=none_text.style)
+                cac_txt = Text("MISSING", style="red") + \
+                    Text(f" Cac {component.component_attribute_class_id[:8]}", style=none_text.style)
             else:
                 cac_txt = none_text
 
@@ -131,6 +135,7 @@ def print_layout_table(layout: HardwareLayout):
         table.add_row(node.alias, component_txt, cac_txt, make_model_text, role_text, actor_text)
     print(table)
 
+
 def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings) -> Optional[Scada2]:
     settings.paths.mkdirs()
     scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada2.DEFAULT_ACTORS_MODULE)
@@ -141,7 +146,8 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
         print(f"ERROR loading Scada2: <{e}> {type(e)}")
     return scada
 
-def show_layout(layout:HardwareLayout, requested_aliases: Optional[set[str]], settings: ScadaSettings) -> Scada2:
+
+def show_layout(layout: HardwareLayout, requested_aliases: Optional[set[str]], settings: ScadaSettings) -> Scada2:
     print_component_dicts(layout)
     print_layout_table(layout)
     return try_scada_load(requested_aliases, layout, settings)

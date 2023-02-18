@@ -217,12 +217,13 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                 ads1115 = ADS.ADS1115(address=addr, i2c=self.i2c)
                 ads1115.gain = self.ADS_GAIN
             except BaseException as e:
-                driver_result.warnings.append(TSnapI2cAddressMissing(addr, msg=str(e)).with_traceback(sys.exc_info()[2]))
+                driver_result.warnings.append(TSnapI2cAddressMissing(
+                    addr, msg=str(e)).with_traceback(sys.exc_info()[2]))
                 continue
             self.ads[idx] = ads1115
         return Ok(driver_result)
 
-    def read_voltage(self, ts:TelemetrySpec) -> Result[DriverResult[float | None], Exception]:
+    def read_voltage(self, ts: TelemetrySpec) -> Result[DriverResult[float | None], Exception]:
         driver_result = DriverResult[float | None](None)
         i = int((ts.ChannelIdx - 1) / 4)
         if i in self.ads:
