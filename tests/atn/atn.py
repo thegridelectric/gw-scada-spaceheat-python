@@ -11,6 +11,8 @@ from typing import Optional
 from typing import Sequence
 
 import pendulum
+from gwproto.messages import GtShStatusEvent
+from gwproto.messages import SnapshotSpaceheatEvent
 
 from paho.mqtt.client import MQTTMessageInfo
 
@@ -237,8 +239,14 @@ class Atn2(ActorInterface, Proactor):
             case EventBase():
                 path_dbg |= 0x00000008
                 self._process_event(decoded.Payload)
+                if decoded.Payload.TypeName == GtShStatusEvent.__fields__["TypeName"].default:
+                    path_dbg |= 0x00000010
+                    self._process_status(decoded.Payload.status)
+                elif decoded.Payload.TypeName == SnapshotSpaceheatEvent.__fields__["TypeName"].default:
+                    path_dbg |= 0x00000020
+                    self._process_snapshot(decoded.Payload.snap)
             case _:
-                path_dbg |= 0x00000010
+                path_dbg |= 0x00000040
         self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     # noinspection PyMethodMayBeStatic

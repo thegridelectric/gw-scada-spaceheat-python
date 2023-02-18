@@ -202,11 +202,9 @@ class Scada2(ScadaInterface, Proactor):
     def send_status(self):
         status = self._data.make_status(self._last_status_second)
         self._data.status_to_store[status.StatusUid] = status
-        self._publish_upstream(status.asdict())
         self.generate_event(GtShStatusEvent(status=status))
         self._publish_to_local(self._node, status)
         snapshot = self._data.make_snapshot()
-        self._publish_upstream(snapshot.asdict())
         self.generate_event(SnapshotSpaceheatEvent(snap=snapshot))
         try:
             self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
