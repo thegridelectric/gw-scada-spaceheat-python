@@ -427,7 +427,8 @@
       "ComponentId": "dd5ac673-91a8-40e2-a233-b67479cec709",
       "DisplayName": "Flow meter on pipe out of tank",
       "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
-      "TypeAlias": "gt.pipe.flow.sensor.component.100",
+      "TypeAlias": "pipe.flow.sensor.component.gt.000",
+      "I2cAddress": 100,
       "HwUid": "1234"
     }
   ],
@@ -483,7 +484,7 @@
       "MakeModelGtEnumSymbol": "00000000",
       "CommsMethod": "Remove this Comms Method",
       "DisplayName": "Some pipe flow sensor",
-      "TypeAlias": "gt.pipe.flow.sensor.cac.100"
+      "TypeAlias": "pipe.flow.sensor.cac.gt.000"
     }
   ],
   "ElectricMeterCacs": [

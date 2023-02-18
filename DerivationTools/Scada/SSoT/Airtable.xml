@@ -4217,7 +4217,7 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>PipeFlowSensorComponent</DataClass>
       <IsComponent>true</IsComponent>
-      <Alias>gt.pipe.flow.sensor.component.100</Alias>
+      <Alias>pipe.flow.sensor.component.gt.000</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>
@@ -4378,7 +4378,7 @@
       <MakeDataClass>true</MakeDataClass>
       <DataClass>PipeFlowSensorCac</DataClass>
       <IsCac>true</IsCac>
-      <Alias>gt.pipe.flow.sensor.cac.100</Alias>
+      <Alias>pipe.flow.sensor.cac.gt.000</Alias>
       <ConsistencyCheck>1</ConsistencyCheck>
     </Schema>
     <Schema>

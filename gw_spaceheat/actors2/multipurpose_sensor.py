@@ -77,7 +77,7 @@ class MpDriverThreadSetupHelper:
         cac = self.component.cac
         if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
-            driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
+            driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME
         elif cac.make_model == MakeModel.GRIDWORKS__TSNAP1:
             driver_module_name = "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
             driver_class_name = "GridworksTsnap1_MultipurposeSensorDriver"
@@ -91,7 +91,7 @@ class MpDriverThreadSetupHelper:
                 found = importlib.util.find_spec(module_name)
                 if found is None:
                     driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
-                    driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
+                    driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME
                     break
         if not driver_module_name or not driver_class_name:
             raise NotImplementedError(
