@@ -18,20 +18,20 @@ VOLTAGE_DIVIDER_R_OHMS = 10000
 
 
 def thermistor_temp_c_beta_formula(
-    voltage: float) -> float:
+        voltage: float) -> float:
     rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
     r0: int = int(THERMISTOR_R0_OHMS)
     beta: int = int(THERMISTOR_BETA)
     t0: int = int(THERMISTOR_T0_DEGREES_KELVIN)
     if voltage >= PI_VOLTAGE:
-         return -500
+        return -500
     # Calculate the resistance of the thermistor
     rt = rd * voltage / (PI_VOLTAGE - voltage)
-    # Calculate the temperature in degrees Celsius. Note that 273 is 
-    # 0 degrees Celcius as measured in Kelvin. 
+    # Calculate the temperature in degrees Celsius. Note that 273 is
+    # 0 degrees Celcius as measured in Kelvin.
     temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
     # Convert the temperature to degrees Fahrenheit
-    temp_f = (temp_c * 9/5) + 32
+    temp_f = (temp_c * 9 / 5) + 32
     return temp_c
 
 
@@ -41,7 +41,7 @@ i2c = busio.I2C(board.SCL, board.SDA)
 # Create the ADC object using the I2C bus
 ads = {}
 ads[0] = ADS.ADS1115(address=int("0x48", 16), i2c=i2c)
-ads[1]= ADS.ADS1115(address=int("0x49", 16), i2c=i2c)
+ads[1] = ADS.ADS1115(address=int("0x49", 16), i2c=i2c)
 ads[2] = ADS.ADS1115(address=int("0x4b", 16), i2c=i2c)
 
 ads[0].gain = 0.6666666666666666
@@ -57,21 +57,18 @@ while True:
     chanhot = AnalogIn(ads[0], ADS.P2)
     v_hot = chanhot.voltage
     temphot_c = thermistor_temp_c_beta_formula(v_hot)
-    temphot_f = (temphot_c * 9/5) + 32
+    temphot_f = (temphot_c * 9 / 5) + 32
 
     chancold = AnalogIn(ads[1], ADS.P2)
     v_cold = chancold.voltage
     tempcold_c = thermistor_temp_c_beta_formula(v_cold)
-    tempcold_f = (tempcold_c * 9/5) + 32
+    tempcold_f = (tempcold_c * 9 / 5) + 32
 
-    chanmix =  AnalogIn(ads[0], ADS.P0)
+    chanmix = AnalogIn(ads[0], ADS.P0)
     v_mix = chanmix.voltage
     tempmix_c = thermistor_temp_c_beta_formula(v_mix)
-    tempmix_f = (tempmix_c * 9/5) + 32
+    tempmix_f = (tempmix_c * 9 / 5) + 32
 
-    print(f"Hot (a.hotstore.out.temp): {round(temphot_f,1)} F, Cold(a.buffer.out.temp): {round(tempcold_f,1)} F, MIX (a.distsourcewater.temp): {round(tempmix_f,1)} F")
+    print(
+        f"Hot (a.hotstore.out.temp): {round(temphot_f,1)} F, Cold(a.buffer.out.temp): {round(tempcold_f,1)} F, MIX (a.distsourcewater.temp): {round(tempmix_f,1)} F")
     time.sleep(5)
-
-
-
-
