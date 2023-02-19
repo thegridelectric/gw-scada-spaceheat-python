@@ -346,7 +346,7 @@ class HardwareLayout:
             filter(
                 lambda x: (
                     x.actor_class == ActorClass.MULTIPURPOSE_SENSOR
-                    and hasattr(x, "config_list")
+                    and hasattr(x.component, "config_list")
                 ),
                 all_nodes
             )
