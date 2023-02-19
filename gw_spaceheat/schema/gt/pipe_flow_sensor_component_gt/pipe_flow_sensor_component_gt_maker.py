@@ -14,12 +14,14 @@ class PipeFlowSensorComponentGt_Maker:
                  component_id: str,
                  component_attribute_class_id: str,
                  i2c_address: int,
+                 conversion_factor: float,
                  display_name: Optional[str],
                  hw_uid: Optional[str]):
 
         gw_tuple = PipeFlowSensorComponentGt(
             ComponentId=component_id,
             I2cAddress=i2c_address,
+            ConversionFactor=conversion_factor,
             DisplayName=display_name,
             ComponentAttributeClassId=component_attribute_class_id,
             HwUid=hw_uid,
@@ -52,6 +54,8 @@ class PipeFlowSensorComponentGt_Maker:
             raise MpSchemaError(f"dict {new_d} missing TypeAlias")
         if "ComponentId" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing ComponentId")
+        if "ConversionFactor" not in new_d.keys():
+            raise MpSchemaError(f"dict {new_d} missing ConversionFactor")
         if "I2cAddress" not in new_d.keys():
             raise MpSchemaError(f"dict {new_d} missing I2cAddress")
         if "DisplayName" not in new_d.keys():
@@ -65,6 +69,7 @@ class PipeFlowSensorComponentGt_Maker:
             TypeAlias=new_d["TypeAlias"],
             ComponentId=new_d["ComponentId"],
             I2cAddress=new_d["I2cAddress"],
+            ConversionFactor=new_d["ConversionFactor"],
             DisplayName=new_d["DisplayName"],
             ComponentAttributeClassId=new_d["ComponentAttributeClassId"],
             HwUid=new_d["HwUid"],
@@ -79,6 +84,7 @@ class PipeFlowSensorComponentGt_Maker:
             "component_id": t.ComponentId,
             "display_name": t.DisplayName,
             "i2c_address": t.I2cAddress,
+            "conversion_factor": t.ConversionFactor,
             "hw_uid": t.HwUid,
             "component_attribute_class_id": t.ComponentAttributeClassId,
             #
@@ -97,6 +103,7 @@ class PipeFlowSensorComponentGt_Maker:
             ComponentId=dc.component_id,
             DisplayName=dc.display_name,
             I2cAddress=dc.i2c_address,
+            ConversionFactor=dc.conversion_factor,
             HwUid=dc.hw_uid,
             ComponentAttributeClassId=dc.component_attribute_class_id,
             #
