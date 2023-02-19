@@ -262,7 +262,8 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch, request):
                 err_str_f=atn.summary_str
             )
             await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.__fields__["TypeName"].default] == snapshots_received + 1,
+                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.__fields__[
+                    "TypeName"].default] == snapshots_received + 1,
                 5,
                 "Atn wait for snapshot message",
                 err_str_f=atn.summary_str,

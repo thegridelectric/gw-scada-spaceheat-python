@@ -54,11 +54,13 @@ from schema.gt.components import (
 )
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 
+
 @dataclass
 class LoadError:
     type_name: str
     src_dict: dict
     exception: Exception
+
 
 def load_cacs(layout: dict, raise_errors: bool = True) -> list[LoadError]:
     errors: list[LoadError] = []
@@ -68,7 +70,7 @@ def load_cacs(layout: dict, raise_errors: bool = True) -> list[LoadError]:
         ("ElectricMeterCacs", GtElectricMeterCac_Maker),
         ("PipeFlowSensorCacs", PipeFlowSensorCacGt_Maker),
         ("MultipurposeSensorCacs", MultipurposeSensorCacGt_Maker),
-        ("SimpleTempSensorCacs", SimpleTempSensorCacGt_Maker ),
+        ("SimpleTempSensorCacs", SimpleTempSensorCacGt_Maker),
     ]:
         for d in layout[type_name]:
             try:
@@ -87,6 +89,7 @@ def load_cacs(layout: dict, raise_errors: bool = True) -> list[LoadError]:
                 raise e
             errors.append(LoadError("OtherCacs", d, e))
     return errors
+
 
 def load_components(layout: dict, raise_errors: bool = True) -> list[LoadError]:
     errors: list[LoadError] = []

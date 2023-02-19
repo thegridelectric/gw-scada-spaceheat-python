@@ -193,6 +193,7 @@ def main(argv: Optional[Sequence[str]] = None):
         print(f"\nFound {len(errors)} ERRORS in layout:")
         for i, error in enumerate(errors):
             print(f"  {i+1:2d}: {error.type_name:30s}  <{error.src_dict.get('DisplayName', '')}>  <{error.exception}> ")
-        
+
+
 if __name__ == "__main__":
     main()
