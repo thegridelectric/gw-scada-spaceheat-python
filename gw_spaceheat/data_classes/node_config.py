@@ -64,7 +64,7 @@ class NodeConfig:
             exponent=-2,
             reporting_period_s=self.seconds_per_report,
             sample_period_s=self.node.reporting_sample_period_s,
-            telemetry_name=TelemetryName.WATER_FLOW_GPM_TIMES100,
+            telemetry_name=TelemetryName.GPM_TIMES100,
             unit=Unit.GPM,
             async_report_threshold=None,
         ).tuple
