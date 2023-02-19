@@ -42,6 +42,8 @@ class TelemetryNameMap:
         "bb6fdd59": TelemetryName.VOLTAGE_RMS_MILLI_AMPS,
         "e0bb014b": TelemetryName.MILLI_WATT_HOURS,
         "337b8659": TelemetryName.FREQUENCY_MICRO_HZ,
+        "0f627faa": TelemetryName.AIR_TEMP_C_TIMES1000,
+        "4c3f8c78": TelemetryName.AIR_TEMP_F_TIMES1000,
     }
 
     local_to_gt_dict: Dict[TelemetryName, str] = {
@@ -56,4 +58,7 @@ class TelemetryNameMap:
         TelemetryName.VOLTAGE_RMS_MILLI_AMPS: "bb6fdd59",
         TelemetryName.MILLI_WATT_HOURS: "e0bb014b",
         TelemetryName.FREQUENCY_MICRO_HZ: "337b8659",
+        TelemetryName.AIR_TEMP_C_TIMES1000: "0f627faa",
+        TelemetryName.AIR_TEMP_F_TIMES1000: "4c3f8c78",
     }
+
