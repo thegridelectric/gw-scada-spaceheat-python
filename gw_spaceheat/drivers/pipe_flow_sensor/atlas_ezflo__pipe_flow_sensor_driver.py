@@ -34,6 +34,7 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
         return f"Atlas Ezflo driver for {self.component.display_name}"
 
     def read_cumulative_gallons(self) -> Optional[int]:
+        time.sleep(1)
         self.dev.write("R")
         time.sleep(0.3)
         v0 = self.dev.read()
@@ -48,4 +49,5 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
         cum = self.read_cumulative_gallons()
         if cum is None:
             return None
-        return int(cum * 1000)
+        return int(cum * self.component.conversion_factor)
+

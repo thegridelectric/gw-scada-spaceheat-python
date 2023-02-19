@@ -429,6 +429,7 @@
       "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
       "TypeAlias": "pipe.flow.sensor.component.gt.000",
       "I2cAddress": 100,
+      "ConversionFactor": 1.0,
       "HwUid": "1234"
     }
   ],

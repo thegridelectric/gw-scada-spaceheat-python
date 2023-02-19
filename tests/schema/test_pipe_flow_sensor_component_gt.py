@@ -13,6 +13,7 @@ def test_pipe_flow_sensor_component_gt():
         "DisplayName": "Flow meter on pipe out of tank",
         "HwUid": "1234",
         "I2cAddress": 100,
+        "ConversionFactor": 1.0,
         "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
         "TypeAlias": "pipe.flow.sensor.component.gt.000",
     }
@@ -35,6 +36,7 @@ def test_pipe_flow_sensor_component_gt():
         component_id=gw_tuple.ComponentId,
         display_name=gw_tuple.DisplayName,
         component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
+        conversion_factor=gw_tuple.ConversionFactor,
         i2c_address=gw_tuple.I2cAddress,
         hw_uid=gw_tuple.HwUid,
         #
