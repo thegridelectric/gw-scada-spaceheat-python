@@ -19,7 +19,7 @@ def unit_from_telemetry_name(tn: TelemetryName) -> Unit:
         return Unit.W
     if tn == TelemetryName.WATER_TEMP_F_TIMES1000:
         return Unit.FAHRENHEIT
-    if tn == TelemetryName.GALLONS_PER_MINUTE_TIMES10:
+    if tn == TelemetryName.GPM_TIMES100:
         return Unit.GPM
     if tn == TelemetryName.WATER_TEMP_C_TIMES1000:
         return Unit.CELCIUS
@@ -36,8 +36,8 @@ def exponent_from_telemetry_name(tn: TelemetryName) -> int:
         return 0
     if tn == TelemetryName.WATER_TEMP_F_TIMES1000:
         return 3
-    if tn == TelemetryName.GALLONS_PER_MINUTE_TIMES10:
-        return 1
+    if tn == TelemetryName.GPM_TIMES100:
+        return 2
     if tn == TelemetryName.WATER_TEMP_C_TIMES1000:
         return 3
     if tn == TelemetryName.RELAY_STATE:
