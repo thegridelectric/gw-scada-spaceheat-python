@@ -8,6 +8,7 @@ from drivers.pipe_flow_sensor.pipe_flow_sensor_driver import \
     PipeFlowSensorDriver
 from schema.enums import MakeModel
 
+
 class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
     def __init__(self, component: PipeFlowSensorComponent, settings: ScadaSettings):
         super(AtlasEzflo_PipeFlowSensorDriver, self).__init__(component=component, settings=settings)
@@ -29,7 +30,6 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
         if cum_gallons:
             self._last_cumulative_gallons = cum_gallons
 
-
     def __repr__(self):
         return f"Atlas Ezflo driver for {self.component.display_name}"
 
@@ -50,5 +50,4 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
         if cum is None:
             return None
         return int(100 * cum * self.component.conversion_factor)
-
 

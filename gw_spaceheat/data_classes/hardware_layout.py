@@ -7,6 +7,7 @@ away with).
 import copy
 import json
 import typing
+from dataclasses import dataclass
 from typing import List, Any, Optional
 from functools import cached_property
 from pathlib import Path
@@ -54,40 +55,68 @@ from schema.gt.components import (
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
 
 
-def load_cacs(layout):
-    for d in layout["BooleanActuatorCacs"]:
-        GtBooleanActuatorCac_Maker.dict_to_dc(d)
-    for d in layout["ResistiveHeaterCacs"]:
-        ResistiveHeaterCacGt_Maker.dict_to_dc(d)
-    for d in layout["ElectricMeterCacs"]:
-        GtElectricMeterCac_Maker.dict_to_dc(d)
-    for d in layout["PipeFlowSensorCacs"]:
-        PipeFlowSensorCacGt_Maker.dict_to_dc(d)
-    for d in layout["MultipurposeSensorCacs"]:
-        MultipurposeSensorCacGt_Maker.dict_to_dc(d)
-    for d in layout["SimpleTempSensorCacs"]:
-        SimpleTempSensorCacGt_Maker.dict_to_dc(d)
+@dataclass
+class LoadError:
+    type_name: str
+    src_dict: dict
+    exception: Exception
+
+
+def load_cacs(layout: dict, raise_errors: bool = True) -> list[LoadError]:
+    errors: list[LoadError] = []
+    for type_name, maker_class in [
+        ("BooleanActuatorCacs", GtBooleanActuatorCac_Maker),
+        ("ResistiveHeaterCacs", ResistiveHeaterCacGt_Maker),
+        ("ElectricMeterCacs", GtElectricMeterCac_Maker),
+        ("PipeFlowSensorCacs", PipeFlowSensorCacGt_Maker),
+        ("MultipurposeSensorCacs", MultipurposeSensorCacGt_Maker),
+        ("SimpleTempSensorCacs", SimpleTempSensorCacGt_Maker),
+    ]:
+        for d in layout[type_name]:
+            try:
+                maker_class.dict_to_dc(d)
+            except Exception as e:
+                if raise_errors:
+                    raise e
+                errors.append(LoadError(type_name, d, e))
     for d in layout["OtherCacs"]:
-        ComponentAttributeClass(component_attribute_class_id=d["ComponentAttributeClassId"])
+        try:
+            ComponentAttributeClass(
+                component_attribute_class_id=d["ComponentAttributeClassId"]
+            )
+        except Exception as e:
+            if raise_errors:
+                raise e
+            errors.append(LoadError("OtherCacs", d, e))
+    return errors
 
 
-def load_components(layout):
-    for d in layout["BooleanActuatorComponents"]:
-        GtBooleanActuatorComponent_Maker.dict_to_dc(d)
-    for d in layout["ResistiveHeaterComponents"]:
-        ResistiveHeaterComponentGt_Maker.dict_to_dc(d)
-    for d in layout["ElectricMeterComponents"]:
-        GtElectricMeterComponent_Maker.dict_to_dc(d)
-    for d in layout["PipeFlowSensorComponents"]:
-        PipeFlowSensorComponentGt_Maker.dict_to_dc(d)
-    for d in layout["MultipurposeSensorComponents"]:
-        MultipurposeSensorComponentGt_Maker.dict_to_dc(d)
-    for d in layout["SimpleTempSensorComponents"]:
-        SimpleTempSensorComponentGt_Maker.dict_to_dc(d)
-    for camel in layout["OtherComponents"]:
-        snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
-        Component(**snake_dict)
-
+def load_components(layout: dict, raise_errors: bool = True) -> list[LoadError]:
+    errors: list[LoadError] = []
+    for type_name, maker_class in [
+        ("BooleanActuatorComponents", GtBooleanActuatorComponent_Maker),
+        ("ResistiveHeaterComponents", ResistiveHeaterComponentGt_Maker),
+        ("ElectricMeterComponents", GtElectricMeterComponent_Maker),
+        ("PipeFlowSensorComponents", PipeFlowSensorComponentGt_Maker),
+        ("MultipurposeSensorComponents", MultipurposeSensorComponentGt_Maker),
+        ("SimpleTempSensorComponents", SimpleTempSensorComponentGt_Maker),
+    ]:
+        for d in layout[type_name]:
+            try:
+                maker_class.dict_to_dc(d)
+            except Exception as e:
+                if raise_errors:
+                    raise e
+                errors.append(LoadError(type_name, d, e))
+        for camel in layout["OtherComponents"]:
+            try:
+                snake_dict = {camel_to_snake(k): v for k, v in camel.items()}
+                Component(**snake_dict)
+            except Exception as e:
+                if raise_errors:
+                    raise e
+                errors.append(LoadError(type_name, camel, e))
+    return errors
 
 class HardwareLayout:
     layout: dict
@@ -106,16 +135,34 @@ class HardwareLayout:
         }
 
     @classmethod
-    def load(cls, layout_path: Path | str, included_node_names: Optional[set[str]] = None) -> "HardwareLayout":
+    def load(
+        cls,
+        layout_path: Path | str,
+        included_node_names: Optional[set[str]] = None,
+        raise_errors: bool = True,
+        errors: Optional[list[LoadError]] = None,
+    ) -> "HardwareLayout":
         with Path(layout_path).open() as f:
             layout: dict = json.loads(f.read())
-        return cls.load_dict(layout, included_node_names=included_node_names)
+        return cls.load_dict(
+            layout,
+            included_node_names=included_node_names,
+            raise_errors=raise_errors,
+            errors=errors
+        )
 
     @classmethod
-    def load_dict(cls, layout: dict, included_node_names: Optional[set[str]] = None) -> "HardwareLayout":
-        # TODO layout into GwTuple of a schema type with lots of consistency checking
-        load_cacs(layout=layout)
-        load_components(layout=layout)
+    def load_dict(
+        cls,
+        layout: dict,
+        included_node_names: Optional[set[str]] = None,
+        raise_errors: bool = True,
+        errors: Optional[list[LoadError]] = None,
+    ) -> "HardwareLayout":
+        if errors is None:
+            errors = []
+        errors.extend(load_cacs(layout=layout, raise_errors=raise_errors))
+        errors.extend(load_components(layout=layout, raise_errors=raise_errors))
         return HardwareLayout(layout, included_node_names=included_node_names)
 
     def node(self, alias: str, default: Any = None) -> ShNode:

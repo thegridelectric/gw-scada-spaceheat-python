@@ -19,12 +19,14 @@ from gwproto.messages import GtDriverBooleanactuatorCmd
 from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
 from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import GtShCliAtnCmd_Maker
+from gwproto.messages import GtShStatusEvent
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
 from gwproto.messages import GtTelemetry_Maker
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
+from gwproto.messages import SnapshotSpaceheatEvent
 from result import Ok
 from result import Result
 
@@ -200,10 +202,10 @@ class Scada2(ScadaInterface, Proactor):
     def send_status(self):
         status = self._data.make_status(self._last_status_second)
         self._data.status_to_store[status.StatusUid] = status
-        self._publish_upstream(status.asdict())
+        self.generate_event(GtShStatusEvent(status=status))
         self._publish_to_local(self._node, status)
         snapshot = self._data.make_snapshot()
-        self._publish_upstream(snapshot.asdict())
+        self.generate_event(SnapshotSpaceheatEvent(snap=snapshot))
         try:
             self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
         except BaseException as e:
