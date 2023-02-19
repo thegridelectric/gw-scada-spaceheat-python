@@ -64,8 +64,8 @@ class NodeConfig:
             exponent=-2,
             reporting_period_s=self.seconds_per_report,
             sample_period_s=self.node.reporting_sample_period_s,
-            telemetry_name=TelemetryName.GPM_TIMES100,
-            unit=Unit.GPM,
+            telemetry_name=TelemetryName.GALLONS_TIMES100,
+            unit=Unit.GALLONS,
             async_report_threshold=None,
         ).tuple
         if cac.make_model == MakeModel.ATLAS__EZFLO:

@@ -28,7 +28,3 @@ class PipeFlowSensorCac(ComponentAttributeClass):
 
     def __repr__(self):
         return f"{self.make_model.value} {self.display_name}"
-
-    @property
-    def telemetry_name(self):
-        return TelemetryName.GALLONS_PER_MINUTE_TIMES10

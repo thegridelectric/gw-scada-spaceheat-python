@@ -9,22 +9,28 @@ class Unit(enum.Enum):
     def values(cls):
         return [elt.value for elt in cls]
 
-    CELCIUS = "Celcius"
-    AMPS_RMS = "AmpsRms"
-    GPM = "Gpm"
-    FAHRENHEIT = "Fahrenheit"
-    W = "W"
+    UNKNOWN = "Unknown"
     UNITLESS = "Unitless"
-    #
+    W = "W"
+    CELCIUS = "Celcius"
+    FAHRENHEIT = "Fahrenheit"
+    GPM = "Gpm"
+    WATT_HOURS = "WattHours"
+    AMPS_RMS = "AmpsRms"
+    VOLTS_RMS = "VoltsRms"
+    GALLONS = "Gallons"
 
 
 class SpaceheatUnit100GtEnum(ABC):
     symbols: List[str] = [
-        "ec14bd47",
-        "a969ac7c",
-        "b4580361",
-        "7d8832f8",
-        "f459a9c3",
+        "00000000",
         "ec972387",
-        #
+        "f459a9c3",
+        "ec14bd47",
+        "7d8832f8",
+        "b4580361",
+        "d66f1622",
+        "a969ac7c",
+        "e5d7555c",
+        "8e123a26",
     ]
