@@ -13,6 +13,7 @@ class PipeFlowSensorComponent(Component):
         self,
         component_id: str,
         component_attribute_class_id: str,
+        conversion_factor: float,
         i2c_address: int,
         display_name: Optional[str] = None,
         hw_uid: Optional[str] = None,
@@ -24,6 +25,7 @@ class PipeFlowSensorComponent(Component):
             component_attribute_class_id=component_attribute_class_id,
         )
         self.i2c_address = i2c_address
+        self.conversion_factor = conversion_factor
         PipeFlowSensorComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
 

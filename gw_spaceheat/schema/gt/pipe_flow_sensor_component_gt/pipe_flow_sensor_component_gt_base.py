@@ -8,6 +8,7 @@ class PipeFlowSensorComponentGtBase(NamedTuple):
     ComponentId: str  #
     ComponentAttributeClassId: str
     I2cAddress: int
+    ConversionFactor: float
     DisplayName: Optional[str] = None
     HwUid: Optional[str] = None
     TypeAlias: str = "pipe.flow.sensor.component.gt.000"
@@ -25,6 +26,10 @@ class PipeFlowSensorComponentGtBase(NamedTuple):
 
     def derived_errors(self) -> List[str]:
         errors = []
+        if not isinstance(self.ConversionFactor, float):
+            errors.append(
+                f"ConversionFactor {self.ConversionFactor} must have type float"
+            )
         if not isinstance(self.ComponentId, str):
             errors.append(
                 f"ComponentId {self.ComponentId} must have type str."

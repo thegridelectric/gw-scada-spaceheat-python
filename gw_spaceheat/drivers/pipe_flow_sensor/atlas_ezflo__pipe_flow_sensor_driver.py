@@ -49,6 +49,6 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
         cum = self.read_cumulative_gallons()
         if cum is None:
             return None
-        return int(cum * 1000)
+        return int(cum * self.component.conversion_factor)
 
 
