@@ -1,7 +1,13 @@
 import random
 import time
+
+from result import Err
+from result import Ok
+from result import Result
+
 from actors2.config import ScadaSettings
 from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
+from drivers.driver_result import DriverResult
 from drivers.simple_temp_sensor.simple_temp_sensor_driver import SimpleTempSensorDriver
 from schema.enums.make_model.make_model_map import MakeModel
 from schema.enums.unit.unit_map import Unit
@@ -40,16 +46,16 @@ class Gwsim_SimpleTempSensorDriver(SimpleTempSensorDriver):
         read_delay_ms = typical_delay_ms + int(self.READ_TIME_FUZZ_MULTIPLIER * random.random())
         time.sleep(read_delay_ms / 1000)
 
-    def read_telemetry_value(self) -> int:
+    def read_telemetry_value(self) -> Result[DriverResult[int | None], Exception]:
         self.read_count += 1
         if self.except_on_read or self.except_on_read_after or self.hang_on_read or self.hang_on_read_after:
             print(f"read_count: {self.read_count}")
         self.cmd_delay()
         self._fake_temp_times_1000 += 250 - int(500 * random.random())
         if self.except_on_read or 0 < self.except_on_read_after <= self.read_count:
-            raise IOError("arg fizzle pop squark simulated driver error")
+            return Err(IOError("arg fizzle pop squark simulated driver error"))
         if self.hang_on_read or 0 < self.hang_on_read_after <= self.read_count:
             while True:
                 print("Lunch time for this driver")
                 time.sleep(10)
-        return self._fake_temp_times_1000
+        return Ok(DriverResult(self._fake_temp_times_1000))

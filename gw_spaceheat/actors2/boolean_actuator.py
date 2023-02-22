@@ -26,9 +26,6 @@ class BooleanActuatorDriverThread(SimpleSensorDriverThread):
     def report_now(self, previous_value: Any) -> bool:
         return previous_value != self._telemetry_value
 
-    def update_telemetry_value(self):
-        self._telemetry_value = self._config.driver.is_on()
-
     def _handle_message(self, message: Any) -> None:
         if isinstance(message, DispatchRelay):
             if message.relay_state:

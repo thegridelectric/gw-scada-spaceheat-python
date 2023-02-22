@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Optional
+
+from result import Ok
+from result import Result
+
 from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from actors2.config import ScadaSettings
+from drivers.driver_result import DriverResult
 
 
 class SimpleTempSensorDriver(ABC):
@@ -13,6 +17,10 @@ class SimpleTempSensorDriver(ABC):
         self.settings: ScadaSettings = settings
         self.logger = logging.getLogger(settings.logging.base_log_name)
 
+    # noinspection PyMethodMayBeStatic
+    def start(self) -> Result[DriverResult[bool], Exception]:
+        return Ok(DriverResult(True))
+
     @abstractmethod
-    def read_telemetry_value(self) -> int:
+    def read_telemetry_value(self) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError

@@ -12,12 +12,16 @@ from typing import Any
 from typing import Optional
 from typing import Type
 
+from gwproto import Message
+
 from actors2.actor import SyncThreadActor
 from actors2.message import GtTelemetryMessage
 from actors2.scada_interface import ScadaInterface
 from data_classes.node_config import NodeConfig
+from proactor.message import InternalShutdownMessage
 from proactor.sync_thread import SyncAsyncInteractionThread
 from proactor.sync_thread import SyncAsyncQueueWriter
+from problems import Problems
 
 
 class SimpleSensorDriverThread(SyncAsyncInteractionThread):
@@ -45,6 +49,27 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
         )
         self._telemetry_destination = telemetry_destination
         self._config = config
+
+    def _report_problems(self, problems: Problems, tag: str):
+        self._put_to_async_queue(
+            Message(
+                Payload=problems.problem_event(
+                    summary=f"Driver problems: {tag} for {self._config.driver.component}",
+                    src=str(self._config.driver.component)
+                )
+            )
+        )
+
+    def _preiterate(self) -> None:
+        result = self._config.driver.start()
+        if result.is_ok():
+            if result.value.warnings:
+                self._report_problems(Problems(warnings=result.value.warnings), "startup warning")
+        else:
+            self._report_problems(Problems(errors=[result.err()]), "startup error")
+            self._put_to_async_queue(
+                InternalShutdownMessage(Src=self.name, Reason=f"Driver start error for {self.name}")
+            )
 
     def _iterate(self) -> None:
         loop_start_s = time.time()
@@ -92,7 +117,12 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
 
     def update_telemetry_value(self):
         """Updates self.telemetry_value, using the config.driver"""
-        self._telemetry_value = self._config.driver.read_telemetry_value()
+        read = self._config.driver.read_telemetry_value()
+        if read.is_ok():
+            if read.value.value is not None:
+                self._telemetry_value = read.value.value
+            if read.value.warnings:
+                self._report_problems(Problems(warnings=read.value.warnings), "read warnings")
 
     def report_now(self, previous_value: Any) -> bool:
         return False

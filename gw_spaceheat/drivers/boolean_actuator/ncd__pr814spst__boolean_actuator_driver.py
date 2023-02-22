@@ -1,5 +1,8 @@
-from enum import Enum
-import importlib
+import smbus2 as smbus
+from result import Err
+from result import Ok
+from result import Result
+
 import schema.property_format as property_format
 
 from actors2.config import ScadaSettings
@@ -8,70 +11,53 @@ from data_classes.components.boolean_actuator_component import \
 from drivers.base.mcp23008 import mcp23008
 from drivers.boolean_actuator.boolean_actuator_driver import \
     BooleanActuatorDriver
+from drivers.driver_result import DriverResult
+from drivers.exceptions import DriverWarning
 from schema.enums import MakeModel
+
+class NcdPr814SpstI2cReadWarning(DriverWarning):
+    ...
+
 
 COMPONENT_I2C_ADDRESS = 0x20
 
-DRIVER_IS_REAL = True
-for module_name in [
-    "smbus2"
-]:
-    found = importlib.util.find_spec(module_name)
-    if found is None:
-        DRIVER_IS_REAL = False
-        break
-    import smbus2 as smbus
-    try:
-        bus = smbus.SMBus(1)
-    except FileNotFoundError:
-        DRIVER_IS_REAL = False
-        break
+class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
+    mcp23008_driver: mcp23008
+    last_val: int = 0
 
-class I2CErrorEnum(Enum):
-    NO_ADDRESS_ERROR = -100000
-    READ_ERROR = -200000
+    def __init__(self, component: BooleanActuatorComponent, settings: ScadaSettings):
+        super(NcdPr814Spst_BooleanActuatorDriver, self).__init__(component=component, settings=settings)
+        if component.cac.make_model != MakeModel.NCD__PR814SPST:
+            raise Exception(f"Expected {MakeModel.NCD__PR814SPST}, got {component.cac}")
 
+    def turn_on(self):
+        self.mcp23008_driver.turn_on_relay(self.component.gpio)
 
-if DRIVER_IS_REAL:
+    def turn_off(self):
+        self.mcp23008_driver.turn_off_relay(self.component.gpio)
 
-    class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
-        def __init__(self, component: BooleanActuatorComponent, settings: ScadaSettings):
-            super(NcdPr814Spst_BooleanActuatorDriver, self).__init__(component=component, settings=settings)
-            if component.cac.make_model != MakeModel.NCD__PR814SPST:
-                raise Exception(f"Expected {MakeModel.NCD__PR814SPST}, got {component.cac}")
+    def start(self) -> Result[DriverResult[bool], Exception]:
+        try:
             bus = smbus.SMBus(1)
             gpio_output_map = {0, 1, 2, 3}
             kwargs = {"address": COMPONENT_I2C_ADDRESS, "gpio_output_map": gpio_output_map}
             self.mcp23008_driver = mcp23008(bus, kwargs)
             self.last_val = 0
+        except Exception as e:
+            return Err(e)
+        return Ok(DriverResult(True))
 
-        def turn_on(self):
-            self.mcp23008_driver.turn_on_relay(self.component.gpio)
 
-        def turn_off(self):
-            self.mcp23008_driver.turn_off_relay(self.component.gpio)
-
-        def is_on(self) -> int:
-            try:
-               result = self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
-               self.last_val = result
-            except Exception as e:
-                print(f"READ ERROR: {e} / {type(e)}")
-                result = self.last_val
-            if not property_format.is_bit(result):
-                raise Exception(f"{ MakeModel.NCD__PR814SPST} returned {result}, expected 0 or 1!")
-            return int(result)
-else:
-    class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
-        def __init__(self, component: BooleanActuatorComponent, settings: ScadaSettings):
-            super(NcdPr814Spst_BooleanActuatorDriver, self).__init__(component=component, settings=settings)
-
-        def turn_on(self):
-            raise NotImplementedError
-
-        def turn_off(self):
-            raise NotImplementedError
-
-        def is_on(self):
-            raise NotImplementedError
-
+    def is_on(self) -> Result[DriverResult[int | None], Exception]:
+        driver_result = DriverResult[int | None](None)
+        try:
+           driver_result.value = self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
+           self.last_val = driver_result.value
+        except Exception as e:
+            driver_result.warnings.append(e)
+        if not property_format.is_bit(driver_result.value):
+            driver_result.warnings.append(
+                Exception(f"{MakeModel.NCD__PR814SPST} returned {driver_result.value}, expected 0 or 1!")
+            )
+            driver_result.value = None
+        return Ok(driver_result)
