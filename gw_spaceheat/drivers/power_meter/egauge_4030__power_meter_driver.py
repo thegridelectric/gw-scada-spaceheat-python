@@ -1,9 +1,11 @@
 import socket
 import time
 from typing import Any
+from typing import Optional
 
 from gwproto import property_format
 from pyModbusTCP.client import ModbusClient
+from result import Err
 from result import Ok
 from result import Result
 
@@ -80,7 +82,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     MAX_RECONNECT_DELAY_SECONDS: float = 10
     CLIENT_TIMEOUT: float = 3.0
 
-    _modbus_client: ModbusClient
+    _modbus_client: Optional[ModbusClient] = None
     _client_settings: ModbusClientSettings
     _curr_connect_delay = 0.5
     _last_connect_time: float = 0.0
@@ -89,16 +91,14 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super().__init__(component, settings)
         self._client_settings = ModbusClientSettings(
-            host=socket.gethostbyname(self.component.modbus_host),
             port=self.component.modbus_port,
             timeout=self.CLIENT_TIMEOUT
         )
-        self._modbus_client = ModbusClient(**self._client_settings.dict())
 
     def try_connect(self, first_time: bool = False) -> Result[DriverResult, Exception]:
         now = time.time()
         comm_warnings = []
-        if not self._modbus_client.is_open:
+        if self._modbus_client is None or not self._modbus_client.is_open:
             if not first_time:
                 comm_warnings.append(EGaugeHadDisconnect())
             if now - self._last_connect_time > self._curr_connect_delay:
@@ -106,13 +106,27 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                     self._curr_connect_delay * 2,
                     self.MAX_RECONNECT_DELAY_SECONDS
                 )
-                self._modbus_client.open()
-        if self._modbus_client.is_open:
+                if self._modbus_client is None:
+                    try:
+                        self._client_settings.host = socket.gethostbyname(self.component.modbus_host)
+                        self._modbus_client = ModbusClient(**self._client_settings.dict())
+                    except socket.gaierror as e:
+                        comm_warnings.append(e)
+                    except Exception as e:
+                        return Err(e)
+                    else:
+                        self._modbus_client.open()
+        if self._modbus_client is not None and self._modbus_client.is_open:
             self._last_connect_time = now
             self._curr_connect_delay = 0.0
         else:
             comm_warnings.append(EGaugeConnectFailed())
-        return Ok(DriverResult(self._modbus_client.is_open, comm_warnings))
+        return Ok(
+            DriverResult(
+                self._modbus_client is not None and self._modbus_client.is_open,
+                comm_warnings
+            )
+        )
 
     def start(self) -> Result[DriverResult[bool], Exception]:
         return self.try_connect(first_time=True)
@@ -122,7 +136,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
 
     def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
         connect_result = self.try_connect()
-        if connect_result.is_ok() and connect_result.value:
+        if connect_result.is_ok() and connect_result.value.value:
             _, _, bytes_ = readT16(self._modbus_client, self.component.modbus_hw_uid_register)
             if bytes_ is not None:
                 return Ok(DriverResult(bytes_.decode("utf-8"), connect_result.value.warnings))
@@ -146,7 +160,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
 
     def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
         connect_result = self.try_connect()
-        if connect_result.is_ok() and connect_result.value:
+        if connect_result.is_ok() and connect_result.value.value:
             _, _, power = readF32(self._modbus_client, self.component.modbus_power_register)
             returned_power: int | None
             driver_result: DriverResult[int | None] = DriverResult(None, connect_result.value.warnings)

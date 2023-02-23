@@ -295,7 +295,7 @@ class Atn2(ActorInterface, Proactor):
         # s += "json.dumps(snapshot.asdict()):\n"
         # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
         # s += "\n"
-        self._logger.warning(s)
+        # self._logger.warning(s)
         # rich.print(snapshot)
 
     def _process_dbg_command(self, dbg: ScadaDBG):
@@ -306,9 +306,9 @@ class Atn2(ActorInterface, Proactor):
         status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
         with status_file.open("w") as f:
             f.write(status.as_type())
-        self._logger.info(f"Wrote status file [{status_file}]")
-        rich.print("Received GtShStatus")
-        rich.print(status)
+        # self._logger.info(f"Wrote status file [{status_file}]")
+        # rich.print("Received GtShStatus")
+        # rich.print(status)
 
     def _process_event(self, event: EventBase) -> None:
         event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
