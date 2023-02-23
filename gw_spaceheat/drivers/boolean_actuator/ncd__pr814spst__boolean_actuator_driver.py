@@ -1,3 +1,5 @@
+from typing import Optional
+
 import smbus2 as smbus
 from result import Err
 from result import Ok
@@ -18,11 +20,14 @@ from schema.enums import MakeModel
 class NcdPr814SpstI2cReadWarning(DriverWarning):
     ...
 
+class NcdPr814SpstI2cStartupFailure(DriverWarning):
+    ...
+
 
 COMPONENT_I2C_ADDRESS = 0x20
 
 class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
-    mcp23008_driver: mcp23008
+    mcp23008_driver: Optional[mcp23008] = None
     last_val: int = 0
 
     def __init__(self, component: BooleanActuatorComponent, settings: ScadaSettings):
@@ -31,12 +36,15 @@ class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
             raise Exception(f"Expected {MakeModel.NCD__PR814SPST}, got {component.cac}")
 
     def turn_on(self):
-        self.mcp23008_driver.turn_on_relay(self.component.gpio)
+        if self.mcp23008_driver is not None:
+            self.mcp23008_driver.turn_on_relay(self.component.gpio)
 
     def turn_off(self):
-        self.mcp23008_driver.turn_off_relay(self.component.gpio)
+        if self.mcp23008_driver is not None:
+            self.mcp23008_driver.turn_off_relay(self.component.gpio)
 
     def start(self) -> Result[DriverResult[bool], Exception]:
+        driver_result = DriverResult(True)
         try:
             bus = smbus.SMBus(1)
             gpio_output_map = {0, 1, 2, 3}
@@ -44,20 +52,25 @@ class NcdPr814Spst_BooleanActuatorDriver(BooleanActuatorDriver):
             self.mcp23008_driver = mcp23008(bus, kwargs)
             self.last_val = 0
         except Exception as e:
-            return Err(e)
-        return Ok(DriverResult(True))
+            driver_result.value = False
+            driver_result.warnings.append(e)
+            driver_result.warnings.append(NcdPr814SpstI2cStartupFailure())
+        return Ok(driver_result)
 
 
     def is_on(self) -> Result[DriverResult[int | None], Exception]:
         driver_result = DriverResult[int | None](None)
-        try:
-           driver_result.value = self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
-           self.last_val = driver_result.value
-        except Exception as e:
-            driver_result.warnings.append(e)
-        if not property_format.is_bit(driver_result.value):
-            driver_result.warnings.append(
-                Exception(f"{MakeModel.NCD__PR814SPST} returned {driver_result.value}, expected 0 or 1!")
-            )
+        if self.mcp23008_driver is None:
             driver_result.value = None
+        else:
+            try:
+               driver_result.value = self.mcp23008_driver.get_single_gpio_status(self.component.gpio)
+               self.last_val = driver_result.value
+            except Exception as e:
+                driver_result.warnings.append(e)
+            if not property_format.is_bit(driver_result.value):
+                driver_result.warnings.append(
+                    Exception(f"{MakeModel.NCD__PR814SPST} returned {driver_result.value}, expected 0 or 1!")
+                )
+                driver_result.value = None
         return Ok(driver_result)
