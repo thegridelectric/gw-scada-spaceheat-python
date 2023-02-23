@@ -99,7 +99,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         now = time.time()
         comm_warnings = []
         if self._modbus_client is None or not self._modbus_client.is_open:
-            if not first_time:
+            if not first_time and self._modbus_client is not None:
                 comm_warnings.append(EGaugeHadDisconnect())
             if now - self._last_connect_time > self._curr_connect_delay:
                 self._curr_connect_delay = min(
@@ -107,6 +107,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                     self.MAX_RECONNECT_DELAY_SECONDS
                 )
                 if self._modbus_client is None:
+                    self._last_connect_time = now
                     try:
                         self._client_settings.host = socket.gethostbyname(self.component.modbus_host)
                         self._modbus_client = ModbusClient(**self._client_settings.dict())
@@ -114,13 +115,14 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                         comm_warnings.append(e)
                     except Exception as e:
                         return Err(e)
-                    else:
-                        self._modbus_client.open()
+                if self._modbus_client is not None:
+                    self._modbus_client.open()
+                    self._last_connect_time = now
+                    if not self._modbus_client.is_open:
+                        comm_warnings.append(EGaugeConnectFailed())
         if self._modbus_client is not None and self._modbus_client.is_open:
             self._last_connect_time = now
             self._curr_connect_delay = 0.0
-        else:
-            comm_warnings.append(EGaugeConnectFailed())
         return Ok(
             DriverResult(
                 self._modbus_client is not None and self._modbus_client.is_open,
