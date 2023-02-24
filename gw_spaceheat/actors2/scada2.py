@@ -161,7 +161,10 @@ class Scada2(ScadaInterface, Proactor):
 
     @classmethod
     def make_event_persister(cls, settings:ScadaSettings) -> TimedRollingFilePersister:
-        return TimedRollingFilePersister(settings.paths.event_dir)
+        return TimedRollingFilePersister(
+            settings.paths.event_dir,
+            max_bytes=settings.persister.max_bytes,
+        )
 
     @property
     def alias(self):

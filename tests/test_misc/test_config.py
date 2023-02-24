@@ -4,6 +4,8 @@ import textwrap
 from pathlib import Path
 
 import dotenv
+
+from actors2.config import PersisterSettings
 from proactor.config import LoggingSettings
 from proactor.config import MQTTClient
 from proactor.config import Paths
@@ -169,6 +171,7 @@ def test_scada_settings_defaults(clean_scada_env, tmp_path):
         async_power_reporting_threshold=0.02,
         paths=exp_paths_dict(home=tmp_path),
         logging=LoggingSettings().dict(),
+        persister=PersisterSettings().dict()
     )
     assert settings.dict() == exp
     assert settings.local_mqtt == MQTTClient()
