@@ -1,10 +1,14 @@
 import time
 
+from result import Ok
+from result import Result
+
 from actors2.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from drivers.boolean_actuator.boolean_actuator_driver import \
     BooleanActuatorDriver
+from drivers.driver_result import DriverResult
 from schema.enums import MakeModel
 
 
@@ -30,6 +34,6 @@ class GridworksSimBool30AmpRelay_BooleanActuatorDriver(BooleanActuatorDriver):
         self.cmd_delay()
         self._fake_relay_state = 0
 
-    def is_on(self) -> int:
+    def is_on(self) -> Result[DriverResult[int | None], Exception]:
         self.cmd_delay()
-        return self._fake_relay_state
+        return Ok(DriverResult(self._fake_relay_state))

@@ -1,3 +1,7 @@
 [tool.pytest.ini_options]
 log_format = "%(asctime)s %(message)s"
-addopts = "--ignore=tests/test_actors -k 'not test_ping and not test_awaiting_setup_and_peer_corner_cases'"
+addopts = """\
+--ignore=tests/test_actors \
+-k 'not test_ping and not test_awaiting_setup_and_peer_corner_cases' \
+--show-capture=no \
+"""

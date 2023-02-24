@@ -1,10 +1,13 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Optional
+
+from result import Ok
+from result import Result
 
 from actors2.config import ScadaSettings
 from data_classes.components.pipe_flow_sensor_component import \
     PipeFlowSensorComponent
+from drivers.driver_result import DriverResult
 
 
 class PipeFlowSensorDriver(ABC):
@@ -17,6 +20,11 @@ class PipeFlowSensorDriver(ABC):
         self.settings: ScadaSettings = settings
         self.logger = logging.getLogger(settings.logging.base_log_name)
 
+    # noinspection PyMethodMayBeStatic
+    def start(self) -> Result[DriverResult[bool], Exception]:
+        return Ok(DriverResult(True))
+
+
     @abstractmethod
-    def read_telemetry_value(self) -> Optional[int]:
+    def read_telemetry_value(self) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError

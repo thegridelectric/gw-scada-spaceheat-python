@@ -1,19 +1,9 @@
+import sys
+import importlib
+import importlib.util
+
 from actors2.config import ScadaSettings
 from data_classes.sh_node import ShNode
-from drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver import (
-    GridworksSimBool30AmpRelay_BooleanActuatorDriver,
-)
-from drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver import (
-    NcdPr814Spst_BooleanActuatorDriver,
-)
-from drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBooleanActuatorDriver
-from drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver import UnknownPipeFlowSensorDriver
-from drivers.pipe_flow_sensor.atlas_ezflo__pipe_flow_sensor_driver import AtlasEzflo_PipeFlowSensorDriver
-from drivers.simple_temp_sensor.adafruit_642__simple_temp_sensor_driver import Adafruit642_SimpleTempSensorDriver
-from drivers.simple_temp_sensor.gwsim__simple_temp_sensor_driver import (
-    Gwsim_SimpleTempSensorDriver,
-)
-from drivers.simple_temp_sensor.unknown_simple_temp_sensor_driver import UnknownSimpleTempSensorDriver
 from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import (
     GtSensorReportingConfig_Maker as ConfigMaker,
 )
@@ -40,11 +30,11 @@ class NodeConfig:
         self.reporting = None
         self.driver = None
         self.typical_response_time_ms = 0
-        if isinstance(node.component, BooleanActuatorComponent):
+        if isinstance(component, BooleanActuatorComponent):
             self.set_boolean_actuator_config(component=component, settings=settings)
-        elif isinstance(node.component, SimpleTempSensorComponent):
+        elif isinstance(component, SimpleTempSensorComponent):
             self.set_simple_temp_sensor_config(component=component, settings=settings)
-        elif isinstance(node.component, PipeFlowSensorComponent):
+        elif isinstance(component, PipeFlowSensorComponent):
             self.set_pipe_flow_sensor_config(component=component, settings=settings)
         if self.reporting is None:
             raise Exception(f"Failed to set reporting config for {node}!")
@@ -58,7 +48,6 @@ class NodeConfig:
         cac = component.cac
         if self.node.reporting_sample_period_s is None:
             raise Exception(f"Pipe Flow sensor node {self.node} is missing ReportingSamplePeriodS!")
-        pass
         self.reporting = ConfigMaker(
             report_on_change=False,
             exponent=-2,
@@ -69,11 +58,17 @@ class NodeConfig:
             async_report_threshold=None,
         ).tuple
         if cac.make_model == MakeModel.ATLAS__EZFLO:
-            self.driver = AtlasEzflo_PipeFlowSensorDriver(component=component, settings=settings)
+            driver_module_name = "drivers.pipe_flow_sensor.atlas_ezflo__pipe_flow_sensor_driver"
+            driver_class_name = "AtlasEzflo_PipeFlowSensorDriver"
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            self.driver = UnknownPipeFlowSensorDriver(component=component, settings=settings)
+            driver_module_name = "drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver"
+            driver_class_name = "UnknownPipeFlowSensorDriver"
         else:
             raise NotImplementedError(f"No PipeTempSensor driver yet for {cac.make_model}")
+        if driver_module_name not in sys.modules:
+            importlib.import_module(driver_module_name)
+        driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
+        self.driver = driver_class(component=component, settings=settings)
 
     def set_simple_temp_sensor_config(self, component: SimpleTempSensorComponent, settings: ScadaSettings):
         cac = component.cac
@@ -90,15 +85,20 @@ class NodeConfig:
             async_report_threshold=None,
         ).tuple
         if cac.make_model == MakeModel.ADAFRUIT__642:
-            self.driver = Adafruit642_SimpleTempSensorDriver(component=component, settings=settings)
+            driver_module_name = "drivers.simple_temp_sensor.adafruit_642__simple_temp_sensor_driver"
+            driver_class_name = "Adafruit642_SimpleTempSensorDriver"
         elif cac.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
-            self.driver = Gwsim_SimpleTempSensorDriver(
-                component=component, settings=settings
-            )
+            driver_module_name = "drivers.simple_temp_sensor.gwsim__simple_temp_sensor_driver"
+            driver_class_name = "Gwsim_SimpleTempSensorDriver"
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            self.driver = UnknownSimpleTempSensorDriver(component=component, settings=settings)
+            driver_module_name = "drivers.simple_temp_sensor.unknown_simple_temp_sensor_driver"
+            driver_class_name = "UnknownSimpleTempSensorDriver"
         else:
             raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}")
+        if driver_module_name not in sys.modules:
+            importlib.import_module(driver_module_name)
+        driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
+        self.driver = driver_class(component=component, settings=settings)
 
     def set_boolean_actuator_config(self, component: BooleanActuatorComponent, settings: ScadaSettings):
         cac = component.cac
@@ -116,12 +116,29 @@ class NodeConfig:
             unit=Unit.UNITLESS,
             async_report_threshold=0.5,
         ).tuple
-
         if cac.make_model == MakeModel.NCD__PR814SPST:
-            self.driver = NcdPr814Spst_BooleanActuatorDriver(component=component, settings=settings)
+            found = importlib.util.find_spec("smbus2")
+            if found:
+                import smbus2 as smbus
+                try:
+                    smbus.SMBus(1)
+                except FileNotFoundError:
+                    found = False
+            if found:
+                driver_module_name = "drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver"
+                driver_class_name = "NcdPr814Spst_BooleanActuatorDriver"
+            else:
+                driver_module_name = "drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBooleanActuatorDriver"
+                driver_class_name = "UnknownBooleanActuatorDriver"
         elif cac.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
-            self.driver = GridworksSimBool30AmpRelay_BooleanActuatorDriver(component=component, settings=settings)
+            driver_module_name = "drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver"
+            driver_class_name = "GridworksSimBool30AmpRelay_BooleanActuatorDriver"
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            self.driver = UnknownBooleanActuatorDriver(component=component, settings=settings)
+            driver_module_name = "drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBooleanActuatorDriver"
+            driver_class_name = "UnknownBooleanActuatorDriver"
         else:
             raise NotImplementedError(f"No BooleanActuator driver yet for {cac.make_model}")
+        if driver_module_name not in sys.modules:
+            importlib.import_module(driver_module_name)
+        driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
+        self.driver = driver_class(component=component, settings=settings)
