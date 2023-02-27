@@ -156,7 +156,7 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
     scada = None
     try:
         scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-    except (DataClassLoadingError, KeyError, ModuleNotFoundError) as e:
+    except (DataClassLoadingError, KeyError, ModuleNotFoundError, ValueError) as e:
         print(f"ERROR loading Scada2: <{e}> {type(e)}")
     return scada
 
