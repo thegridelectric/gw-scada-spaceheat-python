@@ -246,7 +246,10 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                         TSnapI2cReadWarning(
                             idx=i,
                             address=self.ads[i].i2c_device.device_address,
-                            pin=pin
+                            pin=pin,
+                            msg=(
+                                f"Invalid voltage:{voltage:.2f};  must be less than: {PI_VOLTAGE}"
+                            )
                         )
                     )
                 else:
