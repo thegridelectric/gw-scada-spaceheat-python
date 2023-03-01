@@ -15,6 +15,7 @@ class AtnSettings(ProactorSettings):
     minute_cron_file: str = "cron_last_minute.txt"
     hour_cron_file: str = "cron_last_hour.txt"
     day_cron_file: str = "cron_last_day.txt"
+    c_to_f: bool = True
 
     class Config(ProactorSettings.Config):
         env_prefix = "ATN_"

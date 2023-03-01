@@ -284,7 +284,12 @@ class Atn2(ActorInterface, Proactor):
             if (telemetry_name == TelemetryName.WATER_TEMP_C_TIMES1000
                or telemetry_name == TelemetryName.WATER_TEMP_C_TIMES1000.value
                     ):
-                extra = f"{snapshot.Snapshot.ValueList[i]/1000:5.2f} C"
+                centigrade = snapshot.Snapshot.ValueList[i] / 1000
+                if self.settings.c_to_f:
+                    fahrenheit = (centigrade * 9/5) + 32
+                    extra = f"{fahrenheit:5.2f} F"
+                else:
+                    extra = f"{centigrade:5.2f} C"
             else:
                 extra = (
                     f"{snapshot.Snapshot.ValueList[i]} "
@@ -295,7 +300,8 @@ class Atn2(ActorInterface, Proactor):
         # s += "json.dumps(snapshot.asdict()):\n"
         # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
         # s += "\n"
-        # self._logger.warning(s)
+        self._logger.warning(s)
+
         # rich.print(snapshot)
 
     def _process_dbg_command(self, dbg: ScadaDBG):
