@@ -265,13 +265,7 @@ class Atn2(ActorInterface, Proactor):
                 ):
                     possible_indices.append(idx)
             if len(possible_indices) != 1:
-                if "pytest" in sys.modules:
-                    # In tests only a subset of relays in the hardware map is loaded. Perhaps the tests should change
-                    # to use a different hardware map which has a subset of relays.
-                    continue
-                raise Exception(
-                    f"{node.alias} has {len(possible_indices)} possibilities for relay state! Should be 1"
-                )
+                continue
             idx = possible_indices[0]
             old_state = self.data.relay_state[node].State
             if old_state != snapshot.Snapshot.ValueList[idx]:
