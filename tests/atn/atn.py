@@ -35,10 +35,10 @@ from gwproto.messages import SnapshotSpaceheat_Maker
 from pydantic import BaseModel
 
 from actors2 import ActorInterface
-from actors2.message import ScadaDBG
-from actors2.message import ScadaDBGCommands
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
+from proactor.message import DBGCommands
+from proactor.message import DBGPayload
 from proactor.mqtt import QOS
 from proactor.config import LoggerLevels
 from proactor.message import MQTTReceiptPayload, Message
@@ -136,7 +136,7 @@ class Atn2(ActorInterface, Proactor):
             filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, list(self.layout.nodes.values()))
         )
         self.data = AtnData(relay_state={x: RecentRelayState() for x in self.my_relays})
-        self._add_mqtt_client(Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout))
+        self._add_mqtt_client(Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
         self._mqtt_clients.subscribe(
             Atn2.SCADA_MQTT,
             MQTTTopic.encode_subscription(Message.type_name(), self.layout.scada_g_node_alias),
@@ -209,7 +209,7 @@ class Atn2(ActorInterface, Proactor):
             case GtDispatchBoolean_Maker():
                 path_dbg |= 0x00000002
                 self._publish_to_scada(message.Payload.tuple.asdict())
-            case ScadaDBG():
+            case DBGPayload():
                 path_dbg |= 0x00000004
                 self._publish_to_scada(message.Payload)
             case _:
@@ -304,9 +304,6 @@ class Atn2(ActorInterface, Proactor):
 
         # rich.print(snapshot)
 
-    def _process_dbg_command(self, dbg: ScadaDBG):
-        pass
-
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
         status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
@@ -343,15 +340,29 @@ class Atn2(ActorInterface, Proactor):
         message_summary: int = -1,
         lifecycle: int = -1,
         comm_event: int = -1,
-        command: Optional[ScadaDBGCommands | str] = None,
+        command: Optional[DBGCommands | str] = None,
+    ):
+        self.send_dbg_to_peer(
+            message_summary=message_summary,
+            lifecycle=lifecycle,
+            comm_event=comm_event,
+            command=command
+        )
+
+    def send_dbg_to_peer(
+        self,
+        message_summary: int = -1,
+        lifecycle: int = -1,
+        comm_event: int = -1,
+        command: Optional[DBGCommands | str] = None,
     ):
         if isinstance(command, str):
-            command = ScadaDBGCommands(command)
+            command = DBGCommands(command)
         self.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.name,
-                Payload=ScadaDBG(
+                Payload=DBGPayload(
                     Levels=LoggerLevels(
                         message_summary=message_summary,
                         lifecycle=lifecycle,

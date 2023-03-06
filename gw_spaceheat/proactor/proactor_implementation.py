@@ -38,6 +38,10 @@ from result import Err
 from result import Ok
 from result import Result
 
+from proactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
+from proactor.message import DBGCommands
+from proactor.message import DBGEvent
+from proactor.message import DBGPayload
 from problems import Problems
 from proactor import config
 from proactor import ProactorSettings
@@ -93,7 +97,6 @@ class AckWaitResult:
         return self.summary == AckWaitSummary.acked
 
 
-LINK_POLL_SECONDS = 60
 import_time = time.time()
 
 @dataclass
@@ -110,7 +113,7 @@ class MessageTimes:
     def time_to_send_ping(self, link_poll_seconds: float) -> bool:
         return time.time() > self.next_ping_second(link_poll_seconds)
 
-    def get_str(self, link_poll_seconds: float = LINK_POLL_SECONDS, relative: bool = True) -> str:
+    def get_str(self, link_poll_seconds: float = MQTT_LINK_POLL_SECONDS, relative: bool = True) -> str:
         if relative:
             adjust = import_time
         else:
@@ -212,6 +215,14 @@ class Proactor(ServicesInterface, Runnable):
     def stats(self) -> ProactorStats:
         return self._stats
 
+    @property
+    def upstream_client(self) -> str:
+        return self._mqtt_clients.upstream_client
+
+    @property
+    def primary_peer_client(self) -> str:
+        return self._mqtt_clients.primary_peer_client
+
     def _send(self, message: Message):
         self.send(message)
 
@@ -233,8 +244,9 @@ class Proactor(ServicesInterface, Runnable):
         client_config: config.MQTTClient,
         codec: Optional[MQTTCodec] = None,
         upstream: bool = False,
+        primary_peer: bool = False,
     ):
-        self._mqtt_clients.add_client(name, client_config, upstream=upstream)
+        self._mqtt_clients.add_client(name, client_config, upstream=upstream, primary_peer=primary_peer)
         if codec is not None:
             self._mqtt_codecs[name] = codec
         self._link_states.add(name)
@@ -245,9 +257,9 @@ class Proactor(ServicesInterface, Runnable):
         while not self._stop_requested:
             message_times = self._link_message_times[client]
             link_state = self._link_states[client]
-            if message_times.time_to_send_ping(LINK_POLL_SECONDS) and link_state.active_for_send():
+            if message_times.time_to_send_ping(self.settings.mqtt_link_poll_seconds) and link_state.active_for_send():
                 self._publish_message(client, PingMessage(Src=self.publication_name))
-            await asyncio.sleep(message_times.seconds_until_next_ping(LINK_POLL_SECONDS))
+            await asyncio.sleep(message_times.seconds_until_next_ping(self.settings.mqtt_link_poll_seconds))
 
     def _start_ack_timer(self, client_name: str, message_id: str, context: Any = None, delay: Optional[float] = None) -> None:
         if delay is None:
@@ -316,6 +328,42 @@ class Proactor(ServicesInterface, Runnable):
                 path_dbg |= 0x00000004
                 self._event_persister.clear(message_id)
         self._logger.path("--Proactor._process_ack_result path:0x%08X", path_dbg)
+
+    def _process_dbg(self, dbg: DBGPayload):
+        self._logger.path("++_process_dbg")
+        path_dbg = 0
+        count_dbg = 0
+        for logger_name in ["message_summary", "lifecycle", "comm_event"]:
+            requested_level = getattr(dbg.Levels, logger_name)
+            if requested_level > -1:
+                path_dbg |= 0x00000001
+                count_dbg += 1
+                logger = getattr(self._logger, logger_name + "_logger")
+                old_level = logger.getEffectiveLevel()
+                logger.setLevel(requested_level)
+                self._logger.debug(
+                    "%s logger level %s -> %s",
+                    logger_name,
+                    old_level,
+                    logger.getEffectiveLevel()
+                )
+        match dbg.Command:
+            case DBGCommands.show_subscriptions:
+                path_dbg |= 0x00000002
+                self.log_subscriptions("message")
+            case _:
+                path_dbg |= 0x00000004
+        self.generate_event(DBGEvent(Command=dbg, Path=f"0x{path_dbg:08X}", Count=count_dbg, Msg=""))
+        self._logger.path("--_process_dbg  path:0x%08X  count:%d", path_dbg, count_dbg)
+
+    def log_subscriptions(self, tag=""):
+        if self._logger.lifecycle_enabled:
+            s = f"Scada2 subscriptions: [{tag}]]\n"
+            for client in self._mqtt_clients.clients:
+                s += f"\t{client}\n"
+                for subscription in self._mqtt_clients.client_wrapper(client).subscription_items():
+                    s += f"\t\t[{subscription}]\n"
+            self._logger.lifecycle(s)
 
     def _publish_message(self, client, message: Message, qos: int = 0, context: Any = None) -> MQTTMessageInfo:
         topic = message.mqtt_topic()
@@ -535,13 +583,16 @@ class Proactor(ServicesInterface, Runnable):
                         self._process_ack_result(decoded_message.Payload.AckMessageID, AckWaitSummary.acked)
                     case Ping():
                         path_dbg |= 0x00000080
-                    case _:
+                    case DBGPayload():
                         path_dbg |= 0x00000100
+                        self._process_dbg(decoded_message.Payload)
+                    case _:
+                        path_dbg |= 0x00000200
                         self._derived_process_mqtt_message(mqtt_receipt_message, decoded_message)
                 if decoded_message.Header.AckRequired:
-                    path_dbg |= 0x00000200
+                    path_dbg |= 0x00000400
                     if decoded_message.Header.MessageId:
-                        path_dbg |= 0x00000400
+                        path_dbg |= 0x00000800
                         self._publish_message(
                             mqtt_receipt_message.Payload.client_name,
                             Message(
@@ -550,7 +601,7 @@ class Proactor(ServicesInterface, Runnable):
                             )
                         )
             case Err(error):
-                path_dbg |= 0x00000800
+                path_dbg |= 0x00001000
                 result = Err(error)
         self._logger.path("--Proactor._process_mqtt_message:%s  path:0x%08X", int(result.is_ok()), path_dbg)
         return result

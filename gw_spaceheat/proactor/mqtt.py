@@ -78,7 +78,7 @@ class MQTTClientWrapper:
         self._subscriptions = dict()
         self._pending_subscriptions = set()
         self._pending_subacks = dict()
-        self._thread = threading.Thread(target=self._client_thread)
+        self._thread = threading.Thread(target=self._client_thread, name=f"MQTT-client-thread-{self.name}")
         self._stop_requested = False
 
     def _client_thread(self):
@@ -227,6 +227,7 @@ class MQTTClients:
     clients: Dict[str, MQTTClientWrapper]
     _send_queue: AsyncQueueWriter
     upstream_client: str = ""
+    primary_peer_client: str = ""
 
     def __init__(self):
         self._send_queue = AsyncQueueWriter()
@@ -237,6 +238,7 @@ class MQTTClients:
         name: str,
         client_config: config.MQTTClient,
         upstream: bool = False,
+        primary_peer: bool = False,
     ):
         if name in self.clients:
             raise ValueError(f"ERROR. MQTT client named {name} already exists")
@@ -244,6 +246,12 @@ class MQTTClients:
             if self.upstream_client:
                 raise ValueError(f"ERROR. upstream client already set as {self.upstream_client}. Client {name} may not be set as upstream.")
             self.upstream_client = name
+        if primary_peer:
+            if self.primary_peer_client:
+                raise ValueError(
+                    f"ERROR. primary peer client already set as {self.primary_peer_client}. Client {name} may not be set as primary peer."
+                )
+            self.primary_peer_client = name
         self.clients[name] = MQTTClientWrapper(name, client_config, self._send_queue)
 
     def publish(
@@ -297,3 +305,6 @@ class MQTTClients:
 
     def upstream(self) -> MQTTClientWrapper:
         return self.clients[self.upstream_client]
+
+    def primary_peer(self) -> MQTTClientWrapper:
+        return self.clients[self.primary_peer_client]

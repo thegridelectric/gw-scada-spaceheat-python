@@ -6,8 +6,10 @@ from gwproto import MQTTTopic
 
 from proactor.config import MQTTClient
 from actors2.config import ScadaSettings
+from proactor.config import proactor_settings
 from proactor.link_state import StateName
 from proactor import proactor_implementation
+from tests.atn import AtnSettings
 from tests.utils.comm_test_helper import CommTestHelper
 from tests.utils import await_for
 
@@ -712,7 +714,7 @@ async def test_awaiting_setup__():
 
         # (awaiting_setup -> message_from_peer -> awaiting_setup)
         # Receive another message from peer, remaining in awaiting_setup
-        dbg_topic = MQTTTopic.encode("gw", atn.publication_name, "gridworks.scada.dbg")
+        dbg_topic = MQTTTopic.encode("gw", atn.publication_name, "gridworks.proactor.dbg")
         assert stats.num_received_by_topic[dbg_topic] == 0
         atn.dbg()
         await await_for(
@@ -872,7 +874,7 @@ async def test_response_timeout():
         )
 
 
-@pytest.mark.skip
+# @pytest.mark.skip
 @pytest.mark.asyncio
 async def test_ping(monkeypatch):
     """
@@ -881,8 +883,13 @@ async def test_ping(monkeypatch):
         ping not sent if messages are sent
         ping restores comm
     """
-    monkeypatch.setattr(proactor_implementation, "LINK_POLL_SECONDS", .1)
-    async with CommTestHelper(add_scada=True, add_atn=True, verbose=False) as h:
+    async with CommTestHelper(
+        add_scada=True,
+        add_atn=True,
+        verbose=False,
+        settings=ScadaSettings(mqtt_link_poll_seconds=.1),
+        atn_settings=AtnSettings(mqtt_link_poll_seconds=.1)
+    ) as h:
         scada = h.scada
         scada.suppress_status = True
         scada.ack_timeout_seconds = .1
@@ -890,7 +897,7 @@ async def test_ping(monkeypatch):
         stats = scada.stats.link(scada.GRIDWORKS_MQTT)
         scada_ping_topic = MQTTTopic.encode("gw", scada.publication_name, "gridworks-ping")
         atn = h.atn
-        atn_stats = atn.stats
+        atn_stats = atn.stats.link(atn.SCADA_MQTT)
         atn_ping_topic = MQTTTopic.encode("gw", atn.publication_name, "gridworks-ping")
 
         # start atn and scada
@@ -914,7 +921,7 @@ async def test_ping(monkeypatch):
         pings_from_scada = atn_stats.num_received_by_topic[scada_ping_topic] - start_pings_from_scada
         messages_from_atn = stats.num_received - start_messages_from_atn
         messages_from_scada = atn_stats.num_received - start_messages_from_scada
-        exp_pings_nominal = wait_seconds / proactor_implementation.LINK_POLL_SECONDS
+        exp_pings_nominal = wait_seconds / atn.settings.mqtt_link_poll_seconds
         err_str = (
             f"pings_from_atn: {pings_from_atn}\n"
             f"messages_from_atn: {messages_from_atn}\n"

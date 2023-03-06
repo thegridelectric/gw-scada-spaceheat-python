@@ -9,13 +9,17 @@ from typing import Literal
 from typing import Optional
 from typing import TypeVar
 
+from gwproto import as_enum
 from gwproto.message import ensure_arg
 from gwproto.message import Header
 from gwproto.message import Message
+from gwproto.messages import EventBase
 from paho.mqtt.client import MQTT_ERR_UNKNOWN
 from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel
+from pydantic import validator
 
+from proactor.config import LoggerLevels
 from problems import Problems
 
 
@@ -244,3 +248,27 @@ class InternalShutdownMessage(ShutdownMessage):
         ensure_arg("AckRequired", False, data)
         super().__init__(**data)
 
+class DBGCommands(Enum):
+    show_subscriptions = "show_subscriptions"
+
+
+class DBGPayload(BaseModel):
+    Levels: LoggerLevels = LoggerLevels(
+        message_summary=-1,
+        lifecycle=-1,
+        comm_event=-1,
+    )
+    Command: Optional[DBGCommands] = None
+    TypeName: Literal["gridworks.proactor.dbg"] = "gridworks.proactor.dbg"
+
+    @validator("Command", pre=True)
+    def command_value(cls, v) -> Optional[DBGCommands]:
+        return as_enum(v, DBGCommands)
+
+
+class DBGEvent(EventBase):
+    Command: DBGPayload
+    Path: str = ""
+    Count: int = 0
+    Msg: str = ""
+    TypeName: Literal["gridworks.event.scada-dbg"] = "gridworks.event.proactor.dbg"
