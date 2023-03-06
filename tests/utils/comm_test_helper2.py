@@ -1,9 +1,10 @@
 import argparse
 import asyncio
 import logging
-from abc import abstractmethod
 from dataclasses import dataclass
 from typing import Optional
+from typing import Type
+from typing import TypeVar
 
 from proactor import ProactorSettings
 from logging_setup import setup_logging
@@ -27,7 +28,18 @@ class _ProactorHelper:
     settings: ProactorSettings
     proactor: Optional[RecorderInterface] = None
 
-class CommTestHelper2:
+ChildT = TypeVar("ChildT", bound=Proactor)
+ParentT = TypeVar("ParentT", bound=Proactor)
+ChildSettingsT = TypeVar("ChildSettingsT", bound=ProactorSettings)
+ParentSettingsT = TypeVar("ParentSettingsT", bound=ProactorSettings)
+
+class CommTestHelper3:
+
+    parent_t: Type[ProactorT]
+    child_t: Type[Proactor]
+    parent_settings_t: Type[ParentSettingsT]
+    child_settings_t: Type[ProactorSettings]
+
     parent_helper: _ProactorHelper
     child_helper: _ProactorHelper
 
@@ -38,15 +50,15 @@ class CommTestHelper2:
 
     def __init__(
         self,
-        child_settings: Optional[ProactorSettings] = None,
-        parent_settings: Optional[ProactorSettings] = None,
+        child_settings: Optional[ChildSettingsT] = None,
+        parent_settings: Optional[ParentSettingsT] = None,
         verbose: bool = False,
         lifecycle_logging: bool = False,
         add_child: bool = False,
         add_parent: bool = False,
         start_child: bool = False,
         start_parent: bool = False,
-        parent_on_screen=False,
+        parent_on_screen: bool = False,
     ):
         self.child_helper = _ProactorHelper(
             self.default_child_name(),
@@ -68,6 +80,7 @@ class CommTestHelper2:
             self.add_parent()
             if start_parent:
                 self.start_parent()
+
     @classmethod
     def default_parent_name(cls) -> str:
         return DUMMY_PARENT_NAME
@@ -78,23 +91,19 @@ class CommTestHelper2:
 
     @classmethod
     def default_parent_settings(cls) -> ProactorSettings:
-        return DummyParentSettings()
+        return cls.parent_settings_t()
 
     @classmethod
     def default_child_settings(cls) -> ProactorSettings:
-        return DummyChildSettings()
+        return cls.child_settings_t()
 
     @classmethod
-    @abstractmethod
-    def make_parent(cls, name: str, settings: ProactorSettings) -> RecorderInterface:
-        assert isinstance(settings, DummyParentSettings)
-        return make_recorder_class(DummyParent)(name, settings)
+    def make_parent(cls, name: str, settings: ParentSettingsT) -> RecorderInterface:
+        return make_recorder_class(cls.parent_t)(name, settings)
 
     @classmethod
-    @abstractmethod
-    def make_child(cls, name: str, settings: ProactorSettings) -> RecorderInterface:
-        assert isinstance(settings, DummyChildSettings)
-        return make_recorder_class(DummyChild)(name, settings)
+    def make_child(cls, name: str, settings: ChildSettingsT) -> RecorderInterface:
+        return make_recorder_class(cls.child_t)(name, settings)
 
     @property
     def parent(self) -> Optional[ProactorT]:
@@ -104,42 +113,42 @@ class CommTestHelper2:
     def child(self) -> Optional[ProactorT]:
         return self.child_helper.proactor
 
-    def start_child(self) -> "CommTestHelper2":
+    def start_child(self) -> "CommTestHelper3":
         if self.child is not None:
             self.start_proactor(self.child)
         return self
 
-    def start_parent(self) -> "CommTestHelper2":
+    def start_parent(self) -> "CommTestHelper3":
         if self.parent is not None:
             self.start_proactor(self.parent)
         return self
 
-    def start_proactor(self, proactor: Proactor) -> "CommTestHelper2":
+    def start_proactor(self, proactor: Proactor) -> "CommTestHelper3":
         asyncio.create_task(proactor.run_forever(), name=f"{proactor.name}_run_forever")
         return self
 
-    def start(self) -> "CommTestHelper2":
+    def start(self) -> "CommTestHelper3":
         return self
 
-    def add_child(self) -> "CommTestHelper2":
+    def add_child(self) -> "CommTestHelper3":
         self.child_helper.proactor = self.make_child(
             self.child_helper.name,
             self.child_helper.settings,
         )
         return self
 
-    def add_parent(self) -> "CommTestHelper2":
+    def add_parent(self) -> "CommTestHelper3":
         self.parent_helper.proactor = self.make_parent(
             self.parent_helper.name,
             self.parent_helper.settings,
         )
         return self
 
-    def remove_child(self) -> "CommTestHelper2":
+    def remove_child(self) -> "CommTestHelper3":
         self.child_helper.proactor = None
         return self
 
-    def remove_parent(self) -> "CommTestHelper2":
+    def remove_parent(self) -> "CommTestHelper3":
         self.parent_helper.proactor = None
         return self
 
@@ -176,7 +185,7 @@ class CommTestHelper2:
             except:
                 pass
 
-    async def __aenter__(self) -> "CommTestHelper2":
+    async def __aenter__(self) -> "CommTestHelper3":
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -189,3 +198,10 @@ class CommTestHelper2:
                 self.parent_helper.settings.paths.log_dir,
             )
         self.logger_guards.restore()
+
+class CommTestHelper2(CommTestHelper3):
+
+    parent_t = DummyParent
+    child_t = DummyChild
+    parent_settings_t = DummyParentSettings
+    child_settings_t = DummyChildSettings
