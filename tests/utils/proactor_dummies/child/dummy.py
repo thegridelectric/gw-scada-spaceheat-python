@@ -24,7 +24,6 @@ ChildMessageDecoder = create_message_payload_discriminator(
 )
 
 
-
 class ChildMQTTCode(MQTTCodec):
 
     def __init__(self):
@@ -37,6 +36,7 @@ class ChildMQTTCode(MQTTCodec):
             raise Exception(
                 f"alias {source_alias} not my AtomicTNode ({DUMMY_PARENT_NAME})!"
             )
+
 
 class DummyChild(Proactor):
     PARENT_MQTT = "gridworks"
@@ -68,7 +68,7 @@ class DummyChild(Proactor):
         self.log_subscriptions("construction")
 
     @classmethod
-    def make_event_persister(cls, settings:ProactorSettings) -> TimedRollingFilePersister:
+    def make_event_persister(cls, settings: ProactorSettings) -> TimedRollingFilePersister:
         return TimedRollingFilePersister(settings.paths.event_dir)
 
     @property

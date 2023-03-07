@@ -6,6 +6,7 @@ from tests.utils.proactor_dummies import DummyParent
 from tests.utils.proactor_dummies import DummyParentSettings
 from tests.utils.proactor_test_collections import ProactorCommTests
 
+
 class DummyCommTestHelper(CommTestHelper):
 
     parent_t = DummyParent

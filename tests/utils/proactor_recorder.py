@@ -38,6 +38,7 @@ def split_subscriptions(client_wrapper: MQTTClientWrapper) -> Tuple[int, Optiona
         MQTTClientWrapper.subscribe(client_wrapper, topic, qos)
     return MQTT_ERR_SUCCESS, None
 
+
 @dataclass
 class RecorderLinkStats(LinkStats):
     comm_events: list[CommEvent] = field(default_factory=list)
@@ -50,13 +51,16 @@ class RecorderLinkStats(LinkStats):
                 s += f"\n    {comm_event}"
         return s
 
+
 class RecorderStats(ProactorStats):
 
     @classmethod
     def make_link(cls, link_name: str) -> RecorderLinkStats:
         return RecorderLinkStats(link_name)
 
+
 ProactorT = TypeVar("ProactorT", bound=Proactor)
+
 
 class RecorderInterface(ServicesInterface, Runnable):
 
@@ -231,7 +235,7 @@ def make_recorder_class(proactor_type: Type[ProactorT]) -> Callable[..., Recorde
             return self._mqtt_clients
 
         def mqtt_client_wrapper(self, client_name: str) -> MQTTClientWrapper:
-           return self._mqtt_clients.client_wrapper(client_name)
+            return self._mqtt_clients.client_wrapper(client_name)
 
         def mqtt_subscriptions(self, client_name: str) -> list[str]:
             return [item[0] for item in self._mqtt_clients.client_wrapper(client_name).subscription_items()]

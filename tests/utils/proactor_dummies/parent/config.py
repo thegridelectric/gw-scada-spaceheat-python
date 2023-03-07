@@ -8,6 +8,7 @@ from proactor.config import Paths
 from proactor.config import LoggingSettings
 from tests.utils.proactor_dummies.names import DUMMY_PARENT_ENV_PREFIX
 
+
 class DummyParentSettings(ProactorSettings):
     child_mqtt: MQTTClient = MQTTClient()
 

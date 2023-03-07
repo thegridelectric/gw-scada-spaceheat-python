@@ -24,6 +24,7 @@ class ScadaCommTestHelper(CommTestHelper):
             helper.kwargs["hardware_layout"] = HardwareLayout.load(helper.settings.paths.hardware_layout)
         return super()._make(recorder_t, helper)
 
+
 class TestScadaProactorComm(ProactorCommTests):
     CTH = ScadaCommTestHelper
 

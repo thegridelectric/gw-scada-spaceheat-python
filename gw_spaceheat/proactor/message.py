@@ -226,7 +226,9 @@ class PatExternalWatchdogMessage(Message[PatExternalWatchdog]):
 class Command(BaseModel):
     ...
 
+
 CommandT = TypeVar("CommandT", bound=Command)
+
 
 class CommandMessage(Message[CommandT], Generic[CommandT]):
     def __init__(self, **data: Any):
@@ -234,19 +236,23 @@ class CommandMessage(Message[CommandT], Generic[CommandT]):
         ensure_arg("MessageId", str(uuid.uuid4()), data)
         super().__init__(**data)
 
+
 class Shutdown(Command):
     Reason: str = ""
     TypeName: Literal["gridworks.shutdown"] = "gridworks.shutdown"
+
 
 class ShutdownMessage(CommandMessage[Shutdown]):
     def __init__(self, **data: Any):
         ensure_arg("Payload", Shutdown(Reason=data.get("Reason", "")), data)
         super().__init__(**data)
 
+
 class InternalShutdownMessage(ShutdownMessage):
     def __init__(self, **data: Any):
         ensure_arg("AckRequired", False, data)
         super().__init__(**data)
+
 
 class DBGCommands(Enum):
     show_subscriptions = "show_subscriptions"

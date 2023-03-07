@@ -244,7 +244,8 @@ class MQTTClients:
             raise ValueError(f"ERROR. MQTT client named {name} already exists")
         if upstream:
             if self.upstream_client:
-                raise ValueError(f"ERROR. upstream client already set as {self.upstream_client}. Client {name} may not be set as upstream.")
+                raise ValueError(
+                    f"ERROR. upstream client already set as {self.upstream_client}. Client {name} may not be set as upstream.")
             self.upstream_client = name
         if primary_peer:
             if self.primary_peer_client:

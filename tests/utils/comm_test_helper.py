@@ -22,8 +22,9 @@ from tests.utils.proactor_recorder import ProactorT
 class ProactorTestHelper:
     name: str
     settings: ProactorSettings
-    kwargs: dict = field(default_factory = dict)
+    kwargs: dict = field(default_factory=dict)
     proactor: Optional[RecorderInterface] = None
+
 
 ChildT = TypeVar("ChildT", bound=Proactor)
 ParentT = TypeVar("ParentT", bound=Proactor)
@@ -197,4 +198,3 @@ class CommTestHelper:
                 self.parent_helper.settings.paths.log_dir,
             )
         self.logger_guards.restore()
-

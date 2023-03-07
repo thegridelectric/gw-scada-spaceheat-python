@@ -32,6 +32,7 @@ class ParentMQTTCodec(MQTTCodec):
         if source_alias != DUMMY_CHILD_NAME:
             raise Exception(f"alias {source_alias} not my Scada!")
 
+
 class DummyParent(Proactor):
     CHILD_MQTT = "child"
 
@@ -52,7 +53,7 @@ class DummyParent(Proactor):
         )
 
     @classmethod
-    def make_event_persister(cls, settings:DummyParentSettings) -> SimpleDirectoryWriter:
+    def make_event_persister(cls, settings: DummyParentSettings) -> SimpleDirectoryWriter:
         return SimpleDirectoryWriter(settings.paths.event_dir)
 
     @property
@@ -62,5 +63,3 @@ class DummyParent(Proactor):
     @property
     def settings(self) -> DummyParentSettings:
         return cast(DummyParentSettings, self._settings)
-
-
