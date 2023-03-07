@@ -4,11 +4,11 @@ import logging.handlers
 from tests.test_misc.test_logging_config import get_exp_formatted_time
 from typing import Optional
 
-from proactor.config import Paths
+from gwproactor.config import Paths
 from actors2.config import ScadaSettings
-from proactor.config import DEFAULT_LOG_FILE_NAME
-from proactor.config import LoggingSettings
-from proactor.config import RotatingFileHandlerSettings
+from gwproactor.config import DEFAULT_LOG_FILE_NAME
+from gwproactor.config import LoggingSettings
+from gwproactor.config import RotatingFileHandlerSettings
 from logging_setup import setup_logging
 
 

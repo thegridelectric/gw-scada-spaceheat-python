@@ -16,7 +16,7 @@ from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
 from tests.atn import Atn2
-from proactor import Proactor
+from gwproactor import Proactor
 from tests.atn import AtnSettings
 
 try:

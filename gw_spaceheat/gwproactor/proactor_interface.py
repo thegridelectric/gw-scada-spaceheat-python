@@ -12,10 +12,10 @@ from typing import Sequence
 from gwproto.messages import EventT
 from result import Result
 
-from proactor import ProactorLogger
-from proactor import ProactorSettings
-from proactor.message import Message
-from proactor.stats import ProactorStats
+from gwproactor import ProactorLogger
+from gwproactor import ProactorSettings
+from gwproactor.message import Message
+from gwproactor.stats import ProactorStats
 
 
 @dataclass

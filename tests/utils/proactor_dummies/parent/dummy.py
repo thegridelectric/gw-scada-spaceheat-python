@@ -2,24 +2,24 @@
 from typing import cast
 from typing import Optional
 
-from proactor.persister import SimpleDirectoryWriter
+from gwproactor.persister import SimpleDirectoryWriter
 
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 
-from proactor.mqtt import QOS
-from proactor.message import Message
+from gwproactor.mqtt import QOS
+from gwproactor.message import Message
 
-from proactor.proactor_implementation import Proactor
+from gwproactor.proactor_implementation import Proactor
 from tests.utils.proactor_dummies.names import DUMMY_PARENT_NAME
 from tests.utils.proactor_dummies.names import DUMMY_CHILD_NAME
 from tests.utils.proactor_dummies.parent.config import DummyParentSettings
 
 ParentMessageDecoder = create_message_payload_discriminator(
     model_name="ParentMessageDecoder",
-    module_names=["gwproto.messages"],
+    module_names=["gwproto.messages", "gwproactor.message"],
 )
 
 

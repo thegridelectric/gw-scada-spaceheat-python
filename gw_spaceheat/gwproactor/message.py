@@ -19,7 +19,7 @@ from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel
 from pydantic import validator
 
-from proactor.config import LoggerLevels
+from gwproactor.config import LoggerLevels
 from problems import Problems
 
 

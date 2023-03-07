@@ -6,7 +6,7 @@ from typing import Sequence
 
 from gwproto import Message
 
-from proactor.message import MQTTReceiptPayload
+from gwproactor.message import MQTTReceiptPayload
 
 
 @dataclass

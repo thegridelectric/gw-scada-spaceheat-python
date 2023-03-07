@@ -34,8 +34,8 @@ from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
 )
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from named_tuples.telemetry_tuple import TelemetryTuple
-from proactor.message import InternalShutdownMessage
-from proactor.sync_thread import SyncAsyncInteractionThread
+from gwproactor.message import InternalShutdownMessage
+from gwproactor.sync_thread import SyncAsyncInteractionThread
 from problems import Problems
 from schema.enums import MakeModel
 from schema.enums import Role

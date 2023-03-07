@@ -1,7 +1,6 @@
 """Scada implementation"""
 import asyncio
 import dataclasses
-import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -37,13 +36,13 @@ from pydantic import BaseModel
 from actors2 import ActorInterface
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from proactor.message import DBGCommands
-from proactor.message import DBGPayload
-from proactor.mqtt import QOS
-from proactor.config import LoggerLevels
-from proactor.message import MQTTReceiptPayload, Message
+from gwproactor.message import DBGCommands
+from gwproactor.message import DBGPayload
+from gwproactor.mqtt import QOS
+from gwproactor.config import LoggerLevels
+from gwproactor.message import MQTTReceiptPayload, Message
 
-from proactor.proactor_implementation import Proactor
+from gwproactor.proactor_implementation import Proactor
 from schema.enums import Role
 from gwproto.enums import TelemetryName
 
@@ -52,7 +51,7 @@ from tests.atn.atn_config import AtnSettings
 
 AtnMessageDecoder = create_message_payload_discriminator(
     model_name="AtnMessageDecoder",
-    module_names=["gwproto.messages", "actors2.message"],
+    module_names=["gwproto.messages", "gwproactor.message", "actors2.message",],
     modules=[messages],
 )
 

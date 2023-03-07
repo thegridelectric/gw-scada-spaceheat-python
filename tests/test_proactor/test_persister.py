@@ -10,17 +10,17 @@ from gwproto.messages import ProblemEvent
 from result import Result
 
 from actors2.config import ScadaSettings
-from proactor.persister import FileExistedWarning
-from proactor.persister import FileMissing
-from proactor.persister import FileMissingWarning
-from proactor.persister import PersisterError
-from proactor.persister import PersisterException
-from proactor.persister import PersisterWarning
-from proactor.persister import ReindexError
-from proactor.persister import TimedRollingFilePersister
-from proactor.persister import TrimFailed
-from proactor.persister import UIDExistedWarning
-from proactor.persister import UIDMissingWarning
+from gwproactor.persister import FileExistedWarning
+from gwproactor.persister import FileMissing
+from gwproactor.persister import FileMissingWarning
+from gwproactor.persister import PersisterError
+from gwproactor.persister import PersisterException
+from gwproactor.persister import PersisterWarning
+from gwproactor.persister import ReindexError
+from gwproactor.persister import TimedRollingFilePersister
+from gwproactor.persister import TrimFailed
+from gwproactor.persister import UIDExistedWarning
+from gwproactor.persister import UIDMissingWarning
 from problems import Problems
 
 

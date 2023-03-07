@@ -6,9 +6,9 @@ import pytest
 from gwproto import MQTTTopic
 from paho.mqtt.client import MQTT_ERR_CONN_LOST
 
-from proactor.config import MQTTClient
-from proactor.link_state import StateName
-from proactor.message import DBGPayload
+from gwproactor.config import MQTTClient
+from gwproactor.link_state import StateName
+from gwproactor.message import DBGPayload
 from tests.utils import await_for
 from tests.utils.comm_test_helper import CommTestHelper
 from tests.utils.proactor_dummies import DummyChildSettings

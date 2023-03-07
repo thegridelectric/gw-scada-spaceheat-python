@@ -8,9 +8,9 @@ from typing import Optional
 from typing import Type
 from typing import TypeVar
 
-from proactor import ProactorSettings
+from gwproactor import ProactorSettings
 from logging_setup import setup_logging
-from proactor import Proactor
+from gwproactor import Proactor
 
 from tests.conftest import LoggerGuards
 from tests.utils.proactor_recorder import RecorderInterface

@@ -19,8 +19,8 @@ from data_classes.components.electric_meter_component import ElectricMeterCompon
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
-from proactor.config import LoggerLevels
-from proactor.config import LoggingSettings
+from gwproactor.config import LoggerLevels
+from gwproactor.config import LoggingSettings
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
 from gwproto.messages import  GsPwr_Maker

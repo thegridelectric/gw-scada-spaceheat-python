@@ -6,8 +6,8 @@ from result import Ok
 from result import Result
 
 from drivers.driver_result import DriverResult
-from proactor.mqtt import QOS
-from proactor.mqtt import Subscription
+from gwproactor.mqtt import QOS
+from gwproactor.mqtt import Subscription
 from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import \
     ElectricMeterComponent

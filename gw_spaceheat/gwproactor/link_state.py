@@ -10,10 +10,10 @@ from result import Result
 
 from gwproto import Message
 
-from proactor.message import MQTTConnectFailPayload
-from proactor.message import MQTTConnectPayload
-from proactor.message import MQTTDisconnectPayload
-from proactor.message import MQTTReceiptPayload
+from gwproactor.message import MQTTConnectFailPayload
+from gwproactor.message import MQTTConnectPayload
+from gwproactor.message import MQTTDisconnectPayload
+from gwproactor.message import MQTTReceiptPayload
 
 
 class StateName(enum.Enum):

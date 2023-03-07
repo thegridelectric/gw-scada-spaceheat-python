@@ -16,10 +16,10 @@ from actors2 import Scada2
 from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from proactor.message import MQTTSubackPayload
-from proactor.mqtt import MQTTClientWrapper
-from proactor.stats import LinkStats
-from proactor.stats import ProactorStats
+from gwproactor.message import MQTTSubackPayload
+from gwproactor.mqtt import MQTTClientWrapper
+from gwproactor.stats import LinkStats
+from gwproactor.stats import ProactorStats
 
 
 def split_subscriptions(client_wrapper: MQTTClientWrapper) -> Tuple[int, Optional[int]]:

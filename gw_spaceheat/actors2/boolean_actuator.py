@@ -13,8 +13,8 @@ from actors2.message import GtDriverBooleanactuatorCmdResponse
 from actors2.scada_interface import ScadaInterface
 from actors2.simple_sensor import SimpleSensor
 from actors2.simple_sensor import SimpleSensorDriverThread
-from proactor.message import Message
-from proactor.sync_thread import SyncAsyncInteractionThread
+from gwproactor.message import Message
+from gwproactor.sync_thread import SyncAsyncInteractionThread
 
 
 class DispatchRelay(BaseModel):

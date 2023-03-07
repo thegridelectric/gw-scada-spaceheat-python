@@ -14,21 +14,21 @@ Particular questions:
 * Test support should be implemented / cleaner.
 """
 
-from proactor.logger import ProactorLogger
-from proactor.config import ProactorSettings
-from proactor.message import Header
-from proactor.message import Message
-from proactor.proactor_implementation import MQTTCodec
-from proactor.proactor_implementation import Proactor
-from proactor.proactor_interface import Communicator
-from proactor.proactor_interface import CommunicatorInterface
-from proactor.proactor_interface import MonitoredName
-from proactor.proactor_interface import Runnable
-from proactor.proactor_interface import ServicesInterface
-from proactor.sync_thread import AsyncQueueWriter
-from proactor.sync_thread import SyncAsyncInteractionThread
-from proactor.sync_thread import SyncAsyncQueueWriter
-from proactor.sync_thread import responsive_sleep
+from gwproactor.logger import ProactorLogger
+from gwproactor.config import ProactorSettings
+from gwproactor.message import Header
+from gwproactor.message import Message
+from gwproactor.proactor_implementation import MQTTCodec
+from gwproactor.proactor_implementation import Proactor
+from gwproactor.proactor_interface import Communicator
+from gwproactor.proactor_interface import CommunicatorInterface
+from gwproactor.proactor_interface import MonitoredName
+from gwproactor.proactor_interface import Runnable
+from gwproactor.proactor_interface import ServicesInterface
+from gwproactor.sync_thread import AsyncQueueWriter
+from gwproactor.sync_thread import SyncAsyncInteractionThread
+from gwproactor.sync_thread import SyncAsyncQueueWriter
+from gwproactor.sync_thread import responsive_sleep
 
 __all__ = [
     "AsyncQueueWriter",

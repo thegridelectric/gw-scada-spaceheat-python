@@ -9,8 +9,8 @@ from abc import ABC
 from typing import Any
 from typing import Optional
 
-from proactor.message import InternalShutdownMessage
-from proactor.message import PatInternalWatchdogMessage
+from gwproactor.message import InternalShutdownMessage
+from gwproactor.message import PatInternalWatchdogMessage
 
 
 DEFAULT_STEP_DURATION = 0.1

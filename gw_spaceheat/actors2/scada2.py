@@ -41,17 +41,17 @@ from data_classes.components.boolean_actuator_component import BooleanActuatorCo
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from proactor.link_state import Transition
-from proactor.mqtt import QOS
-from proactor.message import MQTTReceiptPayload
-from proactor.persister import TimedRollingFilePersister
-from proactor.proactor_implementation import Proactor
+from gwproactor.link_state import Transition
+from gwproactor.mqtt import QOS
+from gwproactor.message import MQTTReceiptPayload
+from gwproactor.persister import TimedRollingFilePersister
+from gwproactor.proactor_implementation import Proactor
 
 ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
     [
         "gwproto.messages",
-        "proactor.message",
+        "gwproactor.message",
         "actors2.message"
     ]
 )

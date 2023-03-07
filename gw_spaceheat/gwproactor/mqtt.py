@@ -25,16 +25,16 @@ from paho.mqtt.client import Client as PahoMQTTClient
 from paho.mqtt.client import MQTTMessageInfo
 
 from problems import Problems
-from proactor import config
-from proactor.message import MQTTConnectFailMessage
-from proactor.message import MQTTConnectMessage
-from proactor.message import MQTTDisconnectMessage
-from proactor.message import MQTTProblemsMessage
-from proactor.message import MQTTReceiptMessage
-from proactor.message import MQTTSubackMessage
-from proactor.message import MQTTSubackPayload
-from proactor.sync_thread import AsyncQueueWriter
-from proactor.sync_thread import responsive_sleep
+from gwproactor import config
+from gwproactor.message import MQTTConnectFailMessage
+from gwproactor.message import MQTTConnectMessage
+from gwproactor.message import MQTTDisconnectMessage
+from gwproactor.message import MQTTProblemsMessage
+from gwproactor.message import MQTTReceiptMessage
+from gwproactor.message import MQTTSubackMessage
+from gwproactor.message import MQTTSubackPayload
+from gwproactor.sync_thread import AsyncQueueWriter
+from gwproactor.sync_thread import responsive_sleep
 
 class QOS(enum.IntEnum):
     AtMostOnce = 0

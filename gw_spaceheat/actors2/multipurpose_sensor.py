@@ -24,8 +24,8 @@ from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
 )
 from gwproto import Message
 
-from proactor.message import InternalShutdownMessage
-from proactor.sync_thread import SyncAsyncInteractionThread
+from gwproactor.message import InternalShutdownMessage
+from gwproactor.sync_thread import SyncAsyncInteractionThread
 from problems import Problems
 from schema.enums import MakeModel
 from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (

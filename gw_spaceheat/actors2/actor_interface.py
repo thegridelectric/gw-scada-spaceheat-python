@@ -6,9 +6,9 @@ from abc import ABC
 from abc import abstractmethod
 
 from data_classes.sh_node import ShNode
-from proactor.proactor_interface import CommunicatorInterface
-from proactor.proactor_interface import Runnable
-from proactor.proactor_interface import ServicesInterface
+from gwproactor.proactor_interface import CommunicatorInterface
+from gwproactor.proactor_interface import Runnable
+from gwproactor.proactor_interface import ServicesInterface
 
 
 class ActorInterface(CommunicatorInterface, Runnable, ABC):

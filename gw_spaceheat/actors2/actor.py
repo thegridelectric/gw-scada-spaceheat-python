@@ -17,10 +17,10 @@ from result import Result
 from actors2.actor_interface import ActorInterface
 from actors2.scada_interface import ScadaInterface
 from data_classes.sh_node import ShNode
-from proactor import Message
-from proactor import SyncAsyncInteractionThread
-from proactor.proactor_interface import Communicator
-from proactor.proactor_interface import MonitoredName
+from gwproactor import Message
+from gwproactor import SyncAsyncInteractionThread
+from gwproactor.proactor_interface import Communicator
+from gwproactor.proactor_interface import MonitoredName
 
 
 class Actor(ActorInterface, Communicator, ABC):

@@ -2,7 +2,7 @@
 
 import threading
 
-from proactor.sync_thread import responsive_sleep
+from gwproactor.sync_thread import responsive_sleep
 from tests.utils import StopWatch
 
 

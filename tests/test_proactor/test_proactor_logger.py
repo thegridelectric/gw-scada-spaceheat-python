@@ -4,10 +4,10 @@ import warnings
 
 from tests.conftest import LoggerGuards
 
-from proactor.config import Paths
+from gwproactor.config import Paths
 from actors2.config import ScadaSettings
 from logging_setup import setup_logging
-from proactor import ProactorLogger
+from gwproactor import ProactorLogger
 
 
 def test_proactor_logger(caplog):

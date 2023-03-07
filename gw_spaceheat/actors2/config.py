@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
-from proactor import ProactorSettings
-from proactor.config import MQTTClient
+from gwproactor import ProactorSettings
+from gwproactor.config import MQTTClient
 
 DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 

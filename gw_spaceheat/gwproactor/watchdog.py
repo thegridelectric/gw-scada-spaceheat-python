@@ -6,15 +6,15 @@ from typing import Optional
 
 from gwproto import Message
 
-from proactor.message import InternalShutdownMessage
-from proactor.proactor_interface import Communicator
-from proactor.proactor_interface import MonitoredName
-from proactor.proactor_interface import Runnable
-from proactor.proactor_interface import ServicesInterface
-from proactor.message import KnownNames
-from proactor.message import PatExternalWatchdog
-from proactor.message import PatExternalWatchdogMessage
-from proactor.message import PatInternalWatchdog
+from gwproactor.message import InternalShutdownMessage
+from gwproactor.proactor_interface import Communicator
+from gwproactor.proactor_interface import MonitoredName
+from gwproactor.proactor_interface import Runnable
+from gwproactor.proactor_interface import ServicesInterface
+from gwproactor.message import KnownNames
+from gwproactor.message import PatExternalWatchdog
+from gwproactor.message import PatExternalWatchdogMessage
+from gwproactor.message import PatInternalWatchdog
 
 class _MonitoredName(MonitoredName):
     last_pat: float = 0.0
