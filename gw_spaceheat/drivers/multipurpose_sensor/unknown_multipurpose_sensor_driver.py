@@ -3,7 +3,7 @@ from typing import List
 
 from result import Result
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.multipurpose_sensor_component import (
     MultipurposeSensorComponent,
 )

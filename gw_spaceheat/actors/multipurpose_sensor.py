@@ -9,10 +9,10 @@ import typing
 from collections import OrderedDict
 from typing import Dict, List, Optional
 
-from actors2.actor import SyncThreadActor
-from actors2.config import ScadaSettings
-from actors2.message import MultipurposeSensorTelemetryMessage
-from actors2.scada_interface import ScadaInterface
+from actors.actor import SyncThreadActor
+from actors.config import ScadaSettings
+from actors.message import MultipurposeSensorTelemetryMessage
+from actors.scada_interface import ScadaInterface
 from data_classes.components.multipurpose_sensor_component import (
     MultipurposeSensorComponent,
 )

@@ -7,7 +7,7 @@ from result import Result
 
 import schema.property_format as property_format
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from drivers.base.mcp23008 import mcp23008

@@ -33,7 +33,7 @@ from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
 from pydantic import BaseModel
 
-from actors2 import ActorInterface
+from actors import ActorInterface
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from gwproactor.message import DBGCommands
@@ -51,7 +51,7 @@ from tests.atn.atn_config import AtnSettings
 
 AtnMessageDecoder = create_message_payload_discriminator(
     model_name="AtnMessageDecoder",
-    module_names=["gwproto.messages", "gwproactor.message", "actors2.message",],
+    module_names=["gwproto.messages", "gwproactor.message", "actors.message",],
     modules=[messages],
 )
 

@@ -11,11 +11,11 @@ from typing import Optional
 from gwproto import Message
 from gwproto.enums import TelemetryName
 
-from actors2.actor import SyncThreadActor
-from actors2.message import GsPwrMessage
-from actors2.message import MultipurposeSensorTelemetryMessage
-from actors2.scada_interface import ScadaInterface
-from actors2.config import ScadaSettings
+from actors.actor import SyncThreadActor
+from actors.message import GsPwrMessage
+from actors.message import MultipurposeSensorTelemetryMessage
+from actors.scada_interface import ScadaInterface
+from actors.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
 from data_classes.hardware_layout import HardwareLayout

@@ -14,9 +14,9 @@ from typing import Type
 
 from gwproto import Message
 
-from actors2.actor import SyncThreadActor
-from actors2.message import GtTelemetryMessage
-from actors2.scada_interface import ScadaInterface
+from actors.actor import SyncThreadActor
+from actors.message import GtTelemetryMessage
+from actors.scada_interface import ScadaInterface
 from data_classes.node_config import NodeConfig
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread

@@ -1,7 +1,7 @@
 from result import Ok
 from result import Result
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.pipe_flow_sensor_component import \
     PipeFlowSensorComponent
 from drivers.driver_result import DriverResult

@@ -9,10 +9,10 @@ from result import Err
 from result import Ok
 from result import Result
 
-from actors2.message import GtDriverBooleanactuatorCmdResponse
-from actors2.scada_interface import ScadaInterface
-from actors2.simple_sensor import SimpleSensor
-from actors2.simple_sensor import SimpleSensorDriverThread
+from actors.message import GtDriverBooleanactuatorCmdResponse
+from actors.scada_interface import ScadaInterface
+from actors.simple_sensor import SimpleSensor
+from actors.simple_sensor import SimpleSensorDriverThread
 from gwproactor.message import Message
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 

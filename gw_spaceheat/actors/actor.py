@@ -14,8 +14,8 @@ from typing import TypeVar
 
 from result import Result
 
-from actors2.actor_interface import ActorInterface
-from actors2.scada_interface import ScadaInterface
+from actors.actor_interface import ActorInterface
+from actors.scada_interface import ScadaInterface
 from data_classes.sh_node import ShNode
 from gwproactor import Message
 from gwproactor import SyncAsyncInteractionThread

@@ -5,7 +5,7 @@ import serial.rs485
 from result import Ok
 from result import Result
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver

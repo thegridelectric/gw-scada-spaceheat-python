@@ -8,13 +8,13 @@ from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import await_for
 
-import actors2
+import actors
 import pytest
-from actors2 import Scada
-from actors2.power_meter import DriverThreadSetupHelper
-from actors2.power_meter import PowerMeter
-from actors2.power_meter import PowerMeterDriverThread
-from actors2.config import ScadaSettings
+from actors import Scada
+from actors.power_meter import DriverThreadSetupHelper
+from actors.power_meter import PowerMeter
+from actors.power_meter import PowerMeterDriverThread
+from actors.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
@@ -148,11 +148,11 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
         def get_requested_proactors(self):
             return [self.runner.actors.scada]
 
-        def get_requested_actors2(self):
+        def get_requested_actors(self):
             meter_node = self.runner.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
-            self.runner.actors.meter = actors2.PowerMeter(
+            self.runner.actors.meter = actors.PowerMeter(
                 name=meter_node.alias,
                 services=self.runner.actors.scada,
                 settings=ScadaSettings(seconds_per_report=1)
@@ -218,11 +218,11 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
         def get_requested_proactors(self):
             return [self.runner.actors.scada, self.runner.actors.atn2]
 
-        def get_requested_actors2(self):
+        def get_requested_actors(self):
             meter_node = self.runner.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
-            self.runner.actors.meter = actors2.PowerMeter(
+            self.runner.actors.meter = actors.PowerMeter(
                 name=meter_node.alias,
                 services=self.runner.actors.scada,
                 settings=ScadaSettings(seconds_per_report=1)

@@ -16,9 +16,9 @@ from tests.utils import ScadaRecorder
 from tests.utils import await_for
 
 import pytest
-from actors2 import Scada
-from actors2.scada import ScadaCmdDiagnostic
-from actors2.config import ScadaSettings
+from actors import Scada
+from actors.scada import ScadaCmdDiagnostic
+from actors.config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
@@ -154,7 +154,7 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
         def get_requested_proactors(self):
             return [self.runner.actors.scada, self.runner.actors.atn2]
 
-        def get_requested_actors2(self):
+        def get_requested_actors(self):
             return [self.runner.actors.relay]
 
         async def async_run(self):

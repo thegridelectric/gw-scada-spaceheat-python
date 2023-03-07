@@ -10,9 +10,9 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 
-import actors2
-from actors2 import ActorInterface
-from actors2.config import ScadaSettings
+import actors
+from actors import ActorInterface
+from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
 from tests.atn import Atn2
@@ -58,8 +58,8 @@ async def async_do_nothing(seconds: float, logger: Optional[logging.Logger] = No
 class Actors:
     atn2: Atn2
     scada: ScadaRecorder
-    relay: actors2.BooleanActuator
-    meter: actors2.PowerMeter
+    relay: actors.BooleanActuator
+    meter: actors.PowerMeter
 
     def __init__(
             self,
@@ -80,15 +80,15 @@ class Actors:
         )
         self.relay = kwargs.get(
             "relay",
-            actors2.BooleanActuator("a.elt1.relay", services=self.scada)
+            actors.BooleanActuator("a.elt1.relay", services=self.scada)
         )
         self.thermo = kwargs.get(
             "thermo",
-            actors2.SimpleSensor("a.tank.temp0", services=self.scada)
+            actors.SimpleSensor("a.tank.temp0", services=self.scada)
         )
         self.meter = kwargs.get(
             "meter",
-            actors2.PowerMeter("a.m", services=self.scada)
+            actors.PowerMeter("a.m", services=self.scada)
         )
 
 class ProtocolFragment:
@@ -102,7 +102,7 @@ class ProtocolFragment:
     def get_requested_proactors(self) -> Sequence[Proactor]:
         return []
 
-    def get_requested_actors2(self) -> Sequence[ActorInterface]:
+    def get_requested_actors(self) -> Sequence[ActorInterface]:
         return []
 
     async def async_run(self, *args, **kwargs):
@@ -176,7 +176,7 @@ class AsyncFragmentRunner:
         self.fragments.append(fragment)
         self.wait_at_least = max(self.wait_at_least, fragment.wait_at_least)
         self.request_proactors(fragment.get_requested_proactors())
-        self.request_actors2(fragment.get_requested_actors2())
+        self.request_actors(fragment.get_requested_actors())
         return self
 
     def request_proactors(self, proactors: Sequence[Proactor]) -> "AsyncFragmentRunner":
@@ -185,7 +185,7 @@ class AsyncFragmentRunner:
                 self.proactors[proactor.name] = proactor
         return self
 
-    def request_actors2(self, actors: Sequence[ActorInterface]) -> "AsyncFragmentRunner":
+    def request_actors(self, actors: Sequence[ActorInterface]) -> "AsyncFragmentRunner":
         for actor in actors:
             self.actors.scada.add_communicator(actor)
         return self

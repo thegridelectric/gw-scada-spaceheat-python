@@ -5,9 +5,9 @@ from abc import abstractmethod
 
 from result import Result
 
-from actors2.actor_interface import ActorInterface
-from actors2.config import ScadaSettings
-from actors2.scada_data import ScadaData
+from actors.actor_interface import ActorInterface
+from actors.config import ScadaSettings
+from actors.scada_data import ScadaData
 from data_classes.hardware_layout import HardwareLayout
 from gwproactor.proactor_interface import ServicesInterface
 

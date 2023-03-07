@@ -18,7 +18,7 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from gwproactor.config import DEFAULT_LAYOUT_FILE
 from gwproactor.config import Paths
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from gwproactor.config import DEFAULT_BASE_NAME
 from gwproactor.config import LoggerLevels
 

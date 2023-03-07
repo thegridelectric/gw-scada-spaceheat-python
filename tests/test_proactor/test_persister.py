@@ -9,7 +9,7 @@ import pendulum
 from gwproto.messages import ProblemEvent
 from result import Result
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from gwproactor.persister import FileExistedWarning
 from gwproactor.persister import FileMissing
 from gwproactor.persister import FileMissingWarning

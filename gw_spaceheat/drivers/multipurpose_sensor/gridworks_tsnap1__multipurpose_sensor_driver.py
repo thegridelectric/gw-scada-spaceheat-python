@@ -3,7 +3,7 @@ import sys
 from enum import Enum
 from typing import Dict, List
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 from result import Err, Ok, Result
 

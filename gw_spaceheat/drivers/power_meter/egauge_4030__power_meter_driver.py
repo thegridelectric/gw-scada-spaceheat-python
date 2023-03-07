@@ -9,7 +9,7 @@ from result import Err
 from result import Ok
 from result import Result
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.driver_result import DriverResult
 from drivers.exceptions import DriverWarning

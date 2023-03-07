@@ -5,7 +5,7 @@ import warnings
 from tests.conftest import LoggerGuards
 
 from gwproactor.config import Paths
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from logging_setup import setup_logging
 from gwproactor import ProactorLogger
 

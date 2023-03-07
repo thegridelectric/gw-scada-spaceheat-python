@@ -31,12 +31,12 @@ from gwproto.messages import SnapshotSpaceheatEvent
 from result import Ok
 from result import Result
 
-from actors2.home_alone import HomeAlone
-from actors2.actor_interface import ActorInterface
-from actors2.message import GtDispatchBooleanLocalMessage
-from actors2.scada_data import ScadaData
-from actors2.scada_interface import ScadaInterface
-from actors2.config import ScadaSettings
+from actors.home_alone import HomeAlone
+from actors.actor_interface import ActorInterface
+from actors.message import GtDispatchBooleanLocalMessage
+from actors.scada_data import ScadaData
+from actors.scada_interface import ScadaInterface
+from actors.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
@@ -52,7 +52,7 @@ ScadaMessageDecoder = create_message_payload_discriminator(
     [
         "gwproto.messages",
         "gwproactor.message",
-        "actors2.message"
+        "actors.message"
     ]
 )
 
@@ -110,7 +110,7 @@ class ScadaCmdDiagnostic(enum.Enum):
 class Scada(ScadaInterface, Proactor):
     GS_PWR_MULTIPLIER = 1
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
-    DEFAULT_ACTORS_MODULE = "actors2"
+    DEFAULT_ACTORS_MODULE = "actors"
     GRIDWORKS_MQTT = "gridworks"
     LOCAL_MQTT = "local"
 

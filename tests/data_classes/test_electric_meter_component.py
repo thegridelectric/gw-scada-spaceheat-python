@@ -1,4 +1,4 @@
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.hardware_layout import HardwareLayout
 from schema.gt.components import GtElectricMeterComponent_Maker

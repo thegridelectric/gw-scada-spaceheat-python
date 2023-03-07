@@ -9,8 +9,8 @@ from rich import print
 from rich.table import Table
 from rich.text import Text
 
-from actors2 import Scada
-from actors2.config import ScadaSettings
+from actors import Scada
+from actors.config import ScadaSettings
 from command_line_utils import get_actor_nodes
 from command_line_utils import get_requested_aliases
 from data_classes.errors import DataClassLoadingError

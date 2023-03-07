@@ -12,9 +12,9 @@ from result import Err
 from result import Ok
 from result import Result
 
-from actors2.actor import Actor
-from actors2.message import GtDispatchBooleanLocalMessage
-from actors2.scada_interface import ScadaInterface
+from actors.actor import Actor
+from actors.message import GtDispatchBooleanLocalMessage
+from actors.scada_interface import ScadaInterface
 from data_classes.sh_node import ShNode
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage

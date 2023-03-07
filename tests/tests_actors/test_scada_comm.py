@@ -1,7 +1,7 @@
 from typing import Callable
 
-from actors2 import Scada
-from actors2.config import ScadaSettings
+from actors import Scada
+from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from tests.atn import Atn2
 from tests.atn import AtnSettings

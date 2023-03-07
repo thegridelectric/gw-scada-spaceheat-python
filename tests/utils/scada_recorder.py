@@ -12,8 +12,8 @@ from gwproto.messages import EventT
 from gwproto.messages import PingMessage
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
-from actors2 import Scada
-from actors2.config import ScadaSettings
+from actors import Scada
+from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from gwproactor.message import MQTTSubackPayload

@@ -2,7 +2,7 @@
 
 from tests.utils import flush_all
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.components.boolean_actuator_component import BooleanActuatorCac

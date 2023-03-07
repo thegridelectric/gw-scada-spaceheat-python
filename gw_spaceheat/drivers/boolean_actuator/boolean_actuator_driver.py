@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from result import Ok
 from result import Result
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from drivers.driver_result import DriverResult

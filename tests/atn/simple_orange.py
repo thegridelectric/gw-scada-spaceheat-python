@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Sequence
 
 import pendulum
-from actors2 import ActorInterface
-from actors2.message import ScadaDBG, ScadaDBGCommands
+from actors import ActorInterface
+from actors.message import ScadaDBG, ScadaDBGCommands
 from actors.utils import QOS
 from gwproactor.config import LoggerLevels
 from data_classes.hardware_layout import HardwareLayout
@@ -45,7 +45,7 @@ from tests.atn.atn_config import AtnSettings
 
 AtnMessageDecoder = create_message_payload_discriminator(
     model_name="AtnMessageDecoder",
-    module_names=["gwproto.messages", "actors2.message"],
+    module_names=["gwproto.messages", "actors.message"],
     modules=[messages],
 )
 

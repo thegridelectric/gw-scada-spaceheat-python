@@ -5,7 +5,7 @@ from tests.test_misc.test_logging_config import get_exp_formatted_time
 from typing import Optional
 
 from gwproactor.config import Paths
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from gwproactor.config import DEFAULT_LOG_FILE_NAME
 from gwproactor.config import LoggingSettings
 from gwproactor.config import RotatingFileHandlerSettings

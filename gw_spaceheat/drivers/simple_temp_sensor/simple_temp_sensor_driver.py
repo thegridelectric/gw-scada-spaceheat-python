@@ -5,7 +5,7 @@ from result import Ok
 from result import Result
 
 from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 
 

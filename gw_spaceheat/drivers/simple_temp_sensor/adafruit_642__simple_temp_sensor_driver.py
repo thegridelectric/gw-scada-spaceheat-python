@@ -8,7 +8,7 @@ from typing import Optional
 from result import Ok
 from result import Result
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 import schema.property_format as property_format
 from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from drivers.driver_result import DriverResult
