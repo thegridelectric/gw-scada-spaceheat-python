@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, NamedTuple, Optional
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.multipurpose_sensor_component import \
     MultipurposeSensorComponent
 from drivers.driver_result import DriverResult

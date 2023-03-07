@@ -6,7 +6,7 @@ import os
 import shutil
 from pathlib import Path
 
-from proactor.config import LoggingSettings
+from gwproactor.config import LoggingSettings
 from tests.utils import flush_all
 from types import NoneType
 from typing import Generator
@@ -16,11 +16,11 @@ from typing import Sequence
 import dotenv
 import pytest
 from _pytest.monkeypatch import MonkeyPatch
-from proactor.config import DEFAULT_LAYOUT_FILE
-from proactor.config import Paths
-from actors2.config import ScadaSettings
-from proactor.config import DEFAULT_BASE_NAME
-from proactor.config import LoggerLevels
+from gwproactor.config import DEFAULT_LAYOUT_FILE
+from gwproactor.config import Paths
+from actors.config import ScadaSettings
+from gwproactor.config import DEFAULT_BASE_NAME
+from gwproactor.config import LoggerLevels
 
 TEST_DOTENV_PATH = "tests/.env-gw-spaceheat-test"
 TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"

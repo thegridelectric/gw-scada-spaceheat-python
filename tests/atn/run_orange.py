@@ -8,14 +8,14 @@ from typing import Optional, Sequence
 import dotenv
 import rich
 from command_line_utils import parse_args
-from proactor.config import LoggingSettings, Paths
+from gwproactor.config import LoggingSettings, Paths
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
 
 from tests.atn import AtnSettings
 
 try:
-    from tests.atn.atn import Atn2
+    from tests.atn.atn import Atn
 except ImportError as e:
     raise ImportError(
         f"ERROR. ({e})\n\n"
@@ -25,7 +25,7 @@ except ImportError as e:
     )
 
 
-def get_orange_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn2":
+def get_orange_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn":
     if argv is None:
         argv = sys.argv[1:]
     args = parse_args(argv)
@@ -44,7 +44,7 @@ def get_orange_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> 
     logger.log(logging.ERROR + 1, f"Env file: [{env_path}]")
     rich.print(settings)
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    a = Atn2("a", settings, layout)
+    a = Atn("a", settings, layout)
     if start:
         a.start()
     return a

@@ -16,7 +16,7 @@ from data_classes.components.simple_temp_sensor_component import SimpleTempSenso
 from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from data_classes.sh_node import ShNode
 
-from tests.utils.scada2_recorder import Scada2Recorder
+from tests.utils.scada_recorder import ScadaRecorder
 from tests.utils.wait import wait_for
 from tests.utils.wait import await_for
 from tests.utils.wait import AwaitablePredicate

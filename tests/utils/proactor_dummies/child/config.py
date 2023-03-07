@@ -1,5 +1,5 @@
-from proactor import ProactorSettings
-from proactor.config import MQTTClient
+from gwproactor import ProactorSettings
+from gwproactor.config import MQTTClient
 
 from tests.utils.proactor_dummies.names import DUMMY_CHILD_ENV_PREFIX
 

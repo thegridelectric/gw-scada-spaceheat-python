@@ -7,15 +7,15 @@ import pytest
 from paho.mqtt.client import MQTTMessage
 from result import Result
 
-from proactor.link_state import InvalidCommStateInput
-from proactor.link_state import LinkStates
-from proactor.link_state import StateName
-from proactor.link_state import Transition
-from proactor.link_state import TransitionName
-from proactor.message import MQTTConnectFailMessage
-from proactor.message import MQTTConnectMessage
-from proactor.message import MQTTDisconnectMessage
-from proactor.message import MQTTReceiptMessage
+from gwproactor.link_state import InvalidCommStateInput
+from gwproactor.link_state import LinkStates
+from gwproactor.link_state import StateName
+from gwproactor.link_state import Transition
+from gwproactor.link_state import TransitionName
+from gwproactor.message import MQTTConnectFailMessage
+from gwproactor.message import MQTTConnectMessage
+from gwproactor.message import MQTTDisconnectMessage
+from gwproactor.message import MQTTReceiptMessage
 
 
 def assert_transition(got: Transition, exp: Transition):

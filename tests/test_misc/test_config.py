@@ -5,14 +5,14 @@ from pathlib import Path
 
 import dotenv
 
-from actors2.config import PersisterSettings
-from proactor.config import LoggingSettings
-from proactor.config import MQTTClient
-from proactor.config import Paths
-from actors2.config import ScadaSettings
+from actors.config import PersisterSettings
+from gwproactor.config import LoggingSettings
+from gwproactor.config import MQTTClient
+from gwproactor.config import Paths
+from actors.config import ScadaSettings
 from pydantic import SecretStr
 
-from proactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
+from gwproactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
 
 
 def test_mqtt_client_settings():

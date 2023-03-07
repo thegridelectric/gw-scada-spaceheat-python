@@ -6,10 +6,10 @@ from gwproto import create_message_payload_discriminator
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 
-from proactor import ProactorSettings
-from proactor.mqtt import QOS
-from proactor.persister import TimedRollingFilePersister
-from proactor.proactor_implementation import Proactor
+from gwproactor import ProactorSettings
+from gwproactor.mqtt import QOS
+from gwproactor.persister import TimedRollingFilePersister
+from gwproactor.proactor_implementation import Proactor
 
 from tests.utils.proactor_dummies.child.config import DummyChildSettings
 from tests.utils.proactor_dummies.names import DUMMY_CHILD_NAME
@@ -19,7 +19,7 @@ ChildMessageDecoder = create_message_payload_discriminator(
     "ChildMessageDecoder",
     [
         "gwproto.messages",
-        "proactor.message",
+        "gwproactor.message",
     ]
 )
 

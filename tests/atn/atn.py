@@ -1,7 +1,6 @@
 """Scada implementation"""
 import asyncio
 import dataclasses
-import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -34,16 +33,16 @@ from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
 from pydantic import BaseModel
 
-from actors2 import ActorInterface
+from actors import ActorInterface
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from proactor.message import DBGCommands
-from proactor.message import DBGPayload
-from proactor.mqtt import QOS
-from proactor.config import LoggerLevels
-from proactor.message import MQTTReceiptPayload, Message
+from gwproactor.message import DBGCommands
+from gwproactor.message import DBGPayload
+from gwproactor.mqtt import QOS
+from gwproactor.config import LoggerLevels
+from gwproactor.message import MQTTReceiptPayload, Message
 
-from proactor.proactor_implementation import Proactor
+from gwproactor.proactor_implementation import Proactor
 from schema.enums import Role
 from gwproto.enums import TelemetryName
 
@@ -52,7 +51,7 @@ from tests.atn.atn_config import AtnSettings
 
 AtnMessageDecoder = create_message_payload_discriminator(
     model_name="AtnMessageDecoder",
-    module_names=["gwproto.messages", "actors2.message"],
+    module_names=["gwproto.messages", "gwproactor.message", "actors.message", ],
     modules=[messages],
 )
 
@@ -98,7 +97,7 @@ class _PausedAck:
     context: Optional[Any]
 
 
-class Atn2(ActorInterface, Proactor):
+class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
     layout: HardwareLayout
@@ -136,9 +135,9 @@ class Atn2(ActorInterface, Proactor):
             filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, list(self.layout.nodes.values()))
         )
         self.data = AtnData(relay_state={x: RecentRelayState() for x in self.my_relays})
-        self._add_mqtt_client(Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
+        self._add_mqtt_client(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
         self._mqtt_clients.subscribe(
-            Atn2.SCADA_MQTT,
+            Atn.SCADA_MQTT,
             MQTTTopic.encode_subscription(Message.type_name(), self.layout.scada_g_node_alias),
             QOS.AtMostOnce,
         )
@@ -191,7 +190,7 @@ class Atn2(ActorInterface, Proactor):
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         message = Message(Src=self.publication_name, Payload=payload)
-        return self._publish_message(Atn2.SCADA_MQTT, message, qos=qos)
+        return self._publish_message(Atn.SCADA_MQTT, message, qos=qos)
 
     def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         if not self.mqtt_messages_dropped:
@@ -199,7 +198,7 @@ class Atn2(ActorInterface, Proactor):
 
     def _derived_process_message(self, message: Message):
         self._logger.path(
-            "++Atn2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType
+            "++Atn._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType
         )
         path_dbg = 0
         match message.Payload:
@@ -215,10 +214,10 @@ class Atn2(ActorInterface, Proactor):
             case _:
                 path_dbg |= 0x00000008
 
-        self._logger.path("--Atn2._derived_process_message  path:0x%08X", path_dbg)
+        self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
 
     def _derived_process_mqtt_message(self, message: Message[MQTTReceiptPayload], decoded: Any):
-        self._logger.path("++Atn2._derived_process_mqtt_message %s", message.Payload.message.topic)
+        self._logger.path("++Atn._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if message.Payload.client_name != self.SCADA_MQTT:
             raise ValueError(
@@ -247,7 +246,7 @@ class Atn2(ActorInterface, Proactor):
                     self._process_snapshot(decoded.Payload.snap)
             case _:
                 path_dbg |= 0x00000040
-        self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
+        self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     # noinspection PyMethodMayBeStatic
     def _process_pwr(self, pwr: GsPwr) -> None:

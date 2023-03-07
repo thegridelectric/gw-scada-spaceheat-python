@@ -10,8 +10,8 @@ import dotenv
 import rich
 
 from logging_setup import setup_logging
-from actors2 import Scada2
-from actors2.config import ScadaSettings
+from actors import Scada
+from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from schema.enums import Role
@@ -106,8 +106,8 @@ def get_scada(
     argv: Optional[Sequence[str]] = None,
     run_in_thread: bool = False,
     add_screen_handler: bool = True,
-    actors_package_name: str = Scada2.DEFAULT_ACTORS_MODULE,
-) -> Scada2:
+    actors_package_name: str = Scada.DEFAULT_ACTORS_MODULE,
+) -> Scada:
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     settings = ScadaSettings(_env_file=dotenv_file)
@@ -123,7 +123,7 @@ def get_scada(
     requested_aliases = get_requested_aliases(args)
     layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
     scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, actors_package_name)
-    scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+    scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     if run_in_thread:
         scada.run_in_thread()
     return scada

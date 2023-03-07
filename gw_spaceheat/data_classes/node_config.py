@@ -2,7 +2,7 @@ import sys
 import importlib
 import importlib.util
 
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.sh_node import ShNode
 from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import (
     GtSensorReportingConfig_Maker as ConfigMaker,

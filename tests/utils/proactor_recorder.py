@@ -18,19 +18,19 @@ from gwproto.messages import CommEvent
 from gwproto.messages import EventT
 from paho.mqtt.client import MQTTMessageInfo
 
-from proactor import Proactor
-from proactor import ProactorSettings
-from proactor import Runnable
-from proactor import ServicesInterface
-from proactor.config import LoggerLevels
-from proactor.message import DBGCommands
-from proactor.message import DBGPayload
-from proactor.message import MQTTReceiptPayload
-from proactor.message import MQTTSubackPayload
-from proactor.mqtt import MQTTClients
-from proactor.mqtt import MQTTClientWrapper
-from proactor.stats import LinkStats
-from proactor.stats import ProactorStats
+from gwproactor import Proactor
+from gwproactor import ProactorSettings
+from gwproactor import Runnable
+from gwproactor import ServicesInterface
+from gwproactor.config import LoggerLevels
+from gwproactor.message import DBGCommands
+from gwproactor.message import DBGPayload
+from gwproactor.message import MQTTReceiptPayload
+from gwproactor.message import MQTTSubackPayload
+from gwproactor.mqtt import MQTTClients
+from gwproactor.mqtt import MQTTClientWrapper
+from gwproactor.stats import LinkStats
+from gwproactor.stats import ProactorStats
 
 
 def split_subscriptions(client_wrapper: MQTTClientWrapper) -> Tuple[int, Optional[int]]:
@@ -121,7 +121,7 @@ class _PausedAck:
 
 def make_recorder_class(proactor_type: Type[ProactorT]) -> Callable[..., RecorderInterface]:
 
-    class Recorder2(proactor_type):
+    class Recorder(proactor_type):
 
         subacks_paused: bool
         pending_subacks: list[Message]
@@ -274,4 +274,4 @@ def make_recorder_class(proactor_type: Type[ProactorT]) -> Callable[..., Recorde
                     # noinspection PyProtectedMember
                     super()._derived_process_message(message)
 
-    return Recorder2
+    return Recorder

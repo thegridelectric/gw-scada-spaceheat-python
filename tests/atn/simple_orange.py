@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Sequence
 
 import pendulum
-from actors2 import ActorInterface
-from actors2.message import ScadaDBG, ScadaDBGCommands
+from actors import ActorInterface
+from actors.message import ScadaDBG, ScadaDBGCommands
 from actors.utils import QOS
-from proactor.config import LoggerLevels
+from gwproactor.config import LoggerLevels
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
 from gwproto import (
@@ -34,9 +34,9 @@ from gwproto.messages import (
     SnapshotSpaceheat_Maker,
 )
 from paho.mqtt.client import MQTTMessageInfo
-from proactor.logger import ProactorLogger
-from proactor.message import Message, MQTTReceiptPayload
-from proactor.proactor_implementation import Proactor
+from gwproactor.logger import ProactorLogger
+from gwproactor.message import Message, MQTTReceiptPayload
+from gwproactor.proactor_implementation import Proactor
 from pydantic import BaseModel
 from schema.enums import Role
 
@@ -45,7 +45,7 @@ from tests.atn.atn_config import AtnSettings
 
 AtnMessageDecoder = create_message_payload_discriminator(
     model_name="AtnMessageDecoder",
-    module_names=["gwproto.messages", "actors2.message"],
+    module_names=["gwproto.messages", "actors.message"],
     modules=[messages],
 )
 

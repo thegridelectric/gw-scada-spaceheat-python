@@ -10,7 +10,7 @@ from result import Result
 from drivers.driver_result import DriverResult
 from drivers.exceptions import DriverWarning
 from drivers.pipe_flow_sensor.ezflo.AtlasI2C import AtlasI2C
-from actors2.config import ScadaSettings
+from actors.config import ScadaSettings
 from data_classes.components.pipe_flow_sensor_component import \
     PipeFlowSensorComponent
 from drivers.pipe_flow_sensor.pipe_flow_sensor_driver import \

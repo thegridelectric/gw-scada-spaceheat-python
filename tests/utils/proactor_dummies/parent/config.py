@@ -2,10 +2,10 @@ from typing import Any, Optional
 
 from pydantic import validator
 
-from proactor import ProactorSettings
-from proactor.config import MQTTClient
-from proactor.config import Paths
-from proactor.config import LoggingSettings
+from gwproactor import ProactorSettings
+from gwproactor.config import MQTTClient
+from gwproactor.config import Paths
+from gwproactor.config import LoggingSettings
 from tests.utils.proactor_dummies.names import DUMMY_PARENT_ENV_PREFIX
 
 

@@ -10,21 +10,21 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 
-import actors2
-from actors2 import ActorInterface
-from actors2.config import ScadaSettings
+import actors
+from actors import ActorInterface
+from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
-from tests.atn import Atn2
-from proactor import Proactor
+from tests.atn import Atn
+from gwproactor import Proactor
 from tests.atn import AtnSettings
 
 try:
-    from tests.utils.scada2_recorder import Scada2Recorder
+    from tests.utils.scada_recorder import ScadaRecorder
     from tests.utils.wait import await_for
     from tests.utils.wait import wait_for
 except ImportError:
-    from .scada2_recorder import Scada2Recorder
+    from .scada_recorder import ScadaRecorder
     from .wait import await_for
     from .wait import wait_for
 
@@ -56,10 +56,10 @@ async def async_do_nothing(seconds: float, logger: Optional[logging.Logger] = No
 
 
 class Actors:
-    atn2: Atn2
-    scada2: Scada2Recorder
-    relay2: actors2.BooleanActuator
-    meter2: actors2.PowerMeter
+    atn: Atn
+    scada: ScadaRecorder
+    relay: actors.BooleanActuator
+    meter: actors.PowerMeter
 
     def __init__(
             self,
@@ -70,25 +70,25 @@ class Actors:
         settings.paths.mkdirs(parents=True)
         atn_settings = kwargs.get("atn_settings", AtnSettings())
         atn_settings.paths.mkdirs(parents=True)
-        self.atn2 = kwargs.get(
+        self.atn = kwargs.get(
             "atn",
-            Atn2("a", settings=atn_settings, hardware_layout=layout)
+            Atn("a", settings=atn_settings, hardware_layout=layout)
         )
-        self.scada2 = kwargs.get(
-            "scada2",
-            Scada2Recorder("a.s", settings, hardware_layout=layout)
+        self.scada = kwargs.get(
+            "scada",
+            ScadaRecorder("a.s", settings, hardware_layout=layout)
         )
-        self.relay2 = kwargs.get(
-            "relay2",
-            actors2.BooleanActuator("a.elt1.relay", services=self.scada2)
+        self.relay = kwargs.get(
+            "relay",
+            actors.BooleanActuator("a.elt1.relay", services=self.scada)
         )
-        self.thermo2 = kwargs.get(
-            "thermo2",
-            actors2.SimpleSensor("a.tank.temp0", services=self.scada2)
+        self.thermo = kwargs.get(
+            "thermo",
+            actors.SimpleSensor("a.tank.temp0", services=self.scada)
         )
-        self.meter2 = kwargs.get(
-            "meter2",
-            actors2.PowerMeter("a.m", services=self.scada2)
+        self.meter = kwargs.get(
+            "meter",
+            actors.PowerMeter("a.m", services=self.scada)
         )
 
 
@@ -103,7 +103,7 @@ class ProtocolFragment:
     def get_requested_proactors(self) -> Sequence[Proactor]:
         return []
 
-    def get_requested_actors2(self) -> Sequence[ActorInterface]:
+    def get_requested_actors(self) -> Sequence[ActorInterface]:
         return []
 
     async def async_run(self, *args, **kwargs):
@@ -177,7 +177,7 @@ class AsyncFragmentRunner:
         self.fragments.append(fragment)
         self.wait_at_least = max(self.wait_at_least, fragment.wait_at_least)
         self.request_proactors(fragment.get_requested_proactors())
-        self.request_actors2(fragment.get_requested_actors2())
+        self.request_actors(fragment.get_requested_actors())
         return self
 
     def request_proactors(self, proactors: Sequence[Proactor]) -> "AsyncFragmentRunner":
@@ -186,9 +186,9 @@ class AsyncFragmentRunner:
                 self.proactors[proactor.name] = proactor
         return self
 
-    def request_actors2(self, actors: Sequence[ActorInterface]) -> "AsyncFragmentRunner":
+    def request_actors(self, actors: Sequence[ActorInterface]) -> "AsyncFragmentRunner":
         for actor in actors:
-            self.actors.scada2.add_communicator(actor)
+            self.actors.scada.add_communicator(actor)
         return self
 
     async def await_connect(self, logger: Optional[logging.Logger] = None):
@@ -237,15 +237,15 @@ class AsyncFragmentRunner:
             self.delimit("STARTING")
             # TODO: Make this public access
             # noinspection PyProtectedMember
-            self.actors.scada2._mqtt_clients.enable_loggers(self.actors.scada2._logger)
-            if self.actors.atn2.name in self.proactors:
-                asyncio.create_task(self.actors.atn2.run_forever(), name="atn_run_forever")
-            asyncio.create_task(self.actors.scada2.run_forever(), name="scada_run_forever")
+            self.actors.scada._mqtt_clients.enable_loggers(self.actors.scada._logger)
+            if self.actors.atn.name in self.proactors:
+                asyncio.create_task(self.actors.atn.run_forever(), name="atn_run_forever")
+            asyncio.create_task(self.actors.scada.run_forever(), name="scada_run_forever")
             # TODO: Make _logger public
             # noinspection PyProtectedMember
-            await self.await_connect(cast(logging.Logger, self.actors.scada2._logger))
+            await self.await_connect(cast(logging.Logger, self.actors.scada._logger))
             # noinspection PyProtectedMember
-            self.actors.scada2._mqtt_clients.disable_loggers()
+            self.actors.scada._mqtt_clients.disable_loggers()
             self.delimit("CONNECTED")
             for fragment in self.fragments:
                 await fragment.async_run(*args, **kwargs)
