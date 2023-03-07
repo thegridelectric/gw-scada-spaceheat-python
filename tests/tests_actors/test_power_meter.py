@@ -152,12 +152,12 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
             meter_node = self.runner.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
-            self.runner.actors.meter2 = actors2.PowerMeter(
+            self.runner.actors.meter = actors2.PowerMeter(
                 name=meter_node.alias,
                 services=self.runner.actors.scada,
                 settings=ScadaSettings(seconds_per_report=1)
             )
-            return [self.runner.actors.meter2]
+            return [self.runner.actors.meter]
 
         async def async_run(self):
             scada = self.runner.actors.scada
@@ -165,12 +165,12 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
             expected_tts = [
                 TelemetryTuple(
                     AboutNode=self.runner.layout.node("a.elt1"),
-                    SensorNode=self.runner.actors.meter2.node,
+                    SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
                 ),
                 TelemetryTuple(
                     AboutNode=self.runner.layout.node("a.elt1"),
-                    SensorNode=self.runner.actors.meter2.node,
+                    SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.POWER_W,
                 )
             ]
@@ -222,12 +222,12 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
             meter_node = self.runner.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
-            self.runner.actors.meter2 = actors2.PowerMeter(
+            self.runner.actors.meter = actors2.PowerMeter(
                 name=meter_node.alias,
                 services=self.runner.actors.scada,
                 settings=ScadaSettings(seconds_per_report=1)
             )
-            return [self.runner.actors.meter2]
+            return [self.runner.actors.meter]
 
         async def async_run(self):
             scada = self.runner.actors.scada
@@ -239,7 +239,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
             )
 
             # TODO: Cleaner test access?
-            meter_sync_thread = typing.cast(PowerMeterDriverThread, self.runner.actors.meter2._sync_thread)
+            meter_sync_thread = typing.cast(PowerMeterDriverThread, self.runner.actors.meter._sync_thread)
             driver = typing.cast(
                 GridworksSimPm1_PowerMeterDriver,
                 meter_sync_thread.driver

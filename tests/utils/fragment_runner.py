@@ -58,8 +58,8 @@ async def async_do_nothing(seconds: float, logger: Optional[logging.Logger] = No
 class Actors:
     atn2: Atn2
     scada: ScadaRecorder
-    relay2: actors2.BooleanActuator
-    meter2: actors2.PowerMeter
+    relay: actors2.BooleanActuator
+    meter: actors2.PowerMeter
 
     def __init__(
             self,
@@ -78,16 +78,16 @@ class Actors:
             "scada",
             ScadaRecorder("a.s", settings, hardware_layout=layout)
         )
-        self.relay2 = kwargs.get(
-            "relay2",
+        self.relay = kwargs.get(
+            "relay",
             actors2.BooleanActuator("a.elt1.relay", services=self.scada)
         )
-        self.thermo2 = kwargs.get(
-            "thermo2",
+        self.thermo = kwargs.get(
+            "thermo",
             actors2.SimpleSensor("a.tank.temp0", services=self.scada)
         )
-        self.meter2 = kwargs.get(
-            "meter2",
+        self.meter = kwargs.get(
+            "meter",
             actors2.PowerMeter("a.m", services=self.scada)
         )
 

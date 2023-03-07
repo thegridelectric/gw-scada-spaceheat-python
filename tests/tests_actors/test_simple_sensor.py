@@ -28,15 +28,15 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch, request):
             # Note: The read delay can *still* be 1 second because the times compared are cast to floats.
             thermo_node.reporting_sample_period_s = 0
             typing.cast(SimpleTempSensorComponent, thermo_node.component).cac.typical_response_time_ms = .01
-            self.runner.actors.thermo2 = actors2.SimpleSensor(
+            self.runner.actors.thermo = actors2.SimpleSensor(
                 name=thermo_node.alias,
                 services=self.runner.actors.scada,
             )
-            return [self.runner.actors.thermo2]
+            return [self.runner.actors.thermo]
 
         async def async_run(self):
             scada = self.runner.actors.scada
-            thermo = self.runner.actors.thermo2
+            thermo = self.runner.actors.thermo
             simple_sensor_reports = len(scada._data.recent_simple_values[thermo.node])
             # Wait for at least one reading to be delivered since one is delivered on thread startup.
             await await_for(
