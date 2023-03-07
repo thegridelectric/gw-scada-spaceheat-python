@@ -156,4 +156,3 @@ class SimpleSensor(SyncThreadActor):
                 daemon=daemon,
             )
         super().__init__(name, services, driver_thread)
-

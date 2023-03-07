@@ -51,7 +51,7 @@ from tests.atn.atn_config import AtnSettings
 
 AtnMessageDecoder = create_message_payload_discriminator(
     model_name="AtnMessageDecoder",
-    module_names=["gwproto.messages", "gwproactor.message", "actors.message",],
+    module_names=["gwproto.messages", "gwproactor.message", "actors.message", ],
     modules=[messages],
 )
 

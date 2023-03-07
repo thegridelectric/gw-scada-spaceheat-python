@@ -77,6 +77,7 @@ class HWUidMismatch(DriverWarning):
         )
         return s
 
+
 class DriverThreadSetupHelper:
     """A helper class to isolate code only used in construction of PowerMeterDriverThread"""
 
