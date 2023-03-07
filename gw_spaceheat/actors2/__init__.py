@@ -8,7 +8,7 @@ from actors2.message import GtDispatchBooleanLocalMessage
 from actors2.message import GtDriverBooleanactuatorCmdResponse
 from actors2.message import GtTelemetryMessage
 from actors2.power_meter import PowerMeter
-from actors2.scada2 import Scada2
+from actors2.scada import Scada
 from actors2.scada_interface import ScadaInterface
 from actors2.simple_sensor import SimpleSensor
 from actors2.multipurpose_sensor import MultipurposeSensor
@@ -17,7 +17,7 @@ from actors2.home_alone import HomeAlone
 __all__ = [
     "ScadaInterface",
     "ActorInterface",
-    "Scada2",
+    "Scada",
     "Actor",
     "BooleanActuator",
     "SimpleSensor",

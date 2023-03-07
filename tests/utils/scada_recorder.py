@@ -12,7 +12,7 @@ from gwproto.messages import EventT
 from gwproto.messages import PingMessage
 from paho.mqtt.client import MQTT_ERR_SUCCESS
 
-from actors2 import Scada2
+from actors2 import Scada
 from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
@@ -46,7 +46,7 @@ class ProactorStats2(ProactorStats):
         return LinkStats2(link_name)
 
 
-class Scada2Recorder(Scada2):
+class ScadaRecorder(Scada):
 
     suppress_status: bool
     subacks_paused: bool

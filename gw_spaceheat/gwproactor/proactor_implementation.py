@@ -358,7 +358,7 @@ class Proactor(ServicesInterface, Runnable):
 
     def log_subscriptions(self, tag=""):
         if self._logger.lifecycle_enabled:
-            s = f"Scada2 subscriptions: [{tag}]]\n"
+            s = f"Scada subscriptions: [{tag}]]\n"
             for client in self._mqtt_clients.clients:
                 s += f"\t{client}\n"
                 for subscription in self._mqtt_clients.client_wrapper(client).subscription_items():

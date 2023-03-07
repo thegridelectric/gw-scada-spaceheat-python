@@ -9,7 +9,7 @@ from rich import print
 from rich.table import Table
 from rich.text import Text
 
-from actors2 import Scada2
+from actors2 import Scada
 from actors2.config import ScadaSettings
 from command_line_utils import get_actor_nodes
 from command_line_utils import get_requested_aliases
@@ -150,18 +150,18 @@ def print_layout_table(layout: HardwareLayout):
     print(table)
 
 
-def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings) -> Optional[Scada2]:
+def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings) -> Optional[Scada]:
     settings.paths.mkdirs()
-    scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada2.DEFAULT_ACTORS_MODULE)
+    scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada.DEFAULT_ACTORS_MODULE)
     scada = None
     try:
-        scada = Scada2(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+        scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     except (DataClassLoadingError, KeyError, ModuleNotFoundError, ValueError) as e:
-        print(f"ERROR loading Scada2: <{e}> {type(e)}")
+        print(f"ERROR loading Scada: <{e}> {type(e)}")
     return scada
 
 
-def show_layout(layout: HardwareLayout, requested_aliases: Optional[set[str]], settings: ScadaSettings) -> Scada2:
+def show_layout(layout: HardwareLayout, requested_aliases: Optional[set[str]], settings: ScadaSettings) -> Scada:
     print_component_dicts(layout)
     print_layout_table(layout)
     return try_scada_load(requested_aliases, layout, settings)

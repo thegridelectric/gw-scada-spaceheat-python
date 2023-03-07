@@ -107,7 +107,7 @@ class ScadaCmdDiagnostic(enum.Enum):
     IGNORING_HOMEALONE_DISPATCH = "IgnoringHomealoneDispatch"
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
-class Scada2(ScadaInterface, Proactor):
+class Scada(ScadaInterface, Proactor):
     GS_PWR_MULTIPLIER = 1
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors2"
@@ -133,10 +133,10 @@ class Scada2(ScadaInterface, Proactor):
         self._layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
         self._add_mqtt_client(
-            Scada2.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec(self._layout)
+            Scada.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec(self._layout)
         )
         self._add_mqtt_client(
-            Scada2.GRIDWORKS_MQTT,
+            Scada.GRIDWORKS_MQTT,
             self.settings.gridworks_mqtt,
             GridworksMQTTCodec(self._layout),
             upstream=True,
@@ -147,7 +147,7 @@ class Scada2(ScadaInterface, Proactor):
             f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}".replace(".", "-"),
             f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}".replace(".", "-"),
         ]:
-            self._mqtt_clients.subscribe(Scada2.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
+            self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
         self.log_subscriptions("construction")
         self._home_alone = HomeAlone(self.hardware_layout.my_home_alone.alias, self)
@@ -249,10 +249,10 @@ class Scada2(ScadaInterface, Proactor):
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
         message = Message(Src=from_node.alias, Payload=payload)
-        return self._publish_message(Scada2.LOCAL_MQTT, message, qos=qos)
+        return self._publish_message(Scada.LOCAL_MQTT, message, qos=qos)
 
     def _derived_process_message(self, message: Message):
-        self._logger.path("++Scada2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
+        self._logger.path("++Scada._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
@@ -297,12 +297,12 @@ class Scada2(ScadaInterface, Proactor):
                 raise ValueError(
                     f"There is no handler for mqtt message payload type [{type(message.Payload)}]"
                 )
-        self._logger.path("--Scada2._derived_process_message  path:0x%08X", path_dbg)
+        self._logger.path("--Scada._derived_process_message  path:0x%08X", path_dbg)
 
     def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
-        self._logger.path("++Scada2._derived_process_mqtt_message %s", message.Payload.message.topic)
+        self._logger.path("++Scada._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if message.Payload.client_name != self.GRIDWORKS_MQTT:
             raise ValueError(
@@ -324,7 +324,7 @@ class Scada2(ScadaInterface, Proactor):
                     f"There is no handler for mqtt message payload type [{type(decoded.Payload)}]\n"
                     f"Received\n\t topic: [{message.Payload.message.topic}]"
                 )
-        self._logger.path("--Scada2._derived_process_mqtt_message  path:0x%08X", path_dbg)
+        self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_telemetry(self, message: Message, decoded: GtTelemetry):
         from_node = self._layout.node(message.Header.Src)

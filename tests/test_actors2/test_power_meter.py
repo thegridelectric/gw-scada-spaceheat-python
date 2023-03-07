@@ -10,7 +10,7 @@ from tests.utils import await_for
 
 import actors2
 import pytest
-from actors2 import Scada2
+from actors2 import Scada
 from actors2.power_meter import DriverThreadSetupHelper
 from actors2.power_meter import PowerMeter
 from actors2.power_meter import PowerMeterDriverThread
@@ -29,7 +29,7 @@ def test_power_meter_small2():
     settings = ScadaSettings()
     settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    scada = Scada2("a.s", settings, layout)
+    scada = Scada("a.s", settings, layout)
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
         PowerMeter("a.s", services=scada)
@@ -146,7 +146,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
     class Fragment(ProtocolFragment):
 
         def get_requested_proactors(self):
-            return [self.runner.actors.scada2]
+            return [self.runner.actors.scada]
 
         def get_requested_actors2(self):
             meter_node = self.runner.layout.node("a.m")
@@ -154,13 +154,13 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
             self.runner.actors.meter2 = actors2.PowerMeter(
                 name=meter_node.alias,
-                services=self.runner.actors.scada2,
+                services=self.runner.actors.scada,
                 settings=ScadaSettings(seconds_per_report=1)
             )
             return [self.runner.actors.meter2]
 
         async def async_run(self):
-            scada = self.runner.actors.scada2
+            scada = self.runner.actors.scada
 
             expected_tts = [
                 TelemetryTuple(
@@ -216,7 +216,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
     class Fragment(ProtocolFragment):
 
         def get_requested_proactors(self):
-            return [self.runner.actors.scada2, self.runner.actors.atn2]
+            return [self.runner.actors.scada, self.runner.actors.atn2]
 
         def get_requested_actors2(self):
             meter_node = self.runner.layout.node("a.m")
@@ -224,13 +224,13 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
             monkeypatch.setattr(meter_cac, "update_period_ms", 0)
             self.runner.actors.meter2 = actors2.PowerMeter(
                 name=meter_node.alias,
-                services=self.runner.actors.scada2,
+                services=self.runner.actors.scada,
                 settings=ScadaSettings(seconds_per_report=1)
             )
             return [self.runner.actors.meter2]
 
         async def async_run(self):
-            scada = self.runner.actors.scada2
+            scada = self.runner.actors.scada
             atn = self.runner.actors.atn2
             await await_for(
                 lambda: scada._data.latest_total_power_w is not None,

@@ -1,4 +1,4 @@
-"""Container for data Scada uses in building status and snapshot messages, separated from Scada2 for clarity,
+"""Container for data Scada uses in building status and snapshot messages, separated from Scada for clarity,
 not necessarily re-use. """
 
 import time

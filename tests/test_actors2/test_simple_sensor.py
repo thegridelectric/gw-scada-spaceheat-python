@@ -19,7 +19,7 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch, request):
     class Fragment(ProtocolFragment):
 
         def get_requested_proactors(self):
-            return [self.runner.actors.scada2]
+            return [self.runner.actors.scada]
 
         def get_requested_actors2(self):
             thermo_node = self.runner.layout.node("a.tank.temp0")
@@ -30,12 +30,12 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch, request):
             typing.cast(SimpleTempSensorComponent, thermo_node.component).cac.typical_response_time_ms = .01
             self.runner.actors.thermo2 = actors2.SimpleSensor(
                 name=thermo_node.alias,
-                services=self.runner.actors.scada2,
+                services=self.runner.actors.scada,
             )
             return [self.runner.actors.thermo2]
 
         async def async_run(self):
-            scada = self.runner.actors.scada2
+            scada = self.runner.actors.scada
             thermo = self.runner.actors.thermo2
             simple_sensor_reports = len(scada._data.recent_simple_values[thermo.node])
             # Wait for at least one reading to be delivered since one is delivered on thread startup.
