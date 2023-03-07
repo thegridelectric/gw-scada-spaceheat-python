@@ -7,6 +7,7 @@ from gwproto.gt.snapshot_spaceheat import SnapshotSpaceheat_Maker
 from gwproto.messages import GtShStatusEvent
 from gwproto.messages import SnapshotSpaceheatEvent
 
+from data_classes.hardware_layout import HardwareLayout
 from tests.atn import AtnSettings
 from tests.utils.fragment_runner import Actors
 from tests.utils.fragment_runner import AsyncFragmentRunner
@@ -14,10 +15,9 @@ from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import Scada2Recorder
 from tests.utils import await_for
 
-import load_house
 import pytest
 from actors2 import Scada2
-from actors.scada import ScadaCmdDiagnostic
+from actors2.scada2 import ScadaCmdDiagnostic
 from actors2.config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -32,7 +32,7 @@ from gwproto.messages import  SnapshotSpaceheat
 def test_scada2_small():
     settings = ScadaSettings()
     settings.paths.mkdirs()
-    layout = load_house.load_all(settings)
+    layout = HardwareLayout.load(settings.paths.hardware_layout)
     scada = Scada2("a.s", settings=settings, hardware_layout=layout)
     assert layout.power_meter_node == layout.node("a.m")
     meter_node = layout.node("a.m")
@@ -139,7 +139,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch, request):
     settings.paths.mkdirs(parents=True)
     atn_settings = AtnSettings()
     atn_settings.paths.mkdirs(parents=True)
-    layout = load_house.load_all(settings)
+    layout = HardwareLayout.load(settings.paths.hardware_layout)
     actors = Actors(
         settings,
         layout=layout,
@@ -151,7 +151,7 @@ async def test_scada2_relay_dispatch(tmp_path, monkeypatch, request):
     runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
 
     class Fragment(ProtocolFragment):
-        def get_requested_actors(self):
+        def get_requested_proactors(self):
             return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         def get_requested_actors2(self):
@@ -303,7 +303,7 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch, request):
     settings.paths.mkdirs()
     atn_settings = AtnSettings()
     atn_settings.paths.mkdirs()
-    layout = load_house.load_all(settings)
+    layout = HardwareLayout.load(settings.paths.hardware_layout)
     actors = Actors(
         settings,
         layout=layout,
@@ -315,7 +315,7 @@ async def test_scada2_periodic_status_delivery(tmp_path, monkeypatch, request):
 
     class Fragment(ProtocolFragment):
 
-        def get_requested_actors(self):
+        def get_requested_proactors(self):
             return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         async def async_run(self):
@@ -349,7 +349,7 @@ async def test_scada2_snaphot_request_delivery(tmp_path, monkeypatch, request):
 
     class Fragment(ProtocolFragment):
 
-        def get_requested_actors(self):
+        def get_requested_proactors(self):
             self.runner.actors.scada2.suppress_status = True
             return [self.runner.actors.scada2, self.runner.actors.atn2]
 
@@ -380,7 +380,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch, request):
     settings = ScadaSettings(seconds_per_report=2)
     settings.paths.mkdirs(parents=True)
     atn_settings = AtnSettings()
-    layout = load_house.load_all(settings)
+    layout = HardwareLayout.load(settings.paths.hardware_layout)
     actors = Actors(
         settings,
         layout=layout,
@@ -392,7 +392,7 @@ async def test_scada2_status_content_dynamics(tmp_path, monkeypatch, request):
 
     class Fragment(ProtocolFragment):
 
-        def get_requested_actors(self):
+        def get_requested_proactors(self):
             return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         async def async_run(self):

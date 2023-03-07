@@ -6,6 +6,7 @@ away with).
 """
 import copy
 import json
+import re
 import typing
 from dataclasses import dataclass
 from typing import List, Any, Optional
@@ -21,7 +22,6 @@ from schema.enums import ActorClass
 from schema.enums import TelemetryName
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
-from helpers import camel_to_snake
 from schema.gt.cacs import (
     GtBooleanActuatorCac_Maker,
 )
@@ -53,6 +53,12 @@ from schema.gt.components import (
     SimpleTempSensorComponentGt_Maker,
 )
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
+
+snake_add_underscore_to_camel_pattern = re.compile(r"(?<!^)(?=[A-Z])")
+
+
+def camel_to_snake(name):
+    return snake_add_underscore_to_camel_pattern.sub("_", name).lower()
 
 
 @dataclass

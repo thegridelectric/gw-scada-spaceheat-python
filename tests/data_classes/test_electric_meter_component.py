@@ -1,12 +1,12 @@
-import load_house
 from actors2.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
+from data_classes.hardware_layout import HardwareLayout
 from schema.gt.components import GtElectricMeterComponent_Maker
 
 
 def test_electric_meter_component():
     settings = ScadaSettings()
-    load_house.load_all(settings)
+    HardwareLayout.load(settings.paths.hardware_layout)
     d = {
         "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
         "DisplayName": "Main Power meter for Little orange house garage space heat",

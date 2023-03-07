@@ -2,7 +2,7 @@
 
 import threading
 
-from actors.utils import responsive_sleep
+from proactor.sync_thread import responsive_sleep
 from tests.utils import StopWatch
 
 

@@ -3,15 +3,13 @@ import logging
 import sys
 import argparse
 from pathlib import Path
-from typing import Optional, Sequence, Dict, Callable, Tuple, List
+from typing import Optional, Sequence, Tuple
 import traceback
 
 import dotenv
 import rich
 
-import load_house
 from logging_setup import setup_logging
-from actors.strategy_switcher import strategy_from_node
 from actors2 import Scada2
 from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
@@ -66,46 +64,6 @@ def parse_args(
         ),
         default_nodes=default_nodes,
     ).parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
-
-def run_nodes(
-    aliases: Sequence[str], settings: ScadaSettings, layout: HardwareLayout, dbg: Optional[Dict] = None
-) -> None:
-    """Start actors associated with node aliases. If dbg is not None, the actor instances will be returned in dbg["actors"]
-    as dict of alias:actor."""
-
-    actor_constructors: List[Tuple[ShNode, Callable]] = []
-
-    for alias in aliases:
-        node = layout.node(alias)
-        actor_function = strategy_from_node(node)
-        if not actor_function:
-            raise ValueError(f"ERROR. Node alias [{alias}] has no strategy")
-        actor_constructors.append((node, actor_function))
-
-    actors = [constructor(node.alias, settings, layout) for node, constructor in actor_constructors]
-
-    for actor in actors:
-        actor.start()
-
-    if dbg is not None:
-        dbg["actors"] = {actor.node.alias: actor for actor in actors}
-
-
-def run_nodes_main(
-    argv: Optional[Sequence[str]] = None,
-    default_nodes: Optional[Sequence[str]] = None,
-    dbg: Optional[Dict] = None,
-) -> None:
-    """Load and run the configured Nodes. If dbg is not None it will be populated with the actor objects."""
-    args = parse_args(argv, default_nodes=default_nodes)
-    settings = ScadaSettings(
-        _env_file=dotenv.find_dotenv(args.env_file),
-        seconds_per_report=args.seconds_per_report,
-    )
-    settings.paths.mkdirs()
-    setup_logging(args, settings)
-    run_nodes(args.nodes, settings, load_house.load_all(settings), dbg=dbg)
-
 
 def get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
     if args.nodes is None:

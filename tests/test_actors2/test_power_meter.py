@@ -2,6 +2,8 @@ import argparse
 import asyncio
 import logging
 import typing
+
+from data_classes.hardware_layout import HardwareLayout
 from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import await_for
@@ -17,7 +19,6 @@ from data_classes.components.electric_meter_component import ElectricMeterCompon
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
-from load_house import load_all
 from proactor.config import LoggerLevels
 from proactor.config import LoggingSettings
 from named_tuples.telemetry_tuple import TelemetryTuple
@@ -27,7 +28,7 @@ from gwproto.messages import  GsPwr_Maker
 def test_power_meter_small2():
     settings = ScadaSettings()
     settings.paths.mkdirs()
-    layout = load_all(settings)
+    layout = HardwareLayout.load(settings.paths.hardware_layout)
     scada = Scada2("a.s", settings, layout)
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
@@ -144,7 +145,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
 
     class Fragment(ProtocolFragment):
 
-        def get_requested_actors(self):
+        def get_requested_proactors(self):
             return [self.runner.actors.scada2]
 
         def get_requested_actors2(self):
@@ -214,7 +215,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
 
     class Fragment(ProtocolFragment):
 
-        def get_requested_actors(self):
+        def get_requested_proactors(self):
             return [self.runner.actors.scada2, self.runner.actors.atn2]
 
         def get_requested_actors2(self):

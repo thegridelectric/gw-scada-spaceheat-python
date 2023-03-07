@@ -2,7 +2,6 @@
 
 from tests.utils import flush_all
 
-import load_house
 from actors2.config import ScadaSettings
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
@@ -61,7 +60,7 @@ def test_flush_and_load_house():
     assert ShNode.by_id["c9456f5b-5a39-4a48-bb91-742a9fdc461d"].alias == "a.m"
     flush_all()
 
-    layout = load_house.load_all(ScadaSettings())
+    layout = HardwareLayout.load(ScadaSettings().paths.hardware_layout)
     assert layout.node("a.m").sh_node_id == "0dd8a803-4724-4f49-b845-14ff57bdb3e6"
     for node in layout.nodes.values():
         layout.parent_node(node.alias)
