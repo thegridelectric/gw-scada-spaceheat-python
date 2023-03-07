@@ -355,7 +355,7 @@ class ProactorCommTests:
             )
 
     @pytest.mark.asyncio
-    async def test_awaiting_setup_and_peer2(self):
+    async def test_awaiting_setup_and_peer(self):
         """
         Test:
          (connecting -> connected -> awaiting_setup_and_peer)
@@ -474,7 +474,7 @@ class ProactorCommTests:
                 assert comm_event.MessageId in child._event_persister
 
     @pytest.mark.asyncio
-    async def test_awaiting_setup_and_peer_corner_cases2(self):
+    async def test_awaiting_setup_and_peer_corner_cases(self):
         """
         Test corner cases:
          (connecting -> connected -> awaiting_setup_and_peer)
@@ -794,7 +794,7 @@ class ProactorCommTests:
             )
 
     @pytest.mark.asyncio
-    async def test_response_timeout2(self):
+    async def test_response_timeout(self):
         """
         Test:
             (awaiting_peer -> response_timeout -> awaiting_peer)
@@ -887,9 +887,8 @@ class ProactorCommTests:
                 err_str_f=parent.summary_str
             )
 
-    # @pytest.mark.skip
     @pytest.mark.asyncio
-    async def test_ping2(self):
+    async def test_ping(self):
         """
         Test:
             ping sent peridoically if no messages sent

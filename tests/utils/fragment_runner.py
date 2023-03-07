@@ -56,7 +56,7 @@ async def async_do_nothing(seconds: float, logger: Optional[logging.Logger] = No
 
 
 class Actors:
-    atn2: Atn
+    atn: Atn
     scada: ScadaRecorder
     relay: actors.BooleanActuator
     meter: actors.PowerMeter
@@ -70,7 +70,7 @@ class Actors:
         settings.paths.mkdirs(parents=True)
         atn_settings = kwargs.get("atn_settings", AtnSettings())
         atn_settings.paths.mkdirs(parents=True)
-        self.atn2 = kwargs.get(
+        self.atn = kwargs.get(
             "atn",
             Atn("a", settings=atn_settings, hardware_layout=layout)
         )
@@ -236,8 +236,8 @@ class AsyncFragmentRunner:
             # TODO: Make this public access
             # noinspection PyProtectedMember
             self.actors.scada._mqtt_clients.enable_loggers(self.actors.scada._logger)
-            if self.actors.atn2.name in self.proactors:
-                asyncio.create_task(self.actors.atn2.run_forever(), name="atn_run_forever")
+            if self.actors.atn.name in self.proactors:
+                asyncio.create_task(self.actors.atn.run_forever(), name="atn_run_forever")
             asyncio.create_task(self.actors.scada.run_forever(), name="scada_run_forever")
             # TODO: Make _logger public
             # noinspection PyProtectedMember

@@ -198,7 +198,7 @@ class Atn(ActorInterface, Proactor):
 
     def _derived_process_message(self, message: Message):
         self._logger.path(
-            "++Atn2._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType
+            "++Atn._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType
         )
         path_dbg = 0
         match message.Payload:
@@ -214,10 +214,10 @@ class Atn(ActorInterface, Proactor):
             case _:
                 path_dbg |= 0x00000008
 
-        self._logger.path("--Atn2._derived_process_message  path:0x%08X", path_dbg)
+        self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
 
     def _derived_process_mqtt_message(self, message: Message[MQTTReceiptPayload], decoded: Any):
-        self._logger.path("++Atn2._derived_process_mqtt_message %s", message.Payload.message.topic)
+        self._logger.path("++Atn._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if message.Payload.client_name != self.SCADA_MQTT:
             raise ValueError(
@@ -246,7 +246,7 @@ class Atn(ActorInterface, Proactor):
                     self._process_snapshot(decoded.Payload.snap)
             case _:
                 path_dbg |= 0x00000040
-        self._logger.path("--Atn2._derived_process_mqtt_message  path:0x%08X", path_dbg)
+        self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     # noinspection PyMethodMayBeStatic
     def _process_pwr(self, pwr: GsPwr) -> None:

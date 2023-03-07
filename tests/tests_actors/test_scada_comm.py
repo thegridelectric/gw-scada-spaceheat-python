@@ -27,6 +27,3 @@ class ScadaCommTestHelper(CommTestHelper):
 
 class TestScadaProactorComm(ProactorCommTests):
     CTH = ScadaCommTestHelper
-
-    async def test_ping2(self):
-        await super().test_ping2()

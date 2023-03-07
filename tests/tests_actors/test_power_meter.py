@@ -25,7 +25,7 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
 from gwproto.messages import  GsPwr_Maker
 
-def test_power_meter_small2():
+def test_power_meter_small():
     settings = ScadaSettings()
     settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
@@ -200,7 +200,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
 
 
 @pytest.mark.asyncio
-async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, request):
+async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, request):
     """Verify that when a simulated change in power is generated, Scadd and Atn both get a GsPwr message"""
 
     monkeypatch.chdir(tmp_path)
@@ -216,7 +216,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
     class Fragment(ProtocolFragment):
 
         def get_requested_proactors(self):
-            return [self.runner.actors.scada, self.runner.actors.atn2]
+            return [self.runner.actors.scada, self.runner.actors.atn]
 
         def get_requested_actors(self):
             meter_node = self.runner.layout.node("a.m")
@@ -231,7 +231,7 @@ async def test_power_meter_aggregate_power_forward2(tmp_path, monkeypatch, reque
 
         async def async_run(self):
             scada = self.runner.actors.scada
-            atn = self.runner.actors.atn2
+            atn = self.runner.actors.atn
             await await_for(
                 lambda: scada._data.latest_total_power_w is not None,
                 1,

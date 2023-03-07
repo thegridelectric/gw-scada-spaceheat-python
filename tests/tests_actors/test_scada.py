@@ -152,13 +152,13 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
 
     class Fragment(ProtocolFragment):
         def get_requested_proactors(self):
-            return [self.runner.actors.scada, self.runner.actors.atn2]
+            return [self.runner.actors.scada, self.runner.actors.atn]
 
         def get_requested_actors(self):
             return [self.runner.actors.relay]
 
         async def async_run(self):
-            atn = self.runner.actors.atn2
+            atn = self.runner.actors.atn
             relay = self.runner.actors.relay
             scada = self.runner.actors.scada
             link_stats = scada.stats.links["gridworks"]
@@ -316,11 +316,11 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
     class Fragment(ProtocolFragment):
 
         def get_requested_proactors(self):
-            return [self.runner.actors.scada, self.runner.actors.atn2]
+            return [self.runner.actors.scada, self.runner.actors.atn]
 
         async def async_run(self):
             scada = self.runner.actors.scada
-            atn = self.runner.actors.atn2
+            atn = self.runner.actors.atn
             assert atn.stats.num_received_by_type[GtShStatusEvent.__fields__["TypeName"].default] == 0
             assert atn.stats.num_received_by_type[SnapshotSpaceheatEvent.__fields__["TypeName"].default] == 0
             scada.suppress_status = False
@@ -351,10 +351,10 @@ async def test_scada_snaphot_request_delivery(tmp_path, monkeypatch, request):
 
         def get_requested_proactors(self):
             self.runner.actors.scada.suppress_status = True
-            return [self.runner.actors.scada, self.runner.actors.atn2]
+            return [self.runner.actors.scada, self.runner.actors.atn]
 
         async def async_run(self):
-            atn = self.runner.actors.atn2
+            atn = self.runner.actors.atn
             atn._logger.setLevel(logging.DEBUG)
             assert atn.stats.num_received_by_type[SnapshotSpaceheat_Maker.type_alias] == 0
             atn._logger.info(SnapshotSpaceheat_Maker.type_alias)
@@ -393,10 +393,10 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
     class Fragment(ProtocolFragment):
 
         def get_requested_proactors(self):
-            return [self.runner.actors.scada, self.runner.actors.atn2]
+            return [self.runner.actors.scada, self.runner.actors.atn]
 
         async def async_run(self):
-            atn = self.runner.actors.atn2
+            atn = self.runner.actors.atn
             scada = self.runner.actors.scada
             link_stats = scada.stats.links["gridworks"]
             relay = self.runner.actors.relay

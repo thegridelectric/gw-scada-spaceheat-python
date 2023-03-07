@@ -121,7 +121,7 @@ class _PausedAck:
 
 def make_recorder_class(proactor_type: Type[ProactorT]) -> Callable[..., RecorderInterface]:
 
-    class Recorder2(proactor_type):
+    class Recorder(proactor_type):
 
         subacks_paused: bool
         pending_subacks: list[Message]
@@ -274,4 +274,4 @@ def make_recorder_class(proactor_type: Type[ProactorT]) -> Callable[..., Recorde
                     # noinspection PyProtectedMember
                     super()._derived_process_message(message)
 
-    return Recorder2
+    return Recorder
