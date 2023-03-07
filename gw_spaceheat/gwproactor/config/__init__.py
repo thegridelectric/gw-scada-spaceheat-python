@@ -46,5 +46,3 @@ __all__ = [
     # proactor
     "ProactorSettings",
 ]
-
-

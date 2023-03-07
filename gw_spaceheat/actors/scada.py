@@ -167,7 +167,7 @@ class Scada(ScadaInterface, Proactor):
                 )
 
     @classmethod
-    def make_event_persister(cls, settings:ScadaSettings) -> TimedRollingFilePersister:
+    def make_event_persister(cls, settings: ScadaSettings) -> TimedRollingFilePersister:
         return TimedRollingFilePersister(
             settings.paths.event_dir,
             max_bytes=settings.persister.max_bytes,
@@ -241,8 +241,8 @@ class Scada(ScadaInterface, Proactor):
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
         return Ok()
 
-
     # noinspection PyUnusedLocal
+
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
         self._scada_atn_fast_dispatch_contract_is_alive_stub = True
         return Ok()

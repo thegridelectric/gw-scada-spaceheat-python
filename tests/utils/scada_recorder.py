@@ -27,6 +27,7 @@ def split_subscriptions(client_wrapper: MQTTClientWrapper) -> Tuple[int, Optiona
         MQTTClientWrapper.subscribe(client_wrapper, topic, qos)
     return MQTT_ERR_SUCCESS, None
 
+
 @dataclass
 class LinkStats2(LinkStats):
     comm_events: list[CommEvent] = field(default_factory=list)

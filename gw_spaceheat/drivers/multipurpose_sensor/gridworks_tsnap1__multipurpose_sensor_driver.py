@@ -1,3 +1,13 @@
+from schema.enums.make_model.make_model_map import MakeModel
+from schema.enums import TelemetryName
+from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
+    MultipurposeSensorDriver, TelemetrySpec)
+from drivers.exceptions import DriverWarning
+from data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
+from adafruit_ads1x15.analog_in import AnalogIn
+import busio
+import board
+import adafruit_ads1x15.ads1115 as ADS
 import math
 import sys
 from enum import Enum
