@@ -1,3 +1,5 @@
+from typing import Optional
+
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
@@ -10,6 +12,7 @@ from proactor.persister import TimedRollingFilePersister
 from proactor.proactor_implementation import Proactor
 
 from tests.utils.proactor_dummies.child.config import DummyChildSettings
+from tests.utils.proactor_dummies.names import DUMMY_CHILD_NAME
 from tests.utils.proactor_dummies.names import DUMMY_PARENT_NAME
 
 ChildMessageDecoder = create_message_payload_discriminator(
@@ -40,10 +43,13 @@ class DummyChild(Proactor):
 
     def __init__(
         self,
-        name: str,
-        settings: DummyChildSettings,
+        name: str = "",
+        settings: Optional[DummyChildSettings] = None,
     ):
-        super().__init__(name=name, settings=settings)
+        super().__init__(
+            name=name if name else DUMMY_CHILD_NAME,
+            settings=DummyChildSettings() if settings is None else settings
+        )
         self._add_mqtt_client(
             DummyChild.PARENT_MQTT,
             settings.parent_mqtt,
@@ -53,6 +59,8 @@ class DummyChild(Proactor):
         )
         for topic in [
             MQTTTopic.encode_subscription(Message.type_name(), DUMMY_PARENT_NAME),
+            # Enable awaiting_setup edge case testing, which depends on receiving multiple, separate
+            # MQTT topic subscription acks:
             MQTTTopic.encode_subscription(Message.type_name(), "1"),
             MQTTTopic.encode_subscription(Message.type_name(), "2"),
         ]:

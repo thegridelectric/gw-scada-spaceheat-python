@@ -876,7 +876,7 @@ async def test_response_timeout():
 
 # @pytest.mark.skip
 @pytest.mark.asyncio
-async def test_ping(monkeypatch):
+async def test_ping0(monkeypatch):
     """
     Test:
         ping sent peridoically if no messages sent
@@ -954,6 +954,8 @@ async def test_ping(monkeypatch):
             f"messages_from_scada: {messages_from_scada}\n"
             f"exp_pings_nominal: {exp_pings_nominal}\n"
         )
+        print(err_str)
+        print(atn.summary_str())
         assert pings_from_atn <= exp_pings_nominal, err_str
         assert pings_from_scada <= exp_pings_nominal, err_str
         assert messages_from_atn >= reps, err_str

@@ -1,5 +1,6 @@
 """Scada implementation"""
 from typing import cast
+from typing import Optional
 
 from proactor.persister import SimpleDirectoryWriter
 
@@ -12,7 +13,7 @@ from proactor.mqtt import QOS
 from proactor.message import Message
 
 from proactor.proactor_implementation import Proactor
-
+from tests.utils.proactor_dummies.names import DUMMY_PARENT_NAME
 from tests.utils.proactor_dummies.names import DUMMY_CHILD_NAME
 from tests.utils.proactor_dummies.parent.config import DummyParentSettings
 
@@ -36,10 +37,13 @@ class DummyParent(Proactor):
 
     def __init__(
         self,
-        name: str,
-        settings: DummyParentSettings,
+        name: str = "",
+        settings: Optional[DummyParentSettings] = None,
     ):
-        super().__init__(name=name, settings=settings)
+        super().__init__(
+            name=name if name else DUMMY_PARENT_NAME,
+            settings=DummyParentSettings() if settings is None else settings
+        )
         self._add_mqtt_client(self.CHILD_MQTT, self.settings.child_mqtt, ParentMQTTCodec(), primary_peer=True)
         self._mqtt_clients.subscribe(
             self.CHILD_MQTT,

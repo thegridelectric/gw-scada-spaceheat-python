@@ -115,7 +115,7 @@ class _PausedAck:
     context: Optional[Any]
 
 
-def make_recorder_class(proactor_type: Type[ProactorT]) -> Callable[..., "RecorderInterface"]:
+def make_recorder_class(proactor_type: Type[ProactorT]) -> Callable[..., RecorderInterface]:
 
     class Recorder2(proactor_type):
 
@@ -263,6 +263,8 @@ def make_recorder_class(proactor_type: Type[ProactorT]) -> Callable[..., "Record
         def _derived_process_message(self, message: Message):
             match message.Payload:
                 case DBGPayload():
+                    message.Header.Src = self.publication_name
+                    message.Header.Dst = self.primary_peer_client
                     self._publish_message(self.primary_peer_client, message)
                 case _:
                     # noinspection PyProtectedMember
