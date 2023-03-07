@@ -10,13 +10,13 @@ from proactor.config import MQTTClient
 from proactor.link_state import StateName
 from proactor.message import DBGPayload
 from tests.utils import await_for
-from tests.utils.comm_test_helper2 import CommTestHelper2
+from tests.utils.comm_test_helper import CommTestHelper
 from tests.utils.proactor_dummies import DummyChildSettings
 
 
 @pytest.mark.asyncio
 class ProactorCommTests:
-    CTH: Type[CommTestHelper2]
+    CTH: Type[CommTestHelper]
 
     async def test_no_parent(self):
         async with self.CTH(add_child=True) as h:

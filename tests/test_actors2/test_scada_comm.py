@@ -5,13 +5,13 @@ from actors2.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from tests.atn import Atn2
 from tests.atn import AtnSettings
-from tests.utils.comm_test_helper2 import CommTestHelper2
-from tests.utils.comm_test_helper2 import ProactorTestHelper
+from tests.utils.comm_test_helper import CommTestHelper
+from tests.utils.comm_test_helper import ProactorTestHelper
 from tests.utils.proactor_recorder import RecorderInterface
 from tests.utils.proactor_test_collections import ProactorCommTests
 
 
-class ScadaCommTestHelper(CommTestHelper2):
+class ScadaCommTestHelper(CommTestHelper):
 
     parent_t = Atn2
     child_t = Scada2
