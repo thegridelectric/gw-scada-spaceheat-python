@@ -82,7 +82,7 @@ class ProactorStats:
         return self.links[name]
 
     def __str__(self) -> str:
-        s = "ScadaRecorder2 Stats\n"
+        s = "ProactorStats Stats\n"
         if self.num_received_by_type:
             s += "\nGlobal received by message_type:"
             for message_type in sorted(self.num_received_by_type):

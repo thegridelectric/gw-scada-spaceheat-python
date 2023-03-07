@@ -33,9 +33,6 @@ from result import Result
 from actors2.home_alone import HomeAlone
 from actors2.actor_interface import ActorInterface
 from actors2.message import GtDispatchBooleanLocalMessage
-from actors2.message import ScadaDBG
-from actors2.message import ScadaDBGCommands
-from actors2.message import ScadaDBGEvent
 from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
 from actors.scada import ScadaCmdDiagnostic
@@ -54,6 +51,7 @@ ScadaMessageDecoder = create_message_payload_discriminator(
     "ScadaMessageDecoder",
     [
         "gwproto.messages",
+        "proactor.message",
         "actors2.message"
     ]
 )
@@ -134,6 +132,7 @@ class Scada2(ScadaInterface, Proactor):
             self.settings.gridworks_mqtt,
             GridworksMQTTCodec(self._layout),
             upstream=True,
+            primary_peer=True,
         )
         for topic in [
             MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
@@ -292,17 +291,6 @@ class Scada2(ScadaInterface, Proactor):
                 )
         self._logger.path("--Scada2._derived_process_message  path:0x%08X", path_dbg)
 
-    # TODO: Clean this up
-    # noinspection PyProtectedMember
-    def log_subscriptions(self, tag=""):
-        if self._logger.lifecycle_enabled:
-            s = f"Scada2 subscriptions: [{tag}]]\n"
-            for client in self._mqtt_clients.clients:
-                s += f"\t{client}\n"
-                for subscription in self._mqtt_clients.clients[client]._subscriptions:
-                    s += f"\t\t[{subscription}]\n"
-            self._logger.lifecycle(s)
-
     def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
     ):
@@ -323,9 +311,6 @@ class Scada2(ScadaInterface, Proactor):
             case GtTelemetry():
                 path_dbg |= 0x00000004
                 self._process_telemetry(message, decoded.Payload)
-            case ScadaDBG():
-                path_dbg |= 0x00000008
-                self._process_scada_dbg(decoded.Payload)
             case _:
                 raise ValueError(
                     f"There is no handler for mqtt message payload type [{type(decoded.Payload)}]\n"
@@ -506,33 +491,6 @@ class Scada2(ScadaInterface, Proactor):
         return self._process_boolean_dispatch(
             typing.cast(GtDispatchBoolean, payload)
         )
-
-    def _process_scada_dbg(self, dbg: ScadaDBG):
-        self._logger.path("++_process_scada_dbg")
-        path_dbg = 0
-        count_dbg = 0
-        for logger_name in ["message_summary", "lifecycle", "comm_event"]:
-            requested_level = getattr(dbg.Levels, logger_name)
-            if requested_level > -1:
-                path_dbg |= 0x00000001
-                count_dbg += 1
-                logger = getattr(self._logger, logger_name + "_logger")
-                old_level = logger.getEffectiveLevel()
-                logger.setLevel(requested_level)
-                self._logger.debug(
-                    "%s logger level %s -> %s",
-                    logger_name,
-                    old_level,
-                    logger.getEffectiveLevel()
-                )
-        match dbg.Command:
-            case ScadaDBGCommands.show_subscriptions:
-                path_dbg |= 0x00000002
-                self.log_subscriptions("message")
-            case _:
-                path_dbg |= 0x00000004
-        self.generate_event(ScadaDBGEvent(Command=dbg, Path=f"0x{path_dbg:08X}", Count=count_dbg, Msg=""))
-        self._logger.path("--_process_scada_dbg  path:0x%08X  count:%d", path_dbg, count_dbg)
 
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():

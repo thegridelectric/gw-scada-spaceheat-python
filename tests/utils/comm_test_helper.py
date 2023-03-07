@@ -1,136 +1,184 @@
 import argparse
 import asyncio
 import logging
-from typing import cast
+from dataclasses import dataclass
+from dataclasses import field
+from typing import Callable
 from typing import Optional
+from typing import Type
+from typing import TypeVar
 
-from actors2.config import ScadaSettings
-from data_classes.hardware_layout import HardwareLayout
+from proactor import ProactorSettings
 from logging_setup import setup_logging
 from proactor import Proactor
-from tests.atn import Atn2
-from tests.atn import AtnSettings
+
 from tests.conftest import LoggerGuards
-from tests.utils import Scada2Recorder
+from tests.utils.proactor_recorder import RecorderInterface
+from tests.utils.proactor_recorder import make_recorder_class
+from tests.utils.proactor_recorder import ProactorT
+
+
+@dataclass
+class ProactorTestHelper:
+    name: str
+    settings: ProactorSettings
+    kwargs: dict = field(default_factory=dict)
+    proactor: Optional[RecorderInterface] = None
+
+
+ChildT = TypeVar("ChildT", bound=Proactor)
+ParentT = TypeVar("ParentT", bound=Proactor)
+ChildSettingsT = TypeVar("ChildSettingsT", bound=ProactorSettings)
+ParentSettingsT = TypeVar("ParentSettingsT", bound=ProactorSettings)
 
 
 class CommTestHelper:
-    SCADA: str = "a.s"
-    ATN: str = "a"
 
-    proactors: dict[str, Proactor]
-    settings: ScadaSettings
-    atn_settings: AtnSettings
+    parent_t: Type[ProactorT]
+    child_t: Type[Proactor]
+    parent_settings_t: Type[ParentSettingsT]
+    child_settings_t: Type[ProactorSettings]
+
+    parent_recorder_t: Callable[..., RecorderInterface] = None
+    child_recorder_t: Callable[..., RecorderInterface] = None
+
+    parent_helper: ProactorTestHelper
+    child_helper: ProactorTestHelper
     verbose: bool
-    atn_on_screen: bool
+    parent_on_screen: bool
     lifecycle_logging: bool
-    layout: HardwareLayout
     logger_guards: LoggerGuards
+
+    @classmethod
+    def setup_class(cls):
+        if cls.parent_recorder_t is None:
+            cls.parent_recorder_t = make_recorder_class(cls.parent_t)
+        if cls.child_recorder_t is None:
+            cls.child_recorder_t = make_recorder_class(cls.child_t)
 
     def __init__(
         self,
-        settings: Optional[ScadaSettings] = None,
-        atn_settings: Optional[AtnSettings] = None,
+        child_settings: Optional[ChildSettingsT] = None,
+        parent_settings: Optional[ParentSettingsT] = None,
         verbose: bool = False,
         lifecycle_logging: bool = False,
-        add_scada: bool = False,
-        add_atn: bool = False,
-        start_scada: bool = False,
-        start_atn: bool = False,
-        atn_on_screen=False,
+        add_child: bool = False,
+        add_parent: bool = False,
+        start_child: bool = False,
+        start_parent: bool = False,
+        parent_on_screen: bool = False,
+        child_name: str = "",
+        parent_name: str = "",
+        child_kwargs: Optional[dict] = None,
+        parent_kwargs: Optional[dict] = None,
     ):
-        self.settings = ScadaSettings() if settings is None else settings
-        self.atn_settings = AtnSettings() if atn_settings is None else atn_settings
+        self.setup_class()
+        self.child_helper = ProactorTestHelper(
+            child_name,
+            self.child_settings_t() if child_settings is None else child_settings,
+            dict() if child_kwargs is None else child_kwargs,
+
+        )
+        self.parent_helper = ProactorTestHelper(
+            parent_name,
+            self.parent_settings_t() if parent_settings is None else parent_settings,
+            dict() if parent_kwargs is None else parent_kwargs,
+        )
         self.verbose = verbose
-        self.atn_on_screen = atn_on_screen
+        self.parent_on_screen = parent_on_screen
         self.lifecycle_logging = lifecycle_logging
-        self.layout = HardwareLayout.load(self.settings.paths.hardware_layout)
         self.setup_logging()
-        self.proactors = dict()
-        if add_scada or start_scada:
-            self.add_scada()
-            if start_scada:
-                self.start_scada()
-        if add_atn or start_atn:
-            self.add_atn()
-            if start_atn:
-                self.start_atn()
+        if add_child or start_child:
+            self.add_child()
+            if start_child:
+                self.start_child()
+        if add_parent or start_parent:
+            self.add_parent()
+            if start_parent:
+                self.start_parent()
 
-    def start_scada(self) -> "CommTestHelper":
-        return self.start_proactor(self.SCADA)
+    @classmethod
+    def _make(cls, recorder_t: Callable[..., RecorderInterface], helper: ProactorTestHelper) -> RecorderInterface:
+        return recorder_t(
+            helper.name,
+            helper.settings,
+            **helper.kwargs
+        )
 
-    def start_atn(self) -> "CommTestHelper":
-        return self.start_proactor(self.ATN)
+    def make_parent(self) -> RecorderInterface:
+        return self._make(self.parent_recorder_t, self.parent_helper)
 
-    def start_proactor(self, name: str) -> "CommTestHelper":
-        asyncio.create_task(self.proactors[name].run_forever(), name=f"{name}_run_forever")
+    def make_child(self) -> RecorderInterface:
+        return self._make(self.child_recorder_t, self.child_helper)
+
+    @property
+    def parent(self) -> Optional[ProactorT]:
+        return self.parent_helper.proactor
+
+    @property
+    def child(self) -> Optional[ProactorT]:
+        return self.child_helper.proactor
+
+    def start_child(self) -> "CommTestHelper":
+        if self.child is not None:
+            self.start_proactor(self.child)
         return self
 
-    def remove_proactor(self, name: str) -> Proactor:
-        return self.proactors.pop(name)
+    def start_parent(self) -> "CommTestHelper":
+        if self.parent is not None:
+            self.start_proactor(self.parent)
+        return self
+
+    def start_proactor(self, proactor: Proactor) -> "CommTestHelper":
+        asyncio.create_task(proactor.run_forever(), name=f"{proactor.name}_run_forever")
+        return self
 
     def start(self) -> "CommTestHelper":
-        for proactor_name in self.proactors:
-            self.start_proactor(proactor_name)
         return self
 
-    def add_scada(self) -> "CommTestHelper":
-        proactor = Scada2Recorder(
-            self.SCADA,
-            settings=self.settings,
-            hardware_layout=self.layout,
-        )
-        self.proactors[proactor.name] = proactor
+    def add_child(self) -> "CommTestHelper":
+        self.child_helper.proactor = self.make_child()
         return self
 
-    def add_atn(self) -> "CommTestHelper":
-        proactor = Atn2(
-            self.ATN,
-            settings=self.atn_settings,
-            hardware_layout=self.layout,
-        )
-        self.proactors[proactor.name] = proactor
+    def add_parent(self) -> "CommTestHelper":
+        self.parent_helper.proactor = self.make_parent()
         return self
 
-    def remove_scada(self) -> "CommTestHelper":
-        self.remove_proactor(self.SCADA)
+    def remove_child(self) -> "CommTestHelper":
+        self.child_helper.proactor = None
         return self
 
-    def remove_atn(self) -> "CommTestHelper":
-        self.remove_proactor(self.ATN)
+    def remove_parent(self) -> "CommTestHelper":
+        self.parent_helper.proactor = None
         return self
-
-    @property
-    def scada(self) -> Scada2Recorder:
-        return cast(Scada2Recorder, self.proactors[self.SCADA])
-
-    @property
-    def atn(self) -> Atn2:
-        return cast(Atn2, self.proactors[self.ATN])
 
     def setup_logging(self):
-        self.settings.paths.mkdirs(parents=True)
-        self.atn_settings.paths.mkdirs(parents=True)
+        self.child_helper.settings.paths.mkdirs(parents=True)
+        self.parent_helper.settings.paths.mkdirs(parents=True)
         errors = []
         if not self.lifecycle_logging:
-            self.settings.logging.levels.lifecycle = logging.WARNING
-            self.atn_settings.logging.levels.lifecycle = logging.WARNING
+            self.child_helper.settings.logging.levels.lifecycle = logging.WARNING
+            self.parent_helper.settings.logging.levels.lifecycle = logging.WARNING
         args = argparse.Namespace(verbose=self.verbose)
         self.logger_guards = LoggerGuards()
-        setup_logging(args, self.settings, errors, add_screen_handler=True, root_gets_handlers=False)
+        setup_logging(args, self.child_helper.settings, errors, add_screen_handler=True, root_gets_handlers=False)
         assert not errors
-        setup_logging(args, cast(ScadaSettings, self.atn_settings), errors,
-                      add_screen_handler=self.atn_on_screen, root_gets_handlers=False)
+        setup_logging(args, self.parent_helper.settings, errors,
+                      add_screen_handler=self.parent_on_screen, root_gets_handlers=False)
         assert not errors
 
     async def stop_and_join(self):
-        for proactor in self.proactors.values():
+        proactors = [
+            helper.proactor for helper in [self.child_helper, self.parent_helper]
+            if helper.proactor is not None
+        ]
+        for proactor in proactors:
             # noinspection PyBroadException
             try:
                 proactor.stop()
             except:
                 pass
-        for proactor in self.proactors.values():
+        for proactor in proactors:
             # noinspection PyBroadException
             try:
                 await proactor.join()
@@ -146,7 +194,7 @@ class CommTestHelper:
             logging.getLogger("gridworks").error(
                 "CommTestHelper caught error %s.\nWorking log dirs:\n\t[%s]\n\t[%s]",
                 exc,
-                self.settings.paths.log_dir,
-                self.atn_settings.paths.log_dir,
+                self.child_helper.settings.paths.log_dir,
+                self.parent_helper.settings.paths.log_dir,
             )
         self.logger_guards.restore()

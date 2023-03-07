@@ -9,13 +9,17 @@ from typing import Literal
 from typing import Optional
 from typing import TypeVar
 
+from gwproto import as_enum
 from gwproto.message import ensure_arg
 from gwproto.message import Header
 from gwproto.message import Message
+from gwproto.messages import EventBase
 from paho.mqtt.client import MQTT_ERR_UNKNOWN
 from paho.mqtt.client import MQTTMessage
 from pydantic import BaseModel
+from pydantic import validator
 
+from proactor.config import LoggerLevels
 from problems import Problems
 
 
@@ -222,7 +226,9 @@ class PatExternalWatchdogMessage(Message[PatExternalWatchdog]):
 class Command(BaseModel):
     ...
 
+
 CommandT = TypeVar("CommandT", bound=Command)
+
 
 class CommandMessage(Message[CommandT], Generic[CommandT]):
     def __init__(self, **data: Any):
@@ -230,17 +236,45 @@ class CommandMessage(Message[CommandT], Generic[CommandT]):
         ensure_arg("MessageId", str(uuid.uuid4()), data)
         super().__init__(**data)
 
+
 class Shutdown(Command):
     Reason: str = ""
     TypeName: Literal["gridworks.shutdown"] = "gridworks.shutdown"
+
 
 class ShutdownMessage(CommandMessage[Shutdown]):
     def __init__(self, **data: Any):
         ensure_arg("Payload", Shutdown(Reason=data.get("Reason", "")), data)
         super().__init__(**data)
 
+
 class InternalShutdownMessage(ShutdownMessage):
     def __init__(self, **data: Any):
         ensure_arg("AckRequired", False, data)
         super().__init__(**data)
 
+
+class DBGCommands(Enum):
+    show_subscriptions = "show_subscriptions"
+
+
+class DBGPayload(BaseModel):
+    Levels: LoggerLevels = LoggerLevels(
+        message_summary=-1,
+        lifecycle=-1,
+        comm_event=-1,
+    )
+    Command: Optional[DBGCommands] = None
+    TypeName: Literal["gridworks.proactor.dbg"] = "gridworks.proactor.dbg"
+
+    @validator("Command", pre=True)
+    def command_value(cls, v) -> Optional[DBGCommands]:
+        return as_enum(v, DBGCommands)
+
+
+class DBGEvent(EventBase):
+    Command: DBGPayload
+    Path: str = ""
+    Count: int = 0
+    Msg: str = ""
+    TypeName: Literal["gridworks.event.scada-dbg"] = "gridworks.event.proactor.dbg"

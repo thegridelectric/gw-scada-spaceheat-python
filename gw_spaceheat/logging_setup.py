@@ -5,7 +5,7 @@ import syslog
 import traceback
 from typing import Optional
 
-from actors2.config import ScadaSettings
+from proactor import ProactorSettings
 
 
 def format_exceptions(exceptions: list[BaseException]) -> str:
@@ -32,7 +32,7 @@ def format_exceptions(exceptions: list[BaseException]) -> str:
 
 def setup_logging(
         args: argparse.Namespace,
-        settings: ScadaSettings,
+        settings: ProactorSettings,
         errors: Optional[list[BaseException]] = None,
         add_screen_handler: bool = True,
         root_gets_handlers: bool = True,

@@ -1,17 +1,12 @@
 """Proactor-internal messages wrappers of Scada message structures."""
 
 import time
-from enum import Enum
 from typing import List
-from typing import Literal
-from typing import Optional
 from typing import cast
 
 from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message
-from gwproto.message import as_enum
-from gwproto.messages import EventBase
 from gwproto.messages import GsPwr
 from gwproto.messages import GsPwr_Maker
 from gwproto.messages import GtDispatchBooleanLocal
@@ -22,11 +17,6 @@ from gwproto.messages import GtShTelemetryFromMultipurposeSensor
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
 from gwproto.messages import GtTelemetry_Maker
-from pydantic import BaseModel
-from pydantic import validator
-
-from proactor.config import LoggerLevels
-
 
 class GtTelemetryMessage(Message[GtTelemetry]):
     def __init__(
@@ -142,27 +132,3 @@ class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSe
         )
 
 
-class ScadaDBGCommands(Enum):
-    show_subscriptions = "show_subscriptions"
-
-
-class ScadaDBG(BaseModel):
-    Levels: LoggerLevels = LoggerLevels(
-        message_summary=-1,
-        lifecycle=-1,
-        comm_event=-1,
-    )
-    Command: Optional[ScadaDBGCommands] = None
-    TypeName: Literal["gridworks.scada.dbg"] = "gridworks.scada.dbg"
-
-    @validator("Command", pre=True)
-    def command_value(cls, v):
-        return as_enum(v, ScadaDBGCommands)
-
-
-class ScadaDBGEvent(EventBase):
-    Command: ScadaDBG
-    Path: str = ""
-    Count: int = 0
-    Msg: str = ""
-    TypeName: Literal["gridworks.event.scada-dbg"] = "gridworks.event.scada-dbg"
