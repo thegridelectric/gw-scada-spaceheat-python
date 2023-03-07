@@ -15,7 +15,7 @@ from actors import ActorInterface
 from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from logging_setup import setup_logging
-from tests.atn import Atn2
+from tests.atn import Atn
 from gwproactor import Proactor
 from tests.atn import AtnSettings
 
@@ -56,7 +56,7 @@ async def async_do_nothing(seconds: float, logger: Optional[logging.Logger] = No
 
 
 class Actors:
-    atn2: Atn2
+    atn2: Atn
     scada: ScadaRecorder
     relay: actors.BooleanActuator
     meter: actors.PowerMeter
@@ -72,7 +72,7 @@ class Actors:
         atn_settings.paths.mkdirs(parents=True)
         self.atn2 = kwargs.get(
             "atn",
-            Atn2("a", settings=atn_settings, hardware_layout=layout)
+            Atn("a", settings=atn_settings, hardware_layout=layout)
         )
         self.scada = kwargs.get(
             "scada",

@@ -3,7 +3,7 @@ from typing import Callable
 from actors import Scada
 from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
-from tests.atn import Atn2
+from tests.atn import Atn
 from tests.atn import AtnSettings
 from tests.utils.comm_test_helper import CommTestHelper
 from tests.utils.comm_test_helper import ProactorTestHelper
@@ -13,7 +13,7 @@ from tests.utils.proactor_test_collections import ProactorCommTests
 
 class ScadaCommTestHelper(CommTestHelper):
 
-    parent_t = Atn2
+    parent_t = Atn
     child_t = Scada
     parent_settings_t = AtnSettings
     child_settings_t = ScadaSettings

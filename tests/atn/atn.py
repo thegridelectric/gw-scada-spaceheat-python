@@ -97,7 +97,7 @@ class _PausedAck:
     context: Optional[Any]
 
 
-class Atn2(ActorInterface, Proactor):
+class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
     layout: HardwareLayout
@@ -135,9 +135,9 @@ class Atn2(ActorInterface, Proactor):
             filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, list(self.layout.nodes.values()))
         )
         self.data = AtnData(relay_state={x: RecentRelayState() for x in self.my_relays})
-        self._add_mqtt_client(Atn2.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
+        self._add_mqtt_client(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
         self._mqtt_clients.subscribe(
-            Atn2.SCADA_MQTT,
+            Atn.SCADA_MQTT,
             MQTTTopic.encode_subscription(Message.type_name(), self.layout.scada_g_node_alias),
             QOS.AtMostOnce,
         )
@@ -190,7 +190,7 @@ class Atn2(ActorInterface, Proactor):
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         message = Message(Src=self.publication_name, Payload=payload)
-        return self._publish_message(Atn2.SCADA_MQTT, message, qos=qos)
+        return self._publish_message(Atn.SCADA_MQTT, message, qos=qos)
 
     def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
         if not self.mqtt_messages_dropped:

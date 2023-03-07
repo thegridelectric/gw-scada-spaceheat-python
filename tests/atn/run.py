@@ -16,7 +16,7 @@ from logging_setup import setup_logging
 from tests.atn import AtnSettings
 
 try:
-    from tests.atn import Atn2
+    from tests.atn import Atn
 except ImportError as e:
     raise ImportError(
         f"ERROR. ({e})\n\n"
@@ -26,7 +26,7 @@ except ImportError as e:
     )
 
 
-def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn2":
+def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn":
     if argv is None:
         argv = sys.argv[1:]
     args = parse_args(argv)
@@ -45,7 +45,7 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn2":
     logger.log(logging.ERROR + 1, f"Env file: [{env_path}]")
     rich.print(settings)
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    a = Atn2("a", settings, layout)
+    a = Atn("a", settings, layout)
     if start:
         a.start()
     return a
