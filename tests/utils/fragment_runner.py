@@ -91,6 +91,7 @@ class Actors:
             actors2.PowerMeter("a.m", services=self.scada2)
         )
 
+
 class ProtocolFragment:
     runner: "AsyncFragmentRunner"
     wait_at_least: float
@@ -190,11 +191,12 @@ class AsyncFragmentRunner:
             self.actors.scada2.add_communicator(actor)
         return self
 
-    async def await_connect(self, logger:Optional[logging.Logger] = None):
+    async def await_connect(self, logger: Optional[logging.Logger] = None):
         for proactor in self.proactors.values():
             # noinspection PyProtectedMember, PyShadowingNames
             connected = await await_for(
-                lambda: all([proactor._mqtt_clients.subscribed(client_name) for client_name in proactor._mqtt_clients.clients.keys()]),
+                lambda: all([proactor._mqtt_clients.subscribed(client_name)
+                            for client_name in proactor._mqtt_clients.clients.keys()]),
                 10,
                 raise_timeout=False
             )
@@ -207,7 +209,7 @@ class AsyncFragmentRunner:
                     # noinspection PyProtectedMember
                     s += (
                         f"  {client_name:20s}  subscribed:{int(client.subscribed())}"
-                        f"  connected:{int(client.connected())} ({client._client_config.host}:{client._client_config.port})" 
+                        f"  connected:{int(client.connected())} ({client._client_config.host}:{client._client_config.port})"
                         f"  subs:{client.num_subscriptions()}   subs pending: {client.num_pending_subscriptions()}\n"
                     )
                 if logger is not None:

@@ -98,6 +98,7 @@ class LocalMQTTCodec(MQTTCodec):
         if source_alias not in self.hardware_layout.nodes.keys():
             raise Exception(f"alias {source_alias} not in ShNode.by_alias keys!")
 
+
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
     PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
