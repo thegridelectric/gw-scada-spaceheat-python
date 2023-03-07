@@ -1,6 +1,7 @@
 """Scada implementation"""
 
 import asyncio
+import enum
 import threading
 import time
 import typing
@@ -35,7 +36,6 @@ from actors2.actor_interface import ActorInterface
 from actors2.message import GtDispatchBooleanLocalMessage
 from actors2.scada_data import ScadaData
 from actors2.scada_interface import ScadaInterface
-from actors.scada import ScadaCmdDiagnostic
 from actors2.config import ScadaSettings
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.hardware_layout import HardwareLayout
@@ -98,6 +98,14 @@ class LocalMQTTCodec(MQTTCodec):
         if source_alias not in self.hardware_layout.nodes.keys():
             raise Exception(f"alias {source_alias} not in ShNode.by_alias keys!")
 
+class ScadaCmdDiagnostic(enum.Enum):
+    SUCCESS = "Success"
+    PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
+    BAD_FROM_NODE = "BadFromNode"
+    DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR = "DispatchNodeNotBooleanActuator"
+    UNKNOWN_DISPATCH_NODE = "UnknownDispatchNode"
+    IGNORING_HOMEALONE_DISPATCH = "IgnoringHomealoneDispatch"
+    IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
 class Scada2(ScadaInterface, Proactor):
     GS_PWR_MULTIPLIER = 1

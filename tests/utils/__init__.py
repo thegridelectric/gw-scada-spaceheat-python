@@ -23,11 +23,6 @@ from tests.utils.wait import AwaitablePredicate
 from tests.utils.wait import Predicate
 from tests.utils.wait import ErrorStringFunction
 
-from tests.utils.atn_recorder import AtnRecorder
-from tests.utils.home_alone_recorder import HomeAloneRecorder
-from tests.utils.scada_recorder import ScadaRecorder
-
-
 def flush_components():
     BooleanActuatorComponent.by_id = {}
     ElectricMeterComponent.by_id = {}

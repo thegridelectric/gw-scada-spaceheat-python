@@ -18,7 +18,7 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch, request):
 
     class Fragment(ProtocolFragment):
 
-        def get_requested_actors(self):
+        def get_requested_proactors(self):
             return [self.runner.actors.scada2]
 
         def get_requested_actors2(self):
