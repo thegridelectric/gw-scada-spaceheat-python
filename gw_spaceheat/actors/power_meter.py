@@ -36,7 +36,7 @@ from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriv
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
-from problems import Problems
+from gwproactor import Problems
 from schema.enums import MakeModel
 from schema.enums import Role
 from schema.enums import Unit

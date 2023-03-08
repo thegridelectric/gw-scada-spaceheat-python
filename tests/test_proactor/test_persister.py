@@ -21,7 +21,7 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.persister import TrimFailed
 from gwproactor.persister import UIDExistedWarning
 from gwproactor.persister import UIDMissingWarning
-from problems import Problems
+from gwproactor import Problems
 
 
 def test_problems():

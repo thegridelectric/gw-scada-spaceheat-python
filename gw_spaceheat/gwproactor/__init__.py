@@ -14,10 +14,10 @@ Particular questions:
 * Test support should be implemented / cleaner.
 """
 
-from gwproactor.logger import ProactorLogger
 from gwproactor.config import ProactorSettings
-from gwproactor.message import Header
-from gwproactor.message import Message
+from gwproactor.logger import ProactorLogger
+from gwproactor.logging_setup import format_exceptions
+from gwproactor.logging_setup import setup_logging
 from gwproactor.proactor_implementation import MQTTCodec
 from gwproactor.proactor_implementation import Proactor
 from gwproactor.proactor_interface import Communicator
@@ -25,6 +25,7 @@ from gwproactor.proactor_interface import CommunicatorInterface
 from gwproactor.proactor_interface import MonitoredName
 from gwproactor.proactor_interface import Runnable
 from gwproactor.proactor_interface import ServicesInterface
+from gwproactor.problems import Problems
 from gwproactor.sync_thread import AsyncQueueWriter
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor.sync_thread import SyncAsyncQueueWriter
@@ -34,16 +35,17 @@ __all__ = [
     "AsyncQueueWriter",
     "Communicator",
     "CommunicatorInterface",
+    "format_exceptions",
     "MonitoredName",
-    "Header",
-    "Message",
     "MQTTCodec",
     "Proactor",
     "ProactorLogger",
     "ProactorSettings",
+    "Problems",
     "responsive_sleep",
     "Runnable",
     "ServicesInterface",
+    "setup_logging",
     "SyncAsyncInteractionThread",
     "SyncAsyncQueueWriter",
 ]

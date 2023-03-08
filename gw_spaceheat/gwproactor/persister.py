@@ -12,7 +12,7 @@ from result import Err
 from result import Ok
 from result import Result
 
-from problems import Problems
+from gwproactor.problems import Problems
 
 
 class PersisterException(Exception):

@@ -9,7 +9,7 @@ from typing import Type
 from typing import TypeVar
 
 from gwproactor import ProactorSettings
-from logging_setup import setup_logging
+from gwproactor import setup_logging
 from gwproactor import Proactor
 
 from gwproactor_test.logger_guard import LoggerGuards

@@ -20,7 +20,7 @@ from pydantic import BaseModel
 from pydantic import validator
 
 from gwproactor.config import LoggerLevels
-from problems import Problems
+from gwproactor.problems import Problems
 
 
 class MessageType(Enum):

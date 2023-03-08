@@ -9,7 +9,7 @@ import traceback
 import dotenv
 import rich
 
-from logging_setup import setup_logging
+from gwproactor import setup_logging
 from actors import Scada
 from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
