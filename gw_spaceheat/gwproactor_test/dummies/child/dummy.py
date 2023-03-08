@@ -11,9 +11,9 @@ from gwproactor.mqtt import QOS
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
-from tests.utils.proactor_dummies.child.config import DummyChildSettings
-from tests.utils.proactor_dummies.names import DUMMY_CHILD_NAME
-from tests.utils.proactor_dummies.names import DUMMY_PARENT_NAME
+from gwproactor_test.dummies.child.config import DummyChildSettings
+from gwproactor_test.dummies.names import DUMMY_CHILD_NAME
+from gwproactor_test.dummies.names import DUMMY_PARENT_NAME
 
 ChildMessageDecoder = create_message_payload_discriminator(
     "ChildMessageDecoder",

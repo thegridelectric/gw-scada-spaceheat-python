@@ -14,19 +14,18 @@ import actors
 from actors import ActorInterface
 from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
-from logging_setup import setup_logging
-from tests.atn import Atn
+from gwproactor import setup_logging
 from gwproactor import Proactor
+from gwproactor_test import await_for
+
+from tests.atn import Atn
 from tests.atn import AtnSettings
+
 
 try:
     from tests.utils.scada_recorder import ScadaRecorder
-    from tests.utils.wait import await_for
-    from tests.utils.wait import wait_for
 except ImportError:
     from .scada_recorder import ScadaRecorder
-    from .wait import await_for
-    from .wait import wait_for
 
 
 def delimit_str(text: str = "") -> str:
@@ -129,7 +128,7 @@ class AsyncFragmentRunner:
         atn_settings: AtnSettings,
         wait_at_least: float = 0.0,
         do_nothing_time: float = 0.0,
-        actors: Optional[Actors] = None,
+        actors: Optional[Actors] = None, # noqa
         tag: str = "",
         args: Optional[argparse.Namespace] = None,
     ):
@@ -186,7 +185,7 @@ class AsyncFragmentRunner:
                 self.proactors[proactor.name] = proactor
         return self
 
-    def request_actors(self, actors: Sequence[ActorInterface]) -> "AsyncFragmentRunner":
+    def request_actors(self, actors: Sequence[ActorInterface]) -> "AsyncFragmentRunner": # noqa
         for actor in actors:
             self.actors.scada.add_communicator(actor)
         return self

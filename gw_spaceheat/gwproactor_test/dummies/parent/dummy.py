@@ -13,9 +13,9 @@ from gwproactor.mqtt import QOS
 from gwproactor.message import Message
 
 from gwproactor.proactor_implementation import Proactor
-from tests.utils.proactor_dummies.names import DUMMY_PARENT_NAME
-from tests.utils.proactor_dummies.names import DUMMY_CHILD_NAME
-from tests.utils.proactor_dummies.parent.config import DummyParentSettings
+from gwproactor_test.dummies.names import DUMMY_PARENT_NAME
+from gwproactor_test.dummies.names import DUMMY_CHILD_NAME
+from gwproactor_test.dummies.parent.config import DummyParentSettings
 
 ParentMessageDecoder = create_message_payload_discriminator(
     model_name="ParentMessageDecoder",

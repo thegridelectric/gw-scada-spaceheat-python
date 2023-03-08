@@ -42,7 +42,7 @@ from gwproactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
 from gwproactor.message import DBGCommands
 from gwproactor.message import DBGEvent
 from gwproactor.message import DBGPayload
-from problems import Problems
+from gwproactor.problems import Problems
 from gwproactor import config
 from gwproactor import ProactorSettings
 from gwproactor.link_state import LinkStates

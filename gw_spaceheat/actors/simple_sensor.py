@@ -21,7 +21,7 @@ from data_classes.node_config import NodeConfig
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor.sync_thread import SyncAsyncQueueWriter
-from problems import Problems
+from gwproactor import Problems
 
 
 class SimpleSensorDriverThread(SyncAsyncInteractionThread):

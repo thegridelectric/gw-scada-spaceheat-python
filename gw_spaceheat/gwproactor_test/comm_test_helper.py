@@ -9,13 +9,13 @@ from typing import Type
 from typing import TypeVar
 
 from gwproactor import ProactorSettings
-from logging_setup import setup_logging
+from gwproactor import setup_logging
 from gwproactor import Proactor
 
-from tests.conftest import LoggerGuards
-from tests.utils.proactor_recorder import RecorderInterface
-from tests.utils.proactor_recorder import make_recorder_class
-from tests.utils.proactor_recorder import ProactorT
+from gwproactor_test.logger_guard import LoggerGuards
+from gwproactor_test.proactor_recorder import RecorderInterface
+from gwproactor_test.proactor_recorder import make_recorder_class
+from gwproactor_test.proactor_recorder import ProactorT
 
 
 @dataclass

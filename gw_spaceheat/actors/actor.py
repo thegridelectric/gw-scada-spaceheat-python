@@ -14,10 +14,11 @@ from typing import TypeVar
 
 from result import Result
 
+from gwproto import Message
+
 from actors.actor_interface import ActorInterface
 from actors.scada_interface import ScadaInterface
 from data_classes.sh_node import ShNode
-from gwproactor import Message
 from gwproactor import SyncAsyncInteractionThread
 from gwproactor.proactor_interface import Communicator
 from gwproactor.proactor_interface import MonitoredName

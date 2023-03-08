@@ -5,7 +5,7 @@ import syslog
 import traceback
 from typing import Optional
 
-from gwproactor import ProactorSettings
+from gwproactor.config.proactor_settings import ProactorSettings
 
 
 def format_exceptions(exceptions: list[BaseException]) -> str:

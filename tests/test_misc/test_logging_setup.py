@@ -9,7 +9,7 @@ from actors.config import ScadaSettings
 from gwproactor.config import DEFAULT_LOG_FILE_NAME
 from gwproactor.config import LoggingSettings
 from gwproactor.config import RotatingFileHandlerSettings
-from logging_setup import setup_logging
+from gwproactor import setup_logging
 
 
 def test_get_default_logging_config(caplog, capsys):

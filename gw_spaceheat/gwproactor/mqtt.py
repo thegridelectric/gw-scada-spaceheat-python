@@ -24,7 +24,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 from paho.mqtt.client import Client as PahoMQTTClient
 from paho.mqtt.client import MQTTMessageInfo
 
-from problems import Problems
+from gwproactor.problems import Problems
 from gwproactor import config
 from gwproactor.message import MQTTConnectFailMessage
 from gwproactor.message import MQTTConnectMessage
