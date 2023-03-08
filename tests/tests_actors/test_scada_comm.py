@@ -5,10 +5,10 @@ from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from tests.atn import Atn
 from tests.atn import AtnSettings
-from tests.utils.comm_test_helper import CommTestHelper
-from tests.utils.comm_test_helper import ProactorTestHelper
-from tests.utils.proactor_recorder import RecorderInterface
-from tests.utils.proactor_test_collections import ProactorCommTests
+from gwproactor_test import CommTestHelper
+from gwproactor_test import ProactorTestHelper
+from gwproactor_test import RecorderInterface
+from gwproactor_test import ProactorCommTests
 
 
 class ScadaCommTestHelper(CommTestHelper):

@@ -3,7 +3,7 @@
 import typing
 from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
-from tests.utils import await_for
+from gwproactor_test import await_for
 
 import actors
 import pytest

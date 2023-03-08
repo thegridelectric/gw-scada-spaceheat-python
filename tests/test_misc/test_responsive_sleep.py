@@ -3,7 +3,7 @@
 import threading
 
 from gwproactor.sync_thread import responsive_sleep
-from tests.utils import StopWatch
+from gwproactor_test import StopWatch
 
 
 class StopMe:

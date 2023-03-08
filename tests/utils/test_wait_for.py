@@ -1,9 +1,8 @@
 import asyncio
 import time
-from tests.utils import StopWatch
-from tests.utils import AwaitablePredicate
-from tests.utils import await_for
-from tests.utils import wait_for
+from gwproactor_test import StopWatch
+from gwproactor_test import AwaitablePredicate
+from gwproactor_test import await_for
 from typing import Optional
 
 import pytest
@@ -42,56 +41,6 @@ def async_delay(delay: Delay) -> AwaitablePredicate:
             return False
 
     return async_function
-
-
-def test_wait_for():
-
-    delay_time = .01
-    timeout = delay_time * 2
-    retry_duration = delay_time / 4
-    sw = StopWatch()
-
-    # Happy path
-    with sw:
-        wait_for(Delay(delay_time), timeout, retry_duration=retry_duration)
-    assert sw.elapsed >= delay_time
-    assert sw.elapsed < delay_time + (2 * retry_duration)
-    assert sw.elapsed < timeout
-
-    # Timeout immediately passed, run f() at least once.
-    delay_time = 0
-    timeout = 0
-    retry_duration = .01
-    with sw:
-        wait_for(Delay(delay_time), timeout, retry_duration=retry_duration)
-    assert sw.elapsed >= delay_time
-
-    # Call itself is too long, but returns True immediately
-    delay_time = 0
-    timeout = .1
-    duration = timeout * 2
-    retry_duration = .01
-    with sw:
-        wait_for(Delay(delay_time, duration=duration), timeout, retry_duration=retry_duration)
-    assert sw.elapsed >= duration
-    assert sw.elapsed > timeout
-
-    # Timeout exceeded
-    with pytest.raises(ValueError):
-        wait_for(Delay(1), .01)
-
-    # Timeout exceeded, return result rather than raising exception
-    assert wait_for(Delay(1), .01, raise_timeout=False) is False
-
-    # Retry_duration is used
-    delay_time = .01
-    timeout = 1
-    retry_duration = .1
-    with sw:
-        wait_for(Delay(delay_time), timeout, retry_duration=retry_duration)
-    assert sw.elapsed >= retry_duration
-    assert sw.elapsed < retry_duration * 2
-    assert sw.elapsed < timeout
 
 
 @pytest.mark.asyncio

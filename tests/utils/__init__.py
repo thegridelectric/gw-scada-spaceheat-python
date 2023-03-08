@@ -1,5 +1,3 @@
-import time
-
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from data_classes.components.boolean_actuator_component import BooleanActuatorCac
@@ -17,11 +15,6 @@ from data_classes.components.simple_temp_sensor_component import SimpleTempSenso
 from data_classes.sh_node import ShNode
 
 from tests.utils.scada_recorder import ScadaRecorder
-from tests.utils.wait import wait_for
-from tests.utils.wait import await_for
-from tests.utils.wait import AwaitablePredicate
-from tests.utils.wait import Predicate
-from tests.utils.wait import ErrorStringFunction
 
 def flush_components():
     BooleanActuatorComponent.by_id = {}
@@ -52,17 +45,3 @@ def flush_all():
     flush_cacs()
     flush_spaceheat_nodes()
 
-
-class StopWatch(object):
-    """Measure time with context manager"""
-
-    start: float = 0
-    end: float = 0
-    elapsed: float = 0
-
-    def __enter__(self):
-        self.start = time.time()
-
-    def __exit__(self, type_, value, traceback):
-        self.end = time.time()
-        self.elapsed = self.end - self.start

@@ -3,15 +3,16 @@ import warnings
 from typing import Type
 
 import pytest
-from gwproto import MQTTTopic
 from paho.mqtt.client import MQTT_ERR_CONN_LOST
+
+from gwproto import MQTTTopic
 
 from gwproactor.config import MQTTClient
 from gwproactor.link_state import StateName
 from gwproactor.message import DBGPayload
-from tests.utils import await_for
-from tests.utils.comm_test_helper import CommTestHelper
-from tests.utils.proactor_dummies import DummyChildSettings
+from gwproactor_test.wait import await_for
+from gwproactor_test.comm_test_helper import CommTestHelper
+from gwproactor_test.dummies import DummyChildSettings
 
 
 @pytest.mark.asyncio
