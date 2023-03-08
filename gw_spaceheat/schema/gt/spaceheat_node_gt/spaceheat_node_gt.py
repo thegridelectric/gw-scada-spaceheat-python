@@ -5,7 +5,7 @@ from schema.gt.spaceheat_node_gt.spaceheat_node_gt_base import (
     SpaceheatNodeGtBase,
 )
 
-from schema.enums import Role
+from enums import Role
 
 
 class SpaceheatNodeGt(SpaceheatNodeGtBase):

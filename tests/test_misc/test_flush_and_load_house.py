@@ -17,7 +17,7 @@ from data_classes.components.simple_temp_sensor_component import SimpleTempSenso
 from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.enums import Role
+from enums import Role
 from schema.gt.cacs import GtElectricMeterCac_Maker
 from schema.gt.components import GtElectricMeterComponent_Maker
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker

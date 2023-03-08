@@ -28,5 +28,5 @@ schema_makers: List[GtTelemetry_Maker] = [
 ]
 
 for maker in schema_makers:
-    TypeMakerByAliasDict[maker.type_alias] = maker
+    TypeMakerByAliasDict[maker.type_name] = maker
 

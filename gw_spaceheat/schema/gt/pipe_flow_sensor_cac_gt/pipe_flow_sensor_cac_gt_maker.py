@@ -5,7 +5,7 @@ from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
 
 from schema.gt.pipe_flow_sensor_cac_gt.pipe_flow_sensor_cac_gt import PipeFlowSensorCacGt
 from schema.errors import MpSchemaError
-from schema.enums import (
+from enums import (
     MakeModel,
     MakeModelMap,
 )

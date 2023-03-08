@@ -122,7 +122,7 @@ class SimpleOrange:
 
     def cron_every_min(self):
         latest_pipe_reading = self.atn.latest_simple_reading(self.pipe_temp_node)
-        if latest_pipe_reading.Unit != TelemetryName.WATER_TEMP_C_TIMES1000:
+        if latest_pipe_reading.Unit != TelemetryName.WaterTempCTimes1000:
             raise Exception("expect WATER_TEMP_C_TIMES1000")
         pipe_temp_c = latest_pipe_reading.Value / 1000
         if pipe_temp_c < self.PIPE_TEMP_THRESHOLD_C:
@@ -153,7 +153,7 @@ class SimpleOrange:
         latest_tank_reading = self.atn.latest_simple_reading(self.tank_temp_node)
         if latest_tank_reading is None:
             return
-        if latest_tank_reading.Unit != TelemetryName.WATER_TEMP_C_TIMES1000:
+        if latest_tank_reading.Unit != TelemetryName.WaterTempCTimes1000:
             raise Exception("expect WATER_TEMP_C_TIMES1000")
         tank_temp_c = latest_tank_reading.Value / 1000
         if tank_temp_c < self.TANK_TEMP_THRESHOLD_C:

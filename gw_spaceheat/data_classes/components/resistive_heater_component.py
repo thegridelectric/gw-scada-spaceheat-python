@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from data_classes.cacs.resistive_heater_cac import ResistiveHeaterCac
 from data_classes.component import Component
-from schema.enums import MakeModel
+from enums import MakeModel
 
 
 class ResistiveHeaterComponent(Component):

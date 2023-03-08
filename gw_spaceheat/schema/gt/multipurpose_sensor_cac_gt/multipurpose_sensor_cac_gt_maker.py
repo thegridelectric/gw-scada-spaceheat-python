@@ -6,15 +6,15 @@ from data_classes.cacs.multipurpose_sensor_cac import MultipurposeSensorCac
 
 from schema.gt.multipurpose_sensor_cac_gt.multipurpose_sensor_cac_gt import MultipurposeSensorCacGt
 from schema.errors import MpSchemaError
-from schema.enums import (
+from enums import (
     TelemetryName,
     TelemetryNameMap,
 )
-from schema.enums import (
+from enums import (
     Unit,
     UnitMap,
 )
-from schema.enums import (
+from enums import (
     MakeModel,
     MakeModelMap,
 )

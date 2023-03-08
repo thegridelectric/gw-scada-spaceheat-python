@@ -61,7 +61,7 @@ def test_power_meter_small():
 
     amp_list = list(
         filter(
-            lambda x: x.TelemetryName == TelemetryName.CURRENT_RMS_MICRO_AMPS
+            lambda x: x.TelemetryName == TelemetryName.CurrentRmsMicroAmps
             and x.AboutNodeName == "a.elt1",
             all_eq_configs,
         )
@@ -70,7 +70,7 @@ def test_power_meter_small():
     tt = TelemetryTuple(
         AboutNode=layout.node("a.elt1"),
         SensorNode=meter.node,
-        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+        TelemetryName=TelemetryName.CurrentRmsMicroAmps,
     )
     assert tt in layout.all_power_meter_telemetry_tuples
     assert driver_thread.last_reported_telemetry_value[tt] is None
@@ -126,7 +126,7 @@ def test_power_meter_small():
     tt = TelemetryTuple(
         AboutNode=layout.node("a.elt1"),
         SensorNode=meter.node,
-        TelemetryName=TelemetryName.POWER_W,
+        TelemetryName=TelemetryName.PowerW,
     )
     driver_thread.latest_telemetry_value[tt] += 100
     assert not driver_thread.should_report_aggregated_power()
@@ -166,12 +166,12 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
                 TelemetryTuple(
                     AboutNode=self.runner.layout.node("a.elt1"),
                     SensorNode=self.runner.actors.meter.node,
-                    TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+                    TelemetryName=TelemetryName.CurrentRmsMicroAmps,
                 ),
                 TelemetryTuple(
                     AboutNode=self.runner.layout.node("a.elt1"),
                     SensorNode=self.runner.actors.meter.node,
-                    TelemetryName=TelemetryName.POWER_W,
+                    TelemetryName=TelemetryName.PowerW,
                 )
             ]
 
@@ -250,7 +250,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
             for i in range(num_changes):
                 scada._logger.info(f"Generating GsPwr change {i + 1}/{num_changes}")
                 latest_total_power_w = scada._data.latest_total_power_w
-                num_atn_gs_pwr = atn.stats.num_received_by_type[GsPwr_Maker.type_alias]
+                num_atn_gs_pwr = atn.stats.num_received_by_type[GsPwr_Maker.type_name]
 
                 # Simulate a change in aggregate power that should trigger a GsPwr message
                 increment = int(
@@ -270,7 +270,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
 
                 # Verify Atn gets the forwarded message
                 await await_for(
-                    lambda: atn.stats.num_received_by_type[GsPwr_Maker.type_alias] > num_atn_gs_pwr,
+                    lambda: atn.stats.num_received_by_type[GsPwr_Maker.type_name] > num_atn_gs_pwr,
                     1,
                     "Atn wait for GsPwr",
                     err_str_f=atn.summary_str,

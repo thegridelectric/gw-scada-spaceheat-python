@@ -17,9 +17,9 @@ from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 from data_classes.errors import DataClassLoadingError
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums import Role
-from schema.enums import ActorClass
-from schema.enums import TelemetryName
+from enums import Role
+from enums import ActorClass
+from enums import TelemetryName
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
 from schema.gt.cacs import (
@@ -211,6 +211,10 @@ class HardwareLayout:
         return self.layout["MyAtomicTNodeGNode"]["Alias"]
 
     @cached_property
+    def atn_g_node_instance_id(self):
+        return self.layout["MyAtomicTNodeGNode"]["GNodeId"]
+
+    @cached_property
     def atn_g_node_id(self):
         return self.layout["MyAtomicTNodeGNode"]["GNodeId"]
 
@@ -242,7 +246,7 @@ class HardwareLayout:
                 TelemetryTuple(
                     AboutNode=node,
                     SensorNode=self.power_meter_node,
-                    TelemetryName=TelemetryName.POWER_W,
+                    TelemetryName=TelemetryName.PowerW,
                 )
             ]
         return telemetry_tuples

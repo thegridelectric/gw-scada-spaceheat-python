@@ -5,15 +5,15 @@ from data_classes.cacs.simple_temp_sensor_cac import SimpleTempSensorCac
 
 from schema.gt.simple_temp_sensor_cac_gt.simple_temp_sensor_cac_gt import SimpleTempSensorCacGt
 from schema.errors import MpSchemaError
-from schema.enums import (
+from enums import (
     TelemetryName,
     TelemetryNameMap,
 )
-from schema.enums import (
+from enums import (
     Unit,
     UnitMap,
 )
-from schema.enums import (
+from enums import (
     MakeModel,
     MakeModelMap,
 )

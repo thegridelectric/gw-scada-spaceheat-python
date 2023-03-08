@@ -144,8 +144,8 @@ class Scada(ScadaInterface, Proactor):
         )
         for topic in [
             MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
-            f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_alias}".replace(".", "-"),
-            f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_alias}".replace(".", "-"),
+            f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_name}".replace(".", "-"),
+            f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_name}".replace(".", "-"),
         ]:
             self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
@@ -347,7 +347,7 @@ class Scada(ScadaInterface, Proactor):
     def _process_boolean_dispatch(
         self, payload: GtDispatchBoolean
     ) -> ScadaCmdDiagnostic:
-        ba = self._layout.node(payload.AboutNodeAlias)
+        ba = self._layout.node(payload.AboutNodeName)
         if not isinstance(ba.component, BooleanActuatorComponent):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
         self._communicators[ba.alias].process_message(

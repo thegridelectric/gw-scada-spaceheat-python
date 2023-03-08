@@ -15,7 +15,7 @@ from drivers.boolean_actuator.boolean_actuator_driver import \
     BooleanActuatorDriver
 from drivers.driver_result import DriverResult
 from drivers.exceptions import DriverWarning
-from schema.enums import MakeModel
+from enums import MakeModel
 
 class NcdPr814SpstI2cReadWarning(DriverWarning):
     ...

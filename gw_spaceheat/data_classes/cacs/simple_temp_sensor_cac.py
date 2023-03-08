@@ -4,7 +4,7 @@ from typing import Dict, Optional
 from data_classes.component_attribute_class import ComponentAttributeClass
 from schema.enums.make_model.make_model_map import MakeModelMap
 from schema.enums.unit.unit_map import Unit, UnitMap
-from gwproto.enums.telemetry_name.telemetry_name_map import TelemetryNameMap
+from enums import TelemetryNameMap
 
 
 class SimpleTempSensorCac(ComponentAttributeClass):

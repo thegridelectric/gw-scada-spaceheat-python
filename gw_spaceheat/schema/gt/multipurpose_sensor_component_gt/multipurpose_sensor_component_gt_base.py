@@ -3,7 +3,7 @@ import json
 from typing import List, NamedTuple, Optional
 import schema.property_format as property_format
 from schema.gt.telemetry_reporting_config.telemetry_reporting_config import TelemetryReportingConfig
-from schema.enums import (
+from enums import (
     TelemetryName,
     TelemetryNameMap,
 )

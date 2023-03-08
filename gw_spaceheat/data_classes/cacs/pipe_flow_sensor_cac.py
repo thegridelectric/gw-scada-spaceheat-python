@@ -2,8 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.enums import TelemetryName
-from schema.enums import MakeModelMap
+from enums import MakeModelMap
 
 
 class PipeFlowSensorCac(ComponentAttributeClass):

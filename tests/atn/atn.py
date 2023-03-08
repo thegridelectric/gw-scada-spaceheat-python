@@ -43,7 +43,7 @@ from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
 
 from gwproactor.proactor_implementation import Proactor
-from schema.enums import Role
+from enums import Role
 from gwproto.enums import TelemetryName
 
 from tests.atn import messages
@@ -204,10 +204,10 @@ class Atn(ActorInterface, Proactor):
         match message.Payload:
             case GtShCliAtnCmd_Maker():
                 path_dbg |= 0x00000001
-                self._publish_to_scada(message.Payload.tuple.asdict())
+                self._publish_to_scada(message.Payload.tuple.as_dict())
             case GtDispatchBoolean_Maker():
                 path_dbg |= 0x00000002
-                self._publish_to_scada(message.Payload.tuple.asdict())
+                self._publish_to_scada(message.Payload.tuple.as_dict())
             case DBGPayload():
                 path_dbg |= 0x00000004
                 self._publish_to_scada(message.Payload)
@@ -260,7 +260,7 @@ class Atn(ActorInterface, Proactor):
             for idx in range(len(snapshot.Snapshot.AboutNodeAliasList)):
                 if (
                     snapshot.Snapshot.AboutNodeAliasList[idx] == node.alias
-                    and snapshot.Snapshot.TelemetryNameList[idx] == TelemetryName.RELAY_STATE
+                    and snapshot.Snapshot.TelemetryNameList[idx] == TelemetryName.RelayState
                 ):
                     possible_indices.append(idx)
             if len(possible_indices) != 1:
@@ -274,8 +274,8 @@ class Atn(ActorInterface, Proactor):
         s = "\n\nSnapshot received:\n"
         for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
             telemetry_name = snapshot.Snapshot.TelemetryNameList[i]
-            if (telemetry_name == TelemetryName.WATER_TEMP_C_TIMES1000
-               or telemetry_name == TelemetryName.WATER_TEMP_C_TIMES1000.value
+            if (telemetry_name == TelemetryName.WaterTempCTimes1000
+               or telemetry_name == TelemetryName.WaterTempCTimes1000.value
                     ):
                 centigrade = snapshot.Snapshot.ValueList[i] / 1000
                 if self.settings.c_to_f:
@@ -372,10 +372,10 @@ class Atn(ActorInterface, Proactor):
                 Src=self.name,
                 Dst=self.name,
                 Payload=GtDispatchBoolean_Maker(
-                    about_node_alias=name,
+                    about_node_name=name,
                     to_g_node_alias=self.layout.scada_g_node_alias,
                     from_g_node_alias=self.layout.atn_g_node_alias,
-                    from_g_node_id=self.layout.atn_g_node_id,
+                    from_g_node_instance_id=self.layout.atn_g_node_instance_id,
                     relay_state=int(state),
                     send_time_unix_ms=int(time.time() * 1000),
                 ),
@@ -403,8 +403,8 @@ class Atn(ActorInterface, Proactor):
         """Summarize results in a string"""
         s = (
             f"Atn [{self.node.alias}] total: {self._stats.num_received}  "
-            f"status:{self._stats.total_received(GtShStatus_Maker.type_alias)}  "
-            f"snapshot:{self._stats.total_received(SnapshotSpaceheat_Maker.type_alias)}"
+            f"status:{self._stats.total_received(GtShStatus_Maker.type_name)}  "
+            f"snapshot:{self._stats.total_received(SnapshotSpaceheat_Maker.type_name)}"
         )
         if self._stats.num_received_by_topic:
             s += "\n  Received by topic:"

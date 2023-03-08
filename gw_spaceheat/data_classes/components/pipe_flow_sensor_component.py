@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
 from data_classes.component import Component
-from schema.enums import MakeModel
+from enums import MakeModel
 
 
 class PipeFlowSensorComponent(Component):

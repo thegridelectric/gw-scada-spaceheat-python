@@ -1,11 +1,11 @@
 """Base for gt.sensor.reporting.config.100"""
 import json
 from typing import List, NamedTuple, Optional
-from schema.enums import (
+from enums import (
     TelemetryName,
     TelemetryNameMap,
 )
-from schema.enums import (
+from enums import (
     Unit,
     UnitMap,
 )

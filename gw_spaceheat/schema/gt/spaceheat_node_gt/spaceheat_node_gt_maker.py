@@ -5,11 +5,11 @@ from data_classes.sh_node import ShNode
 
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt import SpaceheatNodeGt
 from schema.errors import MpSchemaError
-from schema.enums import (
+from enums import (
     Role,
     RoleMap,
 )
-from schema.enums import (
+from enums import (
     ActorClass,
     ActorClassMap,
 )

@@ -7,7 +7,7 @@ from data_classes.components.multipurpose_sensor_component import \
     MultipurposeSensorComponent
 from drivers.driver_result import DriverResult
 from result import Ok, Result
-from schema.enums import TelemetryName
+from enums import TelemetryName
 
 
 class TelemetrySpec(NamedTuple):

@@ -27,7 +27,7 @@ from gwproto import Message
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
-from schema.enums import MakeModel
+from enums import MakeModel
 from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
     TelemetryReportingConfig,
 )

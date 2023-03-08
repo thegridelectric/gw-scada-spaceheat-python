@@ -9,7 +9,7 @@ from data_classes.components.boolean_actuator_component import \
 from drivers.boolean_actuator.boolean_actuator_driver import \
     BooleanActuatorDriver
 from drivers.driver_result import DriverResult
-from schema.enums import MakeModel
+from enums import MakeModel
 
 
 class GridworksSimBool30AmpRelay_BooleanActuatorDriver(BooleanActuatorDriver):

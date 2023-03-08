@@ -2,8 +2,8 @@
 from typing import Dict, Optional
 
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.enums import MakeModelMap
-from schema.enums import TelemetryName
+from enums import MakeModelMap
+from enums import TelemetryName
 
 
 class BooleanActuatorCac(ComponentAttributeClass):
@@ -30,4 +30,4 @@ class BooleanActuatorCac(ComponentAttributeClass):
 
     @property
     def telemetry_name(self):
-        return TelemetryName.RELAY_STATE
+        return TelemetryName.RelayState

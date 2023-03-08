@@ -3,7 +3,7 @@ import json
 from typing import Optional
 from typing import List
 from data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
-from schema.enums import (
+from enums import (
     TelemetryName,
     TelemetryNameMap,
 )

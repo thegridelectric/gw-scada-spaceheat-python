@@ -15,7 +15,7 @@ from command_line_utils import get_actor_nodes
 from command_line_utils import get_requested_aliases
 from data_classes.errors import DataClassLoadingError
 from data_classes.hardware_layout import HardwareLayout
-from schema.enums import ActorClass
+from enums import ActorClass
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:

@@ -2,8 +2,8 @@
 import json
 
 import pytest
-from schema.enums import Role
-from schema.enums import RoleMap
+from enums import Role
+from enums import RoleMap
 from gwproto import MpSchemaError
 from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import (
     SpaceheatNodeGt_Maker as Maker,

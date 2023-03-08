@@ -214,4 +214,4 @@ class ScadaData:
         ).tuple
 
     def make_snaphsot_payload(self) -> dict:
-        return self.make_snapshot().asdict()
+        return self.make_snapshot().as_dict()

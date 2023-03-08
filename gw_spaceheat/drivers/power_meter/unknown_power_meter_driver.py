@@ -8,7 +8,7 @@ from data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from schema.enums import MakeModel, TelemetryName
+from enums import MakeModel, TelemetryName
 
 
 class UnknownPowerMeterDriver(PowerMeterDriver):

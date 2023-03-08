@@ -14,7 +14,7 @@ from actors import Scada
 from actors.config import ScadaSettings
 from data_classes.hardware_layout import HardwareLayout
 from data_classes.sh_node import ShNode
-from schema.enums import Role
+from enums import Role
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
