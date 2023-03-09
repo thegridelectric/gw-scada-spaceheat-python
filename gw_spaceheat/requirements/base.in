@@ -7,6 +7,7 @@ pydantic
 xdg
 result
 gridworks-protocol
+gridworks-proactor
 rich
 smbus2
 pymodbus
