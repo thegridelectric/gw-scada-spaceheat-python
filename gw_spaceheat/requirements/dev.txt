@@ -32,8 +32,10 @@ decorator==5.1.1
     # via ipython
 executing==0.8.3
     # via stack-data
-gridworks-proactor==0.1.0
-    # via -r requirements/base.in
+gridworks-proactor[tests]==0.1.1
+    # via
+    #   -r requirements/base.in
+    #   -r requirements/test.in
 gridworks-protocol==0.2.8
     # via
     #   -r requirements/base.in
@@ -94,8 +96,6 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.2
     # via stack-data
-py==1.11.0
-    # via pytest
 pydantic==1.10.6
     # via
     #   -r requirements/base.in
@@ -115,9 +115,10 @@ pyserial==3.5
     # via
     #   -r requirements/base.in
     #   pymodbus
-pytest==7.1.2
+pytest==7.2.2
     # via
     #   -r requirements/test.in
+    #   gridworks-proactor
     #   pytest-asyncio
     #   pytest-sugar
 pytest-asyncio==0.20.3
@@ -154,9 +155,7 @@ stack-data==0.2.0
 termcolor==1.1.0
     # via pytest-sugar
 tomli==2.0.1
-    # via
-    #   pep517
-    #   pytest
+    # via pep517
 traitlets==5.4
     # via
     #   ipython
