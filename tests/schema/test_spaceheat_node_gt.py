@@ -34,7 +34,7 @@ def test_spaceheat_node_gt():
         "DisplayName": "First boost element",
         "TypicalVoltageV": 225,
         "RoleGtEnumSymbol": "99c5f326",
-        "ActorClassGtEnumSymbol": "99a5f20d",
+        "ActorClassGtEnumSymbol": "00000000",
         "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
         "TypeAlias": "spaceheat.node.gt.100",
     }
@@ -234,14 +234,14 @@ def test_spaceheat_node_gt():
     # Test check_rated_voltage_existence
     ######################################
 
-    gw_dict["RoleGtEnumSymbol"] = RoleMap.local_to_gt_dict[Role.BOOST_ELEMENT]
+    gw_dict["RoleGtEnumSymbol"] = RoleMap.local_to_gt_dict[Role.BoostElement]
     orig_value = gw_dict["RatedVoltageV"]
     del gw_dict["RatedVoltageV"]
     gw_type = json.dumps(gw_dict)
     with pytest.raises(MpSchemaError):
         Maker.type_to_tuple(gw_type)
 
-    other_roles = set(RoleMap.local_to_gt_dict.keys()) - set([Role.BOOST_ELEMENT])
+    other_roles = set(RoleMap.local_to_gt_dict.keys()) - set([Role.BoostElement])
     for role in other_roles:
         gw_dict["RoleGtEnumSymbol"] = RoleMap.local_to_gt_dict[role]
         assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple

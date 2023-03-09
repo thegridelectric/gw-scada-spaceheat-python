@@ -166,7 +166,7 @@ class SimpleOrange:
 
     def initialize_relays(self):
         relay_nodes: List[ShNode] = list(
-            filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, self.atn.layout.nodes.values())
+            filter(lambda x: x.role == Role.BooleanActuator, self.atn.layout.nodes.values())
         )
         for node in relay_nodes:
             self.atn.turn_off(node)

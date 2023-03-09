@@ -84,7 +84,7 @@ def get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayou
     actor_nodes = []
     scada_node: Optional[ShNode] = None
     for node in requested_nodes:
-        if node.role not in [Role.ATN, Role.HOME_ALONE] and node.has_actor:
+        if node.role not in [Role.Atn, Role.HomeAlone] and node.has_actor:
             if node.actor_class.value == "Scada":
                 if scada_node is not None:
                     raise ValueError(

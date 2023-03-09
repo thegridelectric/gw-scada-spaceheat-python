@@ -142,7 +142,7 @@ def print_layout_table(layout: HardwareLayout):
             role_text = Text(node.role.value)
         else:
             role_text = none_text
-        if node.actor_class and node.actor_class != ActorClass.NONE:
+        if node.actor_class and node.actor_class != ActorClass.NoActor:
             actor_text = Text(node.actor_class.value)
         else:
             actor_text = none_text

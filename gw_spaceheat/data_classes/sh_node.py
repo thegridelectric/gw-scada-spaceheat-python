@@ -3,8 +3,8 @@ from typing import Dict, Optional
 
 from data_classes.component import Component
 from data_classes.errors import DataClassLoadingError
-from enums import RoleMap
-from enums import ActorClassMap, ActorClass
+from enums import  RoleMap
+from enums import  ActorClassMap, ActorClass
 
 
 class ShNode:
@@ -44,7 +44,7 @@ class ShNode:
 
     @property
     def has_actor(self) -> bool:
-        if self.actor_class == ActorClass.NONE:
+        if self.actor_class == ActorClass.NoActor:
             return False
         return True
 

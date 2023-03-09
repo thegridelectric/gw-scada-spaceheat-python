@@ -156,17 +156,17 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
         self.my_sensors = list(
             filter(
                 lambda x: (
-                    x.role == Role.TANK_WATER_TEMP_SENSOR
-                    or x.role == Role.BOOLEAN_ACTUATOR
-                    or x.role == Role.PIPE_TEMP_SENSOR
-                    or x.role == Role.PIPE_FLOW_METER
-                    or x.role == Role.POWER_METER
+                    x.role == Role.TankWaterTempSensor
+                    or x.role == Role.BooleanActuator
+                    or x.role == Role.PipeTempSensor
+                    or x.role == Role.PipeFlowMeter
+                    or x.role == Role.PowerMeter
                 ),
                 list(self.layout.nodes.values()),
             )
         )
         self.my_relays = list(
-            filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, list(self.layout.nodes.values()))
+            filter(lambda x: x.role == Role.BooleanActuator, list(self.layout.nodes.values()))
         )
         self.relay_state = {x: RecentRelayState() for x in self.my_relays}
         self._add_mqtt_client(SimpleOrangeAtn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout))

@@ -48,7 +48,7 @@
     {
       "Alias": "a.elt1",
       "RoleGtEnumSymbol": "99c5f326",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "First boost element",
       "ShNodeId": "41f2ae73-8782-406d-bda7-a95b5abe317e",
       "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
@@ -68,7 +68,7 @@
     {
       "Alias": "a.elt2",
       "RoleGtEnumSymbol": "99c5f326",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "Second boost element",
       "ShNodeId": "ad51bb8f-f1bb-4a16-8652-76ed699c6a19",
       "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
@@ -88,7 +88,7 @@
     {
       "Alias": "a.tank",
       "RoleGtEnumSymbol": "3ecfe9b8",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "Little Orange House Test Axeman Tank",
       "ShNodeId": "e9cbe9bf-7129-4508-b4d9-90d3af51b013",
       "ComponentId": "d4a27899-98a3-409f-8c6a-771d86d7937b",
@@ -106,7 +106,7 @@
     {
       "Alias": "a.tank.out",
       "RoleGtEnumSymbol": "fe3cbdd5",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "Main Heat Distribution Pipe Out of Tank",
       "ShNodeId": "192a38da-fb2e-4233-a513-dc837f26e7f9",
       "ComponentId": "1d62c7ce-b484-4610-a8b8-3979c8402588",
@@ -115,7 +115,7 @@
     {
       "Alias": "a.tank.in",
       "RoleGtEnumSymbol": "fe3cbdd5",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "Main Heat Distribution Pipe into Tank",
       "ShNodeId": "c9a80dca-8f60-4772-96f3-53793e64ef8a",
       "ComponentId": "f4341350-973a-403a-98fe-dfd2a4acf038",
@@ -124,7 +124,7 @@
     {
       "Alias": "a.tank.out.pump",
       "RoleGtEnumSymbol": "b0eaf2ba",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "Circulator Pump",
       "ShNodeId": "f3db8728-1751-4f30-a739-d56bbff9971e",
       "ComponentId": "1c207b38-d7bf-41cd-a9ad-6204bbab9922",
@@ -142,7 +142,7 @@
     {
       "Alias": "a.tank.out.pump.allradiators",
       "RoleGtEnumSymbol": "05fdd645",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "All the garage passive radiators",
       "ShNodeId": "7d555c14-dcfe-43ba-9f50-92bd174c1d17",
       "TypeAlias": "spaceheat.node.gt.100"
@@ -150,7 +150,7 @@
     {
       "Alias": "a.tank.out.pump.allradiators.garage",
       "RoleGtEnumSymbol": "65725f44",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "Little Orange House Garage",
       "ShNodeId": "9db24e3b-10bf-4d8a-bb30-221230a90870",
       "ComponentId": "f3a8c03b-ae00-4124-9c46-d98961636ddc",
@@ -159,7 +159,7 @@
     {
       "Alias": "a.outdoors",
       "RoleGtEnumSymbol": "dd975b31",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "43 Avon St Microclimate",
       "ShNodeId": "4dec0102-41b6-4255-ade6-c5b55dc16f01",
       "TypeAlias": "spaceheat.node.gt.100"
@@ -247,7 +247,7 @@
     {
       "Alias": "a.tank.out.pump.allradiators.garage",
       "RoleGtEnumSymbol": "65725f44",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "Little Orange House Garage",
       "ShNodeId": "26ed27a5-f362-4044-8bd7-19ce8acf4d63",
       "TypeAlias": "spaceheat.node.gt.100"
@@ -265,7 +265,7 @@
     {
       "Alias": "a.outdoors.temp1",
       "RoleGtEnumSymbol": "5938bf1f",
-      "ActorClassGtEnumSymbol": "99a5f20d",
+      "ActorClassGtEnumSymbol": "00000000",
       "DisplayName": "First Outdoor Temp sensor",
       "ShNodeId": "4c94cf37-dd87-49de-b782-aac97b69c154",
       "ComponentId": "863359e1-f30a-4090-90a6-fc93154494a1",

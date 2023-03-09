@@ -22,6 +22,6 @@ class SpaceheatNodeGt(SpaceheatNodeGtBase):
     def check_rated_voltage_existence(self):
         """ SpaceheatNodes of role BoostElement must have a RatedVoltageV.
         For all other nodes RatedVoltageV is optional """
-        if self.Role == Role.BOOST_ELEMENT and self.RatedVoltageV is None:
+        if self.Role == Role.BoostElement and self.RatedVoltageV is None:
             return [f"{self.Alias} is a boost element. Must have RatedVoltageV"]
         return []

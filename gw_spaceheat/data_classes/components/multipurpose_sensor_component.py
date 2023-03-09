@@ -3,7 +3,7 @@ from typing import Dict, Optional, List
 
 from data_classes.cacs.multipurpose_sensor_cac import MultipurposeSensorCac
 from data_classes.component import Component
-from schema.enums.make_model.make_model_map import MakeModel
+from enums import MakeModel
 from schema.gt.telemetry_reporting_config.telemetry_reporting_config import TelemetryReportingConfig
 
 class MultipurposeSensorComponent(Component):

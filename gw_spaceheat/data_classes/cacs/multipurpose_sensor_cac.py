@@ -2,8 +2,8 @@
 from typing import Dict, Optional, List
 
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.enums.make_model.make_model_map import MakeModelMap
-from schema.enums.unit.unit_map import Unit, UnitMap
+from enums import MakeModelMap
+from enums import Unit, UnitMap
 from gwproto.enums import TelemetryNameMap
 
 
@@ -38,7 +38,7 @@ class MultipurposeSensorCac(ComponentAttributeClass):
 
         MultipurposeSensorCac.by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
-        if self.temp_unit not in [Unit.CELCIUS, Unit.FAHRENHEIT, Unit.UNITLESS]:
+        if self.temp_unit not in [Unit.Celcius, Unit.Fahrenheit, Unit.Unitless]:
             raise Exception("TempSensorCac units must be Fahrenheit, Celsius or Unitless")
 
     def __repr__(self):

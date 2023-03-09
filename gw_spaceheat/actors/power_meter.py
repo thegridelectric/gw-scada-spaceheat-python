@@ -118,7 +118,7 @@ class DriverThreadSetupHelper:
                 about_node_name=about_node.alias,
                 report_on_change=True,
                 telemetry_name=TelemetryName.CurrentRmsMicroAmps,
-                unit=Unit.AMPS_RMS,
+                unit=Unit.AmpsRms,
                 exponent=6,
                 sample_period_s=self.settings.seconds_per_report,
                 async_report_threshold=self.settings.async_power_reporting_threshold,
@@ -181,7 +181,7 @@ class DriverThreadSetupHelper:
 
     @classmethod
     def get_resistive_heater_component(cls, node: ShNode) -> ResistiveHeaterComponent:
-        if node.role != Role.BOOST_ELEMENT:
+        if node.role != Role.BoostElement:
             raise ValueError(
                 "This function should only be called for nodes that are boost elements"
             )
