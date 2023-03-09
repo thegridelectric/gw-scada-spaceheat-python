@@ -22,37 +22,27 @@ from enums import ActorClass
 from enums import TelemetryName
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.gt.cacs import (
-    GtBooleanActuatorCac_Maker,
-)
-from schema.gt.components import (
-    GtBooleanActuatorComponent_Maker,
-)
+from schema import GtBooleanActuatorCac_Maker
+from schema import GtBooleanActuatorComponent_Maker
 
-from schema.gt.cacs import ResistiveHeaterCacGt_Maker
-from schema.gt.components import (
-    ResistiveHeaterComponentGt_Maker,
-)
 
-from schema.gt.cacs import GtElectricMeterCac_Maker
-from schema.gt.components import (
-    GtElectricMeterComponent_Maker,
-)
-from schema.gt.cacs import (
-    PipeFlowSensorCacGt_Maker,
-)
-from schema.gt.components import (
-    PipeFlowSensorComponentGt_Maker,
-)
-from schema.gt.components import (
+from schema import ResistiveHeaterCacGt_Maker
+from schema import ResistiveHeaterComponentGt_Maker
+
+from schema import GtElectricMeterCac_Maker
+from schema import GtElectricMeterComponent_Maker
+
+from schema import PipeFlowSensorCacGt_Maker
+
+from schema import PipeFlowSensorComponentGt_Maker
+
+from schema.multipurpose_sensor_component_gt import (
     MultipurposeSensorComponentGt_Maker,
 )
-from schema.gt.cacs import MultipurposeSensorCacGt_Maker
-from schema.gt.cacs import SimpleTempSensorCacGt_Maker
-from schema.gt.components import (
-    SimpleTempSensorComponentGt_Maker,
-)
-from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
+from schema import MultipurposeSensorCacGt_Maker
+from schema import SimpleTempSensorCacGt_Maker
+from schema import SimpleTempSensorComponentGt_Maker
+from schema import SpaceheatNodeGt_Maker
 
 snake_add_underscore_to_camel_pattern = re.compile(r"(?<!^)(?=[A-Z])")
 

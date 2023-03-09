@@ -4,10 +4,7 @@ import importlib.util
 
 from actors.config import ScadaSettings
 from data_classes.sh_node import ShNode
-from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import (
-    GtSensorReportingConfig_Maker as ConfigMaker,
-)
-
+from schema import GtSensorReportingConfig_Maker as ConfigMaker
 from enums import Unit
 from enums import MakeModel
 from enums import TelemetryName

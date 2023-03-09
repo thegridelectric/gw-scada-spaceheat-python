@@ -1,7 +1,7 @@
 from actors.config import ScadaSettings
 from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.hardware_layout import HardwareLayout
-from schema.gt.components import GtElectricMeterComponent_Maker
+from schema import GtElectricMeterComponent_Maker
 
 
 def test_electric_meter_component():
@@ -12,7 +12,8 @@ def test_electric_meter_component():
         "DisplayName": "Main Power meter for Little orange house garage space heat",
         "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
         "HwUid": "9999",
-        "TypeAlias": "gt.electric.meter.component.100",
+        "TypeName": "gt.electric.meter.component",
+        "Version": "000",
     }
 
     gw_tuple = GtElectricMeterComponent_Maker.dict_to_tuple(d)

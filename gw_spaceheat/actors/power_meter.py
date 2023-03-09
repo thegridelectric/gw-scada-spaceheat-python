@@ -40,16 +40,14 @@ from gwproactor import Problems
 from enums import MakeModel
 from enums import Role
 from enums import Unit
-from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
+from schema import (
     TelemetryReportingConfig,
     TelemetryReportingConfig_Maker,
 )
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
-    GtPowermeterReportingConfig as ReportingConfig,
-)
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
-    GtPowermeterReportingConfig_Maker,
-)
+from schema import GtPowermeterReportingConfig as ReportingConfig
+
+from schema import GtPowermeterReportingConfig_Maker
+
 
 
 class HWUidMismatch(DriverWarning):

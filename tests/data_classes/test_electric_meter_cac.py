@@ -1,7 +1,7 @@
 from actors.config import ScadaSettings
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 from data_classes.hardware_layout import HardwareLayout
-from schema.gt.cacs import GtElectricMeterCac_Maker
+from schema import GtElectricMeterCac_Maker
 
 
 def test_electric_meter_cac():
@@ -13,7 +13,8 @@ def test_electric_meter_cac():
         "DisplayName": "Gridworks Pm1 Simulated Power Meter",
         "LocalCommInterfaceGtEnumSymbol": "efc144cd",
         "UpdatePeriodMs": 1000,
-        "TypeAlias": "gt.electric.meter.cac.100",
+        "TypeName": "gt.electric.meter.cac",
+        "Version": "000",
     }
 
     gw_tuple = GtElectricMeterCac_Maker.dict_to_tuple(d)

@@ -27,7 +27,8 @@
       "ActorClassGtEnumSymbol": "b103058f",
       "DisplayName": "AtomicTNode",
       "ShNodeId": "b354edeb-0c82-4e55-80cb-7ab669ac2ad9",
-      "TypeAlias": "spaceheat.node.gt.100"
+      "TypeName": "spaceheat.node.gt",
+      "Version": "100"
     },
     {
       "Alias": "a.home",
@@ -35,7 +36,8 @@
       "ActorClassGtEnumSymbol": "32d3d19f",
       "DisplayName": "Little Orange House HomeAlone",
       "ShNodeId": "34470c9d-fa25-4077-909b-2f981a691d7e",
-      "TypeAlias": "spaceheat.node.gt.100"
+      "TypeName": "spaceheat.node.gt",
+      "Version": "100"
     },
     {
       "Alias": "a.s",
@@ -43,7 +45,8 @@
       "ActorClassGtEnumSymbol": "6d37aa41",
       "DisplayName": "Little Orange House Main Scada",
       "ShNodeId": "259f9431-c6a1-4170-8766-04cbf65cff4a",
-      "TypeAlias": "spaceheat.node.gt.100"
+      "TypeName": "spaceheat.node.gt",
+      "Version": "100"
     }
   ],
   "ThermalEdges": [

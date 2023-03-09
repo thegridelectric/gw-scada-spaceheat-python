@@ -3,8 +3,8 @@ from typing import Dict, Optional
 
 from data_classes.component import Component
 from data_classes.errors import DataClassLoadingError
-from enums import  RoleMap
-from enums import  ActorClassMap, ActorClass
+from enums import Role
+from enums import ActorClass
 
 
 class ShNode:
@@ -14,24 +14,25 @@ class ShNode:
         self,
         sh_node_id: str,
         alias: str,
-        actor_class_gt_enum_symbol: str,
-        role_gt_enum_symbol: str,
+        actor_class: ActorClass,
+        role: Role,
+        display_name: Optional[str] = None,
+        component_id: Optional[str] = None,
+        reporting_sample_period_s: Optional[int] = None,
         rated_voltage_v: Optional[int] = None,
         typical_voltage_v: Optional[int] = None,
-        reporting_sample_period_s: Optional[int] = None,
-        component_id: Optional[str] = None,
-        display_name: Optional[str] = None,
+        in_power_metering: Optional[bool] = None,
     ):
         self.sh_node_id = sh_node_id
         self.alias = alias
+        self.actor_class = actor_class
+        self.role = role
+        self.display_name = display_name
         self.component_id = component_id
         self.reporting_sample_period_s = reporting_sample_period_s
         self.rated_voltage_v = rated_voltage_v
         self.typical_voltage_v = typical_voltage_v
-        self.display_name = display_name
-        self.actor_class = ActorClassMap.gt_to_local(actor_class_gt_enum_symbol)
-        self.role = RoleMap.gt_to_local(role_gt_enum_symbol)
-
+        self.in_power_metering = in_power_metering
         ShNode.by_id[self.sh_node_id] = self
 
     def __repr__(self):
