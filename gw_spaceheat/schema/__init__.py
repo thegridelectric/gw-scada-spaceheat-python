@@ -4,6 +4,11 @@ from schema.component_attribute_class_gt import (
     ComponentAttributeClassGt_Maker,
 )
 from schema.component_gt import ComponentGt, ComponentGt_Maker
+
+from schema.egauge_io import (
+    EgaugeIo,
+    EgaugeIo_Maker,
+)
 from schema.egauge_register_config import (
     EgaugeRegisterConfig,
     EgaugeRegisterConfig_Maker,
@@ -66,6 +71,8 @@ __all__ = [
     "ComponentGt_Maker",
     "ComponentAttributeClass",
     "ComponentAttributeClassGt_Maker",
+    "EgaugeIo",
+    "EgaugeIo_Maker",
     "EgaugeRegisterConfig",
     "EgaugeRegisterConfig_Maker",
     "HeartbeatB",

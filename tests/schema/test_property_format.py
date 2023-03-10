@@ -1,7 +1,7 @@
 import uuid
 
-import pendulum
 import gwproto
+import pendulum
 
 
 def test_property_format():
@@ -21,13 +21,21 @@ def test_property_format():
     bad_date_2 = pendulum.datetime(year=1999, month=12, day=31, hour=23)
     good_date = pendulum.datetime(year=2200, month=1, day=1, hour=1)
 
-    assert not gwproto.property_format.is_reasonable_unix_time_ms(bad_date_1.timestamp() * 1000)
-    assert not gwproto.property_format.is_reasonable_unix_time_ms(bad_date_2.timestamp() * 1000)
+    assert not gwproto.property_format.is_reasonable_unix_time_ms(
+        bad_date_1.timestamp() * 1000
+    )
+    assert not gwproto.property_format.is_reasonable_unix_time_ms(
+        bad_date_2.timestamp() * 1000
+    )
     assert not gwproto.property_format.is_reasonable_unix_time_ms(good_date.timestamp())
-    assert gwproto.property_format.is_reasonable_unix_time_ms(good_date.timestamp() * 1000)
+    assert gwproto.property_format.is_reasonable_unix_time_ms(
+        good_date.timestamp() * 1000
+    )
 
     assert gwproto.property_format.is_reasonable_unix_time_s(good_date.timestamp())
-    assert not gwproto.property_format.is_reasonable_unix_time_s(good_date.timestamp() * 1000)
+    assert not gwproto.property_format.is_reasonable_unix_time_s(
+        good_date.timestamp() * 1000
+    )
     assert not gwproto.property_format.is_reasonable_unix_time_s(bad_date_1.timestamp())
     assert not gwproto.property_format.is_reasonable_unix_time_s(bad_date_2.timestamp())
 

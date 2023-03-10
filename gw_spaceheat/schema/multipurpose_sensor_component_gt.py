@@ -251,7 +251,7 @@ class MultipurposeSensorComponentGt_Maker:
                 component_id=t.ComponentId,
                 component_attribute_class_id=t.ComponentAttributeClassId,
                 channel_list=t.ChannelList,
-                config_list=TelemetryReportingConfig_Maker.tuple_to_dc(t.ConfigList),
+                config_list=t.ConfigList,
                 hw_uid=t.HwUid,
                 display_name=t.DisplayName,
             )
@@ -266,7 +266,7 @@ class MultipurposeSensorComponentGt_Maker:
             component_id=dc.component_id,
             component_attribute_class_id=dc.component_attribute_class_id,
             channel_list=dc.channel_list,
-            config_list=TelemetryReportingConfig_Maker.dc_to_tuple(dc.config_list),
+            config_list=dc.config_list,
             hw_uid=dc.hw_uid,
             display_name=dc.display_name,
         ).tuple

@@ -1,12 +1,14 @@
 """Type component.gt, version 000"""
 import json
-from typing import Any, Dict, Literal, Optional
-
+from typing import Any
+from typing import Dict
+from typing import Literal
+from typing import Optional
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import validator
 from data_classes.component import Component
 from gwproto.errors import MpSchemaError
-from pydantic import BaseModel, Field, validator
-from schema.component_attribute_class_gt import (
-    ComponentAttributeClassGt, ComponentAttributeClassGt_Maker)
 
 
 def check_is_uuid_canonical_textual(v: str) -> None:
@@ -45,13 +47,13 @@ def check_is_uuid_canonical_textual(v: str) -> None:
 
 
 class ComponentGt(BaseModel):
-    """ """
-
+    """
+    """
     ComponentId: str = Field(
         title="ComponentId",
     )
-    ComponentAttributeClass: ComponentAttributeClassGt = Field(
-        title="ComponentAttributeClass",
+    ComponentAttributeClassId: str = Field(
+        title="ComponentAttributeClassId",
     )
     DisplayName: Optional[str] = Field(
         title="DisplayName",
@@ -69,14 +71,19 @@ class ComponentGt(BaseModel):
         try:
             check_is_uuid_canonical_textual(v)
         except ValueError as e:
-            raise ValueError(
-                f"ComponentId failed UuidCanonicalTextual format validation: {e}"
-            )
+            raise ValueError(f"ComponentId failed UuidCanonicalTextual format validation: {e}")
+        return v
+
+    @validator("ComponentAttributeClassId")
+    def _check_component_attribute_class_id(cls, v: str) -> str:
+        try:
+            check_is_uuid_canonical_textual(v)
+        except ValueError as e:
+            raise ValueError(f"ComponentAttributeClassId failed UuidCanonicalTextual format validation: {e}")
         return v
 
     def as_dict(self) -> Dict[str, Any]:
         d = self.dict()
-        d["ComponentAttributeClass"] = self.ComponentAttributeClass.as_dict()
         if d["DisplayName"] is None:
             del d["DisplayName"]
         if d["HwUid"] is None:
@@ -91,17 +98,15 @@ class ComponentGt_Maker:
     type_name = "component.gt"
     version = "000"
 
-    def __init__(
-        self,
-        component_id: str,
-        component_attribute_class: ComponentAttributeClassGt,
-        display_name: Optional[str],
-        hw_uid: Optional[str],
-    ):
+    def __init__(self,
+                    component_id: str,
+                    component_attribute_class_id: str,
+                    display_name: Optional[str],
+                    hw_uid: Optional[str]):
 
         self.tuple = ComponentGt(
             ComponentId=component_id,
-            ComponentAttributeClass=component_attribute_class,
+            ComponentAttributeClassId=component_attribute_class_id,
             DisplayName=display_name,
             HwUid=hw_uid,
             #
@@ -132,16 +137,8 @@ class ComponentGt_Maker:
         d2 = dict(d)
         if "ComponentId" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing ComponentId")
-        if "ComponentAttributeClass" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing ComponentAttributeClass")
-        if not isinstance(d2["ComponentAttributeClass"], dict):
-            raise MpSchemaError(
-                f"d['ComponentAttributeClass'] {d2['ComponentAttributeClass']} must be a ComponentAttributeClassGt!"
-            )
-        component_attribute_class = ComponentAttributeClassGt_Maker.dict_to_tuple(
-            d2["ComponentAttributeClass"]
-        )
-        d2["ComponentAttributeClass"] = component_attribute_class
+        if "ComponentAttributeClassId" not in d2.keys():
+            raise MpSchemaError(f"dict {d2} missing ComponentAttributeClassId")
         if "DisplayName" not in d2.keys():
             d2["DisplayName"] = None
         if "HwUid" not in d2.keys():
@@ -151,7 +148,7 @@ class ComponentGt_Maker:
 
         return ComponentGt(
             ComponentId=d2["ComponentId"],
-            ComponentAttributeClass=d2["ComponentAttributeClass"],
+            ComponentAttributeClassId=d2["ComponentAttributeClassId"],
             DisplayName=d2["DisplayName"],
             HwUid=d2["HwUid"],
             TypeName=d2["TypeName"],
@@ -164,12 +161,11 @@ class ComponentGt_Maker:
             dc = Component.by_id[t.ComponentId]
         else:
             dc = Component(
-                component_id=t.ComponentId,
-                component_attribute_class=ComponentAttributeClassGt_Maker.tuple_to_dc(
-                    t.ComponentAttributeClass
-                ),
-                display_name=t.DisplayName,
-                hw_uid=t.HwUid,
+            component_id=t.ComponentId,
+            component_attribute_class_id=t.ComponentAttributeClassId,
+            display_name=t.DisplayName,
+            hw_uid=t.HwUid,
+            
             )
 
         return dc
@@ -178,11 +174,10 @@ class ComponentGt_Maker:
     def dc_to_tuple(cls, dc: Component) -> ComponentGt:
         t = ComponentGt_Maker(
             component_id=dc.component_id,
-            component_attribute_class=ComponentAttributeClassGt_Maker.dc_to_tuple(
-                dc.component_attribute_class
-            ),
+            component_attribute_class_id=dc.component_attribute_class_id,
             display_name=dc.display_name,
             hw_uid=dc.hw_uid,
+            
         ).tuple
         return t
 

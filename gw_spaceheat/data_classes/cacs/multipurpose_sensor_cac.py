@@ -36,8 +36,6 @@ class MultipurposeSensorCac(ComponentAttributeClass):
 
         MultipurposeSensorCac.by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
-        if self.temp_unit not in [Unit.Celcius, Unit.Fahrenheit, Unit.Unitless]:
-            raise Exception("TempSensorCac units must be Fahrenheit, Celsius or Unitless")
 
     def __repr__(self):
         return f"{self.make_model.value} {self.display_name}"
