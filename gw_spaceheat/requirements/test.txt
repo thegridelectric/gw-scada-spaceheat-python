@@ -11,16 +11,14 @@ attrs==21.4.0
 black==22.3.0
     # via -r requirements/test.in
 click==8.1.3
-    # via
-    #   black
-    #   gridworks-proactor
+    # via black
 coverage==6.4.1
     # via -r requirements/test.in
 fastapi==0.93.0
     # via fastapi-utils
 fastapi-utils==0.2.1
     # via gridworks-protocol
-gridworks-proactor[tests]==0.1.2
+gridworks-proactor[tests]==0.1.3
     # via -r requirements/test.in
 gridworks-protocol==0.3.1
     # via gridworks-proactor

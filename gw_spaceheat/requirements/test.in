@@ -3,5 +3,5 @@ pytest
 coverage
 mypy
 black
-gridworks-proactor[tests] >=0.1.2
+gridworks-proactor[tests] >=0.1.3
 pytest-asyncio
