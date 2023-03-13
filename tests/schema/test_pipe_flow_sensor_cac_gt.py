@@ -68,14 +68,14 @@ def test_pipe_flow_sensor_cac_gt_generated() -> None:
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d)
-    del d2["DisplayName"]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(d2)
-
     ######################################
     # Optional attributes can be removed from type
     ######################################
+
+    d2 = dict(d)
+    if "DisplayName" in d2.keys():
+        del d2["DisplayName"]
+    Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
     if "CommsMethod" in d2.keys():
