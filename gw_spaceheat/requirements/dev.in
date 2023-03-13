@@ -3,4 +3,3 @@
 ipython
 pip-tools
 isort
-pytest-sugar
