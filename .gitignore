@@ -3,7 +3,11 @@ venv
 .vscode/
 **/__pycache__/
 *.pyc
-.ssotme
+
+# Code generation
+CodeGenerationTools/GridworksCore/.ssotme/**/*.zfs
+CodeGenerationTools/GridworksCore/SassyMQ/
+CodeGenerationTools/GridworksCore/SSoT/Airtable.xml
 
 gw_spaceheat/scratch.ipynb
 gw_spaceheat/w_isone_nh*
