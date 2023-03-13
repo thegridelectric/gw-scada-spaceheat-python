@@ -15,7 +15,7 @@ from command_line_utils import get_actor_nodes
 from command_line_utils import get_requested_aliases
 from data_classes.errors import DataClassLoadingError
 from data_classes.hardware_layout import HardwareLayout
-from schema.enums import ActorClass
+from enums import ActorClass
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
@@ -142,7 +142,7 @@ def print_layout_table(layout: HardwareLayout):
             role_text = Text(node.role.value)
         else:
             role_text = none_text
-        if node.actor_class and node.actor_class != ActorClass.NONE:
+        if node.actor_class and node.actor_class != ActorClass.NoActor:
             actor_text = Text(node.actor_class.value)
         else:
             actor_text = none_text

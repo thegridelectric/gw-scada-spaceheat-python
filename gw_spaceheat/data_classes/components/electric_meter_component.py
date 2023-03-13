@@ -3,7 +3,7 @@ from typing import Dict, Optional
 
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 from data_classes.component import Component
-from schema.enums import MakeModel
+from enums import MakeModel
 
 
 class ElectricMeterComponent(Component):

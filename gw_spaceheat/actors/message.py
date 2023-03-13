@@ -38,7 +38,7 @@ class GtTelemetryMessage(Message[GtTelemetry]):
             Header=Header(
                 Src=src,
                 Dst=dst,
-                MessageType=payload.TypeAlias,
+                MessageType=payload.TypeName,
             ),
             Payload=payload,
         )
@@ -60,7 +60,7 @@ class GtDriverBooleanactuatorCmdResponse(Message[GtDriverBooleanactuatorCmd]):
             Header=Header(
                 Src=src,
                 Dst=dst,
-                MessageType=payload.TypeAlias,
+                MessageType=payload.TypeName,
             ),
             Payload=payload,
         )
@@ -83,7 +83,7 @@ class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
             Header=Header(
                 Src=src,
                 Dst=dst,
-                MessageType=payload.TypeAlias,
+                MessageType=payload.TypeName,
             ),
             Payload=payload,
         )
@@ -101,7 +101,7 @@ class GsPwrMessage(Message[GsPwr]):
             Header=Header(
                 Src=src,
                 Dst=dst,
-                MessageType=payload.TypeAlias,
+                MessageType=payload.TypeName,
             ),
             Payload=payload,
         )
@@ -126,7 +126,7 @@ class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSe
             Header=Header(
                 Src=src,
                 Dst=dst,
-                MessageType=payload.TypeAlias,
+                MessageType=payload.TypeName,
             ),
             Payload=payload,
         )

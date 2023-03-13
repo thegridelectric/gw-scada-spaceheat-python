@@ -2,9 +2,9 @@
 from typing import Dict, Optional, List
 
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.enums.make_model.make_model_map import MakeModelMap
-from schema.enums.unit.unit_map import Unit, UnitMap
-from gwproto.enums.telemetry_name.telemetry_name_map import TelemetryNameMap
+from enums import MakeModel
+from enums import Unit
+from gwproto.enums import TelemetryName
 
 
 class MultipurposeSensorCac(ComponentAttributeClass):
@@ -15,9 +15,9 @@ class MultipurposeSensorCac(ComponentAttributeClass):
         component_attribute_class_id: str,
         exponent: int,
         poll_period_ms: int,
-        temp_unit_gt_enum_symbol: str,
-        make_model_gt_enum_symbol: str,
-        telemetry_name_list: List[str],
+        temp_unit: Unit,
+        make_model: MakeModel,
+        telemetry_name_list: List[TelemetryName],
         max_thermistors: Optional[int],
         display_name: Optional[str] = None,
         comms_method: Optional[str] = None,
@@ -30,16 +30,12 @@ class MultipurposeSensorCac(ComponentAttributeClass):
         self.comms_method = comms_method
         self.poll_period_ms = poll_period_ms
         self.max_thermistors = max_thermistors
-        self.telemetry_name_list = [] 
-        for enum_symbol in telemetry_name_list:
-            self.telemetry_name_list.append(TelemetryNameMap.gt_to_local(enum_symbol))
-        self.temp_unit = UnitMap.gt_to_local(temp_unit_gt_enum_symbol)
-        self.make_model = MakeModelMap.gt_to_local(make_model_gt_enum_symbol)
+        self.telemetry_name_list = telemetry_name_list
+        self.temp_unit = temp_unit
+        self.make_model = make_model
 
         MultipurposeSensorCac.by_id[self.component_attribute_class_id] = self
         ComponentAttributeClass.by_id[self.component_attribute_class_id] = self
-        if self.temp_unit not in [Unit.CELCIUS, Unit.FAHRENHEIT, Unit.UNITLESS]:
-            raise Exception("TempSensorCac units must be Fahrenheit, Celsius or Unitless")
 
     def __repr__(self):
         return f"{self.make_model.value} {self.display_name}"

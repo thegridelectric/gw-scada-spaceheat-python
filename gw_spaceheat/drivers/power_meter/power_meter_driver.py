@@ -10,7 +10,7 @@ from actors.config import ScadaSettings
 from data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.driver_result import DriverResult
-from schema.enums import TelemetryName
+from enums import TelemetryName
 
 
 class PowerMeterDriver(ABC):
@@ -42,9 +42,9 @@ class PowerMeterDriver(ABC):
     def read_telemetry_value(self, telemetry_name: TelemetryName) -> Result[DriverResult[int | None], Exception]:
         if telemetry_name not in self.telemetry_name_list():
             raise Exception(f"driver for {self.component.cac} does not read {telemetry_name}")
-        if telemetry_name == TelemetryName.CURRENT_RMS_MICRO_AMPS:
+        if telemetry_name == TelemetryName.CurrentRmsMicroAmps:
             return self.read_current_rms_micro_amps()
-        elif telemetry_name == TelemetryName.POWER_W:
+        elif telemetry_name == TelemetryName.PowerW:
             return self.read_power_w()
         else:
             return Err(ValueError(f"Driver {self} not set up to read {telemetry_name}"))

@@ -38,7 +38,7 @@ from gwproactor.logger import ProactorLogger
 from gwproactor.message import Message, MQTTReceiptPayload
 from gwproactor.proactor_implementation import Proactor
 from pydantic import BaseModel
-from schema.enums import Role
+from enums import Role
 
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
@@ -93,11 +93,11 @@ class MessageStats:
 
     @property
     def num_status_received(self) -> int:
-        return self.num_received_by_message_type[GtShStatus_Maker.type_alias]
+        return self.num_received_by_message_type[GtShStatus_Maker.type_name]
 
     @property
     def num_snapshot_received(self) -> int:
-        return self.num_received_by_message_type[SnapshotSpaceheat_Maker.type_alias]
+        return self.num_received_by_message_type[SnapshotSpaceheat_Maker.type_name]
 
 
 class Telemetry(BaseModel):
@@ -156,17 +156,17 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
         self.my_sensors = list(
             filter(
                 lambda x: (
-                    x.role == Role.TANK_WATER_TEMP_SENSOR
-                    or x.role == Role.BOOLEAN_ACTUATOR
-                    or x.role == Role.PIPE_TEMP_SENSOR
-                    or x.role == Role.PIPE_FLOW_METER
-                    or x.role == Role.POWER_METER
+                    x.role == Role.TankWaterTempSensor
+                    or x.role == Role.BooleanActuator
+                    or x.role == Role.PipeTempSensor
+                    or x.role == Role.PipeFlowMeter
+                    or x.role == Role.PowerMeter
                 ),
                 list(self.layout.nodes.values()),
             )
         )
         self.my_relays = list(
-            filter(lambda x: x.role == Role.BOOLEAN_ACTUATOR, list(self.layout.nodes.values()))
+            filter(lambda x: x.role == Role.BooleanActuator, list(self.layout.nodes.values()))
         )
         self.relay_state = {x: RecentRelayState() for x in self.my_relays}
         self._add_mqtt_client(SimpleOrangeAtn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout))
@@ -288,7 +288,7 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
             for idx in range(len(snapshot.Snapshot.AboutNodeAliasList)):
                 if (
                     snapshot.Snapshot.AboutNodeAliasList[idx] == node.alias
-                    and snapshot.Snapshot.TelemetryNameList[idx] == TelemetryName.RELAY_STATE
+                    and snapshot.Snapshot.TelemetryNameList[idx] == TelemetryName.RelayState
                 ):
                     possible_indices.append(idx)
             if len(possible_indices) != 1:
@@ -378,10 +378,10 @@ class SimpleOrangeAtn(ActorInterface, Proactor):
                 Src=self.name,
                 Dst=self.name,
                 Payload=GtDispatchBoolean_Maker(
-                    about_node_alias=name,
+                    about_node_name=name,
                     to_g_node_alias=self.layout.scada_g_node_alias,
                     from_g_node_alias=self.layout.atn_g_node_alias,
-                    from_g_node_id=self.layout.atn_g_node_id,
+                    from_g_node_instance_id=self.layout.atn_g_node_instance_id,
                     relay_state=int(state),
                     send_time_unix_ms=int(time.time() * 1000),
                 ),

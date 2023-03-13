@@ -4,13 +4,10 @@ import importlib.util
 
 from actors.config import ScadaSettings
 from data_classes.sh_node import ShNode
-from schema.gt.gt_sensor_reporting_config.gt_sensor_reporting_config_maker import (
-    GtSensorReportingConfig_Maker as ConfigMaker,
-)
-
-from schema.enums.unit.unit_map import Unit
-from schema.enums.make_model.make_model_map import MakeModel
-from gwproto.enums import TelemetryName
+from schema import GtSensorReportingConfig_Maker as ConfigMaker
+from enums import Unit
+from enums import MakeModel
+from enums import TelemetryName
 
 from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
 from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
@@ -53,8 +50,8 @@ class NodeConfig:
             exponent=-2,
             reporting_period_s=self.seconds_per_report,
             sample_period_s=self.node.reporting_sample_period_s,
-            telemetry_name=TelemetryName.GALLONS_TIMES100,
-            unit=Unit.GALLONS,
+            telemetry_name=TelemetryName.GallonsTimes100,
+            unit=Unit.Gallons,
             async_report_threshold=None,
         ).tuple
         if cac.make_model == MakeModel.ATLAS__EZFLO:
@@ -113,7 +110,7 @@ class NodeConfig:
             reporting_period_s=self.seconds_per_report,
             sample_period_s=reporting_sample_period_s,
             telemetry_name=cac.telemetry_name,
-            unit=Unit.UNITLESS,
+            unit=Unit.Unitless,
             async_report_threshold=0.5,
         ).tuple
         if cac.make_model == MakeModel.NCD__PR814SPST:

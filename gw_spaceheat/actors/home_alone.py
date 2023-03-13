@@ -7,7 +7,7 @@ from typing import Sequence
 
 from gwproto import Message
 from gwproto.enums import TelemetryName
-from gwproto.gt.snapshot_spaceheat import SnapshotSpaceheat
+from gwproto.types import SnapshotSpaceheat
 from result import Err
 from result import Ok
 from result import Result
@@ -139,7 +139,7 @@ class HomeAlone(Actor):
         for i, about_alias in enumerate(snapshot.Snapshot.AboutNodeAliasList):
             if (
                 about_alias in self._nodes
-                and snapshot.Snapshot.TelemetryNameList[i] == TelemetryName.RELAY_STATE
+                and snapshot.Snapshot.TelemetryNameList[i] == TelemetryName.RelayState
             ):
                 relay_state = self._data.relay_state[about_alias]
                 if relay_state.state != snapshot.Snapshot.ValueList[i]:

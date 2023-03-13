@@ -1,249 +1,173 @@
-"""Tests spaceheat.node.gt.100 type"""
+"""Tests spaceheat.node.gt type, version 100"""
 import json
 
 import pytest
-from schema.enums import Role
-from schema.enums import RoleMap
-from gwproto import MpSchemaError
-from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import (
-    SpaceheatNodeGt_Maker as Maker,
-)
+from enums import ActorClass, Role
+from gwproto.errors import MpSchemaError
+from pydantic import ValidationError
+from schema import SpaceheatNodeGt_Maker as Maker
 
 
-def test_spaceheat_node_gt():
+def test_spaceheat_node_gt_generated() -> None:
 
-    gw_dict_1 = {
-        "Alias": "a.tank.temp0",
-        "RoleGtEnumSymbol": "73308a1f",
-        "ActorClassGtEnumSymbol": "dae4b2f0",
-        "DisplayName": "Tank temp sensor temp0 (on top)",
-        "ShNodeId": "3593a10a-4335-447a-b62e-e123788a134a",
-        "ComponentId": "f516467e-7691-42c8-8525-f7d49bb135ce",
-        "ReportingSamplePeriodS": 5,
-        "TypeAlias": "spaceheat.node.gt.100",
-    }
-
-    gw_type_1 = json.dumps(gw_dict_1)
-    gw_tuple_1 = Maker.type_to_tuple(gw_type_1)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple_1)) == gw_tuple_1
-
-    gw_dict = {
-        "Alias": "a.elt1",
-        "RatedVoltageV": 240,
+    d = {
         "ShNodeId": "41f2ae73-8782-406d-bda7-a95b5abe317e",
+        "Alias": "a.elt1",
+        "ActorClassGtEnumSymbol": "638bf97b",
+        "RoleGtEnumSymbol": "5a28eb2e",
         "DisplayName": "First boost element",
-        "TypicalVoltageV": 225,
-        "RoleGtEnumSymbol": "99c5f326",
-        "ActorClassGtEnumSymbol": "99a5f20d",
         "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
-        "TypeAlias": "spaceheat.node.gt.100",
+        "ReportingSamplePeriodS": 300,
+        "RatedVoltageV": 240,
+        "TypicalVoltageV": 225,
+        "InPowerMetering": False,
+        "TypeName": "spaceheat.node.gt",
+        "Version": "100",
     }
 
     with pytest.raises(MpSchemaError):
-        Maker.type_to_tuple(gw_dict)
+        Maker.type_to_tuple(d)
 
     with pytest.raises(MpSchemaError):
         Maker.type_to_tuple('"not a dict"')
 
     # Test type_to_tuple
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
+    gtype = json.dumps(d)
+    gtuple = Maker.type_to_tuple(gtype)
 
     # test type_to_tuple and tuple_to_type maps
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+    assert Maker.type_to_tuple(Maker.tuple_to_type(gtuple)) == gtuple
 
     # test Maker init
     t = Maker(
-        alias=gw_tuple.Alias,
-        reporting_sample_period_s=gw_tuple.ReportingSamplePeriodS,
-        role=gw_tuple.Role,
-        component_id=gw_tuple.ComponentId,
-        rated_voltage_v=gw_tuple.RatedVoltageV,
-        actor_class=gw_tuple.ActorClass,
-        sh_node_id=gw_tuple.ShNodeId,
-        display_name=gw_tuple.DisplayName,
-        typical_voltage_v=gw_tuple.TypicalVoltageV,
-        #
+        sh_node_id=gtuple.ShNodeId,
+        alias=gtuple.Alias,
+        actor_class=gtuple.ActorClass,
+        role=gtuple.Role,
+        display_name=gtuple.DisplayName,
+        component_id=gtuple.ComponentId,
+        reporting_sample_period_s=gtuple.ReportingSamplePeriodS,
+        rated_voltage_v=gtuple.RatedVoltageV,
+        typical_voltage_v=gtuple.TypicalVoltageV,
+        in_power_metering=gtuple.InPowerMetering,
     ).tuple
-    assert t == gw_tuple
+    assert t == gtuple
 
     ######################################
     # Dataclass related tests
     ######################################
 
-    dc = Maker.tuple_to_dc(gw_tuple)
-    assert gw_tuple == Maker.dc_to_tuple(dc)
+    dc = Maker.tuple_to_dc(gtuple)
+    assert gtuple == Maker.dc_to_tuple(dc)
     assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
 
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################
 
-    orig_value = gw_dict["TypeAlias"]
-    del gw_dict["TypeAlias"]
+    d2 = dict(d)
+    del d2["TypeName"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["Alias"]
-    del gw_dict["Alias"]
+    d2 = dict(d)
+    del d2["ShNodeId"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["Alias"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["RoleGtEnumSymbol"]
-    del gw_dict["RoleGtEnumSymbol"]
+    d2 = dict(d)
+    del d2["Alias"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["RoleGtEnumSymbol"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ActorClassGtEnumSymbol"]
-    del gw_dict["ActorClassGtEnumSymbol"]
+    d2 = dict(d)
+    del d2["ActorClassGtEnumSymbol"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ActorClassGtEnumSymbol"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ShNodeId"]
-    del gw_dict["ShNodeId"]
+    d2 = dict(d)
+    del d2["RoleGtEnumSymbol"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeId"] = orig_value
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # Optional attributes can be removed from type
     ######################################
 
-    orig_value = gw_dict["ComponentId"]
-    del gw_dict["ComponentId"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["ComponentId"] = orig_value
+    d2 = dict(d)
+    if "DisplayName" in d2.keys():
+        del d2["DisplayName"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["DisplayName"]
-    del gw_dict["DisplayName"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["DisplayName"] = orig_value
+    d2 = dict(d)
+    if "ComponentId" in d2.keys():
+        del d2["ComponentId"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["TypicalVoltageV"]
-    del gw_dict["TypicalVoltageV"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["TypicalVoltageV"] = orig_value
+    d2 = dict(d)
+    if "ReportingSamplePeriodS" in d2.keys():
+        del d2["ReportingSamplePeriodS"]
+    Maker.dict_to_tuple(d2)
 
-    ######################################
-    # MpSchemaError raised if attributes have incorrect type
-    ######################################
+    d2 = dict(d)
+    if "RatedVoltageV" in d2.keys():
+        del d2["RatedVoltageV"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["Alias"]
-    gw_dict["Alias"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["Alias"] = orig_value
+    d2 = dict(d)
+    if "TypicalVoltageV" in d2.keys():
+        del d2["TypicalVoltageV"]
+    Maker.dict_to_tuple(d2)
 
-    gw_dict["ReportingSamplePeriodS"] = 1.1
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReportingSamplePeriodS"] = None
-
-    with pytest.raises(MpSchemaError):
-        Maker(
-            alias=gw_tuple.Alias,
-            reporting_sample_period_s=gw_tuple.ReportingSamplePeriodS,
-            component_id=gw_tuple.ComponentId,
-            rated_voltage_v=gw_tuple.RatedVoltageV,
-            actor_class=gw_tuple.ActorClass,
-            sh_node_id=gw_tuple.ShNodeId,
-            display_name=gw_tuple.DisplayName,
-            typical_voltage_v=gw_tuple.TypicalVoltageV,
-            role="This is not a Role Enum.",
-        )
-
-    orig_value = gw_dict["ComponentId"]
-    gw_dict["ComponentId"] = "Not a dataclass id"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = orig_value
-
-    orig_value = gw_dict["RatedVoltageV"]
-    gw_dict["RatedVoltageV"] = 1.1
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["RatedVoltageV"] = orig_value
-
-    with pytest.raises(MpSchemaError):
-        Maker(
-            alias=gw_tuple.Alias,
-            reporting_sample_period_s=gw_tuple.ReportingSamplePeriodS,
-            role=gw_tuple.Role,
-            component_id=gw_tuple.ComponentId,
-            rated_voltage_v=gw_tuple.RatedVoltageV,
-            sh_node_id=gw_tuple.ShNodeId,
-            display_name=gw_tuple.DisplayName,
-            typical_voltage_v=gw_tuple.TypicalVoltageV,
-            actor_class="This is not a ActorClass Enum.",
-        )
-
-    orig_value = gw_dict["ShNodeId"]
-    gw_dict["ShNodeId"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeId"] = orig_value
-
-    orig_value = gw_dict["DisplayName"]
-    gw_dict["DisplayName"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["DisplayName"] = orig_value
-
-    orig_value = gw_dict["TypicalVoltageV"]
-    gw_dict["TypicalVoltageV"] = 1.1
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypicalVoltageV"] = orig_value
+    d2 = dict(d)
+    if "InPowerMetering" in d2.keys():
+        del d2["InPowerMetering"]
+    Maker.dict_to_tuple(d2)
 
     ######################################
-    # MpSchemaError raised if TypeAlias is incorrect
+    # Behavior on incorrect types
     ######################################
 
-    gw_dict["TypeAlias"] = "not the type alias"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "spaceheat.node.gt.100"
+    d2 = dict(d, ActorClassGtEnumSymbol="hi")
+    Maker.dict_to_tuple(d2).ActorClass = ActorClass.default()
+
+    d2 = dict(d, RoleGtEnumSymbol="hi")
+    Maker.dict_to_tuple(d2).Role = Role.default()
+
+    d2 = dict(d, ReportingSamplePeriodS="300.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, RatedVoltageV="240.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, TypicalVoltageV="225.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, InPowerMetering="this is not a boolean")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    ######################################
+    # MpSchemaError raised if TypeName is incorrect
+    ######################################
+
+    d2 = dict(d, TypeName="not the type alias")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["Alias"] = "a.b-h"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["Alias"] = "a.elt1"
+    d2 = dict(d, ShNodeId="d4be12d5-33ba-4f1f-b9e5")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
-    gw_dict["ShNodeId"] = "d4be12d5-33ba-4f1f-b9e5"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ShNodeId"] = "41f2ae73-8782-406d-bda7-a95b5abe317e"
+    d2 = dict(d, Alias="a.b-h")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
-    # End of Derived Test
-
-    #######################################
-    # Test check_rated_voltage_existence
-    ######################################
-
-    gw_dict["RoleGtEnumSymbol"] = RoleMap.local_to_gt_dict[Role.BOOST_ELEMENT]
-    orig_value = gw_dict["RatedVoltageV"]
-    del gw_dict["RatedVoltageV"]
-    gw_type = json.dumps(gw_dict)
-    with pytest.raises(MpSchemaError):
-        Maker.type_to_tuple(gw_type)
-
-    other_roles = set(RoleMap.local_to_gt_dict.keys()) - set([Role.BOOST_ELEMENT])
-    for role in other_roles:
-        gw_dict["RoleGtEnumSymbol"] = RoleMap.local_to_gt_dict[role]
-        assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-
-    gw_dict["RatedVoltageV"] = orig_value
+    # End of Test

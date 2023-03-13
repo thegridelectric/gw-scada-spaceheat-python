@@ -1,156 +1,124 @@
-"""Tests gt.powermeter.reporting.config.100 type"""
+"""Tests gt.powermeter.reporting.config type, version 100"""
 import json
 
 import pytest
-from gwproto import MpSchemaError
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
-    GtPowermeterReportingConfig_Maker as Maker,
-)
+from gwproto.errors import MpSchemaError
+from pydantic import ValidationError
+from schema import GtPowermeterReportingConfig_Maker as Maker
 
 
-def test_gt_powermeter_reporting_config():
+def test_gt_powermeter_reporting_config_generated() -> None:
 
-    gw_dict = {
-        "HwUid": "1001ab",
+    d = {
         "ReportingPeriodS": 300,
         "ElectricalQuantityReportingConfigList": [
             {
+                "TelemetryNameGtEnumSymbol": "af39eec9",
                 "AboutNodeName": "a.elt1",
                 "ReportOnChange": True,
+                "SamplePeriodS": 300,
                 "Exponent": 6,
-                "SamplePeriodS": 5,
-                "AsyncReportThreshold": 0.05,
-                "NameplateMaxValue": 20000,
-                "TypeAlias": "telemetry.reporting.config.000",
-                "UnitGtEnumSymbol": "a969ac7c",
-                "TelemetryNameGtEnumSymbol": "ad19e79c",
+                "UnitGtEnumSymbol": "f459a9c3",
+                "AsyncReportThreshold": 0.2,
+                "NameplateMaxValue": 4000,
+                "TypeName": "telemetry.reporting.config",
+                "Version": "000",
             }
         ],
         "PollPeriodMs": 1000,
-        "TypeAlias": "gt.powermeter.reporting.config.100",
+        "HwUid": "1001ab",
+        "TypeName": "gt.powermeter.reporting.config",
+        "Version": "100",
     }
 
     with pytest.raises(MpSchemaError):
-        Maker.type_to_tuple(gw_dict)
+        Maker.type_to_tuple(d)
 
     with pytest.raises(MpSchemaError):
         Maker.type_to_tuple('"not a dict"')
 
     # Test type_to_tuple
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
+    gtype = json.dumps(d)
+    gtuple = Maker.type_to_tuple(gtype)
 
     # test type_to_tuple and tuple_to_type maps
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+    assert Maker.type_to_tuple(Maker.tuple_to_type(gtuple)) == gtuple
 
     # test Maker init
     t = Maker(
-        hw_uid=gw_tuple.HwUid,
-        reporting_period_s=gw_tuple.ReportingPeriodS,
-        electrical_quantity_reporting_config_list=gw_tuple.ElectricalQuantityReportingConfigList,
-        poll_period_ms=gw_tuple.PollPeriodMs,
-        #
+        reporting_period_s=gtuple.ReportingPeriodS,
+        electrical_quantity_reporting_config_list=gtuple.ElectricalQuantityReportingConfigList,
+        poll_period_ms=gtuple.PollPeriodMs,
+        hw_uid=gtuple.HwUid,
     ).tuple
-    assert t == gw_tuple
+    assert t == gtuple
 
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################
 
-    orig_value = gw_dict["TypeAlias"]
-    del gw_dict["TypeAlias"]
+    d2 = dict(d)
+    del d2["TypeName"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ReportingPeriodS"]
-    del gw_dict["ReportingPeriodS"]
+    d2 = dict(d)
+    del d2["ReportingPeriodS"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReportingPeriodS"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ElectricalQuantityReportingConfigList"]
-    del gw_dict["ElectricalQuantityReportingConfigList"]
+    d2 = dict(d)
+    del d2["ElectricalQuantityReportingConfigList"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ElectricalQuantityReportingConfigList"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["PollPeriodMs"]
-    del gw_dict["PollPeriodMs"]
+    d2 = dict(d)
+    del d2["PollPeriodMs"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["PollPeriodMs"] = orig_value
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # Optional attributes can be removed from type
     ######################################
 
-    orig_value = gw_dict["HwUid"]
-    del gw_dict["HwUid"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["HwUid"] = orig_value
+    d2 = dict(d)
+    if "HwUid" in d2.keys():
+        del d2["HwUid"]
+    Maker.dict_to_tuple(d2)
 
     ######################################
-    # MpSchemaError raised if attributes have incorrect type
+    # Behavior on incorrect types
     ######################################
 
-    orig_value = gw_dict["HwUid"]
-    gw_dict["HwUid"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["HwUid"] = orig_value
+    d2 = dict(d, ReportingPeriodS="300.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ReportingPeriodS"]
-    gw_dict["ReportingPeriodS"] = 1.1
+    d2 = dict(d, ElectricalQuantityReportingConfigList="Not a list.")
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ReportingPeriodS"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ElectricalQuantityReportingConfigList"]
-    gw_dict["ElectricalQuantityReportingConfigList"] = "Not a list."
+    d2 = dict(d, ElectricalQuantityReportingConfigList=["Not a list of dicts"])
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ElectricalQuantityReportingConfigList"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ElectricalQuantityReportingConfigList"]
-    gw_dict["ElectricalQuantityReportingConfigList"] = ["Not even a dict"]
+    d2 = dict(
+        d,
+        ElectricalQuantityReportingConfigList=[
+            {"Failed": "Not a GtSimpleSingleStatus"}
+        ],
+    )
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
+        Maker.dict_to_tuple(d2)
 
-    gw_dict["ElectricalQuantityReportingConfigList"] = [{"Failed": "Not a GtSimpleSingleStatus"}]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ElectricalQuantityReportingConfigList"] = orig_value
-
-    with pytest.raises(MpSchemaError):
-        Maker(
-            hw_uid=gw_dict["HwUid"],
-            reporting_period_s=gw_dict["ReportingPeriodS"],
-            poll_period_ms=gw_dict["PollPeriodMs"],
-            electrical_quantity_reporting_config_list=["Not a TelemetryReportingConfig"],
-        )
-
-    with pytest.raises(MpSchemaError):
-        Maker(
-            hw_uid=gw_tuple.HwUid,
-            reporting_period_s=gw_tuple.ReportingPeriodS,
-            poll_period_ms=gw_tuple.PollPeriodMs,
-            electrical_quantity_reporting_config_list="This string is not a list",
-        )
-
-    orig_value = gw_dict["PollPeriodMs"]
-    gw_dict["PollPeriodMs"] = 1.1
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["PollPeriodMs"] = orig_value
+    d2 = dict(d, PollPeriodMs="1000.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     ######################################
-    # MpSchemaError raised if TypeAlias is incorrect
+    # MpSchemaError raised if TypeName is incorrect
     ######################################
 
-    gw_dict["TypeAlias"] = "not the type alias"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.powermeter.reporting.config.100"
+    d2 = dict(d, TypeName="not the type alias")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)

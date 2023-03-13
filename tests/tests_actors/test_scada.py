@@ -3,7 +3,7 @@ import logging
 import time
 from typing import cast
 
-from gwproto.gt.snapshot_spaceheat import SnapshotSpaceheat_Maker
+from gwproto.messages import SnapshotSpaceheat_Maker
 from gwproto.messages import GtShStatusEvent
 from gwproto.messages import SnapshotSpaceheatEvent
 
@@ -22,11 +22,11 @@ from actors.config import ScadaSettings
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
-from gwproto.messages import  GtShBooleanactuatorCmdStatus
-from gwproto.messages import  GtShMultipurposeTelemetryStatus
-from gwproto.messages import  GtShSimpleTelemetryStatus
-from gwproto.messages import  GtShStatus
-from gwproto.messages import  SnapshotSpaceheat
+from gwproto.messages import GtShBooleanactuatorCmdStatus
+from gwproto.messages import GtShMultipurposeTelemetryStatus
+from gwproto.messages import GtShSimpleTelemetryStatus
+from gwproto.messages import GtShStatus
+from gwproto.messages import SnapshotSpaceheat
 
 
 def test_scada_small():
@@ -77,7 +77,7 @@ def test_scada_small():
     tt = TelemetryTuple(
         AboutNode=layout.node("a.elt1"),
         SensorNode=layout.node("a.m"),
-        TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+        TelemetryName=TelemetryName.CurrentRmsMicroAmps,
     )
     scada._data.recent_values_from_multipurpose_sensor[tt] = [72000]
     scada._data.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [
@@ -176,15 +176,15 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             assert len(snapshot.Snapshot.AboutNodeAliasList) == 0
             assert len(snapshot.Snapshot.ValueList) == 0
 
-            relay_state_message_type = "gt.telemetry.110"
+            relay_state_message_type = "gt.telemetry"
             relay_state_topic = f"{relay.alias}/{relay_state_message_type}"
-            relay_command_received_topic = f"{relay.alias}/gt.driver.booleanactuator.cmd.100"
+            relay_command_received_topic = f"{relay.alias}/gt.driver.booleanactuator.cmd"
             assert link_stats.num_received_by_topic[relay_state_topic] == 0
             assert link_stats.num_received_by_topic[relay_command_received_topic] == 0
 
             # Wait for relay to report its initial state
             await await_for(
-                lambda: scada.stats.num_received_by_type["gt.telemetry.110"] == 1,
+                lambda: scada.stats.num_received_by_type["gt.telemetry"] == 1,
                 5,
                 "Scada wait for relay state change",
                 err_str_f=scada.summary_str
@@ -193,7 +193,7 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             assert len(status.SimpleTelemetryList) == 1
             assert status.SimpleTelemetryList[0].ValueList == [0]
             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.alias
-            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
+            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
 
             # Verify relay is off
             assert atn.data.latest_snapshot is None
@@ -228,7 +228,7 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.alias
             assert (
-                status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
+                status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
             )
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
@@ -275,7 +275,7 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             assert len(status.SimpleTelemetryList) == 1
             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.alias
-            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
+            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.alias
@@ -356,12 +356,12 @@ async def test_scada_snaphot_request_delivery(tmp_path, monkeypatch, request):
         async def async_run(self):
             atn = self.runner.actors.atn
             atn._logger.setLevel(logging.DEBUG)
-            assert atn.stats.num_received_by_type[SnapshotSpaceheat_Maker.type_alias] == 0
-            atn._logger.info(SnapshotSpaceheat_Maker.type_alias)
+            assert atn.stats.num_received_by_type[SnapshotSpaceheat_Maker.type_name] == 0
+            atn._logger.info(SnapshotSpaceheat_Maker.type_name)
             atn._logger.info(atn.summary_str())
             atn.snap()
             await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheat_Maker.type_alias] == 1,
+                lambda: atn.stats.num_received_by_type[SnapshotSpaceheat_Maker.type_name] == 1,
                 3,
                 "Atn wait for snapshot message [test_scada_snaphot_request_delivery]",
                 err_str_f=atn.summary_str,
@@ -402,8 +402,8 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             relay = self.runner.actors.relay
             meter = self.runner.actors.meter
             thermo = self.runner.actors.thermo
-            telemetry_message_type = "gt.telemetry.110"
-            meter_telemetry_message_type = "gt.sh.telemetry.from.multipurpose.sensor.100"
+            telemetry_message_type = "gt.telemetry"
+            meter_telemetry_message_type = "gt.sh.telemetry.from.multipurpose.sensor"
 
             # Verify scada status and snapshot are emtpy
             status = scada._data.make_status(int(time.time()))
@@ -444,9 +444,9 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             assert len(status.SimpleTelemetryList) == 2
             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.alias
-            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
+            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
             assert status.SimpleTelemetryList[1].ShNodeAlias == thermo.node.alias
-            assert status.SimpleTelemetryList[1].TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
+            assert status.SimpleTelemetryList[1].TelemetryName == TelemetryName.WaterTempFTimes1000
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.node.alias
@@ -477,9 +477,9 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             assert len(status.SimpleTelemetryList) == 2
             assert status.SimpleTelemetryList[0].ValueList == [0, 1]
             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.alias
-            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RELAY_STATE
+            assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
             assert status.SimpleTelemetryList[1].ShNodeAlias == thermo.node.alias
-            assert status.SimpleTelemetryList[1].TelemetryName == TelemetryName.WATER_TEMP_F_TIMES1000
+            assert status.SimpleTelemetryList[1].TelemetryName == TelemetryName.WaterTempFTimes1000
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.node.alias

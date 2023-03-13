@@ -10,7 +10,7 @@ from data_classes.components.electric_meter_component import ElectricMeterCompon
 from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from pymodbus.client.sync import ModbusSerialClient
-from schema.enums import MakeModel, TelemetryName
+from enums import MakeModel, TelemetryName
 
 PORT = "/dev/ttyUSB0"
 BAUD = 9600
@@ -65,4 +65,4 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         raise NotImplementedError
 
     def telemetry_name_list(self) -> List[TelemetryName]:
-        return [TelemetryName.CURRENT_RMS_MICRO_AMPS]
+        return [TelemetryName.CurrentRmsMicroAmps]

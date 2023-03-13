@@ -2,7 +2,7 @@
 from typing import Dict, Optional
 
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.enums import MakeModelMap
+from enums import MakeModel
 
 
 class ResistiveHeaterCac(ComponentAttributeClass):
@@ -11,7 +11,7 @@ class ResistiveHeaterCac(ComponentAttributeClass):
     def __init__(
         self,
         component_attribute_class_id: str,
-        make_model_gt_enum_symbol: str,
+        make_model: MakeModel,
         nameplate_max_power_w: int,
         rated_voltage_v: int,
         display_name: Optional[str] = None,
@@ -20,7 +20,7 @@ class ResistiveHeaterCac(ComponentAttributeClass):
             component_attribute_class_id=component_attribute_class_id,
             display_name=display_name,
         )
-        self.make_model = MakeModelMap.gt_to_local(make_model_gt_enum_symbol)
+        self.make_model = make_model
         self.nameplate_max_power_w = nameplate_max_power_w
         self.rated_voltage_v = rated_voltage_v
         ResistiveHeaterCac.by_id[self.component_attribute_class_id] = self

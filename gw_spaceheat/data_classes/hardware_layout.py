@@ -17,42 +17,32 @@ from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 from data_classes.errors import DataClassLoadingError
 from data_classes.sh_node import ShNode
 from named_tuples.telemetry_tuple import TelemetryTuple
-from schema.enums import Role
-from schema.enums import ActorClass
-from schema.enums import TelemetryName
+from enums import Role
+from enums import ActorClass
+from enums import TelemetryName
 from data_classes.component import Component
 from data_classes.component_attribute_class import ComponentAttributeClass
-from schema.gt.cacs import (
-    GtBooleanActuatorCac_Maker,
-)
-from schema.gt.components import (
-    GtBooleanActuatorComponent_Maker,
-)
+from schema import GtBooleanActuatorCac_Maker
+from schema import GtBooleanActuatorComponent_Maker
 
-from schema.gt.cacs import ResistiveHeaterCacGt_Maker
-from schema.gt.components import (
-    ResistiveHeaterComponentGt_Maker,
-)
 
-from schema.gt.cacs import GtElectricMeterCac_Maker
-from schema.gt.components import (
-    GtElectricMeterComponent_Maker,
-)
-from schema.gt.cacs import (
-    PipeFlowSensorCacGt_Maker,
-)
-from schema.gt.components import (
-    PipeFlowSensorComponentGt_Maker,
-)
-from schema.gt.components import (
+from schema import ResistiveHeaterCacGt_Maker
+from schema import ResistiveHeaterComponentGt_Maker
+
+from schema import GtElectricMeterCac_Maker
+from schema import GtElectricMeterComponent_Maker
+
+from schema import PipeFlowSensorCacGt_Maker
+
+from schema import PipeFlowSensorComponentGt_Maker
+
+from schema.multipurpose_sensor_component_gt import (
     MultipurposeSensorComponentGt_Maker,
 )
-from schema.gt.cacs import MultipurposeSensorCacGt_Maker
-from schema.gt.cacs import SimpleTempSensorCacGt_Maker
-from schema.gt.components import (
-    SimpleTempSensorComponentGt_Maker,
-)
-from schema.gt.spaceheat_node_gt.spaceheat_node_gt_maker import SpaceheatNodeGt_Maker
+from schema import MultipurposeSensorCacGt_Maker
+from schema import SimpleTempSensorCacGt_Maker
+from schema import SimpleTempSensorComponentGt_Maker
+from schema import SpaceheatNodeGt_Maker
 
 snake_add_underscore_to_camel_pattern = re.compile(r"(?<!^)(?=[A-Z])")
 
@@ -211,6 +201,10 @@ class HardwareLayout:
         return self.layout["MyAtomicTNodeGNode"]["Alias"]
 
     @cached_property
+    def atn_g_node_instance_id(self):
+        return self.layout["MyAtomicTNodeGNode"]["GNodeId"]
+
+    @cached_property
     def atn_g_node_id(self):
         return self.layout["MyAtomicTNodeGNode"]["GNodeId"]
 
@@ -242,7 +236,7 @@ class HardwareLayout:
                 TelemetryTuple(
                     AboutNode=node,
                     SensorNode=self.power_meter_node,
-                    TelemetryName=TelemetryName.POWER_W,
+                    TelemetryName=TelemetryName.PowerW,
                 )
             ]
         return telemetry_tuples
@@ -270,7 +264,7 @@ class HardwareLayout:
     @cached_property
     def power_meter_node(self) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
-        power_meter_node = list(filter(lambda x: x.role == Role.POWER_METER, self.nodes.values()))[0]
+        power_meter_node = list(filter(lambda x: x.role == Role.PowerMeter, self.nodes.values()))[0]
         return power_meter_node
 
     @cached_property
@@ -294,27 +288,27 @@ class HardwareLayout:
     @cached_property
     def all_resistive_heaters(self) -> List[ShNode]:
         all_nodes = list(self.nodes.values())
-        return list(filter(lambda x: (x.role == Role.BOOST_ELEMENT), all_nodes))
+        return list(filter(lambda x: (x.role == Role.BoostElement), all_nodes))
 
     @cached_property
     def power_meter_node(self) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
         nodes = list(
-            filter(lambda x: x.role == Role.POWER_METER, self.nodes.values())
+            filter(lambda x: x.role == Role.PowerMeter, self.nodes.values())
         )
         return nodes[0]
 
     @cached_property
     def scada_node(self) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role Scada"""
-        nodes = list(filter(lambda x: x.role == Role.SCADA, self.nodes.values()))
+        nodes = list(filter(lambda x: x.role == Role.Scada, self.nodes.values()))
         return nodes[0]
 
     @cached_property
     def home_alone_node(self) -> ShNode:
         """Schema for input data enforces exactly one Spaceheat Node with role HomeAlone"""
         nodes = list(
-            filter(lambda x: x.role == Role.HOME_ALONE, self.nodes.values())
+            filter(lambda x: x.role == Role.HomeAlone, self.nodes.values())
         )
         return nodes[0]
 
@@ -322,7 +316,7 @@ class HardwareLayout:
     def my_home_alone(self) -> ShNode:
         all_nodes = list(self.nodes.values())
         home_alone_nodes = list(
-            filter(lambda x: (x.role == Role.HOME_ALONE), all_nodes)
+            filter(lambda x: (x.role == Role.HomeAlone), all_nodes)
         )
         if len(home_alone_nodes) != 1:
             raise Exception(
@@ -333,7 +327,7 @@ class HardwareLayout:
     @cached_property
     def my_boolean_actuators(self) -> List[ShNode]:
         all_nodes = list(self.nodes.values())
-        return list(filter(lambda x: (x.role == Role.BOOLEAN_ACTUATOR), all_nodes))
+        return list(filter(lambda x: (x.role == Role.BooleanActuator), all_nodes))
 
     @cached_property
     def my_simple_sensors(self) -> List[ShNode]:
@@ -341,8 +335,8 @@ class HardwareLayout:
         return list(
             filter(
                 lambda x: (
-                    x.actor_class == ActorClass.SIMPLE_SENSOR
-                    or x.actor_class == ActorClass.BOOLEAN_ACTUATOR
+                    x.actor_class == ActorClass.SimpleSensor
+                    or x.actor_class == ActorClass.BooleanActuator
                 ),
                 all_nodes,
             )
@@ -354,7 +348,7 @@ class HardwareLayout:
         multi_nodes = list(
             filter(
                 lambda x: (
-                    x.actor_class == ActorClass.MULTIPURPOSE_SENSOR
+                    x.actor_class == ActorClass.MultipurposeSensor
                     and hasattr(x.component, "config_list")
                 ),
                 all_nodes
@@ -380,7 +374,7 @@ class HardwareLayout:
         This includes the (unique) power meter, but may also include other roles like thermostats
         and heat pumps."""
         all_nodes = list(self.nodes.values())
-        multi_purpose_roles = [Role.POWER_METER, Role.MULTI_CHANNEL_ANALOG_TEMP_SENSOR]
+        multi_purpose_roles = [Role.PowerMeter, Role.MultiChannelAnalogTempSensor]
         return list(filter(lambda x: (x.role in multi_purpose_roles), all_nodes))
 
     @cached_property

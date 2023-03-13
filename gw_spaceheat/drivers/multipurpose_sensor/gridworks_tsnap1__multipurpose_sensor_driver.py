@@ -1,5 +1,3 @@
-from schema.enums.make_model.make_model_map import MakeModel
-from schema.enums import TelemetryName
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver, TelemetrySpec)
 from drivers.exceptions import DriverWarning
@@ -36,8 +34,8 @@ from data_classes.components.multipurpose_sensor_component import MultipurposeSe
 from drivers.exceptions import DriverWarning
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver, TelemetrySpec)
-from schema.enums import TelemetryName
-from schema.enums.make_model.make_model_map import MakeModel
+from enums import TelemetryName
+from enums import MakeModel
 
 
 class SetCompareWarning(DriverWarning):
@@ -200,9 +198,9 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self.telemetry_name_list = component.cac.telemetry_name_list
 
     def start(self) -> Result[DriverResult[bool], Exception]:
-        if set(self.telemetry_name_list) != {TelemetryName.WATER_TEMP_C_TIMES1000}:
+        if set(self.telemetry_name_list) != {TelemetryName.WaterTempCTimes1000}:
             return Err(TSnap1WrongTelemetryList(
-                {TelemetryName.WATER_TEMP_C_TIMES1000},
+                {TelemetryName.WaterTempCTimes1000},
                 self.telemetry_name_list
             ))
 
@@ -270,7 +268,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self, channel_telemetry_list: List[TelemetrySpec]
     ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
         for ts in channel_telemetry_list:
-            if not ts.Type == TelemetryName.WATER_TEMP_C_TIMES1000:
+            if not ts.Type == TelemetryName.WaterTempCTimes1000:
                 return Err(TSnap1ComponentMisconfigured(str(ts)))
         driver_result = DriverResult[Dict[TelemetrySpec, int]]({})
         for ts in channel_telemetry_list:

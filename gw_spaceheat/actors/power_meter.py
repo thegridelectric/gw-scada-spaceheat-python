@@ -37,19 +37,17 @@ from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
-from schema.enums import MakeModel
-from schema.enums import Role
-from schema.enums import Unit
-from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
+from enums import MakeModel
+from enums import Role
+from enums import Unit
+from schema import (
     TelemetryReportingConfig,
     TelemetryReportingConfig_Maker,
 )
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
-    GtPowermeterReportingConfig as ReportingConfig,
-)
-from schema.gt.gt_powermeter_reporting_config.gt_powermeter_reporting_config_maker import (
-    GtPowermeterReportingConfig_Maker,
-)
+from schema import GtPowermeterReportingConfig as ReportingConfig
+
+from schema import GtPowermeterReportingConfig_Maker
+
 
 
 class HWUidMismatch(DriverWarning):
@@ -112,13 +110,13 @@ class DriverThreadSetupHelper:
                 TelemetryTuple(
                     AboutNode=about_node,
                     SensorNode=self.node,
-                    TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+                    TelemetryName=TelemetryName.CurrentRmsMicroAmps,
                 )
             ] = TelemetryReportingConfig_Maker(
                 about_node_name=about_node.alias,
                 report_on_change=True,
-                telemetry_name=TelemetryName.CURRENT_RMS_MICRO_AMPS,
-                unit=Unit.AMPS_RMS,
+                telemetry_name=TelemetryName.CurrentRmsMicroAmps,
+                unit=Unit.AmpsRms,
                 exponent=6,
                 sample_period_s=self.settings.seconds_per_report,
                 async_report_threshold=self.settings.async_power_reporting_threshold,
@@ -128,12 +126,12 @@ class DriverThreadSetupHelper:
                 TelemetryTuple(
                     AboutNode=about_node,
                     SensorNode=self.node,
-                    TelemetryName=TelemetryName.POWER_W,
+                    TelemetryName=TelemetryName.PowerW,
                 )
             ] = TelemetryReportingConfig_Maker(
                 about_node_name=about_node.alias,
                 report_on_change=True,
-                telemetry_name=TelemetryName.POWER_W,
+                telemetry_name=TelemetryName.PowerW,
                 unit=Unit.W,
                 exponent=0,
                 sample_period_s=self.settings.seconds_per_report,
@@ -181,7 +179,7 @@ class DriverThreadSetupHelper:
 
     @classmethod
     def get_resistive_heater_component(cls, node: ShNode) -> ResistiveHeaterComponent:
-        if node.role != Role.BOOST_ELEMENT:
+        if node.role != Role.BoostElement:
             raise ValueError(
                 "This function should only be called for nodes that are boost elements"
             )
@@ -208,7 +206,7 @@ class DriverThreadSetupHelper:
             current_tt = TelemetryTuple(
                 AboutNode=about_node,
                 SensorNode=self.node,
-                TelemetryName=TelemetryName.CURRENT_RMS_MICRO_AMPS,
+                TelemetryName=TelemetryName.CurrentRmsMicroAmps,
             )
             nameplate_current_amps = self.get_resistive_heater_nameplate_current_amps(
                 node=about_node
@@ -218,7 +216,7 @@ class DriverThreadSetupHelper:
             power_tt = TelemetryTuple(
                 AboutNode=about_node,
                 SensorNode=self.node,
-                TelemetryName=TelemetryName.POWER_W,
+                TelemetryName=TelemetryName.PowerW,
             )
             nameplate_power_w = self.get_resistive_heater_nameplate_power_w(
                 node=about_node

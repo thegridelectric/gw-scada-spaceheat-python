@@ -16,7 +16,7 @@ from data_classes.components.pipe_flow_sensor_component import \
 from drivers.pipe_flow_sensor.pipe_flow_sensor_driver import \
     PipeFlowSensorDriver
 from gwproactor import Problems
-from schema.enums import MakeModel
+from enums import MakeModel
 
 class EZFlowI2cReadWarning(DriverWarning):
     ...

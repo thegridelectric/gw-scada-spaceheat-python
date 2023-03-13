@@ -9,8 +9,8 @@ from actors.config import ScadaSettings
 from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from drivers.driver_result import DriverResult
 from drivers.simple_temp_sensor.simple_temp_sensor_driver import SimpleTempSensorDriver
-from schema.enums.make_model.make_model_map import MakeModel
-from schema.enums.unit.unit_map import Unit
+from enums import MakeModel
+from enums import Unit
 
 
 class Gwsim_SimpleTempSensorDriver(SimpleTempSensorDriver):
@@ -28,9 +28,9 @@ class Gwsim_SimpleTempSensorDriver(SimpleTempSensorDriver):
         )
         if component.cac.make_model != MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             raise Exception(f"Expected GridWorks__WaterTempHighPrecision, got {component.cac}")
-        if component.cac.temp_unit == Unit.FAHRENHEIT:
+        if component.cac.temp_unit == Unit.Fahrenheit:
             self._fake_temp_times_1000 = 67000
-        elif component.cac.temp_unit == Unit.CELCIUS:
+        elif component.cac.temp_unit == Unit.Celcius:
             self._fake_temp_times_1000 = 19444
         else:
             raise Exception(f"TempSensor unit {component.cac.temp_unit} not recognized!")

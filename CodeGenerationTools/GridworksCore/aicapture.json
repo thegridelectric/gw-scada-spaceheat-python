@@ -1,0 +1,115 @@
+{
+  "ShowHidden": false,
+  "ShowAllFiles": false,
+  "CurrentPath": "",
+  "SaveDisabled": false,
+  "SSoTmeProjectId": "329545ec-3e17-4ce6-b6c9-80b8c07febdf",
+  "Name": "gwatn",
+  "ProjectSettings": [
+    {
+      "ProjectSettingId": "763557d6-a433-40ef-b762-8a38616d84cc",
+      "Name": "project-name",
+      "Value": "gwatn"
+    },
+    {
+      "ProjectSettingId": "97117350-34f4-46b0-bd41-0e5e67dddb8c",
+      "Name": "amqps",
+      "Value": "amqps://smqPublic:smqPublic@effortlessapi-rmq.ssot.me/jmillar-scada"
+    },
+    {
+      "ProjectSettingId": "844dac5a-2383-4dc4-9272-3dfc45f7f1d0",
+      "Name": "dataclasses-namespace",
+      "Value": "gwatn.Lib.DataClasses"
+    }
+  ],
+  "ProjectTranspilers": [
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "ddeef526-5399-4be1-a676-8c64961e549d",
+        "Name": "SSoT",
+        "Description": "SSoT"
+      },
+      "ProjectTranspilerId": "53b850fc-d424-44fc-8797-769a7657bbf7",
+      "Name": "SSoT",
+      "RelativePath": "",
+      "CommandLine": "effortless/ssot"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "19d8142a-2f4d-46ac-9de6-77441f233192",
+        "Name": "AirtableToXml",
+        "Description": "Extracts the contents of an airtable base as a single Xml file."
+      },
+      "ProjectTranspilerId": "4c3ac21a-bd4e-413c-8f71-0bdb35562ed2",
+      "Name": "AirtableToXml",
+      "RelativePath": "/SSoT",
+      "CommandLine": "airtable/airtable-to-xml -p baseId=appgibWM6WZW20bBx -i Entities.json -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "6f40f4c2-9755-404f-84c0-c0a810cd14eb",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Enum",
+      "CommandLine": "codee42/xml-xslt-transform -i ../SSoT/Airtable.xml -i DeriveEnums.xslt -i ../GnfCommon.xslt -i ../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "68debcdb-a8d2-4970-81a6-fdb58eb13866",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Enum/EnumInit",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveEnumInit.xslt -i ../../GnfCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "005ca830-75e5-410f-a337-5c87f88ff75d",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Enum/EnumTest",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveEnumTests.xslt -i ../../GnfCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "21b154da-c7d7-4eed-a97b-26dba3a721c8",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Types",
+      "CommandLine": "codee42/xml-xslt-transform -i ../SSoT/Airtable.xml -i DeriveTypes.xslt -i ../GnfCommon.xslt -i ../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "47058103-c8e4-42ff-b27c-ad5400519840",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Types/TypeInit",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveTypeInit.xslt -i ../../GnfCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "4b713f03-1d9f-42f2-b02f-e3cdbd237bb3",
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "ProjectTranspilerId": "8e6a13e7-5b85-4aee-ae88-a7f963ff6de4",
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Types/TypeTests",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveTypeTests.xslt -i ../../GnfCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    }
+  ]
+}

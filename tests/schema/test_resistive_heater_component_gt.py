@@ -1,166 +1,130 @@
-"""Tests resistive.heater.component.gt.100 type"""
+"""Tests resistive.heater.component.gt type, version 000"""
 import json
 
 import pytest
-from gwproto import MpSchemaError
-from schema.gt.components import ResistiveHeaterComponentGt_Maker as Maker
+from gwproto.errors import MpSchemaError
+from pydantic import ValidationError
+from schema import ResistiveHeaterComponentGt_Maker as Maker
 
 
-def test_resistive_heater_component_gt():
+def test_resistive_heater_component_gt_generated() -> None:
 
-    gw_dict = {
-        "DisplayName": "First 4.5 kW boost in tank",
-        "TestedMaxHotMilliOhms": 13714,
-        "HwUid": "aaaa2222",
+    d = {
         "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
-        "TestedMaxColdMilliOhms": 14500,
         "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-        "TypeAlias": "resistive.heater.component.gt.100",
+        "DisplayName": "First 4.5 kW boost in tank",
+        "HwUid": "aaaa2222",
+        "TestedMaxHotMilliOhms": 13714,
+        "TestedMaxColdMilliOhms": 14500,
+        "TypeName": "resistive.heater.component.gt",
+        "Version": "000",
     }
 
     with pytest.raises(MpSchemaError):
-        Maker.type_to_tuple(gw_dict)
+        Maker.type_to_tuple(d)
 
     with pytest.raises(MpSchemaError):
         Maker.type_to_tuple('"not a dict"')
 
     # Test type_to_tuple
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
+    gtype = json.dumps(d)
+    gtuple = Maker.type_to_tuple(gtype)
 
     # test type_to_tuple and tuple_to_type maps
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+    assert Maker.type_to_tuple(Maker.tuple_to_type(gtuple)) == gtuple
 
     # test Maker init
     t = Maker(
-        display_name=gw_tuple.DisplayName,
-        tested_max_hot_milli_ohms=gw_tuple.TestedMaxHotMilliOhms,
-        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
-        hw_uid=gw_tuple.HwUid,
-        component_id=gw_tuple.ComponentId,
-        tested_max_cold_milli_ohms=gw_tuple.TestedMaxColdMilliOhms,
-        #
+        component_id=gtuple.ComponentId,
+        component_attribute_class_id=gtuple.ComponentAttributeClassId,
+        display_name=gtuple.DisplayName,
+        hw_uid=gtuple.HwUid,
+        tested_max_hot_milli_ohms=gtuple.TestedMaxHotMilliOhms,
+        tested_max_cold_milli_ohms=gtuple.TestedMaxColdMilliOhms,
     ).tuple
-    assert t == gw_tuple
+    assert t == gtuple
 
     ######################################
     # Dataclass related tests
     ######################################
 
-    dc = Maker.tuple_to_dc(gw_tuple)
-    assert gw_tuple == Maker.dc_to_tuple(dc)
+    dc = Maker.tuple_to_dc(gtuple)
+    assert gtuple == Maker.dc_to_tuple(dc)
     assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
 
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################
 
-    orig_value = gw_dict["TypeAlias"]
-    del gw_dict["TypeAlias"]
+    d2 = dict(d)
+    del d2["TypeName"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ComponentAttributeClassId"]
-    del gw_dict["ComponentAttributeClassId"]
+    d2 = dict(d)
+    del d2["ComponentId"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentAttributeClassId"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ComponentId"]
-    del gw_dict["ComponentId"]
+    d2 = dict(d)
+    del d2["ComponentAttributeClassId"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = orig_value
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # Optional attributes can be removed from type
     ######################################
 
-    orig_value = gw_dict["DisplayName"]
-    del gw_dict["DisplayName"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["DisplayName"] = orig_value
+    d2 = dict(d)
+    if "DisplayName" in d2.keys():
+        del d2["DisplayName"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["TestedMaxHotMilliOhms"]
-    del gw_dict["TestedMaxHotMilliOhms"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["TestedMaxHotMilliOhms"] = orig_value
+    d2 = dict(d)
+    if "HwUid" in d2.keys():
+        del d2["HwUid"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["HwUid"]
-    del gw_dict["HwUid"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["HwUid"] = orig_value
+    d2 = dict(d)
+    if "TestedMaxHotMilliOhms" in d2.keys():
+        del d2["TestedMaxHotMilliOhms"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["TestedMaxColdMilliOhms"]
-    del gw_dict["TestedMaxColdMilliOhms"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["TestedMaxColdMilliOhms"] = orig_value
+    d2 = dict(d)
+    if "TestedMaxColdMilliOhms" in d2.keys():
+        del d2["TestedMaxColdMilliOhms"]
+    Maker.dict_to_tuple(d2)
 
     ######################################
-    # MpSchemaError raised if attributes have incorrect type
+    # Behavior on incorrect types
     ######################################
 
-    orig_value = gw_dict["DisplayName"]
-    gw_dict["DisplayName"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["DisplayName"] = orig_value
+    d2 = dict(d, TestedMaxHotMilliOhms="13714.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["TestedMaxHotMilliOhms"]
-    gw_dict["TestedMaxHotMilliOhms"] = 1.1
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TestedMaxHotMilliOhms"] = orig_value
-
-    orig_value = gw_dict["ComponentAttributeClassId"]
-    gw_dict["ComponentAttributeClassId"] = "Not a dataclass id"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentAttributeClassId"] = orig_value
-
-    orig_value = gw_dict["HwUid"]
-    gw_dict["HwUid"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["HwUid"] = orig_value
-
-    orig_value = gw_dict["ComponentId"]
-    gw_dict["ComponentId"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = orig_value
-
-    orig_value = gw_dict["TestedMaxColdMilliOhms"]
-    gw_dict["TestedMaxColdMilliOhms"] = 1.1
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TestedMaxColdMilliOhms"] = orig_value
+    d2 = dict(d, TestedMaxColdMilliOhms="14500.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     ######################################
-    # MpSchemaError raised if TypeAlias is incorrect
+    # MpSchemaError raised if TypeName is incorrect
     ######################################
 
-    gw_dict["TypeAlias"] = "not the type alias"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "resistive.heater.component.gt.100"
+    d2 = dict(d, TypeName="not the type alias")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["ComponentId"] = "d4be12d5-33ba-4f1f-b9e5"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = "80f95280-e999-49e0-a0e4-a7faf3b5b3bd"
+    d2 = dict(d, ComponentId="d4be12d5-33ba-4f1f-b9e5")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, ComponentAttributeClassId="d4be12d5-33ba-4f1f-b9e5")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     # End of Test

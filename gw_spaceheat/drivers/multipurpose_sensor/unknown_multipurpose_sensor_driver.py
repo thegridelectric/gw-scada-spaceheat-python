@@ -9,7 +9,7 @@ from data_classes.components.multipurpose_sensor_component import (
 )
 from drivers.driver_result import DriverResult
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import TelemetrySpec
-from schema.enums import MakeModel
+from enums import MakeModel
 
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,

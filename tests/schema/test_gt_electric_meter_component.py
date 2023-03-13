@@ -1,140 +1,148 @@
-"""Tests gt.electric.meter.component.100 type"""
+"""Tests gt.electric.meter.component type, version 000"""
 import json
 
 import pytest
-from gwproto import MpSchemaError
-from schema.gt.components import GtElectricMeterComponent_Maker as Maker
+from gwproto.errors import MpSchemaError
+from pydantic import ValidationError
+from schema import GtElectricMeterComponent_Maker as Maker
 
 
-def test_gt_electric_meter_component():
+def test_gt_electric_meter_component_generated() -> None:
 
-    gw_dict = {
-        "DisplayName": "Main power meter for Little orange house garage space heat",
+    d = {
         "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
+        "ComponentAttributeClassId": "c1856e62-d8c0-4352-b79e-6ae05a5294c2",
+        "DisplayName": "Main power meter for Little orange house garage space heat",
         "HwUid": "35941_308",
-        "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
-        "TypeAlias": "gt.electric.meter.component.100",
+        "ModbusHost": "eGauge4922.local",
+        "ModbusPort": 502,
+        "ModbusPowerRegister": 9016,
+        "ModbusHwUidRegister": 100,
+        "TypeName": "gt.electric.meter.component",
+        "Version": "000",
     }
 
     with pytest.raises(MpSchemaError):
-        Maker.type_to_tuple(gw_dict)
+        Maker.type_to_tuple(d)
 
     with pytest.raises(MpSchemaError):
         Maker.type_to_tuple('"not a dict"')
 
     # Test type_to_tuple
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
+    gtype = json.dumps(d)
+    gtuple = Maker.type_to_tuple(gtype)
 
     # test type_to_tuple and tuple_to_type maps
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+    assert Maker.type_to_tuple(Maker.tuple_to_type(gtuple)) == gtuple
 
     # test Maker init
     t = Maker(
-        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
-        display_name=gw_tuple.DisplayName,
-        component_id=gw_tuple.ComponentId,
-        hw_uid=gw_tuple.HwUid,
-        modbus_host=None,
-        modbus_port=None,
-        modbus_power_register=None,
-        modbus_hw_uid_register=None,
-        #
+        component_id=gtuple.ComponentId,
+        component_attribute_class_id=gtuple.ComponentAttributeClassId,
+        display_name=gtuple.DisplayName,
+        hw_uid=gtuple.HwUid,
+        modbus_host=gtuple.ModbusHost,
+        modbus_port=gtuple.ModbusPort,
+        modbus_power_register=gtuple.ModbusPowerRegister,
+        modbus_hw_uid_register=gtuple.ModbusHwUidRegister,
     ).tuple
-    assert t == gw_tuple
+    assert t == gtuple
 
     ######################################
     # Dataclass related tests
     ######################################
 
-    dc = Maker.tuple_to_dc(gw_tuple)
-    assert gw_tuple == Maker.dc_to_tuple(dc)
+    dc = Maker.tuple_to_dc(gtuple)
+    assert gtuple == Maker.dc_to_tuple(dc)
     assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
 
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################
 
-    orig_value = gw_dict["TypeAlias"]
-    del gw_dict["TypeAlias"]
+    d2 = dict(d)
+    del d2["TypeName"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ComponentAttributeClassId"]
-    del gw_dict["ComponentAttributeClassId"]
+    d2 = dict(d)
+    del d2["ComponentId"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentAttributeClassId"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ComponentId"]
-    del gw_dict["ComponentId"]
+    d2 = dict(d)
+    del d2["ComponentAttributeClassId"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = orig_value
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # Optional attributes can be removed from type
     ######################################
 
-    orig_value = gw_dict["DisplayName"]
-    del gw_dict["DisplayName"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["DisplayName"] = orig_value
+    d2 = dict(d)
+    if "DisplayName" in d2.keys():
+        del d2["DisplayName"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["HwUid"]
-    del gw_dict["HwUid"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["HwUid"] = orig_value
+    d2 = dict(d)
+    if "HwUid" in d2.keys():
+        del d2["HwUid"]
+    Maker.dict_to_tuple(d2)
 
-    ######################################
-    # MpSchemaError raised if attributes have incorrect type
-    ######################################
+    d2 = dict(d)
+    if "ModbusHost" in d2.keys():
+        del d2["ModbusHost"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ComponentAttributeClassId"]
-    gw_dict["ComponentAttributeClassId"] = "Not a dataclass id"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentAttributeClassId"] = orig_value
+    d2 = dict(d)
+    if "ModbusPort" in d2.keys():
+        del d2["ModbusPort"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["DisplayName"]
-    gw_dict["DisplayName"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["DisplayName"] = orig_value
+    d2 = dict(d)
+    if "ModbusPowerRegister" in d2.keys():
+        del d2["ModbusPowerRegister"]
+    Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ComponentId"]
-    gw_dict["ComponentId"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = orig_value
-
-    orig_value = gw_dict["HwUid"]
-    gw_dict["HwUid"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["HwUid"] = orig_value
+    d2 = dict(d)
+    if "ModbusHwUidRegister" in d2.keys():
+        del d2["ModbusHwUidRegister"]
+    Maker.dict_to_tuple(d2)
 
     ######################################
-    # MpSchemaError raised if TypeAlias is incorrect
+    # Behavior on incorrect types
     ######################################
 
-    gw_dict["TypeAlias"] = "not the type alias"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "gt.electric.meter.component.100"
+    d2 = dict(d, ModbusPort="502.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, ModbusPowerRegister="9016.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, ModbusHwUidRegister="100.1")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    ######################################
+    # MpSchemaError raised if TypeName is incorrect
+    ######################################
+
+    d2 = dict(d, TypeName="not the type alias")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["ComponentId"] = "d4be12d5-33ba-4f1f-b9e5"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentId"] = "04ceb282-d7e8-4293-80b5-72455e1a5db3"
+    d2 = dict(d, ComponentId="d4be12d5-33ba-4f1f-b9e5")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, ComponentAttributeClassId="d4be12d5-33ba-4f1f-b9e5")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     # End of Test

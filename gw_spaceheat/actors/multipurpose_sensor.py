@@ -27,10 +27,9 @@ from gwproto import Message
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
-from schema.enums import MakeModel
-from schema.gt.telemetry_reporting_config.telemetry_reporting_config_maker import (
-    TelemetryReportingConfig,
-)
+from enums import MakeModel
+from schema import TelemetryReportingConfig
+
 
 UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
 UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"

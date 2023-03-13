@@ -1,138 +1,108 @@
-"""Tests pipe.flow.sensor.cac.gt.000 type"""
+"""Tests pipe.flow.sensor.cac.gt type, version 000"""
 import json
 
 import pytest
-from gwproto import MpSchemaError
-from schema.gt.cacs import PipeFlowSensorCacGt_Maker as Maker
+from enums import MakeModel
+from gwproto.errors import MpSchemaError
+from pydantic import ValidationError
+from schema import PipeFlowSensorCacGt_Maker as Maker
 
 
-def test_pipe_flow_sensor_cac_gt():
+def test_pipe_flow_sensor_cac_gt_generated() -> None:
 
-    gw_dict = {
-        "DisplayName": "Some pipe flow sensor",
+    d = {
         "ComponentAttributeClassId": "14e7105a-e797-485a-a304-328ecc85cd98",
-        "CommsMethod": "Remove this Comms Method",
-        "MakeModelGtEnumSymbol": "00000000",
-        "TypeAlias": "pipe.flow.sensor.cac.gt.000",
+        "MakeModelGtEnumSymbol": "d0b0e375",
+        "DisplayName": "EZFLO for a.tank.out",
+        "CommsMethod": "I2C",
+        "TypeName": "pipe.flow.sensor.cac.gt",
+        "Version": "000",
     }
 
     with pytest.raises(MpSchemaError):
-        Maker.type_to_tuple(gw_dict)
+        Maker.type_to_tuple(d)
 
     with pytest.raises(MpSchemaError):
         Maker.type_to_tuple('"not a dict"')
 
     # Test type_to_tuple
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
+    gtype = json.dumps(d)
+    gtuple = Maker.type_to_tuple(gtype)
 
     # test type_to_tuple and tuple_to_type maps
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
+    assert Maker.type_to_tuple(Maker.tuple_to_type(gtuple)) == gtuple
 
     # test Maker init
     t = Maker(
-        display_name=gw_tuple.DisplayName,
-        component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
-        comms_method=gw_tuple.CommsMethod,
-        make_model=gw_tuple.MakeModel,
-        #
+        component_attribute_class_id=gtuple.ComponentAttributeClassId,
+        make_model=gtuple.MakeModel,
+        display_name=gtuple.DisplayName,
+        comms_method=gtuple.CommsMethod,
     ).tuple
-    assert t == gw_tuple
+    assert t == gtuple
 
     ######################################
     # Dataclass related tests
     ######################################
 
-    dc = Maker.tuple_to_dc(gw_tuple)
-    assert gw_tuple == Maker.dc_to_tuple(dc)
+    dc = Maker.tuple_to_dc(gtuple)
+    assert gtuple == Maker.dc_to_tuple(dc)
     assert Maker.type_to_dc(Maker.dc_to_type(dc)) == dc
 
     ######################################
     # MpSchemaError raised if missing a required attribute
     ######################################
 
-    orig_value = gw_dict["TypeAlias"]
-    del gw_dict["TypeAlias"]
+    d2 = dict(d)
+    del d2["TypeName"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["ComponentAttributeClassId"]
-    del gw_dict["ComponentAttributeClassId"]
+    d2 = dict(d)
+    del d2["ComponentAttributeClassId"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentAttributeClassId"] = orig_value
+        Maker.dict_to_tuple(d2)
 
-    orig_value = gw_dict["MakeModelGtEnumSymbol"]
-    del gw_dict["MakeModelGtEnumSymbol"]
+    d2 = dict(d)
+    del d2["MakeModelGtEnumSymbol"]
     with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["MakeModelGtEnumSymbol"] = orig_value
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d)
+    del d2["DisplayName"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # Optional attributes can be removed from type
     ######################################
 
-    orig_value = gw_dict["DisplayName"]
-    del gw_dict["DisplayName"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["DisplayName"] = orig_value
-
-    orig_value = gw_dict["CommsMethod"]
-    del gw_dict["CommsMethod"]
-    gw_type = json.dumps(gw_dict)
-    gw_tuple = Maker.type_to_tuple(gw_type)
-    assert Maker.type_to_tuple(Maker.tuple_to_type(gw_tuple)) == gw_tuple
-    gw_dict["CommsMethod"] = orig_value
+    d2 = dict(d)
+    if "CommsMethod" in d2.keys():
+        del d2["CommsMethod"]
+    Maker.dict_to_tuple(d2)
 
     ######################################
-    # MpSchemaError raised if attributes have incorrect type
+    # Behavior on incorrect types
     ######################################
 
-    orig_value = gw_dict["DisplayName"]
-    gw_dict["DisplayName"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["DisplayName"] = orig_value
-
-    orig_value = gw_dict["ComponentAttributeClassId"]
-    gw_dict["ComponentAttributeClassId"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentAttributeClassId"] = orig_value
-
-    orig_value = gw_dict["CommsMethod"]
-    gw_dict["CommsMethod"] = 42
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["CommsMethod"] = orig_value
-
-    with pytest.raises(MpSchemaError):
-        Maker(
-            display_name=gw_tuple.DisplayName,
-            component_attribute_class_id=gw_tuple.ComponentAttributeClassId,
-            comms_method=gw_tuple.CommsMethod,
-            make_model="This is not a MakeModel Enum.",
-        )
+    d2 = dict(d, MakeModelGtEnumSymbol="hi")
+    Maker.dict_to_tuple(d2).MakeModel = MakeModel.default()
 
     ######################################
-    # MpSchemaError raised if TypeAlias is incorrect
+    # MpSchemaError raised if TypeName is incorrect
     ######################################
 
-    gw_dict["TypeAlias"] = "not the type alias"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["TypeAlias"] = "pipe.flow.sensor.cac.gt.000"
+    d2 = dict(d, TypeName="not the type alias")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
 
-    gw_dict["ComponentAttributeClassId"] = "d4be12d5-33ba-4f1f-b9e5"
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(gw_dict)
-    gw_dict["ComponentAttributeClassId"] = "14e7105a-e797-485a-a304-328ecc85cd98"
+    d2 = dict(d, ComponentAttributeClassId="d4be12d5-33ba-4f1f-b9e5")
+    with pytest.raises(ValidationError):
+        Maker.dict_to_tuple(d2)
 
     # End of Test

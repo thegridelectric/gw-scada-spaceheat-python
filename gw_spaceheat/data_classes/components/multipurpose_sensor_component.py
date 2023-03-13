@@ -1,10 +1,11 @@
 """MutlipurposeSensorComponent definition"""
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
 
 from data_classes.cacs.multipurpose_sensor_cac import MultipurposeSensorCac
 from data_classes.component import Component
-from schema.enums.make_model.make_model_map import MakeModel
-from schema.gt.telemetry_reporting_config.telemetry_reporting_config import TelemetryReportingConfig
+from enums import MakeModel
+from schema import TelemetryReportingConfig
+
 
 class MultipurposeSensorComponent(Component):
     by_id: Dict[str, "MultipurposeSensorComponent"] = {}
@@ -17,7 +18,6 @@ class MultipurposeSensorComponent(Component):
         config_list: List[TelemetryReportingConfig],
         display_name: Optional[str] = None,
         hw_uid: Optional[str] = None,
-
     ):
         super(self.__class__, self).__init__(
             display_name=display_name,
@@ -29,7 +29,6 @@ class MultipurposeSensorComponent(Component):
         self.config_list = config_list
         MultipurposeSensorComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
-
 
     @property
     def cac(self) -> MultipurposeSensorCac:
