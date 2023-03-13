@@ -6,6 +6,7 @@ from data_classes.component import Component
 from enums import MakeModel
 
 from schema import EgaugeIo
+from schema import TelemetryReportingConfig
 
 class ElectricMeterComponent(Component):
     by_id: Dict[str, "ElectricMeterComponent"] = {}
@@ -18,6 +19,7 @@ class ElectricMeterComponent(Component):
         hw_uid: Optional[str] = None, 
         modbus_host: Optional[str] = None,
         modbus_port: Optional[int] = None,
+        config_list: List[TelemetryReportingConfig] = [],
         egauge_io_list: List[EgaugeIo] = [],
     ):
         super(self.__class__, self).__init__(
@@ -28,6 +30,7 @@ class ElectricMeterComponent(Component):
         )
         self.modbus_host = modbus_host
         self.modbus_port = modbus_port
+        self.config_list = config_list
         self.egauge_io_list = egauge_io_list
         ElectricMeterComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self

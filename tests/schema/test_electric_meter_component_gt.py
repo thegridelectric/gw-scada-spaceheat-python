@@ -2,50 +2,22 @@
 import json
 
 import pytest
-from pydantic import ValidationError
-
 from gwproto.errors import MpSchemaError
+from pydantic import ValidationError
 from schema.electric_meter_component_gt import ElectricMeterComponentGt_Maker as Maker
 
 
 def test_electric_meter_component_gt_generated() -> None:
 
-
     d = {
-        "ComponentId": "245b8267-8a7c-45e0-b9ec-f7cd67cbe716",
-        "ComponentAttributeClassId": "739a6e32-bb9c-43bc-a28d-fb61be665522",
+        "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
+        "ComponentAttributeClassId": "c1856e62-d8c0-4352-b79e-6ae05a5294c2",
         "DisplayName": "Main power meter for Little orange house garage space heat",
-        "HwUid": "GC14050323",
-        "ModbusHost": "eGauge14875.local",
+        "HwUid": "35941_308",
+        "ModbusHost": "eGauge4922.local",
         "ModbusPort": 502,
-        "EgaugeIoList": [
-              {
-                 "InputConfig":{
-                    "Address":9004,
-                    "Name":"Garage power",
-                    "Description":"change in value",
-                    "Type":"f32",
-                    "Denominator":1,
-                    "Unit":"W",
-                    "TypeName":"egauge.register.config",
-                    "Version":"000"
-                 },
-                 "OutputConfig":{
-                    "AboutNodeName":"a.elt1",
-                    "ReportOnChange":True,
-                    "SamplePeriodS":300,
-                    "Exponent":1,
-                    "AsyncReportThreshold":0.05,
-                    "NameplateMaxValue":4500,
-                    "TypeName":"telemetry.reporting.config",
-                    "Version":"000",
-                    "TelemetryNameGtEnumSymbol":"af39eec9",
-                    "UnitGtEnumSymbol":"f459a9c3"
-                 },
-                 "TypeName":"egauge.io",
-                 "Version":"000"
-              }
-           ],
+        "ConfigList": [],
+        "EgaugeIoList": [],
         "TypeName": "electric.meter.component.gt",
         "Version": "100",
     }
@@ -71,8 +43,8 @@ def test_electric_meter_component_gt_generated() -> None:
         hw_uid=gtuple.HwUid,
         modbus_host=gtuple.ModbusHost,
         modbus_port=gtuple.ModbusPort,
+        config_list=gtuple.ConfigList,
         egauge_io_list=gtuple.EgaugeIoList,
-        
     ).tuple
     assert t == gtuple
 
@@ -100,6 +72,11 @@ def test_electric_meter_component_gt_generated() -> None:
 
     d2 = dict(d)
     del d2["ComponentAttributeClassId"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d)
+    del d2["ConfigList"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
@@ -140,15 +117,27 @@ def test_electric_meter_component_gt_generated() -> None:
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
-    d2  = dict(d, EgaugeIoList="Not a list.")
+    d2 = dict(d, ConfigList="Not a list.")
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2  = dict(d, EgaugeIoList=["Not a list of dicts"])
+    d2 = dict(d, ConfigList=["Not a list of dicts"])
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2  = dict(d, EgaugeIoList= [{"Failed": "Not a GtSimpleSingleStatus"}])
+    d2 = dict(d, ConfigList=[{"Failed": "Not a GtSimpleSingleStatus"}])
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, EgaugeIoList="Not a list.")
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, EgaugeIoList=["Not a list of dicts"])
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d, EgaugeIoList=[{"Failed": "Not a GtSimpleSingleStatus"}])
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
@@ -173,22 +162,3 @@ def test_electric_meter_component_gt_generated() -> None:
         Maker.dict_to_tuple(d2)
 
     # End of Test
-
-    v000_dict = {
-            "ComponentId": "8d2be3c8-2ea8-4cb4-8f56-96de9a73ca48",
-            "DisplayName": "Apple Freedom EGauge meter",
-            "ComponentAttributeClassId": "739a6e32-bb9c-43bc-a28d-fb61be665522",
-            "ModbusHost": "eGauge4922.local",
-            "ModbusPort": 502,
-            "ModbusHwUidRegister": 100,
-            "ModbusPowerRegister": 9016,
-            "TypeName": "electric.meter.component.gt",
-            "Version": "000"
-        }
-
-    d2 = Maker.dict_to_tuple(v000_dict)
-
-    # Loses information about the PowerRegister, because the informatio
-    # about what ShNode it is for does not exist and so we cannot create
-    # an OutputConfig (which is supposed to have that data
-    assert d2.EgaugeIoList == []

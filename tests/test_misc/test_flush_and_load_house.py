@@ -43,6 +43,7 @@ def test_flush_and_load_house():
         "ComponentAttributeClassId": "c1f17330-6269-4bc5-aa4b-82e939e9b70c",
         "HwUid": "7ec4a224",
         "EgaugeIoList": [],
+        "ConfigList": [],
         "TypeName": "electric.meter.component.gt",
         "Version": "001",
     }

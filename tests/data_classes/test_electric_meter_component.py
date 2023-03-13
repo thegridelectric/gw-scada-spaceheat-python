@@ -13,6 +13,7 @@ def test_electric_meter_component():
         "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
         "HwUid": "9999",
         "EgaugeIoList": [],
+        "ConfigList": [],
         "TypeName": "electric.meter.component.gt",
         "Version": "001",
     }
