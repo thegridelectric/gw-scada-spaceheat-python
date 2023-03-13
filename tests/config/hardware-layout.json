@@ -57,6 +57,7 @@
       "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
       "RatedVoltageV": 240,
       "TypicalVoltageV": 225,
+      "InPowerMetering": true,
       "TypeName": "spaceheat.node.gt",
       "Version": "100"
     },
@@ -79,6 +80,7 @@
       "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
       "RatedVoltageV": 240,
       "TypicalVoltageV": 225,
+      "InPowerMetering": true,
       "TypeName": "spaceheat.node.gt",
       "Version": "100"
     },
@@ -460,7 +462,7 @@
       "DisplayName": "Main Power meter for Little orange house garage space heat",
       "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
       "HwUid": "1001ab",
-      "TypeName": "gt.electric.meter.component",
+      "TypeName": "electric.meter.component.gt",
       "Version": "000"
     }
   ],
@@ -541,7 +543,7 @@
       "DisplayName": "Gridworks Pm1 Simulated Power Meter",
       "LocalCommInterfaceGtEnumSymbol": "efc144cd",
       "UpdatePeriodMs": 1000,
-      "TypeName": "gt.electric.meter.cac",
+      "TypeName": "electric.meter.cac.gt",
       "Version": "000"
     }
   ],

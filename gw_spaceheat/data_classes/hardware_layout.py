@@ -29,8 +29,8 @@ from schema import GtBooleanActuatorComponent_Maker
 from schema import ResistiveHeaterCacGt_Maker
 from schema import ResistiveHeaterComponentGt_Maker
 
-from schema import GtElectricMeterCac_Maker
-from schema import GtElectricMeterComponent_Maker
+from schema import ElectricMeterCacGt_Maker
+from schema.electric_meter_component_gt import ElectricMeterComponentGt_Maker
 
 from schema import PipeFlowSensorCacGt_Maker
 
@@ -63,7 +63,7 @@ def load_cacs(layout: dict, raise_errors: bool = True) -> list[LoadError]:
     for type_name, maker_class in [
         ("BooleanActuatorCacs", GtBooleanActuatorCac_Maker),
         ("ResistiveHeaterCacs", ResistiveHeaterCacGt_Maker),
-        ("ElectricMeterCacs", GtElectricMeterCac_Maker),
+        ("ElectricMeterCacs", ElectricMeterCacGt_Maker),
         ("PipeFlowSensorCacs", PipeFlowSensorCacGt_Maker),
         ("MultipurposeSensorCacs", MultipurposeSensorCacGt_Maker),
         ("SimpleTempSensorCacs", SimpleTempSensorCacGt_Maker),
@@ -92,7 +92,7 @@ def load_components(layout: dict, raise_errors: bool = True) -> list[LoadError]:
     for type_name, maker_class in [
         ("BooleanActuatorComponents", GtBooleanActuatorComponent_Maker),
         ("ResistiveHeaterComponents", ResistiveHeaterComponentGt_Maker),
-        ("ElectricMeterComponents", GtElectricMeterComponent_Maker),
+        ("ElectricMeterComponents", ElectricMeterComponentGt_Maker),
         ("PipeFlowSensorComponents", PipeFlowSensorComponentGt_Maker),
         ("MultipurposeSensorComponents", MultipurposeSensorComponentGt_Maker),
         ("SimpleTempSensorComponents", SimpleTempSensorComponentGt_Maker),
@@ -244,7 +244,8 @@ class HardwareLayout:
     @cached_property
     def all_metered_nodes(self) -> List[ShNode]:
         """All nodes whose power level is metered and included in power reporting by the Scada"""
-        return self.all_resistive_heaters
+        all_nodes = self.nodes.values()
+        return list(filter(lambda x: x.in_power_metering == True, all_nodes))
 
     @cached_property
     def all_power_meter_telemetry_tuples(self) -> List[TelemetryTuple]:
@@ -284,11 +285,6 @@ class HardwareLayout:
             ElectricMeterCac,
             self.power_meter_node.component.component_attribute_class
         )
-
-    @cached_property
-    def all_resistive_heaters(self) -> List[ShNode]:
-        all_nodes = list(self.nodes.values())
-        return list(filter(lambda x: (x.role == Role.BoostElement), all_nodes))
 
     @cached_property
     def power_meter_node(self) -> ShNode:

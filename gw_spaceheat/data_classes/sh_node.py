@@ -32,7 +32,10 @@ class ShNode:
         self.reporting_sample_period_s = reporting_sample_period_s
         self.rated_voltage_v = rated_voltage_v
         self.typical_voltage_v = typical_voltage_v
-        self.in_power_metering = in_power_metering
+        if in_power_metering:
+            self.in_power_metering = in_power_metering
+        else:
+            self.in_power_metering = False
         ShNode.by_id[self.sh_node_id] = self
 
     def __repr__(self):

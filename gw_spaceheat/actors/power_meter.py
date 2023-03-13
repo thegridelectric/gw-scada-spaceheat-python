@@ -202,7 +202,12 @@ class DriverThreadSetupHelper:
 
     def get_nameplate_telemetry_value(self) -> Dict[TelemetryTuple, int]:
         response_dict: Dict[TelemetryTuple, int] = {}
-        for about_node in self.hardware_layout.all_resistive_heaters:
+        all_nodes = list(self.hardware_layout.nodes.values())
+        all_resistive_heaters = list(filter(lambda x: (x.role == Role.BoostElement), all_nodes))
+        #TODO: replace with ShNode.InPowerMetering, after updating
+        # ShNode so that it must include NameplatePowerW and RatedVoltageV
+        # if InPowerMetering exists and is True
+        for about_node in all_resistive_heaters:
             current_tt = TelemetryTuple(
                 AboutNode=about_node,
                 SensorNode=self.node,
