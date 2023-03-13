@@ -39,6 +39,7 @@ comp = ElectricMeterComponentGt_Maker(
     modbus_host="eGauge14875.local",
     modbus_port=502,
     egauge_io_list=[boost_io],
+    config_list=[o]
 ).tuple
 
 

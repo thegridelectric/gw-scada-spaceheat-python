@@ -3,6 +3,7 @@ from schema import (EgaugeIo_Maker, EgaugeRegisterConfig_Maker,
                     TelemetryReportingConfig_Maker)
 from schema.electric_meter_component_gt import ElectricMeterComponentGt_Maker
 
+config_list = []
 i = EgaugeRegisterConfig_Maker(
     address=9012,
     name="07 Spacepak HP",
@@ -23,7 +24,7 @@ o = TelemetryReportingConfig_Maker(
     telemetry_name=TelemetryName.PowerW,
 ).tuple
 
-
+config_list.append(o)
 hp_io = EgaugeIo_Maker(input_config=i, output_config=o).tuple
 
 i = EgaugeRegisterConfig_Maker(
@@ -45,6 +46,8 @@ o = TelemetryReportingConfig_Maker(
     async_report_threshold=0.05,
     telemetry_name=TelemetryName.PowerW,
 ).tuple
+
+config_list.append(o)
 
 boost_io = EgaugeIo_Maker(input_config=i, output_config=o).tuple
 
@@ -68,6 +71,8 @@ o = TelemetryReportingConfig_Maker(
     telemetry_name=TelemetryName.PowerW,
 ).tuple
 
+config_list.append(o)
+
 glycol_io = EgaugeIo_Maker(input_config=i, output_config=o).tuple
 
 i = EgaugeRegisterConfig_Maker(
@@ -89,6 +94,7 @@ o = TelemetryReportingConfig_Maker(
     async_report_threshold=0.2,
     telemetry_name=TelemetryName.PowerW,
 ).tuple
+config_list.append(o)
 
 hx_io = EgaugeIo_Maker(input_config=i, output_config=o).tuple
 
@@ -112,6 +118,7 @@ o = TelemetryReportingConfig_Maker(
     telemetry_name=TelemetryName.PowerW,
 ).tuple
 
+config_list.append(o)
 
 dist_pump_io = EgaugeIo_Maker(input_config=i, output_config=o).tuple
 
@@ -123,6 +130,7 @@ comp = ElectricMeterComponentGt_Maker(
     hw_uid="BP00679",
     modbus_host="eGauge4922.local",
     modbus_port=502,
+    config_list=config_list,
     egauge_io_list=[hp_io, boost_io, glycol_io, hx_io, dist_pump_io],
 ).tuple
 
