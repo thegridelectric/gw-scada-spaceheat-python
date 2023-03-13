@@ -3,13 +3,12 @@ import json
 from enum import auto
 from typing import Any, Dict, List, Literal, Optional
 
+from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
+from enums import MakeModel as EnumMakeModel
 from fastapi_utils.enums import StrEnum
 from gwproto.errors import MpSchemaError
 from gwproto.message import as_enum
 from pydantic import BaseModel, Field, validator
-
-from data_classes.cacs.pipe_flow_sensor_cac import PipeFlowSensorCac
-from enums import MakeModel as EnumMakeModel
 
 
 class SpaceheatMakeModel000SchemaEnum:
@@ -155,9 +154,7 @@ def check_is_uuid_canonical_textual(v: str) -> None:
 class PipeFlowSensorCacGt(BaseModel):
     """Type for tracking Pipe Flow Sensor ComponentAttributeClasses.
 
-    GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions for
-    managing relational device data. The Cac, or ComponentAttributeClass, is part of this structure.
-
+    GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions for managing relational device data. The Cac, or ComponentAttributeClass, is part of this structure.
     [More info](https://g-node-registry.readthedocs.io/en/latest/component-attribute-class.html).
     """
 
@@ -167,8 +164,9 @@ class PipeFlowSensorCacGt(BaseModel):
     MakeModel: EnumMakeModel = Field(
         title="MakeModel",
     )
-    DisplayName: str = Field(
+    DisplayName: Optional[str] = Field(
         title="DisplayName",
+        default=None,
     )
     CommsMethod: Optional[str] = Field(
         title="CommsMethod",
@@ -188,7 +186,7 @@ class PipeFlowSensorCacGt(BaseModel):
         return v
 
     @validator("MakeModel")
-    def _check_make_model(cls, v: MakeModel) -> MakeModel:
+    def _check_make_model(cls, v: EnumMakeModel) -> EnumMakeModel:
         return as_enum(v, EnumMakeModel, EnumMakeModel.UNKNOWNMAKE__UNKNOWNMODEL)
 
     def as_dict(self) -> Dict[str, Any]:
@@ -196,6 +194,8 @@ class PipeFlowSensorCacGt(BaseModel):
         del d["MakeModel"]
         MakeModel = as_enum(self.MakeModel, EnumMakeModel, EnumMakeModel.default())
         d["MakeModelGtEnumSymbol"] = MakeModelMap.local_to_type(MakeModel)
+        if d["DisplayName"] is None:
+            del d["DisplayName"]
         if d["CommsMethod"] is None:
             del d["CommsMethod"]
         return d
@@ -212,7 +212,7 @@ class PipeFlowSensorCacGt_Maker:
         self,
         component_attribute_class_id: str,
         make_model: EnumMakeModel,
-        display_name: str,
+        display_name: Optional[str],
         comms_method: Optional[str],
     ):
 
@@ -256,7 +256,7 @@ class PipeFlowSensorCacGt_Maker:
         else:
             d2["MakeModel"] = EnumMakeModel.default()
         if "DisplayName" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing DisplayName")
+            d2["DisplayName"] = None
         if "CommsMethod" not in d2.keys():
             d2["CommsMethod"] = None
         if "TypeName" not in d2.keys():
