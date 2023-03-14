@@ -8,12 +8,14 @@ from schema.egauge_io import EgaugeIo
 from schema.egauge_io import EgaugeIo_Maker
 from schema.egauge_register_config import EgaugeRegisterConfig
 from schema.egauge_register_config import EgaugeRegisterConfig_Maker
-from schema.electric_meter_cac_gt import ElectricMeterCacGt
-from schema.electric_meter_cac_gt import ElectricMeterCacGt_Maker
 from schema.gt_boolean_actuator_cac import GtBooleanActuatorCac
 from schema.gt_boolean_actuator_cac import GtBooleanActuatorCac_Maker
 from schema.gt_boolean_actuator_component import GtBooleanActuatorComponent
 from schema.gt_boolean_actuator_component import GtBooleanActuatorComponent_Maker
+from schema.gt_electric_meter_cac import GtElectricMeterCac
+from schema.gt_electric_meter_cac import GtElectricMeterCac_Maker
+from schema.gt_electric_meter_component import GtElectricMeterComponent
+from schema.gt_electric_meter_component import GtElectricMeterComponent_Maker
 from schema.gt_powermeter_reporting_config import GtPowermeterReportingConfig
 from schema.gt_powermeter_reporting_config import GtPowermeterReportingConfig_Maker
 from schema.gt_sensor_reporting_config import GtSensorReportingConfig
@@ -49,14 +51,14 @@ __all__ = [
     "EgaugeIo_Maker",
     "EgaugeRegisterConfig",
     "EgaugeRegisterConfig_Maker",
-    "ElectricMeterCacGt",
-    "ElectricMeterCacGt_Maker",
-    # "ElectricMeterComponentGt",
-    # "ElectricMeterComponentGt_Maker",
     "GtBooleanActuatorCac",
     "GtBooleanActuatorCac_Maker",
     "GtBooleanActuatorComponent",
     "GtBooleanActuatorComponent_Maker",
+    "GtElectricMeterCac",
+    "GtElectricMeterCac_Maker",
+    "GtElectricMeterComponent",
+    "GtElectricMeterComponent_Maker",
     "GtPowermeterReportingConfig",
     "GtPowermeterReportingConfig_Maker",
     "GtSensorReportingConfig",

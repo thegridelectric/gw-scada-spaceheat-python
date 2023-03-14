@@ -1,12 +1,10 @@
 """ElectricMeterComponent definition"""
-from typing import Dict, Optional, List
+from typing import Dict, Optional
 
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 from data_classes.component import Component
 from enums import MakeModel
 
-from schema import EgaugeIo
-from schema import TelemetryReportingConfig
 
 class ElectricMeterComponent(Component):
     by_id: Dict[str, "ElectricMeterComponent"] = {}
@@ -19,8 +17,9 @@ class ElectricMeterComponent(Component):
         hw_uid: Optional[str] = None, 
         modbus_host: Optional[str] = None,
         modbus_port: Optional[int] = None,
-        config_list: List[TelemetryReportingConfig] = [],
-        egauge_io_list: List[EgaugeIo] = [],
+        modbus_power_register: Optional[int] = None,
+        modbus_hw_uid_register: Optional[int] = None,
+        
     ):
         super(self.__class__, self).__init__(
             display_name=display_name,
@@ -30,8 +29,8 @@ class ElectricMeterComponent(Component):
         )
         self.modbus_host = modbus_host
         self.modbus_port = modbus_port
-        self.config_list = config_list
-        self.egauge_io_list = egauge_io_list
+        self.modbus_power_register = modbus_power_register
+        self.modbus_hw_uid_register = modbus_hw_uid_register
         ElectricMeterComponent.by_id[self.component_id] = self
         Component.by_id[self.component_id] = self
 

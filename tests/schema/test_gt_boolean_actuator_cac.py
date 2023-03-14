@@ -12,7 +12,7 @@ def test_gt_boolean_actuator_cac_generated() -> None:
 
     d = {
         "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
-        "MakeModelGtEnumSymbol": "e81d74a8",
+        "MakeModelGtEnumSymbol": "9cc57878",
         "DisplayName": "Gridworks Simulated Boolean Actuator",
         "TypicalResponseTimeMs": 400,
         "TypeName": "gt.boolean.actuator.cac",
@@ -69,18 +69,14 @@ def test_gt_boolean_actuator_cac_generated() -> None:
         Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
-    del d2["TypicalResponseTimeMs"]
+    del d2["DisplayName"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
-    ######################################
-    # Optional attributes can be removed from type
-    ######################################
-
     d2 = dict(d)
-    if "DisplayName" in d2.keys():
-        del d2["DisplayName"]
-    Maker.dict_to_tuple(d2)
+    del d2["TypicalResponseTimeMs"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
 
     ######################################
     # Behavior on incorrect types
