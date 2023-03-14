@@ -201,8 +201,15 @@ class DriverThreadSetupHelper:
         return cls.get_resistive_heater_nameplate_power_w(node) / node.rated_voltage_v
 
     def get_nameplate_telemetry_value(self) -> Dict[TelemetryTuple, int]:
+        """
+        TODO: use component.ConfigList to set this. Make sure AboutNodeName
+
+        """
         response_dict: Dict[TelemetryTuple, int] = {}
-        for about_node in self.hardware_layout.all_resistive_heaters:
+        all_nodes = list(self.hardware_layout.nodes.values())
+        all_resistive_heaters = list(filter(lambda x: (x.role == Role.BoostElement), all_nodes))
+
+        for about_node in all_resistive_heaters:
             current_tt = TelemetryTuple(
                 AboutNode=about_node,
                 SensorNode=self.node,

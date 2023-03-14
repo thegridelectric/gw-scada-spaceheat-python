@@ -1,11 +1,18 @@
-"""Type gt.electric.meter.component, version 000"""
+"""Type electric.meter.component.gt, version 100"""
 import json
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from data_classes.components.electric_meter_component import \
-    ElectricMeterComponent
+from data_classes.components.electric_meter_component import ElectricMeterComponent
 from gwproto.errors import MpSchemaError
 from pydantic import BaseModel, Field, root_validator, validator
+from schema.egauge_io import EgaugeIo, EgaugeIo_Maker
+from schema.prev.electric_meter_component_gt_000 import (
+    ElectricMeterComponentGt000_Maker,
+)
+from schema.telemetry_reporting_config import (
+    TelemetryReportingConfig,
+    TelemetryReportingConfig_Maker,
+)
 
 
 def check_is_uuid_canonical_textual(v: str) -> None:
@@ -43,12 +50,10 @@ def check_is_uuid_canonical_textual(v: str) -> None:
         raise ValueError(f"{v} word lengths not 8-4-4-4-12")
 
 
-class GtElectricMeterComponent(BaseModel):
+class ElectricMeterComponentGt(BaseModel):
     """Type for tracking Electric Meter Components.
 
-    GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions
-    for managing relational device data. The Component associated to a SpaceheatNode is
-    part of this structure.
+    GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions for managing relational device data. The Component associated to a SpaceheatNode is part of this structure.
     [More info](https://g-node-registry.readthedocs.io/en/latest/component.html).
     """
 
@@ -59,31 +64,30 @@ class GtElectricMeterComponent(BaseModel):
         title="ComponentAttributeClassId",
     )
     DisplayName: Optional[str] = Field(
-        title="DisplayName",
+        title="Display Name for the Power Meter",
         default=None,
     )
     HwUid: Optional[str] = Field(
-        title="HwUid",
+        title="Unique Hardware Id for the Power Meter",
         default=None,
     )
     ModbusHost: Optional[str] = Field(
-        title="ModbusHost",
+        title="Host on LAN when power meter is modbus over Ethernet",
         default=None,
     )
     ModbusPort: Optional[int] = Field(
         title="ModbusPort",
         default=None,
     )
-    ModbusPowerRegister: Optional[int] = Field(
-        title="ModbusPowerRegister",
-        default=None,
+    ConfigList: List[TelemetryReportingConfig] = Field(
+        title="ConfigList",
     )
-    ModbusHwUidRegister: Optional[int] = Field(
-        title="ModbusHwUidRegister",
-        default=None,
+    EgaugeIoList: List[EgaugeIo] = Field(
+        title="Bijecton from EGauge4030 input to ConfigList output",
+        description="This should be empty unless the MakeModel of the corresponding component attribute class is EGauge 4030. The channels that can be read from an EGauge 4030 are configurable by the person who installs the device. The information is encapsulated in a modbus map provided by eGauge as a csv from a device-specific API. The EGaugeIoList maps the data from this map to the data that the SCADA expects to see.",
     )
-    TypeName: Literal["gt.electric.meter.component"] = "gt.electric.meter.component"
-    Version: str = "000"
+    TypeName: Literal["electric.meter.component.gt"] = "electric.meter.component.gt"
+    Version: str = "100"
 
     @validator("ComponentId")
     def _check_component_id(cls, v: str) -> str:
@@ -105,13 +109,38 @@ class GtElectricMeterComponent(BaseModel):
             )
         return v
 
+    @validator("ConfigList")
+    def _check_config_list(cls, v: List) -> List:
+        for elt in v:
+            if not isinstance(elt, TelemetryReportingConfig):
+                raise ValueError(
+                    f"elt {elt} of ConfigList must have type TelemetryReportingConfig."
+                )
+        return v
+
+    @validator("EgaugeIoList")
+    def _check_egauge_io_list(cls, v: List) -> List:
+        for elt in v:
+            if not isinstance(elt, EgaugeIo):
+                raise ValueError(f"elt {elt} of EgaugeIoList must have type EgaugeIo.")
+        return v
+
     @root_validator
     def check_axiom_1(cls, v: dict) -> dict:
         """
-        Axiom 1: ConfigList EgaugeIoList consistency.
-        If EgaugeIoList has any elements, then its set of OutputConfigs is equal to the ConfigList as a set.
+        Axiom 1: Modbus consistency.
+        ModbusHost is None if and only if ModbusPort is None
         """
         # TODO: Implement check for axiom 1"
+        return v
+
+    @root_validator
+    def check_axiom_2(cls, v: dict) -> dict:
+        """
+        Axiom 2: Egauge4030 consistency.
+        If the EgaugeIoList has non-zero length, then the ModbusHost is not None and the set of output configs is equal to ConfigList as a set
+        """
+        # TODO: Implement check for axiom 2"
         return v
 
     def as_dict(self) -> Dict[str, Any]:
@@ -124,19 +153,27 @@ class GtElectricMeterComponent(BaseModel):
             del d["ModbusHost"]
         if d["ModbusPort"] is None:
             del d["ModbusPort"]
-        if d["ModbusPowerRegister"] is None:
-            del d["ModbusPowerRegister"]
-        if d["ModbusHwUidRegister"] is None:
-            del d["ModbusHwUidRegister"]
+
+        # Recursively call as_dict() for the SubTypes
+        config_list = []
+        for elt in self.ConfigList:
+            config_list.append(elt.as_dict())
+        d["ConfigList"] = config_list
+
+        # Recursively call as_dict() for the SubTypes
+        egauge_io_list = []
+        for elt in self.EgaugeIoList:
+            egauge_io_list.append(elt.as_dict())
+        d["EgaugeIoList"] = egauge_io_list
         return d
 
     def as_type(self) -> str:
         return json.dumps(self.as_dict())
 
 
-class GtElectricMeterComponent_Maker:
-    type_name = "gt.electric.meter.component"
-    version = "000"
+class ElectricMeterComponentGt_Maker:
+    type_name = "electric.meter.component.gt"
+    version = "100"
 
     def __init__(
         self,
@@ -146,31 +183,31 @@ class GtElectricMeterComponent_Maker:
         hw_uid: Optional[str],
         modbus_host: Optional[str],
         modbus_port: Optional[int],
-        modbus_power_register: Optional[int],
-        modbus_hw_uid_register: Optional[int],
+        config_list: List[TelemetryReportingConfig],
+        egauge_io_list: List[EgaugeIo],
     ):
 
-        self.tuple = GtElectricMeterComponent(
+        self.tuple = ElectricMeterComponentGt(
             ComponentId=component_id,
             ComponentAttributeClassId=component_attribute_class_id,
             DisplayName=display_name,
             HwUid=hw_uid,
             ModbusHost=modbus_host,
             ModbusPort=modbus_port,
-            ModbusPowerRegister=modbus_power_register,
-            ModbusHwUidRegister=modbus_hw_uid_register,
+            ConfigList=config_list,
+            EgaugeIoList=egauge_io_list,
             #
         )
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtElectricMeterComponent) -> str:
+    def tuple_to_type(cls, tuple: ElectricMeterComponentGt) -> str:
         """
         Given a Python class object, returns the serialized JSON type object
         """
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtElectricMeterComponent:
+    def type_to_tuple(cls, t: str) -> ElectricMeterComponentGt:
         """
         Given a serialized JSON type object, returns the Python class object
         """
@@ -183,8 +220,11 @@ class GtElectricMeterComponent_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict[str, Any]) -> GtElectricMeterComponent:
+    def dict_to_tuple(cls, d: dict[str, Any]) -> ElectricMeterComponentGt:
         d2 = dict(d)
+        if "Version" in d2.keys():
+            if d2["Version"] == "000":
+                return cls.version_000_dict_to_tuple(d)
         if "ComponentId" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing ComponentId")
         if "ComponentAttributeClassId" not in d2.keys():
@@ -197,28 +237,66 @@ class GtElectricMeterComponent_Maker:
             d2["ModbusHost"] = None
         if "ModbusPort" not in d2.keys():
             d2["ModbusPort"] = None
-        if "ModbusPowerRegister" not in d2.keys():
-            d2["ModbusPowerRegister"] = None
-        if "ModbusHwUidRegister" not in d2.keys():
-            d2["ModbusHwUidRegister"] = None
+        if "ConfigList" not in d2.keys():
+            raise MpSchemaError(f"dict {d2} missing ConfigList")
+        config_list = []
+        if not isinstance(d2["ConfigList"], List):
+            raise MpSchemaError("ConfigList must be a List!")
+        for elt in d2["ConfigList"]:
+            if not isinstance(elt, dict):
+                raise MpSchemaError(
+                    f"elt {elt} of ConfigList must be "
+                    "TelemetryReportingConfig but not even a dict!"
+                )
+            config_list.append(TelemetryReportingConfig_Maker.dict_to_tuple(elt))
+        d2["ConfigList"] = config_list
+        if "EgaugeIoList" not in d2.keys():
+            raise MpSchemaError(f"dict {d2} missing EgaugeIoList")
+        if "EgaugeIoList" not in d2.keys():
+            raise MpSchemaError(f"dict {d2} missing EgaugeIoList")
+        egauge_io_list = []
+        if not isinstance(d2["EgaugeIoList"], List):
+            raise MpSchemaError("EgaugeIoList must be a List!")
+        for elt in d2["EgaugeIoList"]:
+            if not isinstance(elt, dict):
+                raise MpSchemaError(
+                    f"elt {elt} of EgaugeIoList must be "
+                    "EgaugeIo but not even a dict!"
+                )
+            egauge_io_list.append(EgaugeIo_Maker.dict_to_tuple(elt))
+        d2["EgaugeIoList"] = egauge_io_list
         if "TypeName" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing TypeName")
 
-        return GtElectricMeterComponent(
+        return ElectricMeterComponentGt(
             ComponentId=d2["ComponentId"],
             ComponentAttributeClassId=d2["ComponentAttributeClassId"],
             DisplayName=d2["DisplayName"],
             HwUid=d2["HwUid"],
             ModbusHost=d2["ModbusHost"],
             ModbusPort=d2["ModbusPort"],
-            ModbusPowerRegister=d2["ModbusPowerRegister"],
-            ModbusHwUidRegister=d2["ModbusHwUidRegister"],
+            ConfigList=d2["ConfigList"],
+            EgaugeIoList=d2["EgaugeIoList"],
             TypeName=d2["TypeName"],
-            Version="000",
+            Version="100",
         )
 
     @classmethod
-    def tuple_to_dc(cls, t: GtElectricMeterComponent) -> ElectricMeterComponent:
+    def version_000_dict_to_tuple(cls, d: dict[str, Any]) -> ElectricMeterComponentGt:
+        old = ElectricMeterComponentGt000_Maker.dict_to_tuple(d)
+        return ElectricMeterComponentGt(
+            ComponentId=old.ComponentId,
+            ComponentAttributeClassId=old.ComponentAttributeClassId,
+            DisplayName=old.DisplayName,
+            HwUid=old.HwUid,
+            ModbusHost=old.ModbusHost,
+            ModbusPort=old.ModbusPort,
+            EgaugeIoList=[],
+            ConfigList=[],
+        )
+
+    @classmethod
+    def tuple_to_dc(cls, t: ElectricMeterComponentGt) -> ElectricMeterComponent:
         if t.ComponentId in ElectricMeterComponent.by_id.keys():
             dc = ElectricMeterComponent.by_id[t.ComponentId]
         else:
@@ -229,23 +307,23 @@ class GtElectricMeterComponent_Maker:
                 hw_uid=t.HwUid,
                 modbus_host=t.ModbusHost,
                 modbus_port=t.ModbusPort,
-                modbus_power_register=t.ModbusPowerRegister,
-                modbus_hw_uid_register=t.ModbusHwUidRegister,
+                config_list=t.ConfigList,
+                egauge_io_list=t.EgaugeIoList,
             )
 
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: ElectricMeterComponent) -> GtElectricMeterComponent:
-        t = GtElectricMeterComponent_Maker(
+    def dc_to_tuple(cls, dc: ElectricMeterComponent) -> ElectricMeterComponentGt:
+        t = ElectricMeterComponentGt_Maker(
             component_id=dc.component_id,
             component_attribute_class_id=dc.component_attribute_class_id,
             display_name=dc.display_name,
             hw_uid=dc.hw_uid,
             modbus_host=dc.modbus_host,
             modbus_port=dc.modbus_port,
-            modbus_power_register=dc.modbus_power_register,
-            modbus_hw_uid_register=dc.modbus_hw_uid_register,
+            config_list=dc.config_list,
+            egauge_io_list=dc.egauge_io_list,
         ).tuple
         return t
 

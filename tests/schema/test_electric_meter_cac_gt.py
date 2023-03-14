@@ -1,24 +1,26 @@
-"""Tests gt.electric.meter.component type, version 000"""
+"""Tests electric.meter.cac.gt type, version 000"""
 import json
 
 import pytest
-from gwproto.errors import MpSchemaError
 from pydantic import ValidationError
-from schema import GtElectricMeterComponent_Maker as Maker
+
+from gwproto.errors import MpSchemaError
+from schema import ElectricMeterCacGt_Maker as Maker
+from enums import LocalCommInterface
+from enums import MakeModel
 
 
-def test_gt_electric_meter_component_generated() -> None:
+def test_electric_meter_cac_gt_generated() -> None:
+
 
     d = {
-        "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
-        "ComponentAttributeClassId": "c1856e62-d8c0-4352-b79e-6ae05a5294c2",
-        "DisplayName": "Main power meter for Little orange house garage space heat",
-        "HwUid": "35941_308",
-        "ModbusHost": "eGauge4922.local",
-        "ModbusPort": 502,
-        "ModbusPowerRegister": 9016,
-        "ModbusHwUidRegister": 100,
-        "TypeName": "gt.electric.meter.component",
+        "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
+        "MakeModelGtEnumSymbol": "53129448",
+        "LocalCommInterfaceGtEnumSymbol": "a6a4ac9f",
+        "DisplayName": "Schneider Electric Iem3455 Power Meter",
+        "DefaultBaud": 9600,
+        "UpdatePeriodMs": 1000,
+        "TypeName": "electric.meter.cac.gt",
         "Version": "000",
     }
 
@@ -37,14 +39,13 @@ def test_gt_electric_meter_component_generated() -> None:
 
     # test Maker init
     t = Maker(
-        component_id=gtuple.ComponentId,
         component_attribute_class_id=gtuple.ComponentAttributeClassId,
+        make_model=gtuple.MakeModel,
+        local_comm_interface=gtuple.LocalCommInterface,
         display_name=gtuple.DisplayName,
-        hw_uid=gtuple.HwUid,
-        modbus_host=gtuple.ModbusHost,
-        modbus_port=gtuple.ModbusPort,
-        modbus_power_register=gtuple.ModbusPowerRegister,
-        modbus_hw_uid_register=gtuple.ModbusHwUidRegister,
+        default_baud=gtuple.DefaultBaud,
+        update_period_ms=gtuple.UpdatePeriodMs,
+        
     ).tuple
     assert t == gtuple
 
@@ -66,12 +67,17 @@ def test_gt_electric_meter_component_generated() -> None:
         Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
-    del d2["ComponentId"]
+    del d2["ComponentAttributeClassId"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
-    del d2["ComponentAttributeClassId"]
+    del d2["MakeModelGtEnumSymbol"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d)
+    del d2["LocalCommInterfaceGtEnumSymbol"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
@@ -85,43 +91,30 @@ def test_gt_electric_meter_component_generated() -> None:
     Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
-    if "HwUid" in d2.keys():
-        del d2["HwUid"]
+    if "DefaultBaud" in d2.keys():
+        del d2["DefaultBaud"]
     Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
-    if "ModbusHost" in d2.keys():
-        del d2["ModbusHost"]
-    Maker.dict_to_tuple(d2)
-
-    d2 = dict(d)
-    if "ModbusPort" in d2.keys():
-        del d2["ModbusPort"]
-    Maker.dict_to_tuple(d2)
-
-    d2 = dict(d)
-    if "ModbusPowerRegister" in d2.keys():
-        del d2["ModbusPowerRegister"]
-    Maker.dict_to_tuple(d2)
-
-    d2 = dict(d)
-    if "ModbusHwUidRegister" in d2.keys():
-        del d2["ModbusHwUidRegister"]
+    if "UpdatePeriodMs" in d2.keys():
+        del d2["UpdatePeriodMs"]
     Maker.dict_to_tuple(d2)
 
     ######################################
     # Behavior on incorrect types
     ######################################
 
-    d2 = dict(d, ModbusPort="502.1")
+    d2 = dict(d, MakeModelGtEnumSymbol = 'hi')
+    Maker.dict_to_tuple(d2).MakeModel = MakeModel.default()
+
+    d2 = dict(d, LocalCommInterfaceGtEnumSymbol = 'hi')
+    Maker.dict_to_tuple(d2).LocalCommInterface = LocalCommInterface.default()
+
+    d2 = dict(d, DefaultBaud="9600.1")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, ModbusPowerRegister="9016.1")
-    with pytest.raises(ValidationError):
-        Maker.dict_to_tuple(d2)
-
-    d2 = dict(d, ModbusHwUidRegister="100.1")
+    d2 = dict(d, UpdatePeriodMs="1000.1")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
@@ -136,10 +129,6 @@ def test_gt_electric_meter_component_generated() -> None:
     ######################################
     # MpSchemaError raised if primitive attributes do not have appropriate property_format
     ######################################
-
-    d2 = dict(d, ComponentId="d4be12d5-33ba-4f1f-b9e5")
-    with pytest.raises(ValidationError):
-        Maker.dict_to_tuple(d2)
 
     d2 = dict(d, ComponentAttributeClassId="d4be12d5-33ba-4f1f-b9e5")
     with pytest.raises(ValidationError):
