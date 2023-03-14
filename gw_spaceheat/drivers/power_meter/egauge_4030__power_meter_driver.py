@@ -90,14 +90,10 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
 
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super().__init__(component, settings)
-
-    def initialize_modbus(self):
         self._client_settings = ModbusClientSettings(
-            host=socket.gethostbyname(self.component.modbus_host),
             port=self.component.modbus_port,
             timeout=self.CLIENT_TIMEOUT
         )
-        self._modbus_client = ModbusClient(**self._client_settings.dict())
 
     def try_connect(self, first_time: bool = False) -> Result[DriverResult, Exception]:
         now = time.time()
@@ -135,7 +131,6 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         )
 
     def start(self) -> Result[DriverResult[bool], Exception]:
-        self.initialize_modbus()
         return self.try_connect(first_time=True)
 
     def read_current_rms_micro_amps(self) -> Result[DriverResult[int | None], Exception]:

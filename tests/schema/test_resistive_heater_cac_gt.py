@@ -12,7 +12,7 @@ def test_resistive_heater_cac_gt_generated() -> None:
 
     d = {
         "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-        "MakeModelGtEnumSymbol": "00000000",
+        "MakeModelGtEnumSymbol": "fe60719b",
         "DisplayName": "Fake Boost Element",
         "NameplateMaxPowerW": 4500,
         "RatedVoltageV": 240,
@@ -71,6 +71,11 @@ def test_resistive_heater_cac_gt_generated() -> None:
         Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
+    del d2["DisplayName"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d)
     del d2["NameplateMaxPowerW"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
@@ -79,15 +84,6 @@ def test_resistive_heater_cac_gt_generated() -> None:
     del d2["RatedVoltageV"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
-
-    ######################################
-    # Optional attributes can be removed from type
-    ######################################
-
-    d2 = dict(d)
-    if "DisplayName" in d2.keys():
-        del d2["DisplayName"]
-    Maker.dict_to_tuple(d2)
 
     ######################################
     # Behavior on incorrect types

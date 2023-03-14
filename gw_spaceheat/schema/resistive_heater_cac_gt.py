@@ -1,7 +1,7 @@
 """Type resistive.heater.cac.gt, version 000"""
 import json
 from enum import auto
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal
 
 from data_classes.cacs.resistive_heater_cac import ResistiveHeaterCac
 from enums import MakeModel as EnumMakeModel
@@ -164,9 +164,8 @@ class ResistiveHeaterCacGt(BaseModel):
     MakeModel: EnumMakeModel = Field(
         title="MakeModel",
     )
-    DisplayName: Optional[str] = Field(
+    DisplayName: str = Field(
         title="DisplayName",
-        default=None,
     )
     NameplateMaxPowerW: int = Field(
         title="NameplateMaxPowerW",
@@ -196,8 +195,6 @@ class ResistiveHeaterCacGt(BaseModel):
         del d["MakeModel"]
         MakeModel = as_enum(self.MakeModel, EnumMakeModel, EnumMakeModel.default())
         d["MakeModelGtEnumSymbol"] = MakeModelMap.local_to_type(MakeModel)
-        if d["DisplayName"] is None:
-            del d["DisplayName"]
         return d
 
     def as_type(self) -> str:
@@ -212,7 +209,7 @@ class ResistiveHeaterCacGt_Maker:
         self,
         component_attribute_class_id: str,
         make_model: EnumMakeModel,
-        display_name: Optional[str],
+        display_name: str,
         nameplate_max_power_w: int,
         rated_voltage_v: int,
     ):
@@ -258,7 +255,7 @@ class ResistiveHeaterCacGt_Maker:
         else:
             d2["MakeModel"] = EnumMakeModel.default()
         if "DisplayName" not in d2.keys():
-            d2["DisplayName"] = None
+            raise MpSchemaError(f"dict {d2} missing DisplayName")
         if "NameplateMaxPowerW" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing NameplateMaxPowerW")
         if "RatedVoltageV" not in d2.keys():
