@@ -5,8 +5,9 @@ import pytest
 from enums import TelemetryName
 from gwproto.errors import MpSchemaError
 from pydantic import ValidationError
-from schema.multipurpose_sensor_component_gt import \
-    MultipurposeSensorComponentGt_Maker as Maker
+from schema.multipurpose_sensor_component_gt import (
+    MultipurposeSensorComponentGt_Maker as Maker,
+)
 
 
 def test_multipurpose_sensor_component_gt_generated() -> None:

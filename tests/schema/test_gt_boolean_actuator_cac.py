@@ -69,14 +69,18 @@ def test_gt_boolean_actuator_cac_generated() -> None:
         Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
-    del d2["DisplayName"]
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(d2)
-
-    d2 = dict(d)
     del d2["TypicalResponseTimeMs"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
+
+    ######################################
+    # Optional attributes can be removed from type
+    ######################################
+
+    d2 = dict(d)
+    if "DisplayName" in d2.keys():
+        del d2["DisplayName"]
+    Maker.dict_to_tuple(d2)
 
     ######################################
     # Behavior on incorrect types

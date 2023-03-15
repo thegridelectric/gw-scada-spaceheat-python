@@ -1,15 +1,14 @@
 """Type gt.boolean.actuator.cac, version 000"""
 import json
 from enum import auto
-from typing import Any, Dict, List, Literal
+from typing import Any, Dict, List, Literal, Optional
 
+from data_classes.cacs.boolean_actuator_cac import BooleanActuatorCac
+from enums import MakeModel as EnumMakeModel
 from fastapi_utils.enums import StrEnum
 from gwproto.errors import MpSchemaError
 from gwproto.message import as_enum
 from pydantic import BaseModel, Field, validator
-
-from data_classes.cacs.boolean_actuator_cac import BooleanActuatorCac
-from enums import MakeModel as EnumMakeModel
 
 
 class SpaceheatMakeModel000SchemaEnum:
@@ -153,13 +152,10 @@ def check_is_uuid_canonical_textual(v: str) -> None:
 
 
 class GtBooleanActuatorCac(BaseModel):
-    """Type for tracking Boolean Actuator ComponentAttributeClasses
+    """Type for tracking Boolean Actuator ComponentAttributeClasses.
 
-    GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions
-    for managing relational device data. The Cac, or ComponentAttributeClass, is part of
-    this structure.
-
-    [More info](https://g-node-registry.readthedocs.io/en/latest/component-attribute-class.html)
+    GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions for managing relational device data. The Cac, or ComponentAttributeClass, is part of this structure.
+    [More info](https://g-node-registry.readthedocs.io/en/latest/component-attribute-class.html).
     """
 
     ComponentAttributeClassId: str = Field(
@@ -168,8 +164,9 @@ class GtBooleanActuatorCac(BaseModel):
     MakeModel: EnumMakeModel = Field(
         title="MakeModel",
     )
-    DisplayName: str = Field(
+    DisplayName: Optional[str] = Field(
         title="DisplayName",
+        default=None,
     )
     TypicalResponseTimeMs: int = Field(
         title="TypicalResponseTimeMs",
@@ -196,6 +193,8 @@ class GtBooleanActuatorCac(BaseModel):
         del d["MakeModel"]
         MakeModel = as_enum(self.MakeModel, EnumMakeModel, EnumMakeModel.default())
         d["MakeModelGtEnumSymbol"] = MakeModelMap.local_to_type(MakeModel)
+        if d["DisplayName"] is None:
+            del d["DisplayName"]
         return d
 
     def as_type(self) -> str:
@@ -210,7 +209,7 @@ class GtBooleanActuatorCac_Maker:
         self,
         component_attribute_class_id: str,
         make_model: EnumMakeModel,
-        display_name: str,
+        display_name: Optional[str],
         typical_response_time_ms: int,
     ):
 
@@ -254,7 +253,7 @@ class GtBooleanActuatorCac_Maker:
         else:
             d2["MakeModel"] = EnumMakeModel.default()
         if "DisplayName" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing DisplayName")
+            d2["DisplayName"] = None
         if "TypicalResponseTimeMs" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing TypicalResponseTimeMs")
         if "TypeName" not in d2.keys():
