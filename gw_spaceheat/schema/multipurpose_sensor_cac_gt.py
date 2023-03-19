@@ -436,6 +436,9 @@ class MultipurposeSensorCacGt(BaseModel):
     def as_type(self) -> str:
         return json.dumps(self.as_dict())
 
+    def __hash__(self):
+        return hash((type(self),) + tuple(self.__dict__.values())) # noqa
+
 
 class MultipurposeSensorCacGt_Maker:
     type_name = "multipurpose.sensor.cac.gt"

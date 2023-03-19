@@ -233,6 +233,9 @@ class ResistiveHeaterCacGt_Maker:
         """
         return tuple.as_type()
 
+    def __hash__(self):
+        return hash((type(self),) + tuple(self.__dict__.values())) # noqa
+
     @classmethod
     def type_to_tuple(cls, t: str) -> ResistiveHeaterCacGt:
         """
