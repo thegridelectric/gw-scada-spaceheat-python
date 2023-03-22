@@ -29,8 +29,8 @@ from schema import GtBooleanActuatorComponent_Maker
 from schema import ResistiveHeaterCacGt_Maker
 from schema import ResistiveHeaterComponentGt_Maker
 
-from schema import GtElectricMeterCac_Maker
-from schema import GtElectricMeterComponent_Maker
+from schema import ElectricMeterCacGt_Maker
+from schema.electric_meter_component_gt import ElectricMeterComponentGt_Maker
 
 from schema import PipeFlowSensorCacGt_Maker
 
@@ -63,7 +63,7 @@ def load_cacs(layout: dict, raise_errors: bool = True) -> list[LoadError]:
     for type_name, maker_class in [
         ("BooleanActuatorCacs", GtBooleanActuatorCac_Maker),
         ("ResistiveHeaterCacs", ResistiveHeaterCacGt_Maker),
-        ("ElectricMeterCacs", GtElectricMeterCac_Maker),
+        ("ElectricMeterCacs", ElectricMeterCacGt_Maker),
         ("PipeFlowSensorCacs", PipeFlowSensorCacGt_Maker),
         ("MultipurposeSensorCacs", MultipurposeSensorCacGt_Maker),
         ("SimpleTempSensorCacs", SimpleTempSensorCacGt_Maker),
@@ -92,7 +92,7 @@ def load_components(layout: dict, raise_errors: bool = True) -> list[LoadError]:
     for type_name, maker_class in [
         ("BooleanActuatorComponents", GtBooleanActuatorComponent_Maker),
         ("ResistiveHeaterComponents", ResistiveHeaterComponentGt_Maker),
-        ("ElectricMeterComponents", GtElectricMeterComponent_Maker),
+        ("ElectricMeterComponents", ElectricMeterComponentGt_Maker),
         ("PipeFlowSensorComponents", PipeFlowSensorComponentGt_Maker),
         ("MultipurposeSensorComponents", MultipurposeSensorComponentGt_Maker),
         ("SimpleTempSensorComponents", SimpleTempSensorComponentGt_Maker),

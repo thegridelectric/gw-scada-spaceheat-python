@@ -1,14 +1,18 @@
-"""Type gt.electric.meter.cac, version 000"""
+"""Type electric.meter.cac.gt, version 000"""
 import json
-from enum import auto
-from typing import Any, Dict, List, Literal, Optional
-
-from fastapi_utils.enums import StrEnum
-from gwproto.errors import MpSchemaError
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Literal
+from typing import Optional
+from pydantic import BaseModel
+from pydantic import Field
+from pydantic import validator
 from gwproto.message import as_enum
-from pydantic import BaseModel, Field, validator
-
+from enum import auto
+from fastapi_utils.enums import StrEnum
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
+from gwproto.errors import MpSchemaError
 from enums import LocalCommInterface as EnumLocalCommInterface
 from enums import MakeModel as EnumMakeModel
 
@@ -25,6 +29,7 @@ class LocalCommInterface000SchemaEnum:
         "46ac6589",
         "653c73b8",
         "0843a726",
+        
     ]
 
     @classmethod
@@ -44,7 +49,7 @@ class LocalCommInterface000(StrEnum):
     WIFI = auto()
     ANALOG_4_20_MA = auto()
     RS232 = auto()
-
+    
     @classmethod
     def default(cls) -> "LocalCommInterface000":
         return cls.UNKNOWN
@@ -62,19 +67,13 @@ class LocalCommInterfaceMap:
                 f"{symbol} must belong to LocalCommInterface000 symbols"
             )
         versioned_enum = cls.type_to_versioned_enum_dict[symbol]
-        return as_enum(
-            versioned_enum, EnumLocalCommInterface, EnumLocalCommInterface.default()
-        )
+        return as_enum(versioned_enum, EnumLocalCommInterface, EnumLocalCommInterface.default())
 
     @classmethod
     def local_to_type(cls, local_comm_interface: EnumLocalCommInterface) -> str:
         if not isinstance(local_comm_interface, EnumLocalCommInterface):
-            raise MpSchemaError(
-                f"{local_comm_interface} must be of type {EnumLocalCommInterface}"
-            )
-        versioned_enum = as_enum(
-            local_comm_interface, LocalCommInterface000, LocalCommInterface000.default()
-        )
+            raise MpSchemaError(f"{local_comm_interface} must be of type {EnumLocalCommInterface}")
+        versioned_enum = as_enum(local_comm_interface, LocalCommInterface000, LocalCommInterface000.default())
         return cls.versioned_enum_to_type_dict[versioned_enum]
 
     type_to_versioned_enum_dict: Dict[str, LocalCommInterface000] = {
@@ -99,6 +98,7 @@ class LocalCommInterfaceMap:
         LocalCommInterface000.WIFI: "46ac6589",
         LocalCommInterface000.ANALOG_4_20_MA: "653c73b8",
         LocalCommInterface000.RS232: "0843a726",
+        
     }
 
 
@@ -119,6 +119,7 @@ class SpaceheatMakeModel000SchemaEnum:
         "d0b0e375",
         "a8d9a70d",
         "08da3f7d",
+        
     ]
 
     @classmethod
@@ -143,7 +144,7 @@ class SpaceheatMakeModel000(StrEnum):
     ATLAS__EZFLO = auto()
     MAGNELAB__SCT0300050 = auto()
     YHDC__SCT013100 = auto()
-
+    
     @classmethod
     def default(cls) -> "SpaceheatMakeModel000":
         return cls.UNKNOWNMAKE__UNKNOWNMODEL
@@ -167,9 +168,7 @@ class MakeModelMap:
     def local_to_type(cls, make_model: EnumMakeModel) -> str:
         if not isinstance(make_model, EnumMakeModel):
             raise MpSchemaError(f"{make_model} must be of type {EnumMakeModel}")
-        versioned_enum = as_enum(
-            make_model, SpaceheatMakeModel000, SpaceheatMakeModel000.default()
-        )
+        versioned_enum = as_enum(make_model, SpaceheatMakeModel000, SpaceheatMakeModel000.default())
         return cls.versioned_enum_to_type_dict[versioned_enum]
 
     type_to_versioned_enum_dict: Dict[str, SpaceheatMakeModel000] = {
@@ -204,6 +203,7 @@ class MakeModelMap:
         SpaceheatMakeModel000.ATLAS__EZFLO: "d0b0e375",
         SpaceheatMakeModel000.MAGNELAB__SCT0300050: "a8d9a70d",
         SpaceheatMakeModel000.YHDC__SCT013100: "08da3f7d",
+        
     }
 
 
@@ -242,15 +242,12 @@ def check_is_uuid_canonical_textual(v: str) -> None:
         raise ValueError(f"{v} word lengths not 8-4-4-4-12")
 
 
-class GtElectricMeterCac(BaseModel):
-    """Type for tracking Electric Meter ComponentAttributeClasses
+class ElectricMeterCacGt(BaseModel):
+    """Type for tracking  Electric Meter ComponentAttributeClasses.
 
-    GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions
-    for managing relational device data. The Cac, or ComponentAttributeClass, is part of
-    this structure.
-
-    [More info](https://g-node-registry.readthedocs.io/en/latest/component-attribute-class.html)"""
-
+    GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions for managing relational device data. The Cac, or ComponentAttributeClass, is part of this structure.
+    [More info](https://g-node-registry.readthedocs.io/en/latest/component-attribute-class.html).
+    """
     ComponentAttributeClassId: str = Field(
         title="ComponentAttributeClassId",
     )
@@ -272,7 +269,7 @@ class GtElectricMeterCac(BaseModel):
         title="UpdatePeriodMs",
         default=None,
     )
-    TypeName: Literal["gt.electric.meter.cac"] = "gt.electric.meter.cac"
+    TypeName: Literal["electric.meter.cac.gt"] = "electric.meter.cac.gt"
     Version: str = "000"
 
     @validator("ComponentAttributeClassId")
@@ -280,9 +277,7 @@ class GtElectricMeterCac(BaseModel):
         try:
             check_is_uuid_canonical_textual(v)
         except ValueError as e:
-            raise ValueError(
-                f"ComponentAttributeClassId failed UuidCanonicalTextual format validation: {e}"
-            )
+            raise ValueError(f"ComponentAttributeClassId failed UuidCanonicalTextual format validation: {e}")
         return v
 
     @validator("MakeModel")
@@ -290,9 +285,7 @@ class GtElectricMeterCac(BaseModel):
         return as_enum(v, EnumMakeModel, EnumMakeModel.UNKNOWNMAKE__UNKNOWNMODEL)
 
     @validator("LocalCommInterface")
-    def _check_local_comm_interface(
-        cls, v: EnumLocalCommInterface
-    ) -> EnumLocalCommInterface:
+    def _check_local_comm_interface(cls, v: EnumLocalCommInterface) -> EnumLocalCommInterface:
         return as_enum(v, EnumLocalCommInterface, EnumLocalCommInterface.UNKNOWN)
 
     def as_dict(self) -> Dict[str, Any]:
@@ -301,14 +294,8 @@ class GtElectricMeterCac(BaseModel):
         MakeModel = as_enum(self.MakeModel, EnumMakeModel, EnumMakeModel.default())
         d["MakeModelGtEnumSymbol"] = MakeModelMap.local_to_type(MakeModel)
         del d["LocalCommInterface"]
-        LocalCommInterface = as_enum(
-            self.LocalCommInterface,
-            EnumLocalCommInterface,
-            EnumLocalCommInterface.default(),
-        )
-        d["LocalCommInterfaceGtEnumSymbol"] = LocalCommInterfaceMap.local_to_type(
-            LocalCommInterface
-        )
+        LocalCommInterface = as_enum(self.LocalCommInterface, EnumLocalCommInterface, EnumLocalCommInterface.default())
+        d["LocalCommInterfaceGtEnumSymbol"] = LocalCommInterfaceMap.local_to_type(LocalCommInterface)
         if d["DisplayName"] is None:
             del d["DisplayName"]
         if d["DefaultBaud"] is None:
@@ -320,25 +307,20 @@ class GtElectricMeterCac(BaseModel):
     def as_type(self) -> str:
         return json.dumps(self.as_dict())
 
-    def __hash__(self):
-        return hash((type(self),) + tuple(self.__dict__.values())) # noqa
 
-
-class GtElectricMeterCac_Maker:
-    type_name = "gt.electric.meter.cac"
+class ElectricMeterCacGt_Maker:
+    type_name = "electric.meter.cac.gt"
     version = "000"
 
-    def __init__(
-        self,
-        component_attribute_class_id: str,
-        make_model: EnumMakeModel,
-        local_comm_interface: EnumLocalCommInterface,
-        display_name: Optional[str],
-        default_baud: Optional[int],
-        update_period_ms: Optional[int],
-    ):
+    def __init__(self,
+                    component_attribute_class_id: str,
+                    make_model: EnumMakeModel,
+                    local_comm_interface: EnumLocalCommInterface,
+                    display_name: Optional[str],
+                    default_baud: Optional[int],
+                    update_period_ms: Optional[int]):
 
-        self.tuple = GtElectricMeterCac(
+        self.tuple = ElectricMeterCacGt(
             ComponentAttributeClassId=component_attribute_class_id,
             MakeModel=make_model,
             LocalCommInterface=local_comm_interface,
@@ -349,14 +331,14 @@ class GtElectricMeterCac_Maker:
         )
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtElectricMeterCac) -> str:
+    def tuple_to_type(cls, tuple: ElectricMeterCacGt) -> str:
         """
         Given a Python class object, returns the serialized JSON type object
         """
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtElectricMeterCac:
+    def type_to_tuple(cls, t: str) -> ElectricMeterCacGt:
         """
         Given a serialized JSON type object, returns the Python class object
         """
@@ -369,7 +351,7 @@ class GtElectricMeterCac_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict[str, Any]) -> GtElectricMeterCac:
+    def dict_to_tuple(cls, d: dict[str, Any]) -> ElectricMeterCacGt:
         d2 = dict(d)
         if "ComponentAttributeClassId" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing ComponentAttributeClassId")
@@ -381,13 +363,8 @@ class GtElectricMeterCac_Maker:
             d2["MakeModel"] = EnumMakeModel.default()
         if "LocalCommInterfaceGtEnumSymbol" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing LocalCommInterfaceGtEnumSymbol")
-        if (
-            d2["LocalCommInterfaceGtEnumSymbol"]
-            in LocalCommInterface000SchemaEnum.symbols
-        ):
-            d2["LocalCommInterface"] = LocalCommInterfaceMap.type_to_local(
-                d2["LocalCommInterfaceGtEnumSymbol"]
-            )
+        if d2["LocalCommInterfaceGtEnumSymbol"] in LocalCommInterface000SchemaEnum.symbols:
+            d2["LocalCommInterface"] = LocalCommInterfaceMap.type_to_local(d2["LocalCommInterfaceGtEnumSymbol"])
         else:
             d2["LocalCommInterface"] = EnumLocalCommInterface.default()
         if "DisplayName" not in d2.keys():
@@ -399,7 +376,7 @@ class GtElectricMeterCac_Maker:
         if "TypeName" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing TypeName")
 
-        return GtElectricMeterCac(
+        return ElectricMeterCacGt(
             ComponentAttributeClassId=d2["ComponentAttributeClassId"],
             MakeModel=d2["MakeModel"],
             LocalCommInterface=d2["LocalCommInterface"],
@@ -411,30 +388,32 @@ class GtElectricMeterCac_Maker:
         )
 
     @classmethod
-    def tuple_to_dc(cls, t: GtElectricMeterCac) -> ElectricMeterCac:
+    def tuple_to_dc(cls, t: ElectricMeterCacGt) -> ElectricMeterCac:
         if t.ComponentAttributeClassId in ElectricMeterCac.by_id.keys():
             dc = ElectricMeterCac.by_id[t.ComponentAttributeClassId]
         else:
             dc = ElectricMeterCac(
-                component_attribute_class_id=t.ComponentAttributeClassId,
-                make_model=t.MakeModel,
-                local_comm_interface=t.LocalCommInterface,
-                display_name=t.DisplayName,
-                default_baud=t.DefaultBaud,
-                update_period_ms=t.UpdatePeriodMs,
+            component_attribute_class_id=t.ComponentAttributeClassId,
+            make_model=t.MakeModel,
+            local_comm_interface=t.LocalCommInterface,
+            display_name=t.DisplayName,
+            default_baud=t.DefaultBaud,
+            update_period_ms=t.UpdatePeriodMs,
+            
             )
 
         return dc
 
     @classmethod
-    def dc_to_tuple(cls, dc: ElectricMeterCac) -> GtElectricMeterCac:
-        t = GtElectricMeterCac_Maker(
+    def dc_to_tuple(cls, dc: ElectricMeterCac) -> ElectricMeterCacGt:
+        t = ElectricMeterCacGt_Maker(
             component_attribute_class_id=dc.component_attribute_class_id,
             make_model=dc.make_model,
             local_comm_interface=dc.local_comm_interface,
             display_name=dc.display_name,
             default_baud=dc.default_baud,
             update_period_ms=dc.update_period_ms,
+            
         ).tuple
         return t
 
