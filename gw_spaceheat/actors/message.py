@@ -74,8 +74,8 @@ class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
         relay_state: int,
     ):
         payload = GtDispatchBooleanLocal_Maker(
-            from_node_alias=src,
-            about_node_alias=dst,
+            from_node_name=src,
+            about_node_name=dst,
             relay_state=relay_state,
             send_time_unix_ms=int(time.time() * 1000),
         ).tuple
