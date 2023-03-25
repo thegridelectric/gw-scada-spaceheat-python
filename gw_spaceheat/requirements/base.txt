@@ -10,9 +10,11 @@ fastapi==0.93.0
     # via fastapi-utils
 fastapi-utils==0.2.1
     # via gridworks-protocol
+greenlet==2.0.2
+    # via sqlalchemy
 gridworks-proactor==0.1.4
     # via -r requirements/base.in
-gridworks-protocol==0.3.2
+gridworks-protocol==0.3.3
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
