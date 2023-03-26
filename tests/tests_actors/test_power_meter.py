@@ -23,7 +23,7 @@ from gwproactor.config import LoggerLevels
 from gwproactor.config import LoggingSettings
 from named_tuples.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
-from gwproto.messages import  GsPwr_Maker
+from gwproto.messages import PowerWatts_Maker
 
 def test_power_meter_small():
     settings = ScadaSettings()
@@ -138,7 +138,7 @@ def test_power_meter_small():
 
 @pytest.mark.asyncio
 async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
-    """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (GsPwr sending is
+    """Verify the PowerMeter sends its periodic GtShTelemetryFromMultipurposeSensor message (PowerWatts sending is
     _not_ tested here."""
 
     monkeypatch.chdir(tmp_path)
@@ -201,7 +201,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
 
 @pytest.mark.asyncio
 async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, request):
-    """Verify that when a simulated change in power is generated, Scadd and Atn both get a GsPwr message"""
+    """Verify that when a simulated change in power is generated, Scadd and Atn both get a PowerWatts message"""
 
     monkeypatch.chdir(tmp_path)
     settings = ScadaSettings(
@@ -235,7 +235,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
             await await_for(
                 lambda: scada._data.latest_total_power_w is not None,
                 1,
-                "Scada wait for initial GsPwr"
+                "Scada wait for initial PowerWatts"
             )
 
             # TODO: Cleaner test access?
@@ -248,31 +248,30 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
             # Simulate power changes. Verify Scada and Atn get messages for each.
             num_changes = 5
             for i in range(num_changes):
-                scada._logger.info(f"Generating GsPwr change {i + 1}/{num_changes}")
+                scada._logger.info(f"Generating PowerWatts change {i + 1}/{num_changes}")
                 latest_total_power_w = scada._data.latest_total_power_w
-                num_atn_gs_pwr = atn.stats.num_received_by_type[GsPwr_Maker.type_name]
+                num_atn_power_watts = atn.stats.num_received_by_type[PowerWatts_Maker.type_name]
 
-                # Simulate a change in aggregate power that should trigger a GsPwr message
+                # Simulate a change in aggregate power that should trigger a PowerWatts message
                 increment = int(
                     meter_sync_thread.async_power_reporting_threshold * meter_sync_thread.nameplate_agg_power_w
                 ) + 1
-                expected = latest_total_power_w + (increment * scada.GS_PWR_MULTIPLIER
-                                                   * len(self.runner.layout.all_power_tuples))
+                expected = latest_total_power_w + (increment * len(self.runner.layout.all_power_tuples))
                 driver.fake_power_w += increment
 
                 # Verify scada gets the message
                 await await_for(
                     lambda: scada._data.latest_total_power_w > latest_total_power_w,
                     1,
-                    "Scada wait for GsPwr"
+                    "Scada wait for PowerWatts"
                 )
                 assert scada._data.latest_total_power_w == expected
 
                 # Verify Atn gets the forwarded message
                 await await_for(
-                    lambda: atn.stats.num_received_by_type[GsPwr_Maker.type_name] > num_atn_gs_pwr,
+                    lambda: atn.stats.num_received_by_type[PowerWatts_Maker.type_name] > num_atn_power_watts,
                     1,
-                    "Atn wait for GsPwr",
+                    "Atn wait for PowerWatts",
                     err_str_f=atn.summary_str,
                 )
 

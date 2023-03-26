@@ -8,13 +8,13 @@ What we describe below are standard patterns of messages, where one message will
 
 ### Meter aggregate power change
 
-    Meter   ->  GsPwr                       ->  Scada 
-    Scada   ->  GsPwr                       ->  Atn            
+    Meter   ->  PowerWatts                       ->  Scada 
+    Scada   ->  PowerWatts                       ->  Atn            
 
 See description [here](https://github.com/thegridelectric/gw-scada-spaceheat-python/blob/main/gw_spaceheat/actors/scada.py#L253).
 
-Milliseconds matter for Scada responsiveness with GsPwr. The Scada will not, for example, request an ack
-from the `Atn` for receipt of the `GsPwr`. Note also that the `GsPwr` does not have a timestamp.
+Milliseconds matter for Scada responsiveness with PowerWatts. The Scada will not, for example, request an ack
+from the `Atn` for receipt of the `PowerWatts`. Note also that the `PowerWatts` does not have a timestamp.
 
 
 ### Scada 5 minute Status report

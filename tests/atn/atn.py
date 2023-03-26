@@ -23,7 +23,8 @@ from gwproto import create_message_payload_discriminator
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from gwproto.messages import EventBase
-from gwproto.messages import GsPwr
+from gwproto.messages import PowerWatts
+from gwproto.messages import PowerWatts_Maker
 from gwproto.messages import GtDispatchBoolean_Maker
 from gwproto.messages import GtShCliAtnCmd_Maker
 from gwproto.messages import GtShStatus
@@ -66,6 +67,7 @@ class AtnMQTTCodec(MQTTCodec):
                 [
                     GtShStatus_Maker,
                     SnapshotSpaceheat_Maker,
+                    PowerWatts_Maker,
                 ],
                 message_payload_discriminator=AtnMessageDecoder,
             ).add_decoder("p", CallableDecoder(lambda decoded: GsPwr_Maker(decoded[0]).tuple))
@@ -226,7 +228,7 @@ class Atn(ActorInterface, Proactor):
             )
         self.stats.add_message(decoded)
         match decoded.Payload:
-            case GsPwr():
+            case PowerWatts():
                 path_dbg |= 0x00000001
                 self._process_pwr(decoded.Payload)
             case SnapshotSpaceheat():
@@ -249,8 +251,8 @@ class Atn(ActorInterface, Proactor):
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     # noinspection PyMethodMayBeStatic
-    def _process_pwr(self, pwr: GsPwr) -> None:
-        rich.print("Received GsPwr")
+    def _process_pwr(self, pwr: PowerWatts) -> None:
+        rich.print("Received PowerWatts")
         rich.print(pwr)
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:

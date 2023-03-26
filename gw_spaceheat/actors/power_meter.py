@@ -12,7 +12,7 @@ from gwproto import Message
 from gwproto.enums import TelemetryName
 
 from actors.actor import SyncThreadActor
-from actors.message import GsPwrMessage
+from actors.message import PowerWattsMessage
 from actors.message import MultipurposeSensorTelemetryMessage
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
@@ -442,7 +442,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
 
     def report_aggregated_power_w(self):
         self._put_to_async_queue(
-            GsPwrMessage(
+            PowerWattsMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
                 power=self.latest_agg_power_w,
@@ -451,7 +451,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self.last_reported_agg_power_w = self.latest_agg_power_w
 
     def should_report_aggregated_power(self) -> bool:
-        """Aggregated power is sent up asynchronously on change via a GsPwr message, and the last aggregated
+        """Aggregated power is sent up asynchronously on change via a PowerWatts message, and the last aggregated
         power sent up is recorded in self.last_reported_agg_power_w."""
         if self.latest_agg_power_w is None:
             return False
