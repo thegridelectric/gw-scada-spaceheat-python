@@ -7,8 +7,8 @@ from typing import cast
 from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message
-from gwproto.messages import GsPwr
-from gwproto.messages import GsPwr_Maker
+from gwproto.messages import PowerWatts
+from gwproto.messages import PowerWatts_Maker
 from gwproto.messages import GtDispatchBooleanLocal
 from gwproto.messages import GtDispatchBooleanLocal_Maker
 from gwproto.messages import GtDriverBooleanactuatorCmd
@@ -74,8 +74,8 @@ class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
         relay_state: int,
     ):
         payload = GtDispatchBooleanLocal_Maker(
-            from_node_alias=src,
-            about_node_alias=dst,
+            from_node_name=src,
+            about_node_name=dst,
             relay_state=relay_state,
             send_time_unix_ms=int(time.time() * 1000),
         ).tuple
@@ -89,14 +89,14 @@ class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
         )
 
 
-class GsPwrMessage(Message[GsPwr]):
+class PowerWattsMessage(Message[PowerWatts]):
     def __init__(
         self,
         src: str,
         dst: str,
         power: int,
     ):
-        payload = cast(GsPwr, GsPwr_Maker(power=power).tuple)
+        payload = cast(PowerWatts, PowerWatts_Maker(watts=power).tuple)
         super().__init__(
             Header=Header(
                 Src=src,

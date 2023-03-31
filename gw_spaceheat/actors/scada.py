@@ -12,7 +12,7 @@ from typing import Optional
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
-from gwproto.messages import GsPwr
+from gwproto.messages import PowerWatts
 from gwproto.messages import GtDispatchBoolean
 from gwproto.messages import GtDispatchBoolean_Maker
 from gwproto.messages import GtDispatchBooleanLocal
@@ -108,7 +108,6 @@ class ScadaCmdDiagnostic(enum.Enum):
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
 class Scada(ScadaInterface, Proactor):
-    GS_PWR_MULTIPLIER = 1
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
     GRIDWORKS_MQTT = "gridworks"
@@ -256,14 +255,14 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case GsPwr():
+            case PowerWatts():
                 path_dbg |= 0x00000001
                 if from_node is self._layout.power_meter_node:
                     path_dbg |= 0x00000002
-                    self.gs_pwr_received(message.Payload)
+                    self.power_watts_received(message.Payload)
                 else:
                     raise Exception(
-                        f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for GsPwr message"
+                        f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
             case GtDispatchBooleanLocal():
                 path_dbg |= 0x00000004
@@ -407,7 +406,7 @@ class Scada(ScadaInterface, Proactor):
         """
         return self._scada_atn_fast_dispatch_contract_is_alive_stub
 
-    def gs_pwr_received(self, payload: GsPwr):
+    def power_watts_received(self, payload: PowerWatts):
         """The highest priority of the SCADA, from the perspective of the electric grid,
         is to report power changes as quickly as possible (i.e. milliseconds matter) on
         any asynchronous change more than x% (probably 2%).
@@ -421,7 +420,7 @@ class Scada(ScadaInterface, Proactor):
         telemetry data."""
 
         self._publish_upstream(payload, QOS.AtMostOnce)
-        self._data.latest_total_power_w = self.GS_PWR_MULTIPLIER * payload.Power
+        self._data.latest_total_power_w = payload.Watts
 
     def gt_sh_telemetry_from_multipurpose_sensor_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor

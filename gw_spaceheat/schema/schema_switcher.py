@@ -12,6 +12,7 @@ from gwproto.messages import (
     GtShTelemetryFromMultipurposeSensor_Maker,
     GtTelemetry_Maker,
     HeartbeatB_Maker,
+    PowerWatts_Maker,
     SnapshotSpaceheat_Maker,
     TelemetrySnapshotSpaceheat_Maker,
 )
@@ -30,6 +31,7 @@ schema_makers: List[GtTelemetry_Maker] = [
     GtShTelemetryFromMultipurposeSensor_Maker,
     GtTelemetry_Maker,
     HeartbeatB_Maker,
+    PowerWatts_Maker,
     SnapshotSpaceheat_Maker,
     TelemetrySnapshotSpaceheat_Maker,
 ]
