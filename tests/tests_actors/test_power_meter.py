@@ -178,11 +178,6 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
                 TelemetryTuple(
                     AboutNode=self.runner.layout.node("a.elt2"),
                     SensorNode=self.runner.actors.meter.node,
-                    TelemetryName=TelemetryName.CurrentRmsMicroAmps,
-                ),
-                TelemetryTuple(
-                    AboutNode=self.runner.layout.node("a.elt2"),
-                    SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.PowerW,
                 )
             ]
