@@ -157,8 +157,11 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
 
         def get_requested_actors(self):
             meter_node = self.runner.layout.node("a.m")
-            meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
+            meter_component = typing.cast(ElectricMeterComponent, meter_node.component)
+            meter_cac = meter_component.cac
             monkeypatch.setattr(meter_cac, "poll_period_ms", 0)
+            for config in meter_component.config_list:
+                config.SamplePeriodS = 1
             self.runner.actors.meter = actors.PowerMeter(
                 name=meter_node.alias,
                 services=self.runner.actors.scada,
@@ -227,7 +230,10 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
 
         def get_requested_actors(self):
             meter_node = self.runner.layout.node("a.m")
-            meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
+            meter_component = typing.cast(ElectricMeterComponent, meter_node.component)
+            for config in meter_component.config_list:
+                config.SamplePeriodS = 1
+            meter_cac = meter_component.cac
             monkeypatch.setattr(meter_cac, "poll_period_ms", 0)
             self.runner.actors.meter = actors.PowerMeter(
                 name=meter_node.alias,
