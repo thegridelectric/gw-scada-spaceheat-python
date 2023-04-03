@@ -1,25 +1,27 @@
-"""Tests electric.meter.component.gt type, version 100"""
+"""Tests electric.meter.component.gt type, version 000"""
 import json
 
 import pytest
-from gwproto.errors import MpSchemaError
 from pydantic import ValidationError
+
+from gwproto.errors import MpSchemaError
 from schema.electric_meter_component_gt import ElectricMeterComponentGt_Maker as Maker
 
 
 def test_electric_meter_component_gt_generated() -> None:
 
+
     d = {
         "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
-        "ComponentAttributeClassId": "c1856e62-d8c0-4352-b79e-6ae05a5294c2",
+        "ComponentAttributeClassId": 'c1856e62-d8c0-4352-b79e-6ae05a5294c2',
         "DisplayName": "Main power meter for Little orange house garage space heat",
+        "ConfigList": [],
         "HwUid": "35941_308",
         "ModbusHost": "eGauge4922.local",
         "ModbusPort": 502,
-        "ConfigList": [],
         "EgaugeIoList": [],
         "TypeName": "electric.meter.component.gt",
-        "Version": "100",
+        "Version": "000",
     }
 
     with pytest.raises(MpSchemaError):
@@ -40,11 +42,12 @@ def test_electric_meter_component_gt_generated() -> None:
         component_id=gtuple.ComponentId,
         component_attribute_class_id=gtuple.ComponentAttributeClassId,
         display_name=gtuple.DisplayName,
+        config_list=gtuple.ConfigList,
         hw_uid=gtuple.HwUid,
         modbus_host=gtuple.ModbusHost,
         modbus_port=gtuple.ModbusPort,
-        config_list=gtuple.ConfigList,
         egauge_io_list=gtuple.EgaugeIoList,
+        
     ).tuple
     assert t == gtuple
 
@@ -113,31 +116,31 @@ def test_electric_meter_component_gt_generated() -> None:
     # Behavior on incorrect types
     ######################################
 
+    d2  = dict(d, ConfigList="Not a list.")
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2  = dict(d, ConfigList=["Not a list of dicts"])
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2  = dict(d, ConfigList= [{"Failed": "Not a GtSimpleSingleStatus"}])
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
     d2 = dict(d, ModbusPort="502.1")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, ConfigList="Not a list.")
+    d2  = dict(d, EgaugeIoList="Not a list.")
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, ConfigList=["Not a list of dicts"])
+    d2  = dict(d, EgaugeIoList=["Not a list of dicts"])
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, ConfigList=[{"Failed": "Not a GtSimpleSingleStatus"}])
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(d2)
-
-    d2 = dict(d, EgaugeIoList="Not a list.")
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(d2)
-
-    d2 = dict(d, EgaugeIoList=["Not a list of dicts"])
-    with pytest.raises(MpSchemaError):
-        Maker.dict_to_tuple(d2)
-
-    d2 = dict(d, EgaugeIoList=[{"Failed": "Not a GtSimpleSingleStatus"}])
+    d2  = dict(d, EgaugeIoList= [{"Failed": "Not a GtSimpleSingleStatus"}])
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 

@@ -50,12 +50,7 @@ def test_power_meter_small():
     assert set(driver_thread.eq_reporting_config.keys()) == set(layout.all_power_meter_telemetry_tuples)
     assert set(driver_thread._last_sampled_s.keys()) == set(layout.all_power_meter_telemetry_tuples)
 
-    # Only get resistive heater nameplate attributes if node role is boost element
-    with pytest.raises(Exception):
-        setup_helper.get_resistive_heater_nameplate_power_w(layout.node("a.tank.temp0"))
 
-    with pytest.raises(Exception):
-        setup_helper.get_resistive_heater_nameplate_current_amps(layout.node("a.tank.temp0"))
 
     all_eq_configs = driver_thread.reporting_config.ElectricalQuantityReportingConfigList
 
@@ -67,45 +62,45 @@ def test_power_meter_small():
         )
     )
     assert (len(amp_list)) == 1
-    tt = TelemetryTuple(
+    tt_1 = TelemetryTuple(
         AboutNode=layout.node("a.elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.CurrentRmsMicroAmps,
     )
-    assert tt in layout.all_power_meter_telemetry_tuples
-    assert driver_thread.last_reported_telemetry_value[tt] is None
-    assert driver_thread.latest_telemetry_value[tt] is None
+    assert tt_1 in layout.all_power_meter_telemetry_tuples
+    assert driver_thread.last_reported_telemetry_value[tt_1] is None
+    assert driver_thread.latest_telemetry_value[tt_1] is None
 
     # If latest_telemetry_value is None, should not report reading
-    assert driver_thread.should_report_telemetry_reading(tt) is False
+    assert driver_thread.should_report_telemetry_reading(tt_1) is False
     driver_thread.update_latest_value_dicts()
-    assert isinstance(driver_thread.latest_telemetry_value[tt], int)
-    assert driver_thread.last_reported_telemetry_value[tt] is None
+    assert isinstance(driver_thread.latest_telemetry_value[tt_1], int)
+    assert driver_thread.last_reported_telemetry_value[tt_1] is None
 
     # If last_reported_telemetry_value exists, but last_reported is None, should report
-    assert driver_thread.should_report_telemetry_reading(tt)
-    driver_thread.report_sampled_telemetry_values([tt])
+    assert driver_thread.should_report_telemetry_reading(tt_1)
+    driver_thread.report_sampled_telemetry_values([tt_1])
 
-    assert driver_thread.last_reported_telemetry_value[tt] == driver_thread.latest_telemetry_value[tt]
+    assert driver_thread.last_reported_telemetry_value[tt_1] == driver_thread.latest_telemetry_value[tt_1]
 
-    driver_thread.last_reported_telemetry_value[tt] = driver_thread.latest_telemetry_value[tt]
+    driver_thread.last_reported_telemetry_value[tt_1] = driver_thread.latest_telemetry_value[tt_1]
 
-    assert driver_thread.value_exceeds_async_threshold(tt) is False
-    report_threshold_ratio = driver_thread.eq_reporting_config[tt].AsyncReportThreshold
-    assert driver_thread.nameplate_telemetry_value[tt] == 18750000
+    assert driver_thread.value_exceeds_async_threshold(tt_1) is False
+    report_threshold_ratio = driver_thread.eq_reporting_config[tt_1].AsyncReportThreshold
+    assert driver_thread.nameplate_telemetry_value[tt_1] == 18750000
     assert report_threshold_ratio == 0.02
-    report_threshold_microamps = driver_thread.nameplate_telemetry_value[tt] * 0.02
+    report_threshold_microamps = driver_thread.nameplate_telemetry_value[tt_1] * 0.02
     assert report_threshold_microamps == 375000
 
-    driver_thread.latest_telemetry_value[tt] += 374000
-    assert driver_thread.value_exceeds_async_threshold(tt) is False
+    driver_thread.latest_telemetry_value[tt_1] += 374000
+    assert driver_thread.value_exceeds_async_threshold(tt_1) is False
 
-    driver_thread.latest_telemetry_value[tt] += 10000
-    assert driver_thread.value_exceeds_async_threshold(tt) is True
-    assert driver_thread.should_report_telemetry_reading(tt) is True
-    driver_thread.report_sampled_telemetry_values([tt])
-    assert driver_thread.last_reported_telemetry_value[tt] == 402000
-    assert driver_thread.should_report_telemetry_reading(tt) is False
+    driver_thread.latest_telemetry_value[tt_1] += 10000
+    assert driver_thread.value_exceeds_async_threshold(tt_1) is True
+    assert driver_thread.should_report_telemetry_reading(tt_1) is True
+    driver_thread.report_sampled_telemetry_values([tt_1])
+    assert driver_thread.last_reported_telemetry_value[tt_1] == 402000
+    assert driver_thread.should_report_telemetry_reading(tt_1) is False
 
     assert driver_thread.last_reported_agg_power_w is None
     assert driver_thread.latest_agg_power_w == 0
@@ -113,8 +108,20 @@ def test_power_meter_small():
     driver_thread.report_aggregated_power_w()
     assert not driver_thread.should_report_aggregated_power()
 
-    nameplate_pwr_w_1 = setup_helper.get_resistive_heater_nameplate_power_w(layout.node("a.elt1"))
-    nameplate_pwr_w_2 = setup_helper.get_resistive_heater_nameplate_power_w(layout.node("a.elt2"))
+    pwr_1 = TelemetryTuple(
+        AboutNode=layout.node("a.elt1"),
+        SensorNode=meter.node,
+        TelemetryName=TelemetryName.PowerW
+    )
+    pwr_2 = TelemetryTuple(
+        AboutNode=layout.node("a.elt2"),
+        SensorNode=meter.node,
+        TelemetryName=TelemetryName.PowerW
+    )
+
+
+    nameplate_pwr_w_1 = driver_thread.eq_reporting_config[pwr_1].NameplateMaxValue
+    nameplate_pwr_w_2 = driver_thread.eq_reporting_config[pwr_2].NameplateMaxValue
     assert nameplate_pwr_w_1 == 4500
     assert nameplate_pwr_w_2 == 4500
     assert driver_thread.nameplate_agg_power_w == 9000
@@ -123,14 +130,14 @@ def test_power_meter_small():
     power_reporting_threshold_w = power_reporting_threshold_ratio * driver_thread.nameplate_agg_power_w
     assert power_reporting_threshold_w == 180
 
-    tt = TelemetryTuple(
+    tt_1 = TelemetryTuple(
         AboutNode=layout.node("a.elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.PowerW,
     )
-    driver_thread.latest_telemetry_value[tt] += 100
+    driver_thread.latest_telemetry_value[tt_1] += 100
     assert not driver_thread.should_report_aggregated_power()
-    driver_thread.latest_telemetry_value[tt] += 100
+    driver_thread.latest_telemetry_value[tt_1] += 100
     assert driver_thread.should_report_aggregated_power()
     driver_thread.report_aggregated_power_w()
     assert driver_thread.latest_agg_power_w == 200
@@ -151,7 +158,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
         def get_requested_actors(self):
             meter_node = self.runner.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
-            monkeypatch.setattr(meter_cac, "update_period_ms", 0)
+            monkeypatch.setattr(meter_cac, "poll_period_ms", 0)
             self.runner.actors.meter = actors.PowerMeter(
                 name=meter_node.alias,
                 services=self.runner.actors.scada,
@@ -166,10 +173,15 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
                 TelemetryTuple(
                     AboutNode=self.runner.layout.node("a.elt1"),
                     SensorNode=self.runner.actors.meter.node,
+                    TelemetryName=TelemetryName.PowerW,
+                ),
+                TelemetryTuple(
+                    AboutNode=self.runner.layout.node("a.elt2"),
+                    SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.CurrentRmsMicroAmps,
                 ),
                 TelemetryTuple(
-                    AboutNode=self.runner.layout.node("a.elt1"),
+                    AboutNode=self.runner.layout.node("a.elt2"),
                     SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.PowerW,
                 )
@@ -184,7 +196,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
                     f"wait for PowerMeter first periodic report, [{tt.TelemetryName}]"
                 )
 
-            # Verify pediodic delivery.
+            # Verify periodic delivery.
             received_tt_counts = [
                 len(scada._data.recent_values_from_multipurpose_sensor[tt]) for tt in expected_tts
             ]
@@ -221,7 +233,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
         def get_requested_actors(self):
             meter_node = self.runner.layout.node("a.m")
             meter_cac = typing.cast(ElectricMeterComponent, meter_node.component).cac
-            monkeypatch.setattr(meter_cac, "update_period_ms", 0)
+            monkeypatch.setattr(meter_cac, "poll_period_ms", 0)
             self.runner.actors.meter = actors.PowerMeter(
                 name=meter_node.alias,
                 services=self.runner.actors.scada,
@@ -256,7 +268,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
                 increment = int(
                     meter_sync_thread.async_power_reporting_threshold * meter_sync_thread.nameplate_agg_power_w
                 ) + 1
-                expected = latest_total_power_w + (increment * len(self.runner.layout.all_power_tuples))
+                expected = latest_total_power_w + (increment * len(self.runner.layout.all_telemetry_tuples_for_agg_power_metering))
                 driver.fake_power_w += increment
 
                 # Verify scada gets the message

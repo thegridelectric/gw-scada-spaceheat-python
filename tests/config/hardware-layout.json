@@ -457,18 +457,55 @@
     }
   ],
   "ElectricMeterComponents": [
-    {
-      "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
-      "ComponentAttributeClassId": "c1856e62-d8c0-4352-b79e-6ae05a5294c2",
-      "DisplayName": "Main power meter for Little orange house garage space heat",
-      "HwUid": "35941_308",
-      "ModbusHost": "eGauge4922.local",
-      "ModbusPort": 502,
-      "ConfigList": [],
-      "EgaugeIoList": [],
-      "TypeName": "electric.meter.component.gt",
-      "Version": "100"
-  }
+        {
+       "ComponentId":"2bfd0036-0b0e-4732-8790-bc7d0536a85e",
+       "ComponentAttributeClassId":"28897ac1-ea42-4633-96d3-196f63f5a951",
+       "DisplayName":"Power Meter for Simulated Test system",
+       "ConfigList":[
+          {
+             "AboutNodeName":"a.elt1",
+             "ReportOnChange":true,
+             "SamplePeriodS":300,
+             "Exponent":0,
+             "AsyncReportThreshold":0.02,
+             "NameplateMaxValue":4500,
+             "TypeName":"telemetry.reporting.config",
+             "Version":"000",
+             "TelemetryNameGtEnumSymbol":"af39eec9",
+             "UnitGtEnumSymbol":"f459a9c3"
+          },
+          {
+             "AboutNodeName":"a.elt1",
+             "ReportOnChange":true,
+             "SamplePeriodS":300,
+             "Exponent":6,
+             "AsyncReportThreshold":0.02,
+             "NameplateMaxValue":18750000,
+             "TypeName":"telemetry.reporting.config",
+             "Version":"000",
+             "TelemetryNameGtEnumSymbol":"ad19e79c",
+             "UnitGtEnumSymbol":"a969ac7c"
+          },
+          {
+             "AboutNodeName":"a.elt2",
+             "ReportOnChange":true,
+             "SamplePeriodS":300,
+             "Exponent":0,
+             "AsyncReportThreshold":0.02,
+             "NameplateMaxValue":4500,
+             "TypeName":"telemetry.reporting.config",
+             "Version":"000",
+             "TelemetryNameGtEnumSymbol":"af39eec9",
+             "UnitGtEnumSymbol":"f459a9c3"
+          }
+       ],
+       "HwUid":"35941_308",
+       "EgaugeIoList":[
+
+       ],
+       "TypeName":"electric.meter.component.gt",
+       "Version":"000"
+    }
   ],
   "PipeFlowSensorComponents": [
     {
@@ -545,8 +582,9 @@
       "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
       "MakeModelGtEnumSymbol": "076da322",
       "DisplayName": "Gridworks Pm1 Simulated Power Meter",
-      "LocalCommInterfaceGtEnumSymbol": "efc144cd",
-      "UpdatePeriodMs": 1000,
+      "InterfaceGtEnumSymbol": "efc144cd",
+      "PollPeriodMs": 1000,
+      "TelemetryNameList": ["af39eec9"],
       "TypeName": "electric.meter.cac.gt",
       "Version": "000"
     }

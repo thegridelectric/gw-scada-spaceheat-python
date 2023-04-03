@@ -493,7 +493,7 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             assert isinstance(snapshot, SnapshotSpaceheat)
             assert set(snapshot.Snapshot.AboutNodeAliasList) == set(
                 [relay.node.alias, thermo.node.alias] + [
-                    node.alias for node in self.runner.layout.all_metered_nodes
+                    node.alias for node in self.runner.layout.all_nodes_in_agg_power_metering
                 ]
             )
             assert len(snapshot.Snapshot.AboutNodeAliasList) == 2 + \

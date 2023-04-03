@@ -105,56 +105,30 @@ class DriverThreadSetupHelper:
 
     def make_eq_reporting_config(self) -> Dict[TelemetryTuple, TelemetryReportingConfig]:
         eq_reporting_config: Dict[TelemetryTuple, TelemetryReportingConfig] = OrderedDict()
-        for about_node in self.hardware_layout.all_metered_nodes:
+        for config in self.component.config_list:
+            about_node = self.hardware_layout.node(config.AboutNodeName)
             eq_reporting_config[
                 TelemetryTuple(
                     AboutNode=about_node,
                     SensorNode=self.node,
-                    TelemetryName=TelemetryName.CurrentRmsMicroAmps,
+                    TelemetryName=config.TelemetryName
                 )
-            ] = TelemetryReportingConfig_Maker(
-                about_node_name=about_node.alias,
-                report_on_change=True,
-                telemetry_name=TelemetryName.CurrentRmsMicroAmps,
-                unit=Unit.AmpsRms,
-                exponent=6,
-                sample_period_s=self.settings.seconds_per_report,
-                async_report_threshold=self.settings.async_power_reporting_threshold,
-                nameplate_max_value=None,
-            ).tuple
-            eq_reporting_config[
-                TelemetryTuple(
-                    AboutNode=about_node,
-                    SensorNode=self.node,
-                    TelemetryName=TelemetryName.PowerW,
-                )
-            ] = TelemetryReportingConfig_Maker(
-                about_node_name=about_node.alias,
-                report_on_change=True,
-                telemetry_name=TelemetryName.PowerW,
-                unit=Unit.W,
-                exponent=0,
-                sample_period_s=self.settings.seconds_per_report,
-                async_report_threshold=self.settings.async_power_reporting_threshold,
-                nameplate_max_value=None,
-            ).tuple
+            ] = config
         return eq_reporting_config
 
-    def make_reporting_config(
-        self, eq_reporting_config_list: List[TelemetryReportingConfig]
-    ) -> ReportingConfig:
-        if self.component.cac.update_period_ms is None:
+    def make_reporting_config(self) -> ReportingConfig:
+        if self.component.cac.poll_period_ms is None:
             poll_period_ms = self.FASTEST_POWER_METER_POLL_PERIOD_MS
         else:
             poll_period_ms = max(
                 self.FASTEST_POWER_METER_POLL_PERIOD_MS,
-                self.component.cac.update_period_ms,
+                self.component.cac.poll_period_ms,
             )
         return GtPowermeterReportingConfig_Maker(
             reporting_period_s=self.settings.seconds_per_report,
             poll_period_ms=poll_period_ms,
             hw_uid=self.component.hw_uid,
-            electrical_quantity_reporting_config_list=eq_reporting_config_list,
+            electrical_quantity_reporting_config_list=self.component.config_list,
         ).tuple
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
@@ -193,35 +167,16 @@ class DriverThreadSetupHelper:
     def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
         return cls.get_resistive_heater_component(node).cac.nameplate_max_power_w
 
-    @classmethod
-    def get_resistive_heater_nameplate_current_amps(cls, node: ShNode) -> float:
-        """Note that all ShNodes of role BOOST_ELEMENT must have a non-zero RatedVoltageV and have a component
-        of type ResistiveHeaterComponent.  Likewise, all ResistiveHeaterCacs have a positive NamePlateMaxPower.
-        This is enforced by schema and not checked here."""
-        return cls.get_resistive_heater_nameplate_power_w(node) / node.rated_voltage_v
 
     def get_nameplate_telemetry_value(self) -> Dict[TelemetryTuple, int]:
         response_dict: Dict[TelemetryTuple, int] = {}
-        for about_node in self.hardware_layout.all_resistive_heaters:
-            current_tt = TelemetryTuple(
-                AboutNode=about_node,
+        for config in self.component.config_list:
+            tt = TelemetryTuple(
+                AboutNode=self.hardware_layout.node(config.AboutNodeName),
                 SensorNode=self.node,
-                TelemetryName=TelemetryName.CurrentRmsMicroAmps,
+                TelemetryName=config.TelemetryName,
             )
-            nameplate_current_amps = self.get_resistive_heater_nameplate_current_amps(
-                node=about_node
-            )
-            response_dict[current_tt] = int(10**6 * nameplate_current_amps)
-
-            power_tt = TelemetryTuple(
-                AboutNode=about_node,
-                SensorNode=self.node,
-                TelemetryName=TelemetryName.PowerW,
-            )
-            nameplate_power_w = self.get_resistive_heater_nameplate_power_w(
-                node=about_node
-            )
-            response_dict[power_tt] = int(nameplate_power_w)
+            response_dict[tt] = config.NameplateMaxValue
         return response_dict
 
 
@@ -258,9 +213,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self._telemetry_destination = telemetry_destination
         setup_helper = DriverThreadSetupHelper(node, settings, hardware_layout)
         self.eq_reporting_config = setup_helper.make_eq_reporting_config()
-        self.reporting_config = setup_helper.make_reporting_config(
-            list(self.eq_reporting_config.values())
-        )
+        self.reporting_config = setup_helper.make_reporting_config()
         self.driver = setup_helper.make_power_meter_driver()
         self.nameplate_telemetry_value = setup_helper.get_nameplate_telemetry_value()
         self.last_reported_agg_power_w: Optional[int] = None
@@ -341,7 +294,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
 
     def update_latest_value_dicts(self):
         for tt in self._hardware_layout.all_power_meter_telemetry_tuples:
-            read = self.driver.read_telemetry_value(tt.TelemetryName)
+            read = self.driver.read_telemetry_value(tt.AboutNode, tt.TelemetryName)
             if read.is_ok():
                 if read.value.value is not None:
                     self.latest_telemetry_value[tt] = read.value.value
@@ -425,7 +378,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         latest_power_list = [
             v
             for k, v in self.latest_telemetry_value.items()
-            if k in self._hardware_layout.all_power_tuples
+            if k in self._hardware_layout.all_telemetry_tuples_for_agg_power_metering
         ]
         if None in latest_power_list:
             return None
@@ -436,7 +389,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         nameplate_power_list = [
             v
             for k, v in self.nameplate_telemetry_value.items()
-            if k in self._hardware_layout.all_power_tuples
+            if k in self._hardware_layout.all_telemetry_tuples_for_agg_power_metering
         ]
         return int(sum(nameplate_power_list))
 
@@ -454,6 +407,8 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         """Aggregated power is sent up asynchronously on change via a PowerWatts message, and the last aggregated
         power sent up is recorded in self.last_reported_agg_power_w."""
         if self.latest_agg_power_w is None:
+            return False
+        if self.nameplate_agg_power_w == 0:
             return False
         if self.last_reported_agg_power_w is None:
             return True
