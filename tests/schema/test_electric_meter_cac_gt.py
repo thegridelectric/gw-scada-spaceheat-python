@@ -1,23 +1,28 @@
-"""Tests gt.electric.meter.cac type, version 000"""
+"""Tests electric.meter.cac.gt type, version 000"""
 import json
 
 import pytest
-from enums import LocalCommInterface, MakeModel
-from gwproto.errors import MpSchemaError
 from pydantic import ValidationError
-from schema import GtElectricMeterCac_Maker as Maker
+
+from gwproto.errors import MpSchemaError
+from schema import ElectricMeterCacGt_Maker as Maker
+from enums import TelemetryName
+from enums import LocalCommInterface
+from enums import MakeModel
 
 
-def test_gt_electric_meter_cac_generated() -> None:
+def test_electric_meter_cac_gt_generated() -> None:
+
 
     d = {
         "ComponentAttributeClassId": "a3d298fb-a4ef-427a-939d-02cc9c9689c1",
         "MakeModelGtEnumSymbol": "53129448",
-        "LocalCommInterfaceGtEnumSymbol": "a6a4ac9f",
         "DisplayName": "Schneider Electric Iem3455 Power Meter",
+        "PollPeriodMs": 1000,
+        "InterfaceGtEnumSymbol": "a6a4ac9f",
         "DefaultBaud": 9600,
-        "UpdatePeriodMs": 1000,
-        "TypeName": "gt.electric.meter.cac",
+        "TelemetryNameList": ["af39eec9"],
+        "TypeName": "electric.meter.cac.gt",
         "Version": "000",
     }
 
@@ -38,10 +43,12 @@ def test_gt_electric_meter_cac_generated() -> None:
     t = Maker(
         component_attribute_class_id=gtuple.ComponentAttributeClassId,
         make_model=gtuple.MakeModel,
-        local_comm_interface=gtuple.LocalCommInterface,
         display_name=gtuple.DisplayName,
+        telemetry_name_list=gtuple.TelemetryNameList,
+        poll_period_ms=gtuple.PollPeriodMs,
+        interface=gtuple.Interface,
         default_baud=gtuple.DefaultBaud,
-        update_period_ms=gtuple.UpdatePeriodMs,
+        
     ).tuple
     assert t == gtuple
 
@@ -73,7 +80,17 @@ def test_gt_electric_meter_cac_generated() -> None:
         Maker.dict_to_tuple(d2)
 
     d2 = dict(d)
-    del d2["LocalCommInterfaceGtEnumSymbol"]
+    del d2["TelemetryNameList"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d)
+    del d2["PollPeriodMs"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d)
+    del d2["InterfaceGtEnumSymbol"]
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
@@ -91,26 +108,21 @@ def test_gt_electric_meter_cac_generated() -> None:
         del d2["DefaultBaud"]
     Maker.dict_to_tuple(d2)
 
-    d2 = dict(d)
-    if "UpdatePeriodMs" in d2.keys():
-        del d2["UpdatePeriodMs"]
-    Maker.dict_to_tuple(d2)
-
     ######################################
     # Behavior on incorrect types
     ######################################
 
-    d2 = dict(d, MakeModelGtEnumSymbol="hi")
+    d2 = dict(d, MakeModelGtEnumSymbol = 'hi')
     Maker.dict_to_tuple(d2).MakeModel = MakeModel.default()
 
-    d2 = dict(d, LocalCommInterfaceGtEnumSymbol="hi")
-    Maker.dict_to_tuple(d2).LocalCommInterface = LocalCommInterface.default()
-
-    d2 = dict(d, DefaultBaud="9600.1")
+    d2 = dict(d, PollPeriodMs="1000.1")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, UpdatePeriodMs="1000.1")
+    d2 = dict(d, InterfaceGtEnumSymbol = 'hi')
+    Maker.dict_to_tuple(d2).Interface = LocalCommInterface.default()
+
+    d2 = dict(d, DefaultBaud="9600.1")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 

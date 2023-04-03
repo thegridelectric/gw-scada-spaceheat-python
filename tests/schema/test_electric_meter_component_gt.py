@@ -1,24 +1,26 @@
-"""Tests gt.electric.meter.component type, version 000"""
+"""Tests electric.meter.component.gt type, version 000"""
 import json
 
 import pytest
-from gwproto.errors import MpSchemaError
 from pydantic import ValidationError
-from schema import GtElectricMeterComponent_Maker as Maker
+
+from gwproto.errors import MpSchemaError
+from schema.electric_meter_component_gt import ElectricMeterComponentGt_Maker as Maker
 
 
-def test_gt_electric_meter_component_generated() -> None:
+def test_electric_meter_component_gt_generated() -> None:
+
 
     d = {
         "ComponentId": "04ceb282-d7e8-4293-80b5-72455e1a5db3",
-        "ComponentAttributeClassId": "c1856e62-d8c0-4352-b79e-6ae05a5294c2",
+        "ComponentAttributeClassId": 'c1856e62-d8c0-4352-b79e-6ae05a5294c2',
         "DisplayName": "Main power meter for Little orange house garage space heat",
+        "ConfigList": [],
         "HwUid": "35941_308",
         "ModbusHost": "eGauge4922.local",
         "ModbusPort": 502,
-        "ModbusPowerRegister": 9016,
-        "ModbusHwUidRegister": 100,
-        "TypeName": "gt.electric.meter.component",
+        "EgaugeIoList": [],
+        "TypeName": "electric.meter.component.gt",
         "Version": "000",
     }
 
@@ -40,11 +42,12 @@ def test_gt_electric_meter_component_generated() -> None:
         component_id=gtuple.ComponentId,
         component_attribute_class_id=gtuple.ComponentAttributeClassId,
         display_name=gtuple.DisplayName,
+        config_list=gtuple.ConfigList,
         hw_uid=gtuple.HwUid,
         modbus_host=gtuple.ModbusHost,
         modbus_port=gtuple.ModbusPort,
-        modbus_power_register=gtuple.ModbusPowerRegister,
-        modbus_hw_uid_register=gtuple.ModbusHwUidRegister,
+        egauge_io_list=gtuple.EgaugeIoList,
+        
     ).tuple
     assert t == gtuple
 
@@ -75,6 +78,16 @@ def test_gt_electric_meter_component_generated() -> None:
     with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
+    d2 = dict(d)
+    del d2["ConfigList"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2 = dict(d)
+    del d2["EgaugeIoList"]
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
     ######################################
     # Optional attributes can be removed from type
     ######################################
@@ -99,30 +112,36 @@ def test_gt_electric_meter_component_generated() -> None:
         del d2["ModbusPort"]
     Maker.dict_to_tuple(d2)
 
-    d2 = dict(d)
-    if "ModbusPowerRegister" in d2.keys():
-        del d2["ModbusPowerRegister"]
-    Maker.dict_to_tuple(d2)
-
-    d2 = dict(d)
-    if "ModbusHwUidRegister" in d2.keys():
-        del d2["ModbusHwUidRegister"]
-    Maker.dict_to_tuple(d2)
-
     ######################################
     # Behavior on incorrect types
     ######################################
+
+    d2  = dict(d, ConfigList="Not a list.")
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2  = dict(d, ConfigList=["Not a list of dicts"])
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2  = dict(d, ConfigList= [{"Failed": "Not a GtSimpleSingleStatus"}])
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
 
     d2 = dict(d, ModbusPort="502.1")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, ModbusPowerRegister="9016.1")
-    with pytest.raises(ValidationError):
+    d2  = dict(d, EgaugeIoList="Not a list.")
+    with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, ModbusHwUidRegister="100.1")
-    with pytest.raises(ValidationError):
+    d2  = dict(d, EgaugeIoList=["Not a list of dicts"])
+    with pytest.raises(MpSchemaError):
+        Maker.dict_to_tuple(d2)
+
+    d2  = dict(d, EgaugeIoList= [{"Failed": "Not a GtSimpleSingleStatus"}])
+    with pytest.raises(MpSchemaError):
         Maker.dict_to_tuple(d2)
 
     ######################################

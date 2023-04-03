@@ -10,7 +10,9 @@ from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
+from data_classes.sh_node import ShNode
 from data_classes.components.electric_meter_component import ElectricMeterComponent
+from gwproto.enums import TelemetryName
 from drivers.driver_result import DriverResult
 from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge import ModbusClientSettings
@@ -80,6 +82,7 @@ class EGaugeConnectFailed(EGaugeCommWarning):
 
 class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     MAX_RECONNECT_DELAY_SECONDS: float = 10
+    MODBUS_HW_UID_REGISTER: int = 100
     CLIENT_TIMEOUT: float = 3.0
 
     _modbus_client: Optional[ModbusClient] = None
@@ -133,13 +136,10 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     def start(self) -> Result[DriverResult[bool], Exception]:
         return self.try_connect(first_time=True)
 
-    def read_current_rms_micro_amps(self) -> Result[DriverResult[int | None], Exception]:
-        raise NotImplementedError
-
     def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
         connect_result = self.try_connect()
         if connect_result.is_ok() and connect_result.value.value:
-            _, _, bytes_ = readT16(self._modbus_client, self.component.modbus_hw_uid_register)
+            _, _, bytes_ = readT16(self._modbus_client, self.MODBUS_HW_UID_REGISTER)
             if bytes_ is not None:
                 return Ok(DriverResult(bytes_.decode("utf-8"), connect_result.value.warnings))
             else:
@@ -148,7 +148,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                         None,
                         connect_result.value.warnings + [
                             EGaugeReadFailed(
-                                offset=self.component.modbus_hw_uid_register,
+                                offset=self.MODBUS_HW_UID_REGISTER,
                                 num_registers=8,
                                 register_type=RegisterType.t16,
                                 value=None,
@@ -160,16 +160,28 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         else:
             return connect_result
 
-    def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
+    def read_power_w(self, node: ShNode) -> Result[DriverResult[int | None], Exception]:
+        output_config_list = self.component.config_list
+        channel_list = list(filter(lambda x: x.TelemetryName == TelemetryName.PowerW and x.AboutNodeName==node.alias, output_config_list))
+        if len(channel_list) == 0:
+            raise Exception(f"Reading power for {node} but this is not in the ConfigList!")
+        output_config = channel_list[0]
+        egauge_config = list(filter(lambda x: x.OutputConfig == output_config, self.component.egauge_io_list))[0].InputConfig
+        if egauge_config.Type != 'f32':
+            return Result[Exception(f"Misconfigured eGaugeConfig for power. Type must be f32: {egauge_config}")]
+        if egauge_config.Unit != 'W':
+            return Result[Exception(f"Misconfigured eGaugeConfig for power. Unit must be W: {egauge_config}")]
+        if egauge_config.Denominator != 1:
+            return Result[Exception(f"Misconfigured eGaugeConfig for power. Denominator must be 1: {egauge_config}")]
         connect_result = self.try_connect()
         if connect_result.is_ok() and connect_result.value.value:
-            _, _, power = readF32(self._modbus_client, self.component.modbus_power_register)
+            _, _, power = readF32(self._modbus_client, egauge_config.Address)
             returned_power: int | None
             driver_result: DriverResult[int | None] = DriverResult(None, connect_result.value.warnings)
             if power is None:
                 driver_result.warnings.append(
                     EGaugeReadFailed(
-                        offset=self.component.modbus_power_register,
+                        offset=egauge_config.Address,
                         num_registers=2,
                         register_type=RegisterType.f32,
                         value=None,
@@ -185,7 +197,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                     driver_result.value = max(MIN_POWER, min(int(driver_result.value), MAX_POWER))
                     driver_result.warnings.append(
                         EGaugeReadOutOfRange(
-                            offset=self.component.modbus_power_register,
+                            offset=egauge_config.Address,
                             num_registers=2,
                             register_type=RegisterType.f32,
                             value=unclipped_int_power,
@@ -196,3 +208,6 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             return Ok(driver_result)
         else:
             return connect_result
+
+    def read_current_rms_micro_amps(self, node: ShNode) -> Result[DriverResult[int | None], Exception]:
+        raise NotImplementedError

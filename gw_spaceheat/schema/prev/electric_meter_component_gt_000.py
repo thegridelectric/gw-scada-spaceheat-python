@@ -1,11 +1,11 @@
-"""Type gt.electric.meter.component, version 000"""
+"""Type electric.meter.component.gt, version 000"""
 import json
 from typing import Any, Dict, Literal, Optional
 
 from data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from gwproto.errors import MpSchemaError
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, validator
 
 
 def check_is_uuid_canonical_textual(v: str) -> None:
@@ -43,12 +43,12 @@ def check_is_uuid_canonical_textual(v: str) -> None:
         raise ValueError(f"{v} word lengths not 8-4-4-4-12")
 
 
-class GtElectricMeterComponent(BaseModel):
+class ElectricMeterComponentGt000(BaseModel):
     """Type for tracking Electric Meter Components.
 
     GridWorks Spaceheat SCADA uses the GridWorks GNodeRegistry structures and abstractions
-    for managing relational device data. The Component associated to a SpaceheatNode is
-    part of this structure.
+    for managing relational device data. The Component associated to a SpaceheatNode
+    is part of this structure.
     [More info](https://g-node-registry.readthedocs.io/en/latest/component.html).
     """
 
@@ -82,7 +82,7 @@ class GtElectricMeterComponent(BaseModel):
         title="ModbusHwUidRegister",
         default=None,
     )
-    TypeName: Literal["gt.electric.meter.component"] = "gt.electric.meter.component"
+    TypeName: Literal["electric.meter.component.gt"] = "electric.meter.component.gt"
     Version: str = "000"
 
     @validator("ComponentId")
@@ -105,15 +105,6 @@ class GtElectricMeterComponent(BaseModel):
             )
         return v
 
-    @root_validator
-    def check_axiom_1(cls, v: dict) -> dict:
-        """
-        Axiom 1: ConfigList EgaugeIoList consistency.
-        If EgaugeIoList has any elements, then its set of OutputConfigs is equal to the ConfigList as a set.
-        """
-        # TODO: Implement check for axiom 1"
-        return v
-
     def as_dict(self) -> Dict[str, Any]:
         d = self.dict()
         if d["DisplayName"] is None:
@@ -133,11 +124,9 @@ class GtElectricMeterComponent(BaseModel):
     def as_type(self) -> str:
         return json.dumps(self.as_dict())
 
-    def __hash__(self):
-        return hash((type(self),) + tuple(self.__dict__.values())) # noqa
 
-class GtElectricMeterComponent_Maker:
-    type_name = "gt.electric.meter.component"
+class ElectricMeterComponentGt000_Maker:
+    type_name = "electric.meter.component.gt"
     version = "000"
 
     def __init__(
@@ -152,7 +141,7 @@ class GtElectricMeterComponent_Maker:
         modbus_hw_uid_register: Optional[int],
     ):
 
-        self.tuple = GtElectricMeterComponent(
+        self.tuple = ElectricMeterComponentGt000(
             ComponentId=component_id,
             ComponentAttributeClassId=component_attribute_class_id,
             DisplayName=display_name,
@@ -165,14 +154,14 @@ class GtElectricMeterComponent_Maker:
         )
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtElectricMeterComponent) -> str:
+    def tuple_to_type(cls, tuple: ElectricMeterComponentGt000) -> str:
         """
         Given a Python class object, returns the serialized JSON type object
         """
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: str) -> GtElectricMeterComponent:
+    def type_to_tuple(cls, t: str) -> ElectricMeterComponentGt000:
         """
         Given a serialized JSON type object, returns the Python class object
         """
@@ -185,7 +174,7 @@ class GtElectricMeterComponent_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict[str, Any]) -> GtElectricMeterComponent:
+    def dict_to_tuple(cls, d: dict[str, Any]) -> ElectricMeterComponentGt000:
         d2 = dict(d)
         if "ComponentId" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing ComponentId")
@@ -206,7 +195,7 @@ class GtElectricMeterComponent_Maker:
         if "TypeName" not in d2.keys():
             raise MpSchemaError(f"dict {d2} missing TypeName")
 
-        return GtElectricMeterComponent(
+        return ElectricMeterComponentGt000(
             ComponentId=d2["ComponentId"],
             ComponentAttributeClassId=d2["ComponentAttributeClassId"],
             DisplayName=d2["DisplayName"],
@@ -218,47 +207,3 @@ class GtElectricMeterComponent_Maker:
             TypeName=d2["TypeName"],
             Version="000",
         )
-
-    @classmethod
-    def tuple_to_dc(cls, t: GtElectricMeterComponent) -> ElectricMeterComponent:
-        if t.ComponentId in ElectricMeterComponent.by_id.keys():
-            dc = ElectricMeterComponent.by_id[t.ComponentId]
-        else:
-            dc = ElectricMeterComponent(
-                component_id=t.ComponentId,
-                component_attribute_class_id=t.ComponentAttributeClassId,
-                display_name=t.DisplayName,
-                hw_uid=t.HwUid,
-                modbus_host=t.ModbusHost,
-                modbus_port=t.ModbusPort,
-                modbus_power_register=t.ModbusPowerRegister,
-                modbus_hw_uid_register=t.ModbusHwUidRegister,
-            )
-
-        return dc
-
-    @classmethod
-    def dc_to_tuple(cls, dc: ElectricMeterComponent) -> GtElectricMeterComponent:
-        t = GtElectricMeterComponent_Maker(
-            component_id=dc.component_id,
-            component_attribute_class_id=dc.component_attribute_class_id,
-            display_name=dc.display_name,
-            hw_uid=dc.hw_uid,
-            modbus_host=dc.modbus_host,
-            modbus_port=dc.modbus_port,
-            modbus_power_register=dc.modbus_power_register,
-            modbus_hw_uid_register=dc.modbus_hw_uid_register,
-        ).tuple
-        return t
-
-    @classmethod
-    def type_to_dc(cls, t: str) -> ElectricMeterComponent:
-        return cls.tuple_to_dc(cls.type_to_tuple(t))
-
-    @classmethod
-    def dc_to_type(cls, dc: ElectricMeterComponent) -> str:
-        return cls.dc_to_tuple(dc).as_type()
-
-    @classmethod
-    def dict_to_dc(cls, d: dict[Any, str]) -> ElectricMeterComponent:
-        return cls.tuple_to_dc(cls.dict_to_tuple(d))

@@ -13,6 +13,7 @@ from typing import List, Any, Optional
 from functools import cached_property
 from pathlib import Path
 
+from data_classes.components.electric_meter_component import ElectricMeterComponent
 from data_classes.cacs.electric_meter_cac import ElectricMeterCac
 from data_classes.errors import DataClassLoadingError
 from data_classes.sh_node import ShNode
@@ -29,8 +30,8 @@ from schema import GtBooleanActuatorComponent_Maker
 from schema import ResistiveHeaterCacGt_Maker
 from schema import ResistiveHeaterComponentGt_Maker
 
-from schema import GtElectricMeterCac_Maker
-from schema import GtElectricMeterComponent_Maker
+from schema import ElectricMeterCacGt_Maker
+from schema.electric_meter_component_gt import ElectricMeterComponentGt_Maker
 
 from schema import PipeFlowSensorCacGt_Maker
 
@@ -63,7 +64,7 @@ def load_cacs(layout: dict, raise_errors: bool = True) -> list[LoadError]:
     for type_name, maker_class in [
         ("BooleanActuatorCacs", GtBooleanActuatorCac_Maker),
         ("ResistiveHeaterCacs", ResistiveHeaterCacGt_Maker),
-        ("ElectricMeterCacs", GtElectricMeterCac_Maker),
+        ("ElectricMeterCacs", ElectricMeterCacGt_Maker),
         ("PipeFlowSensorCacs", PipeFlowSensorCacGt_Maker),
         ("MultipurposeSensorCacs", MultipurposeSensorCacGt_Maker),
         ("SimpleTempSensorCacs", SimpleTempSensorCacGt_Maker),
@@ -92,7 +93,7 @@ def load_components(layout: dict, raise_errors: bool = True) -> list[LoadError]:
     for type_name, maker_class in [
         ("BooleanActuatorComponents", GtBooleanActuatorComponent_Maker),
         ("ResistiveHeaterComponents", ResistiveHeaterComponentGt_Maker),
-        ("ElectricMeterComponents", GtElectricMeterComponent_Maker),
+        ("ElectricMeterComponents", ElectricMeterComponentGt_Maker),
         ("PipeFlowSensorComponents", PipeFlowSensorComponentGt_Maker),
         ("MultipurposeSensorComponents", MultipurposeSensorComponentGt_Maker),
         ("SimpleTempSensorComponents", SimpleTempSensorComponentGt_Maker),
@@ -229,9 +230,9 @@ class HardwareLayout:
         return my_scada_as_dict["GNodeId"]
 
     @cached_property
-    def all_power_tuples(self) -> List[TelemetryTuple]:
+    def all_telemetry_tuples_for_agg_power_metering(self) -> List[TelemetryTuple]:
         telemetry_tuples = []
-        for node in self.all_metered_nodes:
+        for node in self.all_nodes_in_agg_power_metering:
             telemetry_tuples += [
                 TelemetryTuple(
                     AboutNode=node,
@@ -242,21 +243,20 @@ class HardwareLayout:
         return telemetry_tuples
 
     @cached_property
-    def all_metered_nodes(self) -> List[ShNode]:
+    def all_nodes_in_agg_power_metering(self) -> List[ShNode]:
         """All nodes whose power level is metered and included in power reporting by the Scada"""
-        return self.all_resistive_heaters
+        all_nodes = list(self.nodes.values())
+        return list(filter(lambda x: x.in_power_metering, all_nodes))
 
     @cached_property
     def all_power_meter_telemetry_tuples(self) -> List[TelemetryTuple]:
-        telemetry_names = self.power_meter_cac.telemetry_name_list()
         telemetry_tuples = []
-        for about_node in self.all_metered_nodes:
-            for telemetry_name in telemetry_names:
-                telemetry_tuples.append(
+        for config in self.power_meter_component.config_list:
+            telemetry_tuples.append(
                     TelemetryTuple(
-                        AboutNode=about_node,
+                        AboutNode=self.node(config.AboutNodeName),
                         SensorNode=self.power_meter_node,
-                        TelemetryName=telemetry_name,
+                        TelemetryName=config.TelemetryName,
                     )
                 )
         return telemetry_tuples
@@ -268,10 +268,11 @@ class HardwareLayout:
         return power_meter_node
 
     @cached_property
-    def power_meter_component(self) -> Component:
+    def power_meter_component(self) -> ElectricMeterComponent:
         if self.power_meter_node.component is None:
             raise ValueError(f"ERROR. power_meter_node {self.power_meter_node} has no component.")
-        return self.power_meter_node.component
+        c = typing.cast(ElectricMeterComponent, self.power_meter_node.component)
+        return c
 
     @cached_property
     def power_meter_cac(self) -> ElectricMeterCac:
@@ -289,14 +290,6 @@ class HardwareLayout:
     def all_resistive_heaters(self) -> List[ShNode]:
         all_nodes = list(self.nodes.values())
         return list(filter(lambda x: (x.role == Role.BoostElement), all_nodes))
-
-    @cached_property
-    def power_meter_node(self) -> ShNode:
-        """Schema for input data enforces exactly one Spaceheat Node with role PowerMeter"""
-        nodes = list(
-            filter(lambda x: x.role == Role.PowerMeter, self.nodes.values())
-        )
-        return nodes[0]
 
     @cached_property
     def scada_node(self) -> ShNode:
