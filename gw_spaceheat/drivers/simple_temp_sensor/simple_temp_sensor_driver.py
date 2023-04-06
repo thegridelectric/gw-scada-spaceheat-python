@@ -4,7 +4,7 @@ import logging
 from result import Ok
 from result import Result
 
-from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
+from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 

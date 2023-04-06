@@ -14,7 +14,7 @@ greenlet==2.0.2
     # via sqlalchemy
 gridworks-proactor==0.1.5
     # via -r base.in
-gridworks-protocol==0.3.6
+gridworks-protocol==0.4.1
     # via
     #   -r base.in
     #   gridworks-proactor

@@ -3,15 +3,15 @@ import importlib
 import importlib.util
 
 from actors.config import ScadaSettings
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.sh_node import ShNode
 from schema import GtSensorReportingConfig_Maker as ConfigMaker
 from enums import Unit
 from enums import MakeModel
 from enums import TelemetryName
 
-from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
-from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
-from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
+from gwproto.data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from gwproto.data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
+from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 
 
 class NodeConfig:

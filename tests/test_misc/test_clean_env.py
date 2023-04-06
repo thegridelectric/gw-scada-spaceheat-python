@@ -2,7 +2,7 @@ from tests.conftest import DUMMY_TEST_HARDWARE_LAYOUT_PATH
 
 import pytest
 from gwproactor.config import Paths
-from data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.hardware_layout import HardwareLayout
 
 
 def test_clean_env(tmp_path):

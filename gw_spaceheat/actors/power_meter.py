@@ -16,10 +16,10 @@ from actors.message import PowerWattsMessage
 from actors.message import MultipurposeSensorTelemetryMessage
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from data_classes.components.electric_meter_component import ElectricMeterComponent
-from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
-from data_classes.hardware_layout import HardwareLayout
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
+from gwproto.data_classes.components.resistive_heater_component import ResistiveHeaterComponent
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
 from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
@@ -33,16 +33,14 @@ from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
     SchneiderElectricIem3455_PowerMeterDriver,
 )
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
-from named_tuples.telemetry_tuple import TelemetryTuple
+from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
 from enums import MakeModel
 from enums import Role
-from enums import Unit
-from schema import (
+from gwproto.types import (
     TelemetryReportingConfig,
-    TelemetryReportingConfig_Maker,
 )
 from schema import GtPowermeterReportingConfig as ReportingConfig
 

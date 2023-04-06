@@ -7,7 +7,7 @@ from gwproto.messages import SnapshotSpaceheat_Maker
 from gwproto.messages import GtShStatusEvent
 from gwproto.messages import SnapshotSpaceheatEvent
 
-from data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.hardware_layout import HardwareLayout
 from tests.atn import AtnSettings
 from tests.utils.fragment_runner import Actors
 from tests.utils.fragment_runner import AsyncFragmentRunner
@@ -19,8 +19,8 @@ import pytest
 from actors import Scada
 from actors.scada import ScadaCmdDiagnostic
 from actors.config import ScadaSettings
-from data_classes.sh_node import ShNode
-from named_tuples.telemetry_tuple import TelemetryTuple
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
 from gwproto.messages import GtShBooleanactuatorCmdStatus
 from gwproto.messages import GtShMultipurposeTelemetryStatus

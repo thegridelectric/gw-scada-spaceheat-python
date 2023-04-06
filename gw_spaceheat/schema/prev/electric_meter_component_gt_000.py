@@ -2,7 +2,7 @@
 import json
 from typing import Any, Dict, Literal, Optional
 
-from data_classes.components.electric_meter_component import \
+from gwproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from gwproto.errors import MpSchemaError
 from pydantic import BaseModel, Field, validator

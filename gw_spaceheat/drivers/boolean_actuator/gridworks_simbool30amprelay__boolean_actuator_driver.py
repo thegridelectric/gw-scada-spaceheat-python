@@ -4,7 +4,7 @@ from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-from data_classes.components.boolean_actuator_component import \
+from gwproto.data_classes.components.boolean_actuator_component import \
     BooleanActuatorComponent
 from drivers.boolean_actuator.boolean_actuator_driver import \
     BooleanActuatorDriver

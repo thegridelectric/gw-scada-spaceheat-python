@@ -1,10 +1,10 @@
 """ GwSchema Enums used in scada """
-from enums.actor_class import ActorClass
-from enums.local_comm_interface import LocalCommInterface
-from enums.make_model import MakeModel
-from enums.role import Role
-from enums.unit import Unit
-from gwproto.enums.telemetry_name import TelemetryName
+from gwproto.enums import ActorClass
+from gwproto.enums import LocalCommInterface
+from gwproto.enums import MakeModel
+from gwproto.enums import Role
+from gwproto.enums import Unit
+from gwproto.enums import TelemetryName
 
 __all__ = [
     "LocalCommInterface",

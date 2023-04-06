@@ -22,11 +22,11 @@ from gwproto.messages import TelemetrySnapshotSpaceheat
 from gwproto.messages import TelemetrySnapshotSpaceheat_Maker
 
 from actors.config import ScadaSettings
-from data_classes.hardware_layout import HardwareLayout
-from data_classes.node_config import NodeConfig
-from data_classes.sh_node import ShNode
-from named_tuples.telemetry_tuple import TelemetryTuple
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 
+from data_classes.node_config import NodeConfig
 
 class ScadaData:
     latest_total_power_w: Optional[int]

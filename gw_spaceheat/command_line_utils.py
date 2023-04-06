@@ -12,8 +12,8 @@ import rich
 from gwproactor import setup_logging
 from actors import Scada
 from actors.config import ScadaSettings
-from data_classes.hardware_layout import HardwareLayout
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
 from enums import Role
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"

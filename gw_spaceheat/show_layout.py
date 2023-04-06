@@ -13,8 +13,8 @@ from actors import Scada
 from actors.config import ScadaSettings
 from command_line_utils import get_actor_nodes
 from command_line_utils import get_requested_aliases
-from data_classes.errors import DataClassLoadingError
-from data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.errors import DataClassLoadingError
+from gwproto.data_classes.hardware_layout import HardwareLayout
 from enums import ActorClass
 
 

@@ -72,7 +72,7 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
     d = {</xsl:text>
         <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id)]">
         <xsl:sort select="Idx" data-type="number"/>
-        <xsl:if test="(not (IsEnum = 'true'))">
+        <xsl:if test="(not (IsEnum = 'true')) or (IsList = 'true')">
         <xsl:text>
         "</xsl:text><xsl:value-of select="Value"  />
         <xsl:text>": </xsl:text>

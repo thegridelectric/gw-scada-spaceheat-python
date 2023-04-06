@@ -8,7 +8,7 @@ from result import Result
 from actors.actor_interface import ActorInterface
 from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
-from data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproactor.proactor_interface import ServicesInterface
 
 

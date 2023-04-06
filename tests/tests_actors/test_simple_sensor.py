@@ -7,7 +7,7 @@ from gwproactor_test import await_for
 
 import actors
 import pytest
-from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
+from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 
 
 @pytest.mark.asyncio

@@ -35,8 +35,8 @@ from gwproto.messages import SnapshotSpaceheat_Maker
 from pydantic import BaseModel
 
 from actors import ActorInterface
-from data_classes.hardware_layout import HardwareLayout
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
 from gwproactor.message import DBGCommands
 from gwproactor.message import DBGPayload
 from gwproactor.mqtt import QOS

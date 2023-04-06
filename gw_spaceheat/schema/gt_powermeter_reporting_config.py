@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from gwproto.errors import MpSchemaError
 from pydantic import BaseModel, Field, validator
-from schema.telemetry_reporting_config import (
+from gwproto.types import (
     TelemetryReportingConfig,
     TelemetryReportingConfig_Maker,
 )

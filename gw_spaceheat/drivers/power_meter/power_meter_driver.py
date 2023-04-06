@@ -7,8 +7,8 @@ from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-from data_classes.sh_node import ShNode
-from data_classes.components.electric_meter_component import \
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.driver_result import DriverResult
 from enums import TelemetryName

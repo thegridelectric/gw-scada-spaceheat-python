@@ -1,7 +1,7 @@
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver, TelemetrySpec)
 from drivers.exceptions import DriverWarning
-from data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
+from gwproto.data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
 from adafruit_ads1x15.analog_in import AnalogIn
 import busio
 import board
@@ -30,7 +30,7 @@ import busio
 from adafruit_ads1x15.analog_in import AnalogIn
 
 
-from data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
+from gwproto.data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
 from drivers.exceptions import DriverWarning
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver, TelemetrySpec)

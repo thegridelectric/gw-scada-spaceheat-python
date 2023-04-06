@@ -13,11 +13,11 @@ from actors.actor import SyncThreadActor
 from actors.config import ScadaSettings
 from actors.message import MultipurposeSensorTelemetryMessage
 from actors.scada_interface import ScadaInterface
-from data_classes.components.multipurpose_sensor_component import (
+from gwproto.data_classes.components.multipurpose_sensor_component import (
     MultipurposeSensorComponent,
 )
-from data_classes.hardware_layout import HardwareLayout
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
     TelemetrySpec,
@@ -28,7 +28,7 @@ from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
 from enums import MakeModel
-from schema import TelemetryReportingConfig
+from gwproto.types import TelemetryReportingConfig
 
 
 UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"

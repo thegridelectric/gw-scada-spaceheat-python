@@ -15,7 +15,7 @@ from result import Result
 from actors.actor import Actor
 from actors.message import GtDispatchBooleanLocalMessage
 from actors.scada_interface import ScadaInterface
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.sh_node import ShNode
 from gwproactor import MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 
