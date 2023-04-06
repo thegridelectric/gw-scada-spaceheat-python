@@ -23,14 +23,13 @@ boost_o = TelemetryReportingConfig_Maker(
     exponent=0,
     unit=Unit.W,
     async_report_threshold=0.02,
-    nameplate_max_value= 5000
+    nameplate_max_value=5000
 ).tuple
 
 boost_io = EgaugeIo_Maker(
     input_config=boost_i,
     output_config=boost_o
 ).tuple
-
 
 
 pump_i = EgaugeRegisterConfig_Maker(
@@ -43,14 +42,14 @@ pump_i = EgaugeRegisterConfig_Maker(
 ).tuple
 
 pump_o = TelemetryReportingConfig_Maker(
-telemetry_name=TelemetryName.PowerW,
+    telemetry_name=TelemetryName.PowerW,
     about_node_name="a.tank.out.pump",
     report_on_change=True,
     sample_period_s=300,
     exponent=0,
     unit=Unit.W,
     async_report_threshold=0.02,
-    nameplate_max_value= 60
+    nameplate_max_value=60
 ).tuple
 
 pump_io = EgaugeIo_Maker(
@@ -68,7 +67,7 @@ comp = ElectricMeterComponentGt_Maker(
     hw_uid="GC14050323",
     modbus_host="eGauge14875.local",
     modbus_port=502,
-    config_list = [boost_o, pump_o],
+    config_list=[boost_o, pump_o],
     egauge_io_list=[boost_io, pump_io]
 ).tuple
 
@@ -82,10 +81,10 @@ pwr1 = TelemetryReportingConfig_Maker(
     exponent=0,
     unit=Unit.W,
     async_report_threshold=0.02,
-    nameplate_max_value= 4500
+    nameplate_max_value=4500
 ).tuple
 
-amp1 =  TelemetryReportingConfig_Maker(
+amp1 = TelemetryReportingConfig_Maker(
     telemetry_name=TelemetryName.CurrentRmsMicroAmps,
     about_node_name="a.elt1",
     report_on_change=True,
@@ -93,7 +92,7 @@ amp1 =  TelemetryReportingConfig_Maker(
     exponent=6,
     unit=Unit.AmpsRms,
     async_report_threshold=0.02,
-    nameplate_max_value= 18750000
+    nameplate_max_value=18750000
 ).tuple
 
 pwr2 = TelemetryReportingConfig_Maker(
@@ -104,7 +103,7 @@ pwr2 = TelemetryReportingConfig_Maker(
     exponent=0,
     unit=Unit.W,
     async_report_threshold=0.02,
-    nameplate_max_value= 4500
+    nameplate_max_value=4500
 ).tuple
 
 comp = ElectricMeterComponentGt_Maker(
@@ -114,6 +113,6 @@ comp = ElectricMeterComponentGt_Maker(
     hw_uid="35941_308",
     modbus_host=None,
     modbus_port=None,
-    config_list = [pwr1, amp1, pwr2],
+    config_list=[pwr1, amp1, pwr2],
     egauge_io_list=[]
 ).tuple

@@ -23,7 +23,7 @@ boost_o = TelemetryReportingConfig_Maker(
     exponent=0,
     unit=Unit.W,
     async_report_threshold=0.02,
-    nameplate_max_value= 9000
+    nameplate_max_value=9000
 ).tuple
 
 boost_io = EgaugeIo_Maker(
@@ -48,7 +48,7 @@ heatpump_o = TelemetryReportingConfig_Maker(
     exponent=0,
     unit=Unit.W,
     async_report_threshold=0.02,
-    nameplate_max_value= 3500
+    nameplate_max_value=3500
 ).tuple
 
 heatpump_io = EgaugeIo_Maker(
@@ -66,14 +66,14 @@ dist_pump_i = EgaugeRegisterConfig_Maker(
 ).tuple
 
 dist_pump_o = TelemetryReportingConfig_Maker(
-telemetry_name=TelemetryName.PowerW,
+    telemetry_name=TelemetryName.PowerW,
     about_node_name="a.distsourcewater.pump",
     report_on_change=True,
     sample_period_s=300,
     exponent=0,
     unit=Unit.W,
     async_report_threshold=0.02,
-    nameplate_max_value= 95
+    nameplate_max_value=95
 ).tuple
 
 dist_pump_io = EgaugeIo_Maker(
@@ -91,7 +91,7 @@ glycol_pump_i = EgaugeRegisterConfig_Maker(
 ).tuple
 
 glycol_pump_o = TelemetryReportingConfig_Maker(
-telemetry_name=TelemetryName.PowerW,
+    telemetry_name=TelemetryName.PowerW,
     about_node_name="a.heatpump.condensorloopsource.pump",
     report_on_change=True,
     sample_period_s=300,
@@ -116,7 +116,7 @@ hx_pump_i = EgaugeRegisterConfig_Maker(
 ).tuple
 
 hx_pump_o = TelemetryReportingConfig_Maker(
-telemetry_name=TelemetryName.PowerW,
+    telemetry_name=TelemetryName.PowerW,
     about_node_name="a.hxpump",
     report_on_change=True,
     sample_period_s=300,
@@ -132,7 +132,6 @@ hx_pump_io = EgaugeIo_Maker(
 ).tuple
 
 
-
 comp = ElectricMeterComponentGt_Maker(
     component_id="8d2be3c8-2ea8-4cb4-8f56-96de9a73ca48",
     component_attribute_class_id="739a6e32-bb9c-43bc-a28d-fb61be665522",
@@ -140,8 +139,8 @@ comp = ElectricMeterComponentGt_Maker(
     hw_uid="BP00679",
     modbus_host="eGauge4922.local",
     modbus_port=502,
-    config_list = [boost_o, heatpump_o, dist_pump_o, glycol_pump_o, hx_pump_o],
-    egauge_io_list=[boost_io, heatpump_io,dist_pump_io, glycol_pump_io, hx_pump_io]
+    config_list=[boost_o, heatpump_o, dist_pump_o, glycol_pump_o, hx_pump_o],
+    egauge_io_list=[boost_io, heatpump_io, dist_pump_io, glycol_pump_io, hx_pump_io]
 ).tuple
 
 
