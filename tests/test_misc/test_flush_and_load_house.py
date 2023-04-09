@@ -3,24 +3,24 @@
 from tests.utils import flush_all
 
 from actors.config import ScadaSettings
-from data_classes.component import Component
-from data_classes.component_attribute_class import ComponentAttributeClass
-from data_classes.components.boolean_actuator_component import BooleanActuatorCac
-from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
-from data_classes.components.electric_meter_component import ElectricMeterCac
-from data_classes.components.electric_meter_component import ElectricMeterComponent
-from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorCac
-from data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
-from data_classes.components.resistive_heater_component import ResistiveHeaterCac
-from data_classes.components.resistive_heater_component import ResistiveHeaterComponent
-from data_classes.components.simple_temp_sensor_component import SimpleTempSensorCac
-from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
-from data_classes.hardware_layout import HardwareLayout
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.component import Component
+from gwproto.data_classes.component_attribute_class import ComponentAttributeClass
+from gwproto.data_classes.components.boolean_actuator_component import BooleanActuatorCac
+from gwproto.data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from gwproto.data_classes.components.electric_meter_component import ElectricMeterCac
+from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
+from gwproto.data_classes.components.pipe_flow_sensor_component import PipeFlowSensorCac
+from gwproto.data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
+from gwproto.data_classes.components.resistive_heater_component import ResistiveHeaterCac
+from gwproto.data_classes.components.resistive_heater_component import ResistiveHeaterComponent
+from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorCac
+from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
 from enums import Role
-from schema import ElectricMeterCacGt_Maker
-from schema.electric_meter_component_gt import ElectricMeterComponentGt_Maker
-from schema import SpaceheatNodeGt_Maker
+from gwproto.types import ElectricMeterCacGt_Maker
+from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt_Maker
+from gwproto.types import SpaceheatNodeGt_Maker
 
 
 def test_flush_and_load_house():

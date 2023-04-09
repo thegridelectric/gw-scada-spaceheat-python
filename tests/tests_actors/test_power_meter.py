@@ -3,7 +3,7 @@ import asyncio
 import logging
 import typing
 
-from data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.hardware_layout import HardwareLayout
 from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
 from gwproactor_test import await_for
@@ -15,13 +15,13 @@ from actors.power_meter import DriverThreadSetupHelper
 from actors.power_meter import PowerMeter
 from actors.power_meter import PowerMeterDriverThread
 from actors.config import ScadaSettings
-from data_classes.components.electric_meter_component import ElectricMeterComponent
+from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
 from gwproactor.config import LoggerLevels
 from gwproactor.config import LoggingSettings
-from named_tuples.telemetry_tuple import TelemetryTuple
+from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
 from gwproto.messages import PowerWatts_Maker
 

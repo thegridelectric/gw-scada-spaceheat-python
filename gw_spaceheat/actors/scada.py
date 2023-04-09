@@ -37,10 +37,10 @@ from actors.message import GtDispatchBooleanLocalMessage
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from data_classes.components.boolean_actuator_component import BooleanActuatorComponent
-from data_classes.hardware_layout import HardwareLayout
-from data_classes.sh_node import ShNode
-from named_tuples.telemetry_tuple import TelemetryTuple
+from gwproto.data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 from gwproactor.link_state import Transition
 from gwproactor.mqtt import QOS
 from gwproactor.message import MQTTReceiptPayload

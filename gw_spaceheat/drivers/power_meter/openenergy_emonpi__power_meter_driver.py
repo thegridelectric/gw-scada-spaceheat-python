@@ -9,7 +9,7 @@ from drivers.driver_result import DriverResult
 from gwproactor.mqtt import QOS
 from gwproactor.mqtt import Subscription
 from actors.config import ScadaSettings
-from data_classes.components.electric_meter_component import \
+from gwproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from enums import MakeModel

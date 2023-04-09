@@ -6,7 +6,7 @@ from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-from data_classes.components.electric_meter_component import ElectricMeterComponent
+from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from pymodbus.client.sync import ModbusSerialClient

@@ -7,7 +7,7 @@ import time
 from typing import List
 
 from actors.utils import responsive_sleep
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
 
 from gw_spaceheat.schema.enums.role import Role

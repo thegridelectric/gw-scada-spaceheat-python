@@ -114,7 +114,7 @@ from data_classes.cacs.</xsl:text>
 </xsl:if>
 <xsl:if test="(IsComponent = 'true')">
 <xsl:text>
-from data_classes.components.</xsl:text>
+from gwproto.data_classes.components.</xsl:text>
 <xsl:call-template name="python-case">
     <xsl:with-param name="camel-case-text" select="translate(DataClass,'.','_')"  />
 </xsl:call-template>

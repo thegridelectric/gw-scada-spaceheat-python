@@ -10,7 +10,7 @@ from result import Result
 
 from actors.config import ScadaSettings
 import schema.property_format as property_format
-from data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
+from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from drivers.driver_result import DriverResult
 from drivers.simple_temp_sensor.simple_temp_sensor_driver import SimpleTempSensorDriver
 from enums import MakeModel

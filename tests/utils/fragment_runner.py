@@ -13,7 +13,7 @@ from typing import Sequence
 import actors
 from actors import ActorInterface
 from actors.config import ScadaSettings
-from data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproactor import setup_logging
 from gwproactor import Proactor
 from gwproactor_test import await_for

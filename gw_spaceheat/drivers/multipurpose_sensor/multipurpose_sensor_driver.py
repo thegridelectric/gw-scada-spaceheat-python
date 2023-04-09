@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, NamedTuple, Optional
 
 from actors.config import ScadaSettings
-from data_classes.components.multipurpose_sensor_component import \
+from gwproto.data_classes.components.multipurpose_sensor_component import \
     MultipurposeSensorComponent
 from drivers.driver_result import DriverResult
 from result import Ok, Result

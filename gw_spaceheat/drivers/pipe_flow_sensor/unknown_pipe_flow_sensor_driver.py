@@ -2,7 +2,7 @@ from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-from data_classes.components.pipe_flow_sensor_component import \
+from gwproto.data_classes.components.pipe_flow_sensor_component import \
     PipeFlowSensorComponent
 from drivers.driver_result import DriverResult
 from drivers.pipe_flow_sensor.pipe_flow_sensor_driver import \

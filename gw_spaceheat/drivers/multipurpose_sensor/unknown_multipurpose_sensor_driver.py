@@ -4,7 +4,7 @@ from typing import List
 from result import Result
 
 from actors.config import ScadaSettings
-from data_classes.components.multipurpose_sensor_component import (
+from gwproto.data_classes.components.multipurpose_sensor_component import (
     MultipurposeSensorComponent,
 )
 from drivers.driver_result import DriverResult

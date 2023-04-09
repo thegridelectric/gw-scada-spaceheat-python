@@ -14,8 +14,8 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from actors import Scada
 from actors.config import ScadaSettings
-from data_classes.hardware_layout import HardwareLayout
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
 from gwproactor.message import MQTTSubackPayload
 from gwproactor.mqtt import MQTTClientWrapper
 from gwproactor.stats import LinkStats

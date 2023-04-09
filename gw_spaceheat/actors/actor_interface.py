@@ -5,7 +5,7 @@ import sys
 from abc import ABC
 from abc import abstractmethod
 
-from data_classes.sh_node import ShNode
+from gwproto.data_classes.sh_node import ShNode
 from gwproactor.proactor_interface import CommunicatorInterface
 from gwproactor.proactor_interface import Runnable
 from gwproactor.proactor_interface import ServicesInterface

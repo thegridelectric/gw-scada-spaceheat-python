@@ -2,7 +2,7 @@ from typing import Callable
 
 from actors import Scada
 from actors.config import ScadaSettings
-from data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.hardware_layout import HardwareLayout
 from tests.atn import Atn
 from tests.atn import AtnSettings
 from gwproactor_test import CommTestHelper

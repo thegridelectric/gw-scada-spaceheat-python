@@ -9,7 +9,7 @@ import dotenv
 import rich
 from command_line_utils import parse_args
 from gwproactor.config import LoggingSettings, Paths
-from data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproactor import setup_logging
 
 from tests.atn import AtnSettings
