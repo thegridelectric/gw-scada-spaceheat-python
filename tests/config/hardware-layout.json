@@ -64,7 +64,7 @@
     {
       "Alias": "a.elt1.relay",
       "RoleGtEnumSymbol": "57b788ee",
-      "ActorClassGtEnumSymbol": "311835f6",
+      "ActorClassGtEnumSymbol": "fddd0064",
       "DisplayName": "30A Relay for first boost element",
       "ShNodeId": "e077df5d-7aea-4b9c-bfd7-773c1e65bd65",
       "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
@@ -87,7 +87,7 @@
     {
       "Alias": "a.elt2.relay",
       "RoleGtEnumSymbol": "57b788ee",
-      "ActorClassGtEnumSymbol": "311835f6",
+      "ActorClassGtEnumSymbol": "fddd0064",
       "DisplayName": "30A Relay for second boost element",
       "ShNodeId": "d2eb5c93-ba1c-4f2c-a7ad-4dee995eb811",
       "ComponentId": "58c4ad4f-6b1a-4fbf-80dd-d269f31e5ba5",
@@ -147,7 +147,7 @@
     {
       "Alias": "a.tank.out.pump.relay",
       "RoleGtEnumSymbol": "57b788ee",
-      "ActorClassGtEnumSymbol": "311835f6",
+      "ActorClassGtEnumSymbol": "fddd0064",
       "DisplayName": "Circulator Pump Boolean Actuator",
       "ShNodeId": "357a45f0-1a57-4f3d-9be4-4ff77cf19ba2",
       "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
