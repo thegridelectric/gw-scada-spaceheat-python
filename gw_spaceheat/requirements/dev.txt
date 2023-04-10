@@ -42,7 +42,7 @@ gridworks-proactor[tests]==0.1.6
     # via
     #   -r base.in
     #   -r test.in
-gridworks-protocol==0.4.3
+gridworks-protocol==0.4.5
     # via
     #   -r base.in
     #   gridworks-proactor

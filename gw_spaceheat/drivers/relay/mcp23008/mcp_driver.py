@@ -86,7 +86,7 @@ class mcp23008:
         self.smbus.write_byte_data(self.address, MCP23008_REG_GPIO, new_status_byte)
 
     # pseudo method
-    def turn_on_relay(self, target_relay, status=None):
+    def energize_relay(self, target_relay, status=None):
         self.set_gpio_high(target_relay, status)
 
     def set_gpio_low(self, target_gpio, status=None):
@@ -97,7 +97,7 @@ class mcp23008:
         self.smbus.write_byte_data(self.address, MCP23008_REG_GPIO, new_status_byte)
 
     # pseudo method
-    def turn_off_relay(self, target_relay, status=None):
+    def deenergize_relay(self, target_relay, status=None):
         self.set_gpio_low(target_relay, status)
 
     def toggle_gpio(self, target_gpio):

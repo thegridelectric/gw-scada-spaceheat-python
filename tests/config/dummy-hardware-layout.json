@@ -53,7 +53,7 @@
   ],
   "ResistiveHeaterComponents": [
   ],
-  "BooleanActuatorComponents": [
+  "RelayComponents": [
   ],
   "MultipurposeSensorComponents": [
 
@@ -68,7 +68,7 @@
   ],
   "ResistiveHeaterCacs": [
   ],
-  "BooleanActuatorCacs": [
+  "RelayCacs": [
   ],
   "PipeFlowSensorCacs": [
   ],
