@@ -9,7 +9,7 @@ from enums import Unit
 from enums import MakeModel
 from enums import TelemetryName
 
-from gwproto.data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from gwproto.data_classes.components.relay_component import RelayComponent
 from gwproto.data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
 from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 
@@ -27,8 +27,8 @@ class NodeConfig:
         self.reporting = None
         self.driver = None
         self.typical_response_time_ms = 0
-        if isinstance(component, BooleanActuatorComponent):
-            self.set_boolean_actuator_config(component=component, settings=settings)
+        if isinstance(component, RelayComponent):
+            self.set_relay_config(component=component, settings=settings)
         elif isinstance(component, SimpleTempSensorComponent):
             self.set_simple_temp_sensor_config(component=component, settings=settings)
         elif isinstance(component, PipeFlowSensorComponent):
@@ -97,7 +97,7 @@ class NodeConfig:
         driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
         self.driver = driver_class(component=component, settings=settings)
 
-    def set_boolean_actuator_config(self, component: BooleanActuatorComponent, settings: ScadaSettings):
+    def set_relay_config(self, component: RelayComponent, settings: ScadaSettings):
         cac = component.cac
         self.typical_response_time_ms = cac.typical_response_time_ms
         if self.node.reporting_sample_period_s is None:
@@ -122,17 +122,17 @@ class NodeConfig:
                 except FileNotFoundError:
                     found = False
             if found:
-                driver_module_name = "drivers.boolean_actuator.ncd__pr814spst__boolean_actuator_driver"
-                driver_class_name = "NcdPr814Spst_BooleanActuatorDriver"
+                driver_module_name = "drivers.relay.ncd__pr814spst__relay_driver"
+                driver_class_name = "NcdPr814Spst_RelayDriver"
             else:
-                driver_module_name = "drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBooleanActuatorDriver"
-                driver_class_name = "UnknownBooleanActuatorDriver"
+                driver_module_name = "drivers.relay.unknown_relay_driver import UnknownRelayDriver"
+                driver_class_name = "UnknownRelayDriver"
         elif cac.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
-            driver_module_name = "drivers.boolean_actuator.gridworks_simbool30amprelay__boolean_actuator_driver"
-            driver_class_name = "GridworksSimBool30AmpRelay_BooleanActuatorDriver"
+            driver_module_name = "drivers.relay.gridworks_simbool30amprelay__relay_driver"
+            driver_class_name = "GridworksSimBool30AmpRelay_RelayDriver"
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver_module_name = "drivers.boolean_actuator.unknown_boolean_actuator_driver import UnknownBooleanActuatorDriver"
-            driver_class_name = "UnknownBooleanActuatorDriver"
+            driver_module_name = "drivers.relay.unknown_relay_driver import UnknownRelayDriver"
+            driver_class_name = "UnknownRelayDriver"
         else:
             raise NotImplementedError(f"No BooleanActuator driver yet for {cac.make_model}")
         if driver_module_name not in sys.modules:

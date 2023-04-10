@@ -1,20 +1,18 @@
 import time
 
-from result import Ok
-from result import Result
-
 from actors.config import ScadaSettings
-from gwproto.data_classes.components.boolean_actuator_component import \
-    BooleanActuatorComponent
-from drivers.boolean_actuator.boolean_actuator_driver import \
-    BooleanActuatorDriver
 from drivers.driver_result import DriverResult
+from drivers.relay.relay_driver import RelayDriver
 from enums import MakeModel
+from gwproto.data_classes.components.relay_component import RelayComponent
+from result import Ok, Result
 
 
-class GridworksSimBool30AmpRelay_BooleanActuatorDriver(BooleanActuatorDriver):
-    def __init__(self, component: BooleanActuatorComponent, settings: ScadaSettings):
-        super(GridworksSimBool30AmpRelay_BooleanActuatorDriver, self).__init__(component=component, settings=settings)
+class GridworksSimBool30AmpRelay_RelayDriver(RelayDriver):
+    def __init__(self, component: RelayComponent, settings: ScadaSettings):
+        super(GridworksSimBool30AmpRelay_RelayDriver, self).__init__(
+            component=component, settings=settings
+        )
         if component.cac.make_model != MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             raise Exception(
                 f"Expected {MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY}, got {component.cac}"

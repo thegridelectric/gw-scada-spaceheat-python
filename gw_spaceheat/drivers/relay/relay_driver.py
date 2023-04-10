@@ -1,21 +1,16 @@
 import logging
 from abc import ABC, abstractmethod
 
-from result import Ok
-from result import Result
-
 from actors.config import ScadaSettings
-from gwproto.data_classes.components.boolean_actuator_component import \
-    BooleanActuatorComponent
 from drivers.driver_result import DriverResult
+from gwproto.data_classes.components.relay_component import RelayComponent
+from result import Ok, Result
 
 
-class BooleanActuatorDriver(ABC):
-    def __init__(self, component: BooleanActuatorComponent, settings: ScadaSettings):
-        if not isinstance(component, BooleanActuatorComponent):
-            raise Exception(
-                f"BooleanActuatorDriver requires BooleanActuatorComponent. Got {component}"
-            )
+class RelayDriver(ABC):
+    def __init__(self, component: RelayComponent, settings: ScadaSettings):
+        if not isinstance(component, RelayComponent):
+            raise Exception(f"RelayDriver requires RelayComponent. Got {component}")
         self.component = component
         self.settings: ScadaSettings = settings
         self.logger = logging.getLogger(settings.logging.base_log_name)
@@ -38,4 +33,3 @@ class BooleanActuatorDriver(ABC):
     # noinspection PyMethodMayBeStatic
     def start(self) -> Result[DriverResult[bool], Exception]:
         return Ok(DriverResult(True))
-

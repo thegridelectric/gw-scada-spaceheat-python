@@ -1,7 +1,7 @@
 from gwproto.data_classes.component import Component
 from gwproto.data_classes.component_attribute_class import ComponentAttributeClass
-from gwproto.data_classes.components.boolean_actuator_component import BooleanActuatorCac
-from gwproto.data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from gwproto.data_classes.components.relay_component import RelayCac
+from gwproto.data_classes.components.relay_component import RelayComponent
 from gwproto.data_classes.components.electric_meter_component import ElectricMeterCac
 from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from gwproto.data_classes.components.multipurpose_sensor_component import MultipurposeSensorComponent
@@ -17,7 +17,7 @@ from gwproto.data_classes.sh_node import ShNode
 from tests.utils.scada_recorder import ScadaRecorder
 
 def flush_components():
-    BooleanActuatorComponent.by_id = {}
+    RelayComponent.by_id = {}
     ElectricMeterComponent.by_id = {}
     PipeFlowSensorComponent.by_id = {}
     MultipurposeSensorComponent.by_id = {}
@@ -27,7 +27,7 @@ def flush_components():
 
 
 def flush_cacs():
-    BooleanActuatorCac.by_id = {}
+    RelayCac.by_id = {}
     ElectricMeterCac.by_id = {}
     MultipurposeSensorCac.by_id = {}
     PipeFlowSensorCac.by_id = {}

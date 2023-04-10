@@ -116,9 +116,9 @@ def test_scada_small():
     # test that turn_on and turn_off only work for boolean actuator nodes
 
     result = scada.turn_on(meter_node)
-    assert result == ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+    assert result == ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
     result = scada.turn_off(meter_node)
-    assert result == ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+    assert result == ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
 
     #################################
     # Other SCADA small tests

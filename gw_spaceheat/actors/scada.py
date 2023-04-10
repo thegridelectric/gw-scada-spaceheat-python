@@ -37,7 +37,7 @@ from actors.message import GtDispatchBooleanLocalMessage
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from gwproto.data_classes.components.boolean_actuator_component import BooleanActuatorComponent
+from gwproto.data_classes.components.relay_component import RelayComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.telemetry_tuple import TelemetryTuple
@@ -102,7 +102,7 @@ class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
     PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
     BAD_FROM_NODE = "BadFromNode"
-    DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR = "DispatchNodeNotBooleanActuator"
+    DISPATCH_NODE_NOT_RELAY = "DispatchNodeNotRelay"
     UNKNOWN_DISPATCH_NODE = "UnknownDispatchNode"
     IGNORING_HOMEALONE_DISPATCH = "IgnoringHomealoneDispatch"
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
@@ -141,12 +141,15 @@ class Scada(ScadaInterface, Proactor):
             upstream=True,
             primary_peer=True,
         )
-        for topic in [
-            MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
-            f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_name}".replace(".", "-"),
-            f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_name}".replace(".", "-"),
-        ]:
-            self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
+        # for topic in [
+        #     MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
+        #     f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_name}".replace(".", "-"),
+        #     f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_name}".replace(".", "-"),
+        # ]:
+        #     self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
+        topic = MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias)
+
+        self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
         self.log_subscriptions("construction")
         self._home_alone = HomeAlone(self.hardware_layout.my_home_alone.alias, self)
@@ -347,8 +350,8 @@ class Scada(ScadaInterface, Proactor):
         self, payload: GtDispatchBoolean
     ) -> ScadaCmdDiagnostic:
         ba = self._layout.node(payload.AboutNodeName)
-        if not isinstance(ba.component, BooleanActuatorComponent):
-            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+        if not isinstance(ba.component, RelayComponent):
+            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
         self._communicators[ba.alias].process_message(
             GtDispatchBooleanLocalMessage(
                 src=self.name, dst=ba.alias, relay_state=payload.RelayState
@@ -357,8 +360,8 @@ class Scada(ScadaInterface, Proactor):
         return ScadaCmdDiagnostic.SUCCESS
 
     def _set_relay_state_threadsafe(self, ba: ShNode, on: bool):
-        if not isinstance(ba.component, BooleanActuatorComponent):
-            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_BOOLEAN_ACTUATOR
+        if not isinstance(ba.component, RelayComponent):
+            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
         self.send_threadsafe(
             GtDispatchBooleanLocalMessage(
                 src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=int(on)

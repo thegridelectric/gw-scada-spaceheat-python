@@ -1,21 +1,21 @@
 {
   "MyAtomicTNodeGNode": {
     "GNodeId": "c4c9a280-453f-4c36-a081-970a3774b3ed",
-    "Alias": "dw1.isone.ct.newhaven.orange1",
+    "Alias": "d1.isone.ct.newhaven.orange1",
     "DisplayName": "Little Orange House Garage Heating System AtomicTNode",
     "GNodeStatusValue": "Active",
     "PrimaryGNodeRoleAlias": "AtomicTNode"
   },
   "MyTerminalAssetGNode": {
     "GNodeId": "e250a99c-7b7f-469a-8f54-96ea83e95112",
-    "Alias": "dw1.isone.ct.newhaven.orange1.ta",
+    "Alias": "d1.isone.ct.newhaven.orange1.ta",
     "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
     "GNodeStatusValue": "Active",
     "PrimaryGNodeRoleAlias": "TerminalAsset"
   },
   "MyScadaGNode": {
     "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
-    "Alias": "dw1.isone.ct.newhaven.orange1.scada",
+    "Alias": "d1.isone.ct.newhaven.orange1.scada",
     "DisplayName": "Little Orange House Garage Heating System SCADA",
     "GNodeStatusValue": "Active",
     "PrimaryGNodeRoleAlias": "Scada"
@@ -356,22 +356,23 @@
       "HwUid": "bbbb2222"
     }
   ],
-  "BooleanActuatorComponents": [
+  "RelayComponents": [
     {
       "ComponentId": "798fe14a-4073-41eb-bce2-075906aee6bb",
-      "DisplayName": "relay for first elt in tank",
+      "DisplayName": "relay for simulated first elt in tank",
       "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
       "Gpio": 0,
-      "TypeName": "gt.boolean.actuator.component",
-      "Version": "000",
-      "HwUid": "abc123"
+      "NormallyOpen": true,
+      "TypeName": "relay.component.gt",
+      "Version": "000"
     },
     {
       "ComponentId": "e758eecd-6439-4e1d-9f66-534f6fc14859",
-      "DisplayName": "relay for main circulator pump",
+      "DisplayName": "relay for simulated main circulator pump",
       "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
       "Gpio": 1,
-      "TypeName": "gt.boolean.actuator.component",
+      "NormallyOpen": false,
+      "TypeName": "relay.component.gt",
       "Version": "000"
     },
     {
@@ -379,7 +380,8 @@
       "DisplayName": "relay for second elt in tank",
       "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
       "Gpio": 2,
-      "TypeName": "gt.boolean.actuator.component",
+      "NormallyOpen": true,
+      "TypeName": "relay.component.gt",
       "Version": "000",
       "HwUid": "ddd321"
     }
@@ -499,7 +501,7 @@
              "UnitGtEnumSymbol":"f459a9c3"
           }
        ],
-       "HwUid":"35941_308",
+       "HwUid":"1001ab",
        "EgaugeIoList":[
 
        ],
@@ -557,13 +559,13 @@
       "Version": "000"
     }
   ],
-  "BooleanActuatorCacs": [
+  "RelayCacs": [
     {
       "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
       "MakeModelGtEnumSymbol": "e81d74a8",
       "TypicalResponseTimeMs": 400,
       "DisplayName": "Gridworks Simulated Boolean Actuator",
-      "TypeName": "gt.boolean.actuator.cac",
+      "TypeName": "relay.cac.gt",
       "Version": "000"
     }
   ],
