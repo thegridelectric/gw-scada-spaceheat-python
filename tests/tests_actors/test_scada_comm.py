@@ -17,6 +17,7 @@ class ScadaCommTestHelper(CommTestHelper):
     child_t = Scada
     parent_settings_t = AtnSettings
     child_settings_t = ScadaSettings
+    warn_if_multi_subscription_tests_skipped: bool = False
 
     @classmethod
     def _make(cls, recorder_t: Callable[..., RecorderInterface], helper: ProactorTestHelper) -> RecorderInterface:
