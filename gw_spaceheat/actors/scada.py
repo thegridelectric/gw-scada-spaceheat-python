@@ -141,13 +141,13 @@ class Scada(ScadaInterface, Proactor):
             upstream=True,
             primary_peer=True,
         )
-        for topic in [
-            MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
-            f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_name}".replace(".", "-"),
-            f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_name}".replace(".", "-"),
-        ]:
-            self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
-        # topic = MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias)
+        # for topic in [
+        #     MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
+        #     f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_name}".replace(".", "-"),
+        #     f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_name}".replace(".", "-"),
+        # ]:
+        #     self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
+        topic = MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias)
 
         self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
