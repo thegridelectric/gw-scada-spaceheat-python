@@ -113,9 +113,10 @@ class mcp23008:
     def toggle_relay(self, target_relay):
         self.toggle_gpio(target_relay)
 
-    def get_single_gpio_status(self, target_gpio):
+    def relay_is_activated(self, target_gpio) -> int:
         status = self.get_all_gpio_status()
         target_byte_value = 1 << target_gpio
+
         return (status & target_byte_value) != 0
 
     def get_all_gpio_status(self):
