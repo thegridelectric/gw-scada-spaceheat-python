@@ -36,6 +36,8 @@ fastapi==0.93.0
     # via fastapi-utils
 fastapi-utils==0.2.1
     # via gridworks-protocol
+greenlet==2.0.2
+    # via sqlalchemy
 gridworks-proactor[tests]==0.1.7
     # via
     #   -r requirements/base.in
