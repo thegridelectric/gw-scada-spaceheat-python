@@ -74,9 +74,12 @@ class NcdPr814Spst_RelayDriver(RelayDriver):
             driver_result.value = None
         else:
             try:
-                driver_result.value = self.mcp23008_driver.get_single_gpio_status(
+                active = self.mcp23008_driver.relay_is_activated(
                     self.component.gpio
                 )
+                if not self.component.normally_open:
+                    active = not active
+                driver_result.value = int(active)
                 self.last_val = driver_result.value
             except Exception as e:
                 driver_result.warnings.append(e)
