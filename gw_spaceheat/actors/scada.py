@@ -9,6 +9,7 @@ from typing import Any
 from typing import List
 from typing import Optional
 
+from gwproactor.links import LinkManagerTransition
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
@@ -41,8 +42,8 @@ from gwproto.data_classes.components.relay_component import RelayComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.telemetry_tuple import TelemetryTuple
+from gwproactor import QOS
 from gwproactor.link_state import Transition
-from gwproactor.mqtt import QOS
 from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
@@ -127,31 +128,25 @@ class Scada(ScadaInterface, Proactor):
         hardware_layout: HardwareLayout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
-        super().__init__(name=name, settings=settings)
         self._node = hardware_layout.node(name)
         self._layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
-        self._add_mqtt_client(
+        super().__init__(name=name, settings=settings)
+        self._links.add_mqtt_link(
             Scada.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec(self._layout)
         )
-        self._add_mqtt_client(
+        self._links.add_mqtt_link(
             Scada.GRIDWORKS_MQTT,
             self.settings.gridworks_mqtt,
             GridworksMQTTCodec(self._layout),
             upstream=True,
             primary_peer=True,
         )
-        # for topic in [
-        #     MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
-        #     f"{self._layout.atn_g_node_alias}/{GtDispatchBoolean_Maker.type_name}".replace(".", "-"),
-        #     f"{self._layout.atn_g_node_alias}/{GtShCliAtnCmd_Maker.type_name}".replace(".", "-"),
-        # ]:
-        #     self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         topic = MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias)
 
-        self._mqtt_clients.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
+        self._links.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
-        self.log_subscriptions("construction")
+        self._links.log_subscriptions("construction")
         self._home_alone = HomeAlone(self.hardware_layout.my_home_alone.alias, self)
         self.add_communicator(self._home_alone)
         now = int(time.time())
@@ -239,11 +234,9 @@ class Scada(ScadaInterface, Proactor):
         return time.time() > self.next_status_second()
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def _derived_recv_deactivated(self, transition: Transition) -> Result[bool, BaseException]:
+    def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
         return Ok()
-
-    # noinspection PyUnusedLocal
 
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
         self._scada_atn_fast_dispatch_contract_is_alive_stub = True
@@ -251,7 +244,7 @@ class Scada(ScadaInterface, Proactor):
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
         message = Message(Src=from_node.alias, Payload=payload)
-        return self._publish_message(Scada.LOCAL_MQTT, message, qos=qos)
+        return self._links.publish_message(Scada.LOCAL_MQTT, message, qos=qos)
 
     def _derived_process_message(self, message: Message):
         self._logger.path("++Scada._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
@@ -378,7 +371,7 @@ class Scada(ScadaInterface, Proactor):
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
             return
-        self._publish_upstream(self._data.make_snaphsot_payload())
+        self._links.publish_upstream(self._data.make_snaphsot_payload())
 
     @property
     def scada_atn_fast_dispatch_contract_is_alive(self):
@@ -422,7 +415,7 @@ class Scada(ScadaInterface, Proactor):
         The allocation to separate metered nodes is done ex-poste using the multipurpose
         telemetry data."""
 
-        self._publish_upstream(payload, QOS.AtMostOnce)
+        self._links.publish_upstream(payload, QOS.AtMostOnce)
         self._data.latest_total_power_w = payload.Watts
 
     def gt_sh_telemetry_from_multipurpose_sensor_received(

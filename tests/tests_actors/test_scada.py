@@ -422,7 +422,7 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
                 scada.add_communicator(actor)
                 actor.start()
             await await_for(
-                scada._link_states.link(scada.GRIDWORKS_MQTT).active,
+                scada._links.link(scada.GRIDWORKS_MQTT).active,
                 10,
                 "ERROR waiting link active",
                 err_str_f=scada.summary_str

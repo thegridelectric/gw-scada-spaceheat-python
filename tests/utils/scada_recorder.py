@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Any
 from typing import cast
 from typing import List
 from typing import Optional
@@ -16,8 +15,8 @@ from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
+from gwproactor import MQTTClientWrapper
 from gwproactor.message import MQTTSubackPayload
-from gwproactor.mqtt import MQTTClientWrapper
 from gwproactor.stats import LinkStats
 from gwproactor.stats import ProactorStats
 
@@ -73,14 +72,14 @@ class ScadaRecorder(Scada):
         super().generate_event(event)
 
     def split_client_subacks(self, client_name: str):
-        client_wrapper = self._mqtt_clients.client_wrapper(client_name)
+        client_wrapper = self._links.mqtt_client_wrapper(client_name)
 
         def member_split_subscriptions():
             return split_subscriptions(client_wrapper)
         client_wrapper.subscribe_all = member_split_subscriptions
 
     def restore_client_subacks(self, client_name: str):
-        client_wrapper = self._mqtt_clients.client_wrapper(client_name)
+        client_wrapper = self._links.mqtt_client_wrapper(client_name)
         client_wrapper.subscribe_all = MQTTClientWrapper.subscribe_all
 
     def pause_subacks(self):
@@ -106,16 +105,11 @@ class ScadaRecorder(Scada):
         s += f"\nsubacks_paused: {self.subacks_paused}  pending_subacks: {len(self.pending_subacks)}\n"
         s += "Link states:\n"
         for link_name in self.stats.links:
-            s += f"  {link_name:10s}  {self._link_states.link_state(link_name).value}\n"
+            s += f"  {link_name:10s}  {self._links.link_state(link_name).value}\n"
         return s
 
-    def _start_ack_timer(self, client_name: str, message_id: str, context: Any = None, delay: Optional[float] = None) -> None:
-        if delay is None:
-            delay = self.ack_timeout_seconds
-        super()._start_ack_timer(client_name, message_id, context=context, delay=delay)
-
     def ping_atn(self):
-        self._publish_message(
+        self._links.publish_message(
             self.GRIDWORKS_MQTT,
             PingMessage(Src=self.publication_name)
         )

@@ -194,17 +194,17 @@ class AsyncFragmentRunner:
         for proactor in self.proactors.values():
             # noinspection PyProtectedMember, PyShadowingNames
             connected = await await_for(
-                lambda: all([proactor._mqtt_clients.subscribed(client_name)
-                            for client_name in proactor._mqtt_clients.clients.keys()]),
+                lambda: all([proactor._links.subscribed(client_name)
+                            for client_name in proactor._links.link_names()]),
                 10,
                 raise_timeout=False
             )
             if not connected:
                 s = "MQTT CONNECTION ERROR\n"
                 # noinspection PyProtectedMember, PyShadowingNames
-                for client_name in sorted(proactor._mqtt_clients.clients.keys()):
+                for client_name in sorted(proactor._links.link_names()):
                     # noinspection PyProtectedMember
-                    client = proactor._mqtt_clients.clients[client_name]
+                    client = proactor._links.mqtt_client_wrapper(client_name)
                     # noinspection PyProtectedMember
                     s += (
                         f"  {client_name:20s}  subscribed:{int(client.subscribed())}"
@@ -236,7 +236,7 @@ class AsyncFragmentRunner:
             self.delimit("STARTING")
             # TODO: Make this public access
             # noinspection PyProtectedMember
-            self.actors.scada._mqtt_clients.enable_loggers(self.actors.scada._logger)
+            self.actors.scada._links.enable_mqtt_loggers(self.actors.scada._logger)
             if self.actors.atn.name in self.proactors:
                 asyncio.create_task(self.actors.atn.run_forever(), name="atn_run_forever")
             asyncio.create_task(self.actors.scada.run_forever(), name="scada_run_forever")
@@ -244,7 +244,7 @@ class AsyncFragmentRunner:
             # noinspection PyProtectedMember
             await self.await_connect(cast(logging.Logger, self.actors.scada._logger))
             # noinspection PyProtectedMember
-            self.actors.scada._mqtt_clients.disable_loggers()
+            self.actors.scada._links.disable_mqtt_loggers()
             self.delimit("CONNECTED")
             for fragment in self.fragments:
                 await fragment.async_run(*args, **kwargs)

@@ -37,9 +37,9 @@ from pydantic import BaseModel
 from actors import ActorInterface
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
+from gwproactor import QOS
 from gwproactor.message import DBGCommands
 from gwproactor.message import DBGPayload
-from gwproactor.mqtt import QOS
 from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
 
@@ -91,14 +91,6 @@ class AtnData:
     latest_status: Optional[GtShStatus] = None
     relay_state: dict[ShNode, RecentRelayState] = dataclasses.field(default_factory=dict)
 
-@dataclass
-class _PausedAck:
-    client: str
-    message: Message
-    qos: int
-    context: Optional[Any]
-
-
 class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
@@ -108,9 +100,6 @@ class Atn(ActorInterface, Proactor):
     my_sensors: Sequence[ShNode]
     my_relays: Sequence[ShNode]
     event_loop_thread: Optional[threading.Thread] = None
-    acks_paused: bool
-    needs_ack: list[_PausedAck]
-    mqtt_messages_dropped: bool
 
     def __init__(
         self,
@@ -118,9 +107,9 @@ class Atn(ActorInterface, Proactor):
         settings: AtnSettings,
         hardware_layout: HardwareLayout,
     ):
-        super().__init__(name=name, settings=settings)
         self._node = hardware_layout.node(name)
         self.layout = hardware_layout
+        super().__init__(name=name, settings=settings)
         self.my_sensors = list(
             filter(
                 lambda x: (
@@ -137,8 +126,8 @@ class Atn(ActorInterface, Proactor):
             filter(lambda x: x.role == Role.BooleanActuator, list(self.layout.nodes.values()))
         )
         self.data = AtnData(relay_state={x: RecentRelayState() for x in self.my_relays})
-        self._add_mqtt_client(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
-        self._mqtt_clients.subscribe(
+        self._links.add_mqtt_link(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
+        self._links.subscribe(
             Atn.SCADA_MQTT,
             MQTTTopic.encode_subscription(Message.type_name(), self.layout.scada_g_node_alias),
             QOS.AtMostOnce,
@@ -147,9 +136,6 @@ class Atn(ActorInterface, Proactor):
         self.latest_status: Optional[GtShStatus] = None
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
-        self.acks_paused = False
-        self.needs_ack = []
-        self.mqtt_messages_dropped = False
 
     @property
     def alias(self) -> str:
@@ -167,36 +153,9 @@ class Atn(ActorInterface, Proactor):
     def settings(self) -> AtnSettings:
         return cast(AtnSettings, self._settings)
 
-    def pause_acks(self):
-        self.acks_paused = True
-
-    def release_acks(self, clear: bool = False):
-        self.acks_paused = False
-        needs_ack = self.needs_ack
-        self.needs_ack = []
-        if not clear:
-            for paused_ack in needs_ack:
-                self._publish_message(**dataclasses.asdict(paused_ack))
-
-    def _publish_message(
-        self, client, message: Message, qos: int = 0, context: Any = None
-    ) -> MQTTMessageInfo:
-        if self.acks_paused:
-            self.needs_ack.append(_PausedAck(client, message, qos, context))
-            return MQTTMessageInfo(-1)
-        else:
-            return super()._publish_message(client, message, qos=qos, context=context)
-
-    def drop_mqtt(self, drop: bool):
-        self.mqtt_messages_dropped = drop
-
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         message = Message(Src=self.publication_name, Payload=payload)
-        return self._publish_message(Atn.SCADA_MQTT, message, qos=qos)
-
-    def _process_mqtt_message(self, message: Message[MQTTReceiptPayload]):
-        if not self.mqtt_messages_dropped:
-            super()._process_mqtt_message(message)
+        return self._links.publish_message(Atn.SCADA_MQTT, message, qos=qos)
 
     def _derived_process_message(self, message: Message):
         self._logger.path(

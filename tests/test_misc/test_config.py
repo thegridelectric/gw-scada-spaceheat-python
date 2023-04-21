@@ -4,6 +4,7 @@ import textwrap
 from pathlib import Path
 
 import dotenv
+from gwproactor.config.proactor_settings import ACK_TIMEOUT_SECONDS
 
 from actors.config import PersisterSettings
 from gwproactor.config import LoggingSettings
@@ -175,6 +176,7 @@ def test_scada_settings_defaults(clean_scada_env, tmp_path):
         logging=LoggingSettings().dict(),
         persister=PersisterSettings().dict(),
         mqtt_link_poll_seconds=MQTT_LINK_POLL_SECONDS,
+        ack_timeout_seconds=ACK_TIMEOUT_SECONDS,
     )
     assert settings.dict() == exp
     assert settings.local_mqtt == MQTTClient()
