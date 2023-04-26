@@ -38,10 +38,14 @@ fastapi-utils==0.2.1
     # via gridworks-protocol
 greenlet==2.0.2
     # via sqlalchemy
-gridworks-proactor[tests]==0.1.7
+
+# DO NOT MERGE TO MAIN
+# gridworks-proactor[tests]==0.1.7
     # via
     #   -r requirements/base.in
     #   -r requirements/test.in
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@v0.2.0.rc0
+
 gridworks-protocol==0.4.5
     # via
     #   -r requirements/base.in
