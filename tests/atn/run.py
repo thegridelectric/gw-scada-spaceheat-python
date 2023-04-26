@@ -38,6 +38,10 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn":
         ),
         logging=LoggingSettings(base_log_name="gridworks.atn"),
     )
+    if args.dry_run:
+        rich.print(f"Env file: <{env_path}>  exists:{env_path.exists()}")
+        rich.print(settings)
+        sys.exit(0)
     settings.paths.mkdirs()
     setup_logging(args, settings)  # type: ignore
     logger = logging.getLogger(settings.logging.base_log_name)
