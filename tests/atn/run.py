@@ -13,16 +13,15 @@ from gwproactor.config import Paths
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproactor import setup_logging
 
-from tests.atn import AtnSettings
-
 try:
+    from tests.atn import AtnSettings
     from tests.atn import Atn
 except ImportError as e:
     raise ImportError(
         f"ERROR. ({e})\n\n"
         "Running the test atn requires an *extra* entry on the pythonpath, the base directory of the repo.\n"
         "Set this with:\n\n"
-        "export PYTHONPATH=`pwd`/gw_spaceheat:`pwd`"
+        "  export PYTHONPATH=$PYTHONPATH:`pwd`\n"
     )
 
 
