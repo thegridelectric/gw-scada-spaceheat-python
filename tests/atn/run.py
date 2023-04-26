@@ -32,10 +32,6 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn":
     env_path = Path(dotenv.find_dotenv(args.env_file))
     dotenv.load_dotenv(env_path)
     settings = AtnSettings(
-        paths=Paths(
-            name="atn",
-            hardware_layout=os.getenv("ATN_PATHS__HARDWARE_LAYOUT", Paths().hardware_layout),
-        ),
         logging=LoggingSettings(base_log_name="gridworks.atn"),
     )
     if args.dry_run:
