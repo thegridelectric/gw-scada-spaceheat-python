@@ -273,6 +273,17 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                             ),
                         )
                     )
+                elif voltage == 0:
+                    driver_result.warnings.append(
+                        TSnapI2cReadWarning(
+                            idx=i,
+                            address=self.ads[i].i2c_device.device_address,
+                            pin=pin,
+                            msg=(
+                                f"Invalid voltage:{voltage:.2f}; must be greater than 0"
+                            ),
+                        )
+                    )
                 else:
                     driver_result.value = voltage
         return Ok(driver_result)
