@@ -39,7 +39,7 @@ greenlet==2.0.2
 # DO NOT MERGE TO MAIN
 # gridworks-proactor==0.1.7
     # via -r base.in
-gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@v0.2.0.rc0
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/watch
 
 gridworks-protocol==0.4.5
     # via
