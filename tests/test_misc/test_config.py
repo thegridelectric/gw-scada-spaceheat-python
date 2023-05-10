@@ -29,6 +29,12 @@ def test_mqtt_client_settings():
         assert getattr(settings, k) == v
     assert settings.port == port
     assert settings.password.get_secret_value() == password
+    import random
+    mn = 0
+    mx = 10
+    b = 7
+    r = random.randint(0, 10)
+    assert r < b, f"WHOOPS {r} >= {b} (from {mn}, {mx}"
 
 
 def exp_paths_dict(**kwargs) -> dict:
