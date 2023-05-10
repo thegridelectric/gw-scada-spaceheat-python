@@ -131,6 +131,7 @@ class AsyncFragmentRunner:
         actors: Optional[Actors] = None, # noqa
         tag: str = "",
         args: Optional[argparse.Namespace] = None,
+        add_screen_handler: bool = False,
     ):
         if settings is None:
             settings = ScadaSettings()
@@ -140,8 +141,8 @@ class AsyncFragmentRunner:
         atn_settings.paths.mkdirs(parents=True)
         errors = []
         if args is None:
-            args = argparse.Namespace(verbose=True)
-        setup_logging(args, settings, errors, add_screen_handler=True)
+            args = argparse.Namespace(verbose=False)
+        setup_logging(args, settings, errors, add_screen_handler=add_screen_handler)
         assert not errors
         setup_logging(args, cast(ScadaSettings, atn_settings), errors, add_screen_handler=False)
         assert not errors

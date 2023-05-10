@@ -134,7 +134,6 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
     included in next status and shapshot"""
 
     monkeypatch.chdir(tmp_path)
-    logging.basicConfig(level="DEBUG")
     settings = ScadaSettings(seconds_per_report=2)
     settings.paths.mkdirs(parents=True)
     atn_settings = AtnSettings()

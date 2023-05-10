@@ -206,7 +206,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
                     f"wait for PowerMeter periodic update [{tt.TelemetryName}]"
                 )
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment, args=argparse.Namespace(verbose=True), tag=request.node.name)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, args=argparse.Namespace(verbose=False), tag=request.node.name)
 
 
 @pytest.mark.asyncio
@@ -214,14 +214,6 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
     """Verify that when a simulated change in power is generated, Scadd and Atn both get a PowerWatts message"""
 
     monkeypatch.chdir(tmp_path)
-    settings = ScadaSettings(
-        logging=LoggingSettings(
-            base_log_level=logging.DEBUG,
-            levels=LoggerLevels(
-                message_summary=logging.DEBUG
-            )
-        )
-    )
 
     class Fragment(ProtocolFragment):
 
@@ -288,4 +280,4 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
                     err_str_f=atn.summary_str,
                 )
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment, settings=settings, tag=request.node.name)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, tag=request.node.name)
