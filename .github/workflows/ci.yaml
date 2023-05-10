@@ -44,7 +44,7 @@ jobs:
           do
                   echo "<< $i <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
                   echo ""
-                  pytest -k test_mqtt_client_settings
+                  pytest -k -s
                   if [[ $? != '0' ]]
                   then
                       exit $i
