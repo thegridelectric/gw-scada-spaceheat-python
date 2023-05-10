@@ -52,7 +52,6 @@ jobs:
                   echo ">> $i >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
                   echo ""
           done
-          exit $0
 #        run: pytest --count 80 -x
 #      - name: Upload coverage data
 #        uses: "actions/upload-artifact@v3"
