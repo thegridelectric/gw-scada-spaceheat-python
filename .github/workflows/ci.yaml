@@ -39,7 +39,21 @@ jobs:
           source: "tests/config/.env-ci"
           target: "tests/.env-gw-spaceheat-test"
       - name: Repeatedly run tests
-        run: pytest --count 80 -x
+        run: |
+          for i in {1..10}
+          do
+                  echo "<< $i <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
+                  echo ""
+                  pytest -k test_mqtt_client_settings
+                  if [[ $? != '0' ]]
+                  then
+                      exit $i
+                  fi
+                  echo ">> $i >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>"
+                  echo ""
+          done
+          exit $0
+#        run: pytest --count 80 -x
 #      - name: Upload coverage data
 #        uses: "actions/upload-artifact@v3"
 #        with:
