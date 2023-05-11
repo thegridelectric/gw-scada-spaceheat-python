@@ -202,21 +202,41 @@ class Scada(ScadaInterface, Proactor):
         )
 
     async def update_status(self):
+        path_dbg = 0
+        loop_path_dbg = 0
+        loop_count_dbg = 0
+        send_count_dbg = 0
         while not self._stop_requested:
+            loop_count_dbg += 1
+            path_dbg |= 0x00000001
+            loop_path_dbg = 0x00000001
             try:
                 if self.time_to_send_status():
+                    send_count_dbg += 1
+                    path_dbg |= 0x00000002
+                    loop_path_dbg = 0x00000002
                     self.send_status()
+                    path_dbg |= 0x00000004
+                    loop_path_dbg = 0x00000004
                     self._last_status_second = int(time.time())
+                    path_dbg |= 0x00000008
+                    loop_path_dbg = 0x00000008
             except BaseException as e:
+                path_dbg |= 0x00000010
+                loop_path_dbg |= 0x00000010
                 if not self._stop_requested:
+                    path_dbg |= 0x00000020
                     summary = "Exception in update_status()"
                     try:
                         summary += f"  <{type(e)}>  <{e}>"
+                        summary += "\n"
+                        summary += f"path: 0x{path_dbg:08X}  loop: 0x{loop_path_dbg:08X}  loop_count_dbg:{loop_count_dbg}  send_count_dbg:{send_count_dbg}"
                     except: # noqa
                         pass
                     try:
                         self.generate_event(Problems(errors=[e]).problem_event(summary=summary))
                     except BaseException as e2:
+                        path_dbg |= 0x00000040
                         self._logger.exception(e2)
                     try:
                         self._logger.exception(summary)
@@ -224,12 +244,15 @@ class Scada(ScadaInterface, Proactor):
                         import pprint
                         self._logger.exception(pprint.pformat(locals()))
                         import rich
-                        rich.inspect(self)
+                        rich.inspect(self, all=True, private=True)
                     except:  # noqa
                         pass
+                    path_dbg |= 0x00000080
                     self.send(InternalShutdownMessage(Src="update_status() task",Reason=summary))
                     raise e
+            path_dbg |= 0x00000100
             await asyncio.sleep(self.seconds_until_next_status())
+            path_dbg |= 0x00000200
 
     def send_status(self):
         status = self._data.make_status(self._last_status_second)
