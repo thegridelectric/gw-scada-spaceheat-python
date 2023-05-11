@@ -9,7 +9,9 @@ from typing import Any
 from typing import List
 from typing import Optional
 
+from gwproactor import Problems
 from gwproactor.links import LinkManagerTransition
+from gwproactor.message import InternalShutdownMessage
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
@@ -201,9 +203,32 @@ class Scada(ScadaInterface, Proactor):
 
     async def update_status(self):
         while not self._stop_requested:
-            if self.time_to_send_status():
-                self.send_status()
-                self._last_status_second = int(time.time())
+            try:
+                if self.time_to_send_status():
+                    self.send_status()
+                    self._last_status_second = int(time.time())
+            except BaseException as e:
+                if not self._stop_requested:
+                    summary = "Exception in update_status()"
+                    try:
+                        summary += f"  <{type(e)}>  <{e}>"
+                    except: # noqa
+                        pass
+                    try:
+                        self.generate_event(Problems(errors=[e]).problem_event(summary=summary))
+                    except BaseException as e2:
+                        self._logger.exception(e2)
+                    try:
+                        self._logger.exception(summary)
+                        self._logger.exception("locals():")
+                        import pprint
+                        self._logger.exception(pprint.pformat(locals()))
+                        import rich
+                        rich.inspect(self)
+                    except:  # noqa
+                        pass
+                    self.send(InternalShutdownMessage(Src="update_status() task",Reason=summary))
+                    raise e
             await asyncio.sleep(self.seconds_until_next_status())
 
     def send_status(self):
@@ -213,11 +238,7 @@ class Scada(ScadaInterface, Proactor):
         self._publish_to_local(self._node, status)
         snapshot = self._data.make_snapshot()
         self.generate_event(SnapshotSpaceheatEvent(snap=snapshot))
-        try:
-            self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
-        except BaseException as e:
-            self._logger.exception(e)
-            raise e
+        self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
         self._data.flush_latest_readings()
 
     def next_status_second(self) -> int:
