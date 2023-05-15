@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Literal, Optional
 from enums import TelemetryName as EnumTelemetryName
 from enums import Unit as EnumUnit
 from fastapi_utils.enums import StrEnum
-from gwproto.errors import MpSchemaError
+from gwproto.errors import SchemaError
 from gwproto.message import as_enum
 from pydantic import BaseModel, Field, validator
 
@@ -64,7 +64,7 @@ class TelemetryNameMap:
     @classmethod
     def type_to_local(cls, symbol: str) -> EnumTelemetryName:
         if not SpaceheatTelemetryName000SchemaEnum.is_symbol(symbol):
-            raise MpSchemaError(
+            raise SchemaError(
                 f"{symbol} must belong to SpaceheatTelemetryName000 symbols"
             )
         versioned_enum = cls.type_to_versioned_enum_dict[symbol]
@@ -73,7 +73,7 @@ class TelemetryNameMap:
     @classmethod
     def local_to_type(cls, telemetry_name: EnumTelemetryName) -> str:
         if not isinstance(telemetry_name, EnumTelemetryName):
-            raise MpSchemaError(f"{telemetry_name} must be of type {EnumTelemetryName}")
+            raise SchemaError(f"{telemetry_name} must be of type {EnumTelemetryName}")
         versioned_enum = as_enum(
             telemetry_name,
             SpaceheatTelemetryName000,
@@ -161,14 +161,14 @@ class UnitMap:
     @classmethod
     def type_to_local(cls, symbol: str) -> EnumUnit:
         if not SpaceheatUnit000SchemaEnum.is_symbol(symbol):
-            raise MpSchemaError(f"{symbol} must belong to SpaceheatUnit000 symbols")
+            raise SchemaError(f"{symbol} must belong to SpaceheatUnit000 symbols")
         versioned_enum = cls.type_to_versioned_enum_dict[symbol]
         return as_enum(versioned_enum, EnumUnit, EnumUnit.default())
 
     @classmethod
     def local_to_type(cls, unit: EnumUnit) -> str:
         if not isinstance(unit, EnumUnit):
-            raise MpSchemaError(f"{unit} must be of type {EnumUnit}")
+            raise SchemaError(f"{unit} must be of type {EnumUnit}")
         versioned_enum = as_enum(unit, SpaceheatUnit000, SpaceheatUnit000.default())
         return cls.versioned_enum_to_type_dict[versioned_enum]
 
@@ -297,16 +297,16 @@ class GtSensorReportingConfig_Maker:
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError("Type must be string or bytes!")
+            raise SchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
-            raise MpSchemaError(f"Deserializing {t} must result in dict!")
+            raise SchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
 
     @classmethod
     def dict_to_tuple(cls, d: dict[str, Any]) -> GtSensorReportingConfig:
         d2 = dict(d)
         if "TelemetryNameGtEnumSymbol" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing TelemetryNameGtEnumSymbol")
+            raise SchemaError(f"dict {d2} missing TelemetryNameGtEnumSymbol")
         if (
             d2["TelemetryNameGtEnumSymbol"]
             in SpaceheatTelemetryName000SchemaEnum.symbols
@@ -317,15 +317,15 @@ class GtSensorReportingConfig_Maker:
         else:
             d2["TelemetryName"] = EnumTelemetryName.default()
         if "ReportingPeriodS" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing ReportingPeriodS")
+            raise SchemaError(f"dict {d2} missing ReportingPeriodS")
         if "SamplePeriodS" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing SamplePeriodS")
+            raise SchemaError(f"dict {d2} missing SamplePeriodS")
         if "ReportOnChange" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing ReportOnChange")
+            raise SchemaError(f"dict {d2} missing ReportOnChange")
         if "Exponent" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing Exponent")
+            raise SchemaError(f"dict {d2} missing Exponent")
         if "UnitGtEnumSymbol" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing UnitGtEnumSymbol")
+            raise SchemaError(f"dict {d2} missing UnitGtEnumSymbol")
         if d2["UnitGtEnumSymbol"] in SpaceheatUnit000SchemaEnum.symbols:
             d2["Unit"] = UnitMap.type_to_local(d2["UnitGtEnumSymbol"])
         else:
@@ -333,7 +333,7 @@ class GtSensorReportingConfig_Maker:
         if "AsyncReportThreshold" not in d2.keys():
             d2["AsyncReportThreshold"] = None
         if "TypeName" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing TypeName")
+            raise SchemaError(f"dict {d2} missing TypeName")
 
         return GtSensorReportingConfig(
             TelemetryName=d2["TelemetryName"],

@@ -2,7 +2,7 @@
 import json
 from typing import Any, Dict, List, Literal, Optional
 
-from gwproto.errors import MpSchemaError
+from gwproto.errors import SchemaError
 from pydantic import BaseModel, Field, validator
 from gwproto.types import (
     TelemetryReportingConfig,
@@ -96,26 +96,26 @@ class GtPowermeterReportingConfig_Maker:
         try:
             d = json.loads(t)
         except TypeError:
-            raise MpSchemaError("Type must be string or bytes!")
+            raise SchemaError("Type must be string or bytes!")
         if not isinstance(d, dict):
-            raise MpSchemaError(f"Deserializing {t} must result in dict!")
+            raise SchemaError(f"Deserializing {t} must result in dict!")
         return cls.dict_to_tuple(d)
 
     @classmethod
     def dict_to_tuple(cls, d: dict[str, Any]) -> GtPowermeterReportingConfig:
         d2 = dict(d)
         if "ReportingPeriodS" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing ReportingPeriodS")
+            raise SchemaError(f"dict {d2} missing ReportingPeriodS")
         if "ElectricalQuantityReportingConfigList" not in d2.keys():
-            raise MpSchemaError(
+            raise SchemaError(
                 f"dict {d2} missing ElectricalQuantityReportingConfigList"
             )
         electrical_quantity_reporting_config_list = []
         if not isinstance(d2["ElectricalQuantityReportingConfigList"], List):
-            raise MpSchemaError("ElectricalQuantityReportingConfigList must be a List!")
+            raise SchemaError("ElectricalQuantityReportingConfigList must be a List!")
         for elt in d2["ElectricalQuantityReportingConfigList"]:
             if not isinstance(elt, dict):
-                raise MpSchemaError(
+                raise SchemaError(
                     f"elt {elt} of ElectricalQuantityReportingConfigList must be "
                     "TelemetryReportingConfig but not even a dict!"
                 )
@@ -126,11 +126,11 @@ class GtPowermeterReportingConfig_Maker:
             "ElectricalQuantityReportingConfigList"
         ] = electrical_quantity_reporting_config_list
         if "PollPeriodMs" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing PollPeriodMs")
+            raise SchemaError(f"dict {d2} missing PollPeriodMs")
         if "HwUid" not in d2.keys():
             d2["HwUid"] = None
         if "TypeName" not in d2.keys():
-            raise MpSchemaError(f"dict {d2} missing TypeName")
+            raise SchemaError(f"dict {d2} missing TypeName")
 
         return GtPowermeterReportingConfig(
             ReportingPeriodS=d2["ReportingPeriodS"],
