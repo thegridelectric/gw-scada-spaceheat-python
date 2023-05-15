@@ -13,16 +13,15 @@ from gwproactor.config import Paths
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproactor import setup_logging
 
-from tests.atn import AtnSettings
-
 try:
+    from tests.atn import AtnSettings
     from tests.atn import Atn
 except ImportError as e:
     raise ImportError(
         f"ERROR. ({e})\n\n"
         "Running the test atn requires an *extra* entry on the pythonpath, the base directory of the repo.\n"
         "Set this with:\n\n"
-        "export PYTHONPATH=`pwd`/gw_spaceheat:`pwd`"
+        "  export PYTHONPATH=$PYTHONPATH:`pwd`\n"
     )
 
 
@@ -33,12 +32,12 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn":
     env_path = Path(dotenv.find_dotenv(args.env_file))
     dotenv.load_dotenv(env_path)
     settings = AtnSettings(
-        paths=Paths(
-            name="atn",
-            hardware_layout=os.getenv("ATN_PATHS__HARDWARE_LAYOUT", Paths().hardware_layout),
-        ),
         logging=LoggingSettings(base_log_name="gridworks.atn"),
     )
+    if args.dry_run:
+        rich.print(f"Env file: <{env_path}>  exists:{env_path.exists()}")
+        rich.print(settings)
+        sys.exit(0)
     settings.paths.mkdirs()
     setup_logging(args, settings)  # type: ignore
     logger = logging.getLogger(settings.logging.base_log_name)

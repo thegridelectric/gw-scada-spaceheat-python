@@ -47,6 +47,11 @@ def add_default_args(
         nargs="*",
         help="ShNode aliases to load.",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print information without doing anything"
+    )
     return parser
 
 
@@ -110,22 +115,29 @@ def get_scada(
 ) -> Scada:
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
+    dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
     settings = ScadaSettings(_env_file=dotenv_file)
-    settings.paths.mkdirs()
-    setup_logging(args, settings, add_screen_handler=add_screen_handler)
-    logger = logging.getLogger(settings.logging.qualified_logger_names()["lifecycle"])
-    logger.info("")
-    logger.info("run_async_actors_main() starting")
-    logger.info("Env file: [%s]  exists:%s", dotenv_file, Path(dotenv_file).exists())
-    logger.info("Settings:")
-    logger.info(settings.json(sort_keys=True, indent=2))
-    rich.print(settings)
-    requested_aliases = get_requested_aliases(args)
-    layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
-    scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, actors_package_name)
-    scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-    if run_in_thread:
-        scada.run_in_thread()
+    if args.dry_run:
+        rich.print(dotenv_file_debug_str)
+        rich.print(settings)
+        rich.print("Dry run. Doing nothing.")
+        sys.exit(0)
+    else:
+        settings.paths.mkdirs()
+        setup_logging(args, settings, add_screen_handler=add_screen_handler)
+        logger = logging.getLogger(settings.logging.qualified_logger_names()["lifecycle"])
+        logger.info("")
+        logger.info(dotenv_file_debug_str)
+        logger.info("Settings:")
+        logger.info(settings.json(sort_keys=True, indent=2))
+        rich.print(settings)
+        requested_aliases = get_requested_aliases(args)
+        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
+        scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, actors_package_name)
+        scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+        if run_in_thread:
+            logger.info("run_async_actors_main() starting")
+            scada.run_in_thread()
     return scada
 
 
