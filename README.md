@@ -95,4 +95,13 @@ TODO:  ADD
 `python run_atn.py` will start up an `AtomicTNode` meant to run in the cloud (this will not 
 remain in this repo).
 
+## License
+
+Distributed under the terms of the [MIT license][license],
+this repository is free and open source software.
+
+## Contributing
+
+Contributions are very welcome.
+To learn more, see the [Contributor Guide].
 
