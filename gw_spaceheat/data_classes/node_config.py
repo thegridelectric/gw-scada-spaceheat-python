@@ -125,13 +125,13 @@ class NodeConfig:
                 driver_module_name = "drivers.relay.ncd__pr814spst__relay_driver"
                 driver_class_name = "NcdPr814Spst_RelayDriver"
             else:
-                driver_module_name = "drivers.relay.unknown_relay_driver import UnknownRelayDriver"
+                driver_module_name = "drivers.relay.unknown_relay_driver"
                 driver_class_name = "UnknownRelayDriver"
         elif cac.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             driver_module_name = "drivers.relay.gridworks_simbool30amprelay__relay_driver"
             driver_class_name = "GridworksSimBool30AmpRelay_RelayDriver"
         elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver_module_name = "drivers.relay.unknown_relay_driver import UnknownRelayDriver"
+            driver_module_name = "drivers.relay.unknown_relay_driver"
             driver_class_name = "UnknownRelayDriver"
         else:
             raise NotImplementedError(f"No BooleanActuator driver yet for {cac.make_model}")
