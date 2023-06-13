@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -9,7 +8,6 @@ import dotenv
 import rich
 from command_line_utils import parse_args
 from gwproactor.config import LoggingSettings
-from gwproactor.config import Paths
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproactor import setup_logging
 
