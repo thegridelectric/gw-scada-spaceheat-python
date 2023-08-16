@@ -52,11 +52,13 @@ fastapi-utils==0.2.1
     # via
     #   gridworks
     #   gridworks-protocol
-gridworks==0.2.8
-    # via gridworks-protocol
-gridworks-proactor==0.3.0
+gridworks==0.2.9
+    # via
+    #   gridworks-proactor
+    #   gridworks-protocol
+gridworks-proactor==0.3.1
     # via -r requirements/base.in
-gridworks-protocol==0.5.6
+gridworks-protocol==0.5.7
     # via
     #   -r requirements/base.in
     #   gridworks-proactor

@@ -58,11 +58,11 @@ fastapi-utils==0.2.1
     # via
     #   gridworks
     #   gridworks-protocol
-gridworks==0.2.8
+gridworks==0.2.9
     # via gridworks-protocol
 gridworks-proactor[tests]==0.2.1
     # via -r requirements/test.in
-gridworks-protocol==0.5.6
+gridworks-protocol==0.5.7
     # via gridworks-proactor
 h11==0.8.1
     # via
