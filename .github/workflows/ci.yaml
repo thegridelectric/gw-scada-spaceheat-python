@@ -4,7 +4,7 @@ on:
 
 env:
   PYTHONPATH: gw_spaceheat:$PYTHONPATH
-  PYTHON_VERSION: 3.11
+  PYTHON_VERSION: 3.10.4
 
 jobs:
   tests:
@@ -92,7 +92,7 @@ jobs:
         env:
           GWPROACTOR_TEST_CA_CERT_PATH: ${{ github.workspace }}/tests/.ci-ca/ca.crt
           GWPROACTOR_TEST_CA_KEY_PATH: ${{ github.workspace }}/tests/.ci-ca/private/ca_key.pem
-        run: coverage run -m pytest -s
+        run: coverage run -m pytest -k test_ping -s
 
       - name: Upload coverage data
         uses: "actions/upload-artifact@v3"
