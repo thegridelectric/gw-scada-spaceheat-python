@@ -61,15 +61,15 @@ jobs:
           mosquitto_sub -h localhost -p 1883 -t foo -E
           echo pub TLS
           mosquitto_pub -h localhost -p 8883 -t foo \
-                --cafile /home/runner/.local/share/gridworks/ca/ca.crt \
-                --cert /home/runner/.local/share/gridworks/ca/certs/ci/ci.crt \
-                --key /home/runner/.local/share/gridworks/ca/certs/ci/private/ci.pem \
+                --cafile ${{ github.workspace }}/tests/.ci-ca/ca.crt \
+                --cert ${{ github.workspace }}/tests/.ci-ca/certs/ci/ci.crt \
+                --key ${{ github.workspace }}/tests/.ci-ca/certs/ci/private/ci.pem \
                 -m '{"bar":1}'
           echo sub TLS
           mosquitto_sub -h localhost -p 8883 -t foo \
-                --cafile /home/runner/.local/share/gridworks/ca/ca.crt \
-                --cert /home/runner/.local/share/gridworks/ca/certs/ci/ci.crt \
-                --key /home/runner/.local/share/gridworks/ca/certs/ci/private/ci.pem \
+                --cafile ${{ github.workspace }}/tests/.ci-ca/ca.crt \
+                --cert ${{ github.workspace }}/tests/.ci-ca/certs/ci/ci.crt \
+                --key ${{ github.workspace }}/tests/.ci-ca/certs/ci/private/ci.pem \
                 -E
 
       - name: Install Python 3
