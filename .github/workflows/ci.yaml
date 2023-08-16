@@ -72,7 +72,6 @@ jobs:
                 --key /home/runner/.local/share/gridworks/ca/certs/ci/private/ci.pem \
                 -E
 
-
       - name: Install Python 3
         uses: actions/setup-python@v2
         with:
@@ -101,10 +100,15 @@ jobs:
           name: coverage-data
           path: ".coverage*"
 
-      - name: Mosquitto Log
+      - name: Local Mosquitto Log
         if: failure()
         run: |
           docker logs local-mqtt
+
+      - name: GridWorks Mosquitto Log
+        if: failure()
+        run: |
+          docker logs gw-mqtt
 
   coverage_report:
     name: Combine & check coverage.
