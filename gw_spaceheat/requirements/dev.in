@@ -3,3 +3,4 @@
 ipython
 pip-tools
 isort
+gridworks-proactor[tests]>=0.3.0

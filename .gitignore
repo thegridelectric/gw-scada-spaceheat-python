@@ -16,6 +16,8 @@ SassyMQ
 .idea
 .env
 tests/.env-gw-spaceheat-test
+tests/.certificate_cache
+tests/.ci-ca
 tmp.csv
 
 .coverage

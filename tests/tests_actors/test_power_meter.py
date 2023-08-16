@@ -7,6 +7,8 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
 from gwproactor_test import await_for
+from gwproactor_test.certs import uses_tls
+from gwproactor_test.certs import copy_keys
 
 import actors
 import pytest
@@ -27,6 +29,8 @@ from gwproto.messages import PowerWatts_Maker
 
 def test_power_meter_small():
     settings = ScadaSettings()
+    if uses_tls(settings):
+        copy_keys("scada", settings)
     settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
     scada = Scada("a.s", settings, layout)

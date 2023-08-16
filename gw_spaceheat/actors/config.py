@@ -1,7 +1,9 @@
+from gwproactor.config.mqtt import TLSInfo
 from pydantic import BaseModel
 
 from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
+from pydantic import root_validator
 
 DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 
@@ -18,3 +20,14 @@ class ScadaSettings(ProactorSettings):
 
     class Config(ProactorSettings.Config):
         env_prefix = "SCADA_"
+
+    @root_validator(pre=True)
+    def pre_root_validator(cls, values: dict) -> dict:
+        """local_mqtt configuration should be without TLS unless explicitly requested."""
+        if "local_mqtt" not in values:
+            values["local_mqtt"] = MQTTClient(tls=TLSInfo(use_tls=False))
+        elif "tls" not in values["local_mqtt"]:
+            values["local_mqtt"]["tls"] = TLSInfo(use_tls=False)
+        elif "use_tls" not in values["local_mqtt"]["tls"]:
+            values["local_mqtt"]["tls"]["use_tls"] = False
+        return values
