@@ -10,6 +10,10 @@ import dotenv
 import rich
 
 from gwproactor import setup_logging
+from gwproactor.config import MQTTClient
+from gwproactor.config.paths import TLSPaths
+from pydantic import BaseModel
+
 from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -106,6 +110,31 @@ def get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayou
                 actor_nodes.append(node)
     return scada_node, actor_nodes
 
+def missing_tls_paths(paths: TLSPaths) -> list[tuple[str, Optional[Path]]]:
+    missing = []
+    for path_name in paths.__fields__:
+        path = getattr(paths, path_name)
+        if path is None or not Path(path).exists():
+            missing.append((path_name, path))
+    return missing
+
+def check_tls_paths_present(model: BaseModel, raise_error: bool = True) -> str:
+    missing_str = ""
+    for k, v in model._iter():  # noqa
+        if isinstance(v, MQTTClient):
+            if v.tls.use_tls:
+                missing_paths = missing_tls_paths(v.tls.paths)
+                if missing_paths:
+                    missing_str += f"client {k}\n"
+                    for path_name, path in missing_paths:
+                        missing_str += f"  {path_name:20s}  {path}\n"
+    if missing_str:
+        error_str = f"ERROR. TLS usage requested but the following files are missing:\n{missing_str}"
+        if raise_error:
+            raise ValueError(error_str)
+    else:
+        error_str = ""
+    return error_str
 
 def get_scada(
     argv: Optional[Sequence[str]] = None,
@@ -120,6 +149,9 @@ def get_scada(
     if args.dry_run:
         rich.print(dotenv_file_debug_str)
         rich.print(settings)
+        missing_tls_paths_ = check_tls_paths_present(settings, raise_error=False)
+        if missing_tls_paths_:
+            rich.print(missing_tls_paths_)
         rich.print("Dry run. Doing nothing.")
         sys.exit(0)
     else:
@@ -131,6 +163,7 @@ def get_scada(
         logger.info("Settings:")
         logger.info(settings.json(sort_keys=True, indent=2))
         rich.print(settings)
+        check_tls_paths_present(settings)
         requested_aliases = get_requested_aliases(args)
         layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
         scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, actors_package_name)
