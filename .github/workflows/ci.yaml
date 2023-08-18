@@ -4,47 +4,111 @@ on:
 
 env:
   PYTHONPATH: gw_spaceheat:$PYTHONPATH
-  PYTHON_VERSION: 3.10.6
+  PYTHON_VERSION: 3.10.4
 
 jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - name: Install gwcert
+        run: |
+          pipx install gridworks-cert
+          gwcert --version
+
+      - name: Generate CA
+        run: |
+          echo Creating CA
+          gwcert ca create --ca-dir ${{ github.workspace }}/tests/.ci-ca ci-test-ca
+          echo "\nCA info:"
+          gwcert ca info --ca-dir ${{ github.workspace }}/tests/.ci-ca
+          echo "\nAdding mosquitto key:"
+          gwcert key add --ca-dir ${{ github.workspace }}/tests/.ci-ca --certs-dir ${{ github.workspace }}/tests/.ci-ca/certs --dns localhost mosquitto
+          echo "\nCA info:"
+          gwcert ca info --ca-dir ${{ github.workspace }}/tests/.ci-ca
+          sudo chmod a+r ${{ github.workspace }}/tests/.ci-ca/certs/mosquitto/private/mosquitto.pem
+          ls -lR ${{ github.workspace }}/tests/.ci-ca
+
       - name: Start 'Local' Mosquitto
-        uses: namoshek/mosquitto-github-action@v1
+        uses: namoshek/mosquitto-github-action@v1.1.0
         with:
-          version: '1.6'
-          ports: '1883:1883 8883:8883'
+          ports: '18831:18831'
           config: ${{ github.workspace }}/tests/config/local_mosquitto.conf
           container-name: 'local-mqtt'
+
       - name: Start 'GridWorks' Mosquitto
-        uses: namoshek/mosquitto-github-action@v1
+        uses: namoshek/mosquitto-github-action@v1.1.0
         with:
-          version: '1.6'
-          ports: '18831:18831'
+          ports: '1883:1883 8883:8883'
           config: ${{ github.workspace }}/tests/config/gw_mosquitto.conf
+          certificates: ${{ github.workspace }}/tests/.ci-ca
           container-name: 'gw-mqtt'
+
+      - name: Wait for 'GridWorks' Mosquitto
+        uses: iFaxity/wait-on-action@v1.1.0
+        with:
+          resource: tcp:localhost:1883
+          timeout: 5000
+
+      - name: Try Mosquitto Clients on 'GridWorks' Mosquitto Broker
+        run: |
+          gwcert key add --ca-dir ${{ github.workspace }}/tests/.ci-ca --certs-dir ${{ github.workspace }}/tests/.ci-ca/certs ci
+          sudo apt-get install mosquitto-clients
+          echo pub clear
+          mosquitto_pub -h localhost -p 1883 -t foo -m '{"bla":1}'
+          echo sub clear
+          mosquitto_sub -h localhost -p 1883 -t foo -E
+          echo pub TLS
+          mosquitto_pub -h localhost -p 8883 -t foo \
+                --cafile ${{ github.workspace }}/tests/.ci-ca/ca.crt \
+                --cert ${{ github.workspace }}/tests/.ci-ca/certs/ci/ci.crt \
+                --key ${{ github.workspace }}/tests/.ci-ca/certs/ci/private/ci.pem \
+                -m '{"bar":1}'
+          echo sub TLS
+          mosquitto_sub -h localhost -p 8883 -t foo \
+                --cafile ${{ github.workspace }}/tests/.ci-ca/ca.crt \
+                --cert ${{ github.workspace }}/tests/.ci-ca/certs/ci/ci.crt \
+                --key ${{ github.workspace }}/tests/.ci-ca/certs/ci/private/ci.pem \
+                -E
+
       - name: Install Python 3
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-      - name: Install dependencies
+
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r gw_spaceheat/requirements/dev.txt
-      - name: copy test_dotenv
+
+      - name: Copy Test .env
         uses: canastro/copy-file-action@master
         with:
           source: "tests/config/.env-ci"
           target: "tests/.env-gw-spaceheat-test"
-      - name: Run tests with pytest under coverage
-        run: coverage run -m pytest -s
+
+      - name: Run Tests with Pytest under Coverage
+        env:
+          GWPROACTOR_TEST_CA_CERT_PATH: ${{ github.workspace }}/tests/.ci-ca/ca.crt
+          GWPROACTOR_TEST_CA_KEY_PATH: ${{ github.workspace }}/tests/.ci-ca/private/ca_key.pem
+        run: coverage run -m pytest
+
       - name: Upload coverage data
         uses: "actions/upload-artifact@v3"
         with:
           name: coverage-data
           path: ".coverage*"
+
+      - name: Local Mosquitto Log
+        if: failure()
+        run: |
+          docker logs local-mqtt
+
+      - name: GridWorks Mosquitto Log
+        if: failure()
+        run: |
+          docker logs gw-mqtt
 
   coverage_report:
     name: Combine & check coverage.

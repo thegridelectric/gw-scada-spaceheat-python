@@ -14,6 +14,8 @@ from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
 from tests.utils import ScadaRecorder
 from gwproactor_test import await_for
+from gwproactor_test.certs import uses_tls
+from gwproactor_test.certs import copy_keys
 
 import pytest
 from actors import Scada
@@ -31,6 +33,8 @@ from gwproto.messages import SnapshotSpaceheat
 
 def test_scada_small():
     settings = ScadaSettings()
+    if uses_tls(settings):
+        copy_keys("scada", settings)
     settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
     scada = Scada("a.s", settings=settings, hardware_layout=layout)
@@ -136,8 +140,12 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
     monkeypatch.chdir(tmp_path)
     logging.basicConfig(level="DEBUG")
     settings = ScadaSettings(seconds_per_report=2)
+    if uses_tls(settings):
+        copy_keys("scada", settings)
     settings.paths.mkdirs(parents=True)
     atn_settings = AtnSettings()
+    if uses_tls(atn_settings):
+        copy_keys("atn", atn_settings)
     atn_settings.paths.mkdirs(parents=True)
     layout = HardwareLayout.load(settings.paths.hardware_layout)
     actors = Actors(
@@ -300,8 +308,12 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
 
     monkeypatch.chdir(tmp_path)
     settings = ScadaSettings(seconds_per_report=2)
+    if uses_tls(settings):
+        copy_keys("scada", settings)
     settings.paths.mkdirs()
     atn_settings = AtnSettings()
+    if uses_tls(atn_settings):
+        copy_keys("atn", atn_settings)
     atn_settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
     actors = Actors(
@@ -378,6 +390,8 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
 
     monkeypatch.chdir(tmp_path)
     settings = ScadaSettings(seconds_per_report=2)
+    if uses_tls(settings):
+        copy_keys("scada", settings)
     settings.paths.mkdirs(parents=True)
     atn_settings = AtnSettings()
     layout = HardwareLayout.load(settings.paths.hardware_layout)

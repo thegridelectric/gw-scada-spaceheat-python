@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -7,9 +6,10 @@ from typing import Optional, Sequence
 
 import dotenv
 import rich
+
+from command_line_utils import check_tls_paths_present
 from command_line_utils import parse_args
 from gwproactor.config import LoggingSettings
-from gwproactor.config import Paths
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproactor import setup_logging
 
@@ -37,12 +37,16 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn":
     if args.dry_run:
         rich.print(f"Env file: <{env_path}>  exists:{env_path.exists()}")
         rich.print(settings)
+        missing_tls_paths_ = check_tls_paths_present(settings, raise_error=False)
+        if missing_tls_paths_:
+            rich.print(missing_tls_paths_)
         sys.exit(0)
     settings.paths.mkdirs()
     setup_logging(args, settings)  # type: ignore
     logger = logging.getLogger(settings.logging.base_log_name)
     logger.log(logging.ERROR + 1, f"Env file: [{env_path}]")
     rich.print(settings)
+    check_tls_paths_present(settings)
     layout = HardwareLayout.load(settings.paths.hardware_layout)
     a = Atn("a", settings, layout)
     if start:
