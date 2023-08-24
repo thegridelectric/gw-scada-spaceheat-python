@@ -6,6 +6,8 @@ import shutil
 from pathlib import Path
 
 from gwproactor_test import restore_loggers # noqa
+from gwproactor_test.certs import set_test_certificate_cache_dir
+
 
 from tests.utils import flush_all
 from types import NoneType
@@ -23,6 +25,8 @@ TEST_DOTENV_PATH = "tests/.env-gw-spaceheat-test"
 TEST_DOTENV_PATH_VAR = "GW_SPACEHEAT_TEST_DOTENV_PATH"
 TEST_HARDWARE_LAYOUT_PATH = Path(__file__).parent / "config" / DEFAULT_LAYOUT_FILE
 DUMMY_TEST_HARDWARE_LAYOUT_PATH = Path(__file__).parent / "config" / "dummy-hardware-layout.json"
+
+set_test_certificate_cache_dir(Path(__file__).parent / ".certificate_cache")
 
 class TestScadaEnv:
     """Context manager for monkeypatched environment with:
@@ -77,9 +81,10 @@ class TestScadaEnv:
             m.setenv("XDG_STATE_HOME", str(self.xdg_home / ".local" / "state"))
             m.setenv("XDG_CONFIG_HOME", str(self.xdg_home / ".config"))
             if self.copy_test_layout:
-                paths = Paths()
-                paths.hardware_layout.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(self.src_test_layout, paths.hardware_layout)
+                for name in ["scada", "atn"]:
+                    paths = Paths(name=name)
+                    paths.hardware_layout.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(self.src_test_layout, paths.hardware_layout)
 
     def clean_env(self, m: MonkeyPatch):
         for env_var in os.environ:

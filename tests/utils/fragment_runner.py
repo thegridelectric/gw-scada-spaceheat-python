@@ -17,6 +17,9 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproactor import setup_logging
 from gwproactor import Proactor
 from gwproactor_test import await_for
+from gwproactor_test.certs import uses_tls
+from gwproactor_test.certs import copy_keys
+
 
 from tests.atn import Atn
 from tests.atn import AtnSettings
@@ -66,8 +69,12 @@ class Actors:
             layout: HardwareLayout,
             **kwargs
     ):
+        if uses_tls(settings):
+            copy_keys("scada", settings)
         settings.paths.mkdirs(parents=True)
         atn_settings = kwargs.get("atn_settings", AtnSettings())
+        if uses_tls(atn_settings):
+            copy_keys("atn", atn_settings)
         atn_settings.paths.mkdirs(parents=True)
         self.atn = kwargs.get(
             "atn",

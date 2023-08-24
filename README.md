@@ -56,7 +56,16 @@ For initial experiments the test layout file can be used. The test layout file i
     
     tests/config/hardware-layout.json
 
+Display the hardware layout with:
+    
+    python gw_spaceheat/show_layout.py
+
+Display current settings with: 
+    
+    python gw_spaceheat/show_settings.py
+
 There are some scratch notes on Pi-related setup (like enabling interfaces) in docs/pi_setup.md
+
 ### Adding libraries 
 - If you are going to add libraries, install pip-tools to your venv:
   - `python -m pip install pip-tools`
@@ -76,23 +85,77 @@ Configuration variables (secret or otherwise) use dotenv module in a gitignored 
 
 
 ### Setting up MQTT
-For development purposes, you can use the default values from `.env-template`.
-To use a local mosquitto broker:
-**Install the mosquito server**
-1. `brew install mosquitto`
-2. `brew services restart mosquitto`
-3. if you want to the broker to start on mac startup: `ln -sfv /usr/local/opt/mosquitto/*.plist ~/Library/LaunchAgents`
-4. Test using commandline pub sub.
-   - In first terminal: `mosquitto_sub -t 'test'`
-   - In second terminal: `mosquitto_pub -t 'test' -m 'hi'`
-   - Success: the subscribing terminal outputs hi
 
-## Step 2: input data and running the code
-TODO:  ADD
-`python run_local.py` will start up all actors meant to run on the SCADA pi. 
-`python try_actors.py` gives an interactive script to selectively start some of the actors.
+See instructions [here](https://gridworks-proactor.readthedocs.io/en/latest/#mosquitto) to set up a local MQTT broker
+using [Mosquitto](https://mosquitto.org/).
 
-`python run_atn.py` will start up an `AtomicTNode` meant to run in the cloud (this will not 
-remain in this repo).
+#### TLS
 
+TLS is used by default. Follow [these instructions](https://gridworks-proactor.readthedocs.io/en/latest/#tls) to set up
+a local self-signed Certificate Authority to create test certificates and to create certificates for the Mosquitto
+broker. Note that [this section](https://gridworks-proactor.readthedocs.io/en/latest/#external-connections)
+is relevant if you will connect to the Mosquitto broker from a Raspberry PI.
+
+##### Create a certificate for the test ATN
+
+```shell
+gwcert key add --certs-dir $HOME/.config/gridworks/atn/certs scada_mqtt
+cp $HOME/.local/share/gridworks/ca/ca.crt $HOME/.config/gridworks/atn/certs/scada_mqtt
+```
+
+##### Create a certificate for test Scada
+
+```shell
+gwcert key add --certs-dir $HOME/.config/gridworks/scada/certs gridworks_mqtt
+cp $HOME/.local/share/gridworks/ca/ca.crt $HOME/.config/gridworks/scada/certs/gridworks_mqtt                    
+```
+
+##### Test generated certificates
+
+In one terminal run: 
+```shell
+
+mosquitto_sub -h localhost -p 8883 -t foo \
+     --cafile $HOME/.config/gridworks/atn/certs/scada_mqtt/ca.crt \
+     --cert $HOME/.config/gridworks/atn/certs/scada_mqtt/scada_mqtt.crt \
+     --key $HOME/.config/gridworks/atn/certs/scada_mqtt/private/scada_mqtt.pem
+
+```
+In another terminal run: 
+```shell
+mosquitto_pub -h localhost -p 8883 -t foo -m '{"bar":1}' \
+     --cafile $HOME/.config/gridworks/scada/certs/gridworks_mqtt/ca.crt \
+     --cert $HOME/.config/gridworks/scada/certs/gridworks_mqtt/gridworks_mqtt.crt \
+     --key $HOME/.config/gridworks/scada/certs/gridworks_mqtt/private/gridworks_mqtt.pem
+
+```
+
+Verify you see `{"bar":1}` in the first window. 
+
+## Running the code
+
+This command will show information about what scada would do if started locally: 
+```shell
+python gw_spaceheat/run_scada.py --dry-run  
+```
+
+This command will will start the scada locally: 
+```shell
+python gw_spaceheat/run_scada.py 
+```
+
+These commands will start the local test ATN:
+```shell
+python tests/atn/run.py
+```
+
+## License
+
+Distributed under the terms of the [MIT license][license],
+this repository is free and open source software.
+
+## Contributing
+
+Contributions are very welcome.
+To learn more, see the [Contributor Guide].
 

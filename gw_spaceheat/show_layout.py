@@ -13,6 +13,7 @@ from actors import Scada
 from actors.config import ScadaSettings
 from command_line_utils import get_actor_nodes
 from command_line_utils import get_requested_aliases
+from gwproactor.config import MQTTClient
 from gwproto.data_classes.errors import DataClassLoadingError
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from enums import ActorClass
@@ -151,12 +152,16 @@ def print_layout_table(layout: HardwareLayout):
 
 
 def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings) -> Optional[Scada]:
+    settings = settings.copy(deep=True)
     settings.paths.mkdirs()
     scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada.DEFAULT_ACTORS_MODULE)
     scada = None
+    for k, v in settings._iter():  # noqa
+        if isinstance(v, MQTTClient):
+            v.tls.use_tls = False
     try:
         scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-    except (DataClassLoadingError, KeyError, ModuleNotFoundError, ValueError) as e:
+    except (DataClassLoadingError, KeyError, ModuleNotFoundError, ValueError, FileNotFoundError) as e:
         print(f"ERROR loading Scada: <{e}> {type(e)}")
     return scada
 
