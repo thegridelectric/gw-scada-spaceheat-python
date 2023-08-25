@@ -132,6 +132,20 @@ mosquitto_pub -h localhost -p 8883 -t foo -m '{"bar":1}' \
 
 Verify you see `{"bar":1}` in the first window. 
 
+#### Configuring a Scada with keys that can be used with the GridWorks MQTT broker. 
+
+Use `gw_spaceheat/getkeys.py` to create and copy TLS to keys to a scada such that it can communicate with the actual 
+GridWorks MQTT broker. For details run: 
+```shell
+python gw_spaceheat/getkeys.py --help
+```
+
+The overview of this process is that you need: 
+1. The ssh key for `certbot`.
+2. [rclone](https://rclone.org/install/) installed. 
+3. An rclone remote configured for your scada. 
+4. To construct the `getkeys.py` command line per its help. 
+
 ## Running the code
 
 This command will show information about what scada would do if started locally: 
