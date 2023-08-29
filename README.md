@@ -134,8 +134,9 @@ Verify you see `{"bar":1}` in the first window.
 
 #### Configuring a Scada with keys that can be used with the GridWorks MQTT broker. 
 
-Use `gw_spaceheat/getkeys.py` to create and copy TLS to keys to a scada such that it can communicate with the actual 
-GridWorks MQTT broker. For details run: 
+Use [getkeys.py](https://github.com/thegridelectric/gw-scada-spaceheat-python/blob/main/gw_spaceheat/getkeys.py) to
+create and copy TLS to keys to a scada such that it can communicate with the actual GridWorks MQTT broker. For details
+run: 
 ```shell
 python gw_spaceheat/getkeys.py --help
 ```
