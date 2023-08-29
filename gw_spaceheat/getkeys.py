@@ -1,8 +1,11 @@
 import argparse
-import os
 import subprocess
 from pathlib import Path
-import rich
+
+try:
+    from rich import print as richprint
+except ImportError:
+    richprint = print
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -88,13 +91,17 @@ if __name__ == "__main__":
         "--force", action="store_true", help="Force regeneration of keys."
     )
     parser.add_argument(
-        "--generate-only", action="store_true", help="Only generate the keys, do not copy them."
+        "--generate-only",
+        action="store_true",
+        help="Only generate the keys, do not copy them.",
     )
     parser.add_argument(
         "--copy-only", action="store_true", help="Only copy the keys, do not copy them."
     )
     parser.add_argument(
-        "--no-delete", action="store_true", help="Do not delete keys from certbot after copying them."
+        "--no-delete",
+        action="store_true",
+        help="Do not delete keys from certbot after copying them.",
     )
     parser.add_argument(
         "--dry-run",
@@ -118,7 +125,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "dest_rclone_name",
         help=(
-            "rclone remote to which files will be transferred. Use an explicit \"\" to transfer files to local "
+            'rclone remote to which files will be transferred. Use an explicit "" to transfer files to local '
             "machine."
         ),
     )
@@ -148,6 +155,7 @@ if __name__ == "__main__":
     rclone_dest_dir = f"{args.dest_certs_dir}/{args.mqtt_name}"
     rclone_dest_private_dir = f"{rclone_dest_dir}/private"
     delete_key_command_str = f"rm -rf {certbot_certs_dir}"
+
     def _remote_ssh_command(_command_str) -> list[str]:
         return [
             "ssh",
@@ -157,6 +165,7 @@ if __name__ == "__main__":
             args.certbot_ssh_key,
             f"bash -l -c '{_command_str}'",
         ]
+
     commands = dict(
         generate=_remote_ssh_command(generate_key_command_str),
         mkdir_certs=[
@@ -207,13 +216,13 @@ if __name__ == "__main__":
         print()
     else:
         for i, (name, cmd) in enumerate(commands.items()):
-            rich.print(f"Running <{name}> command:\n\n\t{' '.join(cmd)}\n")
+            richprint(f"Running <{name}> command:\n\n\t{' '.join(cmd)}\n")
             result = subprocess.run(cmd, capture_output=True)
             if result.returncode != 0:
-                rich.print(f"Command output:\n[\n{result.stderr.decode('utf-8')}\n]")
+                richprint(f"Command output:\n[\n{result.stderr.decode('utf-8')}\n]")
                 raise RuntimeError(
                     f"ERROR. Command <{' '.join(cmd)}> failed with returncode:{result.returncode}"
                 )
             if i == len(commands) - 1:
-                rich.print(result.stdout.decode("utf-8"))
-                rich.print("")
+                richprint(result.stdout.decode("utf-8"))
+                richprint("")
