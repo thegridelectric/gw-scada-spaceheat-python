@@ -14,6 +14,7 @@ if __name__ == "__main__":
     getkeys.py does the following: 
     1. Use ssh generate keys on certbot. 
     2. Use rclone to copy those keys to the desired location.
+    3. Use ssh to *delete* the keys on certbot.
     
     getkeys.py requires: 
     1. The presence of the ssh key used by ssh and rclone. 
@@ -26,16 +27,26 @@ if __name__ == "__main__":
     Examples
     -------- 
          
+    For scada
+    ---------- 
     To generate and copy keys for the scada 'almond', ensure you have the ssh key for certbot in $HOME/.ssh and rclone
     remotes configured for 'certbot' and 'almond' and run:  
     
         python gw_spaceheat/getkeys.py almond gridworks_mqtt almond /home/pi/.config/gridworks/scada/certs
     
+    For test ATN
+    ------------
     To generate and copy keys for the test ATN running on the 'cloudatn' machine used by the scada 'almond', ensure you
     have remotes configured for 'certbot' and 'cloudatn' and run: 
     
         python gw_spaceheat/getkeys.py almond-atn scada_mqtt cloudatn /home/ubuntu/almond-atn/.config/gridworks/atn/certs
-
+    
+    To an arbitrary directory
+    -------------------------
+    To generate and dowload keys to an arbitary directory, e.g., "./certs", run:
+     
+        python gw_spaceheat/getkeys.py x certs "" .
+    
     """,
     )
     parser.add_argument(
@@ -75,6 +86,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--force", action="store_true", help="Force regeneration of keys."
+    )
+    parser.add_argument(
+        "--generate-only", action="store_true", help="Only generate the keys, do not copy them."
+    )
+    parser.add_argument(
+        "--copy-only", action="store_true", help="Only copy the keys, do not copy them."
+    )
+    parser.add_argument(
+        "--no-delete", action="store_true", help="Do not delete keys from certbot after copying them."
     )
     parser.add_argument(
         "--dry-run",
@@ -127,57 +147,67 @@ if __name__ == "__main__":
     rclone_dest_name = f"{args.dest_rclone_name}:" if args.dest_rclone_name else ""
     rclone_dest_dir = f"{args.dest_certs_dir}/{args.mqtt_name}"
     rclone_dest_private_dir = f"{rclone_dest_dir}/private"
-    commands = dict(
-        ssh_command=[
+    delete_key_command_str = f"rm -rf {certbot_certs_dir}"
+    def _remote_ssh_command(_command_str) -> list[str]:
+        return [
             "ssh",
             "-A",
             f"{args.certbot_ssh_user}@{args.certbot_host}",
             "-i",
             args.certbot_ssh_key,
-            f"bash -l -c '{generate_key_command_str}'",
-        ],
-        mkdir_certs_command=[
+            f"bash -l -c '{_command_str}'",
+        ]
+    commands = dict(
+        generate=_remote_ssh_command(generate_key_command_str),
+        mkdir_certs=[
             "rclone",
             "mkdir",
             f"{rclone_dest_name}{rclone_dest_dir}",
         ],
-        mkdir_private_command=[
+        mkdir_private=[
             f"rclone",
             "mkdir",
             f"{rclone_dest_name}{rclone_dest_private_dir}",
         ],
-        copy_ca_command=[
+        copy_ca_certificate=[
             "rclone",
             "copyto",
             f"{args.certbot_rclone_name}:{args.certbot_ca_certificate_path}",
             f"{rclone_dest_name}{rclone_dest_dir}/ca.crt",
         ],
-        copy_crt_command=[
+        copy_certififate=[
             "rclone",
             "copyto",
             f"{args.certbot_rclone_name}:{certbot_src_dir}/{args.mqtt_name}.crt",
             f"{rclone_dest_name}{rclone_dest_dir}/{args.mqtt_name}.crt",
         ],
-        copy_key_command=[
+        copy_private_key=[
             "rclone",
             "copyto",
             f"{args.certbot_rclone_name}:{certbot_src_private_dir}/{args.mqtt_name}.pem",
             f"{rclone_dest_name}{rclone_dest_private_dir}/{args.mqtt_name}.pem",
         ],
-        ls_command=[
+        delete=_remote_ssh_command(delete_key_command_str),
+        ls_target=[
             "rclone",
             "ls",
             f"{rclone_dest_name}{rclone_dest_dir}",
         ],
     )
+    if args.generate_only:
+        commands = dict(generate_command=commands["generate"])
+    if args.copy_only:
+        commands.pop("generate", None)
+    if args.no_delete:
+        commands.pop("delete", None)
     if args.dry_run:
         print("\nDry run. Showing Commands and exiting:\n")
         for cmd in commands.values():
             print(f"{' '.join(cmd)}")
         print()
     else:
-        for i, cmd in enumerate(commands.values()):
-            rich.print(f"Running command:\n\n\t{' '.join(cmd)}\n")
+        for i, (name, cmd) in enumerate(commands.items()):
+            rich.print(f"Running <{name}> command:\n\n\t{' '.join(cmd)}\n")
             result = subprocess.run(cmd, capture_output=True)
             if result.returncode != 0:
                 rich.print(f"Command output:\n[\n{result.stderr.decode('utf-8')}\n]")
