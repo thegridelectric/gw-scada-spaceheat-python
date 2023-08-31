@@ -8,7 +8,7 @@ Restart=always
 User=pi
 Environment=VIRTUAL_ENV=/home/pi/gw-scada-spaceheat-python/gw_spaceheat/venv
 Environment=PYTHONPATH=/home/pi/gw-scada-spaceheat-python/gw_spaceheat
-Environment=GRIDWORKS_SCADA_RUNNING_AS_SERVICE=1
+Environment=SCADA_RUNNING_AS_SERVICE=1
 ExecStart=/usr/local/bin/python3.10 \
     /home/pi/gw-scada-spaceheat-python/gw_spaceheat/run_scada.py --message-summary
 RestartSec=1
