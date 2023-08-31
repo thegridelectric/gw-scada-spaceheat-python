@@ -82,9 +82,7 @@ fastapi-utils==0.2.1
     #   gridworks
     #   gridworks-protocol
 gridworks==0.2.9
-    # via
-    #   gridworks-proactor
-    #   gridworks-protocol
+    # via gridworks-protocol
 gridworks-cert==0.4.3
     # via
     #   -r requirements/dev.in

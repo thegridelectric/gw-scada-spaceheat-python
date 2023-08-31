@@ -9,6 +9,7 @@ from typing import Any
 from typing import List
 from typing import Optional
 
+from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproto import Message
 from gwproto import Decoders
@@ -168,6 +169,7 @@ class Scada(ScadaInterface, Proactor):
         return TimedRollingFilePersister(
             settings.paths.event_dir,
             max_bytes=settings.persister.max_bytes,
+            pat_watchdog_args=SystemDWatchdogCommandBuilder.default_pat_args(),
         )
 
     @property

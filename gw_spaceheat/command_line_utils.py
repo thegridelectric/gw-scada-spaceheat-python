@@ -13,6 +13,7 @@ from gwproactor import setup_logging
 from gwproactor.config import MQTTClient
 from gwproactor.config.paths import TLSPaths
 from pydantic import BaseModel
+from pydantic import BaseSettings
 
 from actors import Scada
 from actors.config import ScadaSettings
@@ -118,7 +119,7 @@ def missing_tls_paths(paths: TLSPaths) -> list[tuple[str, Optional[Path]]]:
             missing.append((path_name, path))
     return missing
 
-def check_tls_paths_present(model: BaseModel, raise_error: bool = True) -> str:
+def check_tls_paths_present(model: BaseModel | BaseSettings, raise_error: bool = True) -> str:
     missing_str = ""
     for k, v in model._iter():  # noqa
         if isinstance(v, MQTTClient):

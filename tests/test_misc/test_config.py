@@ -6,6 +6,7 @@ import dotenv
 from gwproactor.config import Paths
 from gwproactor.config.mqtt import TLSInfo
 from gwproactor.config.proactor_settings import ACK_TIMEOUT_SECONDS
+from gwproactor.config.proactor_settings import NUM_INITIAL_EVENT_REUPLOADS
 
 from actors.config import PersisterSettings
 from gwproactor.config import LoggingSettings
@@ -43,6 +44,7 @@ def test_scada_settings_defaults(clean_scada_env):
         persister=PersisterSettings().dict(),
         mqtt_link_poll_seconds=MQTT_LINK_POLL_SECONDS,
         ack_timeout_seconds=ACK_TIMEOUT_SECONDS,
+        num_initial_event_reuploads=NUM_INITIAL_EVENT_REUPLOADS,
     )
     assert settings.dict() == exp
     assert settings.local_mqtt == exp_local_mqtt
