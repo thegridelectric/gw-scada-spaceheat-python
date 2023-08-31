@@ -89,7 +89,7 @@ gridworks-cert==0.4.3
     # via
     #   -r requirements/dev.in
     #   gridworks-proactor
-gridworks-proactor[tests]==0.3.2
+gridworks-proactor[tests]==0.3.3
     # via
     #   -r requirements/base.in
     #   -r requirements/dev.in
