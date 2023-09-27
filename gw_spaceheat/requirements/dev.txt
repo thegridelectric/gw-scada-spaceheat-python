@@ -87,12 +87,16 @@ gridworks-cert==0.4.3
     # via
     #   -r requirements/dev.in
     #   gridworks-proactor
-gridworks-proactor[tests]==0.3.3
+# DO NOT MERGE
+# gridworks-proactor[tests]==0.3.3
+gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/rest
     # via
     #   -r requirements/base.in
     #   -r requirements/dev.in
     #   -r requirements/test.in
-gridworks-protocol==0.5.7
+# DO NOT MERGE
+# gridworks-protocol==0.5.7
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/rest
     # via
     #   -r requirements/base.in
     #   gridworks-proactor

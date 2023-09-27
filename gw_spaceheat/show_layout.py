@@ -51,6 +51,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         nargs="*",
         help="ShNode aliases to load.",
     )
+    parser.add_argument(
+        "-r",
+        "--raise-errors",
+        action="store_true",
+        help="Raise any errors immediately to see full call stack."
+    )
 
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
@@ -151,7 +157,7 @@ def print_layout_table(layout: HardwareLayout):
     print(table)
 
 
-def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings) -> Optional[Scada]:
+def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
     settings = settings.copy(deep=True)
     settings.paths.mkdirs()
     scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada.DEFAULT_ACTORS_MODULE)
@@ -161,15 +167,35 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
             v.tls.use_tls = False
     try:
         scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-    except (DataClassLoadingError, KeyError, ModuleNotFoundError, ValueError, FileNotFoundError) as e:
+    except (
+            DataClassLoadingError,
+            KeyError,
+            ModuleNotFoundError,
+            ValueError,
+            FileNotFoundError,
+            AttributeError,
+    ) as e:
         print(f"ERROR loading Scada: <{e}> {type(e)}")
+        print("Use '-r' to see full error stack.")
+        if raise_errors:
+            raise e
     return scada
 
 
-def show_layout(layout: HardwareLayout, requested_aliases: Optional[set[str]], settings: ScadaSettings) -> Scada:
+def show_layout(
+        layout: HardwareLayout,
+        requested_aliases: Optional[set[str]],
+        settings: ScadaSettings,
+        raise_errors: bool = False
+) -> Scada:
     print_component_dicts(layout)
     print_layout_table(layout)
-    return try_scada_load(requested_aliases, layout, settings)
+    return try_scada_load(
+        requested_aliases,
+        layout,
+        settings,
+        raise_errors=raise_errors
+    )
 
 
 def main(argv: Optional[Sequence[str]] = None):
@@ -190,10 +216,15 @@ def main(argv: Optional[Sequence[str]] = None):
     layout = HardwareLayout.load(
         settings.paths.hardware_layout,
         included_node_names=requested_aliases,
-        raise_errors=False,
+        raise_errors=bool(args.raise_errors),
         errors=errors,
     )
-    show_layout(layout, requested_aliases, settings)
+    show_layout(
+        layout,
+        requested_aliases,
+        settings,
+        raise_errors=args.raise_errors
+    )
     if errors:
         print(f"\nFound {len(errors)} ERRORS in layout:")
         for i, error in enumerate(errors):

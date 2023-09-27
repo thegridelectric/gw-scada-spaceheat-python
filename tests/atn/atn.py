@@ -34,9 +34,9 @@ from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
 from pydantic import BaseModel
 
-from actors import ActorInterface
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
+from gwproactor import ActorInterface
 from gwproactor import QOS
 from gwproactor.message import DBGCommands
 from gwproactor.message import DBGPayload
@@ -94,8 +94,6 @@ class AtnData:
 class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
-    layout: HardwareLayout
-    _node: ShNode
     data: AtnData
     my_sensors: Sequence[ShNode]
     my_relays: Sequence[ShNode]
@@ -107,9 +105,7 @@ class Atn(ActorInterface, Proactor):
         settings: AtnSettings,
         hardware_layout: HardwareLayout,
     ):
-        self._node = hardware_layout.node(name)
-        self.layout = hardware_layout
-        super().__init__(name=name, settings=settings)
+        super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self.my_sensors = list(
             filter(
                 lambda x: (
@@ -152,6 +148,10 @@ class Atn(ActorInterface, Proactor):
     @property
     def settings(self) -> AtnSettings:
         return cast(AtnSettings, self._settings)
+
+    @property
+    def layout(self) -> HardwareLayout:
+        return self._layout
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         message = Message(Src=self.publication_name, Payload=payload)
