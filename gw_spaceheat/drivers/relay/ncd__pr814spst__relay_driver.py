@@ -5,7 +5,7 @@ import smbus2 as smbus
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 from drivers.exceptions import DriverWarning
-from drivers.relay.mcp23008.mcp_driver import mcp23008
+from drivers.relay.mcp23008.ncd_driver import mcp23008
 from drivers.relay.relay_driver import RelayDriver
 from enums import MakeModel
 from gwproto.data_classes.components.relay_component import RelayComponent
