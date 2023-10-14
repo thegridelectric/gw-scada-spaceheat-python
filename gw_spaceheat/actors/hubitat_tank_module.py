@@ -3,14 +3,18 @@ from typing import Optional
 
 from aiohttp import ClientResponse
 from aiohttp import ClientSession
+from gwproactor import Actor
 from gwproactor import ServicesInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
-from gwproto.enums import TelemetryName
+from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
+from gwproto.types.hubitat_tank_gt import FibaroTempSensorSettings
 from pydantic import BaseModel
 from pydantic import Extra
+from result import Result
 
-from actors.message import GtTelemetryMessage
+from actors.message import MultipurposeSensorTelemetryMessage
+
 
 class FibaroAttribute(BaseModel, extra=Extra.allow):
     name: str = ""
@@ -36,43 +40,97 @@ class FibaroRefreshResponse(BaseModel, extra=Extra.allow):
                 pass
         return None
 
-class FibaroTankTempSensor(RESTPoller):
+class FibaroTankTempPoller(RESTPoller):
 
-    _read_time: float
-    _telemetry_name: TelemetryName
-    _exponent: int
+    _last_read_time: float
+    _settings: FibaroTempSensorSettings
+    _report_dst: str
 
-    def __init__(self, name: str, services: ServicesInterface):
-        super().__init__(name, services)
-        telemetry_name = getattr(self._component, "telemetry_name", None)
-        exponent = getattr(self._component, "exponent", None)
-        if not isinstance(telemetry_name, TelemetryName):
-            raise ValueError(
-                f"ERROR. Component.telemetry_name has type {type(telemetry_name)}. Expected TelemetryName."
-            )
-        if not isinstance(exponent, int):
-            raise ValueError(
-                f"ERROR. Cac.exponent has type {type(telemetry_name)}. Expected int."
-            )
-        self._telemetry_name = telemetry_name
-        self._exponent = exponent
+    def __init__(
+            self,
+            name: str,
+            settings: FibaroTempSensorSettings,
+            services: ServicesInterface
+    ):
+        self._settings = settings
+        self._report_dst = services.name
+        super().__init__(
+            name,
+            self._settings.rest,
+            services.io_loop_manager,
+            convert = self._convert,
+        )
 
     async def _make_request(self, session: ClientSession) -> ClientResponse:
         """"A refresh sent to hubitat for fibaro returns the value of the *last* refresh,
         so we just send two refreshes.
         """
-        method, url, request_kwargs = self._request_args()
-        async with await session.request(method, url, **request_kwargs) as poke:
-            self._read_time = time.time()
-        response = await session.request(method, url, **request_kwargs)
-        return response
+        args = self._request_args
+        if args is None:
+             args = self._make_request_args()
+        async with await session.request(args.method, args.url, **args.kwargs):
+            self._last_read_time = time.time()
+        return await session.request(args.method, args.url, **args.kwargs)
 
     async def _convert(self, response: ClientResponse) -> Optional[Message]:
-        return GtTelemetryMessage(
-            src=self.name,
-            dst=self.services.name,
-            telemetry_name=self._telemetry_name,
-            value=int(FibaroRefreshResponse(**await response.json()).get_voltage()),
-            exponent=self._exponent,
-            scada_read_time_unix_ms=int(self._read_time * 1000),
+        return MultipurposeSensorTelemetryMessage(
+            src=self._name,
+            dst=self._report_dst,
+            about_node_alias_list=[self._settings.node_name],
+            value_list=[int(FibaroRefreshResponse(**await response.json()).get_voltage())],
+            telemetry_name_list=[self._settings.telemetry_name],
         )
+
+class HubitatTankModule(Actor):
+
+    _component: HubitatTankComponent
+    _pollers: list[FibaroTankTempPoller]
+
+    def __init__(
+        self,
+        name: str,
+        services: ServicesInterface,
+    ):
+        component = services.hardware_layout.component(name)
+        if not isinstance(component, HubitatTankComponent):
+            display_name = getattr(
+                component, "display_name", "MISSING ATTRIBUTE display_name"
+            )
+            raise ValueError(
+                f"ERROR. Component <{display_name}> has type {type(component)}. "
+                f"Expected HubitatTankComponent.\n"
+                f"  Node: {self.name}\n"
+                f"  Component id: {component.component_id}"
+            )
+
+        super().__init__(name, services)
+        self._component = component
+        self._component.resolve(
+            self._name,
+            services.hardware_layout.components,
+            services.hardware_layout.nodes,
+        )
+        self._pollers = [
+            FibaroTankTempPoller(
+                name="",
+                settings=device,
+                services=services,
+            ) for device in self._component.devices
+        ]
+
+    def process_message(self, message: Message) -> Result[bool, BaseException]:
+        raise ValueError("HubitatTankModule does not currently process any messages")
+
+    def start(self) -> None:
+        for poller in self._pollers:
+            poller.start()
+
+    def stop(self) -> None:
+        for poller in self._pollers:
+            try:
+                poller.stop()
+            except: # noqa
+                pass
+
+    async def join(self) -> None:
+        """IOLoop will take care of shutting down the associated task."""

@@ -2,7 +2,7 @@
 easier."""
 
 from actors.boolean_actuator import BooleanActuator
-from actors.fibaro_tank_temp_sensor import FibaroTankTempSensor
+from actors.hubitat_tank_module import HubitatTankModule
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
@@ -12,7 +12,7 @@ from actors.home_alone import HomeAlone
 
 __all__ = [
     "BooleanActuator",
-    "FibaroTankTempSensor",
+    "HubitatTankModule",
     "HomeAlone",
     "MultipurposeSensor",
     "PowerMeter",

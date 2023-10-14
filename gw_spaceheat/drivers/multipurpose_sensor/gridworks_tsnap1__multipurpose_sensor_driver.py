@@ -1,15 +1,3 @@
-from gwproto.data_classes.components.multipurpose_sensor_component import (
-    MultipurposeSensorComponent,
-)
-from enums import MakeModel, TelemetryName
-from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
-    MultipurposeSensorDriver,
-    TelemetrySpec,
-)
-from adafruit_ads1x15.analog_in import AnalogIn
-import busio
-import board
-import adafruit_ads1x15.ads1115 as ADS
 import math
 import sys
 from enum import Enum
@@ -17,7 +5,6 @@ from typing import Dict, List
 from actors.config import ScadaSettings
 
 from drivers.driver_result import DriverResult
-from drivers.exceptions import DriverWarning
 
 from result import Err, Ok, Result
 
