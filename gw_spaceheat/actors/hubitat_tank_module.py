@@ -58,20 +58,13 @@ class FibaroTankTempSensor(RESTPoller):
         self._exponent = exponent
 
     async def _make_request(self, session: ClientSession) -> ClientResponse:
-        """"A refresh sent to hubitate for fibaro returns the value of the *last* refresh,
+        """"A refresh sent to hubitat for fibaro returns the value of the *last* refresh,
         so we just send two refreshes.
         """
-        # print(f"FibaroTankTempSensor  ++_make_request")
-        # t0 = time.time()
         method, url, request_kwargs = self._request_args()
         async with await session.request(method, url, **request_kwargs) as poke:
-            # d0 = time.time() - t0
             self._read_time = time.time()
-            # print(f"FibaroTankTempSensor    _make_request  poke: {poke}")
         response = await session.request(method, url, **request_kwargs)
-        # d1 = time.time() - self._read_time
-        # print(f"FibaroTankTempSensor    _make_request  response: {response}")
-        # print(f"FibaroTankTempSensor  --_make_request  {d0}  {d1}  {response}")
         return response
 
     async def _convert(self, response: ClientResponse) -> Optional[Message]:
