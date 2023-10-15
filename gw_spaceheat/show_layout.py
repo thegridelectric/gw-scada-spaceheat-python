@@ -57,6 +57,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Raise any errors immediately to see full call stack."
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print additional information"
+    )
 
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
@@ -229,7 +235,9 @@ def main(argv: Optional[Sequence[str]] = None):
         print(f"\nFound {len(errors)} ERRORS in layout:")
         for i, error in enumerate(errors):
             print(f"  {i+1:2d}: {error.type_name:30s}  <{error.src_dict.get('DisplayName', '')}>  <{error.exception}> ")
-
+            if args.verbose:
+                print(f"  {i+1:2d}:  element:\n{error.src_dict}\n")
+        print(f"\nFound {len(errors)} ERRORS in layout.")
 
 if __name__ == "__main__":
     main()

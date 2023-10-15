@@ -112,7 +112,7 @@ class HubitatTankModule(Actor):
         )
         self._pollers = [
             FibaroTankTempPoller(
-                name="",
+                name=device.node_name,
                 settings=device,
                 services=services,
             ) for device in self._component.devices
