@@ -1,10 +1,14 @@
 import argparse
 import sys
 from pathlib import Path
+from typing import Callable
 from typing import Optional
 from typing import Sequence
 
 import dotenv
+import yarl
+from gwproto.data_classes.components.hubitat_component import HubitatComponent
+from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from rich import print
 from rich.table import Table
 from rich.text import Text
@@ -187,6 +191,17 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
             raise e
     return scada
 
+def print_layout_urls(layout: HardwareLayout) -> None:
+    for component in layout.components.values():
+        try:
+            if isinstance(component, (HubitatComponent, HubitatTankComponent)):
+                print(f"URLS for <{component.display_name}>:")
+                print(component.urls())
+        except BaseException as e: # noqa
+            print(
+                f"ERROR printing urls for component {component.display_name} "
+                f"<{type(e)}>  <{e}>"
+            )
 
 def show_layout(
         layout: HardwareLayout,
@@ -195,13 +210,16 @@ def show_layout(
         raise_errors: bool = False
 ) -> Scada:
     print_component_dicts(layout)
+    print_layout_urls(layout)
     print_layout_table(layout)
-    return try_scada_load(
+    scada = try_scada_load(
         requested_aliases,
         layout,
         settings,
         raise_errors=raise_errors
     )
+    print_layout_urls(layout)
+    return scada
 
 
 def main(argv: Optional[Sequence[str]] = None):
