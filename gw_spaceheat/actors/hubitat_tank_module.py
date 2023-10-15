@@ -43,22 +43,26 @@ class FibaroRefreshResponse(BaseModel, extra=Extra.allow):
 class FibaroTankTempPoller(RESTPoller):
 
     _last_read_time: float
-    _settings: FibaroTempSensorSettings
+    _report_src: str
     _report_dst: str
+    _settings: FibaroTempSensorSettings
 
     def __init__(
             self,
             name: str,
+            tank_module_name: str,
             settings: FibaroTempSensorSettings,
             services: ServicesInterface
     ):
-        self._settings = settings
+        self._report_src = tank_module_name
         self._report_dst = services.name
+        self._settings = settings
         super().__init__(
             name,
             self._settings.rest,
             services.io_loop_manager,
-            convert = self._convert,
+            convert=self._convert,
+            forward=services.send_threadsafe,
         )
 
     async def _make_request(self, session: ClientSession) -> ClientResponse:
@@ -74,10 +78,16 @@ class FibaroTankTempPoller(RESTPoller):
 
     async def _convert(self, response: ClientResponse) -> Optional[Message]:
         return MultipurposeSensorTelemetryMessage(
-            src=self._name,
+            src=self._report_src,
             dst=self._report_dst,
             about_node_alias_list=[self._settings.node_name],
-            value_list=[int(FibaroRefreshResponse(**await response.json()).get_voltage())],
+            value_list=[
+                int(
+                    FibaroRefreshResponse(
+                        **await response.json()
+                    ).get_voltage() * 1000
+                )
+            ],
             telemetry_name_list=[self._settings.telemetry_name],
         )
 
@@ -105,14 +115,10 @@ class HubitatTankModule(Actor):
 
         super().__init__(name, services)
         self._component = component
-        self._component.resolve(
-            self._name,
-            services.hardware_layout.components,
-            services.hardware_layout.nodes,
-        )
         self._pollers = [
             FibaroTankTempPoller(
                 name=device.node_name,
+                tank_module_name=self.name,
                 settings=device,
                 services=services,
             ) for device in self._component.devices

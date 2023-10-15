@@ -1,14 +1,13 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Callable
 from typing import Optional
 from typing import Sequence
 
 import dotenv
-import yarl
 from gwproto.data_classes.components.hubitat_component import HubitatComponent
 from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
+from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 from rich import print
 from rich.table import Table
 from rich.text import Text
@@ -191,17 +190,38 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
             raise e
     return scada
 
+def print_layout_members(layout: HardwareLayout) -> None:
+    print("Named layout collections:")
+    print("  my_multipurpose_sensors:")
+    for entry in layout.my_multipurpose_sensors:
+        print(f"    <{entry.alias}>")
+    print("  all_multipurpose_telemetry_tuples:")
+    def _print_tt(tt_: TelemetryTuple):
+        print(f"    src: <{tt_.SensorNode.alias}>  about: <{tt_.AboutNode.alias}>")
+    for tt in layout.all_multipurpose_telemetry_tuples:
+        _print_tt(tt)
+    print("  all_power_meter_telemetry_tuples:")
+    for tt in layout.all_power_meter_telemetry_tuples:
+        _print_tt(tt)
+    print("  my_telemetry_tuples:")
+    for tt in layout.my_telemetry_tuples:
+        _print_tt(tt)
+
+
 def print_layout_urls(layout: HardwareLayout) -> None:
-    for component in layout.components.values():
-        try:
-            if isinstance(component, (HubitatComponent, HubitatTankComponent)):
-                print(f"URLS for <{component.display_name}>:")
-                print(component.urls())
-        except BaseException as e: # noqa
-            print(
-                f"ERROR printing urls for component {component.display_name} "
-                f"<{type(e)}>  <{e}>"
-            )
+    url_dicts = {
+        component.display_name: component.urls()
+        for component in [
+        component for component in layout.components.values()
+        if isinstance(component, (HubitatComponent, HubitatTankComponent))
+    ]
+    }
+    if url_dicts:
+        print("Component URLS:")
+        for name, urls in url_dicts.items():
+            print(f"  <{name}>:")
+            for k, v in urls.items():
+                print(f"    {k}: {str(v)}")
 
 def show_layout(
         layout: HardwareLayout,
@@ -210,6 +230,7 @@ def show_layout(
         raise_errors: bool = False
 ) -> Scada:
     print_component_dicts(layout)
+    print_layout_members(layout)
     print_layout_urls(layout)
     print_layout_table(layout)
     scada = try_scada_load(
@@ -218,9 +239,7 @@ def show_layout(
         settings,
         raise_errors=raise_errors
     )
-    print_layout_urls(layout)
     return scada
-
 
 def main(argv: Optional[Sequence[str]] = None):
     args = parse_args(argv)

@@ -419,6 +419,9 @@ class Scada(ScadaInterface, Proactor):
     def gt_sh_telemetry_from_multipurpose_sensor_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
     ):
+        self._logger.path(
+            "++gt_sh_telemetry_from_multipurpose_sensor_received from: %s", from_node.alias
+        )
         if from_node in self._layout.my_multipurpose_sensors:
             about_node_alias_list = payload.AboutNodeAliasList
             for idx, about_alias in enumerate(about_node_alias_list):
