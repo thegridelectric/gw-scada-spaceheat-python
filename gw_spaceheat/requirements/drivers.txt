@@ -82,9 +82,10 @@ gridworks==0.2.9
     #   gridworks-protocol
 # DO NOT MERGE
 # gridworks-proactor[tests]==0.3.3
-gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/rest
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/rest
 # gridworks-protocol==0.5.7
 gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/rest
+
 h11==0.8.1
     # via
     #   http3
