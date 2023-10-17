@@ -1,5 +1,6 @@
 import time
 from typing import Optional
+import math
 
 from aiohttp import ClientResponse
 from aiohttp import ClientSession
@@ -40,6 +41,69 @@ class FibaroRefreshResponse(BaseModel, extra=Extra.allow):
                 pass
         return None
 
+
+
+# 298 Kelvin is 25 Celcius
+THERMISTOR_T0_DEGREES_KELVIN = 298
+# NTC THermistors are 10 kOhms at 25 deg C
+THERMISTOR_R0_OHMS = 10000
+# NTC Thermistors have a "rated beta" on their data sheet
+THERMISTOR_BETA = 3977
+# Then, there is our pull-up resistor
+VOLTAGE_DIVIDER_R_OHMS = 10000
+# MAX_VOLTAGE = 23.7
+MAX_VOLTAGE = 11.75
+FIBARO_PULLDOWN_OHMS = 150000
+
+
+# if voltage >= MAX_VOLTAGE:
+#     return I2CErrorEnum.READ_ERROR.value
+#     # Calculate the resistance of the thermistor
+
+def r_from_v(voltage: float) -> float:
+    """ Infer the resistance from the voltage measured from a TankModule1 Fibaro
+    set up with no internal voltage divider and a 10K pullup resistor.
+    """
+
+    rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
+
+    # r_both is the resistance of our thermistor in parallel with the
+    # Fibaro pulldown
+    r_both = rd * voltage / (MAX_VOLTAGE - voltage)
+
+    # Applying kirchoff
+    rt = (FIBARO_PULLDOWN_OHMS * r_both) / (FIBARO_PULLDOWN_OHMS - r_both)
+    return rt
+
+
+def thermistor_temp_c_beta_formula(voltage: float) -> float:
+    """We are using the beta formula instead of the Steinhart-Hart equation.
+    Thermistor data sheets typically provide the three parameters needed
+    for the beta formula (R0, beta, and T0) and do not provide the
+    three parameters needed for the better beta function.
+    "Under the best conditions, the beta formula is accurate to approximately
+    +/- 1 C over the temperature range of 0 to 100C
+
+    For more information go here:
+    https://www.newport.com/medias/sys_master/images/images/hdb/hac/8797291479070/TN-STEIN-1-Thermistor-Constant-Conversions-Beta-to-Steinhart-Hart.pdf
+
+    Args:
+        voltage (float): The voltage measured between the thermistor and the
+        voltage divider resistor
+
+    Returns:
+        float: The temperature getting measured by the thermistor in degrees Celcius
+    """
+
+    r0: int = int(THERMISTOR_R0_OHMS)
+    beta: int = int(THERMISTOR_BETA)
+    t0: int = int(THERMISTOR_T0_DEGREES_KELVIN)
+    rt = r_from_v(voltage)
+    # Calculate the temperature in degrees Celsius. Note that 273 is
+    # 0 degrees Celcius as measured in Kelvin.
+    temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
+    return temp_c
+
 class FibaroTankTempPoller(RESTPoller):
 
     _last_read_time: float
@@ -77,17 +141,18 @@ class FibaroTankTempPoller(RESTPoller):
         return await session.request(args.method, args.url, **args.kwargs)
 
     async def _convert(self, response: ClientResponse) -> Optional[Message]:
+        voltage = FibaroRefreshResponse(
+            **await response.json()
+        ).get_voltage()
+        if voltage >= MAX_VOLTAGE:
+            return None
+        temp_c = thermistor_temp_c_beta_formula(voltage)
+        temp_c1000 = int(temp_c * 1000)
         return MultipurposeSensorTelemetryMessage(
             src=self._report_src,
             dst=self._report_dst,
             about_node_alias_list=[self._settings.node_name],
-            value_list=[
-                int(
-                    FibaroRefreshResponse(
-                        **await response.json()
-                    ).get_voltage() * 1000
-                )
-            ],
+            value_list=[temp_c1000],
             telemetry_name_list=[self._settings.telemetry_name],
         )
 
