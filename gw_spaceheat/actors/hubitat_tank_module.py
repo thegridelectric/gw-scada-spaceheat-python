@@ -52,7 +52,7 @@ THERMISTOR_BETA = 3977
 # Then, there is our pull-up resistor
 VOLTAGE_DIVIDER_R_OHMS = 10000
 # MAX_VOLTAGE = 23.7
-MAX_VOLTAGE = 11.75
+# MAX_VOLTAGE = 11.75
 FIBARO_PULLDOWN_OHMS = 150000
 
 
@@ -60,7 +60,7 @@ FIBARO_PULLDOWN_OHMS = 150000
 #     return I2CErrorEnum.READ_ERROR.value
 #     # Calculate the resistance of the thermistor
 
-def r_from_v(voltage: float) -> float:
+def r_from_v(voltage: float, max_voltage: float) -> float:
     """ Infer the resistance from the voltage measured from a TankModule1 Fibaro
     set up with no internal voltage divider and a 10K pullup resistor.
     """
@@ -69,14 +69,14 @@ def r_from_v(voltage: float) -> float:
 
     # r_both is the resistance of our thermistor in parallel with the
     # Fibaro pulldown
-    r_both = rd * voltage / (MAX_VOLTAGE - voltage)
+    r_both = rd * voltage / (max_voltage - voltage)
 
     # Applying kirchoff
     rt = (FIBARO_PULLDOWN_OHMS * r_both) / (FIBARO_PULLDOWN_OHMS - r_both)
     return rt
 
 
-def thermistor_temp_c_beta_formula(voltage: float) -> float:
+def thermistor_temp_c_beta_formula(voltage: float, max_voltage: float) -> float:
     """We are using the beta formula instead of the Steinhart-Hart equation.
     Thermistor data sheets typically provide the three parameters needed
     for the beta formula (R0, beta, and T0) and do not provide the
@@ -90,6 +90,7 @@ def thermistor_temp_c_beta_formula(voltage: float) -> float:
     Args:
         voltage (float): The voltage measured between the thermistor and the
         voltage divider resistor
+        max_voltage (float): The max voltage measurable by the sensor. 
 
     Returns:
         float: The temperature getting measured by the thermistor in degrees Celcius
@@ -98,7 +99,7 @@ def thermistor_temp_c_beta_formula(voltage: float) -> float:
     r0: int = int(THERMISTOR_R0_OHMS)
     beta: int = int(THERMISTOR_BETA)
     t0: int = int(THERMISTOR_T0_DEGREES_KELVIN)
-    rt = r_from_v(voltage)
+    rt = r_from_v(voltage, max_voltage)
     # Calculate the temperature in degrees Celsius. Note that 273 is
     # 0 degrees Celcius as measured in Kelvin.
     temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
@@ -109,12 +110,14 @@ class FibaroTankTempPoller(RESTPoller):
     _last_read_time: float
     _report_src: str
     _report_dst: str
+    _max_voltage: float
     _settings: FibaroTempSensorSettings
 
     def __init__(
             self,
             name: str,
             tank_module_name: str,
+
             settings: FibaroTempSensorSettings,
             services: ServicesInterface
     ):
