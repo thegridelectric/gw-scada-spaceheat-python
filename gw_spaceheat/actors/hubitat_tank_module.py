@@ -147,9 +147,9 @@ class FibaroTankTempPoller(RESTPoller):
         voltage = FibaroRefreshResponse(
             **await response.json()
         ).get_voltage()
-        if voltage >= MAX_VOLTAGE:
+        if voltage >= self._max_voltage:
             return None
-        temp_c = thermistor_temp_c_beta_formula(voltage)
+        temp_c = thermistor_temp_c_beta_formula(voltage, self._max_voltage)
         temp_c1000 = int(temp_c * 1000)
         return MultipurposeSensorTelemetryMessage(
             src=self._report_src,
