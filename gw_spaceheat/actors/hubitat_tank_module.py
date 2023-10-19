@@ -117,12 +117,13 @@ class FibaroTankTempPoller(RESTPoller):
             self,
             name: str,
             tank_module_name: str,
-
+            sensor_supply_voltage: float,
             settings: FibaroTempSensorSettings,
             services: ServicesInterface
     ):
         self._report_src = tank_module_name
         self._report_dst = services.name
+        self._max_voltage = sensor_supply_voltage
         self._settings = settings
         super().__init__(
             name,
@@ -189,6 +190,7 @@ class HubitatTankModule(Actor):
                 tank_module_name=self.name,
                 settings=device,
                 services=services,
+                sensor_supply_voltage=self._component.sensor_supply_voltage
             ) for device in self._component.devices
         ]
 
