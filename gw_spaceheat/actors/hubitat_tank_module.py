@@ -5,6 +5,7 @@ import math
 from aiohttp import ClientResponse
 from aiohttp import ClientSession
 from gwproactor import Actor
+from gwproactor import Problems
 from gwproactor import ServicesInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
@@ -56,27 +57,51 @@ VOLTAGE_DIVIDER_R_OHMS = 10000
 FIBARO_PULLDOWN_OHMS = 150000
 
 
-# if voltage >= MAX_VOLTAGE:
-#     return I2CErrorEnum.READ_ERROR.value
-#     # Calculate the resistance of the thermistor
-
 def r_from_v(voltage: float, max_voltage: float) -> float:
     """ Infer the resistance from the voltage measured from a TankModule1 Fibaro
     set up with no internal voltage divider and a 10K pullup resistor.
     """
+    # rd = None # noqa
+    # r_both = None
+    # rt = None
+    try:
+        rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
 
-    rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
+        # r_both is the resistance of our thermistor in parallel with the
+        # Fibaro pulldown
+        r_both = rd * voltage / (max_voltage - voltage)
 
-    # r_both is the resistance of our thermistor in parallel with the
-    # Fibaro pulldown
-    r_both = rd * voltage / (max_voltage - voltage)
-
-    # Applying kirchoff
-    rt = (FIBARO_PULLDOWN_OHMS * r_both) / (FIBARO_PULLDOWN_OHMS - r_both)
+        # Applying kirchoff
+        rt = (FIBARO_PULLDOWN_OHMS * r_both) / (FIBARO_PULLDOWN_OHMS - r_both)
+    except BaseException as e:
+        # import rich
+        # rich.print(f"r_from_v: {type(e)} <{e}>")
+        raise e
+    # finally:
+    #     import rich
+    #     rich.print(f"r_from_v:")
+    #     rich.print(f"  voltage: {voltage}")
+    #     rich.print(f"  max_voltage: {max_voltage}")
+    #     rich.print(f"  rd: {rd}")
+    #     rich.print(f"  rd * voltage: {rd * voltage}")
+    #     rich.print(f"  (max_voltage - voltage): {(max_voltage - voltage)}")
+    #     rich.print(f"  r_both: {r_both}")
+    #     rich.print(f"  (FIBARO_PULLDOWN_OHMS * r_both): {(FIBARO_PULLDOWN_OHMS * r_both)}")
+    #     rich.print(f"  (FIBARO_PULLDOWN_OHMS - r_both): {(FIBARO_PULLDOWN_OHMS - r_both)}")
+    #     rich.print(f"  rt: {rt}")
     return rt
 
 
-def thermistor_temp_c_beta_formula(voltage: float, max_voltage: float) -> float:
+# """
+#         voltage (float): The voltage measured between the thermistor and the
+#         voltage divider resistor
+#         max_voltage (float): The max voltage measurable by the sensor.
+# """
+def thermistor_temp_c_beta_formula(
+        # voltage: float,
+        # max_voltage: float,
+        rt: float,
+) -> float:
     """We are using the beta formula instead of the Steinhart-Hart equation.
     Thermistor data sheets typically provide the three parameters needed
     for the beta formula (R0, beta, and T0) and do not provide the
@@ -88,21 +113,60 @@ def thermistor_temp_c_beta_formula(voltage: float, max_voltage: float) -> float:
     https://www.newport.com/medias/sys_master/images/images/hdb/hac/8797291479070/TN-STEIN-1-Thermistor-Constant-Conversions-Beta-to-Steinhart-Hart.pdf
 
     Args:
-        voltage (float): The voltage measured between the thermistor and the
-        voltage divider resistor
-        max_voltage (float): The max voltage measurable by the sensor. 
+        rt: calculated resistance
 
     Returns:
         float: The temperature getting measured by the thermistor in degrees Celcius
     """
-
-    r0: int = int(THERMISTOR_R0_OHMS)
-    beta: int = int(THERMISTOR_BETA)
-    t0: int = int(THERMISTOR_T0_DEGREES_KELVIN)
-    rt = r_from_v(voltage, max_voltage)
-    # Calculate the temperature in degrees Celsius. Note that 273 is
-    # 0 degrees Celcius as measured in Kelvin.
-    temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
+    beta = None # noqa
+    t0 = None # noqa
+    # rt = None # noqa
+    temp_c = None # noqa
+    try:
+        r0: int = int(THERMISTOR_R0_OHMS)
+        beta: int = int(THERMISTOR_BETA)
+        t0: int = int(THERMISTOR_T0_DEGREES_KELVIN)
+        # Calculate the temperature in degrees Celsius. Note that 273 is
+        # 0 degrees Celcius as measured in Kelvin.
+        temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
+    except BaseException as e:
+        # import rich
+        # rich.print(f"thermistor_temp_c_beta_formula: {type(e)} <{e}>")
+        # rich.print(f"  voltage: {voltage}")
+        # rich.print(f"  max_voltage: {max_voltage}")
+        # rich.print(f"  r0: {r0}") # noqa
+        # rich.print(f"  beta: {beta}")
+        # rich.print(f"  t0: {t0}")
+        # rich.print(f"  rt: {rt}")
+        # try:
+        #     rich.print(f"  (1 / t0): {(1 / t0)}")
+        # except BaseException as e2:
+        #     print(f"  1 WHOOPS: {type(e2)}  <{e2}>")
+        # try:
+        #     rich.print(f"  rt / r0: {rt / r0}")
+        # except BaseException as e2:
+        #     print(f"  2 WHOOPS: {type(e2)}  <{e2}>")
+        # try:
+        #     rich.print(f"  math.log(rt / r0): {math.log(rt / r0)}")
+        # except BaseException as e2:
+        #     print(f"  3 WHOOPS: {type(e2)}  <{e2}>")
+        # try:
+        #     rich.print(f"  1/k: {((1 / t0) + (math.log(rt / r0) / beta))}")
+        # except BaseException as e2:
+        #     print(f"  4 WHOOPS: {type(e2)}  <{e2}>")
+        # try:
+        #     rich.print(f"  k: {1/((1 / t0) + (math.log(rt / r0) / beta))}")
+        # except BaseException as e2:
+        #     print(f"  5 WHOOPS: {type(e2)}  <{e2}>")
+        # try:
+        #     rich.print(f"  c1: {1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273}")
+        # except BaseException as e2:
+        #     print(f"  6 WHOOPS: {type(e2)}  <{e2}>")
+        # try:
+        #     rich.print(f"  c2: {temp_c}")
+        # except BaseException as e2:
+        #     print(f"  7 WHOOPS: {type(e2)}  <{e2}>")
+        raise e
     return temp_c
 
 class FibaroTankTempPoller(RESTPoller):
@@ -145,20 +209,35 @@ class FibaroTankTempPoller(RESTPoller):
         return await session.request(args.method, args.url, **args.kwargs)
 
     async def _convert(self, response: ClientResponse) -> Optional[Message]:
-        voltage = FibaroRefreshResponse(
-            **await response.json()
-        ).get_voltage()
-        if voltage >= self._max_voltage:
-            return None
-        temp_c = thermistor_temp_c_beta_formula(voltage, self._max_voltage)
-        temp_c1000 = int(temp_c * 1000)
-        return MultipurposeSensorTelemetryMessage(
-            src=self._report_src,
-            dst=self._report_dst,
-            about_node_alias_list=[self._settings.node_name],
-            value_list=[temp_c1000],
-            telemetry_name_list=[self._settings.telemetry_name],
-        )
+        try:
+            voltage = FibaroRefreshResponse(
+                **await response.json()
+            ).get_voltage()
+            if voltage >= self._max_voltage:
+                return None
+            rt = r_from_v(voltage, self._max_voltage)
+            if rt <= 0:
+                return None
+            temp_c = thermistor_temp_c_beta_formula(rt)
+            temp_c1000 = int(temp_c * 1000)
+            return MultipurposeSensorTelemetryMessage(
+                src=self._report_src,
+                dst=self._report_dst,
+                about_node_alias_list=[self._settings.node_name],
+                value_list=[temp_c1000],
+                telemetry_name_list=[self._settings.telemetry_name],
+            )
+        except BaseException as e:
+            self._forward(
+                Message(
+                    Payload=Problems(errors=[e]).problem_event(
+                        summary=(
+                            f"Fibaro {self._settings.node_name} _convert() error "
+                        ), src=self._report_src
+                    )
+                )
+            )
+        return None
 
 class HubitatTankModule(Actor):
 
