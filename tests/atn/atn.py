@@ -10,18 +10,20 @@ from typing import Optional
 from typing import Sequence
 
 import pendulum
-from gwproto.messages import GtShStatusEvent
-from gwproto.messages import SnapshotSpaceheatEvent
-
 from paho.mqtt.client import MQTTMessageInfo
-
 import rich
+from pydantic import BaseModel
 
 from gwproto import CallableDecoder
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.enums import TelemetryName
+from gwproto.messages import GtShStatusEvent
+from gwproto.messages import SnapshotSpaceheatEvent
 from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
 from gwproto.messages import PowerWatts_Maker
@@ -32,20 +34,17 @@ from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import GsPwr_Maker
 from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
-from pydantic import BaseModel
 
-from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.data_classes.sh_node import ShNode
 from gwproactor import ActorInterface
 from gwproactor import QOS
 from gwproactor.message import DBGCommands
 from gwproactor.message import DBGPayload
 from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
-
 from gwproactor.proactor_implementation import Proactor
+
 from enums import Role
-from gwproto.enums import TelemetryName
+from actors import message # noqa
 
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
