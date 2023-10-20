@@ -46,7 +46,7 @@ class TankGenCfg(BaseModel):
             extra = " (bottom)"
         else:
             extra = ""
-        return f"{self.node_display_name} temp sensor at depth {depth}{extra}"
+        return f"{self.node_display_name()} temp sensor at depth {depth}{extra}"
 
 def add_tank(
     db: LayoutDb,

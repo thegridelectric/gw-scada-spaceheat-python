@@ -1,6 +1,7 @@
 """Temporary package for assisting generation of hardware_layout.json files"""
 import json
 import typing
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import uuid
@@ -21,7 +22,20 @@ from multidict import MultiDict
 
 __all__ = [
     "LayoutDb",
+    "StubConfig",
 ]
+
+@dataclass
+class StubConfig:
+    atn_gnode_alias: str = "dummy.atn.gnode",
+    scada_gnode_alias: str = "dummy.scada.gnode",
+    scada_display_name: str = "Dummy Scada"
+    power_meter_cac_alias: str = "Dummy Power Meter Cac"
+    power_meter_component_alias: str = "Dummy Power Meter Component"
+    power_meter_node_display_name: str = "Dummy Power Meter"
+    boost_element_display_name: str = "Dummy Boost Element"
+
+
 
 class LayoutDb:
     lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt]]
@@ -42,6 +56,7 @@ class LayoutDb:
         components: Optional[list[ComponentGt]] = None,
         nodes: Optional[list[SpaceheatNodeGt]] = None,
         add_stubs: bool = False,
+        stub_config: Optional[StubConfig] = None,
     ):
         self.lists = {}
         self.cacs_by_id = {}
@@ -62,7 +77,7 @@ class LayoutDb:
         if nodes is not None:
             self.add_nodes(nodes)
         if add_stubs:
-            self.add_stubs()
+            self.add_stubs(stub_config)
 
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
         for cac in cacs:
@@ -138,31 +153,34 @@ class LayoutDb:
     def component_id_by_type(self, component_type: str) -> Optional[list[str]]:
         return self.components_by_type.get(component_type, None)
 
-    def add_stub_power_meter(self):
-        self.add_cacs(
-            [
-                typing.cast(
-                    ComponentAttributeClassGt,
-                    ElectricMeterCacGt(
-                        ComponentAttributeClassId=str(uuid.uuid4()),
-                        MakeModel=MakeModel.GRIDWORKS__SIMPM1,
-                        DisplayName="Dummy Electric Meter Cac",
-                        TelemetryNameList=[TelemetryName.PowerW],
-                        Interface=LocalCommInterface.SIMRABBIT,
-                        PollPeriodMs=1000,
-                    )
-                ),
-            ],
-            "ElectricMeterCacs"
-        )
+    def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
+        if cfg is None:
+            cfg = StubConfig()
+        if not self.cac_id_by_alias(cfg.power_meter_cac_alias):
+            self.add_cacs(
+                [
+                    typing.cast(
+                        ComponentAttributeClassGt,
+                        ElectricMeterCacGt(
+                            ComponentAttributeClassId=str(uuid.uuid4()),
+                            MakeModel=MakeModel.GRIDWORKS__SIMPM1,
+                            DisplayName=cfg.power_meter_cac_alias,
+                            TelemetryNameList=[TelemetryName.PowerW],
+                            Interface=LocalCommInterface.SIMRABBIT,
+                            PollPeriodMs=1000,
+                        )
+                    ),
+                ],
+                "ElectricMeterCacs"
+            )
         self.add_components(
             [
                 typing.cast(
                     ComponentGt,
                     ElectricMeterComponentGt(
                         ComponentId=str(uuid.uuid4()),
-                        ComponentAttributeClassId=self.cac_id_by_alias("Dummy Electric Meter Cac"),
-                        DisplayName="Dummy Electric Meter Component",
+                        ComponentAttributeClassId=self.cac_id_by_alias(cfg.power_meter_cac_alias),
+                        DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
                             TelemetryReportingConfig(
                                 AboutNodeName="a.elt1",
@@ -186,32 +204,34 @@ class LayoutDb:
                     Alias="a.m",
                     Role=Role.PowerMeter,
                     ActorClass=ActorClass.PowerMeter,
-                    DisplayName="Power Meter",
-                    ComponentId=self.component_id_by_alias("Dummy Electric Meter Component"),
+                    DisplayName=cfg.power_meter_node_display_name,
+                    ComponentId=self.component_id_by_alias(cfg.power_meter_component_alias),
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=str(uuid.uuid4()),
                     Alias="a.elt1",
                     Role=Role.BoostElement,
                     ActorClass=ActorClass.NoActor,
-                    DisplayName="Dummy Boost Element",
+                    DisplayName=cfg.boost_element_display_name,
                     InPowerMetering=True,
                 ),
             ]
         )
 
-    def add_stub_scada(self):
+    def add_stub_scada(self, cfg: Optional[StubConfig] = None):
+        if cfg is None:
+            cfg = StubConfig()
         self.misc["MyAtomicTNodeGNode"] = {
             "GNodeId": str(uuid.uuid4()),
-            "Alias": "dummy.atn.gnode",
+            "Alias": cfg.atn_gnode_alias,
             "DisplayName": "ATN GNode",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "AtomicTNode"
         }
         self.misc["MyScadaGNode"] = {
             "GNodeId": str(uuid.uuid4()),
-            "Alias": "dummy.scada.gnode",
-            "DisplayName": "Dummy Scada",
+            "Alias": cfg.scada_gnode_alias,
+            "DisplayName": "Scada GNode",
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "Scada"
         }
@@ -222,7 +242,7 @@ class LayoutDb:
                     Alias="a.s",
                     Role=Role.Scada,
                     ActorClass=ActorClass.Scada,
-                    DisplayName="scada",
+                    DisplayName=cfg.scada_display_name,
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=str(uuid.uuid4()),
@@ -234,9 +254,11 @@ class LayoutDb:
             ]
         )
 
-    def add_stubs(self):
-        self.add_stub_power_meter()
-        self.add_stub_scada()
+    def add_stubs(self, cfg: Optional[StubConfig] = None):
+        if cfg is None:
+            cfg = StubConfig()
+        self.add_stub_power_meter(cfg)
+        self.add_stub_scada(cfg)
 
     def dict(self) -> dict:
         d = dict(
