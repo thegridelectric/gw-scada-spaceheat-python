@@ -186,6 +186,7 @@ class LayoutDb:
                                 AboutNodeName="a.elt1",
                                 ReportOnChange=True,
                                 SamplePeriodS=300,
+                                NameplateMaxValue=4500,
                                 Exponent=1,
                                 TelemetryName=TelemetryName.PowerW,
                                 Unit=Unit.W,
@@ -235,6 +236,15 @@ class LayoutDb:
             "GNodeStatusValue": "Active",
             "PrimaryGNodeRoleAlias": "Scada"
         }
+        self.misc["MyTerminalAssetGNode"] = {
+            "GNodeId": str(uuid.uuid4()),
+            "Alias": "dummy.ta",
+            "DisplayName": "Dummy TerminalAsset",
+            "GNodeStatusValue": "Active",
+            "PrimaryGNodeRoleAlias": "TerminalAsset"
+          }
+
+
         self.add_nodes(
             [
                 SpaceheatNodeGt(

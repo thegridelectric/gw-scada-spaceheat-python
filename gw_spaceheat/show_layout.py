@@ -137,17 +137,57 @@ def print_layout_members(
 ) -> None:
     if errors is None:
         errors = []
+
+    print("Layout identifier attributes")
+    for attr in [
+        "atn_g_node_alias",
+        "atn_g_node_instance_id",
+        "atn_g_node_id",
+        "terminal_asset_g_node_alias",
+        "terminal_asset_g_node_id",
+        "scada_g_node_alias",
+        "scada_g_node_id",
+    ]:
+        try:
+            print(f"  {attr}: <{getattr(layout, attr)}>")
+        except Exception as e:
+            errors.append(LoadError(attr, {}, e))
+    print("Layout named items")
+    for attr in [
+        "power_meter_component",
+        "power_meter_cac",
+        "power_meter_node",
+        "scada_node",
+        "home_alone_node",
+        "my_home_alone",
+    ]:
+        try:
+            item = getattr(layout, attr)
+            display = None if item is None else item.display_name
+            print(f"  {attr}: <{display}>")
+        except Exception as e:
+            errors.append(LoadError(attr, {}, e))
+
+
     print("Named layout collections:")
-    print("  my_multipurpose_sensors:")
-    try:
-        for entry in layout.my_multipurpose_sensors:
-            print(f"    <{entry.alias}>")
-    except Exception as e:
-        errors.append(LoadError("my_multipurpose_sensors", {}, e))
+    for attr in [
+        "all_nodes_in_agg_power_metering",
+        "all_resistive_heaters",
+        "my_boolean_actuators",
+        "my_simple_sensors",
+        "my_multipurpose_sensors",
+    ]:
+        print(f"  {attr}:")
+        try:
+            for entry in getattr(layout, attr):
+                print(f"    <{entry.alias}>")
+        except Exception as e:
+            errors.append(LoadError(attr, {}, e))
     for tt_prop_name in [
         "all_multipurpose_telemetry_tuples",
         "all_power_meter_telemetry_tuples",
         "my_telemetry_tuples",
+        "all_telemetry_tuples_for_agg_power_metering",
     ]:
         print(f"  {tt_prop_name}:")
         try:
