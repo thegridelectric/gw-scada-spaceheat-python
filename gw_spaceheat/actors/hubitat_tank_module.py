@@ -16,6 +16,7 @@ from pydantic import Extra
 from result import Result
 
 from actors.message import MultipurposeSensorTelemetryMessage
+from drivers.exceptions import DriverError
 
 
 class FibaroAttribute(BaseModel, extra=Extra.allow):
@@ -56,52 +57,51 @@ VOLTAGE_DIVIDER_R_OHMS = 10000
 # MAX_VOLTAGE = 11.75
 FIBARO_PULLDOWN_OHMS = 150000
 
+class HubitatTankError(DriverError):
+    """Base class for hubitat tank module exceptions"""
 
-def r_from_v(voltage: float, max_voltage: float) -> float:
-    """ Infer the resistance from the voltage measured from a TankModule1 Fibaro
-    set up with no internal voltage divider and a 10K pullup resistor.
+class RFromV:
+    """ Infer the resistance from the voltage measured from a TankModule Fibaro
+    set up with no internal voltage divider and a pullup resistor.
     """
-    # rd = None # noqa
-    # r_both = None
-    # rt = None
-    try:
-        rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
+    voltage: float
+    max_voltage: float
+    r_both: Optional[float | BaseException] = None
+    rt: Optional[float | BaseException] = None
+    rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
+    fibaro_pulldown_ohms: int = FIBARO_PULLDOWN_OHMS
 
-        # r_both is the resistance of our thermistor in parallel with the
-        # Fibaro pulldown
-        r_both = rd * voltage / (max_voltage - voltage)
+    def __init__(
+        self,
+        voltage: float,
+        max_voltage: float,
+        rd: int = VOLTAGE_DIVIDER_R_OHMS,
+        fibaro_pulldown_ohms: int = FIBARO_PULLDOWN_OHMS,
+    ):
+        self.voltage = voltage
+        self.max_voltage = max_voltage
+        self.rd = int(rd)
+        self.fibaro_pulldown_ohms = int(fibaro_pulldown_ohms)
+        try:
 
-        # Applying kirchoff
-        rt = (FIBARO_PULLDOWN_OHMS * r_both) / (FIBARO_PULLDOWN_OHMS - r_both)
-    except BaseException as e:
-        # import rich
-        # rich.print(f"r_from_v: {type(e)} <{e}>")
-        raise e
-    # finally:
-    #     import rich
-    #     rich.print(f"r_from_v:")
-    #     rich.print(f"  voltage: {voltage}")
-    #     rich.print(f"  max_voltage: {max_voltage}")
-    #     rich.print(f"  rd: {rd}")
-    #     rich.print(f"  rd * voltage: {rd * voltage}")
-    #     rich.print(f"  (max_voltage - voltage): {(max_voltage - voltage)}")
-    #     rich.print(f"  r_both: {r_both}")
-    #     rich.print(f"  (FIBARO_PULLDOWN_OHMS * r_both): {(FIBARO_PULLDOWN_OHMS * r_both)}")
-    #     rich.print(f"  (FIBARO_PULLDOWN_OHMS - r_both): {(FIBARO_PULLDOWN_OHMS - r_both)}")
-    #     rich.print(f"  rt: {rt}")
-    return rt
+            # r_both is the resistance of our thermistor in parallel with the
+            # Fibaro pulldown
+            self.r_both = self.rd * voltage / (max_voltage - voltage)
+        except BaseException as e_r_both:
+            self.r_both = e_r_both
+        else:
+            try:
+                # Applying kirchoff
+                numerator = self.fibaro_pulldown_ohms * self.r_both
+                denominator = self.fibaro_pulldown_ohms - self.r_both
+                self.rt = numerator / denominator
+            except BaseException as e_rt:
+                self.rt = e_rt
 
+    def ok(self) -> bool:
+        return isinstance(self.rt, float) and self.rt > 0
 
-# """
-#         voltage (float): The voltage measured between the thermistor and the
-#         voltage divider resistor
-#         max_voltage (float): The max voltage measurable by the sensor.
-# """
-def thermistor_temp_c_beta_formula(
-        # voltage: float,
-        # max_voltage: float,
-        rt: float,
-) -> float:
+class TempCBeta:
     """We are using the beta formula instead of the Steinhart-Hart equation.
     Thermistor data sheets typically provide the three parameters needed
     for the beta formula (R0, beta, and T0) and do not provide the
@@ -112,62 +112,55 @@ def thermistor_temp_c_beta_formula(
     For more information go here:
     https://www.newport.com/medias/sys_master/images/images/hdb/hac/8797291479070/TN-STEIN-1-Thermistor-Constant-Conversions-Beta-to-Steinhart-Hart.pdf
 
-    Args:
-        rt: calculated resistance
-
-    Returns:
-        float: The temperature getting measured by the thermistor in degrees Celcius
     """
-    beta = None # noqa
-    t0 = None # noqa
-    # rt = None # noqa
-    temp_c = None # noqa
-    try:
-        r0: int = int(THERMISTOR_R0_OHMS)
-        beta: int = int(THERMISTOR_BETA)
-        t0: int = int(THERMISTOR_T0_DEGREES_KELVIN)
-        # Calculate the temperature in degrees Celsius. Note that 273 is
-        # 0 degrees Celcius as measured in Kelvin.
-        temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
-    except BaseException as e:
-        # import rich
-        # rich.print(f"thermistor_temp_c_beta_formula: {type(e)} <{e}>")
-        # rich.print(f"  voltage: {voltage}")
-        # rich.print(f"  max_voltage: {max_voltage}")
-        # rich.print(f"  r0: {r0}") # noqa
-        # rich.print(f"  beta: {beta}")
-        # rich.print(f"  t0: {t0}")
-        # rich.print(f"  rt: {rt}")
-        # try:
-        #     rich.print(f"  (1 / t0): {(1 / t0)}")
-        # except BaseException as e2:
-        #     print(f"  1 WHOOPS: {type(e2)}  <{e2}>")
-        # try:
-        #     rich.print(f"  rt / r0: {rt / r0}")
-        # except BaseException as e2:
-        #     print(f"  2 WHOOPS: {type(e2)}  <{e2}>")
-        # try:
-        #     rich.print(f"  math.log(rt / r0): {math.log(rt / r0)}")
-        # except BaseException as e2:
-        #     print(f"  3 WHOOPS: {type(e2)}  <{e2}>")
-        # try:
-        #     rich.print(f"  1/k: {((1 / t0) + (math.log(rt / r0) / beta))}")
-        # except BaseException as e2:
-        #     print(f"  4 WHOOPS: {type(e2)}  <{e2}>")
-        # try:
-        #     rich.print(f"  k: {1/((1 / t0) + (math.log(rt / r0) / beta))}")
-        # except BaseException as e2:
-        #     print(f"  5 WHOOPS: {type(e2)}  <{e2}>")
-        # try:
-        #     rich.print(f"  c1: {1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273}")
-        # except BaseException as e2:
-        #     print(f"  6 WHOOPS: {type(e2)}  <{e2}>")
-        # try:
-        #     rich.print(f"  c2: {temp_c}")
-        # except BaseException as e2:
-        #     print(f"  7 WHOOPS: {type(e2)}  <{e2}>")
-        raise e
-    return temp_c
+
+    r_from_v: RFromV | BaseException
+    r0: int = THERMISTOR_R0_OHMS
+    beta: int = THERMISTOR_BETA
+    t0: int = THERMISTOR_T0_DEGREES_KELVIN
+    log_rt_r0: Optional[float | BaseException] = None
+    k: Optional[float | BaseException] = None
+    c: Optional[float] = None
+
+    def __init__(
+        self,
+        voltage: float,
+        max_voltage: float,
+        rd: int = VOLTAGE_DIVIDER_R_OHMS,
+        fibaro_pulldown_ohms: int = FIBARO_PULLDOWN_OHMS,
+        r0: int = THERMISTOR_R0_OHMS,
+        beta: int = THERMISTOR_BETA,
+        t0: int = THERMISTOR_T0_DEGREES_KELVIN,
+    ):
+        self.r0 = int(r0)
+        self.beta = int(beta)
+        self.t0 = int(t0)
+        try:
+            self.r_from_v = RFromV(
+                voltage,
+                max_voltage,
+                rd=rd,
+                fibaro_pulldown_ohms=fibaro_pulldown_ohms,
+            )
+        except BaseException as e_r_from_v:
+            self.r_from_v = e_r_from_v
+        else:
+            if self.r_from_v.ok():
+                try:
+                    self.log_rt_r0 = math.log(self.r_from_v.rt / self.r0)
+                except BaseException as e_log:
+                    self.log_rt_r0 = e_log
+                else:
+                    try:
+                        inv_k = (1 / self.t0) + (self.log_rt_r0 / self.beta)
+                        self.k = 1 / inv_k
+                    except BaseException as e_k:
+                        self.k = e_k
+                    else:
+                        self.c = self.k - 273
+
+    def ok(self) -> bool:
+        return isinstance(self.c, float)
 
 class FibaroTankTempPoller(RESTPoller):
 
@@ -193,40 +186,41 @@ class FibaroTankTempPoller(RESTPoller):
             name,
             self._settings.rest,
             services.io_loop_manager,
-            convert=self._convert,
+            convert=self._converter,
             forward=services.send_threadsafe,
         )
 
-    async def _make_request(self, session: ClientSession) -> ClientResponse:
+    async def _make_request(self, session: ClientSession) -> Optional[ClientResponse]:
         """"A refresh sent to hubitat for fibaro returns the value of the *last* refresh,
         so we just send two refreshes.
         """
-        args = self._request_args
-        if args is None:
-             args = self._make_request_args()
-        async with await session.request(args.method, args.url, **args.kwargs):
-            self._last_read_time = time.time()
-        return await session.request(args.method, args.url, **args.kwargs)
+        response = await super()._make_request(session)
+        if response is None:
+            return None
+        else:
+            async with response:
+                self._last_read_time = time.time()
+            return await super()._make_request(session)
 
-    async def _convert(self, response: ClientResponse) -> Optional[Message]:
+    async def _converter(self, response: ClientResponse) -> Optional[Message]:
         try:
             voltage = FibaroRefreshResponse(
                 **await response.json()
             ).get_voltage()
             if voltage >= self._max_voltage:
                 return None
-            rt = r_from_v(voltage, self._max_voltage)
-            if rt <= 0:
+            temp_c_beta = TempCBeta(voltage, self._max_voltage)
+            if not temp_c_beta.ok():
                 return None
-            temp_c = thermistor_temp_c_beta_formula(rt)
-            temp_c1000 = int(temp_c * 1000)
-            return MultipurposeSensorTelemetryMessage(
-                src=self._report_src,
-                dst=self._report_dst,
-                about_node_alias_list=[self._settings.node_name],
-                value_list=[temp_c1000],
-                telemetry_name_list=[self._settings.telemetry_name],
-            )
+            else:
+                temp_c1000 = int(temp_c_beta.c * 1000)
+                return MultipurposeSensorTelemetryMessage(
+                    src=self._report_src,
+                    dst=self._report_dst,
+                    about_node_alias_list=[self._settings.node_name],
+                    value_list=[temp_c1000],
+                    telemetry_name_list=[self._settings.telemetry_name],
+                )
         except BaseException as e:
             self._forward(
                 Message(
