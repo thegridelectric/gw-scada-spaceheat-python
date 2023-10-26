@@ -1,5 +1,12 @@
 
+import logging
 from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.transaction import _logger
+
+_logger.setLevel(logging.DEBUG)
+_logger.addHandler(logging.StreamHandler())
+
+
 
 SLAVE_ID = 0x12
 
@@ -31,9 +38,9 @@ DHW_TARGET_TEMP_HOLDING_REGISTER = 9
 client = ModbusTcpClient(host="192.168.1.49")
 client.connect()
 
-client.mask_write_register
 
-client.read_coils(address=HEAT_COOL_ENABLE_COIL_REGISTER - 1, count=1 ,unit=SLAVE_ID).bits[0]
+
+client.read_coils(address=HEAT_COOL_ENABLE_COIL_REGISTER - 1, count=1 ,unit=SLAVE_ID).bits
 
 
 result = client.read_discrete_inputs(address=FLOW_RATE_TOO_LOW_DISCRETE_REGISTER - 1, unit=SLAVE_ID) # not sure this actually worked
