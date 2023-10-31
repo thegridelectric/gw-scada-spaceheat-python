@@ -10,10 +10,6 @@ from gwproactor.proactor_interface import ServicesInterface
 
 
 class ScadaInterface(ServicesInterface, ActorInterface, ABC):
-    # @property
-    # @abstractmethod
-    # def hardware_layout(self) -> HardwareLayout:
-    #     ...
 
     @property
     @abstractmethod

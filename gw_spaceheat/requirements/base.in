@@ -6,8 +6,8 @@ python-dotenv
 pydantic
 xdg
 result
-gridworks-protocol
-gridworks-proactor>=0.3.3
+gridworks-protocol>=0.6.0
+gridworks-proactor>=0.3.4
 rich
 smbus2
 pymodbus
