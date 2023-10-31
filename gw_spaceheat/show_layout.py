@@ -5,6 +5,9 @@ from typing import Optional
 from typing import Sequence
 
 import dotenv
+from gwproto.data_classes.components.hubitat_component import HubitatComponent
+from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
+from gwproto.data_classes.hardware_layout import LoadError
 from rich import print
 from rich.table import Table
 from rich.text import Text
@@ -51,6 +54,18 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         nargs="*",
         help="ShNode aliases to load.",
     )
+    parser.add_argument(
+        "-r",
+        "--raise-errors",
+        action="store_true",
+        help="Raise any errors immediately to see full call stack."
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print additional information"
+    )
 
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
@@ -84,21 +99,117 @@ def print_component_dicts(layout: HardwareLayout):
         node.alias: layout.cac(node.alias)
         for node in layout.nodes.values()
     })
+    # unused components
+    unused_components = dict(layout.components)
+    for node in layout.nodes.values():
+        unused_components.pop(node.component_id, None)
+    print(f"Unused Components: {len(unused_components)}")
+    if unused_components:
+        print(unused_components)
+    # unused cacs
+    unused_cacs = dict(layout.cacs)
+    for component in layout.components.values():
+        unused_cacs.pop(component.component_attribute_class_id, None)
+    print(f"Unused Cacs: {len(unused_cacs)}")
+    if unused_cacs:
+        print(unused_cacs)
+    # dangling components
     dangling_component_nodes = set()
     for node in layout.nodes.values():
         if node.component_id and not node.component_id in layout.components:
             dangling_component_nodes.add(node.alias)
+    print(f"Nodes with component_id but no component: {len(dangling_component_nodes)}")
     if dangling_component_nodes:
-        print("Nodes with component_id but no component:")
         print(sorted(dangling_component_nodes))
+    # dangling cacs
     dangling_cac_components = set()
-    for node in layout.nodes.values():
-        component = layout.component(node.alias)
-        if component and component.component_attribute_class_id and not component.component_attribute_class_id in layout.cacs:
+    for component in layout.components.values():
+        if component.component_attribute_class_id and not component.component_attribute_class_id in layout.cacs:
             dangling_cac_components.add(component.display_name)
+    print(f"Components with cac_id but no cac: {len(dangling_cac_components)}")
     if dangling_cac_components:
-        print("Components with cac id but not cac:")
         print(sorted(dangling_cac_components))
+
+
+def print_layout_members(
+    layout: HardwareLayout,
+    errors: Optional[list[LoadError]] = None,
+) -> None:
+    if errors is None:
+        errors = []
+
+    print("Layout identifier attributes")
+    for attr in [
+        "atn_g_node_alias",
+        "atn_g_node_instance_id",
+        "atn_g_node_id",
+        "terminal_asset_g_node_alias",
+        "terminal_asset_g_node_id",
+        "scada_g_node_alias",
+        "scada_g_node_id",
+    ]:
+        try:
+            print(f"  {attr}: <{getattr(layout, attr)}>")
+        except Exception as e:
+            errors.append(LoadError(attr, {}, e))
+    print("Layout named items")
+    for attr in [
+        "power_meter_component",
+        "power_meter_cac",
+        "power_meter_node",
+        "scada_node",
+        "home_alone_node",
+        "my_home_alone",
+    ]:
+        try:
+            item = getattr(layout, attr)
+            display = None if item is None else item.display_name
+            print(f"  {attr}: <{display}>")
+        except Exception as e:
+            errors.append(LoadError(attr, {}, e))
+
+
+    print("Named layout collections:")
+    for attr in [
+        "all_nodes_in_agg_power_metering",
+        "all_resistive_heaters",
+        "my_boolean_actuators",
+        "my_simple_sensors",
+        "my_multipurpose_sensors",
+    ]:
+        print(f"  {attr}:")
+        try:
+            for entry in getattr(layout, attr):
+                print(f"    <{entry.alias}>")
+        except Exception as e:
+            errors.append(LoadError(attr, {}, e))
+    for tt_prop_name in [
+        "all_multipurpose_telemetry_tuples",
+        "all_power_meter_telemetry_tuples",
+        "my_telemetry_tuples",
+        "all_telemetry_tuples_for_agg_power_metering",
+    ]:
+        print(f"  {tt_prop_name}:")
+        try:
+            for tt in getattr(layout, tt_prop_name):
+                print(f"    src: <{tt.SensorNode.alias}>  about: <{tt.AboutNode.alias}>")
+        except Exception as e:
+            errors.append(LoadError(tt_prop_name, {}, e))
+
+def print_layout_urls(layout: HardwareLayout) -> None:
+    url_dicts = {
+        component.display_name: component.urls()
+        for component in [
+        component for component in layout.components.values()
+        if isinstance(component, (HubitatComponent, HubitatTankComponent))
+    ]
+    }
+    if url_dicts:
+        print("Component URLS:")
+        for name, urls in url_dicts.items():
+            print(f"  <{name}>:")
+            for k, v in urls.items():
+                print(f"    {k}: {str(v)}")
 
 
 def print_layout_table(layout: HardwareLayout):
@@ -150,8 +261,7 @@ def print_layout_table(layout: HardwareLayout):
         table.add_row(node.alias, component_txt, cac_txt, make_model_text, role_text, actor_text)
     print(table)
 
-
-def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings) -> Optional[Scada]:
+def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
     settings = settings.copy(deep=True)
     settings.paths.mkdirs()
     scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada.DEFAULT_ACTORS_MODULE)
@@ -161,16 +271,41 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
             v.tls.use_tls = False
     try:
         scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-    except (DataClassLoadingError, KeyError, ModuleNotFoundError, ValueError, FileNotFoundError) as e:
+    except (
+            DataClassLoadingError,
+            KeyError,
+            ModuleNotFoundError,
+            ValueError,
+            FileNotFoundError,
+            AttributeError,
+    ) as e:
         print(f"ERROR loading Scada: <{e}> {type(e)}")
+        print("Use '-r' to see full error stack.")
+        if raise_errors:
+            raise e
     return scada
 
 
-def show_layout(layout: HardwareLayout, requested_aliases: Optional[set[str]], settings: ScadaSettings) -> Scada:
+def show_layout(
+        layout: HardwareLayout,
+        requested_aliases: Optional[set[str]],
+        settings: ScadaSettings,
+        raise_errors: bool = False,
+        errors: Optional[list[LoadError]] = None,
+) -> Scada:
+    if errors is None:
+        errors = []
     print_component_dicts(layout)
+    print_layout_members(layout, errors)
+    print_layout_urls(layout)
     print_layout_table(layout)
-    return try_scada_load(requested_aliases, layout, settings)
-
+    scada = try_scada_load(
+        requested_aliases,
+        layout,
+        settings,
+        raise_errors=raise_errors
+    )
+    return scada
 
 def main(argv: Optional[Sequence[str]] = None):
     args = parse_args(argv)
@@ -190,15 +325,23 @@ def main(argv: Optional[Sequence[str]] = None):
     layout = HardwareLayout.load(
         settings.paths.hardware_layout,
         included_node_names=requested_aliases,
-        raise_errors=False,
+        raise_errors=bool(args.raise_errors),
         errors=errors,
     )
-    show_layout(layout, requested_aliases, settings)
+    show_layout(
+        layout,
+        requested_aliases,
+        settings,
+        raise_errors=args.raise_errors,
+        errors=errors,
+    )
     if errors:
         print(f"\nFound {len(errors)} ERRORS in layout:")
         for i, error in enumerate(errors):
             print(f"  {i+1:2d}: {error.type_name:30s}  <{error.src_dict.get('DisplayName', '')}>  <{error.exception}> ")
-
+            if args.verbose:
+                print(f"  {i+1:2d}:  element:\n{error.src_dict}\n")
+        print(f"\nFound {len(errors)} ERRORS in layout.")
 
 if __name__ == "__main__":
     main()

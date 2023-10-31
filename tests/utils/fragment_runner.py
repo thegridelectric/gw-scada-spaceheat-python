@@ -11,11 +11,11 @@ from typing import Optional
 from typing import Sequence
 
 import actors
-from actors import ActorInterface
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproactor import setup_logging
+from gwproactor import ActorInterface
 from gwproactor import Proactor
+from gwproactor import setup_logging
 from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys

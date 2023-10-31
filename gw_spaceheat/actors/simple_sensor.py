@@ -14,14 +14,14 @@ from typing import Type
 
 from gwproto import Message
 
-from actors.actor import SyncThreadActor
 from actors.message import GtTelemetryMessage
 from actors.scada_interface import ScadaInterface
 from data_classes.node_config import NodeConfig
+from gwproactor import Problems
+from gwproactor import SyncThreadActor
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor.sync_thread import SyncAsyncQueueWriter
-from gwproactor import Problems
 
 
 class SimpleSensorDriverThread(SyncAsyncInteractionThread):

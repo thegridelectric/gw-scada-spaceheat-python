@@ -96,7 +96,7 @@ if __name__ == "__main__":
         help="Only generate the keys, do not copy them.",
     )
     parser.add_argument(
-        "--copy-only", action="store_true", help="Only copy the keys, do not copy them."
+        "--copy-only", action="store_true", help="Only copy the keys, do not generate them."
     )
     parser.add_argument(
         "--no-delete",
