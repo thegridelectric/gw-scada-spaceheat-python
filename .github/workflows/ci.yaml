@@ -4,7 +4,7 @@ on:
 
 env:
   PYTHONPATH: gw_spaceheat:$PYTHONPATH
-  PYTHON_VERSION: 3.10.4
+  PYTHON_VERSION: 3.10.13
 
 jobs:
   tests:
@@ -73,7 +73,7 @@ jobs:
                 -E
 
       - name: Install Python 3
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4.7.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
