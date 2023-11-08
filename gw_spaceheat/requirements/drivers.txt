@@ -96,7 +96,7 @@ gridworks==0.2.9
     #   gridworks-protocol
 gridworks-proactor==0.3.4
     # via -r requirements/base.in
-gridworks-protocol==0.6.0
+gridworks-protocol==0.6.1
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
