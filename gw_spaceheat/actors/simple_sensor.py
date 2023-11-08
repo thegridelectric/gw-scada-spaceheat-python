@@ -31,6 +31,7 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
     _telemetry_destination: str
     _last_sent_s: float = 0.0
     _config: NodeConfig
+    _nominal_sleep_seconds: float = MAIN_LOOP_MIN_TIME_S
 
     def __init__(
         self,
@@ -49,6 +50,13 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
         )
         self._telemetry_destination = telemetry_destination
         self._config = config
+        component_poll_period = getattr(
+            self._config.driver.component,
+            "poll_period_s",
+            None
+        )
+        if component_poll_period is not None and component_poll_period > 0:
+            self._nominal_sleep_seconds = component_poll_period
 
     def _report_problems(self, problems: Problems, tag: str):
         self._put_to_async_queue(
@@ -77,11 +85,9 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
         self.update_telemetry_value()
         if self.report_now(previous_value) or (self.is_time_to_report() and not self.filter(previous_value)):
             self.report_telemetry()
-        now_s = time.time()
-        if (now_s - loop_start_s) < self.MAIN_LOOP_MIN_TIME_S:
-            self._iterate_sleep_seconds = self.MAIN_LOOP_MIN_TIME_S - (
-                now_s - loop_start_s
-            )
+        elapsed_s = time.time() - loop_start_s
+        if elapsed_s < self._nominal_sleep_seconds:
+            self._iterate_sleep_seconds = self._nominal_sleep_seconds - elapsed_s
         else:
             self._iterate_sleep_seconds = None
 

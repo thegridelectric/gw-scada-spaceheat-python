@@ -75,6 +75,7 @@ source venv/bin/activate
 
 
 export TMPDIR=/home/pi/tmp
+mkdir -p $TMPDIR
 
 
  /usr/local/bin/pip3.10 install -r requirements/drivers.txt
