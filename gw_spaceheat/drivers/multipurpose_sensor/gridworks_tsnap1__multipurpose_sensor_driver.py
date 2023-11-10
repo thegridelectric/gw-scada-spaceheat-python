@@ -153,9 +153,12 @@ VOLTAGE_DIVIDER_R_OHMS = 10000
 
 
 class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
-    ADS_1_I2C_ADDRESS = 0x48
+    # ADS_1_I2C_ADDRESS = 0x48
+    # ADS_2_I2C_ADDRESS = 0x49
+    # ADS_3_I2C_ADDRESS = 0x4B
+    ADS_1_I2C_ADDRESS = 0x4B
     ADS_2_I2C_ADDRESS = 0x49
-    ADS_3_I2C_ADDRESS = 0x4B
+    ADS_3_I2C_ADDRESS = 0x48
     # gives a range up to +/- 6.144V
     ADS_GAIN = 0.6666666666666666
 
