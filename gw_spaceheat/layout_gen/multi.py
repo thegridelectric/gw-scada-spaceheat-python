@@ -15,7 +15,7 @@ from gwproto.types import TelemetryReportingConfig
 from gwproto.types.multipurpose_sensor_component_gt import MultipurposeSensorComponentGt
 from pydantic import BaseModel
 
-from layout_gen import LayoutDb
+from layout_gen.layout_db import LayoutDb
 
 class SensorNodeGenCfg(BaseModel):
     NodeAlias: str
@@ -26,7 +26,7 @@ class TSnapMultipurposeGenCfg(BaseModel):
     NodeAlias: str
     InHomeName: str
     HWUid: str
-    ChannelList: list[int] = [1, 3, 5, 7]
+    ChannelList: list[int]
     SensorCfgs: list[SensorNodeGenCfg]
 
     def node_display_name(self) -> str:
