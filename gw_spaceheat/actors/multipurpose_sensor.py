@@ -112,7 +112,6 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     last_reported_telemetry_value: Dict[TelemetryReportingConfig, Optional[int]]
     latest_telemetry_value: Dict[TelemetryReportingConfig, Optional[int]]
     _last_sampled_s: Dict[TelemetryReportingConfig, Optional[int]]
-    async_power_reporting_threshold: float
     _telemetry_destination: str
     _hardware_layout: HardwareLayout
 
@@ -146,7 +145,6 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         self.last_reported_telemetry_value = {tt: None for tt in self.telemetry_configs}
         self.latest_telemetry_value = {tc: None for tc in self.telemetry_configs}
         self._last_sampled_s = {tc: None for tc in self.telemetry_configs}
-        self.async_power_reporting_threshold = settings.async_power_reporting_threshold
 
     def _report_problems(self, problems: Problems, tag: str):
         self._put_to_async_queue(
@@ -231,16 +229,39 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
         """
-        # redo once MultipurposeSensorComponent is refactored to have a list of TelemetryReportingConfigs
-        # if config.AsyncReportThreshold is None:
-        #     return False
-        # last_reported_value = self.last_reported_telemetry_value[telemetry_tuple]
-        # latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
-        # abs_telemetry_delta = abs(latest_telemetry_value - last_reported_value)
-        # max_telemetry_value = self.nameplate_telemetry_value[telemetry_tuple]
-        # change_ratio = abs_telemetry_delta / max_telemetry_value
-        # if change_ratio > config.AsyncReportThreshold:
-        #     return True
+        if (
+                telemetry_config.ReportOnChange and
+                telemetry_config.AsyncReportThreshold is not None and
+                telemetry_config.NameplateMaxValue is not None
+        ):
+            abs_telemetry_delta = abs(
+                self.latest_telemetry_value[telemetry_config] -
+                self.last_reported_telemetry_value[telemetry_config]
+            )
+            change_ratio = abs_telemetry_delta / telemetry_config.NameplateMaxValue
+            if change_ratio > telemetry_config.AsyncReportThreshold:
+                print(
+                    f"async: 1 <{telemetry_config.AboutNodeName}>  "
+                    f"d:{abs_telemetry_delta}  "
+                    f"r:{change_ratio}  "
+                    f"t:{telemetry_config.AsyncReportThreshold}"
+                )
+                return True
+        # else:
+        #     abs_telemetry_delta = abs(
+        #         self.latest_telemetry_value[telemetry_config] -
+        #         self.last_reported_telemetry_value[telemetry_config]
+        #     )
+        #     if telemetry_config.NameplateMaxValue is not None:
+        #         change_ratio = abs_telemetry_delta / telemetry_config.NameplateMaxValue
+        #     else:
+        #         change_ratio = None
+        # print(
+        #     f"async: 0 <{telemetry_config.AboutNodeName}>  "
+        #     f"d:{abs_telemetry_delta}  "
+        #     f"r:{change_ratio}  "
+        #     f"t:{telemetry_config.AsyncReportThreshold}"
+        # )
         return False
 
     def should_report_telemetry_reading(
