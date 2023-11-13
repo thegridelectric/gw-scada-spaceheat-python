@@ -44,7 +44,7 @@ from gwproactor.message import MQTTReceiptPayload, Message
 from gwproactor.proactor_implementation import Proactor
 
 from enums import Role
-from actors import message # noqa
+from actors import message as actor_message # noqa
 
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
@@ -153,8 +153,11 @@ class Atn(ActorInterface, Proactor):
         return self._layout
 
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
-        message = Message(Src=self.publication_name, Payload=payload)
-        return self._links.publish_message(Atn.SCADA_MQTT, message, qos=qos)
+        return self._links.publish_message(
+            Atn.SCADA_MQTT,
+            Message(Src=self.publication_name, Payload=payload),
+            qos=qos
+        )
 
     def _derived_process_message(self, message: Message):
         self._logger.path(
@@ -259,21 +262,23 @@ class Atn(ActorInterface, Proactor):
 
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
-        status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
-        with status_file.open("w") as f:
-            f.write(status.as_type())
+        if self.settings.save_events:
+            status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
+            with status_file.open("w") as f:
+                f.write(status.as_type())
         # self._logger.info(f"Wrote status file [{status_file}]")
         # rich.print("Received GtShStatus")
         # rich.print(status)
 
     def _process_event(self, event: EventBase) -> None:
-        event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
-        event_file = (
-            self.settings.paths.event_dir
-            / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
-        )
-        with event_file.open("w") as f:
-            f.write(event.json(sort_keys=True, indent=2))
+        if self.settings.save_events:
+            event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
+            event_file = (
+                self.settings.paths.event_dir
+                / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
+            )
+            with event_file.open("w") as f:
+                f.write(event.json(sort_keys=True, indent=2))
 
     def snap(self):
         self.send_threadsafe(
