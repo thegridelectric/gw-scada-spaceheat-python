@@ -267,8 +267,9 @@ class Atn(ActorInterface, Proactor):
             with status_file.open("w") as f:
                 f.write(status.as_type())
         # self._logger.info(f"Wrote status file [{status_file}]")
-        # rich.print("Received GtShStatus")
-        # rich.print(status)
+        if self.settings.print_status:
+            rich.print("Received GtShStatus")
+            rich.print(status)
 
     def _process_event(self, event: EventBase) -> None:
         if self.settings.save_events:

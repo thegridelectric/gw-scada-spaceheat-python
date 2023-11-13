@@ -13,6 +13,7 @@ class AtnSettings(ProactorSettings):
     day_cron_file: str = "cron_last_day.txt"
     c_to_f: bool = True
     save_events: bool = False
+    print_status: bool = False
 
     class Config(ProactorSettings.Config):
         env_prefix = "ATN_"
