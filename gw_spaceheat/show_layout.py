@@ -6,6 +6,7 @@ from typing import Sequence
 
 import dotenv
 from gwproto.data_classes.components.hubitat_component import HubitatComponent
+from gwproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
 from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from gwproto.data_classes.hardware_layout import LoadError
 from rich import print
@@ -201,7 +202,7 @@ def print_layout_urls(layout: HardwareLayout) -> None:
         component.display_name: component.urls()
         for component in [
         component for component in layout.components.values()
-        if isinstance(component, (HubitatComponent, HubitatTankComponent))
+        if isinstance(component, (HubitatComponent, HubitatTankComponent, HubitatPollerComponent))
     ]
     }
     if url_dicts:
