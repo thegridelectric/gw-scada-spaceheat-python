@@ -97,7 +97,7 @@ gridworks==0.2.9
 gridworks-proactor==0.3.4
     # via -r requirements/base.in
 #gridworks-protocol==0.6.3
-gridworks-protocol @ https://github.com/thegridelectric/gridworks-protocol.git@as/thermostat
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/thermostat
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
