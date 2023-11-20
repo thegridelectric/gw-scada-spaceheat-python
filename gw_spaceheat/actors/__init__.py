@@ -2,21 +2,23 @@
 easier."""
 
 from actors.boolean_actuator import BooleanActuator
+from actors.home_alone import HomeAlone
+from actors.hubitat_poller import HubitatPoller
 from actors.hubitat_tank_module import HubitatTankModule
+from actors.multipurpose_sensor import MultipurposeSensor
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
 from actors.simple_sensor import SimpleSensor
-from actors.multipurpose_sensor import MultipurposeSensor
-from actors.home_alone import HomeAlone
 
 __all__ = [
     "BooleanActuator",
-    "HubitatTankModule",
     "HomeAlone",
+    "HubitatPoller",
+    "HubitatTankModule",
     "MultipurposeSensor",
     "PowerMeter",
-    "ScadaInterface",
     "Scada",
+    "ScadaInterface",
     "SimpleSensor",
 ]
