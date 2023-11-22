@@ -145,8 +145,8 @@ class HubitatRESTPoller(RESTPoller):
             try:
                 return Ok(
                     int(
-                        float(response_attribute.currentValue)**
-                        config_attribute.exponent
+                        float(response_attribute.currentValue)*
+                        pow(10, config_attribute.exponent)
                     )
                 )
             except BaseException as e:
