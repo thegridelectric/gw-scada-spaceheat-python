@@ -205,7 +205,7 @@ class FibaroTankTempPoller(RESTPoller):
     async def _converter(self, response: ClientResponse) -> Optional[Message]:
         try:
             voltage = FibaroRefreshResponse(
-                **await response.json()
+                **await response.json(content_type=None)
             ).get_voltage()
             if voltage >= self._max_voltage:
                 return None

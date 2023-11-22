@@ -95,18 +95,15 @@ class MakerAPIRefreshResponse(BaseModel, extra=Extra.allow):
 class HubitatRESTPoller(RESTPoller):
 
     _last_read_time: float
-    _report_src: str
     _report_dst: str
     _component: HubitatPollerComponent
 
     def __init__(
             self,
             name: str,
-            report_src: str,
             component: HubitatPollerComponent,
             services: ServicesInterface
     ):
-        self._report_src = report_src
         self._report_dst = services.name
         self._component = component
         super().__init__(
@@ -164,7 +161,7 @@ class HubitatRESTPoller(RESTPoller):
     async def _converter(self, response: ClientResponse) -> Optional[Message]:
         try:
             response = MakerAPIRefreshResponse(
-                **await response.json()
+                **await response.json(content_type=None)
             )
             about_nodes = []
             values = []
@@ -182,7 +179,7 @@ class HubitatRESTPoller(RESTPoller):
                     warnings.append(convert_result.err())
             if values:
                 return MultipurposeSensorTelemetryMessage(
-                    src=self._report_src,
+                    src=self._name,
                     dst=self._report_dst,
                     about_node_alias_list=about_nodes,
                     value_list=values,
@@ -193,8 +190,8 @@ class HubitatRESTPoller(RESTPoller):
                     Message(
                         Payload=Problems(warnings=warnings).problem_event(
                             summary=(
-                                f"<{self._report_src}> _convert() warnings "
-                            ), src=self._report_src
+                                f"<{self._name}> _convert() warnings "
+                            ), src=self._name
                         )
                     )
                 )
@@ -203,8 +200,8 @@ class HubitatRESTPoller(RESTPoller):
                 Message(
                     Payload=Problems(errors=[e]).problem_event(
                         summary=(
-                            f"<{self._report_src}> _convert() error"
-                        ), src=self._report_src
+                            f"<{self._name}> _convert() error"
+                        ), src=self._name
                     )
                 )
             )
@@ -236,7 +233,6 @@ class HubitatPoller(Actor):
         self._component = component
         self._poller = HubitatRESTPoller(
                 name=name,
-                report_src="",
                 component=component,
                 services=services,
             )
