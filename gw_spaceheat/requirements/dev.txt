@@ -108,8 +108,7 @@ gridworks-proactor[tests]==0.3.4
     #   -r requirements/base.in
     #   -r requirements/dev.in
     #   -r requirements/test.in
-# gridworks-protocol==0.6.3
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/thermostat
+gridworks-protocol==0.6.3
     # via
     #   -r requirements/base.in
     #   gridworks-proactor

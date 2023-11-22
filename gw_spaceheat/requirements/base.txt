@@ -6,12 +6,16 @@
 #
 aiocache[memcached,redis]==0.11.1
     # via gridworks
+aiohttp==3.9.0
+    # via gridworks-proactor
 aiomcache==0.8.1
     # via aiocache
 aioredis==1.3.1
     # via
     #   aiocache
     #   gridworks
+aiosignal==1.3.1
+    # via aiohttp
 alabaster==0.7.13
     # via sphinx
 anyio==3.6.2
@@ -20,6 +24,8 @@ anyio==3.6.2
     #   watchfiles
 async-timeout==4.0.2
     # via aioredis
+attrs==23.1.0
+    # via aiohttp
 babel==2.12.1
     # via sphinx
 beaker-pyteal==0.4.2
@@ -52,13 +58,17 @@ fastapi-utils==0.2.1
     # via
     #   gridworks
     #   gridworks-protocol
+frozenlist==1.4.0
+    # via
+    #   aiohttp
+    #   aiosignal
 gridworks==0.2.9
     # via
     #   gridworks-proactor
     #   gridworks-protocol
-gridworks-proactor==0.3.3
+gridworks-proactor==0.3.4
     # via -r requirements/base.in
-gridworks-protocol==0.5.7
+gridworks-protocol==0.6.3
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
@@ -83,6 +93,7 @@ idna==2.10
     #   anyio
     #   http3
     #   requests
+    #   yarl
 imagesize==1.4.1
     # via sphinx
 jinja2==3.1.2
@@ -91,6 +102,11 @@ markupsafe==2.1.2
     # via jinja2
 msgpack==1.0.5
     # via py-algorand-sdk
+multidict==6.0.4
+    # via
+    #   aiohttp
+    #   gridworks-proactor
+    #   yarl
 numpy==1.24.1
     # via -r requirements/base.in
 packaging==23.1
@@ -224,3 +240,8 @@ xdg==6.0.0
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
+yarl==1.9.3
+    # via
+    #   aiohttp
+    #   gridworks-proactor
+    #   gridworks-protocol
