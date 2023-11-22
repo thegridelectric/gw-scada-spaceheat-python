@@ -26,6 +26,7 @@ class HubitatPollerGenCfg(BaseModel):
     device_id: int
     attributes: list[AttributeGenCfg] = []
     role: Role = Role.MultiChannelAnalogTempSensor
+    poll_period_seconds: float = 60
 
     @root_validator
     def _root_validator(cls, values):
@@ -68,6 +69,7 @@ def add_hubitat_poller(
                         attribute.attribute_gt
                         for attribute in poller.attributes
                     ],
+                    poll_period_seconds=poller.poll_period_seconds,
                 )
             ),
         ]
