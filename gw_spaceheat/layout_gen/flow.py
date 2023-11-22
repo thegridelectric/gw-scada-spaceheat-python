@@ -18,7 +18,7 @@ from layout_gen.layout_db import LayoutDb
 class iSTECHFlowMeterGenCfg(BaseModel):
     NodeAlias: str
     I2cAddress: int
-    ConversionFactor: float = 0.3564
+    ConversionFactor: float = 0.332
     PollPeriodS: float = 5
 
     def node_display_name(self) -> str:
@@ -76,39 +76,3 @@ def add_istech_flow_meter(
             )
         ]
     )
-
-d = {
-    "ShNodes": [
-        {
-            "Alias": "a.distsourcewater.pump.flowmeter",
-            "RoleGtEnumSymbol": "ece3b600",
-            "ActorClassGtEnumSymbol": "dae4b2f0",
-            "DisplayName": "Heatpump Condensor Loop Pump Flow Meter",
-            "ShNodeId": "170ea475-0dea-47eb-b859-233d0705076d",
-            "ComponentId": "10046262-b77e-4df8-9643-eacdd2bb2a81",
-            "ReportingSamplePeriodS": 30,
-            "TypeName": "spaceheat.node.gt",
-            "Version": "100"
-        }
-    ],
-    "PipeFlowSensorComponents": [
-      {
-          "ComponentId": "10046262-b77e-4df8-9643-eacdd2bb2a81",
-          "DisplayName": "EzFlo reading Istek Flow Meter distribution loop, a.distsourcewater.pump.flowmeter",
-          "ComponentAttributeClassId": "13d916dc-8764-4b16-b85d-b8ead3e2fc80",
-          "I2cAddress": 101,
-          "ConversionFactor": 0.3564,
-          "TypeName": "pipe.flow.sensor.component.gt",
-          "Version": "000"
-      }
-    ],
-    "PipeFlowSensorCacs":[
-        {
-            "DisplayName": "Atlas Scientific EZO FLO i2c",
-            "ComponentAttributeClassId": "13d916dc-8764-4b16-b85d-b8ead3e2fc80",
-            "MakeModelGtEnumSymbol": "d0b0e375",
-            "TypeName": "pipe.flow.sensor.cac.gt",
-            "Version": "000"
-        }
-    ]
-}

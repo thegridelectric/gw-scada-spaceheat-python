@@ -1,6 +1,7 @@
 from typing import cast
 
 import uuid
+from typing import Optional
 
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
@@ -21,6 +22,13 @@ class SensorNodeGenCfg(BaseModel):
     NodeAlias: str
     Role: Role
     DisplayName: str
+    ReportOnChange: bool = False
+    SamplePeriodS: int = 60
+    Exponent = 3
+    Unit: Unit = Unit.Celcius
+    TelemetryName: TelemetryName = TelemetryName.WaterTempCTimes1000
+    AsyncReportThreshold: Optional[float] = None
+    NameplateMaxValue: Optional[int] = None
 
 class TSnapMultipurposeGenCfg(BaseModel):
     NodeAlias: str
@@ -72,12 +80,13 @@ def add_tsnap_multipurpose(
                     ConfigList=[
                         TelemetryReportingConfig(
                             AboutNodeName=sensor_cfg.NodeAlias,
-                            ReportOnChange=False,
-                            SamplePeriodS=60,
-                            Exponent=3,
-                            Unit=Unit.Celcius,
-                            TelemetryName=TelemetryName.WaterTempCTimes1000,
-
+                            ReportOnChange=sensor_cfg.ReportOnChange,
+                            SamplePeriodS=sensor_cfg.SamplePeriodS,
+                            Exponent=sensor_cfg.Exponent,
+                            Unit=sensor_cfg.Unit,
+                            TelemetryName=sensor_cfg.TelemetryName,
+                            AsyncReportThreshold=sensor_cfg.AsyncReportThreshold,
+                            NameplateMaxValue=sensor_cfg.NameplateMaxValue,
                         )
                         for sensor_cfg in tsnap.SensorCfgs
                     ],

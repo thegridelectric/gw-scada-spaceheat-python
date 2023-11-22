@@ -113,6 +113,8 @@ def add_hubitat_thermostat(
                     attribute_gt=MakerAPIAttributeGt(
                         attribute_name="temperature",
                         node_name="temp",
+                        telemetry_name_gt_enum_symbol="793505aa",
+                        unit_gt_enum_symbol="7d8832f8",
                     ),
                     display_name=thermostat.display_name + " Temperature",
                     role=Role.RoomTempSensor,
@@ -120,7 +122,9 @@ def add_hubitat_thermostat(
                 AttributeGenCfg(
                     attribute_gt=MakerAPIAttributeGt(
                         attribute_name="heatingSetpoint",
-                        node_name=".set",
+                        node_name="set",
+                        telemetry_name_gt_enum_symbol="793505aa",
+                        unit_gt_enum_symbol="7d8832f8",
                     ),
                     display_name=thermostat.display_name + " Heating Set Point",
                     role=Role.ThermostatHeatingSetPoint,
