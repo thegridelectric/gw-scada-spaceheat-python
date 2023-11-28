@@ -9,7 +9,6 @@ from typing import List
 from typing import Optional
 
 from gwproto import Message
-from gwproto.enums import TelemetryName
 
 from actors.message import PowerWattsMessage
 from actors.message import MultipurposeSensorTelemetryMessage
@@ -231,7 +230,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             Message(
                 Payload=problems.problem_event(
                     summary=f"Driver problems: {tag} for {self.driver.component}",
-                    src=str(self.driver.component)
+                    src=self._telemetry_destination
                 )
             )
         )
