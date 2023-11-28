@@ -151,7 +151,6 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             Message(
                 Payload=problems.problem_event(
                     summary=f"Driver problems: {tag} for {self.driver.component}",
-                    src=self._telemetry_destination,
                 )
             )
         )

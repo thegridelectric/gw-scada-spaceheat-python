@@ -63,7 +63,6 @@ class SimpleSensorDriverThread(SyncAsyncInteractionThread):
             Message(
                 Payload=problems.problem_event(
                     summary=f"Driver problems: {tag} for {self._config.driver.component}",
-                    src=self._telemetry_destination
                 )
             )
         )

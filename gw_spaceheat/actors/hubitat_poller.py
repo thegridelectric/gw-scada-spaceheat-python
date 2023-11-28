@@ -191,7 +191,7 @@ class HubitatRESTPoller(RESTPoller):
                         Payload=Problems(warnings=warnings).problem_event(
                             summary=(
                                 f"<{self._name}> _convert() warnings "
-                            ), src=self._report_dst
+                            )
                         )
                     )
                 )
@@ -201,7 +201,7 @@ class HubitatRESTPoller(RESTPoller):
                     Payload=Problems(errors=[e]).problem_event(
                         summary=(
                             f"<{self._name}> _convert() error"
-                        ), src=self._report_dst
+                        )
                     )
                 )
             )
