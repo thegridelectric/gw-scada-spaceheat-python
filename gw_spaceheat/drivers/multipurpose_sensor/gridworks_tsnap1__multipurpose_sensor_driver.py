@@ -1,7 +1,8 @@
 import math
 import sys
-from enum import Enum
 from typing import Dict, List
+from typing import Optional
+
 from actors.config import ScadaSettings
 
 from drivers.driver_result import DriverResult
@@ -135,11 +136,33 @@ class TSnapI2cReadWarning(DriverWarning):
 class TSnap1ComponentMisconfigured(DriverWarning):
     ...
 
+class TSnap1ConversionWarning(DriverWarning):
+    voltage: float
+    rt: Optional[float]
+    rt_exception: Optional[Exception]
+    c_exception: Optional[Exception]
 
-class I2CErrorEnum(Enum):
-    NO_ADDRESS_ERROR = -100000
-    READ_ERROR = -200000
+    def __init__(
+        self,
+        voltage: float,
+        rt: Optional[float] = None,
+        rt_exception: Optional[Exception] = None,
+        c_exception: Optional[Exception] = None,
+        msg: str = "",
+    ):
+        super().__init__(msg)
+        self.voltage = voltage
+        self.rt = rt
+        self.rt_exception = rt_exception
+        self.c_exception = c_exception
 
+    def __str__(self):
+        s = self.__class__.__name__
+        super_str = super().__str__()
+        if super_str:
+            s += f" <{super_str}>"
+        s += f"   voltage: {self.voltage}  rt: {self.rt}  exception from rt calcuation: {self.rt_exception}  exception from celcius calculation: {self.c_exception}"
+        return s
 
 PI_VOLTAGE = 5.1
 # 298 Kelvin is 25 Celcius
@@ -291,14 +314,18 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                 if read_voltage_result.value.warnings:
                     driver_result.warnings.extend(read_voltage_result.value.warnings)
                 if read_voltage_result.value.value is not None:
-                    temp_c = self.thermistor_temp_c_beta_formula(
-                        read_voltage_result.value.value
-                    )
-                    driver_result.value[ts] = int(temp_c * 1000)
+                    convert_voltage_result = self.voltage_to_c(read_voltage_result.value.value)
+                    if convert_voltage_result.is_ok():
+                        driver_result.value[ts] = int(convert_voltage_result.value * 1000)
+                    else:
+                        driver_result.warnings.append(convert_voltage_result.err())
         return Ok(driver_result)
 
     @classmethod
-    def thermistor_temp_c_beta_formula(cls, voltage: float) -> float:
+    def voltage_to_c(
+        cls,
+        voltage: float
+    ) -> Result[float, Exception]:
         """We are using the beta formula instead of the Steinhart-Hart equation.
         Thermistor data sheets typically provide the three parameters needed
         for the beta formula (R0, beta, and T0) and do not provide the
@@ -320,14 +347,22 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         r0: int = int(THERMISTOR_R0_OHMS)
         beta: int = int(THERMISTOR_BETA)
         t0: int = int(THERMISTOR_T0_DEGREES_KELVIN)
-        if voltage >= PI_VOLTAGE:
-            return I2CErrorEnum.READ_ERROR.value
         # Calculate the resistance of the thermistor
-        rt = rd * voltage / (PI_VOLTAGE - voltage)
+        try:
+            rt = rd * voltage / (PI_VOLTAGE - voltage)
+        except Exception as e_rt:
+            return Err(TSnap1ConversionWarning(voltage, rt_exception=e_rt))
 
         # Calculate the temperature in degrees Celsius. Note that 273 is
         # 0 degrees Celcius as measured in Kelvin.
 
-        temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
-
-        return temp_c
+        try:
+            temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
+        except Exception as e_c:
+            return Err(
+                TSnap1ConversionWarning(
+                    voltage,
+                    rt=rt,
+                    c_exception=e_c
+                ))
+        return Ok(temp_c)
