@@ -22,7 +22,7 @@ class SensorNodeGenCfg(BaseModel):
     NodeAlias: str
     Role: Role
     DisplayName: str
-    ReportOnChange: bool = False
+    ReportOnChange: bool = True
     SamplePeriodS: int = 60
     Exponent = 3
     Unit: Unit = Unit.Celcius

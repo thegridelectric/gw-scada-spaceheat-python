@@ -27,9 +27,11 @@ __all__ = [
 
 @dataclass
 class StubConfig:
+    add_stub_scada: bool = True
     atn_gnode_alias: str = "dummy.atn.gnode",
     scada_gnode_alias: str = "dummy.scada.gnode",
     scada_display_name: str = "Dummy Scada"
+    add_stub_power_meter: bool = True
     power_meter_cac_alias: str = "Dummy Power Meter Cac"
     power_meter_component_alias: str = "Dummy Power Meter Component"
     power_meter_node_display_name: str = "Dummy Power Meter"
@@ -267,8 +269,10 @@ class LayoutDb:
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        self.add_stub_power_meter(cfg)
-        self.add_stub_scada(cfg)
+        if cfg.add_stub_power_meter:
+            self.add_stub_power_meter(cfg)
+        if cfg.add_stub_scada:
+            self.add_stub_scada(cfg)
 
     def dict(self) -> dict:
         d = dict(

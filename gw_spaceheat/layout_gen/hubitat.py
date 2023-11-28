@@ -4,7 +4,7 @@ from gwproto.types import HubitatCacGt
 from gwproto.types import HubitatComponentGt
 from gwproto.types.hubitat_gt import HubitatGt
 
-from layout_gen import LayoutDb
+from layout_gen.layout_db import LayoutDb
 
 def add_hubitat(
     db: LayoutDb,
