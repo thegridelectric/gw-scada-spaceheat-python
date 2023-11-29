@@ -86,7 +86,7 @@ gridworks==0.2.9
     #   gridworks-protocol
 gridworks-cert==0.4.3
     # via gridworks-proactor
-gridworks-proactor[tests]==0.3.4
+gridworks-proactor[tests]==0.3.5
     # via -r requirements/test.in
 gridworks-protocol==0.6.3
     # via gridworks-proactor

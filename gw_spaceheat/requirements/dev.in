@@ -3,5 +3,5 @@
 ipython
 pip-tools
 isort
-gridworks-proactor[tests]>=0.3.4
+gridworks-proactor[tests]>=0.3.5
 gridworks-cert>=0.4.3
