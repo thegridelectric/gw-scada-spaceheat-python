@@ -241,13 +241,15 @@ class HubitatPoller(Actor):
         raise ValueError("HubitatTankModule does not currently process any messages")
 
     def start(self) -> None:
-        self._poller.start()
+        if self._component.poller_gt.enabled:
+            self._poller.start()
 
     def stop(self) -> None:
-        try:
-            self._poller.stop()
-        except: # noqa
-            pass
+        if self._component.poller_gt.enabled:
+            try:
+                self._poller.stop()
+            except: # noqa
+                pass
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""

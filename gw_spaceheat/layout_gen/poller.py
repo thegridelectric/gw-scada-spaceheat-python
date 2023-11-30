@@ -27,6 +27,7 @@ class HubitatPollerGenCfg(BaseModel):
     attributes: list[AttributeGenCfg] = []
     role: Role = Role.MultiChannelAnalogTempSensor
     poll_period_seconds: float = 60
+    enabled: bool = True
 
     @root_validator
     def _root_validator(cls, values):
@@ -41,6 +42,8 @@ class HubitatThermostatGenCfg(BaseModel):
     display_name: str = ""
     hubitat: HubitatGt
     device_id: int
+    poll_period_seconds: float = 60
+    enabled: bool = True
 
 def add_hubitat_poller(
     db: LayoutDb,
@@ -69,6 +72,7 @@ def add_hubitat_poller(
                         attribute.attribute_gt
                         for attribute in poller.attributes
                     ],
+                    enabled=poller.enabled,
                     poll_period_seconds=poller.poll_period_seconds,
                 )
             ),
@@ -129,6 +133,8 @@ def add_hubitat_thermostat(
                     display_name=thermostat.display_name + " Heating Set Point",
                     role=Role.ThermostatHeatingSetPoint,
                 ),
-            ]
+            ],
+            poll_period_seconds=thermostat.poll_period_seconds,
+            enabled=thermostat.enabled,
         )
     )
