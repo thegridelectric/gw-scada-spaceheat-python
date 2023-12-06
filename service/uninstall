@@ -4,9 +4,9 @@ sudo systemctl stop gwspaceheat
 sudo systemctl disable gwspaceheat
 sudo systemctl daemon-reload
 
-rm /lib/systemd/system/gwspaceheat.service
-rm /lib/systemd/system/gwspaceheat-restart.service
-rm /lib/systemd/system/gwspaceheat-restart.timer
+sudo rm /lib/systemd/system/gwspaceheat.service
+sudo rm /lib/systemd/system/gwspaceheat-restart.service
+sudo rm /lib/systemd/system/gwspaceheat-restart.timer
 rm $HOME/.local/bin/gwstart
 rm $HOME/.local/bin/gwpause
 rm $HOME/.local/bin/gwstop
