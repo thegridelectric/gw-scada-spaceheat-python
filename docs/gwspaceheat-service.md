@@ -34,27 +34,3 @@ gwstop
 ```
 
 
-## Install gwspaceheat services
-
-
-Install the main service using the following commands:
-```
-sudo ln -s /home/pi/gw-scada-spaceheat-python/gwspaceheat.service /lib/systemd/system
-sudo systemctl enable gwspaceheat.service
-sudo systemctl start gwspaceheat.service
-systemctl status gwspaceheat.service
-```
-
-View the log with:
-```shell
-journalctl -f -u gwspaceheat
-```
-
-Install the restart service, designed to correct manually starting and forgetting restart the service: 
-```
-sudo ln -s /home/pi/gw-scada-spaceheat-python/gwspaceheat-restart.service /lib/systemd/system
-sudo ln -s /home/pi/gw-scada-spaceheat-python/gwspaceheat-restart.timer /lib/systemd/system
-sudo systemctl enable gwspaceheat-restart.timer
-sudo systemctl start gwspaceheat-restart.timer
-systemctl status gwspaceheat-restart.timer
-```
