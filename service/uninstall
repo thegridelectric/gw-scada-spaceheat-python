@@ -7,6 +7,7 @@ sudo systemctl daemon-reload
 sudo rm /lib/systemd/system/gwspaceheat.service
 sudo rm /lib/systemd/system/gwspaceheat-restart.service
 sudo rm /lib/systemd/system/gwspaceheat-restart.timer
-rm $HOME/.local/bin/gwstart
+rm $HOME/.local/bin/gwcurr
 rm $HOME/.local/bin/gwpause
+rm $HOME/.local/bin/gwstart
 rm $HOME/.local/bin/gwstop
