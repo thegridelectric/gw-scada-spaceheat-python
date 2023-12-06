@@ -9,7 +9,7 @@ sudo systemctl start gwspaceheat
 sudo systemctl enable /lib/systemd/system/gwspaceheat-restart.timer
 sudo systemctl start gwspaceheat-restart.timer
 
-ln -s $HOME/gw-scada-spaceheat-python/service/gwcurr $HOME/.local/bin
+ln -s $HOME/gw-scada-spaceheat-python/service/gwstatus $HOME/.local/bin
 ln -s $HOME/gw-scada-spaceheat-python/service/gwpause $HOME/.local/bin
 ln -s $HOME/gw-scada-spaceheat-python/service/gwstart $HOME/.local/bin
 ln -s $HOME/gw-scada-spaceheat-python/service/gwstop $HOME/.local/bin

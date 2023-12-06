@@ -15,7 +15,7 @@ Install the service with:
 
 Check status of both services with: 
 ```shell
-gwcurr
+gwstatus
 ```
 
 Start both services with: 
