@@ -1,0 +1,2 @@
+systemctl status --no-pager -n 0 gwspaceheat-restart
+systemctl status --no-pager -n 0 gwspaceheat
