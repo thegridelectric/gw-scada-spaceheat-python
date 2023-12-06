@@ -1,2 +1,2 @@
 sudo systemctl start gwspaceheat
-sudo systemctl start gwspaceheat-restart
+sudo systemctl start gwspaceheat-restart.timer
