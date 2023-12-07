@@ -173,11 +173,12 @@ class FibaroTankTempPoller(RESTPoller):
     def __init__(
             self,
             name: str,
+            report_src: str,
             sensor_supply_voltage: float,
             settings: FibaroTempSensorSettings,
             services: ServicesInterface
     ):
-        self._report_src = services.name
+        self._report_src = report_src
         self._report_dst = services.name
         self._max_voltage = sensor_supply_voltage
         self._settings = settings
@@ -226,7 +227,7 @@ class FibaroTankTempPoller(RESTPoller):
                     Payload=Problems(errors=[e]).problem_event(
                         summary=(
                             f"Fibaro {self._settings.node_name} _convert() error "
-                        ), src=self._report_src
+                        )
                     )
                 )
             )
@@ -259,6 +260,7 @@ class HubitatTankModule(Actor):
         self._pollers = [
             FibaroTankTempPoller(
                 name=device.node_name,
+                report_src=self.name,
                 settings=device,
                 services=services,
                 sensor_supply_voltage=self._component.sensor_supply_voltage
