@@ -1,0 +1,11 @@
+[Unit]
+Description=Start gwspaceheat service if is not running; Designed to catch manually stopping and forgetting to restart service.
+After=multi-user.target
+
+[Service]
+Type=oneshot
+User=pi
+ExecStart=/bin/sh -c "/usr/bin/systemctl is-active -q gwspaceheat || sudo /usr/bin/systemctl start gwspaceheat"
+
+[Install]
+WantedBy=multi-user.target
