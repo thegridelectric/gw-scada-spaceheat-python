@@ -25,7 +25,15 @@ class SensorNodeGenCfg(BaseModel):
     SamplePeriodS: int = 60
     Exponent = 3
     Unit: Unit = Unit.Celcius
-    TelemetryName: TelemetryName = TelemetryName.WaterTempCTimes1000
+    # Using a forward reference here resolves a pydantic exception generated when this field
+    # is actually set, as in tlayouts/gen_oak.py. I don't know why we should need a forward
+    # reference, since TelemetryName is imported above. The generated error is:
+    #
+    # pydantic.errors.ConfigError: field "TelemetryName" not yet prepared so
+    #   type is still a ForwardRef, you might need to call
+    #   SensorNodeGenCfg.update_forward_refs().
+    #
+    TelemetryName: "TelemetryName" = TelemetryName.WaterTempCTimes1000
     AsyncReportThreshold: Optional[float] = None
     NameplateMaxValue: Optional[int] = None
 
