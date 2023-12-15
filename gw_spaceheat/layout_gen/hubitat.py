@@ -1,5 +1,3 @@
-import uuid
-
 from gwproto.types import HubitatCacGt
 from gwproto.types import HubitatComponentGt
 from gwproto.types.hubitat_gt import HubitatGt
@@ -10,11 +8,12 @@ def add_hubitat(
     db: LayoutDb,
     hubitat: HubitatGt
 ) -> str:
-    if not db.cac_id_by_type("hubitat.cac.gt"):
+    cac_type = "hubitat.cac.gt"
+    if not db.cac_id_by_type(cac_type):
         db.add_cacs(
             [
                 HubitatCacGt(
-                    ComponentAttributeClassId=str(uuid.uuid4()),
+                    ComponentAttributeClassId=db.make_cac_id(cac_type),
                     DisplayName="Hubitat Elevation C-7",
                 ),
             ]
@@ -24,8 +23,8 @@ def add_hubitat(
         db.add_components(
             [
                 HubitatComponentGt(
-                    ComponentId=str(uuid.uuid4()),
-                    ComponentAttributeClassId=db.cac_id_by_type("hubitat.cac.gt"),
+                    ComponentId=db.make_component_id(hubitat_alias),
+                    ComponentAttributeClassId=db.make_cac_id(cac_type),
                     DisplayName=hubitat_alias,
                     Hubitat=hubitat,
                 ),

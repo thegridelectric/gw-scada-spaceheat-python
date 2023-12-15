@@ -1,4 +1,3 @@
-import uuid
 from typing import cast
 from typing import Optional
 
@@ -53,9 +52,9 @@ class EGaugeIOGenCfg(BaseModel):
         kwargs_used.update(kwargs)
         return EgaugeRegisterConfig(**kwargs_used)
 
-    def node(self) -> SpaceheatNodeGt:
+    def node(self, db: LayoutDb) -> SpaceheatNodeGt:
         return SpaceheatNodeGt(
-            ShNodeId=self.make_node_id(),
+            ShNodeId=db.make_node_id(self.AboutNodeName),
             Alias=self.AboutNodeName,
             ActorClass=ActorClass.NoActor,
             Role=self.NodeRole,
@@ -106,13 +105,14 @@ def add_egauge(
     db: LayoutDb,
     egauge: EGaugeGenCfg,
 ) -> None:
-    if not db.cac_id_by_type("electric.meter.cac.gt"):
+    cac_type = "electric.meter.cac.gt"
+    if not db.cac_id_by_type(cac_type):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        ComponentAttributeClassId=str(uuid.uuid4()),
+                        ComponentAttributeClassId=db.make_cac_id(cac_type),
                         MakeModel=MakeModel.EGAUGE__4030,
                         PollPeriodMs=1000,
                         DisplayName="EGauge 4030",
@@ -129,10 +129,8 @@ def add_egauge(
             cast(
                 ComponentGt,
                 ElectricMeterComponentGt(
-                    ComponentId=str(uuid.uuid4()),
-                    ComponentAttributeClassId=db.cac_id_by_type(
-                        "electric.meter.cac.gt"
-                    ),
+                    ComponentId=db.make_component_id(egauge.ComponentDisplayName),
+                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
                     DisplayName=egauge.ComponentDisplayName,
                     ConfigList=[io.OutputConfig for io in io_list],
                     HwUid=egauge.HwUid,
@@ -147,12 +145,12 @@ def add_egauge(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=self.make_node_id(),
+                ShNodeId=db.make_node_id(egauge.NodeName),
                 Alias=egauge.NodeName,
                 ActorClass=ActorClass.PowerMeter,
                 Role=Role.PowerMeter,
                 DisplayName=egauge.NodeDisplayName,
                 ComponentId=db.component_id_by_alias(egauge.ComponentDisplayName),
             )
-        ] + [io.node() for io in egauge.IOs]
+        ] + [io.node(db) for io in egauge.IOs]
     )

@@ -1,6 +1,5 @@
 from typing import cast
 
-import uuid
 from typing import Optional
 
 from gwproto.enums import ActorClass
@@ -47,13 +46,14 @@ def add_tsnap_multipurpose(
     db: LayoutDb,
     tsnap: TSnapMultipurposeGenCfg,
 ) -> None:
-    if not db.cac_id_by_type("multipurpose.sensor.cac.gt"):
+    cac_type = "multipurpose.sensor.cac.gt"
+    if not db.cac_id_by_type(cac_type):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     MultipurposeSensorCacGt(
-                        ComponentAttributeClassId=str(uuid.uuid4()),
+                        ComponentAttributeClassId=db.make_cac_id(cac_type),
                         MakeModel=MakeModel.GRIDWORKS__TSNAP1,
                         PollPeriodMs=200,
                         Exponent=0,
@@ -72,10 +72,8 @@ def add_tsnap_multipurpose(
             cast(
                 ComponentGt,
                 MultipurposeSensorComponentGt(
-                    ComponentId=str(uuid.uuid4()),
-                    ComponentAttributeClassId=db.cac_id_by_type(
-                        "multipurpose.sensor.cac.gt"
-                    ),
+                    ComponentId=db.make_component_id(tsnap.component_alias()),
+                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
                     ChannelList=list(tsnap.ChannelList),
                     ConfigList=[
                         TelemetryReportingConfig(
@@ -100,7 +98,7 @@ def add_tsnap_multipurpose(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=self.make_node_id(),
+                ShNodeId=db.make_node_id(tsnap.NodeAlias),
                 Alias=tsnap.NodeAlias,
                 ActorClass=ActorClass.MultipurposeSensor,
                 Role=Role.MultiChannelAnalogTempSensor,
@@ -109,7 +107,7 @@ def add_tsnap_multipurpose(
             )
         ] + [
             SpaceheatNodeGt(
-                ShNodeId=self.make_node_id(),
+                ShNodeId=db.make_node_id(sensor_cfg.NodeAlias),
                 Alias=sensor_cfg.NodeAlias,
                 ActorClass=ActorClass.NoActor,
                 Role=sensor_cfg.Role,

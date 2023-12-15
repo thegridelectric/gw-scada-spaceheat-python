@@ -24,8 +24,6 @@ __all__ = [
     "StubConfig",
 ]
 
-from numpy.doc.constants import m
-
 
 @dataclass
 class StubConfig:
@@ -52,9 +50,9 @@ class LayoutIDMap:
         self.gnodes = {}
         if not d:
             return
-        for k, v in d:
+        for k, v in d.items():
             if isinstance(v, dict) and "GNodeId" in v:
-                m.gnodes[k] = v
+                self.gnodes[k] = v
             if k == "ShNodes":
                 for node in v:
                     self.add_node(
@@ -115,7 +113,7 @@ class LayoutDb:
         self.nodes_by_id = {}
         self.misc = {}
         self.loaded = existing_layout or LayoutIDMap()
-        self.maps = LayoutIDMap(existing_layout)
+        self.maps = LayoutIDMap()
         if cacs is not None:
             self.add_cacs(cacs)
         if components is not None:
@@ -141,6 +139,8 @@ class LayoutDb:
         return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
 
     def make_node_id(self, node_alias: str) -> str:
+        if node_alias == "a.thermostat.downstairs.temp":
+            print("foo")
         return self.loaded.nodes_by_alias.get(node_alias, str(uuid.uuid4()))
 
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
@@ -274,8 +274,8 @@ class LayoutDb:
     def add_stub_scada(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        if self.maps.gnodes:
-            self.misc.update(self.maps.gnodes)
+        if self.loaded.gnodes:
+            self.misc.update(self.loaded.gnodes)
         else:
             self.misc["MyAtomicTNodeGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
