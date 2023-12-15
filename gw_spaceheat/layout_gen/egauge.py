@@ -55,7 +55,7 @@ class EGaugeIOGenCfg(BaseModel):
 
     def node(self) -> SpaceheatNodeGt:
         return SpaceheatNodeGt(
-            ShNodeId=str(uuid.uuid4()),
+            ShNodeId=self.make_node_id(),
             Alias=self.AboutNodeName,
             ActorClass=ActorClass.NoActor,
             Role=self.NodeRole,
@@ -147,7 +147,7 @@ def add_egauge(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=egauge.NodeName,
                 ActorClass=ActorClass.PowerMeter,
                 Role=Role.PowerMeter,

@@ -81,7 +81,7 @@ def add_hubitat_poller(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=poller.node_name,
                 ActorClass=ActorClass.HubitatPoller,
                 Role=poller.role,
@@ -90,7 +90,7 @@ def add_hubitat_poller(
             )
         ] + [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=attribute.attribute_gt.node_name,
                 ActorClass=ActorClass.NoActor,
                 Role=attribute.role,

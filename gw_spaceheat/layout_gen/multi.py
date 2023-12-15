@@ -100,7 +100,7 @@ def add_tsnap_multipurpose(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=tsnap.NodeAlias,
                 ActorClass=ActorClass.MultipurposeSensor,
                 Role=Role.MultiChannelAnalogTempSensor,
@@ -109,7 +109,7 @@ def add_tsnap_multipurpose(
             )
         ] + [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=sensor_cfg.NodeAlias,
                 ActorClass=ActorClass.NoActor,
                 Role=sensor_cfg.Role,

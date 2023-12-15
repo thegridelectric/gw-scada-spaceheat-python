@@ -166,7 +166,7 @@ def add_tank(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=tank.NodeAlias,
                 ActorClass=ActorClass.HubitatTankModule,
                 Role=Role.MultiChannelAnalogTempSensor,
@@ -174,21 +174,21 @@ def add_tank(
                 ComponentId=db.component_id_by_alias(tank.component_alias())
             ),
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=tank.thermistor_node_alias(1),
                 ActorClass=ActorClass.NoActor,
                 Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(1),
             ),
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=tank.thermistor_node_alias(2),
                 ActorClass=ActorClass.NoActor,
                 Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(2),
             ),
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=tank.thermistor_node_alias(3),
                 ActorClass=ActorClass.NoActor,
                 Role=Role.TankWaterTempSensor,
@@ -196,7 +196,7 @@ def add_tank(
             ),
 
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=tank.thermistor_node_alias(4),
                 ActorClass=ActorClass.NoActor,
                 Role=Role.TankWaterTempSensor,

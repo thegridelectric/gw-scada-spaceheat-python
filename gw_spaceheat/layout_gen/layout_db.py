@@ -18,12 +18,14 @@ from gwproto.types import ElectricMeterCacGt
 from gwproto.types import SpaceheatNodeGt
 from gwproto.types import TelemetryReportingConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
-from multidict import MultiDict
 
 __all__ = [
     "LayoutDb",
     "StubConfig",
 ]
+
+from numpy.doc.constants import m
+
 
 @dataclass
 class StubConfig:
@@ -37,23 +39,69 @@ class StubConfig:
     power_meter_node_display_name: str = "Dummy Power Meter"
     boost_element_display_name: str = "Dummy Boost Element"
 
+class LayoutIDMap:
+    cacs_by_type: dict[str, str]
+    components_by_alias: dict[str, str]
+    nodes_by_alias: dict[str, str]
+    gnodes: dict[str, dict]
+
+    def __init__(self, d: Optional[dict] = None):
+        self.cacs_by_type = {}
+        self.components_by_alias = {}
+        self.nodes_by_alias = {}
+        self.gnodes = {}
+        if not d:
+            return
+        for k, v in d:
+            if isinstance(v, dict) and "GNodeId" in v:
+                m.gnodes[k] = v
+            if k == "ShNodes":
+                for node in v:
+                    self.add_node(
+                        node["ShNodeId"],
+                        node["Alias"],
+                    )
+            elif k.lower().endswith("cacs"):
+                for cac in v:
+                    self.add_cac(
+                        cac["ComponentAttributeClassId"],
+                        cac["TypeName"],
+                    )
+
+            elif k.lower().endswith("components"):
+                for component in v:
+                    self.add_component(
+                        component["ComponentId"],
+                        component["DisplayName"],
+                    )
+
+    def add_cac(self, id_: str, type_: str):
+        self.cacs_by_type[type_] = id_
+
+    def add_component(self, id_: str, alias: str):
+        self.components_by_alias[alias] = id_
+
+    def add_node(self, id_: str, alias: str):
+        self.nodes_by_alias[alias] = id_
+
+    @classmethod
+    def from_path(cls, path: Path) -> "LayoutIDMap":
+        with path.open() as f:
+            return LayoutIDMap(json.loads(f.read()))
 
 
 class LayoutDb:
     lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt]]
     cacs_by_id: dict[str, ComponentAttributeClassGt]
-    cacs_by_alias: dict[str, str]
-    cacs_by_type: dict[str, str]
     components_by_id: dict[str, ComponentGt]
-    components_by_alias: dict[str, str]
-    components_by_type: MultiDict
     nodes_by_id: dict[str, SpaceheatNodeGt]
-    nodes_by_alias: dict[str, str]
-    nodes_by_component: MultiDict
+    loaded: LayoutIDMap
+    maps: LayoutIDMap
     misc: dict
 
     def __init__(
         self,
+        existing_layout: Optional[LayoutIDMap] = None,
         cacs: Optional[list[ComponentAttributeClassGt]] = None,
         components: Optional[list[ComponentGt]] = None,
         nodes: Optional[list[SpaceheatNodeGt]] = None,
@@ -62,16 +110,12 @@ class LayoutDb:
     ):
         self.lists = {}
         self.cacs_by_id = {}
-        self.cacs_by_alias = {}
-        self.cacs_by_type = {}
         self.components_by_id = {}
-        self.components_by_alias = {}
-        self.components_by_type = MultiDict()
         self.component_lists = {}
         self.nodes_by_id = {}
-        self.nodes_by_alias = {}
-        self.nodes_by_component = MultiDict()
         self.misc = {}
+        self.loaded = existing_layout or LayoutIDMap()
+        self.maps = LayoutIDMap(existing_layout)
         if cacs is not None:
             self.add_cacs(cacs)
         if components is not None:
@@ -81,6 +125,24 @@ class LayoutDb:
         if add_stubs:
             self.add_stubs(stub_config)
 
+    def cac_id_by_type(self, cac_type: str) -> Optional[str]:
+        return self.maps.cacs_by_type.get(cac_type, None)
+
+    def component_id_by_alias(self, component_alias: str) -> Optional[str]:
+        return self.maps.components_by_alias.get(component_alias, None)
+
+    def node_id_by_alias(self, node_alias: str) -> Optional[str]:
+        return self.maps.nodes_by_alias.get(node_alias, None)
+
+    def make_cac_id(self, cac_type: str) -> str:
+        return self.loaded.cacs_by_type.get(cac_type, str(uuid.uuid4()))
+
+    def make_component_id(self, component_alias: str) -> str:
+        return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
+
+    def make_node_id(self, node_alias: str) -> str:
+        return self.loaded.nodes_by_alias.get(node_alias, str(uuid.uuid4()))
+
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
         for cac in cacs:
             if cac.ComponentAttributeClassId in self.cacs_by_id:
@@ -88,19 +150,16 @@ class LayoutDb:
                     f"ERROR: cac with id <{cac.ComponentAttributeClassId}> "
                     "already present"
                 )
-            if cac.DisplayName in self.cacs_by_alias:
-                raise ValueError(
-                    f"ERROR: cac with DisplayName <{cac.DisplayName}> "
-                    "already present"
-                )
-            if cac.TypeName in self.cacs_by_type:
+            if cac.TypeName in self.maps.cacs_by_type:
                 raise ValueError(
                     f"ERROR: cac with TypeName <{cac.TypeName}> "
                     "already present"
                 )
             self.cacs_by_id[cac.ComponentAttributeClassId] = cac
-            self.cacs_by_alias[cac.DisplayName] = cac.ComponentAttributeClassId
-            self.cacs_by_type[cac.TypeName] = cac.ComponentAttributeClassId
+            self.maps.add_cac(
+                cac.ComponentAttributeClassId,
+                cac.TypeName
+            )
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(cac)
@@ -112,14 +171,16 @@ class LayoutDb:
                     f"ERROR. Component with id {component.ComponentId} "
                     "already present."
                 )
-            if component.DisplayName in self.components_by_alias:
+            if component.DisplayName in self.maps.components_by_alias:
                 raise ValueError(
                     f"ERROR. Component with DisplayName {component.DisplayName} "
                     "already present."
                 )
             self.components_by_id[component.ComponentId] = component
-            self.components_by_alias[component.DisplayName] = component.ComponentId
-            self.components_by_type.add(component.TypeName, component.ComponentId)
+            self.maps.add_component(
+                component.ComponentId,
+                component.DisplayName,
+            )
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(component)
@@ -130,41 +191,28 @@ class LayoutDb:
                 raise ValueError(
                     f"ERROR Node id {node.ShNodeId} already present."
                 )
-            if node.Alias in self.nodes_by_alias:
+            if node.Alias in self.maps.nodes_by_alias:
                 raise ValueError(
                     f"ERROR Node alias {node.Alias} already present."
                 )
             self.nodes_by_id[node.ShNodeId] = node
-            self.nodes_by_alias[node.Alias] = node.ShNodeId
-            if node.ComponentId:
-                self.nodes_by_component.add(node.ComponentId, node.ShNodeId)
+            self.maps.add_node(node.ShNodeId, node.Alias)
             layout_list_name = "ShNodes"
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(node)
 
-    def cac_id_by_alias(self, cac_alias: str) -> Optional[str]:
-        return self.cacs_by_alias.get(cac_alias, None)
-
-    def cac_id_by_type(self, cac_type: str) -> Optional[str]:
-        return self.cacs_by_type.get(cac_type, None)
-
-    def component_id_by_alias(self, component_alias: str) -> Optional[str]:
-        return self.components_by_alias.get(component_alias, None)
-
-    def component_id_by_type(self, component_type: str) -> Optional[list[str]]:
-        return self.components_by_type.get(component_type, None)
-
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        if not self.cac_id_by_alias(cfg.power_meter_cac_alias):
+        electric_meter_cac_type = "electric.meter.cac.gt"
+        if not self.cac_id_by_type(electric_meter_cac_type):
             self.add_cacs(
                 [
                     typing.cast(
                         ComponentAttributeClassGt,
                         ElectricMeterCacGt(
-                            ComponentAttributeClassId=str(uuid.uuid4()),
+                            ComponentAttributeClassId=self.make_cac_id(electric_meter_cac_type),
                             MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                             DisplayName=cfg.power_meter_cac_alias,
                             TelemetryNameList=[TelemetryName.PowerW],
@@ -180,8 +228,8 @@ class LayoutDb:
                 typing.cast(
                     ComponentGt,
                     ElectricMeterComponentGt(
-                        ComponentId=str(uuid.uuid4()),
-                        ComponentAttributeClassId=self.cac_id_by_alias(cfg.power_meter_cac_alias),
+                        ComponentId=self.make_component_id(cfg.power_meter_component_alias),
+                        ComponentAttributeClassId=self.cac_id_by_type(electric_meter_cac_type),
                         DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
                             TelemetryReportingConfig(
@@ -200,19 +248,21 @@ class LayoutDb:
             ],
             "ElectricMeterComponents"
         )
+        power_meter_alias = "a.m"
+        boost_element_alias = "a.elt1"
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=str(uuid.uuid4()),
-                    Alias="a.m",
+                    ShNodeId=self.make_node_id(power_meter_alias),
+                    Alias=power_meter_alias,
                     Role=Role.PowerMeter,
                     ActorClass=ActorClass.PowerMeter,
                     DisplayName=cfg.power_meter_node_display_name,
                     ComponentId=self.component_id_by_alias(cfg.power_meter_component_alias),
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=str(uuid.uuid4()),
-                    Alias="a.elt1",
+                    ShNodeId=self.make_node_id(boost_element_alias),
+                    Alias=boost_element_alias,
                     Role=Role.BoostElement,
                     ActorClass=ActorClass.NoActor,
                     DisplayName=cfg.boost_element_display_name,
@@ -224,41 +274,45 @@ class LayoutDb:
     def add_stub_scada(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        self.misc["MyAtomicTNodeGNode"] = {
-            "GNodeId": str(uuid.uuid4()),
-            "Alias": cfg.atn_gnode_alias,
-            "DisplayName": "ATN GNode",
-            "GNodeStatusValue": "Active",
-            "PrimaryGNodeRoleAlias": "AtomicTNode"
-        }
-        self.misc["MyScadaGNode"] = {
-            "GNodeId": str(uuid.uuid4()),
-            "Alias": cfg.scada_gnode_alias,
-            "DisplayName": "Scada GNode",
-            "GNodeStatusValue": "Active",
-            "PrimaryGNodeRoleAlias": "Scada"
-        }
-        self.misc["MyTerminalAssetGNode"] = {
-            "GNodeId": str(uuid.uuid4()),
-            "Alias": "dummy.ta",
-            "DisplayName": "Dummy TerminalAsset",
-            "GNodeStatusValue": "Active",
-            "PrimaryGNodeRoleAlias": "TerminalAsset"
-          }
+        if self.maps.gnodes:
+            self.misc.update(self.maps.gnodes)
+        else:
+            self.misc["MyAtomicTNodeGNode"] = {
+                "GNodeId": str(uuid.uuid4()),
+                "Alias": cfg.atn_gnode_alias,
+                "DisplayName": "ATN GNode",
+                "GNodeStatusValue": "Active",
+                "PrimaryGNodeRoleAlias": "AtomicTNode"
+            }
+            self.misc["MyScadaGNode"] = {
+                "GNodeId": str(uuid.uuid4()),
+                "Alias": cfg.scada_gnode_alias,
+                "DisplayName": "Scada GNode",
+                "GNodeStatusValue": "Active",
+                "PrimaryGNodeRoleAlias": "Scada"
+            }
+            self.misc["MyTerminalAssetGNode"] = {
+                "GNodeId": str(uuid.uuid4()),
+                "Alias": "dummy.ta",
+                "DisplayName": "Dummy TerminalAsset",
+                "GNodeStatusValue": "Active",
+                "PrimaryGNodeRoleAlias": "TerminalAsset"
+              }
 
-
+        scada_alias="a.s"
+        home_alias="a.home"
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=str(uuid.uuid4()),
-                    Alias="a.s",
+                    ShNodeId=self.make_node_id(scada_alias),
+                    Alias=scada_alias,
                     Role=Role.Scada,
                     ActorClass=ActorClass.Scada,
                     DisplayName=cfg.scada_display_name,
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=str(uuid.uuid4()),
-                    Alias="a.home",
+                    ShNodeId=self.make_node_id(home_alias),
+                    Alias=home_alias,
                     Role=Role.HomeAlone,
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",

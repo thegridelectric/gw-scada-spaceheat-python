@@ -66,7 +66,7 @@ def add_istech_flow_meter(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=self.make_node_id(),
                 Alias=meter.NodeAlias,
                 ActorClass=ActorClass.SimpleSensor,
                 Role=Role.PipeFlowMeter,
