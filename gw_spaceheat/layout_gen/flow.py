@@ -1,4 +1,3 @@
-import uuid
 from typing import cast
 
 from pydantic import BaseModel
@@ -38,14 +37,14 @@ def add_flow_meter(
     db: LayoutDb,
     flow_meter: FlowMeterGenCfg,
 ) -> None:
-    flow_meter_cac_type = "pipe.flow.sensor.cac.gt"
-    if not db.cac_id_by_type(flow_meter_cac_type):
+    cac_type = "pipe.flow.sensor.cac.gt"
+    if not db.cac_id_by_type(cac_type):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     PipeFlowSensorCacGt(
-                        ComponentAttributeClassId=str(uuid.uuid4()),
+                        ComponentAttributeClassId=db.make_cac_id(cac_type),
                         MakeModel=MakeModel.ATLAS__EZFLO,
                         DisplayName="Atlas EZFlo Cac",
                     )
@@ -58,10 +57,8 @@ def add_flow_meter(
             cast(
                 ComponentGt,
                 PipeFlowSensorComponentGt(
-                    ComponentId=str(uuid.uuid4()),
-                    ComponentAttributeClassId=db.cac_id_by_type(
-                        flow_meter_cac_type
-                    ),
+                    ComponentId=db.make_component_id(flow_meter.component_alias()),
+                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
                     I2cAddress=flow_meter.I2cAddress,
                     ConversionFactor=flow_meter.ConversionFactor,
                     DisplayName=flow_meter.component_alias(),
@@ -74,7 +71,7 @@ def add_flow_meter(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=db.make_node_id(flow_meter.NodeAlias),
                 Alias=flow_meter.NodeAlias,
                 ActorClass=ActorClass.SimpleSensor,
                 Role=Role.PipeFlowMeter,

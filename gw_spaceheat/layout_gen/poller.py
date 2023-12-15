@@ -1,5 +1,3 @@
-import uuid
-
 from gwproto.enums import ActorClass
 from gwproto.enums import Role
 from gwproto.types import HubitatPollerCacGt
@@ -50,11 +48,12 @@ def add_hubitat_poller(
     poller: HubitatPollerGenCfg,
 ) -> None:
     hubitat_alias = add_hubitat(db, poller.hubitat)
-    if not db.cac_id_by_type("hubitat.poller.cac.gt"):
+    cac_type = "hubitat.poller.cac.gt"
+    if not db.cac_id_by_type(cac_type):
         db.add_cacs(
             [
                 HubitatPollerCacGt(
-                    ComponentAttributeClassId=str(uuid.uuid4()),
+                    ComponentAttributeClassId=db.make_cac_id(cac_type),
                     DisplayName="Hubitat Poller Cac",
                 ),
             ]
@@ -62,8 +61,8 @@ def add_hubitat_poller(
     db.add_components(
         [
             HubitatPollerComponentGt(
-                ComponentId=str(uuid.uuid4()),
-                ComponentAttributeClassId=db.cac_id_by_type("hubitat.poller.cac.gt"),
+                ComponentId=db.make_component_id(poller.display_name),
+                ComponentAttributeClassId=db.cac_id_by_type(cac_type),
                 DisplayName=poller.display_name,
                 Poller=HubitatPollerGt(
                     hubitat_component_id=db.component_id_by_alias(hubitat_alias),
@@ -81,7 +80,7 @@ def add_hubitat_poller(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=db.make_node_id(poller.node_name),
                 Alias=poller.node_name,
                 ActorClass=ActorClass.HubitatPoller,
                 Role=poller.role,
@@ -90,7 +89,7 @@ def add_hubitat_poller(
             )
         ] + [
             SpaceheatNodeGt(
-                ShNodeId=str(uuid.uuid4()),
+                ShNodeId=db.make_node_id(attribute.attribute_gt.node_name),
                 Alias=attribute.attribute_gt.node_name,
                 ActorClass=ActorClass.NoActor,
                 Role=attribute.role,
