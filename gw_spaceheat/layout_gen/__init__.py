@@ -7,6 +7,7 @@ from layout_gen.flow import add_flow_meter
 from layout_gen.flow import add_istech_flow_meter
 from layout_gen.hubitat import add_hubitat
 from layout_gen.layout_db import LayoutDb
+from layout_gen.layout_db import LayoutIDMap
 from layout_gen.layout_db import StubConfig
 from layout_gen.multi import add_tsnap_multipurpose
 from layout_gen.poller import add_hubitat_poller
@@ -28,6 +29,7 @@ __all__ = [
     "EGaugeIOGenCfg",
     "FibaroGenCfg",
     "LayoutDb",
+    "LayoutIDMap",
     "HubitatPollerGenCfg",
     "HubitatThermostatGenCfg",
     "StubConfig",

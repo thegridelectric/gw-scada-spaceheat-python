@@ -1,5 +1,6 @@
 """Temporary package for assisting generation of hardware_layout.json files"""
 import json
+import subprocess
 import typing
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,12 +19,6 @@ from gwproto.types import ElectricMeterCacGt
 from gwproto.types import SpaceheatNodeGt
 from gwproto.types import TelemetryReportingConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
-
-__all__ = [
-    "LayoutDb",
-    "StubConfig",
-]
-
 
 @dataclass
 class StubConfig:
@@ -87,6 +82,25 @@ class LayoutIDMap:
         with path.open() as f:
             return LayoutIDMap(json.loads(f.read()))
 
+    @classmethod
+    def from_rclone(cls, rclone_name: str, upload_dir: Path) -> "LayoutIDMap":
+        if not upload_dir.exists():
+            upload_dir.mkdir(parents=True)
+        dest_path = upload_dir / f"{rclone_name}.uploaded.json"
+        upload = [
+            "rclone",
+            "copyto",
+            f"{rclone_name}:/home/pi/.config/gridworks/scada/hardware-layout.json",
+            f"{dest_path}",
+        ]
+        print(f"Running upload command:\n\n{' '.join(upload)}\n")
+        result = subprocess.run(upload, capture_output=True)
+        if result.returncode != 0:
+            print(f"Command output:\n[\n{result.stderr.decode('utf-8')}\n]")
+            raise RuntimeError(
+                f"ERROR. Command <{' '.join(upload)}> failed with returncode:{result.returncode}"
+            )
+        return cls.from_path(dest_path)
 
 class LayoutDb:
     lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt]]
@@ -139,8 +153,6 @@ class LayoutDb:
         return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
 
     def make_node_id(self, node_alias: str) -> str:
-        if node_alias == "a.thermostat.downstairs.temp":
-            print("foo")
         return self.loaded.nodes_by_alias.get(node_alias, str(uuid.uuid4()))
 
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
