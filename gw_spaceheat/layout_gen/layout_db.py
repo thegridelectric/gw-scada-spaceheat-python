@@ -60,7 +60,7 @@ class LayoutDb:
         add_stubs: bool = False,
         stub_config: Optional[StubConfig] = None,
     ):
-        self.lists = {}
+        self.lists = dict(OtherComponents=[])
         self.cacs_by_id = {}
         self.cacs_by_alias = {}
         self.cacs_by_type = {}
