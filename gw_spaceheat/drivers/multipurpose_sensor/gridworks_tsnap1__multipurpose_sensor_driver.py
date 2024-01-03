@@ -305,7 +305,12 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self, channel_telemetry_list: List[TelemetrySpec]
     ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
         for ts in channel_telemetry_list:
-            if not ts.Type == TelemetryName.WaterTempCTimes1000:
+            if not ts.Type in [
+                TelemetryName.WaterTempCTimes1000,
+                TelemetryName.WaterTempFTimes1000,
+                TelemetryName.AirTempCTimes1000,
+                TelemetryName.AirTempFTimes1000,
+            ]:
                 return Err(TSnap1ComponentMisconfigured(str(ts)))
         driver_result = DriverResult[Dict[TelemetrySpec, int]]({})
         for ts in channel_telemetry_list:
