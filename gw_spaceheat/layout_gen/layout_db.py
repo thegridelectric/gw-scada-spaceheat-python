@@ -46,27 +46,42 @@ class LayoutIDMap:
         if not d:
             return
         for k, v in d.items():
-            if isinstance(v, dict) and "GNodeId" in v:
-                self.gnodes[k] = v
-            if k == "ShNodes":
-                for node in v:
-                    self.add_node(
-                        node["ShNodeId"],
-                        node["Alias"],
-                    )
-            elif k.lower().endswith("cacs"):
-                for cac in v:
-                    self.add_cac(
-                        cac["ComponentAttributeClassId"],
-                        cac["TypeName"],
-                    )
+                if isinstance(v, dict) and "GNodeId" in v:
+                    self.gnodes[k] = v
+                if k == "ShNodes":
+                        for node in v:
+                            try:
+                                self.add_node(
+                                    node["ShNodeId"],
+                                    node["Alias"],
+                                )
+                            except Exception as e:
+                                raise Exception(
+                                    f"ERROR in LayoutIDMap() for {k}:{node}. Error: {type(e)}, <{e}>"
+                                )
+                elif k.lower().endswith("cacs"):
+                        for cac in v:
+                            try:
+                                self.add_cac(
+                                    cac["ComponentAttributeClassId"],
+                                    cac["TypeName"],
+                                )
+                            except Exception as e:
+                                raise Exception(
+                                    f"ERROR in LayoutIDMap() for {k}:{cac}. Error: {type(e)}, <{e}>"
+                                )
 
-            elif k.lower().endswith("components"):
-                for component in v:
-                    self.add_component(
-                        component["ComponentId"],
-                        component["DisplayName"],
-                    )
+                elif k.lower().endswith("components"):
+                        for component in v:
+                            try:
+                                self.add_component(
+                                    component["ComponentId"],
+                                    component["DisplayName"],
+                                )
+                            except Exception as e:
+                                raise Exception(
+                                    f"ERROR in LayoutIDMap() for {k}:{component}. Error: {type(e)}, <{e}>"
+                                )
 
     def add_cac(self, id_: str, type_: str):
         self.cacs_by_type[type_] = id_

@@ -23,8 +23,8 @@ class SensorNodeGenCfg(BaseModel):
     DisplayName: str
     ReportOnChange: bool = True
     SamplePeriodS: int = 60
+    ReportingSamplePeriodS: Optional[int] = None
     Exponent = 3
-    Unit: Unit = Unit.Celcius
     # Using a forward reference here resolves a pydantic exception generated when this field
     # is actually set, as in tlayouts/gen_oak.py. I don't know why we should need a forward
     # reference, since TelemetryName is imported above. The generated error is:
@@ -32,7 +32,7 @@ class SensorNodeGenCfg(BaseModel):
     # pydantic.errors.ConfigError: field "TelemetryName" not yet prepared so
     #   type is still a ForwardRef, you might need to call
     #   SensorNodeGenCfg.update_forward_refs().
-    #
+    Unit: "Unit" = Unit.Celcius
     TelemetryName: "TelemetryName" = TelemetryName.WaterTempCTimes1000
     AsyncReportThreshold: Optional[float] = None
     NameplateMaxValue: Optional[int] = None
@@ -120,6 +120,7 @@ def add_tsnap_multipurpose(
                 ActorClass=ActorClass.NoActor,
                 Role=sensor_cfg.Role,
                 DisplayName=sensor_cfg.DisplayName,
+                ReportingSamplePeriodS=sensor_cfg.ReportingSamplePeriodS,
             )
             for sensor_cfg in tsnap.SensorCfgs
         ]

@@ -1,4 +1,5 @@
 from typing import cast
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -18,6 +19,7 @@ class FlowMeterGenCfg(BaseModel):
     I2cAddress: int
     ConversionFactor: float
     PollPeriodS: float = 5
+    ReportingSamplePeriodS: Optional[int] = None
 
     def node_display_name(self) -> str:
         return f"Pipe Flow Meter <{self.NodeAlias}>"
@@ -46,7 +48,7 @@ def add_flow_meter(
                     PipeFlowSensorCacGt(
                         ComponentAttributeClassId=db.make_cac_id(cac_type),
                         MakeModel=MakeModel.ATLAS__EZFLO,
-                        DisplayName="Atlas EZFlo Cac",
+                        DisplayName="Atlas Scientific EZO FLO i2c",
                     )
                 )
             ],
@@ -77,7 +79,7 @@ def add_flow_meter(
                 Role=Role.PipeFlowMeter,
                 DisplayName=flow_meter.node_display_name(),
                 ComponentId=db.component_id_by_alias(flow_meter.component_alias()),
-                ReportingSamplePeriodS=30,
+                ReportingSamplePeriodS=flow_meter.ReportingSamplePeriodS,
             )
         ]
     )
