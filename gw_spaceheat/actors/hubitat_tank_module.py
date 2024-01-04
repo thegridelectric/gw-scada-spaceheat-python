@@ -10,7 +10,7 @@ from gwproactor import ServicesInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
 from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
-from gwproto.types.hubitat_tank_gt import FibaroTempSensorSettings
+from gwproto.type_helpers import FibaroTempSensorSettings
 from pydantic import BaseModel
 from pydantic import Extra
 from result import Result

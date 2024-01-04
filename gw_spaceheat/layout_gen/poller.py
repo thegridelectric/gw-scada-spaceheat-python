@@ -2,8 +2,8 @@ from gwproto.enums import ActorClass
 from gwproto.enums import Role
 from gwproto.types import HubitatPollerCacGt
 from gwproto.types import HubitatPollerComponentGt
-from gwproto.types import HubitatPollerGt
-from gwproto.types import MakerAPIAttributeGt
+from gwproto.type_helpers import HubitatPollerGt
+from gwproto.type_helpers import MakerAPIAttributeGt
 from gwproto.types import SpaceheatNodeGt
 from gwproto.types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
