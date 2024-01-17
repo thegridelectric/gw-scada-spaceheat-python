@@ -105,12 +105,12 @@ gridworks-cert==0.4.3
     # via
     #   -r dev.in
     #   gridworks-proactor
-gridworks-proactor[tests]==0.3.6
+gridworks-proactor[tests]==0.4.0
     # via
     #   -r base.in
     #   -r dev.in
     #   -r test.in
-gridworks-protocol==0.6.4
+gridworks-protocol==0.7.0
     # via
     #   -r base.in
     #   gridworks-proactor
