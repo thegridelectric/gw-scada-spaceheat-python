@@ -4,12 +4,12 @@ from gwproto.enums import ActorClass
 from gwproto.enums import Role
 from gwproto.types import FibaroSmartImplantCacGt
 from gwproto.types import FibaroSmartImplantComponentGt
-from gwproto.types import FibaroTempSensorSettingsGt
+from gwproto.type_helpers import FibaroTempSensorSettingsGt
 from gwproto.types import HubitatCacGt
 from gwproto.types import HubitatComponentGt
 from gwproto.types import HubitatTankCacGt
 from gwproto.types import HubitatTankComponentGt
-from gwproto.types import HubitatTankSettingsGt
+from gwproto.type_helpers import HubitatTankSettingsGt
 from gwproto.types import SpaceheatNodeGt
 from gwproto.types.hubitat_gt import HubitatGt
 from pydantic import BaseModel

@@ -9,7 +9,7 @@ from gwproactor import ServicesInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
 from gwproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
-from gwproto.types import MakerAPIAttributeGt
+from gwproto.type_helpers import MakerAPIAttributeGt
 from pydantic import BaseModel
 from pydantic import Extra
 from result import Err
