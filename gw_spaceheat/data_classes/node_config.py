@@ -4,7 +4,7 @@ import importlib.util
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.sh_node import ShNode
-from schema import GtSensorReportingConfig_Maker as ConfigMaker
+from gwtypes import GtSensorReportingConfig_Maker as ConfigMaker
 from enums import Unit
 from enums import MakeModel
 from enums import TelemetryName

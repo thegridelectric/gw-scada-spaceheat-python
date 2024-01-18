@@ -41,9 +41,9 @@ from enums import Role
 from gwproto.types import (
     TelemetryReportingConfig,
 )
-from schema import GtPowermeterReportingConfig as ReportingConfig
+from gwtypes import GtPowermeterReportingConfig as ReportingConfig
 
-from schema import GtPowermeterReportingConfig_Maker
+from gwtypes import GtPowermeterReportingConfig_Maker
 
 
 

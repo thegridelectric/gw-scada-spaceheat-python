@@ -20,51 +20,38 @@
         <FileSet>
             <FileSetFiles>
                 <xsl:for-each select="$airtable//ProtocolEnums/ProtocolEnum[(normalize-space(ProtocolName) ='scada')]">
-                <xsl:variable name="enum-id" select="Enum"/>
+                <xsl:variable name="enum-id" select="GtEnumId"/>
+                <xsl:variable name="version" select="EnumVersion"/>
+                <xsl:variable name="enum-name" select="EnumName"/>
                 <xsl:for-each select="$airtable//GtEnums/GtEnum[GtEnumId=$enum-id]">
-                    <xsl:variable name="enum-alias" select="Alias" />
                     <xsl:variable name="enum-name-style" select="PythonEnumNameStyle" />
-                    <xsl:variable name="class-name">
-                        <xsl:call-template name="nt-case">
-                            <xsl:with-param name="mp-schema-text" select="Alias" />
-                        </xsl:call-template>
-                    </xsl:variable>
                     <xsl:variable name="local-class-name">
                         <xsl:call-template name="nt-case">
-                            <xsl:with-param name="mp-schema-text" select="LocalName" />
+                            <xsl:with-param name="type-name-text" select="LocalName" />
                         </xsl:call-template>
                     </xsl:variable>
-
-                    <xsl:variable name="overwrite-mode">
-                        <xsl:if test="not (Status = 'Pending')">
-                        <xsl:text>Never</xsl:text>
-                        </xsl:if>
-                        <xsl:if test="(Status = 'Pending')">
-                        <xsl:text>Always</xsl:text>
-                        </xsl:if>
-                    </xsl:variable>
-                
                     <FileSetFile>
-                                <xsl:element name="RelativePath"><xsl:text>../../../../tests/enums/test_</xsl:text>
-                                <xsl:value-of select="translate(LocalName,'.','_')"/><xsl:text>.py</xsl:text></xsl:element>
+                                <xsl:element name="RelativePath"><xsl:text>../../../../tests/enums/</xsl:text>
+                                <xsl:value-of select="translate(LocalName,'.','_')"/><xsl:text>_test.py</xsl:text></xsl:element>
 
-                    <OverwriteMode><xsl:value-of select="$overwrite-mode"/></OverwriteMode>
+                        <OverwriteMode>Always</OverwriteMode>
                         <xsl:element name="FileContents">
 
 
-<xsl:text>"""Tests for schema enum </xsl:text><xsl:value-of select="$enum-alias"/><xsl:text>"""
+<xsl:text>"""
+Tests for enum </xsl:text><xsl:value-of select="Name"/><xsl:text>.</xsl:text><xsl:value-of select="$version"/>
+    <xsl:text> from the GridWorks Type Registry.
+"""
 from enums import </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>
 
 
 def test_</xsl:text> <xsl:value-of select="translate(LocalName,'.','_')"/>
     <xsl:text>() -> None:
-
-    assert set(</xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.values()) == set(
-        [
-            </xsl:text>
-    <xsl:for-each select="$airtable//EnumSymbols/EnumSymbol[(Enum = $enum-id)]">
-    <xsl:sort select="Idx"/>
-        <xsl:text>"</xsl:text>
+    assert set(</xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.values()) == {</xsl:text>
+    <xsl:for-each select="$airtable//EnumSymbols/EnumSymbol[(Enum = $enum-id) and (Version &lt;= $version)]">
+    <xsl:sort select="Idx"  data-type="number"/>
+        <xsl:text>
+        "</xsl:text>
         <xsl:if test="$enum-name-style = 'Upper'">
             <xsl:value-of select="translate(translate(LocalValue,'-',''),$lcletters, $ucletters)"/>
         </xsl:if>
@@ -72,12 +59,10 @@ def test_</xsl:text> <xsl:value-of select="translate(LocalName,'.','_')"/>
             <xsl:value-of select="LocalValue"/>
         </xsl:if>
 
-        <xsl:text>",
-            </xsl:text>
+        <xsl:text>",</xsl:text>
         </xsl:for-each>
     <xsl:text>
-        ]
-    )
+    }
 
     assert </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.default() == </xsl:text>
     <xsl:value-of select="$local-class-name"/><xsl:text>.</xsl:text>
@@ -87,8 +72,37 @@ def test_</xsl:text> <xsl:value-of select="translate(LocalName,'.','_')"/>
     <xsl:if test="$enum-name-style ='UpperPython'">
         <xsl:value-of select="DefaultEnumValue"/>
     </xsl:if>
+    <xsl:text>
+    assert </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.enum_name() == "</xsl:text>
+    <xsl:value-of select="$enum-name"/>
+    <xsl:text>"
+    assert </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.enum_version() == "</xsl:text>
+    <xsl:value-of select="$version"/>
+    <xsl:text>"
+</xsl:text>
 
+    <xsl:for-each select="$airtable//EnumSymbols/EnumSymbol[(Enum = $enum-id) and (Version &lt;= $version)]">
+    <xsl:sort select="Idx"  data-type="number"/>
+    <xsl:text>
+    assert </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.version("</xsl:text>
+     <xsl:if test="$enum-name-style = 'Upper'">
+            <xsl:value-of select="translate(translate(LocalValue,'-',''),$lcletters, $ucletters)"/>
+        </xsl:if>
+        <xsl:if test="$enum-name-style ='UpperPython'">
+            <xsl:value-of select="LocalValue"/>
+        </xsl:if>
+    <xsl:text>") == "</xsl:text>
+    <xsl:value-of select="Version"/>
+    <xsl:text>"</xsl:text>
+    </xsl:for-each>
+    <xsl:text>
 
+    for value in </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.values():
+        symbol = </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.value_to_symbol(value)
+        assert </xsl:text><xsl:value-of select="$local-class-name"/><xsl:text>.symbol_to_value(symbol) == value</xsl:text>
+
+        <!-- Add newline at EOF for git and pre-commit-->
+        <xsl:text>&#10;</xsl:text>
 
 
                         </xsl:element>

@@ -24,69 +24,87 @@
 
                 <OverwriteMode>Always</OverwriteMode>
                 <xsl:element name="FileContents">
-<xsl:text>""" GwSchema Enums used in scada """</xsl:text>
-<xsl:for-each select="$airtable//ProtocolEnums/ProtocolEnum[(normalize-space(ProtocolName) ='scada')]">
-<xsl:sort select="LocalEnumName" data-type="text"/>
-<xsl:variable name="enum-id" select="Enum"/>
-<xsl:for-each select="$airtable//GtEnums/GtEnum[GtEnumId=$enum-id]">
-<xsl:text>
-from enums.</xsl:text>
-<xsl:value-of select="translate(LocalName,'.','_')"/>
-<xsl:text> import </xsl:text>
-<xsl:call-template name="nt-case">
-    <xsl:with-param name="mp-schema-text" select="LocalName" />
-</xsl:call-template>
+<xsl:text>"""
+GridWorks Type Registry Enums used in Spaceheat SCADA code
+"""
 
-</xsl:for-each>
-</xsl:for-each>
+# Enums from gwproto</xsl:text>
+
 <xsl:for-each select="$airtable//ProtocolEnums/ProtocolEnum[(normalize-space(ProtocolName) ='gwproto')]">
-<xsl:sort select="EnumName" data-type="text"/>
-<xsl:variable name="enum-id" select="Enum"/>
-<xsl:for-each select="$airtable//GtEnums/GtEnum[GtEnumId=$enum-id]">
+<xsl:sort select="LocalEnumName" data-type="text"/>
 <xsl:text>
 from gwproto.enums.</xsl:text>
-<xsl:value-of select="translate(LocalName,'.','_')"/>
+<xsl:value-of select="translate(LocalEnumName,'.','_')"/>
 <xsl:text> import </xsl:text>
 <xsl:call-template name="nt-case">
-    <xsl:with-param name="mp-schema-text" select="LocalName" />
+    <xsl:with-param name="type-name-text" select="LocalEnumName" />
 </xsl:call-template>
 
+
 </xsl:for-each>
+
+<xsl:text>
+
+# Enums from scada</xsl:text>
+<xsl:for-each select="$airtable//ProtocolEnums/ProtocolEnum[(normalize-space(ProtocolName) ='scada')]">
+<xsl:sort select="LocalEnumName" data-type="text"/>
+<xsl:text>
+from enums.</xsl:text>
+<xsl:value-of select="translate(LocalEnumName,'.','_')"/>
+<xsl:text> import </xsl:text>
+<xsl:call-template name="nt-case">
+    <xsl:with-param name="type-name-text" select="LocalEnumName" />
+</xsl:call-template>
+
+
 </xsl:for-each>
 <xsl:text>
+
 
 __all__ = [</xsl:text>
-<xsl:for-each select="$airtable//ProtocolEnums/ProtocolEnum[(normalize-space(ProtocolName) ='scada')]">
-<xsl:sort select="EnumName" data-type="text"/>
-<xsl:variable name="enum-id" select="Enum"/>
-<xsl:for-each select="$airtable//GtEnums/GtEnum[GtEnumId=$enum-id]">
-
-<xsl:text>
-    "</xsl:text>
-    <xsl:call-template name="nt-case">
-        <xsl:with-param name="mp-schema-text" select="LocalName" />
-    </xsl:call-template>
-    <xsl:text>",</xsl:text>
-</xsl:for-each>
-</xsl:for-each>
-
 <xsl:for-each select="$airtable//ProtocolEnums/ProtocolEnum[(normalize-space(ProtocolName) ='gwproto')]">
-<xsl:sort select="EnumName" data-type="text"/>
-<xsl:variable name="enum-id" select="Enum"/>
-<xsl:for-each select="$airtable//GtEnums/GtEnum[GtEnumId=$enum-id]">
+<xsl:sort select="LocalEnumName" data-type="text"/>
+<xsl:variable name="gt-enum-id" select="GtEnumId"/>
+
+
 
 <xsl:text>
     "</xsl:text>
     <xsl:call-template name="nt-case">
-        <xsl:with-param name="mp-schema-text" select="LocalName" />
+        <xsl:with-param name="type-name-text" select="LocalEnumName" />
     </xsl:call-template>
-    <xsl:text>",</xsl:text>
+    <xsl:text>",  # [</xsl:text>
+    <xsl:value-of select="EnumName"/><xsl:text> version </xsl:text>
+    <xsl:value-of select="EnumVersion"/>
+    <xsl:text>](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#</xsl:text>
+    <xsl:value-of select="translate(EnumName,'.','')"/>
+    <xsl:text>)</xsl:text>
 </xsl:for-each>
-</xsl:for-each>
-<xsl:text>
-]
-</xsl:text>
 
+<xsl:for-each select="$airtable//ProtocolEnums/ProtocolEnum[(normalize-space(ProtocolName) ='scada')]">
+<xsl:sort select="LocalEnumName" data-type="text"/>
+<xsl:variable name="gt-enum-id" select="GtEnumId"/>
+
+
+
+<xsl:text>
+    "</xsl:text>
+    <xsl:call-template name="nt-case">
+        <xsl:with-param name="type-name-text" select="LocalEnumName" />
+    </xsl:call-template>
+    <xsl:text>",  # [</xsl:text>
+    <xsl:value-of select="EnumName"/><xsl:text>.</xsl:text>
+    <xsl:value-of select="EnumVersion"/>
+    <xsl:text>](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#</xsl:text>
+    <xsl:value-of select="translate(EnumName,'.','')"/>
+    <xsl:text>)</xsl:text>
+</xsl:for-each>
+
+<xsl:text>
+]</xsl:text>
+
+<!-- Add newline at EOF for git and pre-commit-->
+<xsl:text>&#10;</xsl:text>
 
 
                 </xsl:element>

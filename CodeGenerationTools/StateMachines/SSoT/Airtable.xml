@@ -1,0 +1,150 @@
+<Airtable>
+  <Entities>
+    <Entity>
+      <Name>MachineState</Name>
+      <PluralName>MachineStates</PluralName>
+      <AirtableName>MachineStates</AirtableName>
+    </Entity>
+    <Entity>
+      <Name>StateMachine</Name>
+      <PluralName>StateMachines</PluralName>
+      <AirtableName>StateMachine</AirtableName>
+    </Entity>
+    <Entity>
+      <Name>Transition</Name>
+      <PluralName>Transitions</PluralName>
+      <AirtableName>Transitions</AirtableName>
+    </Entity>
+  </Entities>
+  <MachineStates>
+    <MachineState>
+      <MachineStateId>recQ89TV9slL6Sp8j</MachineStateId>
+      <createdTime>2023-11-16T19:06:49Z</createdTime>
+      <Name>Closed</Name>
+      <FromTransitions>recvKlFIEPiuZWQJR</FromTransitions>
+      <ToTransitions>rec8T0CSWrQdNSaPW</ToTransitions>
+      <StateMachine>recd5qpm4J6CSX6Mh</StateMachine>
+      <StateMachineName>GarageDoor</StateMachineName>
+      <IsRetired />
+    </MachineState>
+    <MachineState>
+      <MachineStateId>recbscuJU4clVFIB5</MachineStateId>
+      <createdTime>2023-11-16T19:08:28Z</createdTime>
+      <Name>Opening</Name>
+      <FromTransitions>rec5VydLw96IcxTsh</FromTransitions>
+      <ToTransitions>recvKlFIEPiuZWQJR</ToTransitions>
+      <ToTransitions>recoHiTYSDv1IS0ZV</ToTransitions>
+      <StateMachine>recd5qpm4J6CSX6Mh</StateMachine>
+      <StateMachineName>GarageDoor</StateMachineName>
+      <IsRetired />
+    </MachineState>
+    <MachineState>
+      <MachineStateId>reckSECeqy9Z4DKOC</MachineStateId>
+      <createdTime>2023-11-16T19:08:22Z</createdTime>
+      <Name>Closing</Name>
+      <FromTransitions>rec8T0CSWrQdNSaPW</FromTransitions>
+      <FromTransitions>recoHiTYSDv1IS0ZV</FromTransitions>
+      <ToTransitions>recEEYG4FMt15OJzt</ToTransitions>
+      <StateMachine>recd5qpm4J6CSX6Mh</StateMachine>
+      <StateMachineName>GarageDoor</StateMachineName>
+      <IsRetired />
+    </MachineState>
+    <MachineState>
+      <MachineStateId>recoasSx6WH0Uz4WD</MachineStateId>
+      <createdTime>2023-11-16T19:08:21Z</createdTime>
+      <Name>Open</Name>
+      <FromTransitions>recEEYG4FMt15OJzt</FromTransitions>
+      <ToTransitions>rec5VydLw96IcxTsh</ToTransitions>
+      <StateMachine>recd5qpm4J6CSX6Mh</StateMachine>
+      <StateMachineName>GarageDoor</StateMachineName>
+      <IsRetired />
+    </MachineState>
+  </MachineStates>
+  <StateMachines>
+    <StateMachine>
+      <StateMachineId>recd5qpm4J6CSX6Mh</StateMachineId>
+      <createdTime>2023-11-16T19:06:41Z</createdTime>
+      <MachineStates>recQ89TV9slL6Sp8j</MachineStates>
+      <MachineStates>recoasSx6WH0Uz4WD</MachineStates>
+      <MachineStates>reckSECeqy9Z4DKOC</MachineStates>
+      <MachineStates>recbscuJU4clVFIB5</MachineStates>
+      <Name>GarageDoor</Name>
+      <MachineStateNames>Closed</MachineStateNames>
+      <MachineStateNames>Open</MachineStateNames>
+      <MachineStateNames>Closing</MachineStateNames>
+      <MachineStateNames>Opening</MachineStateNames>
+    </StateMachine>
+  </StateMachines>
+  <Transitions>
+    <Transition>
+      <TransitionId>rec5VydLw96IcxTsh</TransitionId>
+      <createdTime>2023-11-16T19:16:57Z</createdTime>
+      <ActionName>Stop Motor</ActionName>
+      <FromState>recbscuJU4clVFIB5</FromState>
+      <ToState>recoasSx6WH0Uz4WD</ToState>
+      <SortOrder>4</SortOrder>
+      <Name>Stop Motor-Opening-&gt;Open</Name>
+      <FromStateStateMachineName>GarageDoor</FromStateStateMachineName>
+      <FromStateName>Opening</FromStateName>
+      <ToStateStateMachineName>GarageDoor</ToStateStateMachineName>
+      <ToStateName>Open</ToStateName>
+      <IsRetired />
+    </Transition>
+    <Transition>
+      <TransitionId>rec8T0CSWrQdNSaPW</TransitionId>
+      <createdTime>2023-11-16T19:16:10Z</createdTime>
+      <ActionName>Stop Motor</ActionName>
+      <FromState>reckSECeqy9Z4DKOC</FromState>
+      <ToState>recQ89TV9slL6Sp8j</ToState>
+      <SortOrder>2</SortOrder>
+      <Name>Stop Motor-Closing-&gt;Closed</Name>
+      <FromStateStateMachineName>GarageDoor</FromStateStateMachineName>
+      <FromStateName>Closing</FromStateName>
+      <ToStateStateMachineName>GarageDoor</ToStateStateMachineName>
+      <ToStateName>Closed</ToStateName>
+      <IsRetired />
+    </Transition>
+    <Transition>
+      <TransitionId>recEEYG4FMt15OJzt</TransitionId>
+      <createdTime>2023-11-16T19:12:52Z</createdTime>
+      <ActionName>Close Door</ActionName>
+      <FromState>recoasSx6WH0Uz4WD</FromState>
+      <ToState>reckSECeqy9Z4DKOC</ToState>
+      <SortOrder>1</SortOrder>
+      <Name>Close Door-Open-&gt;Closing</Name>
+      <FromStateStateMachineName>GarageDoor</FromStateStateMachineName>
+      <FromStateName>Open</FromStateName>
+      <ToStateStateMachineName>GarageDoor</ToStateStateMachineName>
+      <ToStateName>Closing</ToStateName>
+      <IsRetired />
+    </Transition>
+    <Transition>
+      <TransitionId>recoHiTYSDv1IS0ZV</TransitionId>
+      <createdTime>2023-11-16T19:16:33Z</createdTime>
+      <ActionName>Open Door</ActionName>
+      <FromState>reckSECeqy9Z4DKOC</FromState>
+      <ToState>recbscuJU4clVFIB5</ToState>
+      <SortOrder>3</SortOrder>
+      <Name>Open Door-Closing-&gt;Opening</Name>
+      <FromStateStateMachineName>GarageDoor</FromStateStateMachineName>
+      <FromStateName>Closing</FromStateName>
+      <ToStateStateMachineName>GarageDoor</ToStateStateMachineName>
+      <ToStateName>Opening</ToStateName>
+      <IsRetired />
+    </Transition>
+    <Transition>
+      <TransitionId>recvKlFIEPiuZWQJR</TransitionId>
+      <createdTime>2023-11-16T19:09:13Z</createdTime>
+      <ActionName>Open Door</ActionName>
+      <FromState>recQ89TV9slL6Sp8j</FromState>
+      <ToState>recbscuJU4clVFIB5</ToState>
+      <SortOrder>5</SortOrder>
+      <Name>Open Door-Closed-&gt;Opening</Name>
+      <FromStateStateMachineName>GarageDoor</FromStateStateMachineName>
+      <FromStateName>Closed</FromStateName>
+      <ToStateStateMachineName>GarageDoor</ToStateStateMachineName>
+      <ToStateName>Opening</ToStateName>
+      <IsRetired />
+    </Transition>
+  </Transitions>
+</Airtable>
