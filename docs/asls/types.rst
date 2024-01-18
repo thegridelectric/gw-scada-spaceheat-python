@@ -10,7 +10,7 @@ gt.sensor.reporting.config.100
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. literalinclude:: json/gt-sensor-reporting-config.json
 
-param.change.record.000
+keyparam.change.log.000
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-.. literalinclude:: json/param-change-record.json
+.. literalinclude:: json/keyparam-change-log.json
 

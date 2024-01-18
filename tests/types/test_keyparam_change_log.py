@@ -1,15 +1,15 @@
-"""Tests keyparam.change.record type, version 000"""
+"""Tests keyparam.change.log type, version 000"""
 import json
 
 import pytest
 from pydantic import ValidationError
 
 from gridworks.errors import SchemaError
-from gwtypes import KeyparamChangeRecord_Maker as Maker
+from gwtypes import KeyparamChangeLog_Maker as Maker
 from enums import KindOfParam
 
 
-def test_keyparam_change_record_generated() -> None:
+def test_keyparam_change_log_generated() -> None:
     d = {
         "AboutNodeAlias": "hw1.isone.me.versant.keene.beech.scada",
         "ChangeTimeUtc": "2022-06-25T12:30:45.678",
@@ -17,9 +17,9 @@ def test_keyparam_change_record_generated() -> None:
         "ParamName": "AdsMaxVoltage",
         "Description": "The maximum voltage used by thermistor temp sensing that rely on the ADS I2C chip. This transitions from being part of the code (pre) to part of the hardware layout (post)",
         "KindGtEnumSymbol": "00000000",
-        "TypeName": "keyparam.change.record",
         "Before": 5.1,
         "After": 4.9,
+        "TypeName": "keyparam.change.log",
         "Version": "000",
     }
 
@@ -60,6 +60,7 @@ def test_keyparam_change_record_generated() -> None:
         kind=gtuple2.Kind,
     ).tuple
     assert t2 == gtuple2
+	
 
     ######################################
     # SchemaError raised if missing a required attribute

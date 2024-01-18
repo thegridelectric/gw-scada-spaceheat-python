@@ -18,7 +18,7 @@ LOGGER = logging.getLogger(__name__)
 
 class GtPowermeterReportingConfig(BaseModel):
     """
-    Power Meter Rep.
+    Power Meter Reporting Config.
 
     Contains data used to configure the power meters used to monitor and confirm the energy
     and power use of Transactive Loads. It is designed to be used, for example, by the SpaceheatNode

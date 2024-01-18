@@ -20,5 +20,5 @@ forth between type instances and Python objects.
 
     GtPowermeterReportingConfig  <types/gt-powermeter-reporting-config>
     GtSensorReportingConfig  <types/gt-sensor-reporting-config>
-    ParamChangeRecord  <types/param-change-record>
+    KeyparamChangeLog  <types/keyparam-change-log>
     
