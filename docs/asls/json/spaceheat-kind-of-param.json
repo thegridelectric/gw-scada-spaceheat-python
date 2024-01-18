@@ -1,0 +1,16 @@
+{
+    "gtr_asl": "001",
+    "enum_name": "spaceheat.kind.of.param",
+    "enum_version": "000",
+    "description": "Supports tracking and updating various key parameters for Spaceheat SCADA and AtomicTNodes. This is meant in particular for by-hand updates meant to be made and later reviewed by humans, as opposed to a careful and precise database update process.",
+    "ssot": "https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#spaceheatkindofparam",
+    "values": ["Other", "HardwareLayout", "DotEnv"],
+    "value_to_symbol": { "Other": "00000000",  "HardwareLayout": "6dcdfed5",  "DotEnv": "21c96c05"},
+    "value_to_version": { "Other": "000",  "HardwareLayout": "000",  "DotEnv": "000"},
+    "value_descriptions": {
+                "Other": "A kind of parameter other than others articulated in the enumeration. This can of course change depending on the version of the enum. For version 000, it means any kind of parameter other than those in a .env file or in the hardware layout of a SCADA.",
+                "HardwareLayout": "A key parameter embedded with the hardware layout object of a spaceheat SCADA. See for example https://github.com/thegridelectric/gw-scada-spaceheat-python.",
+                "DotEnv": "A key parameter from the .env file of a spaceheat SCADA, or a spaceheat AtomicTNode."
+            },
+    "default_value": "Other"
+}

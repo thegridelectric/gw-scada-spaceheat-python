@@ -1,0 +1,49 @@
+{
+  "ShowHidden": false,
+  "ShowAllFiles": false,
+  "SaveDisabled": false,
+  "SSoTmeProjectId": "ea4db014-f979-4f25-80c4-62dd4fccb098",
+  "Name": "scada-state-machines",
+  "ProjectSettings": [
+    {
+      "ProjectSettingId": "253bc34b-173d-4b14-8975-385ef3cd5d19",
+      "Name": "project-name",
+      "Value": "scada-state-machines"
+    }
+  ],
+  "ProjectTranspilers": [
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "ddeef526-5399-4be1-a676-8c64961e549d",
+        "Name": "SSoT",
+        "Description": "SSoT"
+      },
+      "ProjectTranspilerId": "5a2a7a26-dafa-4fba-9207-1f3d418442c1",
+      "Name": "SSoT",
+      "RelativePath": "",
+      "CommandLine": "effortless/ssot -p ssot-key=PTC2NzX4sEuZ14"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "0210a58e-9763-4447-ba4b-52ec08a1d53c",
+        "Name": "ODXMLToEntitiesJson",
+        "Description": "ODXML To Entities Json"
+      },
+      "ProjectTranspilerId": "4b3650f2-4c37-4a8e-a792-dc56a495a1cc",
+      "Name": "ODXMLToEntitiesJson",
+      "RelativePath": "/SSoT",
+      "CommandLine": "odxml42/odxml-to-entities-json -i ../ODXML/DataSchema.odxml"
+    },
+    {
+      "MatchedTranspiler": {
+        "TranspilerId": "19d8142a-2f4d-46ac-9de6-77441f233192",
+        "Name": "AirtableToXml",
+        "Description": "Extracts the contents of an airtable base as a single Xml file."
+      },
+      "ProjectTranspilerId": "fb776c04-2e76-4d1a-a21c-22eb9ffd0b4c",
+      "Name": "AirtableToXml",
+      "RelativePath": "/SSoT",
+      "CommandLine": "airtable/airtable-to-xml -p baseId=appmZlxBV11EJdulv -i ./Entities.json"
+    }
+  ]
+}

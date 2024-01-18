@@ -2,29 +2,16 @@
 import json
 
 import pytest
-from gwproto.errors import SchemaError
 from pydantic import ValidationError
-from schema import GtPowermeterReportingConfig_Maker as Maker
+
+from gridworks.errors import SchemaError
+from gwtypes import GtPowermeterReportingConfig_Maker as Maker
 
 
 def test_gt_powermeter_reporting_config_generated() -> None:
-
     d = {
         "ReportingPeriodS": 300,
-        "ElectricalQuantityReportingConfigList": [
-            {
-                "TelemetryNameGtEnumSymbol": "af39eec9",
-                "AboutNodeName": "a.elt1",
-                "ReportOnChange": True,
-                "SamplePeriodS": 300,
-                "Exponent": 6,
-                "UnitGtEnumSymbol": "f459a9c3",
-                "AsyncReportThreshold": 0.2,
-                "NameplateMaxValue": 4000,
-                "TypeName": "telemetry.reporting.config",
-                "Version": "000",
-            }
-        ],
+        "ElectricalQuantityReportingConfigList": [{ "TelemetryNameGtEnumSymbol": "af39eec9", "AboutNodeName": "a.elt1", "ReportOnChange": True, "SamplePeriodS": 300, "Exponent": 6, "UnitGtEnumSymbol": "f459a9c3", "AsyncReportThreshold": 0.2, "NameplateMaxValue": 4000, "TypeName": "telemetry.reporting.config", "Version": "000", }],
         "PollPeriodMs": 1000,
         "HwUid": "1001ab",
         "TypeName": "gt.powermeter.reporting.config",
@@ -50,6 +37,7 @@ def test_gt_powermeter_reporting_config_generated() -> None:
         electrical_quantity_reporting_config_list=gtuple.ElectricalQuantityReportingConfigList,
         poll_period_ms=gtuple.PollPeriodMs,
         hw_uid=gtuple.HwUid,
+        
     ).tuple
     assert t == gtuple
 
@@ -94,20 +82,15 @@ def test_gt_powermeter_reporting_config_generated() -> None:
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, ElectricalQuantityReportingConfigList="Not a list.")
+    d2  = dict(d, ElectricalQuantityReportingConfigList="Not a list.")
     with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, ElectricalQuantityReportingConfigList=["Not a list of dicts"])
+    d2  = dict(d, ElectricalQuantityReportingConfigList=["Not a list of dicts"])
     with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(
-        d,
-        ElectricalQuantityReportingConfigList=[
-            {"Failed": "Not a GtSimpleSingleStatus"}
-        ],
-    )
+    d2  = dict(d, ElectricalQuantityReportingConfigList= [{"Failed": "Not a GtSimpleSingleStatus"}])
     with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
@@ -119,6 +102,6 @@ def test_gt_powermeter_reporting_config_generated() -> None:
     # SchemaError raised if TypeName is incorrect
     ######################################
 
-    d2 = dict(d, TypeName="not the type alias")
+    d2 = dict(d, TypeName="not the type name")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)

@@ -2,14 +2,15 @@
 import json
 
 import pytest
-from enums import TelemetryName, Unit
-from gwproto.errors import SchemaError
 from pydantic import ValidationError
-from schema import GtSensorReportingConfig_Maker as Maker
+
+from gridworks.errors import SchemaError
+from gwtypes import GtSensorReportingConfig_Maker as Maker
+from enums import TelemetryName
+from enums import Unit
 
 
 def test_gt_sensor_reporting_config_generated() -> None:
-
     d = {
         "TelemetryNameGtEnumSymbol": "af39eec9",
         "ReportingPeriodS": 300,
@@ -44,6 +45,7 @@ def test_gt_sensor_reporting_config_generated() -> None:
         exponent=gtuple.Exponent,
         unit=gtuple.Unit,
         async_report_threshold=gtuple.AsyncReportThreshold,
+        
     ).tuple
     assert t == gtuple
 
@@ -99,8 +101,8 @@ def test_gt_sensor_reporting_config_generated() -> None:
     # Behavior on incorrect types
     ######################################
 
-    d2 = dict(d, TelemetryNameGtEnumSymbol="hi")
-    Maker.dict_to_tuple(d2).TelemetryName = TelemetryName.default()
+    d2 = dict(d, TelemetryNameGtEnumSymbol="unknown_symbol")
+    Maker.dict_to_tuple(d2).TelemetryName == TelemetryName.default()
 
     d2 = dict(d, ReportingPeriodS="300.1")
     with pytest.raises(ValidationError):
@@ -118,8 +120,8 @@ def test_gt_sensor_reporting_config_generated() -> None:
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
-    d2 = dict(d, UnitGtEnumSymbol="hi")
-    Maker.dict_to_tuple(d2).Unit = Unit.default()
+    d2 = dict(d, UnitGtEnumSymbol="unknown_symbol")
+    Maker.dict_to_tuple(d2).Unit == Unit.default()
 
     d2 = dict(d, AsyncReportThreshold="this is not a float")
     with pytest.raises(ValidationError):
@@ -129,6 +131,6 @@ def test_gt_sensor_reporting_config_generated() -> None:
     # SchemaError raised if TypeName is incorrect
     ######################################
 
-    d2 = dict(d, TypeName="not the type alias")
+    d2 = dict(d, TypeName="not the type name")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
