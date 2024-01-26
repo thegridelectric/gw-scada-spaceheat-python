@@ -28,16 +28,16 @@ class FlowMeterGenCfg(BaseModel):
         return f"Pipe Flow Meter Component <{self.NodeAlias}>"
 
 class Istec4440FlowMeterGenCfg(FlowMeterGenCfg):
-    ConversionFactor: float = 0.268
+    ConversionFactor: float = 0.268132
 
 class SmallOmegaFlowMeterGenCfg(FlowMeterGenCfg):
     # For the Omega FTB8007 series that give a tick every 0.1 gallons
-    ConversionFactor: float = 0.134
+    ConversionFactor: float = 0.134066
 
 
 class LargeOmegaFlowMeterGenCfg(FlowMeterGenCfg):
     # For the Omega FTB8010 series that give a tick every gallon
-    ConversionFactor: float = 1.34
+    ConversionFactor: float = 1.34066
 
 
 def add_flow_meter(
