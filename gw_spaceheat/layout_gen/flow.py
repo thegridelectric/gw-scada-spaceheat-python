@@ -27,12 +27,17 @@ class FlowMeterGenCfg(BaseModel):
     def component_alias(self) -> str:
         return f"Pipe Flow Meter Component <{self.NodeAlias}>"
 
-class iSTECHFlowMeterGenCfg(FlowMeterGenCfg):
-    ConversionFactor: float = 0.332
+class Istec4440FlowMeterGenCfg(FlowMeterGenCfg):
+    ConversionFactor: float = 0.268
 
-class OmegaFlowMeterGenCfg(FlowMeterGenCfg):
-    ConversionFactor: float = 1/2.64
+class SmallOmegaFlowMeterGenCfg(FlowMeterGenCfg):
+    # For the Omega FTB8007 series that give a tick every 0.1 gallons
+    ConversionFactor: float = 0.134
 
+
+class LargeOmegaFlowMeterGenCfg(FlowMeterGenCfg):
+    # For the Omega FTB8010 series that give a tick every gallon
+    ConversionFactor: float = 1.34
 
 
 def add_flow_meter(
@@ -84,8 +89,9 @@ def add_flow_meter(
         ]
     )
 
-def add_istech_flow_meter(
+def add_istec_flow_meter(
     db: LayoutDb,
-    flow_meter: iSTECHFlowMeterGenCfg,
+    flow_meter: Istec4440FlowMeterGenCfg,
 ) -> None:
     return add_flow_meter(db, flow_meter)
+
