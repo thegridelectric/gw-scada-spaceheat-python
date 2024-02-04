@@ -40,6 +40,16 @@ class LargeOmegaFlowMeterGenCfg(FlowMeterGenCfg):
     ConversionFactor: float = 1.34066
 
 
+class PrmFiltrationWm075FlowMeterGenCfg(FlowMeterGenCfg):
+    # For the PRM Filtration WM075 series that give a tick every gallon
+    ConversionFactor: float = 1.34066
+
+
+class KeyenceFlowMeterGenCfg(FlowMeterGenCfg):
+    # For a Keyence series that give a tick every 0.1 gallons
+    ConversionFactor: float =  0.134066
+
+
 def add_flow_meter(
     db: LayoutDb,
     flow_meter: FlowMeterGenCfg,
