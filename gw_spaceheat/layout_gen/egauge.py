@@ -27,6 +27,7 @@ class EGaugeIOGenCfg(BaseModel):
     EGuageName: str
     NameplateMaxValue: int = 3500
     AsyncReportThreshold: float = 0.02
+    InPowerMetering: bool = False
 
     def output_config(self, **kwargs) -> TelemetryReportingConfig:
         kwargs_used = dict(
@@ -61,6 +62,7 @@ class EGaugeIOGenCfg(BaseModel):
             ActorClass=ActorClass.NoActor,
             Role=self.NodeRole,
             DisplayName=self.NodeDisplayName,
+            InPowerMetering=self.InPowerMetering,
         )
 
     def egauge_io(
