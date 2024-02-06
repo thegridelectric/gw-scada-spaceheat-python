@@ -1,4 +1,4 @@
-"""Type keyparam.change.record, version 000"""
+"""Type keyparam.change.log, version 000"""
 import json
 import logging
 from typing import Any, Dict, Literal
@@ -16,7 +16,7 @@ LOG_FORMAT = (
 LOGGER = logging.getLogger(__name__)
 
 
-class KeyparamChangeRecord(BaseModel):
+class KeyparamChangeLog(BaseModel):
     """
     Key Param Change Record.
 
@@ -68,7 +68,7 @@ class KeyparamChangeRecord(BaseModel):
             "and its use within the relevant code base."
         ),
     )
-    TypeName: Literal["keyparam.change.record"] = "keyparam.change.record"
+    TypeName: Literal["keyparam.change.log"] = "keyparam.change.log"
     Version: Literal["000"] = "000"
 
     class Config:
@@ -97,11 +97,11 @@ class KeyparamChangeRecord(BaseModel):
     def as_dict(self) -> Dict[str, Any]:
         """
         Translate the object into a dictionary representation that can be serialized into a
-        keyparam.change.record.000 object.
+        keyparam.change.log.000 object.
 
         This method prepares the object for serialization by the as_type method, creating a
         dictionary with key-value pairs that follow the requirements for an instance of the
-        keyparam.change.record.000 type. Unlike the standard python dict method,
+        keyparam.change.log.000 type. Unlike the standard python dict method,
         it makes the following substantive changes:
         - Enum Values: Translates between the values used locally by the actor to the symbol
         sent in messages.
@@ -123,10 +123,10 @@ class KeyparamChangeRecord(BaseModel):
 
     def as_type(self) -> bytes:
         """
-        Serialize to the keyparam.change.record.000 representation.
+        Serialize to the keyparam.change.log.000 representation.
 
-        Instances in the class are python-native representations of keyparam.change.record.000
-        objects, while the actual keyparam.change.record.000 object is the serialized UTF-8 byte
+        Instances in the class are python-native representations of keyparam.change.log.000
+        objects, while the actual keyparam.change.log.000 object is the serialized UTF-8 byte
         string designed for sending in a message.
 
         This method calls the as_dict() method, which differs from the native python dict()
@@ -138,7 +138,7 @@ class KeyparamChangeRecord(BaseModel):
 
         It also applies these changes recursively to sub-types.
 
-        Its near-inverse is KeyparamChangeRecord.type_to_tuple(). If the type (or any sub-types)
+        Its near-inverse is KeyparamChangeLog.type_to_tuple(). If the type (or any sub-types)
         includes an enum, then the type_to_tuple will map an unrecognized symbol to the
         default enum value. This is why these two methods are only 'near' inverses.
         """
@@ -149,8 +149,8 @@ class KeyparamChangeRecord(BaseModel):
         return hash((type(self),) + tuple(self.__dict__.values()))  # noqa
 
 
-class KeyparamChangeRecord_Maker:
-    type_name = "keyparam.change.record"
+class KeyparamChangeLog_Maker:
+    type_name = "keyparam.change.log"
     version = "000"
 
     def __init__(
@@ -162,7 +162,7 @@ class KeyparamChangeRecord_Maker:
         description: str,
         kind: KindOfParam,
     ):
-        self.tuple = KeyparamChangeRecord(
+        self.tuple = KeyparamChangeLog(
             AboutNodeAlias=about_node_alias,
             ChangeTimeUtc=change_time_utc,
             Author=author,
@@ -172,14 +172,14 @@ class KeyparamChangeRecord_Maker:
         )
 
     @classmethod
-    def tuple_to_type(cls, tuple: KeyparamChangeRecord) -> bytes:
+    def tuple_to_type(cls, tuple: KeyparamChangeLog) -> bytes:
         """
         Given a Python class object, returns the serialized JSON type object.
         """
         return tuple.as_type()
 
     @classmethod
-    def type_to_tuple(cls, t: bytes) -> KeyparamChangeRecord:
+    def type_to_tuple(cls, t: bytes) -> KeyparamChangeLog:
         """
         Given a serialized JSON type object, returns the Python class object.
         """
@@ -192,12 +192,12 @@ class KeyparamChangeRecord_Maker:
         return cls.dict_to_tuple(d)
 
     @classmethod
-    def dict_to_tuple(cls, d: dict[str, Any]) -> KeyparamChangeRecord:
+    def dict_to_tuple(cls, d: dict[str, Any]) -> KeyparamChangeLog:
         """
-        Deserialize a dictionary representation of a keyparam.change.record.000 message object
-        into a KeyparamChangeRecord python object for internal use.
+        Deserialize a dictionary representation of a keyparam.change.log.000 message object
+        into a KeyparamChangeLog python object for internal use.
 
-        This is the near-inverse of the KeyparamChangeRecord.as_dict() method:
+        This is the near-inverse of the KeyparamChangeLog.as_dict() method:
           - Enums: translates between the symbols sent in messages between actors and
         the values used by the actors internally once they've deserialized the messages.
           - Types: recursively validates and deserializes sub-types.
@@ -210,10 +210,10 @@ class KeyparamChangeRecord_Maker:
             d (dict): the dictionary resulting from json.loads(t) for a serialized JSON type object t.
 
         Raises:
-           SchemaError: if the dict cannot be turned into a KeyparamChangeRecord object.
+           SchemaError: if the dict cannot be turned into a KeyparamChangeLog object.
 
         Returns:
-            KeyparamChangeRecord
+            KeyparamChangeLog
         """
         d2 = dict(d)
         if "AboutNodeAlias" not in d2.keys():
@@ -237,10 +237,10 @@ class KeyparamChangeRecord_Maker:
             raise SchemaError(f"Version missing from dict <{d2}>")
         if d2["Version"] != "000":
             LOGGER.debug(
-                f"Attempting to interpret keyparam.change.record version {d2['Version']} as version 000"
+                f"Attempting to interpret keyparam.change.log version {d2['Version']} as version 000"
             )
             d2["Version"] = "000"
-        return KeyparamChangeRecord(**d2)
+        return KeyparamChangeLog(**d2)
 
 
 def check_is_left_right_dot(v: str) -> None:

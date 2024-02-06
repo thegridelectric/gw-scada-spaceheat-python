@@ -1,8 +1,8 @@
-KeyparamChangeRecord
+KeyparamChangeLog
 ==========================
-Python pydantic class corresponding to json type `keyparam.change.record`, version `000`.
+Python pydantic class corresponding to json type `keyparam.change.log`, version `000`.
 
-.. autoclass:: gwstypes.KeyparamChangeRecord
+.. autoclass:: gwstypes.KeyparamChangeLog
     :members:
 
 **AboutNodeAlias**:
@@ -33,14 +33,14 @@ Python pydantic class corresponding to json type `keyparam.change.record`, versi
 
 
 
-.. autoclass:: gwtypes.keyparam_change_record.check_is_left_right_dot
+.. autoclass:: gwtypes.keyparam_change_log.check_is_left_right_dot
     :members:
 
 
-.. autoclass:: gwtypes.keyparam_change_record.check_is_log_style_date_with_millis
+.. autoclass:: gwtypes.keyparam_change_log.check_is_log_style_date_with_millis
     :members:
 
 
-.. autoclass:: gwproto.types.KeyparamChangeRecord_Maker
+.. autoclass:: gwproto.types.KeyparamChangeLog_Maker
     :members:
 

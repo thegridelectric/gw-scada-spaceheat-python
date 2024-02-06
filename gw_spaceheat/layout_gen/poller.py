@@ -130,7 +130,7 @@ def add_hubitat_thermostat(
                         unit_gt_enum_symbol="7d8832f8",
                     ),
                     display_name=thermostat.display_name + " Heating Set Point",
-                    role=Role.ThermostatHeatingSetPoint,
+                    role=Role.Unknown,
                 ),
             ],
             poll_period_seconds=thermostat.poll_period_seconds,

@@ -164,7 +164,7 @@ class TSnap1ConversionWarning(DriverWarning):
         s += f"   voltage: {self.voltage}  rt: {self.rt}  exception from rt calcuation: {self.rt_exception}  exception from celcius calculation: {self.c_exception}"
         return s
 
-PI_VOLTAGE = 5.1
+PI_VOLTAGE = 4.959
 # 298 Kelvin is 25 Celcius
 THERMISTOR_T0_DEGREES_KELVIN = 298
 # NTC THermistors are 10 kOhms at 25 deg C
