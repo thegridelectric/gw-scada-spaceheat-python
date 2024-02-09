@@ -1,3 +1,4 @@
+from typing import Optional
 from typing import Tuple
 
 from gwproto.enums import ActorClass
@@ -28,6 +29,8 @@ class TankGenCfg(BaseModel):
     InHomeName: str
     SN: str
     DeviceIds: Tuple[int, int, int, int]
+    DefaultPollPeriodSeconds: Optional[float] = None
+    DevicePollPeriodSeconds: Tuple[float|None, float|None, float|None, float|None] = None, None, None, None
 
     def node_display_name(self) -> str:
         return f"Tank Module <{self.InHomeName}>"
@@ -122,6 +125,7 @@ def add_tank(
                 DisplayName=tank.component_alias(),
                 Tank=HubitatTankSettingsGt(
                     hubitat_component_id=db.component_id_by_alias(hubitat_alias),
+                    default_poll_period_seconds=tank.DefaultPollPeriodSeconds,
                     devices=[
                         FibaroTempSensorSettingsGt(
                             stack_depth=1,
@@ -130,6 +134,7 @@ def add_tank(
                             analog_input_id=1,
                             tank_label=f"{tank.SN} A1 (Thermistor #1 TANK TOP)",
                             enabled=True,
+                            poll_period_seconds=tank.DevicePollPeriodSeconds[0],
                         ),
                         FibaroTempSensorSettingsGt(
                             stack_depth=2,
@@ -138,6 +143,7 @@ def add_tank(
                             analog_input_id=2,
                             tank_label=f"{tank.SN} A2 (Thermistor #2)",
                             enabled=True,
+                            poll_period_seconds=tank.DevicePollPeriodSeconds[1],
                         ),
                         FibaroTempSensorSettingsGt(
                             stack_depth=3,
@@ -146,6 +152,7 @@ def add_tank(
                             analog_input_id=1,
                             tank_label=f"{tank.SN} B1 (Thermistor #3)",
                             enabled=True,
+                            poll_period_seconds=tank.DevicePollPeriodSeconds[2],
                         ),
                         FibaroTempSensorSettingsGt(
                             stack_depth=4,
@@ -154,6 +161,7 @@ def add_tank(
                             analog_input_id=2,
                             tank_label=f"{tank.SN} B2 (Thermistor #4 TANK BOTTOM)",
                             enabled=True,
+                            poll_period_seconds=tank.DevicePollPeriodSeconds[3],
                         ),
                     ]
                 ),
