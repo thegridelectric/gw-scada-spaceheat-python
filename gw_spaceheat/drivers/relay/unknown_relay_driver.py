@@ -1,7 +1,6 @@
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 from drivers.relay.relay_driver import RelayDriver
-from enums import MakeModel
 from gwproto.data_classes.components.relay_component import RelayComponent
 from result import Ok, Result
 
@@ -11,10 +10,6 @@ class UnknownRelayDriver(RelayDriver):
 
     def __init__(self, component: RelayComponent, settings: ScadaSettings):
         super(UnknownRelayDriver, self).__init__(component=component, settings=settings)
-        if component.cac.make_model != MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            raise Exception(
-                f"Expected {MakeModel.UNKNOWNMAKE__UNKNOWNMODEL}, got {component.cac}"
-            )
         self.state = 0
 
     def turn_on(self):

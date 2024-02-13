@@ -1,0 +1,40 @@
+{
+  "gtr_asl": "001",
+  "type_name": "gt.powermeter.reporting.config",
+  "version": "100",
+  "owner": "gridworks@gridworks-consulting.com",
+  "description": "Power Meter Reporting Config. Contains data used to configure the power meters used to monitor and confirm the energy and power use of Transactive Loads. It is designed to be used, for example, by the SpaceheatNode actor in [Spaceheat SCADA code](https://github.com/thegridelectric/gw-scada-spaceheat-python) that is responsible for power metering.",
+  "properties": {
+    "ReportingPeriodS": {
+      "type": "integer",
+      "required": true
+    },
+    "ElectricalQuantityReportingConfigList": {
+      "type": "array",
+      "items": {
+        "type": "telemetry.reporting.config.000"
+      },
+      "required": true
+    },
+    "PollPeriodMs": {
+      "type": "integer",
+      "description": "Poll Period refers to the period of time between two readings by the local actor. This is in contrast to Capture Period, which refers to the period between readings that are sent up to the cloud (or otherwise saved for the long-term).",
+      "required": true
+    },
+    "HwUid": {
+      "type": "string",
+      "required": false
+    },
+    "TypeName": {
+      "type": "string",
+      "value": "gt.powermeter.reporting.config",
+      "title": "The type name"
+    },
+    "Version": {
+      "type": "string",
+      "title": "The type version",
+      "default": "100",
+      "required": true
+    }
+  }
+}

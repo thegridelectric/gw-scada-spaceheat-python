@@ -8,19 +8,19 @@
 ========
 
 
-This code is intended for running a heat pump thermal storage space heating system in a house, and doing this _transactively_. That means the heating system is capable of dynamically responding to local electric grid conditions and buying energy at the lowest cost times, while keeping the house warm. We believe this repo may be instrumental in effectively and efficiently reaching a low-carbon future. For an architectural overview of the code, and why it has something to do with a low-carbon future, please go [here](wiki/docs/architecture-overview.md).
+This code is intended for running a heat pump thermal storage space heating system in a house, and doing this _transactively_. That means the heating system is capable of dynamically responding to local electric grid conditions and buying energy at the lowest cost times, while keeping the house warm. We believe this repo may be instrumental in effectively and efficiently reaching a low-carbon future. For an architectural overview of the code, and why it has something to do with a low-carbon future, please go [here](docs/architecture-overview.md).
 
-This code is part of a larger framework. In particular it assumes there is a cloud-based actor which it refers to as the [AtomicTNode](wiki/docs/atomic-t-node.md) (short for Atomic Transactive Node) that is calling the shots on its control decisions most of the time. In addition, the code is structured in an
+This code is part of a larger framework. In particular it assumes there is a cloud-based actor which it refers to as the [AtomicTNode](docs/atomic-t-node.md) (short for Atomic Transactive Node) that is calling the shots on its control decisions most of the time. In addition, the code is structured in an
 actor-based way, with a  collection of actors each responsible for an important but limited set
 of functionality communicating to each other via messages. For a more specific description of both how these internal actors work with each other and how 
-this repo fits into the larger transactive energy framework please go [here](wiki/docs/core-protocol-sequences.md); this page describes typical sequences of messages between relevant actors in the system.
+this repo fits into the larger transactive energy framework please go [here](docs/core-protocol-sequences.md); this page describes typical sequences of messages between relevant actors in the system.
 
- We are indebted to Efficiency Maine, who spearheaded and funded the [initial pilot](wiki/docs/maine-heat-pilot.md) using this code. As per the requirements of the initial pilot, the code is intended to:
+ We are indebted to Efficiency Maine, who spearheaded and funded the [initial pilot](docs/maine-heat-pilot.md) using this code. As per the requirements of the initial pilot, the code is intended to:
   1) run on a raspberry Pi 4; and 
   2) to be able to use a variety of off-the-shelf actuating and sensing devices.
 
 For information on setting up an SD card that will run this code on a Pi 4 with the correct
-configuration and attached devices, please [go here](wiki/docs/setting-up-the-pi.md)
+configuration and attached devices, please [go here](docs/setting-up-the-pi.md)
 ## Local Demo setup
 
 Follow the directions below for creating a dev environment (assumes mac or Pi).

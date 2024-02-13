@@ -1,0 +1,8 @@
+[Unit]
+Description=Timer to trigger gwspaceheat-restart.service, which start gwspaceheat if it is not already started.
+
+[Timer]
+OnCalendar=*:0/15
+
+[Install]
+WantedBy=timers.target

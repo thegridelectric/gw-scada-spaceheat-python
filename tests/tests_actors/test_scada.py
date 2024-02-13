@@ -170,7 +170,7 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             relay = self.runner.actors.relay
             scada = self.runner.actors.scada
             link_stats = scada.stats.links["gridworks"]
-            relay_alias = relay.alias
+            relay_alias = relay.name
             relay_node = relay.node
 
             # Verify scada status and snapshot are emtpy
@@ -185,8 +185,8 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             assert len(snapshot.Snapshot.ValueList) == 0
 
             relay_state_message_type = "gt.telemetry"
-            relay_state_topic = f"{relay.alias}/{relay_state_message_type}"
-            relay_command_received_topic = f"{relay.alias}/gt.driver.booleanactuator.cmd"
+            relay_state_topic = f"{relay.name}/{relay_state_message_type}"
+            relay_command_received_topic = f"{relay.name}/gt.driver.booleanactuator.cmd"
             assert link_stats.num_received_by_topic[relay_state_topic] == 0
             assert link_stats.num_received_by_topic[relay_command_received_topic] == 0
 
@@ -234,13 +234,13 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             status = scada._data.make_status(int(time.time()))
             assert len(status.SimpleTelemetryList) == 1
             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
-            assert status.SimpleTelemetryList[0].ShNodeAlias == relay.alias
+            assert status.SimpleTelemetryList[0].ShNodeAlias == relay.name
             assert (
                 status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
             )
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
-            assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.alias
+            assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.name
 
             # Verify Atn gets updated info for relay
             atn.snap()
@@ -282,14 +282,14 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             assert isinstance(status, GtShStatus)
             assert len(status.SimpleTelemetryList) == 1
             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
-            assert status.SimpleTelemetryList[0].ShNodeAlias == relay.alias
+            assert status.SimpleTelemetryList[0].ShNodeAlias == relay.name
             assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
             assert len(status.BooleanactuatorCmdList) == 1
             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
-            assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.alias
+            assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.name
             snapshot = atn.data.latest_snapshot
             assert isinstance(snapshot, SnapshotSpaceheat)
-            assert snapshot.Snapshot.AboutNodeAliasList == [relay.alias]
+            assert snapshot.Snapshot.AboutNodeAliasList == [relay.name]
             assert snapshot.Snapshot.ValueList == [1]
 
             # Verify scada has cleared its state

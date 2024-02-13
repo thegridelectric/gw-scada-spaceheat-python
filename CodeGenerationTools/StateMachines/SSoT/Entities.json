@@ -1,0 +1,1 @@
+{"Entities":[{"Name":"MachineState","PluralName":"MachineStates","AirtableName":"MachineStates"},{"Name":"StateMachine","PluralName":"StateMachines","AirtableName":"StateMachine"},{"Name":"Transition","PluralName":"Transitions","AirtableName":"Transitions"}]}

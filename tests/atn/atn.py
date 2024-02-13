@@ -10,18 +10,20 @@ from typing import Optional
 from typing import Sequence
 
 import pendulum
-from gwproto.messages import GtShStatusEvent
-from gwproto.messages import SnapshotSpaceheatEvent
-
 from paho.mqtt.client import MQTTMessageInfo
-
 import rich
+from pydantic import BaseModel
 
 from gwproto import CallableDecoder
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.enums import TelemetryName
+from gwproto.messages import GtShStatusEvent
+from gwproto.messages import SnapshotSpaceheatEvent
 from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
 from gwproto.messages import PowerWatts_Maker
@@ -32,20 +34,17 @@ from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import GsPwr_Maker
 from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
-from pydantic import BaseModel
 
-from actors import ActorInterface
-from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.data_classes.sh_node import ShNode
+from gwproactor import ActorInterface
 from gwproactor import QOS
 from gwproactor.message import DBGCommands
 from gwproactor.message import DBGPayload
 from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
-
 from gwproactor.proactor_implementation import Proactor
+
 from enums import Role
-from gwproto.enums import TelemetryName
+from actors import message as actor_message # noqa
 
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
@@ -94,8 +93,6 @@ class AtnData:
 class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
-    layout: HardwareLayout
-    _node: ShNode
     data: AtnData
     my_sensors: Sequence[ShNode]
     my_relays: Sequence[ShNode]
@@ -107,9 +104,7 @@ class Atn(ActorInterface, Proactor):
         settings: AtnSettings,
         hardware_layout: HardwareLayout,
     ):
-        self._node = hardware_layout.node(name)
-        self.layout = hardware_layout
-        super().__init__(name=name, settings=settings)
+        super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self.my_sensors = list(
             filter(
                 lambda x: (
@@ -153,9 +148,16 @@ class Atn(ActorInterface, Proactor):
     def settings(self) -> AtnSettings:
         return cast(AtnSettings, self._settings)
 
+    @property
+    def layout(self) -> HardwareLayout:
+        return self._layout
+
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
-        message = Message(Src=self.publication_name, Payload=payload)
-        return self._links.publish_message(Atn.SCADA_MQTT, message, qos=qos)
+        return self._links.publish_message(
+            Atn.SCADA_MQTT,
+            Message(Src=self.publication_name, Payload=payload),
+            qos=qos
+        )
 
     def _derived_process_message(self, message: Message):
         self._logger.path(
@@ -260,21 +262,24 @@ class Atn(ActorInterface, Proactor):
 
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
-        status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
-        with status_file.open("w") as f:
-            f.write(status.as_type())
+        if self.settings.save_events:
+            status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
+            with status_file.open("w") as f:
+                f.write(status.as_type())
         # self._logger.info(f"Wrote status file [{status_file}]")
-        # rich.print("Received GtShStatus")
-        # rich.print(status)
+        if self.settings.print_status:
+            rich.print("Received GtShStatus")
+            rich.print(status)
 
     def _process_event(self, event: EventBase) -> None:
-        event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
-        event_file = (
-            self.settings.paths.event_dir
-            / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
-        )
-        with event_file.open("w") as f:
-            f.write(event.json(sort_keys=True, indent=2))
+        if self.settings.save_events:
+            event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
+            event_file = (
+                self.settings.paths.event_dir
+                / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
+            )
+            with event_file.open("w") as f:
+                f.write(event.json(sort_keys=True, indent=2))
 
     def snap(self):
         self.send_threadsafe(

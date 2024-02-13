@@ -34,7 +34,7 @@ from result import Ok
 from result import Result
 
 from actors.home_alone import HomeAlone
-from actors.actor_interface import ActorInterface
+from gwproactor import ActorInterface
 from actors.message import GtDispatchBooleanLocalMessage
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
@@ -115,8 +115,6 @@ class Scada(ScadaInterface, Proactor):
     GRIDWORKS_MQTT = "gridworks"
     LOCAL_MQTT = "local"
 
-    _nodes: HardwareLayout
-    _node: ShNode
     _data: ScadaData
     _last_status_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
@@ -129,10 +127,8 @@ class Scada(ScadaInterface, Proactor):
         hardware_layout: HardwareLayout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
-        self._node = hardware_layout.node(name)
-        self._layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
-        super().__init__(name=name, settings=settings)
+        super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self._links.add_mqtt_link(
             Scada.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec(self._layout)
         )
@@ -423,6 +419,9 @@ class Scada(ScadaInterface, Proactor):
     def gt_sh_telemetry_from_multipurpose_sensor_received(
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
     ):
+        self._logger.path(
+            "++gt_sh_telemetry_from_multipurpose_sensor_received from: %s", from_node.alias
+        )
         if from_node in self._layout.my_multipurpose_sensors:
             about_node_alias_list = payload.AboutNodeAliasList
             for idx, about_alias in enumerate(about_node_alias_list):

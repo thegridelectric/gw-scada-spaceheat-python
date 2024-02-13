@@ -9,13 +9,12 @@ from typing import List
 from typing import Optional
 
 from gwproto import Message
-from gwproto.enums import TelemetryName
 
-from actors.actor import SyncThreadActor
 from actors.message import PowerWattsMessage
 from actors.message import MultipurposeSensorTelemetryMessage
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
+from gwproactor import SyncThreadActor
 from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from gwproto.data_classes.components.resistive_heater_component import ResistiveHeaterComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -42,9 +41,9 @@ from enums import Role
 from gwproto.types import (
     TelemetryReportingConfig,
 )
-from schema import GtPowermeterReportingConfig as ReportingConfig
+from gwtypes import GtPowermeterReportingConfig as ReportingConfig
 
-from schema import GtPowermeterReportingConfig_Maker
+from gwtypes import GtPowermeterReportingConfig_Maker
 
 
 
@@ -231,7 +230,6 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             Message(
                 Payload=problems.problem_event(
                     summary=f"Driver problems: {tag} for {self.driver.component}",
-                    src=str(self.driver.component)
                 )
             )
         )

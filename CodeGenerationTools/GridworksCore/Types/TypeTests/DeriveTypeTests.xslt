@@ -20,12 +20,12 @@
         <FileSet>
             <FileSetFiles>
                 <xsl:for-each select="$airtable//ProtocolTypes/ProtocolType[(normalize-space(ProtocolName) ='scada')]">
-                <xsl:variable name="schema-id" select="Type"/>
-                <xsl:for-each select="$airtable//Schemas/Schema[(SchemaId = $schema-id)  and (Status = 'Active' or Status = 'Pending') and (ProtocolCategory = 'Json' or ProtocolCategory = 'GwAlgoSerial')]">
-                <xsl:variable name="type-name" select="AliasRoot"/>
+                <xsl:variable name="versioned-type-id" select="VersionedType"/>
+                <xsl:for-each select="$airtable//VersionedTypes/VersionedType[(VersionedTypeId = $versioned-type-id)  and (Status = 'Active' or Status = 'Pending') and (ProtocolCategory = 'Json' or ProtocolCategory = 'GwAlgoSerial')]">
+                <xsl:variable name="type-name" select="TypeName"/>
                 <xsl:variable name="class-name">
                     <xsl:call-template name="nt-case">
-                        <xsl:with-param name="mp-schema-text" select="$type-name" />
+                        <xsl:with-param name="type-name-text" select="$type-name" />
                     </xsl:call-template>
                 </xsl:variable>
                 <xsl:variable name="overwrite-mode">
@@ -38,28 +38,41 @@
                     </xsl:if>
                     </xsl:variable>
                 <FileSetFile>
-                            <xsl:element name="RelativePath"><xsl:text>../../../../tests/schema/test_</xsl:text>
+                            <xsl:element name="RelativePath"><xsl:text>../../../../tests/types/test_</xsl:text>
                             <xsl:value-of select="translate($type-name,'.','_')"/><xsl:text>.py</xsl:text></xsl:element>
 
                     <OverwriteMode><xsl:value-of select="$overwrite-mode"/></OverwriteMode>
                     <xsl:element name="FileContents">
 
-<xsl:text>"""Tests </xsl:text><xsl:value-of select="AliasRoot"/><xsl:text> type, version </xsl:text>
-<xsl:value-of select="SemanticEnd"/>
+<xsl:text>"""Tests </xsl:text><xsl:value-of select="$type-name"/><xsl:text> type, version </xsl:text>
+<xsl:value-of select="Version"/>
 <xsl:text>"""
 import json
 
 import pytest
 from pydantic import ValidationError
 
-from gwproto.errors import MpSchemaError
-from schema import </xsl:text>
+from gridworks.errors import SchemaError</xsl:text>
+<xsl:choose>
+<xsl:when test="(NotInInit='true')">
+<xsl:text>
+from gwtypes.</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
+<xsl:text> import </xsl:text>
 <xsl:value-of select="$class-name"/><xsl:text>_Maker as Maker</xsl:text>
-<xsl:for-each select="$airtable//GtEnums/GtEnum[(normalize-space(Alias) !='')  and (count(TypesThatUse[text()=$schema-id])>0)]">
+</xsl:when>
+
+<xsl:otherwise>
+<xsl:text>
+from gwtypes import </xsl:text>
+<xsl:value-of select="$class-name"/><xsl:text>_Maker as Maker</xsl:text>
+</xsl:otherwise>
+
+</xsl:choose>
+<xsl:for-each select="$airtable//GtEnums/GtEnum[(normalize-space(Name) !='')  and (count(TypesThatUse[text()=$versioned-type-id])>0)]">
 <xsl:text>
 from enums import </xsl:text>
 <xsl:call-template name="nt-case">
-    <xsl:with-param name="mp-schema-text" select="LocalName" />
+    <xsl:with-param name="type-name-text" select="LocalName" />
 </xsl:call-template>
 </xsl:for-each>
 <xsl:text>
@@ -67,14 +80,20 @@ from enums import </xsl:text>
 
 def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
 <xsl:text>_generated() -> None:
-
-
     d = {</xsl:text>
-        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id)]">
+        <xsl:for-each select="$airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id)]">
         <xsl:sort select="Idx" data-type="number"/>
+        <xsl:variable name = "attribute-name">
+        <xsl:value-of select="Value"/>
+        <!-- If attribute is associated to a data class, add Id to the Attribute name-->
+        <xsl:if test="not(normalize-space(SubTypeDataClass) = '') and not(IsList='true')">
+        <xsl:text>Id</xsl:text>
+        </xsl:if>
+        </xsl:variable>
+
         <xsl:if test="(not (IsEnum = 'true')) or (IsList = 'true')">
         <xsl:text>
-        "</xsl:text><xsl:value-of select="Value"  />
+        "</xsl:text><xsl:value-of select="$attribute-name"  />
         <xsl:text>": </xsl:text>
         <xsl:value-of select="normalize-space(TestValue)"/>
         <xsl:text>,</xsl:text>
@@ -89,16 +108,17 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
         </xsl:if>
 
 
+
         </xsl:for-each>
     <xsl:text>
         "TypeName": "</xsl:text><xsl:value-of select="$type-name"/><xsl:text>",
-        "Version": "</xsl:text><xsl:value-of select="SemanticEnd"/><xsl:text>",
+        "Version": "</xsl:text><xsl:value-of select="Version"/><xsl:text>",
     }
 
-    with pytest.raises(MpSchemaError):
+    with pytest.raises(SchemaError):
         Maker.type_to_tuple(d)
 
-    with pytest.raises(MpSchemaError):
+    with pytest.raises(SchemaError):
         Maker.type_to_tuple('"not a dict"')
 
     # Test type_to_tuple
@@ -111,13 +131,21 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
     # test Maker init
     t = Maker(
         </xsl:text>
-        <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id)]">
+        <xsl:for-each select="$airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id)]">
         <xsl:sort select="Idx" data-type="number"/>
+        <xsl:variable name = "attribute-name">
+        <xsl:value-of select="Value"/>
+        <!-- If attribute is associated to a data class, add Id to the Attribute name-->
+        <xsl:if test="not(normalize-space(SubTypeDataClass) = '') and not(IsList='true')">
+        <xsl:text>Id</xsl:text>
+        </xsl:if>
+        </xsl:variable>
+
         <xsl:call-template name="python-case">
-            <xsl:with-param name="camel-case-text" select="Value"  />
+            <xsl:with-param name="camel-case-text" select="$attribute-name"  />
         </xsl:call-template>
         <xsl:text>=gtuple.</xsl:text>
-        <xsl:value-of select="Value"/>
+        <xsl:value-of select="$attribute-name"/>
         <xsl:text>,
         </xsl:text>
         </xsl:for-each>
@@ -138,25 +166,31 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
     </xsl:text>
     </xsl:if>
     <xsl:text>######################################
-    # MpSchemaError raised if missing a required attribute
+    # SchemaError raised if missing a required attribute
     ######################################
 
     d2 = dict(d)
     del d2["TypeName"]
-    with pytest.raises(MpSchemaError):
+    with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
     </xsl:text>
-    <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id) and (IsRequired='true') ]">
+    <xsl:for-each select="$airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id) and (IsRequired='true') ]">
     <xsl:sort select="Idx" data-type="number"/>
 
+    <xsl:if test = "((not (IsEnum = 'true')) or (IsList = 'true')) ">
 
-    <xsl:if test = "((not (IsEnum = 'true')) or (IsList = 'true'))">
+
 
     <xsl:text>d2 = dict(d)
     del d2["</xsl:text>
-    <xsl:value-of  select="Value"/><xsl:text>"]
-    with pytest.raises(MpSchemaError):
+    <xsl:value-of  select="Value"/>
+        <xsl:if test="not(normalize-space(SubTypeDataClass) = '') and not(IsList='true')">
+        <xsl:text>Id</xsl:text>
+        </xsl:if>
+
+    <xsl:text>"]
+    with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
     </xsl:text>
@@ -167,7 +201,7 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
     <xsl:text>d2 = dict(d)
     del d2["</xsl:text>
     <xsl:value-of  select="Value"/><xsl:text>GtEnumSymbol"]
-    with pytest.raises(MpSchemaError):
+    with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
     </xsl:text>
@@ -176,13 +210,13 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
 
     </xsl:for-each>
 
-    <xsl:if test="count($airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id) and not (IsRequired='true')]) > 0">
+    <xsl:if test="count($airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id) and not (IsRequired='true')]) > 0">
     <xsl:text>######################################
     # Optional attributes can be removed from type
     ######################################
 
     </xsl:text>
-    <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id) and not (IsRequired='true')]">
+    <xsl:for-each select="$airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id) and not (IsRequired='true')]">
     <xsl:sort select="Idx" data-type="number"/>
 
     <xsl:if test= "(normalize-space(SubTypeDataClass) != '')">
@@ -211,7 +245,7 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
     <xsl:text>######################################
     # Behavior on incorrect types
     ######################################</xsl:text>
-    <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id)]">
+    <xsl:for-each select="$airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id)]">
     <xsl:sort select="Idx" data-type="number"/>
     <xsl:variable name="attribute"><xsl:value-of select="Value"/></xsl:variable>
 
@@ -252,12 +286,12 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
 
     d2 = dict(d, </xsl:text>
     <xsl:value-of select="Value"/>
-    <xsl:text>GtEnumSymbol = 'hi')
+    <xsl:text>GtEnumSymbol="unknown_symbol")
     Maker.dict_to_tuple(d2).</xsl:text>
     <xsl:value-of select="Value"/>
-    <xsl:text> = </xsl:text>
+    <xsl:text> == </xsl:text>
     <xsl:call-template name="nt-case">
-        <xsl:with-param name="mp-schema-text" select="EnumLocalName" />
+        <xsl:with-param name="type-name-text" select="EnumLocalName" />
     </xsl:call-template>
     <xsl:text>.default()</xsl:text>
     </xsl:if>
@@ -268,17 +302,17 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
 
     d2  = dict(d, </xsl:text>
     <xsl:value-of  select="Value"/><xsl:text>="Not a list.")
-    with pytest.raises(MpSchemaError):
+    with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
     d2  = dict(d, </xsl:text>
     <xsl:value-of  select="Value"/><xsl:text>=["Not a list of dicts"])
-    with pytest.raises(MpSchemaError):
+    with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
     d2  = dict(d, </xsl:text>
     <xsl:value-of  select="Value"/><xsl:text>= [{"Failed": "Not a GtSimpleSingleStatus"}])
-    with pytest.raises(MpSchemaError):
+    with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)</xsl:text>
         </xsl:if>
 
@@ -287,21 +321,21 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
     <xsl:text>
 
     ######################################
-    # MpSchemaError raised if TypeName is incorrect
+    # SchemaError raised if TypeName is incorrect
     ######################################
 
-    d2 = dict(d, TypeName="not the type alias")
+    d2 = dict(d, TypeName="not the type name")
     with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 </xsl:text>
-    <xsl:if test="count($airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id) and (normalize-space(PrimitiveFormatFail1) != '')]) > 0">
+    <xsl:if test="count($airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id) and (normalize-space(PrimitiveFormatFail1) != '')]) > 0">
 
 <xsl:text>
     ######################################
-    # MpSchemaError raised if primitive attributes do not have appropriate property_format
+    # SchemaError raised if primitive attributes do not have appropriate property_format
     ######################################</xsl:text>
 
-    <xsl:for-each select="$airtable//SchemaAttributes/SchemaAttribute[(Schema = $schema-id) and (normalize-space(PrimitiveFormatFail1) != '')]">
+    <xsl:for-each select="$airtable//TypeAttributes/TypeAttribute[(VersionedType = $versioned-type-id) and (normalize-space(PrimitiveFormatFail1) != '')]">
     <xsl:sort select="Idx" data-type="number"/>
 
     <xsl:if test="not (IsList='true')">
@@ -328,10 +362,8 @@ def test_</xsl:text><xsl:value-of select="translate($type-name,'.','_')"/>
     </xsl:if>
     </xsl:for-each>
 
-    <xsl:text>
-
-    # End of Test
-</xsl:text>
+<!-- Add newline at EOF for git and pre-commit-->
+<xsl:text>&#10;</xsl:text>
 </xsl:if>
 
                         </xsl:element>
