@@ -1,4 +1,6 @@
-"""Scada implementation"""
+"""Scratch atn implementation"""
+PUMP_OFF_THRESHOLD = 20
+
 import asyncio
 import dataclasses
 import threading
@@ -6,12 +8,20 @@ import time
 from dataclasses import dataclass
 from typing import Any
 from typing import cast
+from typing import Deque
 from typing import Optional
 from typing import Sequence
+from typing import Tuple
+
+from fastapi_utils.enums import StrEnum
+from enum import auto
 
 import pendulum
 from paho.mqtt.client import MQTTMessageInfo
 import rich
+from rich.table import Table
+from rich.text import Text, Style
+
 from pydantic import BaseModel
 
 from gwproto import CallableDecoder
@@ -43,8 +53,9 @@ from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
 from gwproactor.proactor_implementation import Proactor
 
-from enums import Role
+from gwproto.enums import Role
 from actors import message as actor_message # noqa
+
 
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
@@ -55,6 +66,45 @@ AtnMessageDecoder = create_message_payload_discriminator(
     modules=[messages],
 )
 
+class PumpPowerState(StrEnum):
+    NoFlow = auto()
+    Flow = auto()
+
+
+class Tank:
+    idx: int
+    t1: ShNode
+    t2: ShNode
+    t3: ShNode
+    t4: ShNode
+    is_buffer: bool
+
+    def __init__(
+            self, idx, t1, t2, t3, t4, is_buffer: bool = False
+    ):
+        self.idx = idx
+        self.t1 = t1
+        self.t2 = t2
+        self.t3 = t3
+        self.t4 = t4
+        is_buffer = is_buffer
+
+
+class Stat:
+    idx: int
+    display_name: str
+    set: ShNode
+    wall_unit_temp: ShNode
+    gw_temp: ShNode
+
+    def __init__(
+            self, idx, display_name, set, wall_unit_temp, gw_temp
+    ):
+        self.idx = idx
+        self.display_name = display_name
+        self.set = set
+        self.wall_unit_temp = wall_unit_temp
+        self.gw_temp = gw_temp
 
 class AtnMQTTCodec(MQTTCodec):
     hardware_layout: HardwareLayout
@@ -84,8 +134,13 @@ class RecentRelayState(BaseModel):
     State: Optional[int] = None
     LastChangeTimeUnixMs: Optional[int] = None
 
+
+
+
 @dataclass
 class AtnData:
+    prev_prev_snapshot: Optional[SnapshotSpaceheat] = None
+    prev_snapshot: Optional[SnapshotSpaceheat] = None
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_status: Optional[GtShStatus] = None
     relay_state: dict[ShNode, RecentRelayState] = dataclasses.field(default_factory=dict)
@@ -132,6 +187,74 @@ class Atn(ActorInterface, Proactor):
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
 
+        self.store_discharge_flow_node = self.layout.nodes["store.discharge.flow"]
+        self.dist_flow_node = self.layout.nodes["dist.flow"]
+        self.primary_flow_node = self.layout.nodes["heatpump.flow"]
+        self.flow_nodes = [
+            self.primary_flow_node,
+            self.dist_flow_node,
+            self.store_discharge_flow_node,
+        ]
+        self.hp_indoor_power_node = self.layout.nodes["a.m.hp.indoor.power"]
+        self.hp_outdoor_power_node = self.layout.nodes["a.m.hp.outdoor.power"]
+        self.primary_pump_power_node = self.layout.nodes["primary.pump.power"]
+        self.store_pump_power_node = self.layout.nodes["a.m.store.pump.power"]
+        self.dist_pump_power_node = self.layout.nodes["a.m.dist.pump.power"]
+        self.oil_pump_power_node = self.layout.nodes["a.m.oil.boiler.power"]
+
+        self.hp_lwt_temp_node = self.layout.nodes["a.hp.lwt.temp"]
+        self.hp_ewt_temp_node = self.layout.nodes["a.hp.ewt.temp"]
+
+        self.dist_swt_temp_node = self.layout.nodes["a.dist.swt.temp"]
+        self.dist_rwt_temp_node = self.layout.nodes["a.dist.rwt.temp"]
+
+        self.store_hot_pipe_temp_node = self.layout.nodes["a.store.hot.pipe.temp"]
+        self.store_cold_pipe_temp_node = self.layout.nodes["a.store.cold.pipe.temp"]
+
+        self.buffer_hot_pipe_temp_node = self.layout.nodes["a.buffer.hot.pipe.temp"]
+        self.buffer_cold_pipe_temp_node = self.layout.nodes["a.buffer.cold.pipe.temp"]
+
+        stat1 = Stat(idx=1, 
+                     display_name="Down",
+                     set=self.layout.nodes["a.thermostat.downstairs.set"],
+                     wall_unit_temp=self.layout.nodes["a.thermostat.downstairs.temp"],
+                     gw_temp = self.layout.nodes["stat1.temp"])
+        
+        self.stat = {0: stat1}
+        # from collections import deque
+        self.dist_pump_pwr_state_q: Deque[Tuple[PumpPowerState, int, int]] = Deque(maxlen=10)
+        self.dist_pump_pwr_state: PumpPowerState = PumpPowerState.NoFlow
+        self.buffer: Tank = Tank(idx = 1,
+                      t1 = self.layout.nodes["buffer.temp.depth1"],
+                      t2 = self.layout.nodes["buffer.temp.depth2"],
+                      t3 = self.layout.nodes["buffer.temp.depth3"],
+                      t4 = self.layout.nodes["buffer.temp.depth4"],
+                      is_buffer = True
+                      )
+        self.store = {1: Tank(idx=1,
+                      t1 = self.layout.nodes["tank1.temp.depth1"],
+                      t2 = self.layout.nodes["tank1.temp.depth2"],
+                      t3 = self.layout.nodes["tank1.temp.depth3"],
+                      t4 = self.layout.nodes["tank1.temp.depth4"],
+                      is_buffer = False
+                      ),
+                    2: Tank(idx=1,
+                      t1 = self.layout.nodes["tank2.temp.depth1"],
+                      t2 = self.layout.nodes["tank2.temp.depth2"],
+                      t3 = self.layout.nodes["tank2.temp.depth3"],
+                      t4 = self.layout.nodes["tank2.temp.depth4"],
+                      is_buffer = False
+                      ),
+                    3: Tank(idx=1,
+                      t1 = self.layout.nodes["tank3.temp.depth1"],
+                      t2 = self.layout.nodes["tank3.temp.depth2"],
+                      t3 = self.layout.nodes["tank3.temp.depth3"],
+                      t4 = self.layout.nodes["tank3.temp.depth4"],
+                      is_buffer = False
+                      )
+        }
+
+
     @property
     def alias(self) -> str:
         return self._name
@@ -158,6 +281,22 @@ class Atn(ActorInterface, Proactor):
             Message(Src=self.publication_name, Payload=payload),
             qos=qos
         )
+    
+    def enqueue_fifo_q(self, element: Any, fifo_q: Deque[Any], max_length: int = 10) -> None:
+        """
+        Enqueues an element into a FIFO queue represented by a deque object.
+
+        Args:
+            element (Any): The element to be enqueued.
+            fifo_q (Deque[Any]): The FIFO queue represented by a deque object.
+            max_length (int, optional): The maximum length of the FIFO queue. Defaults to 10.
+
+        Returns:
+            None
+        """
+        if len(fifo_q) >= max_length:
+            fifo_q.pop()  # Remove the oldest element if queue length is equal to max_length
+        fifo_q.appendleft(element)  # Add the new element at the beginning
 
     def _derived_process_message(self, message: Message):
         self._logger.path(
@@ -217,7 +356,10 @@ class Atn(ActorInterface, Proactor):
         rich.print(pwr)
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
+        self.data.prev_prev_snapshot = self.data.prev_snapshot
+        self.data.prev_snapshot = self.data.latest_snapshot
         self.data.latest_snapshot = snapshot
+        snap = self.data.latest_snapshot.Snapshot
         for node in self.my_relays:
             possible_indices = []
             for idx in range(len(snapshot.Snapshot.AboutNodeAliasList)):
@@ -234,31 +376,354 @@ class Atn(ActorInterface, Proactor):
                 self.data.relay_state[node].State = snapshot.Snapshot.ValueList[idx]
                 self.data.relay_state[node].LastChangeTimeUnixMs = int(time.time() * 1000)
 
-        s = "\n\nSnapshot received:\n"
-        for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
-            telemetry_name = snapshot.Snapshot.TelemetryNameList[i]
-            if (telemetry_name == TelemetryName.WaterTempCTimes1000
-               or telemetry_name == TelemetryName.WaterTempCTimes1000.value
-                    ):
-                centigrade = snapshot.Snapshot.ValueList[i] / 1000
-                if self.settings.c_to_f:
-                    fahrenheit = (centigrade * 9/5) + 32
-                    extra = f"{fahrenheit:5.2f} F"
-                else:
-                    extra = f"{centigrade:5.2f} C"
-            else:
-                extra = (
-                    f"{snapshot.Snapshot.ValueList[i]} "
-                    f"{snapshot.Snapshot.TelemetryNameList[i].value}"
-                )
-            s += f"  {snapshot.Snapshot.AboutNodeAliasList[i]}: {extra}\n"
-        # s += f"snapshot is None:{snapshot is None}\n"
-        # s += "json.dumps(snapshot.asdict()):\n"
-        # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
-        # s += "\n"
-        self._logger.warning(s)
+        
+        ignore_alias_list = []
+        if self.data.prev_prev_snapshot:
+            snap = self.data.latest_snapshot.Snapshot
+            cold_style = Style(bold=True, color="#008000")
+            hot_style = Style(bold=True, color="dark_orange")
+            # hot_ansii = "\033[31m"  # This red
+            hot_ansii = "\033[36m"  # temporary for Paul's purpose screen
+            # cold_ansii = "\033[34m" 
+            cold_ansii = "\033[36m" # temporary for Paul's purpose screen
+            mid_ansii = "\033[35m"
+            prev_prev_snap = self.data.prev_prev_snapshot.Snapshot
 
+            for j in [0,1,2]:
+                flow_node = self.flow_nodes[j]
+                idx = snap.AboutNodeAliasList.index(flow_node.alias)
+                # ignore_alias_list.append(idx)
+        
+            odu_idx = snap.AboutNodeAliasList.index(self.hp_outdoor_power_node.alias)
+            ignore_alias_list.append(odu_idx)
+            idu_idx = snap.AboutNodeAliasList.index(self.hp_indoor_power_node.alias)
+            ignore_alias_list.append(idu_idx)
+
+            if snap.TelemetryNameList[odu_idx] != TelemetryName.PowerW:
+                raise Exception("Units problem for Outdoor Unit Power")
+            if snap.TelemetryNameList[idu_idx] != TelemetryName.PowerW:
+                raise Exception("Units problem for Indoor Unit Power")
+            
+            odu_pwr = snap.ValueList[odu_idx] / 1000
+            idu_pwr = snap.ValueList[idu_idx] / 1000
+
+            power_value = [
+                f"{round(odu_pwr + idu_pwr,2)}",
+                f"{round(odu_pwr,2)}",
+                f"{round(idu_pwr,2)}",
+            ]
+
+            pump_pwr_name = ["Primary", "Dist", "Store"]
+            primary_idx = snap.AboutNodeAliasList.index(self.primary_pump_power_node.alias)
+            ignore_alias_list.append(primary_idx)
+            dist_idx = snap.AboutNodeAliasList.index(self.dist_pump_power_node.alias)
+            ignore_alias_list.append(dist_idx)
+            store_idx = snap.AboutNodeAliasList.index(self.store_pump_power_node.alias)
+            ignore_alias_list.append(store_idx)
+            pump_pwr_value = [
+                snap.ValueList[primary_idx],
+                snap.ValueList[dist_idx],
+                snap.ValueList[store_idx],
+            ]
+
+            now = int(time.time())
+
+            dist_pump_pwr_w = snap.ValueList[dist_idx]
+            
+            if self.dist_pump_pwr_state == PumpPowerState.NoFlow:
+                if dist_pump_pwr_w > PUMP_OFF_THRESHOLD:
+                    self.dist_pump_pwr_state = PumpPowerState.Flow
+                    tt = [PumpPowerState.Flow, dist_pump_pwr_w, now]
+                    self.enqueue_fifo_q(tt, self.dist_pump_pwr_state_q)
+            elif self.dist_pump_pwr_state == PumpPowerState.Flow:
+                if dist_pump_pwr_w < PUMP_OFF_THRESHOLD:
+                    self.dist_pump_pwr_state = PumpPowerState.NoFlow
+                    tt = [PumpPowerState.NoFlow, dist_pump_pwr_w, now]
+                    self.enqueue_fifo_q(tt, self.dist_pump_pwr_state_q)
+
+            store_temp_idx = {1: {}, 2: {}, 3: {}, 4: {}}
+            store_temp_f = {1: {}, 2: {}, 3: {}, 4: {}}
+
+            for j in [1,2,3]:
+                store_temp_idx[1][j] = snap.AboutNodeAliasList.index(self.store[j].t1.alias)
+                store_temp_idx[2][j] = snap.AboutNodeAliasList.index(self.store[j].t2.alias)
+                store_temp_idx[3][j] = snap.AboutNodeAliasList.index(self.store[j].t3.alias)
+                store_temp_idx[4][j] = snap.AboutNodeAliasList.index(self.store[j].t4.alias)
+
+            for i in range(1,5):
+                for j in range(1,4):
+                    ignore_alias_list.append(store_temp_idx[i][j])
+                    store_temp_f[i][j] = 9/5 * (snap.ValueList[store_temp_idx[i][j]] / 1000) + 32
+
+            buff_idx = {}
+            
+            buff_idx[1] = snap.AboutNodeAliasList.index(self.buffer.t1.alias)
+            buff_idx[2] = snap.AboutNodeAliasList.index(self.buffer.t2.alias)
+            buff_idx[3] = snap.AboutNodeAliasList.index(self.buffer.t3.alias)
+            buff_idx[4] = snap.AboutNodeAliasList.index(self.buffer.t4.alias)
+            
+            buff_temp_f = {}
+            for j in range(1,5):
+                assert snap.TelemetryNameList[buff_idx[j]] == TelemetryName.WaterTempCTimes1000
+                ignore_alias_list.append(buff_idx[j])
+                buff_temp_f[j] = 9/5 * (snap.ValueList[buff_idx[j]] / 1000) + 32
+
+            hp_lwt_idx = snap.AboutNodeAliasList.index(self.hp_lwt_temp_node.alias)
+            ignore_alias_list.append(hp_lwt_idx)
+            hp_ewt_idx = snap.AboutNodeAliasList.index(self.hp_ewt_temp_node.alias)
+            ignore_alias_list.append(hp_ewt_idx)
+            dist_swt_idx = snap.AboutNodeAliasList.index(self.dist_swt_temp_node.alias)
+            ignore_alias_list.append(dist_swt_idx)
+            dist_rwt_idx = snap.AboutNodeAliasList.index(self.dist_rwt_temp_node.alias)
+            ignore_alias_list.append(dist_rwt_idx)
+            buffer_hot_idx = snap.AboutNodeAliasList.index(self.buffer_hot_pipe_temp_node.alias)
+            ignore_alias_list.append(buffer_hot_idx)
+            buffer_cold_idx = snap.AboutNodeAliasList.index(self.buffer_cold_pipe_temp_node.alias)
+            ignore_alias_list.append(buffer_cold_idx)
+            store_hot_idx = snap.AboutNodeAliasList.index(self.store_hot_pipe_temp_node.alias)
+            ignore_alias_list.append(store_hot_idx)
+            store_cold_idx = snap.AboutNodeAliasList.index(self.store_cold_pipe_temp_node.alias)
+            ignore_alias_list.append(store_cold_idx)
+
+            stat_set_idx = {}
+            stat_wall_temp_idx = {}
+            stat_temp_idx = {}
+            stat_set_f = []
+            stat_wall_temp_f = []
+            stat_temp_f = []
+            for j in range(len(self.stat)):
+                stat_set_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].set.alias)
+                ignore_alias_list.append(stat_set_idx[j])
+                stat_wall_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].wall_unit_temp.alias)
+                ignore_alias_list.append(stat_wall_temp_idx[j])
+                stat_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].gw_temp.alias)
+                ignore_alias_list.append(stat_temp_idx[j])
+
+                if snap.TelemetryNameList[stat_set_idx[j]] != TelemetryName.AirTempFTimes1000:
+                    raise Exception(f"Wrong TelemetryName for {self.stat[1].set.alias}. Use AirTempFTimes1000")
+                if snap.TelemetryNameList[stat_wall_temp_idx[j]] != TelemetryName.AirTempFTimes1000:
+                    raise Exception(f"Wrong TelemetryName for {self.stat[1].wall_unit_temp.alias}. Use AirTempFTimes1000")
+                if snap.TelemetryNameList[stat_temp_idx[j]] != TelemetryName.AirTempCTimes1000:
+                    raise Exception(f"Wrong TelemetryName for {self.stat[1].gw_temp.alias}. Use AirTempCTimes1000")
+                
+                stat_set_f.append(snap.ValueList[stat_set_idx[j]] / 1000)
+                stat_wall_temp_f.append(snap.ValueList[stat_wall_temp_idx[j]] / 1000)
+                stat_temp_centigrade = snap.ValueList[stat_temp_idx[j]] / 1000
+                stat_temp_f.append((stat_temp_centigrade  * 9/5) + 32)
+                
+
+            if snap.TelemetryNameList[hp_lwt_idx] != TelemetryName.WaterTempCTimes1000:
+                raise Exception("Wrong TelemetryName for hp lwt")
+            if snap.TelemetryNameList[dist_swt_idx] != TelemetryName.WaterTempCTimes1000:
+                raise Exception("Wrong TelemetryName for hp swt")
+            hp_lwt_centigrade = snap.ValueList[hp_lwt_idx] / 1000
+            hp_ewt_centigrade = snap.ValueList[hp_ewt_idx] / 1000
+            dist_swt_centigrade = snap.ValueList[dist_swt_idx] / 1000
+            dist_rwt_centigrade = snap.ValueList[dist_rwt_idx] / 1000
+            buffer_hot_centigrade = snap.ValueList[buffer_hot_idx] / 1000
+            buffer_cold_centigrade = snap.ValueList[buffer_cold_idx] / 1000
+            store_hot_centigrade = snap.ValueList[store_hot_idx] / 1000
+            store_cold_centigrade = snap.ValueList[store_cold_idx] / 1000
+
+            hp_lwt_f = (hp_lwt_centigrade * 9/5) + 32
+            hp_ewt_f = (hp_ewt_centigrade * 9/5) + 32
+            dist_swt_f = (dist_swt_centigrade * 9/5) + 32
+            dist_rwt_f = (dist_rwt_centigrade * 9/5) + 32
+            buffer_hot_f = (buffer_hot_centigrade * 9/5) + 32
+            buffer_cold_f = (buffer_cold_centigrade * 9/5) + 32
+            store_hot_f = (store_hot_centigrade * 9/5) + 32
+            store_cold_f = (store_cold_centigrade * 9/5) + 32
+
+            ## PRINT THE STUFF THAT IS NOT IN THE TABLEWS
+            s = "\n\nSnapshot received:\n"
+            for j in range(len(snapshot.Snapshot.AboutNodeAliasList)):
+                if j not in ignore_alias_list:
+                    telemetry_name = snapshot.Snapshot.TelemetryNameList[j]
+                    if (telemetry_name == TelemetryName.WaterTempCTimes1000
+                    or telemetry_name == TelemetryName.WaterTempCTimes1000.value
+                    or telemetry_name == TelemetryName.AirTempCTimes1000
+                    or telemetry_name == TelemetryName.AirTempCTimes1000.value
+                            ):
+                        centigrade = snapshot.Snapshot.ValueList[j] / 1000
+                        if self.settings.c_to_f:
+                            fahrenheit = (centigrade * 9/5) + 32
+                            extra = f"{fahrenheit:5.2f}\u00b0F"
+                        else:
+                            extra = f"{centigrade:5.2f}\u00b0C"
+                    else:
+                        extra = (
+                            f"{snapshot.Snapshot.ValueList[j]} "
+                            f"{snapshot.Snapshot.TelemetryNameList[j].value}"
+                        )
+                    s += f"  {snapshot.Snapshot.AboutNodeAliasList[j]}: {extra}\n"
+            # s += f"snapshot is None:{snapshot is None}\n"
+            # s += "json.dumps(snapshot.asdict()):\n"
+            # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
+            # s += "\n"
+            self._logger.warning(s)
         # rich.print(snapshot)
+            
+            est = pendulum.from_timestamp(snap.ReportTimeUnixMs / 1000).in_tz('America/New_York')
+            print(f"{est.format('YYYY-MM-DD HH:mm:ss:SSS')}:")
+
+            stat_table = Table()
+            stat_table.add_column("Stats", header_style="bold")
+            stat_table.add_column("Setpt", header_style="bold")
+            stat_table.add_column("HW Temp", header_style="bold")
+            stat_table.add_column("GW Temp", header_style="bold")
+
+            
+            # TODO: DISAMBIGUATE HEAT CALLS BETWEEN ZONES WHEN WE HAVE MULTIPLE ZONES
+            j = 0
+            stat0_row = [f"{self.stat[j].display_name}", f"{round(stat_set_f[j],1)}\u00b0F", f"{round(stat_wall_temp_f[j],1)}\u00b0F", f"{round(stat_temp_f[j],1)}\u00b0F"]
+            if len(self.dist_pump_pwr_state_q)> 0:
+                until = int(time.time())
+                t = self.dist_pump_pwr_state_q
+                stat_table.add_column("Heat Call", header_style="bold")
+                start_times = []
+                for j in range(min(6,len(t))):
+                    start_s =  t[j][2]
+                    start_times.append(pendulum.from_timestamp(start_s, tz='EST').format('HH:mm'))
+                    minutes = int((until - start_s)/60)
+                    if t[j][0] == PumpPowerState.Flow:
+                        stat_table.add_column(f"On {minutes}", header_style=hot_style)
+                    else:
+                        stat_table.add_column(f"Off {minutes}", header_style=cold_style)
+                    until = start_s
+                stat0_row.append("Start")
+                stat0_row.extend(start_times)
+
+            stat_table.add_row(*stat0_row)
+            rich.print(stat_table)
+            
+        
+
+            power_table = Table()
+
+            power_table.add_column("HP Power", header_style="bold")
+            power_table.add_column("kW", header_style="bold")
+            power_table.add_column("X", header_style="bold dark_orange", style="dark_orange")
+            power_table.add_column("Pump", header_style="bold")
+            power_table.add_column("Gpm", header_style="bold")
+            power_table.add_column("Pwr (W)", header_style="bold")
+
+
+            power_name = ["Hp Total", "Outdoor", "Indoor", ]
+            gpm = {}
+            for j in [0,1,2]:
+                flow_node = self.flow_nodes[j]
+                idx = snap.AboutNodeAliasList.index(flow_node.alias)
+                if snap.TelemetryNameList[idx] != TelemetryName.GallonsTimes100:
+                    raise Exception('Error in units. Expect TelemetryName.GallonsTimes100')
+                delta_gallons = (snap.ValueList[idx] - prev_prev_snap.ValueList[idx] )/ 100
+                delta_min = (snap.ReportTimeUnixMs  - prev_prev_snap.ReportTimeUnixMs)/ 60_000
+                gpm[j] = delta_gallons / delta_min
+                if pump_pwr_value[j] < PUMP_OFF_THRESHOLD:
+                    pump_pwr_text  = "OFF"
+                else:
+                    pump_pwr_text = f"{round(pump_pwr_value[j],2)}"
+                if gpm[j] > 20:
+                    pump_speed = "BAD"
+                else:
+                    pump_speed = f"{round(gpm[j],1)}"
+                power_table.add_row(Text(power_name[j]), Text(power_value[j]), Text('x'), Text(pump_pwr_name[j]), Text(pump_speed), Text(pump_pwr_text))
+            
+            #snap_table.add_row("********","*******")
+            rich.print(power_table)
+            
+            hp_lwt_ansii = hot_ansii
+            hp_ewt_ansii = cold_ansii
+            if hp_lwt_f < hp_ewt_f - 1:
+                hp_lwt_ansii = cold_ansii
+                hp_ewt_ansii = hot_ansii
+            if hp_lwt_f < 100:
+                hp_lwt_f_str = f" {hp_lwt_ansii}{round(hp_lwt_f,1)}\u00b0F\033[0m"
+            else:
+                hp_lwt_f_str = f"{hp_lwt_ansii}{round(hp_lwt_f,1)}\u00b0F\033[0m"
+            if hp_ewt_f < 100:
+                hp_ewt_f_str = f" {hp_ewt_ansii}{round(hp_ewt_f,1)}\u00b0F\033[0m"
+            else:
+                hp_ewt_f_str = f"{hp_ewt_ansii}{round(hp_ewt_f,1)}\u00b0F\033[0m"
+            
+            dist_swt_ansii = hot_ansii
+            dist_rwt_ansii = cold_ansii
+            
+            if dist_swt_f < dist_rwt_f - 1:
+                dist_swt_ansii = cold_ansii
+                dist_rwt_ansii = hot_ansii
+            if dist_swt_f < 100:
+                dist_swt_f_str = f" {dist_swt_ansii}{round(dist_swt_f,1)}\u00b0F\033[0m"
+            else:
+                dist_swt_f_str = f"{dist_swt_ansii}{round(dist_swt_f,1)}\u00b0F\033[0m"
+            if dist_rwt_f < 100:
+                dist_rwt_f_str = f" {dist_rwt_ansii}{round(dist_rwt_f,1)}\u00b0F\033[0m"
+            else:
+                dist_rwt_f_str = f"{dist_rwt_ansii}{round(dist_rwt_f,1)}\u00b0F\033[0m"
+            
+            buffer_hot_ansii = hot_ansii
+            buffer_cold_ansii = cold_ansii
+            if buffer_hot_f < buffer_cold_f - 1:
+                buffer_hot_ansii = cold_ansii
+                buffer_cold_ansii = hot_ansii
+            
+            if buffer_hot_f < 100:
+                buffer_hot_f_str = f" {buffer_hot_ansii}{round(buffer_hot_f,1)}\u00b0F\033[0m"
+            else:
+                buffer_hot_f_str = f"{buffer_hot_ansii}{round(buffer_hot_f,1)}\u00b0F\033[0m"
+            if buffer_cold_f < 100:
+                buffer_cold_f_str = f" {buffer_cold_ansii}{round(buffer_cold_f,1)}\u00b0F\033[0m"
+            else:
+                buffer_cold_f_str = f"{buffer_cold_ansii}{round(buffer_cold_f,1)}\u00b0F\033[0m"
+            
+            store_hot_ansii = hot_ansii
+            store_cold_ansii = cold_ansii
+            if store_hot_f < store_cold_f - 1:
+                store_hot_ansii = cold_ansii
+                store_cold_ansii = hot_ansii
+            
+            if store_hot_f < 100:
+                store_hot_f_str = f" {store_hot_ansii}{round(store_hot_f,1)}\u00b0F\033[0m"
+            else:
+                store_hot_f_str = f"{store_hot_ansii}{round(store_hot_f,1)}\u00b0F\033[0m"
+            if store_cold_f < 100:
+                store_cold_f_str = f" {store_cold_ansii}{round(store_cold_f,1)}\u00b0F\033[0m"
+            else:
+                store_cold_f_str = f"{store_cold_ansii}{round(store_cold_f,1)}\u00b0F\033[0m"
+
+            buff_temp_f_str = {}
+            for j in range(1,5):
+                if buff_temp_f[j] < 100:
+                    buff_temp_f_str[j] = f" {round(buff_temp_f[j],1)}\u00b0F"
+                else:
+                    buff_temp_f_str[j] = f"{round(buff_temp_f[j],1)}\u00b0F"
+            
+            store_temp_f_str = {1: {}, 2: {}, 3: {}, 4: {}}
+            for i in range(1,5):
+                for j in range(1,4):
+                    if store_temp_f[i][j] < 100:
+                        store_temp_f_str[i][j] = f" {round(store_temp_f[i][j],1)}\u00b0F"
+                    else:
+                        store_temp_f_str[i][j] = f"{round(store_temp_f[i][j],1)}\u00b0F"
+            
+            print(f"""
+                                 {hp_lwt_ansii}HP LWT\033[0m   ┏━━━━━┓
+                               ┏━{hp_lwt_f_str}━━┃ HP  ┃   Lift: {round(hp_lwt_f - hp_ewt_f,1)}\u00b0F 
+  {buffer_hot_ansii}Buff Hot\033[0m ━━┓                 ┃    ┏─────┃     ┃
+   {buffer_hot_f_str}   ┃                 ┃ {hp_ewt_ansii}HP EWT\033[0m   └─────┘
+ ┏━━━━━━━━━┓ ▼                 ┃ {hp_ewt_f_str}
+ ┃  Buffer ┃━━━━━━━━━┳━ ISO ━━─┴─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ 
+ ┡━━━━━━━━━┩         ┃              │         ┏━━━━━━━━━┓   ┏━━━━━━━━━┓   ┏━━━━━━━━━┓    ┃
+ │ {buff_temp_f_str[1]} │       {dist_swt_ansii}Dist FWT\033[0m         │         ┃  Tank3  ┃   ┃  Tank2  ┃   ┃  Tank1  ┃    ┃
+ │ {buff_temp_f_str[2]} │       {dist_swt_f_str}          │         ┡━━━━━━━━━┩━┓ ┡━━━━━━━━━┩━┓ ┡━━━━━━━━━┩━━━{store_hot_f_str}
+ │ {buff_temp_f_str[3]} │         ┃              │         │ {store_temp_f_str[1][3]} │ │ │ {store_temp_f_str[1][2]} │ │ │ {store_temp_f_str[1][1]} │
+ │ {buff_temp_f_str[4]} │────┓    ┃              │         │ {store_temp_f_str[2][3]} │ │ │ {store_temp_f_str[2][2]} │ │ │ {store_temp_f_str[2][1]} │
+ └─────────┘ ▲  │    ┃              │         │ {store_temp_f_str[3][3]} │ │ │ {store_temp_f_str[3][2]} │ │ │ {store_temp_f_str[3][1]} │
+  {buffer_cold_ansii}Buff Cold\033[0m  │  ┡────┃──────────────┴─{store_cold_f_str}─│ {store_temp_f_str[4][3]} │ └━│ {store_temp_f_str[4][2]} │ └━│ {store_temp_f_str[4][1]} │
+   {buffer_cold_f_str} ──┘  │    ┃                        └─────────┘   └─────────┘   └─────────┘
+            {dist_rwt_ansii}Dist RWT\033[0m ┃                           
+            {dist_rwt_f_str}  ┃  Emitter \u0394 = {round(dist_swt_f - dist_rwt_f,1)}\u00b0F 
+""")                                    
+
 
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
