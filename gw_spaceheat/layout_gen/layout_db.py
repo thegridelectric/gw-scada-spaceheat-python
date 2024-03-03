@@ -23,6 +23,8 @@ from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 @dataclass
 class StubConfig:
     add_stub_scada: bool = True
+    add_stub_george_hack: bool = False
+    george_hack_display_name: str = "George Hack: First automated control node"
     atn_gnode_alias: str = "dummy.atn.gnode",
     scada_gnode_alias: str = "dummy.scada.gnode",
     scada_display_name: str = "Dummy Scada"
@@ -347,6 +349,23 @@ class LayoutDb:
             ]
         )
 
+    def add_stub_george_hack(self, cfg: Optional[StubConfig] = None):
+        if cfg is None:
+            cfg = StubConfig()
+        george_hack_alias = "georgehack"
+        self.add_nodes(
+            [
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(george_hack_alias),
+                    Alias=george_hack_alias,
+                    Role=Role.Unknown,
+                    ActorClass=ActorClass.NoActor,
+                    DisplayName=cfg.george_hack_display_name,
+                ),
+            ]
+        )
+
+
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
@@ -354,6 +373,8 @@ class LayoutDb:
             self.add_stub_power_meter(cfg)
         if cfg.add_stub_scada:
             self.add_stub_scada(cfg)
+        if cfg.add_stub_george_hack:
+            self.add_stub_george_hack()
 
     def dict(self) -> dict:
         d = dict(
