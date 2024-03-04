@@ -1,5 +1,8 @@
 # nofreeze as a service on the Raspberri Pi
 
+This was a hack that was used to keep the water tank in Jessica's garage from freezing
+in the winter of 2022. 
+
 The GridWorks nofreeze atn code can be run as serivce on the Raspberry Pi using 
 [systemd](https://www.freedesktop.org/software/systemd/man/systemd.service.html) with the 
 [systemctl](https://www.freedesktop.org/software/systemd/man/systemctl.html) command-line user interface. 

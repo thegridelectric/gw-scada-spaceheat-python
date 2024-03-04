@@ -12,7 +12,6 @@ from result import Err
 from result import Ok
 from result import Result
 
-from actors.message import GtDispatchBooleanLocalMessage
 from actors.scada_interface import ScadaInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import MonitoredName
@@ -178,15 +177,17 @@ class HomeAlone(Actor):
                 self._loop_times.update_last_day(now)
             await asyncio.sleep(self.LOOP_SLEEP_SECONDS)
 
-    def _set_relay(self, relay_name: str, state: bool):
-        self._send(GtDispatchBooleanLocalMessage(src=self.name, dst=relay_name, relay_state=int(state)))
+    # TODO: re-implement when finite state machine stuff is sorted
+    # def _set_relay(self, relay_name: str, state: bool):
+    #     self._send(GtDispatchBooleanLocalMessage(src=self.name, dst=relay_name, relay_state=int(state)))
 
     def per_minute_job(self, now: float) -> None:
         latest_pipe_reading = self._data.latest_simple_reading(self.PIPE_THERMO_NAME)
         if latest_pipe_reading is not None:
             pipe_temp_c = latest_pipe_reading / 1000
             if pipe_temp_c < self.PIPE_TEMP_THRESHOLD_C:
-                self._set_relay(self.PUMP_NAME, True)
+                print("Want to start circulator pump")
+                # self._set_relay(self.PUMP_NAME, True)
                 self.services.logger.info(
                     f"Pipe temp {pipe_temp_c}C below threshold {self.PIPE_TEMP_THRESHOLD_C}C."
                     f" Circulator pump {self.PUMP_NAME} on"
@@ -195,7 +196,8 @@ class HomeAlone(Actor):
                 pipe_state = self._data.relay_state[self.PUMP_NAME]
                 if pipe_state.state == 1:
                     if now - (pipe_state.last_change_time_unix_ms / 1000) > 60 * self.PUMP_ON_MINUTES - 5:
-                        self._set_relay(self.PUMP_NAME, False)
+                        print("Want to stop circulator pujmp")
+                        # self._set_relay(self.PUMP_NAME, False)
                         self.services.logger.info(
                             f"Pump has been on for at least {self.PUMP_ON_MINUTES} minutes "
                             f"and pipe temp {pipe_temp_c}C above threshold {self.PIPE_TEMP_THRESHOLD_C}C. "
@@ -205,14 +207,16 @@ class HomeAlone(Actor):
         boost_state = self._data.relay_state[self.TANK_BOOST_NAME]
         if boost_state.state == 1:
             if now - (boost_state.last_change_time_unix_ms / 1000) > 60 * self.BOOST_ON_MINUTES - 5:
-                self._set_relay(self.TANK_BOOST_NAME, False)
+                print("Want to open element relay")
+                # self._set_relay(self.TANK_BOOST_NAME, False)
 
     def per_hour_job(self) -> None:
         latest_tank_reading = self._data.latest_simple_reading(self.TANK_THERMO_NAME)
         if latest_tank_reading is None:
             return
         if (latest_tank_reading / 1000) < self.TANK_TEMP_THRESHOLD_C:
-            self._set_relay(self.TANK_BOOST_NAME, True)
+            print("want to close element relay")
+            # self._set_relay(self.TANK_BOOST_NAME, True)
 
     def per_day_job(self) -> None:
         ...

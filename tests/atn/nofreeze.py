@@ -6,11 +6,9 @@ import threading
 import time
 from typing import List
 
-from actors.utils import responsive_sleep
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
 
-from gw_spaceheat.schema.enums.role import Role
 from tests.atn.run import get_atn
 from tests.atn.atn import RecentRelayState
 
@@ -125,27 +123,27 @@ class SimpleOrange:
         if latest_pipe_reading.Unit != TelemetryName.WaterTempCTimes1000:
             raise Exception("expect WATER_TEMP_C_TIMES1000")
         pipe_temp_c = latest_pipe_reading.Value / 1000
-        if pipe_temp_c < self.PIPE_TEMP_THRESHOLD_C:
-            self.atn.turn_on(self.pipe_circulator_pump)
-            self.logger.info(
-                f"Pipe temp {pipe_temp_c}C below threshold {self.PIPE_TEMP_THRESHOLD_C}C."
-                f" Circulator pump {self.pipe_circulator_pump.alias} on"
-            )
-        else:
-            ps = self.atn.data.relay_state[self.pipe_circulator_pump]
-            if ps.State == 1:
-                if time.time() - (ps.LastChangeTimeUnixMs / 1000) > 60 * self.PUMP_ON_MINUTES - 5:
-                    self.atn.turn_off(self.pipe_circulator_pump)
-                    self.logger.info(
-                        f"Pump has been on for at least {self.PUMP_ON_MINUTES} minutes "
-                        f"and pipe temp {pipe_temp_c}C above threshold {self.PIPE_TEMP_THRESHOLD_C}C. "
-                        f"Turning pump {self.pipe_circulator_pump.alias} off "
-                    )
+        # if pipe_temp_c < self.PIPE_TEMP_THRESHOLD_C:
+        #     # self.atn.turn_on(self.pipe_circulator_pump)
+        #     self.logger.info(
+        #         f"Pipe temp {pipe_temp_c}C below threshold {self.PIPE_TEMP_THRESHOLD_C}C."
+        #         f" Circulator pump {self.pipe_circulator_pump.alias} on"
+        #     )
+        # else:
+        #     # ps = self.atn.data.relay_state[self.pipe_circulator_pump]
+        #     if ps.State == 1:
+        #         if time.time() - (ps.LastChangeTimeUnixMs / 1000) > 60 * self.PUMP_ON_MINUTES - 5:
+        #             # self.atn.turn_off(self.pipe_circulator_pump)
+        #             self.logger.info(
+        #                 f"Pump has been on for at least {self.PUMP_ON_MINUTES} minutes "
+        #                 f"and pipe temp {pipe_temp_c}C above threshold {self.PIPE_TEMP_THRESHOLD_C}C. "
+        #                 f"Turning pump {self.pipe_circulator_pump.alias} off "
+        #             )
 
-        bs = self.atn.data.relay_state[self.tank_boost]
-        if bs.State == 1:
-            if time.time() - (bs.LastChangeTimeUnixMs / 1000) > 60 * self.BOOST_ON_MINUTES - 5:
-                self.atn.turn_off(self.tank_boost)
+        # # bs = self.atn.data.relay_state[self.tank_boost]
+        # if bs.State == 1:
+        #     if time.time() - (bs.LastChangeTimeUnixMs / 1000) > 60 * self.BOOST_ON_MINUTES - 5:
+        #         self.atn.turn_off(self.tank_boost)
 
         self.cron_every_min_success()
 
@@ -165,16 +163,7 @@ class SimpleOrange:
         self.cron_every_day_success()
 
     def initialize_relays(self):
-        relay_nodes: List[ShNode] = list(
-            filter(lambda x: x.role == Role.BooleanActuator, self.atn.layout.nodes.values())
-        )
-        for node in relay_nodes:
-            self.atn.turn_off(node)
-            self.atn.data.relay_state[node] = RecentRelayState(
-                State=0, LastChangeTimeUnixMs=int(time.time())
-            )
-            self.logger.info(f"Turning off {node.alias} on initialization")
-        self.relays_initialized = True
+        print("Pretending to initialize relays")
 
     def main(self):
         self._main_loop_running = True
@@ -209,7 +198,7 @@ class SimpleOrange:
                 except:
                     self.logger.warning(f"{self.strategy_name} day cron failed")
 
-            responsive_sleep(self, 1)
+            time.sleep(1)
 
 
 if __name__ == "__main__":

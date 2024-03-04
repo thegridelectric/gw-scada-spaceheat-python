@@ -27,9 +27,9 @@ class NodeConfig:
         self.reporting = None
         self.driver = None
         self.typical_response_time_ms = 0
-        if isinstance(component, RelayComponent):
-            self.set_relay_config(component=component, settings=settings)
-        elif isinstance(component, SimpleTempSensorComponent):
+        # if isinstance(component, RelayComponent):
+        #     self.set_relay_config(component=component, settings=settings)
+        if isinstance(component, SimpleTempSensorComponent):
             self.set_simple_temp_sensor_config(component=component, settings=settings)
         elif isinstance(component, PipeFlowSensorComponent):
             self.set_pipe_flow_sensor_config(component=component, settings=settings)
@@ -97,45 +97,45 @@ class NodeConfig:
         driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
         self.driver = driver_class(component=component, settings=settings)
 
-    def set_relay_config(self, component: RelayComponent, settings: ScadaSettings):
-        cac = component.cac
-        self.typical_response_time_ms = cac.typical_response_time_ms
-        if self.node.reporting_sample_period_s is None:
-            reporting_sample_period_s = self.seconds_per_report
-        else:
-            reporting_sample_period_s = self.node.reporting_sample_period_s
-        self.reporting = ConfigMaker(
-            report_on_change=True,
-            exponent=0,
-            reporting_period_s=self.seconds_per_report,
-            sample_period_s=reporting_sample_period_s,
-            telemetry_name=cac.telemetry_name,
-            unit=Unit.Unitless,
-            async_report_threshold=0.5,
-        ).tuple
-        if cac.make_model == MakeModel.NCD__PR814SPST:
-            found = importlib.util.find_spec("smbus2")
-            if found:
-                import smbus2 as smbus
-                try:
-                    smbus.SMBus(1)
-                except FileNotFoundError:
-                    found = False
-            if found:
-                driver_module_name = "drivers.relay.ncd__pr814spst__relay_driver"
-                driver_class_name = "NcdPr814Spst_RelayDriver"
-            else:
-                driver_module_name = "drivers.relay.unknown_relay_driver"
-                driver_class_name = "UnknownRelayDriver"
-        elif cac.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
-            driver_module_name = "drivers.relay.gridworks_simbool30amprelay__relay_driver"
-            driver_class_name = "GridworksSimBool30AmpRelay_RelayDriver"
-        elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
-            driver_module_name = "drivers.relay.unknown_relay_driver"
-            driver_class_name = "UnknownRelayDriver"
-        else:
-            raise NotImplementedError(f"No BooleanActuator driver yet for {cac.make_model}")
-        if driver_module_name not in sys.modules:
-            importlib.import_module(driver_module_name)
-        driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
-        self.driver = driver_class(component=component, settings=settings)
+    # def set_relay_config(self, component: RelayComponent, settings: ScadaSettings):
+    #     cac = component.cac
+    #     self.typical_response_time_ms = cac.typical_response_time_ms
+    #     if self.node.reporting_sample_period_s is None:
+    #         reporting_sample_period_s = self.seconds_per_report
+    #     else:
+    #         reporting_sample_period_s = self.node.reporting_sample_period_s
+    #     self.reporting = ConfigMaker(
+    #         report_on_change=True,
+    #         exponent=0,
+    #         reporting_period_s=self.seconds_per_report,
+    #         sample_period_s=reporting_sample_period_s,
+    #         telemetry_name=cac.telemetry_name,
+    #         unit=Unit.Unitless,
+    #         async_report_threshold=0.5,
+    #     ).tuple
+    #     if cac.make_model == MakeModel.NCD__PR814SPST:
+    #         found = importlib.util.find_spec("smbus2")
+    #         if found:
+    #             import smbus2 as smbus
+    #             try:
+    #                 smbus.SMBus(1)
+    #             except FileNotFoundError:
+    #                 found = False
+    #         if found:
+    #             driver_module_name = "drivers.relay.ncd__pr814spst__relay_driver"
+    #             driver_class_name = "NcdPr814Spst_RelayDriver"
+    #         else:
+    #             driver_module_name = "drivers.relay.unknown_relay_driver"
+    #             driver_class_name = "UnknownRelayDriver"
+    #     elif cac.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
+    #         driver_module_name = "drivers.relay.gridworks_simbool30amprelay__relay_driver"
+    #         driver_class_name = "GridworksSimBool30AmpRelay_RelayDriver"
+    #     elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+    #         driver_module_name = "drivers.relay.unknown_relay_driver"
+    #         driver_class_name = "UnknownRelayDriver"
+    #     else:
+    #         raise NotImplementedError(f"No BooleanActuator driver yet for {cac.make_model}")
+    #     if driver_module_name not in sys.modules:
+    #         importlib.import_module(driver_module_name)
+    #     driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
+    #     self.driver = driver_class(component=component, settings=settings)

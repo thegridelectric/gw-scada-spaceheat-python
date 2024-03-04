@@ -27,7 +27,6 @@ from gwproto.messages import SnapshotSpaceheatEvent
 from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
 from gwproto.messages import PowerWatts_Maker
-from gwproto.messages import GtDispatchBoolean_Maker
 from gwproto.messages import GtShCliAtnCmd_Maker
 from gwproto.messages import GtShStatus
 from gwproto.messages import SnapshotSpaceheat
@@ -105,22 +104,24 @@ class Atn(ActorInterface, Proactor):
         hardware_layout: HardwareLayout,
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
-        self.my_sensors = list(
-            filter(
-                lambda x: (
-                    x.role == Role.TankWaterTempSensor
-                    or x.role == Role.BooleanActuator
-                    or x.role == Role.PipeTempSensor
-                    or x.role == Role.PipeFlowMeter
-                    or x.role == Role.PowerMeter
-                ),
-                list(self.layout.nodes.values()),
-            )
-        )
-        self.my_relays = list(
-            filter(lambda x: x.role == Role.BooleanActuator, list(self.layout.nodes.values()))
-        )
-        self.data = AtnData(relay_state={x: RecentRelayState() for x in self.my_relays})
+        self.my_sensors = []
+        # self.my_sensors = list(
+        #     filter(
+        #         lambda x: (
+        #             x.role == Role.TankWaterTempSensor
+        #             or x.role == Role.BooleanActuator
+        #             or x.role == Role.PipeTempSensor
+        #             or x.role == Role.PipeFlowMeter
+        #             or x.role == Role.PowerMeter
+        #         ),
+        #         list(self.layout.nodes.values()),
+        #     )
+        # )
+        self.my_relays = []
+        # self.my_relays = list(
+        #     filter(lambda x: x.role == Role.BooleanActuator, list(self.layout.nodes.values()))
+        # )
+        self.data = AtnData()
         self._links.add_mqtt_link(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
         self._links.subscribe(
             Atn.SCADA_MQTT,
@@ -168,9 +169,9 @@ class Atn(ActorInterface, Proactor):
             case GtShCliAtnCmd_Maker():
                 path_dbg |= 0x00000001
                 self._publish_to_scada(message.Payload.tuple.as_dict())
-            case GtDispatchBoolean_Maker():
-                path_dbg |= 0x00000002
-                self._publish_to_scada(message.Payload.tuple.as_dict())
+            # case GtDispatchBoolean_Maker():
+            #     path_dbg |= 0x00000002
+            #     self._publish_to_scada(message.Payload.tuple.as_dict())
             case DBGPayload():
                 path_dbg |= 0x00000004
                 self._publish_to_scada(message.Payload)
@@ -332,27 +333,28 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
-    def set_relay(self, name: str, state: bool) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=GtDispatchBoolean_Maker(
-                    about_node_name=name,
-                    to_g_node_alias=self.layout.scada_g_node_alias,
-                    from_g_node_alias=self.layout.atn_g_node_alias,
-                    from_g_node_instance_id=self.layout.atn_g_node_instance_id,
-                    relay_state=int(state),
-                    send_time_unix_ms=int(time.time() * 1000),
-                ),
-            )
-        )
+    # TODO: re-implement when fsm stuff is sorted
+    # def set_relay(self, name: str, state: bool) -> None:
+    #     self.send_threadsafe(
+    #         Message(
+    #             Src=self.name,
+    #             Dst=self.name,
+    #             Payload=GtDispatchBoolean_Maker(
+    #                 about_node_name=name,
+    #                 to_g_node_alias=self.layout.scada_g_node_alias,
+    #                 from_g_node_alias=self.layout.atn_g_node_alias,
+    #                 from_g_node_instance_id=self.layout.atn_g_node_instance_id,
+    #                 relay_state=int(state),
+    #                 send_time_unix_ms=int(time.time() * 1000),
+    #             ),
+    #         )
+    #     )
 
-    def turn_on(self, relay_node: ShNode):
-        self.set_relay(relay_node.alias, True)
+    # def turn_on(self, relay_node: ShNode):
+    #     self.set_relay(relay_node.alias, True)
 
-    def turn_off(self, relay_node: ShNode):
-        self.set_relay(relay_node.alias, False)
+    # def turn_off(self, relay_node: ShNode):
+    #     self.set_relay(relay_node.alias, False)
 
     def start(self):
         if self.event_loop_thread is not None:

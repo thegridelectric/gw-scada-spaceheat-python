@@ -1,7 +1,7 @@
 """Temporary package with asyncio actor implementation, currently exists with actors package to make work in progress
 easier."""
 
-from actors.boolean_actuator import BooleanActuator
+# from actors.boolean_actuator import BooleanActuator
 from actors.home_alone import HomeAlone
 from actors.hubitat_poller import HubitatPoller
 from actors.hubitat_tank_module import HubitatTankModule
@@ -12,7 +12,7 @@ from actors.scada_interface import ScadaInterface
 from actors.simple_sensor import SimpleSensor
 
 __all__ = [
-    "BooleanActuator",
+    # "BooleanActuator",
     "HomeAlone",
     "HubitatPoller",
     "HubitatTankModule",

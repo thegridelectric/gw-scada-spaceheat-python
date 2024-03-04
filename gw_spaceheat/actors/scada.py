@@ -15,11 +15,7 @@ from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
 from gwproto.messages import PowerWatts
-from gwproto.messages import GtDispatchBoolean
-from gwproto.messages import GtDispatchBoolean_Maker
-from gwproto.messages import GtDispatchBooleanLocal
-from gwproto.messages import GtDriverBooleanactuatorCmd
-from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
+
 from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import GtShCliAtnCmd_Maker
 from gwproto.messages import GtShStatusEvent
@@ -35,7 +31,6 @@ from result import Result
 
 from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
-from actors.message import GtDispatchBooleanLocalMessage
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
@@ -67,7 +62,7 @@ class GridworksMQTTCodec(MQTTCodec):
         super().__init__(
             Decoders.from_objects(
                 [
-                    GtDispatchBoolean_Maker,
+                    # GtDispatchBoolean_Maker,
                     GtShCliAtnCmd_Maker,
                 ],
                 message_payload_discriminator=ScadaMessageDecoder,
@@ -88,7 +83,7 @@ class LocalMQTTCodec(MQTTCodec):
         super().__init__(
             Decoders.from_objects(
                 [
-                    GtDriverBooleanactuatorCmd_Maker,
+                    # GtDriverBooleanactuatorCmd_Maker,
                     GtShTelemetryFromMultipurposeSensor_Maker,
                     GtTelemetry_Maker,
                 ],
@@ -258,15 +253,15 @@ class Scada(ScadaInterface, Proactor):
                     raise Exception(
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
-            case GtDispatchBooleanLocal():
-                path_dbg |= 0x00000004
-                if message.Header.Src == self._home_alone.name:
-                    path_dbg |= 0x00000008
-                    self.local_boolean_dispatch_received(message.Payload)
-                else:
-                    raise Exception(
-                        "message.Header.Src must be a.home for GsDispatchBooleanLocal message"
-                    )
+            # case GtDispatchBooleanLocal():
+            #     path_dbg |= 0x00000004
+            #     if message.Header.Src == self._home_alone.name:
+            #         path_dbg |= 0x00000008
+            #         self.local_boolean_dispatch_received(message.Payload)
+            #     else:
+            #         raise Exception(
+            #             "message.Header.Src must be a.home for GsDispatchBooleanLocal message"
+            #         )
             case GtTelemetry():
                 path_dbg |= 0x00000010
                 if from_node in self._layout.my_simple_sensors:
@@ -279,13 +274,13 @@ class Scada(ScadaInterface, Proactor):
                     self.gt_sh_telemetry_from_multipurpose_sensor_received(
                         from_node, message.Payload
                     )
-            case GtDriverBooleanactuatorCmd():
-                path_dbg |= 0x00000100
-                if from_node in self._layout.my_boolean_actuators:
-                    path_dbg |= 0x00000200
-                    self.gt_driver_booleanactuator_cmd_record_received(
-                        from_node, message.Payload
-                    )
+            # case GtDriverBooleanactuatorCmd():
+            #     path_dbg |= 0x00000100
+            #     if from_node in self._layout.my_boolean_actuators:
+            #         path_dbg |= 0x00000200
+            #         self.gt_driver_booleanactuator_cmd_record_received(
+            #             from_node, message.Payload
+            #         )
             case _:
                 raise ValueError(
                     f"There is no handler for mqtt message payload type [{type(message.Payload)}]"
@@ -303,9 +298,9 @@ class Scada(ScadaInterface, Proactor):
                 f"Received\n\t topic: [{message.Payload.message.topic}]"
             )
         match decoded.Payload:
-            case GtDispatchBoolean():
-                path_dbg |= 0x00000001
-                self._boolean_dispatch_received(decoded.Payload)
+            # case GtDispatchBoolean():
+            #     path_dbg |= 0x00000001
+            #     self._boolean_dispatch_received(decoded.Payload)
             case GtShCliAtnCmd():
                 path_dbg |= 0x00000002
                 self._gt_sh_cli_atn_cmd_received(decoded.Payload)
@@ -328,43 +323,44 @@ class Scada(ScadaInterface, Proactor):
             )
             self._data.latest_simple_value[from_node] = decoded.Value
 
-    def _boolean_dispatch_received(
-        self, payload: GtDispatchBoolean
-    ) -> ScadaCmdDiagnostic:
-        """This is a dispatch message received from the atn. It is
-        honored whenever DispatchContract with the Atn is live."""
-        if not self.scada_atn_fast_dispatch_contract_is_alive:
-            return ScadaCmdDiagnostic.IGNORING_ATN_DISPATCH
-        return self._process_boolean_dispatch(payload)
+    # def _boolean_dispatch_received(
+    #     self, payload: GtDispatchBoolean
+    # ) -> ScadaCmdDiagnostic:
+    #     """This is a dispatch message received from the atn. It is
+    #     honored whenever DispatchContract with the Atn is live."""
+    #     if not self.scada_atn_fast_dispatch_contract_is_alive:
+    #         return ScadaCmdDiagnostic.IGNORING_ATN_DISPATCH
+    #     return self._process_boolean_dispatch(payload)
 
-    def _process_boolean_dispatch(
-        self, payload: GtDispatchBoolean
-    ) -> ScadaCmdDiagnostic:
-        ba = self._layout.node(payload.AboutNodeName)
-        if not isinstance(ba.component, RelayComponent):
-            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
-        self._communicators[ba.alias].process_message(
-            GtDispatchBooleanLocalMessage(
-                src=self.name, dst=ba.alias, relay_state=payload.RelayState
-            )
-        )
-        return ScadaCmdDiagnostic.SUCCESS
+    # TODO: replace with _process_fsm_trigger_from_atn
+    # def _process_boolean_dispatch(
+    #     self, payload: GtDispatchBoolean
+    # ) -> ScadaCmdDiagnostic:
+    #     ba = self._layout.node(payload.AboutNodeName)
+    #     if not isinstance(ba.component, RelayComponent):
+    #         return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
+    #     self._communicators[ba.alias].process_message(
+    #         GtDispatchBooleanLocalMessage(
+    #             src=self.name, dst=ba.alias, relay_state=payload.RelayState
+    #         )
+    #     )
+    #     return ScadaCmdDiagnostic.SUCCESS
 
-    def _set_relay_state_threadsafe(self, ba: ShNode, on: bool):
-        if not isinstance(ba.component, RelayComponent):
-            return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
-        self.send_threadsafe(
-            GtDispatchBooleanLocalMessage(
-                src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=int(on)
-            )
-        )
-        return ScadaCmdDiagnostic.SUCCESS
+    # def _set_relay_state_threadsafe(self, ba: ShNode, on: bool):
+    #     if not isinstance(ba.component, RelayComponent):
+    #         return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
+    #     self.send_threadsafe(
+    #         GtDispatchBooleanLocalMessage(
+    #             src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=int(on)
+    #         )
+    #     )
+    #     return ScadaCmdDiagnostic.SUCCESS
 
-    def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._set_relay_state_threadsafe(ba, True)
+    # def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
+    #     return self._set_relay_state_threadsafe(ba, True)
 
-    def turn_off(self, ba: ShNode) -> ScadaCmdDiagnostic:
-        return self._set_relay_state_threadsafe(ba, False)
+    # def turn_off(self, ba: ShNode) -> ScadaCmdDiagnostic:
+    #     return self._set_relay_state_threadsafe(ba, False)
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
@@ -453,48 +449,50 @@ class Scada(ScadaInterface, Proactor):
         )
         self._data.latest_simple_value[from_node] = payload.Value
 
-    def gt_driver_booleanactuator_cmd_record_received(
-        self, from_node: ShNode, payload: GtDriverBooleanactuatorCmd
-    ):
-        """The boolean actuator actor reports when it has sent an actuation command
-        to its driver. We add this to information to be sent up in the 5 minute status
-        package.
+    # TODO: replace with fsm.atomic.report
+    # def gt_driver_booleanactuator_cmd_record_received(
+    #     self, from_node: ShNode, payload: GtDriverBooleanactuatorCmd
+    # ):
+    #     """The boolean actuator actor reports when it has sent an actuation command
+    #     to its driver. We add this to information to be sent up in the 5 minute status
+    #     package.
 
-        This is different than reporting a _reading_ of the state of the
-        actuator. Note that a reading of the state of the actuator may not mean the relay
-        is in the read position. For example, the NCD relay requires two power sources - one
-        from the Pi and one a lowish DC voltage from another plug (12 or 24V). If the second
-        power source is off, the relay will still report being on when it is actually off.
+    #     This is different than reporting a _reading_ of the state of the
+    #     actuator. Note that a reading of the state of the actuator may not mean the relay
+    #     is in the read position. For example, the NCD relay requires two power sources - one
+    #     from the Pi and one a lowish DC voltage from another plug (12 or 24V). If the second
+    #     power source is off, the relay will still report being on when it is actually off.
 
-        Note also that the thing getting actuated (for example the boost element in the water
-        tank) may not be getting any power because of another relay in series. For example, we
-        can throw a large 240V breaker in the test garage and the NCD relay will actuate without
-        the boost element turning on. Or the element could be burned out.
+    #     Note also that the thing getting actuated (for example the boost element in the water
+    #     tank) may not be getting any power because of another relay in series. For example, we
+    #     can throw a large 240V breaker in the test garage and the NCD relay will actuate without
+    #     the boost element turning on. Or the element could be burned out.
 
-        So measuring the current and/or power of the thing getting
-        actuated is really the best test."""
+    #     So measuring the current and/or power of the thing getting
+    #     actuated is really the best test."""
 
-        if from_node not in self._layout.my_boolean_actuators:
-            raise Exception(
-                "boolean actuator command records must come from boolean actuator"
-            )
-        if from_node.alias != payload.ShNodeAlias:
-            raise Exception("Command record must come from the boolean actuator actor")
-        self._data.recent_ba_cmds[from_node].append(payload.RelayState)
-        self._data.recent_ba_cmd_times_unix_ms[from_node].append(
-            payload.CommandTimeUnixMs
-        )
+    #     if from_node not in self._layout.my_boolean_actuators:
+    #         raise Exception(
+    #             "boolean actuator command records must come from boolean actuator"
+    #         )
+    #     if from_node.alias != payload.ShNodeAlias:
+    #         raise Exception("Command record must come from the boolean actuator actor")
+    #     self._data.recent_ba_cmds[from_node].append(payload.RelayState)
+    #     self._data.recent_ba_cmd_times_unix_ms[from_node].append(
+    #         payload.CommandTimeUnixMs
+    #     )
 
-    def local_boolean_dispatch_received(
-        self, payload: GtDispatchBooleanLocal
-    ) -> ScadaCmdDiagnostic:
-        """This will be a message from HomeAlone, honored when the DispatchContract
-        with the Atn is not live."""
-        if self.scada_atn_fast_dispatch_contract_is_alive:
-            return ScadaCmdDiagnostic.IGNORING_HOMEALONE_DISPATCH
-        return self._process_boolean_dispatch(
-            typing.cast(GtDispatchBoolean, payload)
-        )
+    # TODO: replace with triggering events 
+    # def local_boolean_dispatch_received(
+    #     self, payload: GtDispatchBooleanLocal
+    # ) -> ScadaCmdDiagnostic:
+    #     """This will be a message from HomeAlone, honored when the DispatchContract
+    #     with the Atn is not live."""
+    #     if self.scada_atn_fast_dispatch_contract_is_alive:
+    #         return ScadaCmdDiagnostic.IGNORING_HOMEALONE_DISPATCH
+    #     return self._process_boolean_dispatch(
+    #         typing.cast(GtDispatchBoolean, payload)
+    #     )
 
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():

@@ -20,14 +20,6 @@ from gwproto.types import FibaroSmartImplantCacGt
 from gwproto.types import FibaroSmartImplantCacGt_Maker
 from gwproto.types import FibaroSmartImplantComponentGt
 from gwproto.types import FibaroSmartImplantComponentGt_Maker
-from gwproto.types import GtDispatchBoolean
-from gwproto.types import GtDispatchBoolean_Maker
-from gwproto.types import GtDispatchBooleanLocal
-from gwproto.types import GtDispatchBooleanLocal_Maker
-from gwproto.types import GtDriverBooleanactuatorCmd
-from gwproto.types import GtDriverBooleanactuatorCmd_Maker
-from gwproto.types import GtShBooleanactuatorCmdStatus
-from gwproto.types import GtShBooleanactuatorCmdStatus_Maker
 from gwproto.types import GtShCliAtnCmd
 from gwproto.types import GtShCliAtnCmd_Maker
 from gwproto.types import GtShMultipurposeTelemetryStatus
@@ -119,18 +111,10 @@ __all__ = [
     "FibaroSmartImplantCacGt_Maker",
     "FibaroSmartImplantComponentGt",
     "FibaroSmartImplantComponentGt_Maker",
-    "GtDispatchBoolean",
-    "GtDispatchBoolean_Maker",
-    "GtDispatchBooleanLocal",
-    "GtDispatchBooleanLocal_Maker",
-    "GtDriverBooleanactuatorCmd",
-    "GtDriverBooleanactuatorCmd_Maker",
     "GtPowermeterReportingConfig",
     "GtPowermeterReportingConfig_Maker",
     "GtSensorReportingConfig",
     "GtSensorReportingConfig_Maker",
-    "GtShBooleanactuatorCmdStatus",
-    "GtShBooleanactuatorCmdStatus_Maker",
     "GtShCliAtnCmd",
     "GtShCliAtnCmd_Maker",
     "GtShMultipurposeTelemetryStatus",

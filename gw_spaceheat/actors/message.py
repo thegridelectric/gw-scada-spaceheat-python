@@ -9,10 +9,6 @@ from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import PowerWatts_Maker
-from gwproto.messages import GtDispatchBooleanLocal
-from gwproto.messages import GtDispatchBooleanLocal_Maker
-from gwproto.messages import GtDriverBooleanactuatorCmd
-from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
@@ -44,49 +40,51 @@ class GtTelemetryMessage(Message[GtTelemetry]):
         )
 
 
-class GtDriverBooleanactuatorCmdResponse(Message[GtDriverBooleanactuatorCmd]):
-    def __init__(
-        self,
-        src: str,
-        dst: str,
-        relay_state: int,
-    ):
-        payload = GtDriverBooleanactuatorCmd_Maker(
-            relay_state=relay_state,
-            command_time_unix_ms=int(time.time() * 1000),
-            sh_node_alias=src,
-        ).tuple
-        super().__init__(
-            Header=Header(
-                Src=src,
-                Dst=dst,
-                MessageType=payload.TypeName,
-            ),
-            Payload=payload,
-        )
+# TODO: make a wrapper for FsmAtomicReport
+# class GtDriverBooleanactuatorCmdResponse(Message[GtDriverBooleanactuatorCmd]):
+#     def __init__(
+#         self,
+#         src: str,
+#         dst: str,
+#         relay_state: int,
+#     ):
+#         payload = GtDriverBooleanactuatorCmd_Maker(
+#             relay_state=relay_state,
+#             command_time_unix_ms=int(time.time() * 1000),
+#             sh_node_alias=src,
+#         ).tuple
+#         super().__init__(
+#             Header=Header(
+#                 Src=src,
+#                 Dst=dst,
+#                 MessageType=payload.TypeName,
+#             ),
+#             Payload=payload,
+#         )
 
 
-class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
-    def __init__(
-        self,
-        src: str,
-        dst: str,
-        relay_state: int,
-    ):
-        payload = GtDispatchBooleanLocal_Maker(
-            from_node_name=src,
-            about_node_name=dst,
-            relay_state=relay_state,
-            send_time_unix_ms=int(time.time() * 1000),
-        ).tuple
-        super().__init__(
-            Header=Header(
-                Src=src,
-                Dst=dst,
-                MessageType=payload.TypeName,
-            ),
-            Payload=payload,
-        )
+# TODO: make a wrapper for fsm.event
+# class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
+#     def __init__(
+#         self,
+#         src: str,
+#         dst: str,
+#         relay_state: int,
+#     ):
+#         payload = GtDispatchBooleanLocal_Maker(
+#             from_node_name=src,
+#             about_node_name=dst,
+#             relay_state=relay_state,
+#             send_time_unix_ms=int(time.time() * 1000),
+#         ).tuple
+#         super().__init__(
+#             Header=Header(
+#                 Src=src,
+#                 Dst=dst,
+#                 MessageType=payload.TypeName,
+#             ),
+#             Payload=payload,
+#         )
 
 
 class PowerWattsMessage(Message[PowerWatts]):
