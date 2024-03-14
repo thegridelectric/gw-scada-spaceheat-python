@@ -5,103 +5,95 @@ from pydantic import BaseModel
 
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
+from gwproto.enums import Unit
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import ComponentGt
-from gwproto.types import PipeFlowSensorCacGt
-from gwproto.types import PipeFlowSensorComponentGt
+from gwproto.types import ChannelConfig
+from gwproto.types.i2c_flow_totalizer_component_gt import I2cFlowTotalizerComponentGt
+
 from gwproto.types import SpaceheatNodeGt
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwproto.type_helpers import CONVERSION_FACTOR_BY_MODEL
 
 from layout_gen.layout_db import LayoutDb
 
 class FlowMeterGenCfg(BaseModel):
-    NodeAlias: str
+    NodeName: str
     I2cAddress: int
-    ConversionFactor: float
-    PollPeriodS: float = 5
-    ReportingSamplePeriodS: Optional[int] = None
+    PulseFlowMeterMakeModel: MakeModel
+    PollPeriodMs: float = 5000
 
     def node_display_name(self) -> str:
-        return f"Pipe Flow Meter <{self.NodeAlias}>"
+        return f"EZ FLo <{self.NodeName} ({self.PulseFlowMeterMakeModel.value}, I2c {self.I2cAddress})>"
 
-    def component_alias(self) -> str:
-        return f"Pipe Flow Meter Component <{self.NodeAlias}>"
-
-class Istec4440FlowMeterGenCfg(FlowMeterGenCfg):
-    ConversionFactor: float = 0.268132
-
-class SmallOmegaFlowMeterGenCfg(FlowMeterGenCfg):
-    # For the Omega FTB8007 series that give a tick every 0.1 gallons
-    ConversionFactor: float = 0.134066
-
-
-class LargeOmegaFlowMeterGenCfg(FlowMeterGenCfg):
-    # For the Omega FTB8010 series that give a tick every gallon
-    ConversionFactor: float = 1.34066
-
-
-class PrmFiltrationWm075FlowMeterGenCfg(FlowMeterGenCfg):
-    # For the PRM Filtration WM075 series that give a tick every gallon
-    ConversionFactor: float = 1.34066
-
-
-class KeyenceFlowMeterGenCfg(FlowMeterGenCfg):
-    # For a Keyence series that give a tick every 0.1 gallons
-    ConversionFactor: float =  0.134066
+    def component_display_name(self) -> str:
+        return f"Component for EZ Flo ({self.PulseFlowMeterMakeModel.value}, I2c {self.I2cAddress})>"
 
 
 def add_flow_meter(
     db: LayoutDb,
-    flow_meter: FlowMeterGenCfg,
+    i2c_totalizer: FlowMeterGenCfg,
 ) -> None:
-    cac_type = "pipe.flow.sensor.cac.gt"
-    if not db.cac_id_by_type(cac_type):
+    if not db.cac_id_by_make_model(MakeModel.ATLAS__EZFLO):
         db.add_cacs(
             [
-                cast(
-                    ComponentAttributeClassGt,
-                    PipeFlowSensorCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(cac_type),
+                    ComponentAttributeClassGt(
+                        ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.ATLAS__EZFLO],
                         MakeModel=MakeModel.ATLAS__EZFLO,
                         DisplayName="Atlas Scientific EZO FLO i2c",
                     )
-                )
+                
             ],
-            "PipeFlowSensorCacs",
+            "OtherCacs",
         )
     db.add_components(
         [
             cast(
                 ComponentGt,
-                PipeFlowSensorComponentGt(
-                    ComponentId=db.make_component_id(flow_meter.component_alias()),
-                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
-                    I2cAddress=flow_meter.I2cAddress,
-                    ConversionFactor=flow_meter.ConversionFactor,
-                    DisplayName=flow_meter.component_alias(),
-                    PollPeriodS=flow_meter.PollPeriodS
+                I2cFlowTotalizerComponentGt(
+                    ComponentId=db.make_component_id(i2c_totalizer.component_display_name()),
+                    ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.ATLAS__EZFLO],
+                    I2cAddress=i2c_totalizer.I2cAddress,
+                    ConfigList=[
+                        ChannelConfig(
+                            ChannelName=f"{i2c_totalizer.NodeName}-integrated",
+                            PollPeriodMs=300,
+                            CapturePeriodS=30,
+                            AsyncCapture=True,
+                            AsyncCaptureDelta=5,
+                            Exponent=2,
+                            Unit=Unit.Gallons,
+                        ),
+                        ChannelConfig(
+                            ChannelName=i2c_totalizer.NodeName,
+                            PollPeriodMs=300,
+                            CapturePeriodS=30,
+                            AsyncCapture=True,
+                            AsyncCaptureDelta=20,
+                            Exponent=2,
+                            Unit=Unit.Gpm,
+                        ),
+                    ],
+                    PulseFlowMeterMakeModel=i2c_totalizer.PulseFlowMeterMakeModel,
+                    ConversionFactor=CONVERSION_FACTOR_BY_MODEL[i2c_totalizer.PulseFlowMeterMakeModel],
+                    DisplayName=i2c_totalizer.component_display_name(),
+
                 )
             )
         ],
-        "PipeFlowSensorComponents",
+        "I2cFlowTotalizerComponents",
     )
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(flow_meter.NodeAlias),
-                Alias=flow_meter.NodeAlias,
-                ActorClass=ActorClass.SimpleSensor,
-                Role=Role.PipeFlowMeter,
-                DisplayName=flow_meter.node_display_name(),
-                ComponentId=db.component_id_by_alias(flow_meter.component_alias()),
-                ReportingSamplePeriodS=flow_meter.ReportingSamplePeriodS,
+                ShNodeId=db.make_node_id(i2c_totalizer.NodeName),
+                Name=i2c_totalizer.NodeName,
+                ActorClass=ActorClass.FlowTotalizer,
+                DisplayName=i2c_totalizer.node_display_name(),
+                ComponentId=db.component_id_by_display_name(i2c_totalizer.component_display_name()),
             )
         ]
     )
 
-def add_istec_flow_meter(
-    db: LayoutDb,
-    flow_meter: Istec4440FlowMeterGenCfg,
-) -> None:
-    return add_flow_meter(db, flow_meter)
+
 

@@ -2,9 +2,7 @@ from typing import cast
 from typing import Optional
 
 from gwproto.enums import ActorClass
-from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.enums import TelemetryName as TelemetryNameEnum
 from gwproto.enums import Unit as UnitEnum
 from gwproto.types import ComponentAttributeClassGt
@@ -13,35 +11,35 @@ from gwproto.types import EgaugeIo
 from gwproto.types import EgaugeRegisterConfig
 from gwproto.types import ElectricMeterCacGt
 from gwproto.types import SpaceheatNodeGt
-from gwproto.types import TelemetryReportingConfig
+from gwproto.types import ChannelConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 from pydantic import BaseModel
-
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from layout_gen.layout_db import LayoutDb
 
 class EGaugeIOGenCfg(BaseModel):
     AboutNodeName: str
-    NodeRole: Role
     NodeDisplayName: str
+    ChannelName: str
     EGaugeAddress: int
     EGuageName: str
     NameplateMaxValue: int = 3500
     AsyncReportThreshold: float = 0.02
     InPowerMetering: bool = False
 
-    def output_config(self, **kwargs) -> TelemetryReportingConfig:
+    def output_config(self, **kwargs) -> ChannelConfig:
         kwargs_used = dict(
-            TelemetryName=TelemetryNameEnum.PowerW,
-            AboutNodeName=self.AboutNodeName,
-            ReportOnChange=True,
+            ChannelName=self.ChannelName,
+            PollPeriodMs=1000,
+            CapturePeriodS=300,
+            AsyncCapture=True,
+            AsyncCaptureDelta=30,
             SamplePeriodS=300,
             Exponent=0,
-            Unit=UnitEnum.W,
-            NameplateMaxValue=self.NameplateMaxValue,
-            AsyncReportThreshold=self.AsyncReportThreshold,
+            Unit=UnitEnum.W
         )
         kwargs_used.update(kwargs)
-        return TelemetryReportingConfig(**kwargs_used)
+        return ChannelConfig(**kwargs_used)
 
     def egauge_register_config(self, **kwargs) -> EgaugeRegisterConfig:
         kwargs_used = dict(
@@ -58,9 +56,8 @@ class EGaugeIOGenCfg(BaseModel):
     def node(self, db: LayoutDb) -> SpaceheatNodeGt:
         return SpaceheatNodeGt(
             ShNodeId=db.make_node_id(self.AboutNodeName),
-            Alias=self.AboutNodeName,
+            Name=self.AboutNodeName,
             ActorClass=ActorClass.NoActor,
-            Role=self.NodeRole,
             DisplayName=self.NodeDisplayName,
             InPowerMetering=self.InPowerMetering,
         )
@@ -68,15 +65,12 @@ class EGaugeIOGenCfg(BaseModel):
     def egauge_io(
         self,
         egauge_kwargs: Optional[dict] = None,
-        output_kwargs: Optional[dict] = None,
     ) -> EgaugeIo:
         if egauge_kwargs is None:
             egauge_kwargs = {}
-        if output_kwargs is None:
-            output_kwargs = {}
         return EgaugeIo(
+            ChannelName=self.ChannelName,
             InputConfig=self.egauge_register_config(**egauge_kwargs),
-            OutputConfig=self.output_config(**output_kwargs)
         )
 
 class EGaugeGenCfg(BaseModel):
@@ -91,14 +85,12 @@ class EGaugeGenCfg(BaseModel):
     def egauge_ios(
         self,
         egauge_kwargs: Optional[dict] = None,
-        output_kwargs: Optional[dict] = None,
     ) -> list[EgaugeIo]:
         if egauge_kwargs is None:
             egauge_kwargs = {}
-        if output_kwargs is None:
-            output_kwargs = {}
+
         return [
-            io.egauge_io(egauge_kwargs=egauge_kwargs, output_kwargs=output_kwargs)
+            io.egauge_io(egauge_kwargs=egauge_kwargs)
             for io in self.IOs
         ]
 
@@ -110,31 +102,38 @@ def add_egauge(
     egauge: EGaugeGenCfg,
 ) -> None:
     cac_type = "electric.meter.cac.gt"
-    if not db.cac_id_by_type(cac_type):
+    if not db.cac_id_by_make_model(MakeModel.EGAUGE__4030):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(cac_type),
+                        ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.EGAUGE__4030],
                         MakeModel=MakeModel.EGAUGE__4030,
                         PollPeriodMs=1000,
                         DisplayName="EGauge 4030",
-                        Interface=LocalCommInterface.ETHERNET,
-                        TelemetryNameList=[TelemetryNameEnum.PowerW],
+                        TelemetryNameList=[
+                            TelemetryNameEnum.PowerW,
+                            TelemetryNameEnum.MilliWattHours,
+                            TelemetryNameEnum.VoltageRmsMilliVolts,
+                            TelemetryNameEnum.CurrentRmsMicroAmps,
+                            TelemetryNameEnum.FrequencyMicroHz],
+                        MinPollPeriodMs=1000,
+                        DefaultBaud=9600
                     )
                 )
             ],
             "ElectricMeterCacs",
         )
     io_list = egauge.egauge_ios()
+   
     db.add_components(
         [
             cast(
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(egauge.ComponentDisplayName),
-                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
+                    ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.EGAUGE__4030],
                     DisplayName=egauge.ComponentDisplayName,
                     ConfigList=[io.OutputConfig for io in io_list],
                     HwUid=egauge.HwUid,
@@ -150,11 +149,10 @@ def add_egauge(
         [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(egauge.NodeName),
-                Alias=egauge.NodeName,
+                Name=egauge.NodeName,
                 ActorClass=ActorClass.PowerMeter,
-                Role=Role.PowerMeter,
                 DisplayName=egauge.NodeDisplayName,
-                ComponentId=db.component_id_by_alias(egauge.ComponentDisplayName),
+                ComponentId=db.component_id_by_display_name(egauge.ComponentDisplayName),
             )
         ] + [io.node(db) for io in egauge.IOs]
     )

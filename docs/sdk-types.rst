@@ -19,6 +19,4 @@ forth between type instances and Python objects.
    :caption: TYPE SDKS
 
     GtPowermeterReportingConfig  <types/gt-powermeter-reporting-config>
-    GtSensorReportingConfig  <types/gt-sensor-reporting-config>
-    KeyparamChangeLog  <types/keyparam-change-log>
     

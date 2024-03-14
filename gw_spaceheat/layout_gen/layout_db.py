@@ -8,17 +8,16 @@ from typing import Optional
 import uuid
 
 from gwproto.enums import ActorClass
-from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import ComponentGt
 from gwproto.types import ElectricMeterCacGt
 from gwproto.types import SpaceheatNodeGt
-from gwproto.types import TelemetryReportingConfig
+from gwproto.types import ChannelConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 
 @dataclass
 class StubConfig:
@@ -29,21 +28,21 @@ class StubConfig:
     scada_gnode_alias: str = "dummy.scada.gnode",
     scada_display_name: str = "Dummy Scada"
     add_stub_power_meter: bool = True
-    power_meter_cac_alias: str = "Dummy Power Meter Cac"
-    power_meter_component_alias: str = "Dummy Power Meter Component"
+    power_meter_cac_display_name: str = "Dummy Power Meter Cac"
+    power_meter_component_display_name: str = "Dummy Power Meter Component"
     power_meter_node_display_name: str = "Dummy Power Meter"
-    boost_element_display_name: str = "Dummy Boost Element"
+    hp_pwr_display_name: str = "Dummy Boost Element"
 
 class LayoutIDMap:
-    cacs_by_type: dict[str, str]
-    components_by_alias: dict[str, str]
-    nodes_by_alias: dict[str, str]
+    cacs_by_make_model: dict[MakeModel, str]
+    cacs_w_unknown_make_model_id_list: list[str]
+    components_by_display_name: dict[str, str]
+    nodes_by_name: dict[str, str]
     gnodes: dict[str, dict]
 
     def __init__(self, d: Optional[dict] = None):
-        self.cacs_by_type = {}
-        self.components_by_alias = {}
-        self.nodes_by_alias = {}
+        self.components_by_display_name = {}
+        self.nodes_by_name = {}
         self.gnodes = {}
         if not d:
             return
@@ -64,9 +63,10 @@ class LayoutIDMap:
                 elif k.lower().endswith("cacs"):
                         for cac in v:
                             try:
+                                model = MakeModel(cac["MakeModelGtEnumSymbol"])
                                 self.add_cac(
                                     cac["ComponentAttributeClassId"],
-                                    cac["TypeName"],
+                                    model,
                                 )
                             except Exception as e:
                                 raise Exception(
@@ -85,14 +85,20 @@ class LayoutIDMap:
                                     f"ERROR in LayoutIDMap() for {k}:{component}. Error: {type(e)}, <{e}>"
                                 )
 
-    def add_cac(self, id_: str, type_: str):
-        self.cacs_by_type[type_] = id_
+    def add_cac(self, id_: str, make_model_: MakeModel):
+        if make_model_ == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            self.cacs_w_unknown_make_model_id_list.append(id_)
+        else:
+            if CACS_BY_MAKE_MODEL[make_model_] != id_:
+                raise Exception(f"cac make model {make_model_} does not have id <{id_}>:\n"
+                                "see from gwproto.type_helpers import CACS_BY_MAKE_MODEL")
+            self.cacs_by_make_model[make_model_] = id_
 
-    def add_component(self, id_: str, alias: str):
-        self.components_by_alias[alias] = id_
+    def add_component(self, id_: str, display_name: str):
+        self.components_by_display_name[display_name] = id_
 
-    def add_node(self, id_: str, alias: str):
-        self.nodes_by_alias[alias] = id_
+    def add_node(self, id_: str, name: str):
+        self.nodes_by_name[name] = id_
 
     @classmethod
     def from_path(cls, path: Path) -> "LayoutIDMap":
@@ -121,7 +127,7 @@ class LayoutIDMap:
 
 class LayoutDb:
     lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt]]
-    cacs_by_id: dict[str, ComponentAttributeClassGt]
+    cacs_by_make_model: dict[str, ComponentAttributeClassGt]
     components_by_id: dict[str, ComponentGt]
     nodes_by_id: dict[str, SpaceheatNodeGt]
     loaded: LayoutIDMap
@@ -139,8 +145,7 @@ class LayoutDb:
     ):
         self.lists = dict(OtherComponents=[])
         self.cacs_by_id = {}
-        self.components_by_id = {}
-        self.component_lists = {}
+        self.components_by_make_model = {}
         self.nodes_by_id = {}
         self.misc = {}
         self.loaded = existing_layout or LayoutIDMap()
@@ -154,40 +159,37 @@ class LayoutDb:
         if add_stubs:
             self.add_stubs(stub_config)
 
-    def cac_id_by_type(self, cac_type: str) -> Optional[str]:
-        return self.maps.cacs_by_type.get(cac_type, None)
+    def cac_id_by_make_model(self, make_model: MakeModel) -> Optional[str]:
+        return self.maps.cacs_by_make_model.get(make_model, None)
 
-    def component_id_by_alias(self, component_alias: str) -> Optional[str]:
-        return self.maps.components_by_alias.get(component_alias, None)
+    def component_id_by_display_name(self, component_display_name: str) -> Optional[str]:
+        return self.maps.components_by_display_name.get(component_display_name, None)
 
-    def node_id_by_alias(self, node_alias: str) -> Optional[str]:
-        return self.maps.nodes_by_alias.get(node_alias, None)
+    def node_id_by_name(self, node_name: str) -> Optional[str]:
+        return self.maps.nodes_by_name.get(node_name, None)
 
-    def make_cac_id(self, cac_type: str) -> str:
-        return self.loaded.cacs_by_type.get(cac_type, str(uuid.uuid4()))
+    def make_component_id(self, component_display_name: str) -> str:
+        return self.loaded.components_by_display_name.get(component_display_name, str(uuid.uuid4()))
 
-    def make_component_id(self, component_alias: str) -> str:
-        return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
-
-    def make_node_id(self, node_alias: str) -> str:
-        return self.loaded.nodes_by_alias.get(node_alias, str(uuid.uuid4()))
+    def make_node_id(self, node_name: str) -> str:
+        return self.loaded.nodes_by_name.get(node_name, str(uuid.uuid4()))
 
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
         for cac in cacs:
-            if cac.ComponentAttributeClassId in self.cacs_by_id:
+            if cac.ComponentAttributeClassId in self.maps.cacs_w_unknown_make_model_id_list:
                 raise ValueError(
                     f"ERROR: cac with id <{cac.ComponentAttributeClassId}> "
                     "already present"
                 )
-            if cac.TypeName in self.maps.cacs_by_type:
+            elif cac.MakeModel in self.maps.cacs_by_make_model:
                 raise ValueError(
-                    f"ERROR: cac with TypeName <{cac.TypeName}> "
+                    f"ERROR: cac with MakeModel <{cac.MakeModel}> "
                     "already present"
                 )
             self.cacs_by_id[cac.ComponentAttributeClassId] = cac
             self.maps.add_cac(
                 cac.ComponentAttributeClassId,
-                cac.TypeName
+                cac.MakeModel
             )
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
@@ -200,7 +202,7 @@ class LayoutDb:
                     f"ERROR. Component with id {component.ComponentId} "
                     "already present."
                 )
-            if component.DisplayName in self.maps.components_by_alias:
+            if component.DisplayName in self.maps.components_by_display_name:
                 raise ValueError(
                     f"ERROR. Component with DisplayName {component.DisplayName} "
                     "already present."
@@ -220,12 +222,12 @@ class LayoutDb:
                 raise ValueError(
                     f"ERROR Node id {node.ShNodeId} already present."
                 )
-            if node.Alias in self.maps.nodes_by_alias:
+            if node.Name in self.maps.nodes_by_name:
                 raise ValueError(
-                    f"ERROR Node alias {node.Alias} already present."
+                    f"ERROR Node alias {node.Name} already present."
                 )
             self.nodes_by_id[node.ShNodeId] = node
-            self.maps.add_node(node.ShNodeId, node.Alias)
+            self.maps.add_node(node.ShNodeId, node.Name)
             layout_list_name = "ShNodes"
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
@@ -235,17 +237,16 @@ class LayoutDb:
         if cfg is None:
             cfg = StubConfig()
         electric_meter_cac_type = "electric.meter.cac.gt"
-        if not self.cac_id_by_type(electric_meter_cac_type):
+        if not self.cac_id_by_make_model(MakeModel.GRIDWORKS__SIMPM1):
             self.add_cacs(
                 [
                     typing.cast(
                         ComponentAttributeClassGt,
                         ElectricMeterCacGt(
-                            ComponentAttributeClassId=self.make_cac_id(electric_meter_cac_type),
+                            ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.GRIDWORKS__SIMPM1],
                             MakeModel=MakeModel.GRIDWORKS__SIMPM1,
-                            DisplayName=cfg.power_meter_cac_alias,
+                            DisplayName=cfg.power_meter_cac_display_name,
                             TelemetryNameList=[TelemetryName.PowerW],
-                            Interface=LocalCommInterface.SIMRABBIT,
                             PollPeriodMs=1000,
                         )
                     ),
@@ -257,44 +258,42 @@ class LayoutDb:
                 typing.cast(
                     ComponentGt,
                     ElectricMeterComponentGt(
-                        ComponentId=self.make_component_id(cfg.power_meter_component_alias),
-                        ComponentAttributeClassId=self.cac_id_by_type(electric_meter_cac_type),
-                        DisplayName=cfg.power_meter_component_alias,
+                        ComponentId=self.make_component_id(cfg.power_meter_component_display_name),
+                        ComponentAttributeClassId=(electric_meter_cac_type),
+                        DisplayName=cfg.power_meter_component_display_name,
                         ConfigList=[
-                            TelemetryReportingConfig(
-                                AboutNodeName="a.elt1",
-                                ReportOnChange=True,
-                                SamplePeriodS=300,
-                                NameplateMaxValue=4500,
-                                Exponent=1,
-                                TelemetryName=TelemetryName.PowerW,
-                                Unit=Unit.W,
-                            ),
-                        ],
+                        ChannelConfig(
+                            ChannelName="hp-idu-pwr",
+                            PollPeriodMs=1000,
+                            CapturePeriodS=60,
+                            AsyncCapture=True,
+                            AsyncCaptureDelta=20,
+                            Exponent=1,
+                            Unit=Unit.W,
+                        )
+                    ],
                         EgaugeIoList=[]
                     )
                 )
             ],
             "ElectricMeterComponents"
         )
-        power_meter_alias = "a.m"
-        boost_element_alias = "a.elt1"
+        power_meter_name = "power-meter"
+        hp_pwr_name = "hp-pwr"
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(power_meter_alias),
-                    Alias=power_meter_alias,
-                    Role=Role.PowerMeter,
+                    ShNodeId=self.make_node_id(power_meter_name),
+                    Alias=power_meter_name,
                     ActorClass=ActorClass.PowerMeter,
                     DisplayName=cfg.power_meter_node_display_name,
-                    ComponentId=self.component_id_by_alias(cfg.power_meter_component_alias),
+                    ComponentId=self.component_id_by_display_name(cfg.power_meter_component_display_name),
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(boost_element_alias),
-                    Alias=boost_element_alias,
-                    Role=Role.BoostElement,
+                    ShNodeId=self.make_node_id(hp_pwr_name),
+                    Name=hp_pwr_name,
                     ActorClass=ActorClass.NoActor,
-                    DisplayName=cfg.boost_element_display_name,
+                    DisplayName=cfg.hp_pwr_display_name,
                     InPowerMetering=True,
                 ),
             ]
@@ -328,21 +327,23 @@ class LayoutDb:
                 "PrimaryGNodeRoleAlias": "TerminalAsset"
               }
 
-        scada_alias="a.s"
-        home_alias="a.home"
+        scada_name="s"
+        scada_handle="h.s"
+        home_name="h"
+        home_handle="h"
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(scada_alias),
-                    Alias=scada_alias,
-                    Role=Role.Scada,
+                    ShNodeId=self.make_node_id(scada_name),
+                    Name=scada_name,
+                    Handle=scada_handle,
                     ActorClass=ActorClass.Scada,
                     DisplayName=cfg.scada_display_name,
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(home_alias),
-                    Alias=home_alias,
-                    Role=Role.HomeAlone,
+                    ShNodeId=self.make_node_id(home_name),
+                    Name=home_name,
+                    Handle=home_handle,
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
                 ),
@@ -352,13 +353,14 @@ class LayoutDb:
     def add_stub_george_hack(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        george_hack_alias = "georgehack"
+        george_hack_name = "gh"
+        george_hack_handle = "gh"
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(george_hack_alias),
-                    Alias=george_hack_alias,
-                    Role=Role.Unknown,
+                    ShNodeId=self.make_node_id(george_hack_name),
+                    Name=george_hack_name,
+                    Handle=george_hack_handle,
                     ActorClass=ActorClass.NoActor,
                     DisplayName=cfg.george_hack_display_name,
                 ),

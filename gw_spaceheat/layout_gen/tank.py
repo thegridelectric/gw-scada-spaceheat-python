@@ -90,7 +90,7 @@ def add_tank(
         )
 
     hubitat_alias = f"Hubitat {hubitat.MacAddress[-8:]}"
-    if not db.component_id_by_alias(hubitat_alias):
+    if not db.component_id_by_display_name(hubitat_alias):
         db.add_components(
             [
                 HubitatComponentGt(
@@ -124,13 +124,13 @@ def add_tank(
                 ComponentAttributeClassId=db.cac_id_by_type(hubitat_tank_cac_type),
                 DisplayName=tank.component_alias(),
                 Tank=HubitatTankSettingsGt(
-                    hubitat_component_id=db.component_id_by_alias(hubitat_alias),
+                    hubitat_component_id=db.component_id_by_display_name(hubitat_alias),
                     default_poll_period_seconds=tank.DefaultPollPeriodSeconds,
                     devices=[
                         FibaroTempSensorSettingsGt(
                             stack_depth=1,
                             device_id=tank.DeviceIds[0],
-                            fibaro_component_id=db.component_id_by_alias(fibaro_a.alias()),
+                            fibaro_component_id=db.component_id_by_display_name(fibaro_a.alias()),
                             analog_input_id=1,
                             tank_label=f"{tank.SN} A1 (Thermistor #1 TANK TOP)",
                             enabled=True,
@@ -139,7 +139,7 @@ def add_tank(
                         FibaroTempSensorSettingsGt(
                             stack_depth=2,
                             device_id=tank.DeviceIds[1],
-                            fibaro_component_id=db.component_id_by_alias(fibaro_a.alias()),
+                            fibaro_component_id=db.component_id_by_display_name(fibaro_a.alias()),
                             analog_input_id=2,
                             tank_label=f"{tank.SN} A2 (Thermistor #2)",
                             enabled=True,
@@ -148,7 +148,7 @@ def add_tank(
                         FibaroTempSensorSettingsGt(
                             stack_depth=3,
                             device_id=tank.DeviceIds[2],
-                            fibaro_component_id=db.component_id_by_alias(fibaro_b.alias()),
+                            fibaro_component_id=db.component_id_by_display_name(fibaro_b.alias()),
                             analog_input_id=1,
                             tank_label=f"{tank.SN} B1 (Thermistor #3)",
                             enabled=True,
@@ -157,7 +157,7 @@ def add_tank(
                         FibaroTempSensorSettingsGt(
                             stack_depth=4,
                             device_id=tank.DeviceIds[3],
-                            fibaro_component_id=db.component_id_by_alias(fibaro_b.alias()),
+                            fibaro_component_id=db.component_id_by_display_name(fibaro_b.alias()),
                             analog_input_id=2,
                             tank_label=f"{tank.SN} B2 (Thermistor #4 TANK BOTTOM)",
                             enabled=True,
@@ -177,7 +177,7 @@ def add_tank(
                 ActorClass=ActorClass.HubitatTankModule,
                 Role=Role.MultiChannelAnalogTempSensor,
                 DisplayName=tank.node_display_name(),
-                ComponentId=db.component_id_by_alias(tank.component_alias())
+                ComponentId=db.component_id_by_display_name(tank.component_alias())
             ),
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(tank.thermistor_node_alias(1)),

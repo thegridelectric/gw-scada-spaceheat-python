@@ -2,181 +2,137 @@
 """ List of all the types used by SCADA """
 
 # Types from gwproto
-from gwproto.types import ComponentAttributeClassGt
-from gwproto.types import ComponentAttributeClassGt_Maker
-from gwproto.types import ComponentGt
-from gwproto.types import ComponentGt_Maker
-from gwproto.types import DataChannel
-from gwproto.types import DataChannel_Maker
-from gwproto.types import EgaugeIo
-from gwproto.types import EgaugeIo_Maker
-from gwproto.types import EgaugeRegisterConfig
-from gwproto.types import EgaugeRegisterConfig_Maker
-from gwproto.types import ElectricMeterCacGt
-from gwproto.types import ElectricMeterCacGt_Maker
-from gwproto.types.electric_meter_component_gt  import ElectricMeterComponentGt
-from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt_Maker
-from gwproto.types import FibaroSmartImplantCacGt
-from gwproto.types import FibaroSmartImplantCacGt_Maker
-from gwproto.types import FibaroSmartImplantComponentGt
-from gwproto.types import FibaroSmartImplantComponentGt_Maker
-from gwproto.types import GtShCliAtnCmd
-from gwproto.types import GtShCliAtnCmd_Maker
-from gwproto.types import GtShMultipurposeTelemetryStatus
-from gwproto.types import GtShMultipurposeTelemetryStatus_Maker
-from gwproto.types import GtShSimpleTelemetryStatus
-from gwproto.types import GtShSimpleTelemetryStatus_Maker
-from gwproto.types import GtShStatus
-from gwproto.types import GtShStatus_Maker
-from gwproto.types import GtShTelemetryFromMultipurposeSensor
-from gwproto.types import GtShTelemetryFromMultipurposeSensor_Maker
-from gwproto.types import GtTelemetry
-from gwproto.types import GtTelemetry_Maker
-from gwproto.types import HeartbeatB
-from gwproto.types import HeartbeatB_Maker
-from gwproto.types import HubitatCacGt
-from gwproto.types import HubitatCacGt_Maker
-from gwproto.types import HubitatComponentGt
-from gwproto.types import HubitatComponentGt_Maker
-from gwproto.types import HubitatPollerCacGt
-from gwproto.types import HubitatPollerCacGt_Maker
-from gwproto.types import HubitatPollerComponentGt
-from gwproto.types import HubitatPollerComponentGt_Maker
-from gwproto.types import HubitatTankCacGt
-from gwproto.types import HubitatTankCacGt_Maker
-from gwproto.types import HubitatTankComponentGt
-from gwproto.types import HubitatTankComponentGt_Maker
-from gwproto.types import MultipurposeSensorCacGt
-from gwproto.types import MultipurposeSensorCacGt_Maker
-from gwproto.types.multipurpose_sensor_component_gt  import MultipurposeSensorComponentGt
-from gwproto.types.multipurpose_sensor_component_gt import MultipurposeSensorComponentGt_Maker
-from gwproto.types import PipeFlowSensorCacGt
-from gwproto.types import PipeFlowSensorCacGt_Maker
-from gwproto.types import PipeFlowSensorComponentGt
-from gwproto.types import PipeFlowSensorComponentGt_Maker
-from gwproto.types import PowerWatts
-from gwproto.types import PowerWatts_Maker
-from gwproto.types import RelayCacGt
-from gwproto.types import RelayCacGt_Maker
-from gwproto.types import RelayComponentGt
-from gwproto.types import RelayComponentGt_Maker
-from gwproto.types import ResistiveHeaterCacGt
-from gwproto.types import ResistiveHeaterCacGt_Maker
-from gwproto.types import ResistiveHeaterComponentGt
-from gwproto.types import ResistiveHeaterComponentGt_Maker
-from gwproto.types import RESTPollerCacGt
-from gwproto.types import RESTPollerCacGt_Maker
-from gwproto.types import RESTPollerComponentGt
-from gwproto.types import RESTPollerComponentGt_Maker
-from gwproto.types import SimpleTempSensorCacGt
-from gwproto.types import SimpleTempSensorCacGt_Maker
-from gwproto.types import SimpleTempSensorComponentGt
-from gwproto.types import SimpleTempSensorComponentGt_Maker
-from gwproto.types import SnapshotSpaceheat
-from gwproto.types import SnapshotSpaceheat_Maker
-from gwproto.types import SpaceheatNodeGt
-from gwproto.types import SpaceheatNodeGt_Maker
-from gwproto.types import TaDataChannels
-from gwproto.types import TaDataChannels_Maker
-from gwproto.types import TelemetryReportingConfig
-from gwproto.types import TelemetryReportingConfig_Maker
-from gwproto.types import TelemetrySnapshotSpaceheat
-from gwproto.types import TelemetrySnapshotSpaceheat_Maker
+from gwproto.types.ads111x_based_cac_gt import Ads111xBasedCacGt
+from gwproto.types.ads111x_based_cac_gt import Ads111xBasedCacGt_Maker
+from gwproto.types.batched_readings import BatchedReadings
+from gwproto.types.batched_readings import BatchedReadings_Maker
+from gwproto.types.channel_config import ChannelConfig
+from gwproto.types.channel_config import ChannelConfig_Maker
+from gwproto.types.channel_readings import ChannelReadings
+from gwproto.types.channel_readings import ChannelReadings_Maker
+from gwproto.types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwproto.types.component_attribute_class_gt import ComponentAttributeClassGt_Maker
+from gwproto.types.component_gt import ComponentGt
+from gwproto.types.component_gt import ComponentGt_Maker
+from gwproto.types.data_channel_gt import DataChannelGt
+from gwproto.types.data_channel_gt import DataChannelGt_Maker
+from gwproto.types.egauge_io import EgaugeIo
+from gwproto.types.egauge_io import EgaugeIo_Maker
+from gwproto.types.egauge_register_config import EgaugeRegisterConfig
+from gwproto.types.egauge_register_config import EgaugeRegisterConfig_Maker
+from gwproto.types.electric_meter_cac_gt import ElectricMeterCacGt
+from gwproto.types.electric_meter_cac_gt import ElectricMeterCacGt_Maker
+from gwproto.types.fsm_atomic_report import FsmAtomicReport
+from gwproto.types.fsm_atomic_report import FsmAtomicReport_Maker
+from gwproto.types.fsm_event import FsmEvent
+from gwproto.types.fsm_event import FsmEvent_Maker
+from gwproto.types.fsm_full_report import FsmFullReport
+from gwproto.types.fsm_full_report import FsmFullReport_Maker
+from gwproto.types.fsm_trigger_from_atn import FsmTriggerFromAtn
+from gwproto.types.fsm_trigger_from_atn import FsmTriggerFromAtn_Maker
+from gwproto.types.gt_sh_cli_atn_cmd import GtShCliAtnCmd
+from gwproto.types.gt_sh_cli_atn_cmd import GtShCliAtnCmd_Maker
+from gwproto.types.heartbeat_b import HeartbeatB
+from gwproto.types.heartbeat_b import HeartbeatB_Maker
+from gwproto.types.keyparam_change_log import KeyparamChangeLog
+from gwproto.types.keyparam_change_log import KeyparamChangeLog_Maker
+from gwproto.types.power_watts import PowerWatts
+from gwproto.types.power_watts import PowerWatts_Maker
+from gwproto.types.relay_actor_config import RelayActorConfig
+from gwproto.types.relay_actor_config import RelayActorConfig_Maker
+from gwproto.types.resistive_heater_cac_gt import ResistiveHeaterCacGt
+from gwproto.types.resistive_heater_cac_gt import ResistiveHeaterCacGt_Maker
+from gwproto.types.single_reading import SingleReading
+from gwproto.types.single_reading import SingleReading_Maker
+from gwproto.types.snapshot_spaceheat import Snapshot
+from gwproto.types.snapshot_spaceheat import Snapshot_Maker
+from gwproto.types.spaceheat_node_gt import SpaceheatNodeGt
+from gwproto.types.spaceheat_node_gt import SpaceheatNodeGt_Maker
+from gwproto.types.synced_readings import SyncedReadings
+from gwproto.types.synced_readings import SyncedReadings_Maker
+from gwproto.types.ta_data_channels import TaDataChannels
+from gwproto.types.ta_data_channels import TaDataChannels_Maker
+from gwproto.types.thermistor_data_processing_config import ThermistorDataProcessingConfig
+from gwproto.types.thermistor_data_processing_config import ThermistorDataProcessingConfig_Maker
+
 
 # Types from SCADA
 from gwtypes.gt_powermeter_reporting_config import GtPowermeterReportingConfig
 from gwtypes.gt_powermeter_reporting_config import GtPowermeterReportingConfig_Maker
-from gwtypes.gt_sensor_reporting_config import GtSensorReportingConfig
-from gwtypes.gt_sensor_reporting_config import GtSensorReportingConfig_Maker
-from gwtypes.keyparam_change_log import KeyparamChangeLog
-from gwtypes.keyparam_change_log import KeyparamChangeLog_Maker
-
 
 __all__ = [
+    "Ads111xBasedCacGt",
+    "Ads111xBasedCacGt_Maker",
+    # "Ads111xBasedComponentGt",
+    # "Ads111xBasedComponentGt_Maker",
+    "BatchedReadings",
+    "BatchedReadings_Maker",
+    "ChannelConfig",
+    "ChannelConfig_Maker",
+    "ChannelReadings",
+    "ChannelReadings_Maker",
     "ComponentAttributeClassGt",
     "ComponentAttributeClassGt_Maker",
     "ComponentGt",
     "ComponentGt_Maker",
-    "DataChannel",
-    "DataChannel_Maker",
+    "DataChannelGt",
+    "DataChannelGt_Maker",
     "EgaugeIo",
     "EgaugeIo_Maker",
     "EgaugeRegisterConfig",
     "EgaugeRegisterConfig_Maker",
     "ElectricMeterCacGt",
     "ElectricMeterCacGt_Maker",
-    "ElectricMeterComponentGt",
-    "ElectricMeterComponentGt_Maker",
-    "FibaroSmartImplantCacGt",
-    "FibaroSmartImplantCacGt_Maker",
-    "FibaroSmartImplantComponentGt",
-    "FibaroSmartImplantComponentGt_Maker",
+    # "ElectricMeterComponentGt",
+    # "ElectricMeterComponentGt_Maker",
+    # "FibaroSmartImplantComponentGt",
+    # "FibaroSmartImplantComponentGt_Maker",
+    "FsmAtomicReport",
+    "FsmAtomicReport_Maker",
+    "FsmEvent",
+    "FsmEvent_Maker",
+    "FsmFullReport",
+    "FsmFullReport_Maker",
+    "FsmTriggerFromAtn",
+    "FsmTriggerFromAtn_Maker",
     "GtPowermeterReportingConfig",
     "GtPowermeterReportingConfig_Maker",
-    "GtSensorReportingConfig",
-    "GtSensorReportingConfig_Maker",
     "GtShCliAtnCmd",
     "GtShCliAtnCmd_Maker",
-    "GtShMultipurposeTelemetryStatus",
-    "GtShMultipurposeTelemetryStatus_Maker",
-    "GtShSimpleTelemetryStatus",
-    "GtShSimpleTelemetryStatus_Maker",
-    "GtShStatus",
-    "GtShStatus_Maker",
-    "GtShTelemetryFromMultipurposeSensor",
-    "GtShTelemetryFromMultipurposeSensor_Maker",
-    "GtTelemetry",
-    "GtTelemetry_Maker",
     "HeartbeatB",
     "HeartbeatB_Maker",
-    "HubitatCacGt",
-    "HubitatCacGt_Maker",
-    "HubitatComponentGt",
-    "HubitatComponentGt_Maker",
-    "HubitatPollerCacGt",
-    "HubitatPollerCacGt_Maker",
-    "HubitatPollerComponentGt",
-    "HubitatPollerComponentGt_Maker",
-    "HubitatTankCacGt",
-    "HubitatTankCacGt_Maker",
-    "HubitatTankComponentGt",
-    "HubitatTankComponentGt_Maker",
+    # "HubitatComponentGt",
+    # "HubitatComponentGt_Maker",
+    # "HubitatPollerComponentGt",
+    # "HubitatPollerComponentGt_Maker",
+    # "HubitatTankComponentGt",
+    # "HubitatTankComponentGt_Maker",
+    # "I2cFlowTotalizerComponentGt",
+    # "I2cFlowTotalizerComponentGt_Maker",
+    # "I2cMultichannelDtRelayComponentGt",
+    # "I2cMultichannelDtRelayComponentGt_Maker",
     "KeyparamChangeLog",
     "KeyparamChangeLog_Maker",
-    "MultipurposeSensorCacGt",
-    "MultipurposeSensorCacGt_Maker",
-    "MultipurposeSensorComponentGt",
-    "MultipurposeSensorComponentGt_Maker",
-    "PipeFlowSensorCacGt",
-    "PipeFlowSensorCacGt_Maker",
-    "PipeFlowSensorComponentGt",
-    "PipeFlowSensorComponentGt_Maker",
     "PowerWatts",
     "PowerWatts_Maker",
-    "RelayCacGt",
-    "RelayCacGt_Maker",
-    "RelayComponentGt",
-    "RelayComponentGt_Maker",
+    "RelayActorConfig",
+    "RelayActorConfig_Maker",
     "ResistiveHeaterCacGt",
     "ResistiveHeaterCacGt_Maker",
-    "ResistiveHeaterComponentGt",
-    "ResistiveHeaterComponentGt_Maker",
-    "RESTPollerCacGt",
-    "RESTPollerCacGt_Maker",
-    "RESTPollerComponentGt",
-    "RESTPollerComponentGt_Maker",
-    "SimpleTempSensorCacGt",
-    "SimpleTempSensorCacGt_Maker",
-    "SimpleTempSensorComponentGt",
-    "SimpleTempSensorComponentGt_Maker",
-    "SnapshotSpaceheat",
-    "SnapshotSpaceheat_Maker",
+    # "ResistiveHeaterComponentGt",
+    # "ResistiveHeaterComponentGt_Maker",
+    # "RESTPollerComponentGt",
+    # "RESTPollerComponentGt_Maker",
+    "SingleReading",
+    "SingleReading_Maker",
+    "Snapshot",
+    "Snapshot_Maker",
     "SpaceheatNodeGt",
     "SpaceheatNodeGt_Maker",
+    "SyncedReadings",
+    "SyncedReadings_Maker",
     "TaDataChannels",
     "TaDataChannels_Maker",
-    "TelemetryReportingConfig",
-    "TelemetryReportingConfig_Maker",
-    "TelemetrySnapshotSpaceheat",
-    "TelemetrySnapshotSpaceheat_Maker",
+    "ThermistorDataProcessingConfig",
+    "ThermistorDataProcessingConfig_Maker",
 ]

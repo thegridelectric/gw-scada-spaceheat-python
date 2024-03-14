@@ -19,7 +19,7 @@ def add_hubitat(
             ]
         )
     hubitat_alias = f"Hubitat {hubitat.MacAddress[-8:]}"
-    if not db.component_id_by_alias(hubitat_alias):
+    if not db.component_id_by_display_name(hubitat_alias):
         db.add_components(
             [
                 HubitatComponentGt(

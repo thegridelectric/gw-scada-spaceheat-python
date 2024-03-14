@@ -65,7 +65,7 @@ def add_hubitat_poller(
                 ComponentAttributeClassId=db.cac_id_by_type(cac_type),
                 DisplayName=poller.display_name,
                 Poller=HubitatPollerGt(
-                    hubitat_component_id=db.component_id_by_alias(hubitat_alias),
+                    hubitat_component_id=db.component_id_by_display_name(hubitat_alias),
                     device_id=poller.device_id,
                     attributes=[
                         attribute.attribute_gt
@@ -85,7 +85,7 @@ def add_hubitat_poller(
                 ActorClass=ActorClass.HubitatPoller,
                 Role=poller.role,
                 DisplayName=poller.display_name,
-                ComponentId=db.component_id_by_alias(poller.display_name)
+                ComponentId=db.component_id_by_display_name(poller.display_name)
             )
         ] + [
             SpaceheatNodeGt(

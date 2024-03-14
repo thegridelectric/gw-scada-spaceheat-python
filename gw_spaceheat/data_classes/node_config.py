@@ -4,11 +4,13 @@ import importlib.util
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.sh_node import ShNode
+from gwproto.types import ChannelConfig
 from gwtypes import GtSensorReportingConfig_Maker as ConfigMaker
 from enums import Unit
 from enums import MakeModel
 from enums import TelemetryName
 
+from gwproto.data_classes.components.i2c_flow_totalizer_component import I2cFlowTotalizerComponent
 from gwproto.data_classes.components.relay_component import RelayComponent
 from gwproto.data_classes.components.pipe_flow_sensor_component import PipeFlowSensorComponent
 from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
@@ -23,16 +25,13 @@ class NodeConfig:
     def __init__(self, node: ShNode, settings: ScadaSettings):
         self.node = node
         component = node.component
-        self.seconds_per_report = settings.seconds_per_report
         self.reporting = None
         self.driver = None
         self.typical_response_time_ms = 0
         # if isinstance(component, RelayComponent):
         #     self.set_relay_config(component=component, settings=settings)
-        if isinstance(component, SimpleTempSensorComponent):
-            self.set_simple_temp_sensor_config(component=component, settings=settings)
-        elif isinstance(component, PipeFlowSensorComponent):
-            self.set_pipe_flow_sensor_config(component=component, settings=settings)
+        if isinstance(component, I2cFlowTotalizerComponent):
+            self.set_i2c_flow_totalizer_config(component=component)
         if self.reporting is None:
             raise Exception(f"Failed to set reporting config for {node}!")
         if self.driver is None:
@@ -41,10 +40,10 @@ class NodeConfig:
     def __repr__(self):
         return f"Driver: {self.driver}. Reporting: {self.reporting}"
 
-    def set_pipe_flow_sensor_config(self, component: PipeFlowSensorComponent, settings: ScadaSettings):
+    def set_i2c_flow_totalizer_config(self, component: I2cFlowTotalizerComponent):
         cac = component.cac
-        if self.node.reporting_sample_period_s is None:
-            raise Exception(f"Pipe Flow sensor node {self.node} is missing ReportingSamplePeriodS!")
+
+        # data_channels = 
         self.reporting = ConfigMaker(
             report_on_change=False,
             exponent=-2,
