@@ -112,10 +112,10 @@ class HackHpStateCapture:
         
     
     def __str__(self):
-        return (f"State: {self.state}, Hp: {self.hp_pwr_w} W, IDU: {self.idu_pwr_w} W, ODU: {self.odu_pwr_w} W, Pump: {self.primary_pump_pwr_w}, Time: {pendulum.from_timestamp(self.state_start_s).in_tz('EST')}")
+        return (f"State: {self.state}, Hp: {self.hp_pwr_w} W, IDU: {self.idu_pwr_w} W, ODU: {self.odu_pwr_w} W, Pump: {self.primary_pump_pwr_w}, Time: {pendulum.from_timestamp(self.state_start_s).in_tz('America/New_York')}")
 
     def __repr__(self):
-        return (f"State: {self.state}, Hp: {self.hp_pwr_w} W, IDU: {self.idu_pwr_w} W, ODU: {self.odu_pwr_w} W, Pump: {self.primary_pump_pwr_w}, Time: {pendulum.from_timestamp(self.state_start_s).in_tz('EST')}")
+        return (f"State: {self.state}, Hp: {self.hp_pwr_w} W, IDU: {self.idu_pwr_w} W, ODU: {self.odu_pwr_w} W, Pump: {self.primary_pump_pwr_w}, Time: {pendulum.from_timestamp(self.state_start_s).in_tz('America/New_York')}")
 
 class Tank:
     idx: int
@@ -877,7 +877,7 @@ class Atn(ActorInterface, Proactor):
             start_times = []
             for j in range(min(6,len(t))):
                 start_s =  t[j][2]
-                start_times.append(pendulum.from_timestamp(start_s, tz='EST').format('HH:mm'))
+                start_times.append(pendulum.from_timestamp(start_s, tz='America/New_York').format('HH:mm'))
                 minutes = int((until - start_s)/60)
                 if t[j][0] == PumpPowerState.Flow:
                     stat_table.add_column(f"On {minutes}", header_style=hot_style)
@@ -936,7 +936,7 @@ class Atn(ActorInterface, Proactor):
         row_2 = ["Outdoor", odu_pwr_w_str, "x", "Dist", gpm_str[1], pump_pwr_str[1], "Tries"]
         row_3 = ["Indoor", idu_pwr_w_str, "x", "Store", gpm_str[2], pump_pwr_str[2], "PumpPwr"]
         for i in range(extra_cols):
-            row_1.append(f"{pendulum.from_timestamp(self.hack_hp_state_q[i].state_start_s, tz='EST').format('HH:mm')}")
+            row_1.append(f"{pendulum.from_timestamp(self.hack_hp_state_q[i].state_start_s, tz='America/New_York').format('HH:mm')}")
             if (self.hack_hp_state_q[i].state == HackHpState.Idling
                 or self.hack_hp_state_q[i].state == HackHpState.Trying):
                 row_2.append(f"{self.hack_hp_state_q[i].start_attempts}")
@@ -1040,7 +1040,7 @@ class Atn(ActorInterface, Proactor):
             hp_health_comment_2 = ""
             if last_heating is not None:
                 if last_heating.state_end_s:
-                    hp_health_comment_2 += f"Last time heating: {pendulum.from_timestamp(last_heating.state_end_s, tz='EST').format('HH:mm')}. "
+                    hp_health_comment_2 += f"Last time heating: {pendulum.from_timestamp(last_heating.state_end_s, tz='America/New_York').format('HH:mm')}. "
             if hack_hp_state.start_attempts == 1:
                 hp_health_comment_2 += f"1 start attempt."
             elif hack_hp_state.start_attempts > 1:
