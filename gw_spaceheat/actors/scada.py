@@ -144,8 +144,8 @@ class Scada(ScadaInterface, Proactor):
         self._links.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
         self._links.log_subscriptions("construction")
-        self._home_alone = HomeAlone(self.hardware_layout.my_home_alone.alias, self)
-        self.add_communicator(self._home_alone)
+        # self._home_alone = HomeAlone(self.hardware_layout.my_home_alone.alias, self)
+        # self.add_communicator(self._home_alone)
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
@@ -208,14 +208,15 @@ class Scada(ScadaInterface, Proactor):
         status = self._data.make_status(self._last_status_second)
         self._data.status_to_store[status.StatusUid] = status
         self.generate_event(GtShStatusEvent(status=status))
-        self._publish_to_local(self._node, status)
         snapshot = self._data.make_snapshot()
+        self._publish_to_local(self._node, status)
+        self._publish_to_local(self._node, snapshot)
         self.generate_event(SnapshotSpaceheatEvent(snap=snapshot))
-        try:
-            self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
-        except BaseException as e:
-            self._logger.exception(e)
-            raise e
+        # try:
+        #     self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
+        # except BaseException as e:
+        #     self._logger.exception(e)
+        #     raise e
         self._data.flush_latest_readings()
 
     def next_status_second(self) -> int:
