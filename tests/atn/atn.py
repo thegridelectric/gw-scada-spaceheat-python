@@ -677,8 +677,14 @@ class Atn(ActorInterface, Proactor):
 
         return Telemetry(Value=snap.ValueList[idx], Unit=snap.TelemetryNameList[idx])
 
-
     def refresh_ascii_gui(self) -> None:
+        try:
+            self.refresh_ascii_gui_implementation()
+        except Exception as e:
+            self._logger.error(f"ERROR in refresh_ascii_gui")
+            self._logger.exception(e)
+
+    def refresh_ascii_gui_implementation(self) -> None:
         if not self.data.prev_prev_snapshot:
             return
         ignore_alias_list = []
