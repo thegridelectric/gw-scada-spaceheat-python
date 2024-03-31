@@ -252,7 +252,7 @@ class Atn(ActorInterface, Proactor):
         self.hp_lwt_temp_node = self.layout.nodes["a.hp.lwt.temp"]
         self.hp_ewt_temp_node = self.layout.nodes["a.hp.ewt.temp"]
 
-        self.dist_swt_temp_node = self.layout.nodes["a.dist.swt.temp"]
+        self.dist_swt_temp_node = self.layout.nodes["a.dist.fwt.temp"]
         self.dist_rwt_temp_node = self.layout.nodes["a.dist.rwt.temp"]
 
         self.store_hot_pipe_temp_node = self.layout.nodes["a.store.hot.pipe.temp"]
