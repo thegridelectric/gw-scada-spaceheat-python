@@ -267,7 +267,13 @@ class Atn(ActorInterface, Proactor):
                      wall_unit_temp=self.layout.nodes["a.thermostat.downstairs.temp"],
                      gw_temp = self.layout.nodes["stat1.temp"])
         
-        self.stat = {0: stat1}
+        stat2 = Stat(idx=2, 
+                     display_name="Up",
+                     set=self.layout.nodes["a.thermostat.upstairs.set"],
+                     wall_unit_temp=self.layout.nodes["a.thermostat.upstairs.temp"],
+                     gw_temp = self.layout.nodes["stat2.temp"])
+        
+        self.stat = {0: stat1, 1: stat2}
         # from collections import deque
         self.dist_pump_pwr_state_q: Deque[Tuple[PumpPowerState, int, int]] = Deque(maxlen=10)
         self.dist_pump_pwr_state: PumpPowerState = PumpPowerState.NoFlow
@@ -881,26 +887,27 @@ class Atn(ActorInterface, Proactor):
 
         
         # TODO: DISAMBIGUATE HEAT CALLS BETWEEN ZONES WHEN WE HAVE MULTIPLE ZONES
-        j = 0
-        stat0_row = [f"{self.stat[j].display_name}", f"{round(stat_set_f[j],1)}\u00b0F", f"{round(stat_wall_temp_f[j],1)}\u00b0F", f"{round(stat_temp_f[j],1)}\u00b0F"]
-        if len(self.dist_pump_pwr_state_q)> 0:
-            until = int(time.time())
-            t = self.dist_pump_pwr_state_q
-            stat_table.add_column("Heat Call", header_style="bold")
-            start_times = []
-            for j in range(min(6,len(t))):
-                start_s =  t[j][2]
-                start_times.append(pendulum.from_timestamp(start_s, tz='America/New_York').format('HH:mm'))
-                minutes = int((until - start_s)/60)
-                if t[j][0] == PumpPowerState.Flow:
-                    stat_table.add_column(f"On {minutes}", header_style=hot_style)
-                else:
-                    stat_table.add_column(f"Off {minutes}", header_style=cold_style)
-                until = start_s
-            stat0_row.append("Start")
-            stat0_row.extend(start_times)
+        for j in self.stat.keys():
+            stat_row = [f"{self.stat[j].display_name}", f"{round(stat_set_f[j],1)}\u00b0F", f"{round(stat_wall_temp_f[j],1)}\u00b0F", f"{round(stat_temp_f[j],1)}\u00b0F"]
+            if len(self.dist_pump_pwr_state_q)> 0:
+                until = int(time.time())
+                t = self.dist_pump_pwr_state_q
+                stat_table.add_column("Heat Call", header_style="bold")
+                start_times = []
+                for j in range(min(6,len(t))):
+                    start_s =  t[j][2]
+                    start_times.append(pendulum.from_timestamp(start_s, tz='America/New_York').format('HH:mm'))
+                    minutes = int((until - start_s)/60)
+                    if t[j][0] == PumpPowerState.Flow:
+                        stat_table.add_column(f"On {minutes}", header_style=hot_style)
+                    else:
+                        stat_table.add_column(f"Off {minutes}", header_style=cold_style)
+                    until = start_s
+                stat_row.append("Start")
+                stat_row.extend(start_times)
+            stat_table.add_row(*stat_row)
 
-        stat_table.add_row(*stat0_row)
+        
         rich.print(stat_table)
         
         power_table = Table()
