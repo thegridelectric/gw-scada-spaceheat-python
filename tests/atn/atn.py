@@ -1077,7 +1077,7 @@ class Atn(ActorInterface, Proactor):
             {dist_rwt_ansii}Dist RWT\033[0m ┃                           
             {dist_rwt_f_str}  ┃  Emitter \u0394 = {round(dist_swt_f - dist_rwt_f,1)}\u00b0F 
 """) 
-        if  self.store[1].t2.alias in snap.AboutNodeAliasList:
+        if  "tank1.temp.depth2" in snap.AboutNodeAliasList:
             print("NOTE: tank1 depth 2 BACK! Take hack out of code ")
         else:
             print("NOTE: tank1.depth2 is not getting reported by SCADA; replaced w tank1.depth1 above.")
