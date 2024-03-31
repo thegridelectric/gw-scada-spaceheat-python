@@ -280,14 +280,12 @@ class Atn(ActorInterface, Proactor):
                       t4 = self.layout.nodes["buffer.temp.depth4"],
                       is_buffer = True
                       )
-        tank1_depth2_name = "tank1.temp.depth2"
-        if "tank1.temp.depth2" not in self.layout.nodes:
-            tank1_depth2_name = "tank1.temp.depth1"
+
             
 
         self.store = {1: Tank(idx=1,
                       t1 = self.layout.nodes["tank1.temp.depth1"],
-                      t2 = self.layout.nodes[tank1_depth2_name], # TODO: change back to depth2
+                      t2 = self.layout.nodes["tank1.temp.depth1"], # TODO: change back to depth2
                       t3 = self.layout.nodes["tank1.temp.depth3"],
                       t4 = self.layout.nodes["tank1.temp.depth4"],
                       is_buffer = False
@@ -750,7 +748,11 @@ class Atn(ActorInterface, Proactor):
 
         for j in [1,2,3]:
             store_temp_idx[1][j] = snap.AboutNodeAliasList.index(self.store[j].t1.alias)
-            store_temp_idx[2][j] = snap.AboutNodeAliasList.index(self.store[j].t2.alias)
+            # TODO: remove tank1 depth 2 hack
+            if j == 1 and self.store[1].t2.alias not in snap.AboutNodeAliasList:
+                store_temp_idx[2][1] = snap.AboutNodeAliasList.index(self.store[1].t1.alias)
+            else:
+                store_temp_idx[2][j] = snap.AboutNodeAliasList.index(self.store[j].t2.alias)
             store_temp_idx[3][j] = snap.AboutNodeAliasList.index(self.store[j].t3.alias)
             store_temp_idx[4][j] = snap.AboutNodeAliasList.index(self.store[j].t4.alias)
 
@@ -1075,5 +1077,7 @@ class Atn(ActorInterface, Proactor):
             {dist_rwt_ansii}Dist RWT\033[0m ┃                           
             {dist_rwt_f_str}  ┃  Emitter \u0394 = {round(dist_swt_f - dist_rwt_f,1)}\u00b0F 
 """) 
-        if  self.store[1].t2 == self.layout.nodes["tank1.temp.depth1"]:
-            print("NOTE: tank1 depth 2 MISSING; reporting now as tank1.temp.depth1")
+        if  self.store[1].t2.alias in snap.AboutNodeAliasList:
+            print("NOTE: tank1 depth 2 BACK! Take hack out of code ")
+        else:
+            print("NOTE: tank1.depth2 is not getting reported by SCADA; replaced w tank1.depth1 above.")
