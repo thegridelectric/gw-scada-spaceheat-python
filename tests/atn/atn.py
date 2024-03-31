@@ -280,9 +280,14 @@ class Atn(ActorInterface, Proactor):
                       t4 = self.layout.nodes["buffer.temp.depth4"],
                       is_buffer = True
                       )
+        tank1_depth2_name = "tank1.temp.depth2"
+        if "tank1.temp.depth2" not in self.layout.nodes:
+            tank1_depth2_name = "tank1.temp.depth1"
+            
+
         self.store = {1: Tank(idx=1,
                       t1 = self.layout.nodes["tank1.temp.depth1"],
-                      t2 = self.layout.nodes["tank1.temp.depth2"],
+                      t2 = self.layout.nodes[tank1_depth2_name], # TODO: change back to depth2
                       t3 = self.layout.nodes["tank1.temp.depth3"],
                       t4 = self.layout.nodes["tank1.temp.depth4"],
                       is_buffer = False
@@ -1070,3 +1075,5 @@ class Atn(ActorInterface, Proactor):
             {dist_rwt_ansii}Dist RWT\033[0m ┃                           
             {dist_rwt_f_str}  ┃  Emitter \u0394 = {round(dist_swt_f - dist_rwt_f,1)}\u00b0F 
 """) 
+        if  self.store[1].t2 == self.layout.nodes["tank1.temp.depth1"]:
+            print("NOTE: tank1 depth 2 MISSING; reporting now as tank1.temp.depth1")
