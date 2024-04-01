@@ -1,6 +1,5 @@
 -r base.in
 -r test.in
-ipython
 pip-tools
 isort
 gridworks-proactor[tests]>=0.3.5

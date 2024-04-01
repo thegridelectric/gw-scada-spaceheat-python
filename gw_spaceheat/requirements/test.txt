@@ -146,8 +146,6 @@ mypy-extensions==0.4.3
     # via
     #   black
     #   mypy
-nose==1.3.7
-    # via -r requirements/test.in
 ownca==0.4.0
     # via gridworks-cert
 packaging==21.3
