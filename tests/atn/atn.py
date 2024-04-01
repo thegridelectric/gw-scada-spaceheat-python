@@ -886,13 +886,17 @@ class Atn(ActorInterface, Proactor):
         stat_table.add_column("GW Temp", header_style="bold")
 
         if len(self.dist_pump_pwr_state_q)> 0:
+            until = int(time.time())
             t = self.dist_pump_pwr_state_q
             stat_table.add_column("Heat Call", header_style="bold")
             for j in range(min(6,len(t))):
+                start_s =  t[j][2]
+                minutes = int((until - start_s)/60)
                 if t[j][0] == PumpPowerState.Flow:
                     stat_table.add_column(f"On {minutes}", header_style=hot_style)
                 else:
                     stat_table.add_column(f"Off {minutes}", header_style=cold_style)
+                until = start_s
 
         
         # TODO: DISAMBIGUATE HEAT CALLS BETWEEN ZONES WHEN WE HAVE MULTIPLE ZONES
