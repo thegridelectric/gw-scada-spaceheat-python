@@ -2,5 +2,5 @@ pytest
 coverage
 mypy
 black
-gridworks-proactor[tests] >=0.4.0
+gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git
 pytest-asyncio
