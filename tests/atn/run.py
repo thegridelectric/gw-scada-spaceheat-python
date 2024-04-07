@@ -25,7 +25,7 @@ except ImportError as e:
     )
 
 
-def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn":
+def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True, is_oak: bool = False) -> "Atn":
     if argv is None:
         argv = sys.argv[1:]
     args = parse_args(argv)
@@ -48,7 +48,7 @@ def get_atn(argv: Optional[Sequence[str]] = None, start: bool = True) -> "Atn":
     rich.print(settings)
     check_tls_paths_present(settings)
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    a = Atn("a", settings, layout)
+    a = Atn("a", settings, layout, is_oak)
     if start:
         a.start()
     return a
