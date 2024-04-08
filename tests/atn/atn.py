@@ -1159,8 +1159,8 @@ class Atn(ActorInterface, Proactor):
 """) 
 
 
-
-        if (not self.is_oak) and  "tank1.temp.depth2" in snap.AboutNodeAliasList:
-            print("NOTE: tank1 depth 2 BACK! Take hack out of code ")
-        else:
-            print("NOTE: tank1.depth2 is not getting reported by SCADA; replaced w tank1.depth1 above.")
+        if not self.is_oak:
+            if "tank1.temp.depth2" in snap.AboutNodeAliasList:
+                print("NOTE: tank1 depth 2 BACK! Take hack out of code ")
+            else:
+                print("NOTE: tank1.depth2 is not getting reported by SCADA; replaced w tank1.depth1 above.")
