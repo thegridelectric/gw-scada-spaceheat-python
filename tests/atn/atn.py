@@ -245,12 +245,12 @@ class Atn(ActorInterface, Proactor):
             self.store_discharge_flow_node,
         ]
         self.fastpath_pwr_w: int = 0
-        self.hp_indoor_power_node = self.layout.nodes["a.m.hp.indoor.power"]
-        self.hp_outdoor_power_node = self.layout.nodes["a.m.hp.outdoor.power"]
+        self.hp_indoor_power_node = self.layout.nodes["hp.indoor.power"]
+        self.hp_outdoor_power_node = self.layout.nodes["hp.outdoor.power"]
         self.primary_pump_power_node = self.layout.nodes["primary.pump.power"]
-        self.store_pump_power_node = self.layout.nodes["a.m.store.pump.power"]
-        self.dist_pump_power_node = self.layout.nodes["a.m.dist.pump.power"]
-        self.oil_pump_power_node = self.layout.nodes["a.m.oil.boiler.power"]
+        self.store_pump_power_node = self.layout.nodes["store.pump.power"]
+        self.dist_pump_power_node = self.layout.nodes["dist.pump.power"]
+        self.oil_pump_power_node = self.layout.nodes["oil.boiler.power"]
 
         self.hp_lwt_temp_node = self.layout.nodes["a.hp.lwt.temp"]
         self.hp_ewt_temp_node = self.layout.nodes["a.hp.ewt.temp"]
