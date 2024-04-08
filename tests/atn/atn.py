@@ -205,7 +205,6 @@ class Atn(ActorInterface, Proactor):
         name: str,
         settings: AtnSettings,
         hardware_layout: HardwareLayout,
-        is_oak: bool = False
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self.my_sensors = list(
@@ -220,7 +219,13 @@ class Atn(ActorInterface, Proactor):
                 list(self.layout.nodes.values()),
             )
         )
-        self.is_oak = is_oak
+        atn_alias = self.layout.atn_g_node_alias
+        short_name = atn_alias.split(".")[-1]
+        if short_name == "oak":
+            self.is_oak = True
+        else:
+            self.is_oak = False
+        
         self.my_relays = list(
             filter(lambda x: x.role == Role.BooleanActuator, list(self.layout.nodes.values()))
         )
@@ -1139,7 +1144,9 @@ class Atn(ActorInterface, Proactor):
             elif hack_hp_state.start_attempts > 1:
                 hp_health_comment_2 += f"{hack_hp_state.start_attempts} start attempts."
 
-        print(f"""
+        atn_alias = self.layout.atn_g_node_alias
+        short_name = atn_alias.split(".")[-1]
+        print(f"""{short_name}:
                                  {hp_lwt_ansii}HP LWT\033[0m   ┏━━━━━┓   {hp_health_comment_1}
                                ┏━{hp_lwt_f_str}━━┃ HP  ┃   {hp_health_comment_2}
   {buffer_hot_ansii}Buff Hot\033[0m ━━┓                 ┃    ┏─────┃     ┃   Lift: {round(hp_lwt_f - hp_ewt_f,1)}\u00b0F
@@ -1157,7 +1164,6 @@ class Atn(ActorInterface, Proactor):
             {dist_rwt_ansii}Dist RWT\033[0m ┃                           
             {dist_rwt_f_str}  ┃  Emitter \u0394 = {round(dist_swt_f - dist_rwt_f,1)}\u00b0F 
 """) 
-
 
         if not self.is_oak:
             if "tank1.temp.depth2" in snap.AboutNodeAliasList:
