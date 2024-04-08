@@ -835,9 +835,9 @@ class Atn(ActorInterface, Proactor):
         stat_set_idx = {}
         stat_wall_temp_idx = {}
         stat_temp_idx = {}
-        stat_set_f = []
-        stat_wall_temp_f = []
-        stat_temp_f = []
+        stat_set_f = {}
+        stat_wall_temp_f = {}
+        stat_temp_f = {}
         for j in self.stat.keys():
             if self.stat[j].gw_temp is not None:
                 stat_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].gw_temp.alias)
@@ -845,17 +845,17 @@ class Atn(ActorInterface, Proactor):
                 if snap.TelemetryNameList[stat_temp_idx[j]] != TelemetryName.AirTempCTimes1000:
                     raise Exception(f"Wrong TelemetryName for {self.stat[1].gw_temp.alias}. Use AirTempCTimes1000")
                 stat_temp_centigrade = snap.ValueList[stat_temp_idx[j]] / 1000
-                stat_temp_f.append((stat_temp_centigrade  * 9/5) + 32)
+                stat_temp_f[j] = (stat_temp_centigrade  * 9/5) + 32
 
             stat_set_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].set.alias)
             ignore_alias_list.append(stat_set_idx[j])
-            stat_set_f.append(snap.ValueList[stat_set_idx[j]] / 1000)
+            stat_set_f[j] = snap.ValueList[stat_set_idx[j]] / 1000
             if snap.TelemetryNameList[stat_set_idx[j]] != TelemetryName.AirTempFTimes1000:
                 raise Exception(f"Wrong TelemetryName for {self.stat[1].set.alias}. Use AirTempFTimes1000")
             
             stat_wall_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].wall_unit_temp.alias)
             ignore_alias_list.append(stat_wall_temp_idx[j])
-            stat_wall_temp_f.append(snap.ValueList[stat_wall_temp_idx[j]] / 1000)
+            stat_wall_temp_f[j] = snap.ValueList[stat_wall_temp_idx[j]] / 1000
             if snap.TelemetryNameList[stat_wall_temp_idx[j]] != TelemetryName.AirTempFTimes1000:
                 raise Exception(f"Wrong TelemetryName for {self.stat[1].wall_unit_temp.alias}. Use AirTempFTimes1000")
 
