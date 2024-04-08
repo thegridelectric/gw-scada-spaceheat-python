@@ -48,6 +48,7 @@ from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import GsPwr_Maker
 from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat_Maker
+from gwproto.types import TelemetrySnapshotSpaceheat
 
 from gwproactor import ActorInterface
 from gwproactor import QOS
@@ -141,7 +142,7 @@ class Stat:
     display_name: str
     set: ShNode
     wall_unit_temp: ShNode
-    gw_temp: ShNode
+    gw_temp: Optional[ShNode] = None
 
     def __init__(
             self, idx, display_name, set, wall_unit_temp, gw_temp
@@ -237,7 +238,7 @@ class Atn(ActorInterface, Proactor):
 
         self.store_discharge_flow_node = self.layout.nodes["store.discharge.flow"]
         self.dist_flow_node = self.layout.nodes["dist.flow"]
-        self.primary_flow_node = self.layout.nodes["heatpump.flow"]
+        self.primary_flow_node = self.layout.nodes["primary.flow"]
         self.flow_nodes = [
             self.primary_flow_node,
             self.dist_flow_node,
@@ -263,19 +264,8 @@ class Atn(ActorInterface, Proactor):
         self.buffer_hot_pipe_temp_node = self.layout.nodes["a.buffer.hot.pipe.temp"]
         self.buffer_cold_pipe_temp_node = self.layout.nodes["a.buffer.cold.pipe.temp"]
 
-        stat1 = Stat(idx=1, 
-                     display_name="Down",
-                     set=self.layout.nodes["a.thermostat.downstairs.set"],
-                     wall_unit_temp=self.layout.nodes["a.thermostat.downstairs.temp"],
-                     gw_temp = self.layout.nodes["stat1.temp"])
-        
-        stat2 = Stat(idx=2, 
-                     display_name="Up",
-                     set=self.layout.nodes["a.thermostat.upstairs.set"],
-                     wall_unit_temp=self.layout.nodes["a.thermostat.upstairs.temp"],
-                     gw_temp = self.layout.nodes["stat2.temp"])
-        
-        self.stat = {0: stat1, 1: stat2}
+        self.initialize_stats()
+
         # from collections import deque
         self.dist_pump_pwr_state_q: Deque[Tuple[PumpPowerState, int, int]] = Deque(maxlen=10)
         self.dist_pump_pwr_state: PumpPowerState = PumpPowerState.NoFlow
@@ -313,6 +303,41 @@ class Atn(ActorInterface, Proactor):
                       is_buffer = False
                       )
         }
+
+    def initialize_stats(self):
+        self.stat = {}   
+        if self.is_oak:
+            self.stat = {
+                1: Stat(idx=1, 
+                        display_name="Living Rm",
+                        set=self.layout.nodes["livingrm.set"],
+                        wall_unit_temp=self.layout.nodes["livingrm.temp"]),
+                2: Stat(idx=2, 
+                        display_name="Garage",
+                        set=self.layout.nodes["garage.set"],
+                        wall_unit_temp=self.layout.nodes["garage.temp"]),
+                3: Stat(idx=3, 
+                        display_name="Gear Room",
+                        set=self.layout.nodes["gear.set"],
+                        wall_unit_temp=self.layout.nodes["gear.temp"]),
+                4: Stat(idx=4, 
+                        display_name="Upstairs",
+                        set=self.layout.nodes["upstairs.set"],
+                        wall_unit_temp=self.layout.nodes["upstairs.temp"]),
+            } 
+        else:
+            self.stat = {
+                1: Stat(idx=1, 
+                        display_name="Living Rm",
+                        set=self.layout.nodes["a.thermostat.downstairs.set"],
+                        wall_unit_temp=self.layout.nodes["a.thermostat.downstairs.temp"],
+                        gw_temp = self.layout.nodes["stat1.temp"]),
+                2: Stat(idx=2, 
+                        display_name="Up",
+                        set=self.layout.nodes["a.thermostat.upstairs.set"],
+                        wall_unit_temp=self.layout.nodes["a.thermostat.upstairs.temp"],
+                        gw_temp = self.layout.nodes["stat2.temp"])
+            }
 
 
     @property
@@ -688,6 +713,7 @@ class Atn(ActorInterface, Proactor):
 
         return Telemetry(Value=snap.ValueList[idx], Unit=snap.TelemetryNameList[idx])
 
+
     def refresh_ascii_gui(self) -> None:
         try:
             self.refresh_ascii_gui_implementation()
@@ -809,26 +835,27 @@ class Atn(ActorInterface, Proactor):
         stat_set_f = []
         stat_wall_temp_f = []
         stat_temp_f = []
-        for j in range(len(self.stat)):
+        for j in self.stat.keys():
+            if self.stat[j].gw_temp is not None:
+                stat_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].gw_temp.alias)
+                ignore_alias_list.append(stat_temp_idx[j])
+                if snap.TelemetryNameList[stat_temp_idx[j]] != TelemetryName.AirTempCTimes1000:
+                    raise Exception(f"Wrong TelemetryName for {self.stat[1].gw_temp.alias}. Use AirTempCTimes1000")
+                stat_temp_centigrade = snap.ValueList[stat_temp_idx[j]] / 1000
+                stat_temp_f.append((stat_temp_centigrade  * 9/5) + 32)
+
             stat_set_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].set.alias)
             ignore_alias_list.append(stat_set_idx[j])
-            stat_wall_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].wall_unit_temp.alias)
-            ignore_alias_list.append(stat_wall_temp_idx[j])
-            stat_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].gw_temp.alias)
-            ignore_alias_list.append(stat_temp_idx[j])
-
+            stat_set_f.append(snap.ValueList[stat_set_idx[j]] / 1000)
             if snap.TelemetryNameList[stat_set_idx[j]] != TelemetryName.AirTempFTimes1000:
                 raise Exception(f"Wrong TelemetryName for {self.stat[1].set.alias}. Use AirTempFTimes1000")
+            
+            stat_wall_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].wall_unit_temp.alias)
+            ignore_alias_list.append(stat_wall_temp_idx[j])
+            stat_wall_temp_f.append(snap.ValueList[stat_wall_temp_idx[j]] / 1000)
             if snap.TelemetryNameList[stat_wall_temp_idx[j]] != TelemetryName.AirTempFTimes1000:
                 raise Exception(f"Wrong TelemetryName for {self.stat[1].wall_unit_temp.alias}. Use AirTempFTimes1000")
-            if snap.TelemetryNameList[stat_temp_idx[j]] != TelemetryName.AirTempCTimes1000:
-                raise Exception(f"Wrong TelemetryName for {self.stat[1].gw_temp.alias}. Use AirTempCTimes1000")
-            
-            stat_set_f.append(snap.ValueList[stat_set_idx[j]] / 1000)
-            stat_wall_temp_f.append(snap.ValueList[stat_wall_temp_idx[j]] / 1000)
-            stat_temp_centigrade = snap.ValueList[stat_temp_idx[j]] / 1000
-            stat_temp_f.append((stat_temp_centigrade  * 9/5) + 32)
-            
+
 
         if snap.TelemetryNameList[hp_lwt_idx] != TelemetryName.WaterTempCTimes1000:
             raise Exception("Wrong TelemetryName for hp lwt")
