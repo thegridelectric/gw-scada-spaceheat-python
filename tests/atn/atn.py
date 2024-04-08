@@ -963,7 +963,10 @@ class Atn(ActorInterface, Proactor):
         
         # TODO: DISAMBIGUATE HEAT CALLS BETWEEN ZONES WHEN WE HAVE MULTIPLE ZONES
         for j in self.stat.keys():
-            stat_row = [f"{self.stat[j].display_name}", f"{round(stat_set_f[j],1)}\u00b0F", f"{round(stat_wall_temp_f[j],1)}\u00b0F", f"{round(stat_temp_f[j],1)}\u00b0F"]
+            if j in stat_temp_f.keys():
+                stat_row = [f"{self.stat[j].display_name}", f"{round(stat_set_f[j],1)}\u00b0F", f"{round(stat_wall_temp_f[j],1)}\u00b0F", f"{round(stat_temp_f[j],1)}\u00b0F"]
+            else:
+                stat_row = [f"{self.stat[j].display_name}", f"{round(stat_set_f[j],1)}\u00b0F", f"{round(stat_wall_temp_f[j],1)}\u00b0F", f"NA"]
             if len(self.dist_pump_pwr_state_q)> 0:
                 until = int(time.time())
                 t = self.dist_pump_pwr_state_q
