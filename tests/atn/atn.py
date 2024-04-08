@@ -278,10 +278,9 @@ class Atn(ActorInterface, Proactor):
                       t4 = self.layout.nodes["buffer.temp.depth4"],
                       is_buffer = True
                       )
-
             
-
-        self.store = {1: Tank(idx=1,
+        if self.is_oak:
+            self.store = {1: Tank(idx=1,
                       t1 = self.layout.nodes["tank1.temp.depth1"],
                       t2 = self.layout.nodes["tank1.temp.depth2"],
                       t3 = self.layout.nodes["tank1.temp.depth3"],
@@ -289,10 +288,10 @@ class Atn(ActorInterface, Proactor):
                       is_buffer = False
                       ),
                     2: Tank(idx=1,
-                      t1 = self.layout.nodes["tank2.temp.depth1"],
-                      t2 = self.layout.nodes["tank2.temp.depth2"],
-                      t3 = self.layout.nodes["tank2.temp.depth3"],
-                      t4 = self.layout.nodes["tank2.temp.depth4"],
+                      t1 = self.layout.nodes["tank1.temp.depth1"], # oak tank 2 hack
+                      t2 = self.layout.nodes["tank1.temp.depth2"],
+                      t3 = self.layout.nodes["tank1.temp.depth3"],
+                      t4 = self.layout.nodes["tank1.temp.depth4"],
                       is_buffer = False
                       ),
                     3: Tank(idx=1,
@@ -303,6 +302,29 @@ class Atn(ActorInterface, Proactor):
                       is_buffer = False
                       )
         }
+        else:
+            self.store = {1: Tank(idx=1,
+                        t1 = self.layout.nodes["tank1.temp.depth1"],
+                        t2 = self.layout.nodes["tank1.temp.depth1"], # beech temp 2 hack
+                        t3 = self.layout.nodes["tank1.temp.depth3"],
+                        t4 = self.layout.nodes["tank1.temp.depth4"],
+                        is_buffer = False
+                        ),
+                        2: Tank(idx=1,
+                        t1 = self.layout.nodes["tank2.temp.depth1"],
+                        t2 = self.layout.nodes["tank2.temp.depth2"],
+                        t3 = self.layout.nodes["tank2.temp.depth3"],
+                        t4 = self.layout.nodes["tank2.temp.depth4"],
+                        is_buffer = False
+                        ),
+                        3: Tank(idx=1,
+                        t1 = self.layout.nodes["tank3.temp.depth1"],
+                        t2 = self.layout.nodes["tank3.temp.depth2"],
+                        t3 = self.layout.nodes["tank3.temp.depth3"],
+                        t4 = self.layout.nodes["tank3.temp.depth4"],
+                        is_buffer = False
+                        )
+            }
 
     def initialize_stats(self):
         self.stat = {}   
