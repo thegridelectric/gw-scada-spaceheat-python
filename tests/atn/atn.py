@@ -768,7 +768,10 @@ class Atn(ActorInterface, Proactor):
 
         for j in [0,1,2]:
             flow_node = self.flow_nodes[j]
-            idx = snap.AboutNodeAliasList.index(flow_node.alias)
+            try:
+                idx = snap.AboutNodeAliasList.index(flow_node.alias)
+            except:
+                idx = "NA"
             # ignore_alias_list.append(idx)
     
         odu_idx = snap.AboutNodeAliasList.index(self.hp_outdoor_power_node.alias)
@@ -1003,21 +1006,24 @@ class Atn(ActorInterface, Proactor):
         pump_pwr_str = {}
         gpm_str = {}
         for j in [0,1,2]:
-            flow_node = self.flow_nodes[j]
-            idx = snap.AboutNodeAliasList.index(flow_node.alias)
-            if snap.TelemetryNameList[idx] != TelemetryName.GallonsTimes100:
-                raise Exception('Error in units. Expect TelemetryName.GallonsTimes100')
-            delta_gallons = (snap.ValueList[idx] - prev_prev_snap.ValueList[idx] )/ 100
-            delta_min = (snap.ReportTimeUnixMs  - prev_prev_snap.ReportTimeUnixMs)/ 60_000
-            speed = delta_gallons / delta_min
             if pump_pwr_value[j] < PUMP_OFF_THRESHOLD:
                 pump_pwr_str[j]  = "OFF"
             else:
                 pump_pwr_str[j] = f"{round(pump_pwr_value[j],2)}"
-            if speed > 20:
-                gpm_str[j] = "BAD"
-            else:
-                gpm_str[j] = f"{round(speed,1)}"
+            flow_node = self.flow_nodes[j]
+            try:
+                idx = snap.AboutNodeAliasList.index(flow_node.alias)
+                if snap.TelemetryNameList[idx] != TelemetryName.GallonsTimes100:
+                    raise Exception('Error in units. Expect TelemetryName.GallonsTimes100')
+                delta_gallons = (snap.ValueList[idx] - prev_prev_snap.ValueList[idx] )/ 100
+                delta_min = (snap.ReportTimeUnixMs  - prev_prev_snap.ReportTimeUnixMs)/ 60_000
+                speed = delta_gallons / delta_min
+                if speed > 20:
+                    gpm_str[j] = "BAD"
+                else:
+                    gpm_str[j] = f"{round(speed,1)}"
+            except:
+                gpm_str[j] = "NA"
             
         row_1 = ["Hp Total", hp_pwr_w_str, "x", "Primary", gpm_str[0], pump_pwr_str[0], "Started"]
         row_2 = ["Outdoor", odu_pwr_w_str, "x", "Dist", gpm_str[1], pump_pwr_str[1], "Tries"]
