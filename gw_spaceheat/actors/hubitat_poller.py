@@ -1,5 +1,7 @@
+import functools
 import time
 from typing import Optional
+from typing import Sequence
 
 from aiohttp import ClientResponse
 from aiohttp import ClientSession
@@ -8,88 +10,23 @@ from gwproactor import Problems
 from gwproactor import ServicesInterface
 from gwproactor.actors.rest import RESTPoller
 from gwproto import Message
+from gwproto.data_classes.components.hubitat_component import HubitatComponent
 from gwproto.data_classes.components.hubitat_poller_component import HubitatPollerComponent
 from gwproto.type_helpers import MakerAPIAttributeGt
-from pydantic import BaseModel
-from pydantic import Extra
 from result import Err
 from result import Ok
 from result import Result
 
+from actors.hubitat_interface import default_float_converter
+from actors.hubitat_interface import HubitatAttributeConvertFailure
+from actors.hubitat_interface import HubitatAttributeMissing
+from actors.hubitat_interface import HubitatWebEventHandler
+from actors.hubitat_interface import HubitatWebEventListenerInterface
+from actors.hubitat_interface import HubitatWebServerInterface
+from actors.hubitat_interface import MakerAPIRefreshResponse
+from actors.hubitat_interface import ValueConverter
 from actors.message import MultipurposeSensorTelemetryMessage
-from drivers.exceptions import DriverWarning
 
-
-class HubitatAttributeWarning(DriverWarning):
-    """An expected attribute was missing from a Hubitat refresh response"""
-
-    node_name: str
-    attribute_name: str
-
-    def __init__(
-            self,
-            node_name: str,
-            attribute_name: str,
-            msg: str = "",
-    ):
-        super().__init__(msg)
-        self.node_name = node_name
-        self.attribute_name = attribute_name
-
-    def __str__(self):
-        s = self.__class__.__name__
-        super_str = super().__str__()
-        if super_str:
-            s += f" <{super_str}>"
-        s += (
-            f" Attribute: <{self.attribute_name}> "
-            f" Node: <{self.node_name}>"
-        )
-        return s
-
-class HubitatAttributeMissing(HubitatAttributeWarning):
-    """An expected attribute was missing from a Hubitat refresh response"""
-
-    def __str__(self):
-        return "Missing Attribute  " + super().__str__()
-
-class HubitatAttributeConvertFailure(HubitatAttributeWarning):
-    """An expected attribute was missing from a Hubitat refresh response"""
-
-    received: Optional[str | int | float]
-
-    def __init__(
-            self,
-            node_name: str,
-            attribute_name: str,
-            received: Optional[str | int | float],
-            msg: str = "",
-    ):
-        super().__init__(
-            node_name=node_name,
-            attribute_name=attribute_name,
-            msg=msg
-        )
-        self.received = received
-
-    def __str__(self):
-        return "Convert failure Attribute  received: {}" + super().__str__()
-
-
-class MakerAPIAttribute(BaseModel, extra=Extra.allow):
-    name: str = ""
-    currentValue: Optional[str | int | float] = None
-    dataType: str = ""
-
-class MakerAPIRefreshResponse(BaseModel, extra=Extra.allow):
-    id: int
-    name: str = ""
-    label: str = ""
-    type: str = ""
-    attributes: list[MakerAPIAttribute]
-
-    def get_attribute_by_name(self, name: str) -> Optional[MakerAPIAttribute]:
-        return next((attr for attr in self.attributes if attr.name == name), None)
 
 
 class HubitatRESTPoller(RESTPoller):
@@ -97,12 +34,13 @@ class HubitatRESTPoller(RESTPoller):
     _last_read_time: float
     _report_dst: str
     _component: HubitatPollerComponent
+    _value_converters: dict[str, ValueConverter]
 
     def __init__(
             self,
             name: str,
             component: HubitatPollerComponent,
-            services: ServicesInterface
+            services: ServicesInterface,
     ):
         self._report_dst = services.name
         self._component = component
@@ -110,9 +48,13 @@ class HubitatRESTPoller(RESTPoller):
             name,
             self._component.rest,
             services.io_loop_manager,
-            convert=self._converter,
+            convert=self._hubitat_response_converter,
             forward=services.send_threadsafe,
         )
+        self._value_converters = dict()
+
+    def set_value_converters(self, converters: dict[str, ValueConverter]):
+        self._value_converters = dict(converters)
 
     async def _make_request(self, session: ClientSession) -> Optional[ClientResponse]:
         """"We assume a refresh sent to hubitat returns the value of the *last* refresh,
@@ -131,34 +73,28 @@ class HubitatRESTPoller(RESTPoller):
         cls,
         config_attribute: MakerAPIAttributeGt,
         response: MakerAPIRefreshResponse,
+        converter: ValueConverter,
     ) -> Result[Optional[int], BaseException]:
-        if config_attribute.enabled:
-            response_attribute = response.get_attribute_by_name(
-                config_attribute.attribute_name
-            )
-            if response_attribute is None:
-                if config_attribute.report_missing:
-                    return Err(HubitatAttributeMissing(
-                        config_attribute.node_name,
-                        config_attribute.attribute_name
-                    ))
-            try:
-                return Ok(
-                    int(
-                        float(response_attribute.currentValue)*
-                        pow(10, config_attribute.exponent)
-                    )
-                )
-            except BaseException as e:
-                return Err(HubitatAttributeConvertFailure(
+        response_attribute = response.get_attribute_by_name(
+            config_attribute.attribute_name
+        )
+        if response_attribute is None:
+            if config_attribute.report_missing:
+                return Err(HubitatAttributeMissing(
                     config_attribute.node_name,
-                    config_attribute.attribute_name,
-                    response_attribute.currentValue,
-                    str(e)
+                    config_attribute.attribute_name
                 ))
-        return Ok(None)
+        try:
+            return Ok(converter(response_attribute.currentValue))
+        except BaseException as e:
+            return Err(HubitatAttributeConvertFailure(
+                config_attribute.node_name,
+                config_attribute.attribute_name,
+                response_attribute.currentValue,
+                str(e)
+            ))
 
-    async def _converter(self, response: ClientResponse) -> Optional[Message]:
+    async def _hubitat_response_converter(self, response: ClientResponse) -> Optional[Message]:
         try:
             response = MakerAPIRefreshResponse(
                 **await response.json(content_type=None)
@@ -168,15 +104,21 @@ class HubitatRESTPoller(RESTPoller):
             telemetry_names = []
             warnings = []
             for config_attribute in self._component.poller_gt.attributes:
-                convert_result = self._convert_attribute(
-                    config_attribute, response
-                )
-                if convert_result.ok():
-                    about_nodes.append(config_attribute.node_name)
-                    values.append(convert_result.value)
-                    telemetry_names.append(config_attribute.telemetry_name)
-                else:
-                    warnings.append(convert_result.err())
+                if (config_attribute.enabled and
+                    config_attribute.web_poll_enabled and
+                    config_attribute.attribute_name in self._value_converters
+                ):
+                    convert_result = self._convert_attribute(
+                        config_attribute,
+                        response,
+                        self._value_converters[config_attribute.attribute_name],
+                    )
+                    if convert_result.ok():
+                        about_nodes.append(config_attribute.node_name)
+                        values.append(convert_result.value)
+                        telemetry_names.append(config_attribute.telemetry_name)
+                    else:
+                        warnings.append(convert_result.err())
             if values:
                 return MultipurposeSensorTelemetryMessage(
                     src=self._name,
@@ -207,10 +149,11 @@ class HubitatRESTPoller(RESTPoller):
             )
         return None
 
-class HubitatPoller(Actor):
+class HubitatPoller(Actor, HubitatWebEventListenerInterface):
 
     _component: HubitatPollerComponent
     _poller: HubitatRESTPoller
+    _web_event_handlers: list[HubitatWebEventHandler]
 
     def __init__(
         self,
@@ -224,7 +167,7 @@ class HubitatPoller(Actor):
             )
             raise ValueError(
                 f"ERROR. Component <{display_name}> has type {type(component)}. "
-                f"Expected HubitatTankComponent.\n"
+                f"Expected HubitatPollerComponent.\n"
                 f"  Node: {self.name}\n"
                 f"  Component id: {component.component_id}"
             )
@@ -236,6 +179,72 @@ class HubitatPoller(Actor):
                 component=component,
                 services=services,
             )
+        self._web_event_handlers = []
+
+    def init(self):
+        """Iterate over configured attributes, create value converters for them and
+        assign them to poller and hubitat web server per configuration.
+
+        This is called outside the constructor so that the derived class can control
+        creation non-numerical attribute converters by overloading
+        _make_non_numerical_value_converter()
+        """
+        poll_value_converters = dict()
+        handlers = []
+        if self._component.poller_gt.enabled:
+            for attribute in self._component.poller_gt.attributes:
+                if attribute.enabled:
+                    if (converter := self._make_value_converter(attribute)) is not None:
+                        if attribute.web_poll_enabled:
+                            poll_value_converters[attribute.attribute_name] = converter
+                        if attribute.web_listen_enabled:
+                            handlers.append(
+                                HubitatWebEventHandler(
+                                    device_id=self._component.poller_gt.device_id,
+                                    event_name=attribute.attribute_name,
+                                    report_src_node_name=self.name,
+                                    about_node_name=attribute.node_name,
+                                    telemetry_name=attribute.telemetry_name,
+                                    value_converter=converter,
+                                )
+                            )
+        if poll_value_converters:
+            self._poller.set_value_converters(poll_value_converters)
+        if handlers:
+            self._web_event_handlers = handlers
+            if (hubitat_actor := self.get_hubitat_actor()) is not None:
+                hubitat_actor.add_web_event_handlers(self._web_event_handlers)
+
+    def _make_non_numerical_value_converter(self, attribute: MakerAPIAttributeGt) -> Optional[ValueConverter]: # noqa
+        return None
+
+    def _make_value_converter(self, attribute: MakerAPIAttributeGt) -> Optional[ValueConverter]:
+        if attribute.enabled:
+            if attribute.interpret_as_number:
+                return functools.partial(default_float_converter, exponent=attribute.exponent)
+            else:
+                return self._make_non_numerical_value_converter(attribute)
+        return None
+
+    def get_hubitat_actor(self) -> Optional[HubitatWebServerInterface]:
+        hubitat_actor = None
+        if self._component.poller_gt.web_listen_enabled:
+            hubitat_component = self._services.hardware_layout.get_component_as_type(
+                self._component.poller_gt.hubitat_component_id,
+                HubitatComponent
+            )
+            if hubitat_component is not None:
+                hubitat_actor_node = self._services.hardware_layout.node_from_component(
+                    hubitat_component.component_id
+                )
+                hubitat_actor = self._services.get_communicator_as_type(
+                    hubitat_actor_node.alias,
+                    HubitatWebServerInterface
+                )
+        return hubitat_actor
+
+    def get_hubitat_web_event_handlers(self) -> Sequence[HubitatWebEventHandler]:
+        return self._web_event_handlers
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         raise ValueError("HubitatTankModule does not currently process any messages")

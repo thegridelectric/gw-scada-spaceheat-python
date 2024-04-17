@@ -152,6 +152,10 @@ class Atn(ActorInterface, Proactor):
     def layout(self) -> HardwareLayout:
         return self._layout
 
+    def init(self):
+        """Called after constructor so derived functions can be used in setup."""
+
+
     def _publish_to_scada(self, payload, qos: QOS = QOS.AtMostOnce) -> MQTTMessageInfo:
         return self._links.publish_message(
             Atn.SCADA_MQTT,
