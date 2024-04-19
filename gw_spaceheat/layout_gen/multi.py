@@ -19,8 +19,8 @@ from layout_gen.layout_db import LayoutDb
 
 class SensorNodeGenCfg(BaseModel):
     NodeAlias: str
-    Role: Role
     DisplayName: str
+    Role: "Role" = Role.Unknown
     ReportOnChange: bool = True
     SamplePeriodS: int = 60
     ReportingSamplePeriodS: Optional[int] = None
