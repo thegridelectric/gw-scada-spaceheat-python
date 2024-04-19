@@ -17,10 +17,12 @@ from layout_gen.poller import HubitatThermostatGenCfg
 from layout_gen.tank import FibaroGenCfg
 from layout_gen.tank import TankGenCfg
 from layout_gen.tank import add_tank
+
 __all__ = [
     "add_egauge",
     "add_flow_meter",
     "add_istec_flow_meter",
+    "add_hubitat",
     "add_hubitat_poller",
     "add_hubitat_thermostat",
     "add_tank",
