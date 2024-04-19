@@ -35,7 +35,7 @@ def add_hubitat(
             ]
     )
     if not hubitat_node_alias:
-        hubitat_node_alias = f"a.hubitat.{hubitat.MacAddress[-8:]}".replace(":", "")
+        hubitat_node_alias = f"a.hubitat.{hubitat.MacAddress[-8:]}".replace(":", "").lower()
     if not db.node_id_by_alias(hubitat_node_alias):
         db.add_nodes(
             [

@@ -234,13 +234,14 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
                 HubitatComponent
             )
             if hubitat_component is not None:
-                hubitat_actor_node = self._services.hardware_layout.node_from_component(
+                hubitat_node = self._services.hardware_layout.node_from_component(
                     hubitat_component.component_id
                 )
-                hubitat_actor = self._services.get_communicator_as_type(
-                    hubitat_actor_node.alias,
-                    HubitatWebServerInterface
-                )
+                if hubitat_node is not None:
+                    hubitat_actor = self._services.get_communicator_as_type(
+                        hubitat_node.alias,
+                        HubitatWebServerInterface
+                    )
         return hubitat_actor
 
     def get_hubitat_web_event_handlers(self) -> Sequence[HubitatWebEventHandler]:

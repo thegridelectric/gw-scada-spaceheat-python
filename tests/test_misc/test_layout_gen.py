@@ -177,7 +177,7 @@ def test_hubitat():
         add_stubs=True,
         stub_config=StubConfig(),
     )
-    hubitat_mac_address = "00:00:00:00:00:00"
+    hubitat_mac_address = "00:00:00:0A:BB:cc"
     hubitat_component_id = db.component_id_by_alias(
         add_hubitat(
             db,
@@ -194,7 +194,7 @@ def test_hubitat():
         hubitat_component_id
     )
     assert node is not None
-    assert node.alias == f"a.hubitat.{hubitat_mac_address[-8:].replace(':', '')}"
+    assert node.alias == f"a.hubitat.{hubitat_mac_address[-8:].replace(':', '')}".lower()
     assert node.component_id == hubitat_component_id
     assert node.actor_class == ActorClass.Hubitat
 
