@@ -26,6 +26,7 @@ class HubitatPollerGenCfg(BaseModel):
     role: Role = Role.MultiChannelAnalogTempSensor
     poll_period_seconds: float = 60
     enabled: bool = True
+    actor_class: ActorClass = ActorClass.HubitatPoller
 
     @root_validator
     def _root_validator(cls, values):
@@ -42,6 +43,7 @@ class HubitatThermostatGenCfg(BaseModel):
     device_id: int
     poll_period_seconds: float = 60
     enabled: bool = True
+    actor_class: ActorClass = ActorClass.HoneywellThermostat
 
 def add_hubitat_poller(
     db: LayoutDb,
@@ -82,7 +84,7 @@ def add_hubitat_poller(
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(poller.node_name),
                 Alias=poller.node_name,
-                ActorClass=ActorClass.HubitatPoller,
+                ActorClass=poller.actor_class,
                 Role=poller.role,
                 DisplayName=poller.display_name,
                 ComponentId=db.component_id_by_alias(poller.display_name)
@@ -132,8 +134,19 @@ def add_hubitat_thermostat(
                     display_name=thermostat.display_name + " Heating Set Point",
                     role=Role.Unknown,
                 ),
+                AttributeGenCfg(
+                    attribute_gt=MakerAPIAttributeGt(
+                        attribute_name="thermostatOperatingState",
+                        node_name="state",
+                        telemetry_name_gt_enum_symbol="00002000",
+                        unit_gt_enum_symbol="00003000",
+                    ),
+                    display_name=thermostat.display_name + " Operating State",
+                    role=Role.Unknown,
+                ),
             ],
             poll_period_seconds=thermostat.poll_period_seconds,
             enabled=thermostat.enabled,
+            actor_class=thermostat.actor_class,
         )
     )

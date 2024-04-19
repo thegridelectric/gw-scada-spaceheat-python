@@ -1,11 +1,13 @@
 import functools
+from typing import Optional
 from enum import Enum
 
 from gwproto.types.hubitat_poller_gt import MakerAPIAttributeGt
 
-from actors import HubitatPoller
+from actors.hubitat_poller import HubitatPoller
 from actors.hubitat_interface import default_mapping_converter
 from actors.hubitat_interface import HubitatWebEventListenerInterface
+from actors.hubitat_interface import ValueConverter
 
 class HoneywellThermostatOperatingState(Enum):
     heating = 1
@@ -30,5 +32,5 @@ class HoneywellThermostat(HubitatPoller, HubitatWebEventListenerInterface):
             return functools.partial(
                 default_mapping_converter,
                 mapping=HoneywellThermostatOperatingState.mapping()
-            ),
+            )
         return None
