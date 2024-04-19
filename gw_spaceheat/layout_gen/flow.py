@@ -20,9 +20,13 @@ class FlowMeterGenCfg(BaseModel):
     ConversionFactor: float
     PollPeriodS: float = 5
     ReportingSamplePeriodS: Optional[int] = None
+    DisplayName: Optional[str] = None
 
     def node_display_name(self) -> str:
-        return f"Pipe Flow Meter <{self.NodeAlias}>"
+        if self.DisplayName:
+            return self.DisplayName
+        else:
+            return f"Pipe Flow Meter <{self.NodeAlias}>"
 
     def component_alias(self) -> str:
         return f"Pipe Flow Meter Component <{self.NodeAlias}>"
