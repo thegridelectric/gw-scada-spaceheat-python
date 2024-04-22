@@ -2,5 +2,8 @@
 -r test.in
 pip-tools
 isort
-gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/listen
+gridworks-protocol >=0.7.3
+gridworks-proactor[tests] >=0.4.1
+# gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@SOME_DEV_BRANCH
+# gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@SOME_DEV_BRANCH
 gridworks-cert>=0.4.3

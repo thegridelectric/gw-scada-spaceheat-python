@@ -48,14 +48,15 @@ gridworks-cert==0.4.3
     # via
     #   -r requirements/dev.in
     #   gridworks-proactor
-gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/listen
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git
     # via
     #   -r requirements/base.in
     #   -r requirements/dev.in
     #   -r requirements/test.in
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/listen
+gridworks-protocol==0.7.3
     # via
     #   -r requirements/base.in
+    #   -r requirements/dev.in
     #   gridworks-proactor
 idna==2.10
     # via
