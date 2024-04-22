@@ -22,9 +22,9 @@ frozenlist==1.4.0
     # via
     #   aiohttp
     #   aiosignal
-gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/listen
     # via -r requirements/base.in
-gridworks-protocol==0.7.2
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/listen
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
