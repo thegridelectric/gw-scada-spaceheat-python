@@ -105,6 +105,7 @@ class Atn(ActorInterface, Proactor):
         hardware_layout: HardwareLayout,
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
+        self._web_manager.disable()
         self.my_sensors = list(
             filter(
                 lambda x: (
@@ -269,7 +270,7 @@ class Atn(ActorInterface, Proactor):
         if self.settings.save_events:
             status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
             with status_file.open("w") as f:
-                f.write(status.as_type())
+                f.write(str(status.as_type()))
         # self._logger.info(f"Wrote status file [{status_file}]")
         if self.settings.print_status:
             rich.print("Received GtShStatus")

@@ -135,7 +135,7 @@ def default_enum_converter(
 ) -> Optional[int]:
     return default_mapping_converter(
         value,
-        mapping={name: value.value for name, value in enum_type.__members__.items()},
+        mapping={name: int(value.value) for name, value in enum_type.__members__.items()},
         default=default,
     )
 

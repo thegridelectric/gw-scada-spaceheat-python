@@ -21,7 +21,7 @@ class HoneywellThermostatOperatingState(Enum):
     @classmethod
     def mapping(cls) -> dict[str, int]:
         return {
-            name.replace("_", " "): value
+            name.replace("_", " "): value.value
             for name, value in HoneywellThermostatOperatingState.__members__.items()
         }
 

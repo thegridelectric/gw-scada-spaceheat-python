@@ -212,7 +212,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
             self._poller.set_value_converters(poll_value_converters)
         if handlers:
             self._web_event_handlers = handlers
-            if (hubitat_actor := self.get_hubitat_actor()) is not None:
+            if (hubitat_actor := self._get_hubitat_actor()) is not None:
                 hubitat_actor.add_web_event_handlers(self._web_event_handlers)
 
     def _make_non_numerical_value_converter(self, attribute: MakerAPIAttributeGt) -> Optional[ValueConverter]: # noqa
@@ -226,7 +226,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
                 return self._make_non_numerical_value_converter(attribute)
         return None
 
-    def get_hubitat_actor(self) -> Optional[HubitatWebServerInterface]:
+    def _get_hubitat_actor(self) -> Optional[HubitatWebServerInterface]:
         hubitat_actor = None
         if self._component.poller_gt.web_listen_enabled:
             hubitat_component = self._services.hardware_layout.get_component_as_type(

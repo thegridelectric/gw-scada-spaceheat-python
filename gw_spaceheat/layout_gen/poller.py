@@ -138,6 +138,7 @@ def add_hubitat_thermostat(
                     attribute_gt=MakerAPIAttributeGt(
                         attribute_name="thermostatOperatingState",
                         node_name="state",
+                        interpret_as_number=False,
                         telemetry_name_gt_enum_symbol="00002000",
                         unit_gt_enum_symbol="00003000",
                     ),

@@ -17,6 +17,7 @@ from layout_gen.poller import HubitatThermostatGenCfg
 from layout_gen.tank import FibaroGenCfg
 from layout_gen.tank import TankGenCfg
 from layout_gen.tank import add_tank
+from layout_gen.web_server import add_web_server
 
 __all__ = [
     "add_egauge",
@@ -27,6 +28,7 @@ __all__ = [
     "add_hubitat_thermostat",
     "add_tank",
     "add_tsnap_multipurpose",
+    "add_web_server",
     "EGaugeGenCfg",
     "EGaugeIOGenCfg",
     "FibaroGenCfg",
