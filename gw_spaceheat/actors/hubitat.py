@@ -47,7 +47,7 @@ class Hubitat(Actor, HubitatWebServerInterface):
             self._services.add_web_route(
                 server_name=DEFAULT_WEB_SERVER_NAME,
                 method="POST",
-                path=self._component.hubitat_gt.listen_path,
+                path="/" + self._component.hubitat_gt.listen_path,
                 handler=self._handle_web_post,
             )
             for web_listener_node in self._component.web_listener_nodes:
