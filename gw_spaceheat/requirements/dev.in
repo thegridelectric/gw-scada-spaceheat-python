@@ -2,12 +2,10 @@
 -r test.in
 pip-tools
 isort
-# gridworks-protocol >=0.7.4
-# gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/listen
+gridworks-protocol >=0.7.4
+# gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@SOME_DEV_BRANCH
 
 
-# gridworks-proactor[tests] >=0.4.2
-# gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git
-gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/listen
+gridworks-proactor[tests] >=0.4.3
+# gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@SOME_DEV_BRANCH
 gridworks-cert>=0.4.3
