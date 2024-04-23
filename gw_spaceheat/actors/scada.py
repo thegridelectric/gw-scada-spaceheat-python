@@ -160,6 +160,9 @@ class Scada(ScadaInterface, Proactor):
                     )
                 )
 
+    def init(self) -> None:
+        """Called after constructor so derived functions can be used in setup."""
+
     @classmethod
     def make_event_persister(cls, settings: ScadaSettings) -> TimedRollingFilePersister:
         return TimedRollingFilePersister(
