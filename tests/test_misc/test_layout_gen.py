@@ -4,11 +4,15 @@ from typing import Tuple
 import rich
 from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.enums import ActorClass
 from gwproto.types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
 
+from layout_gen import add_hubitat
+from layout_gen import add_hubitat_thermostat
 from layout_gen import add_tank
 from layout_gen import FibaroGenCfg
+from layout_gen import HubitatThermostatGenCfg
 from layout_gen import LayoutDb
 from layout_gen import StubConfig
 from layout_gen import TankGenCfg
@@ -167,3 +171,56 @@ def test_tank_device_poll_period(tmp_path):
         print(s)
         rich.print(tanks)
     assert not s
+
+def test_hubitat():
+    db = LayoutDb(
+        add_stubs=True,
+        stub_config=StubConfig(),
+    )
+    hubitat_mac_address = "00:00:00:0A:BB:cc"
+    hubitat_component_id = db.component_id_by_alias(
+        add_hubitat(
+            db,
+            HubitatGt(
+                Host="hubitat-dummy.local",
+                MakerApiId=4,
+                AccessToken="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                MacAddress=hubitat_mac_address,
+            )
+        )
+    )
+    layout = HardwareLayout.load_dict(db.dict(), raise_errors=True)
+    node = layout.node_from_component(
+        hubitat_component_id
+    )
+    assert node is not None
+    assert node.alias == f"a.hubitat.{hubitat_mac_address[-8:].replace(':', '')}".lower()
+    assert node.component_id == hubitat_component_id
+    assert node.actor_class == ActorClass.Hubitat
+
+def test_honeywell_thermostat():
+    db = LayoutDb(
+        add_stubs=True,
+        stub_config=StubConfig(),
+    )
+
+    thermostat_node_name = "garage"
+    add_hubitat_thermostat(
+        db,
+        HubitatThermostatGenCfg(
+            node_name=thermostat_node_name,
+            display_name=f"{thermostat_node_name.capitalize()} Component",
+            hubitat=HubitatGt(
+                Host="hubitat-dummy.local",
+                MakerApiId=4,
+                AccessToken="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                MacAddress="00:00:00:00:00:00",
+            ),
+            device_id=1
+        ),
+    )
+    layout = HardwareLayout.load_dict(db.dict(), raise_errors=True)
+    assert layout.node(thermostat_node_name).actor_class == ActorClass.HoneywellThermostat
+    assert layout.node(f"{thermostat_node_name}.temp").actor_class == ActorClass.NoActor
+    assert layout.node(f"{thermostat_node_name}.set").actor_class == ActorClass.NoActor
+    assert layout.node(f"{thermostat_node_name}.state").actor_class == ActorClass.NoActor
