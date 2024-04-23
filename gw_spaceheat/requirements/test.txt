@@ -43,9 +43,9 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks-cert==0.4.3
     # via gridworks-proactor
-gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/listen
     # via -r requirements/test.in
-gridworks-protocol==0.7.3
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/listen
     # via gridworks-proactor
 idna==2.10
     # via
@@ -85,10 +85,8 @@ paho-mqtt==1.6.1
     # via gridworks-proactor
 pathspec==0.9.0
     # via black
-pendulum[test]==3.0.0
-    # via
-    #   gridworks-proactor
-    #   gridworks-protocol
+pendulum==2.1.2
+    # via gridworks-protocol
 platformdirs==2.5.2
     # via black
 pluggy==1.0.0
@@ -115,13 +113,13 @@ pytest-asyncio==0.20.3
     #   -r requirements/test.in
     #   gridworks-proactor
 python-dateutil==2.8.2
-    # via
-    #   pendulum
-    #   time-machine
+    # via pendulum
 python-dotenv==1.0.0
     # via gridworks-proactor
 pytz==2024.1
     # via gridworks-protocol
+pytzdata==2020.1
+    # via pendulum
 result==0.9.0
     # via gridworks-proactor
 rich==13.6.0
@@ -141,8 +139,6 @@ starlette==0.22.0
     # via fastapi
 textual==0.41.0
     # via trogon
-time-machine==2.14.1
-    # via pendulum
 trogon==0.5.0
     # via gridworks-cert
 typer[all]==0.9.0
@@ -153,8 +149,6 @@ typing-extensions==4.8.0
     #   pydantic
     #   textual
     #   typer
-tzdata==2024.1
-    # via pendulum
 uc-micro-py==1.0.2
     # via linkify-it-py
 voluptuous==0.13.1

@@ -22,9 +22,9 @@ frozenlist==1.4.0
     # via
     #   aiohttp
     #   aiosignal
-gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/listen
     # via -r requirements/base.in
-gridworks-protocol==0.7.3
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/listen
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
@@ -43,10 +43,9 @@ paho-mqtt==1.6.1
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
-pendulum[test]==3.0.0
+pendulum==2.1.2
     # via
     #   -r requirements/base.in
-    #   gridworks-proactor
     #   gridworks-protocol
 pydantic==1.10.6
     # via
@@ -64,9 +63,7 @@ pymodbustcp==0.2.0
 pyserial==3.5
     # via -r requirements/base.in
 python-dateutil==2.8.2
-    # via
-    #   pendulum
-    #   time-machine
+    # via pendulum
 python-dotenv==1.0.0
     # via
     #   -r requirements/base.in
@@ -75,6 +72,8 @@ pytz==2024.1
     # via
     #   -r requirements/base.in
     #   gridworks-protocol
+pytzdata==2020.1
+    # via pendulum
 result==0.9.0
     # via
     #   -r requirements/base.in
@@ -91,12 +90,8 @@ sqlalchemy==1.4.46
     # via fastapi-utils
 starlette==0.22.0
     # via fastapi
-time-machine==2.14.1
-    # via pendulum
 typing-extensions==4.3.0
     # via pydantic
-tzdata==2024.1
-    # via pendulum
 xdg==6.0.0
     # via
     #   -r requirements/base.in
