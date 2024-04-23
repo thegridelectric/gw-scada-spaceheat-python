@@ -75,7 +75,7 @@ pendulum==2.1.2
     # via
     #   -r requirements/base.in
     #   gridworks-protocol
-pydantic==1.10.6
+pydantic==1.10.15
     # via
     #   -r requirements/base.in
     #   fastapi
