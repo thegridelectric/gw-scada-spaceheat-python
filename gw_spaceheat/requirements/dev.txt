@@ -53,10 +53,9 @@ gridworks-proactor[tests]==0.4.3
     #   -r requirements/base.in
     #   -r requirements/dev.in
     #   -r requirements/test.in
-gridworks-protocol==0.7.4
+gridworks-protocol==0.7.5
     # via
     #   -r requirements/base.in
-    #   -r requirements/dev.in
     #   gridworks-proactor
 idna==2.10
     # via

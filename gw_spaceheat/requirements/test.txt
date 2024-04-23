@@ -45,7 +45,7 @@ gridworks-cert==0.4.3
     # via gridworks-proactor
 gridworks-proactor[tests]==0.4.3
     # via -r requirements/test.in
-gridworks-protocol==0.7.4
+gridworks-protocol==0.7.5
     # via gridworks-proactor
 idna==2.10
     # via

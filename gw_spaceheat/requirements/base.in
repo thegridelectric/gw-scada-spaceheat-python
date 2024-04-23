@@ -6,7 +6,7 @@ python-dotenv
 pydantic
 xdg
 result
-gridworks-protocol >=0.7.4
+gridworks-protocol >=0.7.5
 # gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@SOME_DEV_BRANCH
 
 gridworks-proactor >=0.4.3

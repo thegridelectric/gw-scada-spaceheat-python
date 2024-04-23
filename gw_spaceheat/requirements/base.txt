@@ -24,7 +24,7 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks-proactor==0.4.3
     # via -r requirements/base.in
-gridworks-protocol==0.7.4
+gridworks-protocol==0.7.5
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
