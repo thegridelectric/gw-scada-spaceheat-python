@@ -10,13 +10,14 @@ from actors.hubitat_interface import HubitatWebEventListenerInterface
 from actors.hubitat_interface import ValueConverter
 
 class HoneywellThermostatOperatingState(Enum):
+    idle = 0
     heating = 1
-    pending_cool = 2
-    pending_heat = 3
-    vent_economizer = 4
-    idle = 5
-    cooling = 6
-    fan_only = 7
+    pending_heat = 2
+    # We decided to ignore these
+    # pending_cool = 3
+    # vent_economizer = 4
+    # cooling = 5
+    # fan_only = 6
 
     @classmethod
     def mapping(cls) -> dict[str, int]:
