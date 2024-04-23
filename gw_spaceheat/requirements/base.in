@@ -7,9 +7,11 @@ pydantic
 xdg
 result
 gridworks-protocol >=0.7.3
-gridworks-proactor >=0.4.1
-# gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@SOME_DEV_BRANCH
 # gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@SOME_DEV_BRANCH
+
+#gridworks-proactor >=0.4.2
+# gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@SOME_DEV_BRANCH
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git
 rich
 smbus2
 pymodbus
