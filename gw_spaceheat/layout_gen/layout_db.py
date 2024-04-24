@@ -23,8 +23,8 @@ from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 @dataclass
 class StubConfig:
     add_stub_scada: bool = True
-    atn_gnode_alias: str = "dummy.atn.gnode",
-    scada_gnode_alias: str = "dummy.scada.gnode",
+    atn_gnode_alias: str = "dummy.atn.gnode"
+    scada_gnode_alias: str = "dummy.scada.gnode"
     scada_display_name: str = "Dummy Scada"
     add_stub_power_meter: bool = True
     power_meter_cac_alias: str = "Dummy Power Meter Cac"

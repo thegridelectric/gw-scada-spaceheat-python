@@ -4,7 +4,7 @@ import json
 import pytest
 from pydantic import ValidationError
 
-from gridworks.errors import SchemaError
+from gwproto.errors import SchemaError
 from gwtypes import KeyparamChangeLog_Maker as Maker
 from enums import KindOfParam
 

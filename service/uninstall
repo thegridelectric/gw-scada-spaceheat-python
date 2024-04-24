@@ -12,3 +12,4 @@ rm $HOME/.local/bin/gwstatus
 rm $HOME/.local/bin/gwpause
 rm $HOME/.local/bin/gwstart
 rm $HOME/.local/bin/gwstop
+rm $HOME/.local/bin/gwrestart

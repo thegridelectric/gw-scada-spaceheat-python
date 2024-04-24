@@ -13,3 +13,4 @@ ln -s $HOME/gw-scada-spaceheat-python/service/gwstatus $HOME/.local/bin
 ln -s $HOME/gw-scada-spaceheat-python/service/gwpause $HOME/.local/bin
 ln -s $HOME/gw-scada-spaceheat-python/service/gwstart $HOME/.local/bin
 ln -s $HOME/gw-scada-spaceheat-python/service/gwstop $HOME/.local/bin
+ln -s $HOME/gw-scada-spaceheat-python/service/gwrestart $HOME/.local/bin

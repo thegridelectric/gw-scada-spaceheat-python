@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import logging
+import textwrap
 import time
 import uuid
 from typing import Callable
@@ -209,6 +210,7 @@ class AsyncFragmentRunner:
             if not connected:
                 s = "MQTT CONNECTION ERROR\n"
                 # noinspection PyProtectedMember, PyShadowingNames
+                mosquitto_cmds = ""
                 for client_name in sorted(proactor._links.link_names()):
                     # noinspection PyProtectedMember
                     client = proactor._links.mqtt_client_wrapper(client_name)
@@ -218,6 +220,38 @@ class AsyncFragmentRunner:
                         f"  connected:{int(client.connected())} ({client._client_config.host}:{client._client_config.port})"
                         f"  subs:{client.num_subscriptions()}   subs pending: {client.num_pending_subscriptions()}\n"
                     )
+                    if not client.connected():
+                        client_config = client._client_config # noqa
+                        prefix = "      "
+                        s += "    MQTTSettings:\n"
+                        s += textwrap.indent(
+                            client_config.json( # noqa
+                                sort_keys=True,
+                                indent=2
+                            ),
+                            prefix=prefix
+                        )
+                        s += "\n"
+                        mosquitto_host_port = (
+                            f"-h {client_config.host} "
+                            f"-p {client_config.port} "
+                        )
+                        mosquitto_sub_cmd = f"mosquitto_sub {mosquitto_host_port} -t foo"
+                        mosquitto_pub_cmd = f"mosquitto_pub {mosquitto_host_port} -t foo -m '{{\"bar\":1}}'"
+                        if client_config.tls.use_tls:
+                            tls_s = (
+                                " \\\n"
+                                f"  --cafile {client_config.tls.paths.ca_cert_path}  \\\n"
+                                f"  --cert {client_config.tls.paths.cert_path}  \\\n"
+                                f"  --key {client_config.tls.paths.private_key_path}"
+                            )
+                            mosquitto_sub_cmd += tls_s
+                            mosquitto_pub_cmd += tls_s
+                        s += "    mosquitto sub command:\n"
+                        s += f"{textwrap.indent(mosquitto_sub_cmd, prefix)}\n"
+                        s += "    mosquitto pub command:\n"
+                        s += f"{textwrap.indent(mosquitto_pub_cmd, prefix)}\n"
+
                 if logger is not None:
                     logger.info(s)
                 raise ValueError(s)
@@ -245,8 +279,8 @@ class AsyncFragmentRunner:
             # noinspection PyProtectedMember
             self.actors.scada._links.enable_mqtt_loggers(self.actors.scada._logger)
             if self.actors.atn.name in self.proactors:
-                asyncio.create_task(self.actors.atn.run_forever(), name="atn_run_forever")
-            asyncio.create_task(self.actors.scada.run_forever(), name="scada_run_forever")
+                asyncio.create_task(self.actors.atn.run_forever(), name="atn_run_forever") # noqa
+            asyncio.create_task(self.actors.scada.run_forever(), name="scada_run_forever") # noqa
             # TODO: Make _logger public
             # noinspection PyProtectedMember
             await self.await_connect(cast(logging.Logger, self.actors.scada._logger))

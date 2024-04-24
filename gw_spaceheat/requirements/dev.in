@@ -1,7 +1,8 @@
 -r base.in
 -r test.in
-ipython
 pip-tools
 isort
-gridworks-proactor[tests]>=0.3.5
+
+gridworks-proactor[tests] >=0.4.3
+# gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@SOME_DEV_BRANCH
 gridworks-cert>=0.4.3

@@ -3,7 +3,7 @@ import json
 import logging
 from typing import Any, Dict, Literal, Optional
 
-from gridworks.errors import SchemaError
+from gwproto.errors import SchemaError
 from pydantic import BaseModel, Field
 
 # enums
