@@ -11,6 +11,7 @@ from typing import Optional
 
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
+from gwproactor.message import InternalShutdownMessage
 from gwproto import Message
 from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
@@ -202,10 +203,22 @@ class Scada(ScadaInterface, Proactor):
 
     async def update_status(self):
         while not self._stop_requested:
-            if self.time_to_send_status():
-                self.send_status()
-                self._last_status_second = int(time.time())
-            await asyncio.sleep(self.seconds_until_next_status())
+            try:
+                if self.time_to_send_status():
+                    self.send_status()
+                    self._last_status_second = int(time.time())
+                await asyncio.sleep(self.seconds_until_next_status())
+            except asyncio.CancelledError:
+                ...
+            except Exception as e:
+                self._send(
+                    InternalShutdownMessage( # noqa
+                        Src=self.name, # noqa
+                        Reason=( # noqa
+                            f"update_status() task got exception: <{type(e)}> {e}"
+                        ),
+                    ) # noqa
+                )
 
     def send_status(self):
         status = self._data.make_status(self._last_status_second)
