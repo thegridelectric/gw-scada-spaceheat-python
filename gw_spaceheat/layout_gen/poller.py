@@ -43,6 +43,8 @@ class HubitatThermostatGenCfg(BaseModel):
     device_id: int
     poll_period_seconds: float = 60
     enabled: bool = True
+    web_poll_enabled: bool = True
+    web_listen_enabled: bool = True
     actor_class: ActorClass = ActorClass.HoneywellThermostat
 
 def add_hubitat_poller(
@@ -120,6 +122,8 @@ def add_hubitat_thermostat(
                         node_name="temp",
                         telemetry_name_gt_enum_symbol="4c3f8c78",
                         unit_gt_enum_symbol="7d8832f8",
+                        web_poll_enabled=thermostat.web_poll_enabled,
+                        web_listen_enabled=thermostat.web_listen_enabled,
                     ),
                     display_name=thermostat.display_name + " Temperature",
                     role=Role.RoomTempSensor,
@@ -130,6 +134,8 @@ def add_hubitat_thermostat(
                         node_name="set",
                         telemetry_name_gt_enum_symbol="4c3f8c78",
                         unit_gt_enum_symbol="7d8832f8",
+                        web_poll_enabled=thermostat.web_poll_enabled,
+                        web_listen_enabled=thermostat.web_listen_enabled,
                     ),
                     display_name=thermostat.display_name + " Heating Set Point",
                     role=Role.Unknown,
@@ -141,6 +147,8 @@ def add_hubitat_thermostat(
                         interpret_as_number=False,
                         telemetry_name_gt_enum_symbol="00002000",
                         unit_gt_enum_symbol="00003000",
+                        web_poll_enabled=thermostat.web_poll_enabled,
+                        web_listen_enabled=thermostat.web_listen_enabled,
                     ),
                     display_name=thermostat.display_name + " Operating State",
                     role=Role.Unknown,
