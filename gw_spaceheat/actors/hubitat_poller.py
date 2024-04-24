@@ -113,7 +113,7 @@ class HubitatRESTPoller(RESTPoller):
                         response,
                         self._value_converters[config_attribute.attribute_name],
                     )
-                    if convert_result.ok():
+                    if convert_result.is_ok():
                         about_nodes.append(config_attribute.node_name)
                         values.append(convert_result.value)
                         telemetry_names.append(config_attribute.telemetry_name)
