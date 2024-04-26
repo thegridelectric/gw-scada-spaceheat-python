@@ -164,9 +164,9 @@ def send_opsgenie_scada_alert(name: str,
         payload["description"] = description
     response = requests.post(url, headers=headers, data=json.dumps(payload))
     if response.status_code == 202:
-        print("Alert sent successfully!")
+        print(f"{message} alert sent")
     else:
-        print("Failed to send alert.")
+        print(f"Failed to send {message} alert.")
         print("Response:", response.text)
 
 class PumpPowerState(StrEnum):
