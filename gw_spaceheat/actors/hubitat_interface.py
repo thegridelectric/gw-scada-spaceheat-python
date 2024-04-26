@@ -117,16 +117,15 @@ EnumT = TypeVar("EnumT", bound=Enum)
 def default_mapping_converter(
     value: HubitatValueType,
     mapping: dict[str, int],
-    default: Optional[int] = None
+    default: Optional[int] = None,
+    raise_missing: bool = False,
 ) -> Optional[int]:
-    try:
-        str_value = str(value)
-        if str_value in mapping:
-            return int(mapping[str_value])
-    except: # noqa
-        ...
+    str_value = str(value)
+    if str_value in mapping:
+        return int(mapping[str_value])
+    elif raise_missing:
+        raise ValueError(f"Value {value} missing from mapping {mapping}")
     return default
-
 
 def default_enum_converter(
         value: HubitatValueType,
