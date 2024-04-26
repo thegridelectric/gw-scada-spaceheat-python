@@ -14,6 +14,7 @@ class AtnSettings(ProactorSettings):
     c_to_f: bool = True
     save_events: bool = False
     print_status: bool = False
+    ops_genie_key: str = ""
 
     class Config(ProactorSettings.Config):
         env_prefix = "ATN_"

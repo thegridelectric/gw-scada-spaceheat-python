@@ -4,11 +4,12 @@ PUMP_ON_THRESHOLD = 4
 HP_DEFINITELY_HEATING_THRESHOLD = 6000
 HP_DEFINITELY_OFF_THRESHOLD = 500
 HP_TRYING_TO_START_THRESHOLD = 1200
-
+import json
 import asyncio
 import dataclasses
 import threading
 import time
+import requests
 from dataclasses import dataclass
 from typing import Any
 from typing import cast
@@ -70,6 +71,103 @@ AtnMessageDecoder = create_message_payload_discriminator(
     module_names=["gwproto.messages", "gwproactor.message", "actors.message", ],
     modules=[messages],
 )
+
+
+GRIDWORKS_DEV_OPS_GENIE_TEAM_ID = "edaccf48-a7c9-40b7-858a-7822c6f862a4"
+MOSCONE_HEATING_OPS_GENIE_TEAM_ID = "d1ddacdd-7ab4-4fa2-83ea-06eddcf5b273"
+
+
+from fastapi_utils.enums import StrEnum
+from enum import auto
+class AlertPriority(StrEnum):
+    P1Critical = auto()
+    P2High = auto()
+    P3Medium = auto()
+    P4Low = auto()
+    P5Info = auto()
+
+class AlertTeam(StrEnum):
+    GridWorksDev = auto()
+    MosconeHeating = auto()
+
+class OpsGeniePriority(StrEnum):
+    """
+    P1: Critical incidents that require immediate attention. Examples include system outages, service disruptions, or major security breaches.
+    P2: High-priority incidents that require urgent attention. Examples include significant performance degradation or service degradation affecting multiple users.
+    P3:  Medium-priority incidents that require attention but are not critical. Examples include minor performance issues or service disruptions affecting a small number of users.
+    P4: Low-priority incidents that require attention but do not require immediate action. Examples include minor bugs, errors, or warnings.
+    P5: Informational incidents that do not require immediate action. Examples include informational messages, system logs, or maintenance notifications.
+    """
+    P1 = auto()
+    P2 = auto()
+    P3 = auto()
+    P4 = auto()
+    P5 = auto()
+
+def gw_to_ops_priority(gw: AlertPriority) -> OpsGeniePriority:
+    """ Translates from the in-house gridworks alert priorities to OpsGenie Priorities (P1 through P5)"""
+    if gw == AlertPriority.P1Critical:
+        return OpsGeniePriority.P1
+    elif gw == AlertPriority.P2High:
+        return OpsGeniePriority.P2
+    elif gw == AlertPriority.P3Medium:
+        return OpsGeniePriority.P3
+    elif gw == AlertPriority.P4Low:
+        return OpsGeniePriority.P4
+    return OpsGeniePriority.P5
+
+
+def send_opsgenie_scada_alert(name: str,
+                              settings: AtnSettings, 
+                              layout: HardwareLayout,
+                              description: Optional[str] = None,
+                              priority: AlertPriority = AlertPriority.P3Medium,
+                              alert_team: AlertTeam = AlertTeam.GridWorksDev):
+    """
+    Creates an ops genie alert. The name is prepended by the short name of the SCADA 
+    and used to create the ops genie message.
+
+    The OpsGenie alias is used to de-dupe alerts. OpsGenie does not issue a new alert
+    if there is already an open alert with the same alias. 
+
+    The alias is the name appended with the date. For example:
+      oak.store-pump-dispatch-failure.20240425
+    """
+    url = 'https://api.opsgenie.com/v2/alerts'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'GenieKey {settings.ops_genie_api_key}'
+    }
+    
+    node_short_name = layout.atn_g_node_alias.split('.')[-1]
+    message = f"{node_short_name}.{name}"
+    ft = pendulum.now("America/New_York").format("YYYY-MM-DD")
+    alias = f"{message}.{ft}"
+    
+    responders = [{
+                "type": "team",
+                "id": GRIDWORKS_DEV_OPS_GENIE_TEAM_ID
+            }]
+    if alert_team == AlertTeam.MosconeHeating:
+        responders = [{
+                "type": "team",
+                "id": MOSCONE_HEATING_OPS_GENIE_TEAM_ID
+            }]
+        
+    payload = {
+        "message": message,
+        "alias": alias,
+        "priority": gw_to_ops_priority(priority).value,
+        "responders": responders
+    }
+    if description:
+        payload["description"] = description
+    response = requests.post(url, headers=headers, data=json.dumps(payload))
+    if response.status_code == 202:
+        print("Alert sent successfully!")
+    else:
+        print("Failed to send alert.")
+        print("Response:", response.text)
 
 class PumpPowerState(StrEnum):
     NoFlow = auto()
@@ -440,6 +538,15 @@ class Atn(ActorInterface, Proactor):
                 idu_pwr_w=idu_pwr_w,
                 odu_pwr_w=odu_pwr_w,
             )
+            if self.hack_hp_state_q[0].start_attempts > 1:
+                send_opsgenie_scada_alert(
+                    name="hp-finally-heating",
+                    settings=self.settings,
+                    layout=self.layout,
+                    description=f"Heat pump started heating after {self.hack_hp_state_q[0].start_attempts} attempts to start",
+                    alert_team=AlertTeam.MosconeHeating,
+                    priority=AlertPriority.P5Info
+                )
             self.hack_hp_state_q[0].state_end_s = now
             self.enqueue_fifo_q(hp_state_capture, self.hack_hp_state_q)
         elif (self.hack_hp_state_q[0].state != HackHpState.NoOp and 
@@ -505,6 +612,15 @@ class Atn(ActorInterface, Proactor):
             self.hack_hp_state_q[0].idu_pwr_w = idu_pwr_w
             self.hack_hp_state_q[0].odu_pwr_w = odu_pwr_w
             self.hack_hp_state_q[0].primary_pump_pwr_w = primary_pump_pwr_w
+        
+        if self.hack_hp_state_q[0].start_attempts > 1:
+            send_opsgenie_scada_alert(
+                name="hp-retrying",
+                settings=self.settings,
+                layout=self.layout,
+                description=f"Heat pump has taken {self.hack_hp_state_q[0].start_attempts} to start",
+                alert_team=AlertTeam.MosconeHeating
+            )
     
     def enqueue_fifo_q(self, element: Any, fifo_q: Deque[Any], max_length: int = 10) -> None:
         """
