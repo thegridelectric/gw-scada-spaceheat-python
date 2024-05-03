@@ -169,7 +169,9 @@ class Scada(ScadaInterface, Proactor):
         return TimedRollingFilePersister(
             settings.paths.event_dir,
             max_bytes=settings.persister.max_bytes,
-            pat_watchdog_args=SystemDWatchdogCommandBuilder.default_pat_args(),
+            pat_watchdog_args=SystemDWatchdogCommandBuilder.pat_args(
+                str(settings.paths.name)
+            ),
         )
 
     @property
