@@ -50,7 +50,7 @@ frozenlist==1.4.0
     # via
     #   aiohttp
     #   aiosignal
-gridworks-proactor==0.4.4
+gridworks-proactor==0.4.5
     # via -r requirements/base.in
 gridworks-protocol==0.7.5
     # via

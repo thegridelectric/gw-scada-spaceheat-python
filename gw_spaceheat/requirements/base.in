@@ -9,7 +9,7 @@ result
 gridworks-protocol >=0.7.5
 # gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@SOME_DEV_BRANCH
 
-gridworks-proactor >=0.4.4
+gridworks-proactor >=0.4.5
 # gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@SOME_DEV_BRANCH
 rich
 smbus2
