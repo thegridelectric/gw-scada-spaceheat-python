@@ -14,6 +14,7 @@ class AtnSettings(ProactorSettings):
     c_to_f: bool = True
     save_events: bool = False
     print_status: bool = False
+    print_snap: bool = True
 
     class Config(ProactorSettings.Config):
         env_prefix = "ATN_"

@@ -239,31 +239,32 @@ class Atn(ActorInterface, Proactor):
                 self.data.relay_state[node].State = snapshot.Snapshot.ValueList[idx]
                 self.data.relay_state[node].LastChangeTimeUnixMs = int(time.time() * 1000)
 
-        s = "\n\nSnapshot received:\n"
-        for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
-            telemetry_name = snapshot.Snapshot.TelemetryNameList[i]
-            if (telemetry_name == TelemetryName.WaterTempCTimes1000
-               or telemetry_name == TelemetryName.WaterTempCTimes1000.value
-                    ):
-                centigrade = snapshot.Snapshot.ValueList[i] / 1000
-                if self.settings.c_to_f:
-                    fahrenheit = (centigrade * 9/5) + 32
-                    extra = f"{fahrenheit:5.2f} F"
+        if self.settings.print_snap:
+            s = "\n\nSnapshot received:\n"
+            for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
+                telemetry_name = snapshot.Snapshot.TelemetryNameList[i]
+                if (telemetry_name == TelemetryName.WaterTempCTimes1000
+                   or telemetry_name == TelemetryName.WaterTempCTimes1000.value
+                        ):
+                    centigrade = snapshot.Snapshot.ValueList[i] / 1000
+                    if self.settings.c_to_f:
+                        fahrenheit = (centigrade * 9/5) + 32
+                        extra = f"{fahrenheit:5.2f} F"
+                    else:
+                        extra = f"{centigrade:5.2f} C"
                 else:
-                    extra = f"{centigrade:5.2f} C"
-            else:
-                extra = (
-                    f"{snapshot.Snapshot.ValueList[i]} "
-                    f"{snapshot.Snapshot.TelemetryNameList[i].value}"
-                )
-            s += f"  {snapshot.Snapshot.AboutNodeAliasList[i]}: {extra}\n"
-        # s += f"snapshot is None:{snapshot is None}\n"
-        # s += "json.dumps(snapshot.asdict()):\n"
-        # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
-        # s += "\n"
-        self._logger.warning(s)
+                    extra = (
+                        f"{snapshot.Snapshot.ValueList[i]} "
+                        f"{snapshot.Snapshot.TelemetryNameList[i].value}"
+                    )
+                s += f"  {snapshot.Snapshot.AboutNodeAliasList[i]}: {extra}\n"
+            # s += f"snapshot is None:{snapshot is None}\n"
+            # s += "json.dumps(snapshot.asdict()):\n"
+            # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
+            # s += "\n"
+            self._logger.warning(s)
 
-        # rich.print(snapshot)
+            # rich.print(snapshot)
 
     def _process_status(self, status: GtShStatus) -> None:
         self.data.latest_status = status
