@@ -22,7 +22,7 @@ frozenlist==1.4.0
     # via
     #   aiohttp
     #   aiosignal
-gridworks-proactor==0.4.3
+gridworks-proactor==0.4.4
     # via -r requirements/base.in
 gridworks-protocol==0.7.5
     # via
@@ -46,6 +46,7 @@ paho-mqtt==1.6.1
 pendulum==2.1.2
     # via
     #   -r requirements/base.in
+    #   gridworks-proactor
     #   gridworks-protocol
 pydantic==1.10.15
     # via

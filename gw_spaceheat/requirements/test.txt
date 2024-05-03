@@ -43,7 +43,7 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks-cert==0.4.3
     # via gridworks-proactor
-gridworks-proactor[tests]==0.4.3
+gridworks-proactor[tests]==0.4.4
     # via -r requirements/test.in
 gridworks-protocol==0.7.5
     # via gridworks-proactor
@@ -86,7 +86,9 @@ paho-mqtt==1.6.1
 pathspec==0.9.0
     # via black
 pendulum==2.1.2
-    # via gridworks-protocol
+    # via
+    #   gridworks-proactor
+    #   gridworks-protocol
 platformdirs==2.5.2
     # via black
 pluggy==1.0.0
