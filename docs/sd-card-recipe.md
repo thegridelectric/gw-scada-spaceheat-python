@@ -1,6 +1,24 @@
 This template is a transitional raspberry Pi OS as we upgrade to a 64 bit architecture and python 3.12.
 
 
+# Tests for success
+**mosquitto**
+
+
+```
+sudo systemctl status mosquitto 
+```
+to see that the broker is running on the pi
+
+Pull up two different shells and then:
+```
+mosquitto_sub -h localhost -p 1883 -u sara -P [LOOK UP MOSQUITTO IN 1PASSWORD] -t foo
+```
+
+```
+mosquitto_pub -h localhost -u sara -P [LOOK UP MOSQUITTO IN 1PASSWORD] -t foo -m "hi"
+```
+
 **warning** The SCADA repos (gw-scada-spaceheat-python, starter-scripts) are installed in the home directory but the packages have not been added so the code won't work yet. Going through a housecleaning
 process for this (e.g. removing the pendulum package from the gridworks package as the pendulum team is small enough that it did not keep pendulum up to date with python 3.12 on a 32 bit architecture.)
 
