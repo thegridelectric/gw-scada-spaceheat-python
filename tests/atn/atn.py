@@ -206,10 +206,10 @@ class Atn(ActorInterface, Proactor):
             case EventBase():
                 path_dbg |= 0x00000008
                 self._process_event(decoded.Payload)
-                if decoded.Payload.TypeName == GtShStatusEvent.__fields__["TypeName"].default:
+                if decoded.Payload.TypeName == GtShStatusEvent.model_fields["TypeName"].default:
                     path_dbg |= 0x00000010
                     self._process_status(decoded.Payload.status)
-                elif decoded.Payload.TypeName == SnapshotSpaceheatEvent.__fields__["TypeName"].default:
+                elif decoded.Payload.TypeName == SnapshotSpaceheatEvent.model_fields["TypeName"].default:
                     path_dbg |= 0x00000020
                     self._process_snapshot(decoded.Payload.snap)
             case _:

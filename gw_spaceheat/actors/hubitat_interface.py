@@ -8,7 +8,7 @@ from typing import TypeVar
 
 from gwproto import Message
 from gwproto.enums import TelemetryName
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from pydantic import Extra
 
 from actors.message import MultipurposeSensorTelemetryMessage
@@ -73,12 +73,12 @@ class HubitatAttributeConvertFailure(HubitatAttributeWarning):
         return "Convert failure Attribute  received: {}" + super().__str__()
 
 
-class MakerAPIAttribute(BaseModel, extra=Extra.allow):
+class MakerAPIAttribute(BaseModel, extra="allow"):
     name: str = ""
     currentValue: HubitatValueType = None
     dataType: str = ""
 
-class MakerAPIRefreshResponse(BaseModel, extra=Extra.allow):
+class MakerAPIRefreshResponse(BaseModel, extra="allow"):
     id: int
     name: str = ""
     label: str = ""
@@ -98,9 +98,7 @@ class HubitatEventContent(BaseModel):
     unit: Optional[str] = None
     type: Optional[Any] = None
     data: Optional[Any] = None
-
-    class Config:
-        allow_extra = True
+    model_config = ConfigDict(allow_extra=True)
 
 ValueConverter = Callable[[HubitatValueType], Optional[int]]
 

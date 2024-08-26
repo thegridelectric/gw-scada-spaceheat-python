@@ -24,7 +24,7 @@ class SensorNodeGenCfg(BaseModel):
     ReportOnChange: bool = True
     SamplePeriodS: int = 60
     ReportingSamplePeriodS: Optional[int] = None
-    Exponent = 3
+    Exponent: int = 3
     # Using a forward reference here resolves a pydantic exception generated when this field
     # is actually set, as in tlayouts/gen_oak.py. I don't know why we should need a forward
     # reference, since TelemetryName is imported above. The generated error is:

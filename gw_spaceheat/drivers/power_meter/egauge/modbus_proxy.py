@@ -3,7 +3,6 @@ import logging
 import socket
 
 import dotenv
-from pydantic import BaseSettings
 from pyModbusTCP.client import ModbusClient
 from pyModbusTCP.server import DataBank
 from pyModbusTCP.server import ModbusServer
@@ -12,6 +11,7 @@ from rich.console import Console
 import rich.traceback
 
 from drivers.power_meter.egauge.settings import ModbusClientSettings
+from pydantic_settings import BaseSettings
 
 console = Console()
 rich.traceback.install(console=console)
@@ -84,7 +84,7 @@ def be_the_proxy():
     server = ModbusServer(
         host=args.host,
         port=args.port,
-        data_bank=ProxyDataBank(ModbusClient(**settings.client.dict()))
+        data_bank=ProxyDataBank(ModbusClient(**settings.client.model_dump()))
     )
     server.start()
 

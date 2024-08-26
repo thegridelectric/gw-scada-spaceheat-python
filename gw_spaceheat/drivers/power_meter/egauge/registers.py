@@ -98,11 +98,10 @@ class EGaugeRegisters:
 
     def get_table(self) -> Table:
         table = Table()
-        fields = EGaugeRegister.__fields__.keys()
-        for field_name in fields:
+        for field_name in EGaugeRegister.model_fields:
             table.add_column(field_name)
         for register in self.registers():
-            table.add_row(*[str(getattr(register, field)) for field in fields])
+            table.add_row(*[str(getattr(register, field)) for field in EGaugeRegister.model_fields])
         return table
 
 

@@ -1,7 +1,7 @@
 from enum import auto
 from typing import List
 
-from fastapi_utils.enums import StrEnum
+from gwproto.enums.better_str_enum import BetterStrEnum as StrEnum
 
 
 class KindOfParam(StrEnum):

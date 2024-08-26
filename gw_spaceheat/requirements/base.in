@@ -1,3 +1,4 @@
+setuptools
 numpy
 pendulum
 paho-mqtt
@@ -6,11 +7,11 @@ python-dotenv
 pydantic
 xdg
 result
-gridworks-protocol >=0.7.5
-# gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@SOME_DEV_BRANCH
+# gridworks-protocol >=0.7.5
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/ruff-check
 
-gridworks-proactor >=0.4.5
-# gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@SOME_DEV_BRANCH
+# gridworks-proactor >=0.4.5
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/pydantic2
 rich
 smbus2
 pymodbus

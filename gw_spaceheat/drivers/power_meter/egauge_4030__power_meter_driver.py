@@ -113,7 +113,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                     self._last_connect_time = now
                     try:
                         self._client_settings.host = socket.gethostbyname(self.component.modbus_host)
-                        self._modbus_client = ModbusClient(**self._client_settings.dict())
+                        self._modbus_client = ModbusClient(**self._client_settings.model_dump())
                     except socket.gaierror as e:
                         comm_warnings.append(e)
                     except Exception as e:

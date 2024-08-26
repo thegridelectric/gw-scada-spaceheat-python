@@ -149,9 +149,9 @@ class AsyncFragmentRunner:
         errors = []
         if args is None:
             args = argparse.Namespace(verbose=True)
-        setup_logging(args, settings, errors, add_screen_handler=True)
+        setup_logging(args, settings, errors=errors, add_screen_handler=True)
         assert not errors
-        setup_logging(args, cast(ScadaSettings, atn_settings), errors, add_screen_handler=False)
+        setup_logging(args, cast(ScadaSettings, atn_settings), errors=errors, add_screen_handler=False)
         assert not errors
 
         self.settings = settings

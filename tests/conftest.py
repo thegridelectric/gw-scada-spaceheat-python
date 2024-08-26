@@ -57,7 +57,7 @@ class TestScadaEnv:
             src_test_layout: Path = TEST_HARDWARE_LAYOUT_PATH,
             copy_test_layout: bool = True,
             use_test_dotenv: bool = True,
-            prefix: str = ScadaSettings.Config.env_prefix
+            prefix: str = ScadaSettings.model_config["env_prefix"]
     ):
         self.xdg_home = xdg_home
         self.src_test_layout = src_test_layout

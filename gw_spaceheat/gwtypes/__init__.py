@@ -43,9 +43,7 @@ from gwproto.types import GtTelemetry_Maker
 from gwproto.types import HeartbeatB
 from gwproto.types import HeartbeatB_Maker
 from gwproto.types import HubitatCacGt
-from gwproto.types import HubitatCacGt_Maker
 from gwproto.types import HubitatComponentGt
-from gwproto.types import HubitatComponentGt_Maker
 from gwproto.types import HubitatPollerCacGt
 from gwproto.types import HubitatPollerCacGt_Maker
 from gwproto.types import HubitatPollerComponentGt
@@ -146,9 +144,7 @@ __all__ = [
     "HeartbeatB",
     "HeartbeatB_Maker",
     "HubitatCacGt",
-    "HubitatCacGt_Maker",
     "HubitatComponentGt",
-    "HubitatComponentGt_Maker",
     "HubitatPollerCacGt",
     "HubitatPollerCacGt_Maker",
     "HubitatPollerComponentGt",

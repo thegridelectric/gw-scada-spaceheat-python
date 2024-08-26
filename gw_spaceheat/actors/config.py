@@ -1,9 +1,9 @@
 from gwproactor.config.mqtt import TLSInfo
-from pydantic import BaseModel
+from pydantic import model_validator, BaseModel
 
 from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
-from pydantic import root_validator
+from pydantic_settings import SettingsConfigDict
 
 DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 
@@ -15,13 +15,13 @@ class ScadaSettings(ProactorSettings):
     local_mqtt: MQTTClient = MQTTClient()
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300
-    async_power_reporting_threshold = 0.02
+    async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
 
-    class Config(ProactorSettings.Config):
-        env_prefix = "SCADA_"
+    model_config = SettingsConfigDict(env_prefix="SCADA_")
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def pre_root_validator(cls, values: dict) -> dict:
         """local_mqtt configuration should be without TLS unless explicitly requested."""
         if "local_mqtt" not in values:
