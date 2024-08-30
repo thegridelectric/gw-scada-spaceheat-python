@@ -65,8 +65,8 @@ class GtSensorReportingConfig(BaseModel):
         """
         d = {
             key: value
-            for key, value in self.dict(
-                include=self.__fields_set__ | {"TypeName", "Version"}
+            for key, value in self.model_dump(
+                include=self.model_fields_set | {"TypeName", "Version"}
             ).items()
             if value is not None
         }

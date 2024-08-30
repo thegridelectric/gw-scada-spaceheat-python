@@ -4,7 +4,7 @@ on:
 
 env:
   PYTHONPATH: gw_spaceheat:$PYTHONPATH
-  PYTHON_VERSION: 3.10.13
+  PYTHON_VERSION: 3.11.9
 
 jobs:
   tests:

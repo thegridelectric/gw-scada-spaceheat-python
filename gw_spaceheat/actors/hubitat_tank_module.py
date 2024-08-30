@@ -19,12 +19,12 @@ from actors.message import MultipurposeSensorTelemetryMessage
 from drivers.exceptions import DriverError
 
 
-class FibaroAttribute(BaseModel, extra=Extra.allow):
+class FibaroAttribute(BaseModel, extra="allow"):
     name: str = ""
     currentValue: Optional[str | int | float] = None
     dataType: str = ""
 
-class FibaroRefreshResponse(BaseModel, extra=Extra.allow):
+class FibaroRefreshResponse(BaseModel, extra="allow"):
     id: int
     name: str = ""
     label: str = ""

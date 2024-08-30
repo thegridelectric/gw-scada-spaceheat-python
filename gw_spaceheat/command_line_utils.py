@@ -13,13 +13,13 @@ from gwproactor import setup_logging
 from gwproactor.config import MQTTClient
 from gwproactor.config.paths import TLSPaths
 from pydantic import BaseModel
-from pydantic import BaseSettings
 
 from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from enums import Role
+from pydantic_settings import BaseSettings
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
@@ -41,7 +41,7 @@ def add_default_args(
     parser.add_argument("--message-summary", action="store_true", help="Turn on message summary logging")
     parser.add_argument(
         "--seconds-per-report",
-        default=ScadaSettings.__fields__["seconds_per_report"].default,
+        default=ScadaSettings.model_fields["seconds_per_report"].default,
         help="Seconds per status report"
     )
 
@@ -113,7 +113,7 @@ def get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayou
 
 def missing_tls_paths(paths: TLSPaths) -> list[tuple[str, Optional[Path]]]:
     missing = []
-    for path_name in paths.__fields__:
+    for path_name in paths.model_fields:
         path = getattr(paths, path_name)
         if path is None or not Path(path).exists():
             missing.append((path_name, path))
@@ -162,7 +162,7 @@ def get_scada(
         logger.info("")
         logger.info(dotenv_file_debug_str)
         logger.info("Settings:")
-        logger.info(settings.json(sort_keys=True, indent=2))
+        logger.info(settings.model_dump_json(indent=2))
         rich.print(settings)
         check_tls_paths_present(settings)
         requested_aliases = get_requested_aliases(args)

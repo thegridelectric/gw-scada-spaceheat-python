@@ -1,3 +1,5 @@
+from typing import Self
+
 from gwproto.enums import ActorClass
 from gwproto.enums import Role
 from gwproto.types import HubitatPollerCacGt
@@ -7,7 +9,7 @@ from gwproto.type_helpers import MakerAPIAttributeGt
 from gwproto.types import SpaceheatNodeGt
 from gwproto.types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
-from pydantic import root_validator
+from pydantic import model_validator
 
 from layout_gen import LayoutDb
 from layout_gen.hubitat import add_hubitat
@@ -28,13 +30,13 @@ class HubitatPollerGenCfg(BaseModel):
     enabled: bool = True
     actor_class: ActorClass = ActorClass.HubitatPoller
 
-    @root_validator
-    def _root_validator(cls, values):
-        for attribute in values["attributes"]:
+    @model_validator(mode="after")
+    def _root_validator(self) -> Self:
+        for attribute in self.attributes:
             attribute.attribute_gt.node_name = (
-                f"{values['node_name']}.{attribute.attribute_gt.node_name}"
+                f"{self.node_name}.{attribute.attribute_gt.node_name}"
             )
-        return values
+        return self
 
 class HubitatThermostatGenCfg(BaseModel):
     node_name: str

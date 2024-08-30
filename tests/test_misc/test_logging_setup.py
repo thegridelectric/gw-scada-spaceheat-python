@@ -42,8 +42,8 @@ def test_get_default_logging_config(caplog, capsys):
     logger_names = settings.logging.qualified_logger_names()
 
     # Check if loggers have been added or renamed
-    assert set(LoggingSettings().levels.__fields__.keys()) == {"message_summary", "lifecycle", "comm_event"}
-    for field_name in settings.logging.levels.__fields__:
+    assert set(LoggingSettings().levels.model_fields.keys()) == {"message_summary", "lifecycle", "comm_event"}
+    for field_name in settings.logging.levels.model_fields:
         logger_level = logging.getLogger(logger_names[field_name]).level
         settings_level = getattr(settings.logging.levels, field_name)
         assert logger_level == settings_level

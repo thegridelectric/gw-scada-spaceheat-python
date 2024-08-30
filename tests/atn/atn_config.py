@@ -1,7 +1,8 @@
-from pydantic import root_validator
+from pydantic import model_validator
 
 from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
+from pydantic_settings import SettingsConfigDict
 
 DEFAULT_NAME = "atn"
 
@@ -16,9 +17,10 @@ class AtnSettings(ProactorSettings):
     print_status: bool = False
     print_snap: bool = True
 
-    class Config(ProactorSettings.Config):
-        env_prefix = "ATN_"
+    model_config = SettingsConfigDict(env_prefix="ATN_")
 
-    @root_validator(pre=True)
+
+    @model_validator(mode="before")
+    @classmethod
     def pre_root_validator(cls, values: dict) -> dict:
         return ProactorSettings.update_paths_name(values, DEFAULT_NAME)

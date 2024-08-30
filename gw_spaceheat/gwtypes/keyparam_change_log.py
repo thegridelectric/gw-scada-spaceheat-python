@@ -4,7 +4,7 @@ import logging
 from typing import Any, Dict, Literal
 
 from gwproto.errors import SchemaError
-from pydantic import BaseModel, Extra, Field, validator
+from pydantic import field_validator, ConfigDict, BaseModel, Field
 
 # enums
 from enums import KindOfParam
@@ -70,11 +70,10 @@ class KeyparamChangeLog(BaseModel):
     )
     TypeName: Literal["keyparam.change.log"] = "keyparam.change.log"
     Version: Literal["000"] = "000"
+    model_config = ConfigDict(extra="allow")
 
-    class Config:
-        extra = Extra.allow
-
-    @validator("AboutNodeAlias")
+    @field_validator("AboutNodeAlias")
+    @classmethod
     def _check_about_node_alias(cls, v: str) -> str:
         try:
             check_is_left_right_dot(v)
@@ -84,7 +83,8 @@ class KeyparamChangeLog(BaseModel):
             )
         return v
 
-    @validator("ChangeTimeUtc")
+    @field_validator("ChangeTimeUtc")
+    @classmethod
     def _check_change_time_utc(cls, v: str) -> str:
         try:
             check_is_log_style_date_with_millis(v)
@@ -112,8 +112,8 @@ class KeyparamChangeLog(BaseModel):
         """
         d = {
             key: value
-            for key, value in self.dict(
-                include=self.__fields_set__ | {"TypeName", "Version"}
+            for key, value in self.model_dump(
+                include=self.model_fields_set | {"TypeName", "Version"}
             ).items()
             if value is not None
         }

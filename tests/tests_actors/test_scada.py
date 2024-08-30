@@ -260,17 +260,17 @@ async def test_scada_relay_dispatch(tmp_path, monkeypatch, request):
             assert relay_value == 1
 
             # Cause scada to send a status (and snapshot) now
-            snapshots_received = atn.stats.num_received_by_type[SnapshotSpaceheatEvent.__fields__["TypeName"].default]
+            snapshots_received = atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default]
             scada.suppress_status = False
             # Verify Atn got status and snapshot
             await await_for(
-                lambda: atn.stats.num_received_by_type[GtShStatusEvent.__fields__["TypeName"].default] == 1,
+                lambda: atn.stats.num_received_by_type[GtShStatusEvent.model_fields["TypeName"].default] == 1,
                 5,
                 "Atn wait for status message",
                 err_str_f=atn.summary_str
             )
             await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.__fields__[
+                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields[
                     "TypeName"].default] == snapshots_received + 1,
                 5,
                 "Atn wait for snapshot message",
@@ -333,16 +333,16 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
         async def async_run(self):
             scada = self.runner.actors.scada
             atn = self.runner.actors.atn
-            assert atn.stats.num_received_by_type[GtShStatusEvent.__fields__["TypeName"].default] == 0
-            assert atn.stats.num_received_by_type[SnapshotSpaceheatEvent.__fields__["TypeName"].default] == 0
+            assert atn.stats.num_received_by_type[GtShStatusEvent.model_fields["TypeName"].default] == 0
+            assert atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 0
             scada.suppress_status = False
             await await_for(
-                lambda: atn.stats.num_received_by_type[GtShStatusEvent.__fields__["TypeName"].default] == 1,
+                lambda: atn.stats.num_received_by_type[GtShStatusEvent.model_fields["TypeName"].default] == 1,
                 5,
                 "Atn wait for status message"
             )
             await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.__fields__["TypeName"].default] == 1,
+                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 1,
                 5,
                 "Atn wait for snapshot message"
             )
@@ -473,13 +473,13 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
 
             # Verify Atn got status and snapshot
             await await_for(
-                lambda: atn.stats.num_received_by_type[GtShStatusEvent.__fields__["TypeName"].default] == 1,
+                lambda: atn.stats.num_received_by_type[GtShStatusEvent.model_fields["TypeName"].default] == 1,
                 5,
                 "Atn wait for status message",
                 err_str_f=atn.summary_str
             )
             await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.__fields__["TypeName"].default] == 1,
+                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 1,
                 5,
                 "Atn wait for snapshot message",
                 err_str_f=atn.summary_str
@@ -520,9 +520,9 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             for actor in [thermo, relay, meter]:
                 await actor.join()
             # Wait for scada to send at least one more status.
-            statuses_received = atn.stats.total_received(GtShStatusEvent.__fields__["TypeName"].default)
+            statuses_received = atn.stats.total_received(GtShStatusEvent.model_fields["TypeName"].default)
             await await_for(
-                lambda: atn.stats.total_received(GtShStatusEvent.__fields__["TypeName"].default) > statuses_received,
+                lambda: atn.stats.total_received(GtShStatusEvent.model_fields["TypeName"].default) > statuses_received,
                 5,
                 "Atn wait for status message 2",
                 err_str_f=atn.summary_str
