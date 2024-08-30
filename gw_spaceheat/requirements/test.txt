@@ -41,9 +41,9 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks-cert==0.4.3
     # via gridworks-proactor
-gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/pydantic2
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
     # via -r requirements/test.in
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/ruff-check
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
     # via gridworks-proactor
 idna==2.10
     # via yarl
@@ -81,8 +81,6 @@ paho-mqtt==1.6.1
     # via gridworks-proactor
 pathspec==0.9.0
     # via black
-pendulum==2.1.2
-    # via gridworks-protocol
 platformdirs==2.5.2
     # via black
 pluggy==1.0.0
@@ -112,17 +110,13 @@ pytest-asyncio==0.20.3
     #   -r requirements/test.in
     #   gridworks-proactor
 python-dateutil==2.8.2
-    # via
-    #   freezegun
-    #   pendulum
+    # via freezegun
 python-dotenv==1.0.0
     # via
     #   gridworks-proactor
     #   pydantic-settings
 pytz==2024.1
     # via gridworks-protocol
-pytzdata==2020.1
-    # via pendulum
 result==0.9.0
     # via gridworks-proactor
 rich==13.6.0
@@ -130,8 +124,6 @@ rich==13.6.0
     #   gridworks-cert
     #   textual
     #   typer
-ruff==0.6.2
-    # via gridworks-protocol
 shellingham==1.5.4
     # via typer
 six==1.16.0

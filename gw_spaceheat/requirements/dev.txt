@@ -46,12 +46,12 @@ gridworks-cert==0.4.3
     # via
     #   -r requirements/dev.in
     #   gridworks-proactor
-gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/pydantic2
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
     # via
     #   -r requirements/base.in
     #   -r requirements/dev.in
     #   -r requirements/test.in
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/ruff-check
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
     # via
     #   -r requirements/base.in
     #   gridworks-proactor
@@ -100,9 +100,7 @@ paho-mqtt==1.6.1
 pathspec==0.9.0
     # via black
 pendulum==2.1.2
-    # via
-    #   -r requirements/base.in
-    #   gridworks-protocol
+    # via -r requirements/base.in
 pep517==0.12.0
     # via build
 pip-tools==6.13.0
@@ -169,8 +167,6 @@ rich==13.5.2
     #   gridworks-cert
     #   textual
     #   typer
-ruff==0.6.2
-    # via gridworks-protocol
 shellingham==1.5.3
     # via typer
 six==1.16.0
