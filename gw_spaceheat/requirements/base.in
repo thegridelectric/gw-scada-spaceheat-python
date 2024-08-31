@@ -1,6 +1,9 @@
 setuptools
-numpy
-pendulum
+# Python 3.12 apparently needs numpy 1.26.4
+# See here for discussion
+# https://stackoverflow.com/questions/77364550/attributeerror-module-pkgutil-has-no-attribute-impimporter-did-you-mean
+# numpy 2.x might work, but haven't tried.
+numpy==1.26.4
 paho-mqtt
 pytz
 python-dotenv

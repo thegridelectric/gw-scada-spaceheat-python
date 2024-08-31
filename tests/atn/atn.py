@@ -4,12 +4,12 @@ import dataclasses
 import threading
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 from typing import cast
 from typing import Optional
 from typing import Sequence
 
-import pendulum
 from paho.mqtt.client import MQTTMessageInfo
 import rich
 from pydantic import BaseModel
@@ -279,7 +279,7 @@ class Atn(ActorInterface, Proactor):
 
     def _process_event(self, event: EventBase) -> None:
         if self.settings.save_events:
-            event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
+            event_dt = datetime.fromtimestamp(event.TimeNS / 1000000000)
             event_file = (
                 self.settings.paths.event_dir
                 / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"

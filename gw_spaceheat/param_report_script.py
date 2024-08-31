@@ -1,5 +1,6 @@
+from datetime import datetime
+
 import dotenv
-import pendulum
 from gwproto.data_classes.hardware_layout import HardwareLayout
 
 from actors.config import ScadaSettings
@@ -30,7 +31,7 @@ description = input("Description\n")
 
 d = {
     "AboutNodeAlias": f"{scada_alias}",
-    "ChangeTimeUtc": pendulum.now().format("YYYY-MM-DDTHH:mm:ss.SSS"),
+    "ChangeTimeUtc": datetime.now().strftime("YYYY-MM-DDTHH:mm:ss.SSS"),
     "Author": f"{author}",
     "ParamName": f"{key_param_name}",
     "Description": f"{description}",
