@@ -629,18 +629,22 @@
   "OtherCacs": [
     {
       "ComponentAttributeClassId": "683c193a-bf83-4491-a294-c0e32865a407",
+      "TypeName": "component.attribute.class.gt",
       "MakeModelGtEnumSymbol": "00000000"
     },
     {
       "ComponentAttributeClassId": "cec0cb71-77bf-48a6-b644-2dcf124ac9fa",
+      "TypeName": "component.attribute.class.gt",
       "MakeModelGtEnumSymbol": "00000000"
     },
     {
       "ComponentAttributeClassId": "f9a35cca-2b6d-418d-a81f-81f1c3d64776",
+      "TypeName": "component.attribute.class.gt",
       "MakeModelGtEnumSymbol": "00000000"
     },
     {
       "ComponentAttributeClassId": "c884aafe-99e0-4468-8bff-ffa74f672f9d",
+      "TypeName": "component.attribute.class.gt",
       "MakeModelGtEnumSymbol": "00000000"
     }
   ]
