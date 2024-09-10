@@ -17,3 +17,5 @@ smbus2
 pymodbus
 pyserial
 pyModbusTCP
+typer
+trogon
