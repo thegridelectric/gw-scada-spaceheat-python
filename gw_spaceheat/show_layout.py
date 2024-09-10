@@ -67,6 +67,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
         action="store_true",
         help="Print additional information"
     )
+    parser.add_argument(
+        "-t",
+        "--table-only",
+        action="store_true",
+        help="Print only the table"
+    )
 
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
@@ -117,7 +123,7 @@ def print_component_dicts(layout: HardwareLayout):
     # dangling components
     dangling_component_nodes = set()
     for node in layout.nodes.values():
-        if node.component_id and not node.component_id in layout.components:
+        if node.component_id and node.component_id not in layout.components:
             dangling_component_nodes.add(node.alias)
     print(f"Nodes with component_id but no component: {len(dangling_component_nodes)}")
     if dangling_component_nodes:
@@ -125,7 +131,7 @@ def print_component_dicts(layout: HardwareLayout):
     # dangling cacs
     dangling_cac_components = set()
     for component in layout.components.values():
-        if component.component_attribute_class_id and not component.component_attribute_class_id in layout.cacs:
+        if component.component_attribute_class_id and component.component_attribute_class_id not in layout.cacs:
             dangling_cac_components.add(component.display_name)
     print(f"Components with cac_id but no cac: {len(dangling_cac_components)}")
     if dangling_cac_components:
@@ -245,25 +251,25 @@ def print_layout_table(layout: HardwareLayout):
             if cac.display_name:
                 cac_txt = Text(cac.display_name, style=table.columns[2].style)
             else:
-                cac_txt = Text(f"Cac id: ") + Text(cac.component_attribute_class_id, style="light_coral")
+                cac_txt = Text("Cac id: ") + Text(cac.component_attribute_class_id, style="light_coral")
             if hasattr(cac, "make_model"):
                 make_model_text = Text(cac.make_model.value, style=table.columns[3].style)
             else:
                 make_model_text = none_text
         node = layout.node(node.alias)
         if node.role:
-            role_text = Text(node.role.value)
+            role_text = Text(str(node.role.value))
         else:
             role_text = none_text
         if node.actor_class and node.actor_class != ActorClass.NoActor:
-            actor_text = Text(node.actor_class.value)
+            actor_text = Text(str(node.actor_class.value))
         else:
             actor_text = none_text
         table.add_row(node.alias, component_txt, cac_txt, make_model_text, role_text, actor_text)
     print(table)
 
 def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
-    settings = settings.copy(deep=True)
+    settings = settings.model_copy(deep=True)
     settings.paths.mkdirs()
     scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada.DEFAULT_ACTORS_MODULE)
     scada = None
@@ -279,6 +285,7 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
             ValueError,
             FileNotFoundError,
             AttributeError,
+            StopIteration,
     ) as e:
         print(f"ERROR loading Scada: <{e}> {type(e)}")
         print("Use '-r' to see full error stack.")
@@ -293,12 +300,14 @@ def show_layout(
         settings: ScadaSettings,
         raise_errors: bool = False,
         errors: Optional[list[LoadError]] = None,
+        table_only: bool = False,
 ) -> Scada:
     if errors is None:
         errors = []
-    print_component_dicts(layout)
-    print_layout_members(layout, errors)
-    print_layout_urls(layout)
+    if not table_only:
+        print_component_dicts(layout)
+        print_layout_members(layout, errors)
+        print_layout_urls(layout)
     print_layout_table(layout)
     scada = try_scada_load(
         requested_aliases,
@@ -335,6 +344,7 @@ def main(argv: Optional[Sequence[str]] = None):
         settings,
         raise_errors=args.raise_errors,
         errors=errors,
+        table_only=args.table_only,
     )
     if errors:
         print(f"\nFound {len(errors)} ERRORS in layout:")
