@@ -52,6 +52,9 @@ sudo apt-get install -y libssl-dev libbz2-dev libexpat1-dev liblzma-dev zlib1g-d
 sudo apt-get install -y tar wget vim build-essential libi2c-dev curl llvm  i2c-tools 
 sudo apt-get install -y mosquitto-clients libnss3-dev mosquitto mosquitto-clients
 
+So that the hostname shows up via multicast dns (e.g. fir2.local):
+sudo apt install avahi-daemon
+
 sudo apt clean
 
 curl https://pyenv.run | bash
