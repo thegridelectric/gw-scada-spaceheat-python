@@ -95,10 +95,13 @@ jobs:
         run: coverage run -m pytest
 
       - name: Upload coverage data
-        uses: "actions/upload-artifact@v3"
+        if: always()
+        uses: "actions/upload-artifact@v4.4.0"
         with:
           name: coverage-data
-          path: ".coverage*"
+          path: ".coverage.*"
+          if-no-files-found: error
+          include-hidden-files: true
 
       - name: Local Mosquitto Log
         if: failure()
@@ -121,7 +124,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
       - run: python -m pip install --upgrade coverage[toml]
       - name: Download coverage data.
-        uses: actions/download-artifact@v2
+        uses: "actions/download-artifact@v4.18"
         with:
           name: coverage-data
       - name: Report and upload
