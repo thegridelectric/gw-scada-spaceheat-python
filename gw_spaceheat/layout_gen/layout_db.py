@@ -360,7 +360,7 @@ class LayoutDb:
             self.misc,
             **{
                 list_name: [
-                    entry.as_dict() for entry in entries
+                    entry.as_dict() if hasattr(entry, "as_dict") else entry.model_dump() for entry in entries
                 ]
                 for list_name, entries in self.lists.items()
             }

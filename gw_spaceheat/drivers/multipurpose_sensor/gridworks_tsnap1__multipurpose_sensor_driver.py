@@ -208,12 +208,12 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         models: List[MakeModel] = [
             MakeModel.GRIDWORKS__TSNAP1,
         ]
-        if component.cac.make_model not in models:
+        if component.cac.MakeModel not in models:
             raise Exception(
-                f"Expected make model in {models}, got {component.cac.make_model}"
+                f"Expected make model in {models}, got {component.cac.MakeModel}"
             )
         self.channel_list = component.channel_list
-        self.telemetry_name_list = component.cac.telemetry_name_list
+        self.telemetry_name_list = component.cac.TelemetryNameList
 
     def start(self) -> Result[DriverResult[bool], Exception]:
         if set(self.telemetry_name_list) != {TelemetryName.WaterTempCTimes1000}:

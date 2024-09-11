@@ -49,7 +49,7 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
 
     def __init__(self, component: PipeFlowSensorComponent, settings: ScadaSettings):
         super(AtlasEzflo_PipeFlowSensorDriver, self).__init__(component=component, settings=settings)
-        if self.component.cac.make_model != MakeModel.ATLAS__EZFLO:
+        if self.component.cac.MakeModel != MakeModel.ATLAS__EZFLO:
             raise Exception(f"Expected {MakeModel.ATLAS__EZFLO}, got {component.cac}")
 
     def start(self) -> Result[DriverResult[bool], Exception]:

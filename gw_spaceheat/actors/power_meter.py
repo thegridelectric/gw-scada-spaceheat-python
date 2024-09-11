@@ -114,12 +114,12 @@ class DriverThreadSetupHelper:
         return eq_reporting_config
 
     def make_reporting_config(self) -> ReportingConfig:
-        if self.component.cac.poll_period_ms is None:
+        if self.component.cac.PollPeriodMs is None:
             poll_period_ms = self.FASTEST_POWER_METER_POLL_PERIOD_MS
         else:
             poll_period_ms = max(
                 self.FASTEST_POWER_METER_POLL_PERIOD_MS,
-                self.component.cac.poll_period_ms,
+                self.component.cac.PollPeriodMs,
             )
         return GtPowermeterReportingConfig_Maker(
             reporting_period_s=self.settings.seconds_per_report,
@@ -130,21 +130,21 @@ class DriverThreadSetupHelper:
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
         cac = self.component.cac
-        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+        if cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             driver = UnknownPowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.make_model == MakeModel.SCHNEIDERELECTRIC__IEM3455:
+        elif cac.MakeModel == MakeModel.SCHNEIDERELECTRIC__IEM3455:
             driver = SchneiderElectricIem3455_PowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.make_model == MakeModel.GRIDWORKS__SIMPM1:
+        elif cac.MakeModel == MakeModel.GRIDWORKS__SIMPM1:
             driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.make_model == MakeModel.OPENENERGY__EMONPI:
+        elif cac.MakeModel == MakeModel.OPENENERGY__EMONPI:
             driver = OpenenergyEmonpi_PowerMeterDriver(
                 component=self.component, settings=self.settings
             )
-        elif cac.make_model == MakeModel.EGAUGE__4030:
+        elif cac.MakeModel == MakeModel.EGAUGE__4030:
             driver = EGuage4030_PowerMeterDriver(component=self.component, settings=self.settings)
         else:
             raise NotImplementedError(
-                f"No ElectricMeter driver yet for {cac.make_model}"
+                f"No ElectricMeter driver yet for {cac.MakeModel}"
             )
         return driver
 

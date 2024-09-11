@@ -85,7 +85,7 @@ def print_component_dicts(layout: HardwareLayout):
     })
     print("All Cacs:")
     print({
-        cac.component_attribute_class_id: cac.display_name
+        cac.ComponentAttributeClassId: cac.DisplayName
         for cac in layout.cacs.values()
     })
     print("Nodes:")
@@ -248,12 +248,12 @@ def print_layout_table(layout: HardwareLayout):
                 cac_txt = none_text
 
         else:
-            if cac.display_name:
-                cac_txt = Text(cac.display_name, style=table.columns[2].style)
+            if cac.DisplayName:
+                cac_txt = Text(cac.DisplayName, style=table.columns[2].style)
             else:
-                cac_txt = Text("Cac id: ") + Text(cac.component_attribute_class_id, style="light_coral")
+                cac_txt = Text("Cac id: ") + Text(cac.ComponentAttributeClassId, style="light_coral")
             if hasattr(cac, "make_model"):
-                make_model_text = Text(cac.make_model.value, style=table.columns[3].style)
+                make_model_text = Text(str(cac.MakeModel), style=table.columns[3].style)
             else:
                 make_model_text = none_text
         node = layout.node(node.alias)

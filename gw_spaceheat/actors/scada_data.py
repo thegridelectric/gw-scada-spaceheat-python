@@ -55,7 +55,7 @@ class ScadaData:
         self.settings = settings
         self.hardware_layout = hardware_layout
         self.telemetry_names = {
-            node: NodeConfig(node, self.settings).reporting.TelemetryName
+            node: NodeConfig(hardware_layout, node.alias, self.settings).reporting.TelemetryName
             for node in hardware_layout.my_simple_sensors
         }
 

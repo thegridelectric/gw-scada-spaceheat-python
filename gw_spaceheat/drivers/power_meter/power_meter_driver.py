@@ -44,7 +44,7 @@ class PowerMeterDriver(ABC):
             return self.read_power_w(node)
         elif telemetry_name == TelemetryName.CurrentRmsMicroAmps:
             return self.read_current_rms_micro_amps(node)
-        elif  telemetry_name not in self.component.cac.telemetry_name_list:
+        elif  telemetry_name not in self.component.cac.TelemetryNameList:
             raise Exception(f"driver for {self.component.cac} does not read {telemetry_name}")
         else:
             return Err(ValueError(f"Driver {self} not set up to read {telemetry_name}"))

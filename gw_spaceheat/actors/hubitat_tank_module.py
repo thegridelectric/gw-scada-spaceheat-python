@@ -12,7 +12,6 @@ from gwproto import Message
 from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from gwproto.type_helpers import FibaroTempSensorSettings
 from pydantic import BaseModel
-from pydantic import Extra
 from result import Result
 
 from actors.message import MultipurposeSensorTelemetryMessage
@@ -106,7 +105,7 @@ class TempCBeta:
     Thermistor data sheets typically provide the three parameters needed
     for the beta formula (R0, beta, and T0) and do not provide the
     three parameters needed for the better beta function.
-    "Under the best conditions, the beta formula is accurate to approximately
+    Under the best conditions, the beta formula is accurate to approximately
     +/- 1 C over the temperature range of 0 to 100C
 
     For more information go here:
@@ -191,7 +190,7 @@ class FibaroTankTempPoller(RESTPoller):
         )
 
     async def _make_request(self, session: ClientSession) -> Optional[ClientResponse]:
-        """"A refresh sent to hubitat for fibaro returns the value of the *last* refresh,
+        """A refresh sent to hubitat for fibaro returns the value of the *last* refresh,
         so we just send two refreshes.
         """
         response = await super()._make_request(session)

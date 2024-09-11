@@ -3,7 +3,13 @@ import importlib
 import importlib.util
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.sh_node import ShNode
+from gwproto import HardwareLayout
+from gwproto.types import (
+    PipeFlowSensorCacGt,
+    RelayCacGt,
+    SimpleTempSensorCacGt,
+)
+
 from gwtypes import GtSensorReportingConfig_Maker as ConfigMaker
 from enums import Unit
 from enums import MakeModel
@@ -20,7 +26,8 @@ class NodeConfig:
     via Config messages.
     """
 
-    def __init__(self, node: ShNode, settings: ScadaSettings):
+    def __init__(self, layout: HardwareLayout, node_name: str, settings: ScadaSettings):
+        node = layout.node(node_name)
         self.node = node
         component = node.component
         self.seconds_per_report = settings.seconds_per_report
@@ -28,11 +35,11 @@ class NodeConfig:
         self.driver = None
         self.typical_response_time_ms = 0
         if isinstance(component, RelayComponent):
-            self.set_relay_config(component=component, settings=settings)
+            self.set_relay_config(layout=layout, component=component, settings=settings)
         elif isinstance(component, SimpleTempSensorComponent):
-            self.set_simple_temp_sensor_config(component=component, settings=settings)
+            self.set_simple_temp_sensor_config(layout=layout, component=component, settings=settings)
         elif isinstance(component, PipeFlowSensorComponent):
-            self.set_pipe_flow_sensor_config(component=component, settings=settings)
+            self.set_pipe_flow_sensor_config(layout=layout, component=component, settings=settings)
         if self.reporting is None:
             raise Exception(f"Failed to set reporting config for {node}!")
         if self.driver is None:
@@ -41,8 +48,10 @@ class NodeConfig:
     def __repr__(self):
         return f"Driver: {self.driver}. Reporting: {self.reporting}"
 
-    def set_pipe_flow_sensor_config(self, component: PipeFlowSensorComponent, settings: ScadaSettings):
-        cac = component.cac
+    def set_pipe_flow_sensor_config(self, layout: HardwareLayout, component: PipeFlowSensorComponent, settings: ScadaSettings):
+        cac = layout.cac_from_component(component)
+        if not isinstance(cac, PipeFlowSensorCacGt):
+            raise ValueError(f"ERROR. Pipe Flow Sensor must have cac of type PipeFlowSensorCacGt. Got {type(cac)}")
         if self.node.reporting_sample_period_s is None:
             raise Exception(f"Pipe Flow sensor node {self.node} is missing ReportingSamplePeriodS!")
         self.reporting = ConfigMaker(
@@ -54,52 +63,56 @@ class NodeConfig:
             unit=Unit.Gallons,
             async_report_threshold=None,
         ).tuple
-        if cac.make_model == MakeModel.ATLAS__EZFLO:
+        if cac.MakeModel == MakeModel.ATLAS__EZFLO:
             driver_module_name = "drivers.pipe_flow_sensor.atlas_ezflo__pipe_flow_sensor_driver"
             driver_class_name = "AtlasEzflo_PipeFlowSensorDriver"
-        elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+        elif cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             driver_module_name = "drivers.pipe_flow_sensor.unknown_pipe_flow_sensor_driver"
             driver_class_name = "UnknownPipeFlowSensorDriver"
         else:
-            raise NotImplementedError(f"No PipeTempSensor driver yet for {cac.make_model}")
+            raise NotImplementedError(f"No PipeTempSensor driver yet for {cac.MakeModel}")
         if driver_module_name not in sys.modules:
             importlib.import_module(driver_module_name)
         driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
         self.driver = driver_class(component=component, settings=settings)
 
-    def set_simple_temp_sensor_config(self, component: SimpleTempSensorComponent, settings: ScadaSettings):
-        cac = component.cac
-        self.typical_response_time_ms = cac.typical_response_time_ms
+    def set_simple_temp_sensor_config(self, layout: HardwareLayout, component: SimpleTempSensorComponent, settings: ScadaSettings):
+        cac = layout.cac_from_component(component)
+        if not isinstance(cac, SimpleTempSensorCacGt):
+            raise ValueError(f"ERROR. Simple Temp Sensor must have cac of type SimpleTempSensorCacGt. Got {type(cac)}")
+        self.typical_response_time_ms = cac.TypicalResponseTimeMs
         if self.node.reporting_sample_period_s is None:
             raise Exception(f"Temp sensor node {self.node} is missing ReportingSamplePeriodS!")
         self.reporting = ConfigMaker(
             report_on_change=False,
-            exponent=cac.exponent,
+            exponent=cac.Exponent,
             reporting_period_s=self.seconds_per_report,
             sample_period_s=self.node.reporting_sample_period_s,
-            telemetry_name=cac.telemetry_name,
-            unit=cac.temp_unit,
+            telemetry_name=cac.TelemetryName,
+            unit=cac.TempUnit,
             async_report_threshold=None,
         ).tuple
-        if cac.make_model == MakeModel.ADAFRUIT__642:
+        if cac.MakeModel == MakeModel.ADAFRUIT__642:
             driver_module_name = "drivers.simple_temp_sensor.adafruit_642__simple_temp_sensor_driver"
             driver_class_name = "Adafruit642_SimpleTempSensorDriver"
-        elif cac.make_model == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
+        elif cac.MakeModel == MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             driver_module_name = "drivers.simple_temp_sensor.gwsim__simple_temp_sensor_driver"
             driver_class_name = "Gwsim_SimpleTempSensorDriver"
-        elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+        elif cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             driver_module_name = "drivers.simple_temp_sensor.unknown_simple_temp_sensor_driver"
             driver_class_name = "UnknownSimpleTempSensorDriver"
         else:
-            raise NotImplementedError(f"No TempSensor driver yet for {cac.make_model}")
+            raise NotImplementedError(f"No TempSensor driver yet for {cac.MakeModel}")
         if driver_module_name not in sys.modules:
             importlib.import_module(driver_module_name)
         driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
         self.driver = driver_class(component=component, settings=settings)
 
-    def set_relay_config(self, component: RelayComponent, settings: ScadaSettings):
-        cac = component.cac
-        self.typical_response_time_ms = cac.typical_response_time_ms
+    def set_relay_config(self, layout: HardwareLayout, component: RelayComponent, settings: ScadaSettings):
+        cac = layout.cac_from_component(component)
+        if not isinstance(cac, RelayCacGt):
+            raise ValueError(f"ERROR. Relay must have cac of type RelayCacGt. Got {type(cac)}")
+        self.typical_response_time_ms = cac.TypicalResponseTimeMs
         if self.node.reporting_sample_period_s is None:
             reporting_sample_period_s = self.seconds_per_report
         else:
@@ -109,11 +122,11 @@ class NodeConfig:
             exponent=0,
             reporting_period_s=self.seconds_per_report,
             sample_period_s=reporting_sample_period_s,
-            telemetry_name=cac.telemetry_name,
+            telemetry_name=TelemetryName.RelayState,
             unit=Unit.Unitless,
             async_report_threshold=0.5,
         ).tuple
-        if cac.make_model == MakeModel.NCD__PR814SPST:
+        if cac.MakeModel == MakeModel.NCD__PR814SPST:
             found = importlib.util.find_spec("smbus2")
             if found:
                 import smbus2 as smbus
@@ -127,14 +140,14 @@ class NodeConfig:
             else:
                 driver_module_name = "drivers.relay.unknown_relay_driver"
                 driver_class_name = "UnknownRelayDriver"
-        elif cac.make_model == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
+        elif cac.MakeModel == MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             driver_module_name = "drivers.relay.gridworks_simbool30amprelay__relay_driver"
             driver_class_name = "GridworksSimBool30AmpRelay_RelayDriver"
-        elif cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+        elif cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             driver_module_name = "drivers.relay.unknown_relay_driver"
             driver_class_name = "UnknownRelayDriver"
         else:
-            raise NotImplementedError(f"No BooleanActuator driver yet for {cac.make_model}")
+            raise NotImplementedError(f"No BooleanActuator driver yet for {cac.MakeModel}")
         if driver_module_name not in sys.modules:
             importlib.import_module(driver_module_name)
         driver_class = getattr(sys.modules[driver_module_name], driver_class_name)

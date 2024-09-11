@@ -1,6 +1,7 @@
 from typing import Self
 
 from gwproto.enums import ActorClass
+from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.types import HubitatPollerCacGt
 from gwproto.types import HubitatPollerComponentGt
@@ -61,6 +62,7 @@ def add_hubitat_poller(
                 HubitatPollerCacGt(
                     ComponentAttributeClassId=db.make_cac_id(cac_type),
                     DisplayName="Hubitat Poller Cac",
+                    MakeModel=MakeModel.HUBITAT__C7__LAN1,
                 ),
             ]
         )

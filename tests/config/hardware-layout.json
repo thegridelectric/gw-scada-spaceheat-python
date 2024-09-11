@@ -2,12 +2,13 @@
   "ElectricMeterCacs": [
     {
       "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+      "DefaultBaud": null,
       "DisplayName": "Gridworks Pm1 Simulated Power Meter",
-      "InterfaceGtEnumSymbol": "efc144cd",
-      "MakeModelGtEnumSymbol": "076da322",
+      "Interface": "SIMRABBIT",
+      "MakeModel": "GRIDWORKS__SIMPM1",
       "PollPeriodMs": 1000,
       "TelemetryNameList": [
-        "af39eec9"
+        "PowerW"
       ],
       "TypeName": "electric.meter.cac.gt",
       "Version": "000"
@@ -87,7 +88,7 @@
     {
       "ComponentAttributeClassId": "69f101fc-22e4-4caa-8103-50b8aeb66028",
       "DisplayName": "Gridworks Simulated Boolean Actuator",
-      "MakeModelGtEnumSymbol": "e81d74a8",
+      "MakeModel": "GRIDWORKS__SIMBOOL30AMPRELAY",
       "TypeName": "relay.cac.gt",
       "TypicalResponseTimeMs": 400,
       "Version": "000"
@@ -108,7 +109,7 @@
     {
       "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
       "DisplayName": "Fake Boost Element",
-      "MakeModelGtEnumSymbol": "00000000",
+      "MakeModel": "UNKNOWNMAKE__UNKNOWNMODEL",
       "NameplateMaxPowerW": 4500,
       "RatedVoltageV": 240,
       "TypeName": "resistive.heater.cac.gt",
@@ -223,9 +224,9 @@
       "ComponentAttributeClassId": "cac0f096-b460-4dce-aabf-a81ccce23566",
       "DisplayName": "Simulated GridWorks high precision water temp sensor",
       "Exponent": -3,
-      "MakeModelGtEnumSymbol": "f8b497e8",
-      "TelemetryNameGtEnumSymbol": "793505aa",
-      "TempUnitGtEnumSymbol": "7d8832f8",
+      "MakeModel": "GRIDWORKS__WATERTEMPHIGHPRECISION",
+      "TelemetryName": "WaterTempFTimes1000",
+      "TempUnit": "Fahrenheit",
       "TypeName": "simple.temp.sensor.cac.gt",
       "TypicalResponseTimeMs": 880,
       "Version": "000"

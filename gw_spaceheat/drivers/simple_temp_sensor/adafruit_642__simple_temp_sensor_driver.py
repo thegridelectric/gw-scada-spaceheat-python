@@ -9,7 +9,7 @@ from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-import schema.property_format as property_format
+from gwproto import property_format
 from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from drivers.driver_result import DriverResult
 from drivers.simple_temp_sensor.simple_temp_sensor_driver import SimpleTempSensorDriver
@@ -24,7 +24,7 @@ DEFAULT_BAD_TEMP_C_TIMES_1000_VALUE = 10 ** 6
 class Adafruit642_SimpleTempSensorDriver(SimpleTempSensorDriver):
     def __init__(self, component: SimpleTempSensorComponent, settings: ScadaSettings):
         super(Adafruit642_SimpleTempSensorDriver, self).__init__(component=component, settings=settings)
-        if component.cac.make_model != MakeModel.ADAFRUIT__642:
+        if component.cac.MakeModel != MakeModel.ADAFRUIT__642:
             raise Exception(f"Expected Adafruit__642, got {component.cac}")
         property_format.is_64_bit_hex(component.hw_uid)
 

@@ -1,6 +1,5 @@
 from typing import Optional
 
-import schema.property_format as property_format
 import smbus2 as smbus
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
@@ -10,6 +9,7 @@ from drivers.relay.relay_driver import RelayDriver
 from enums import MakeModel
 from gwproto.data_classes.components.relay_component import RelayComponent
 from result import Err, Ok, Result
+from gwproto import property_format
 
 
 class NcdPr814SpstI2cReadWarning(DriverWarning):
@@ -31,7 +31,7 @@ class NcdPr814Spst_RelayDriver(RelayDriver):
         super(NcdPr814Spst_RelayDriver, self).__init__(
             component=component, settings=settings
         )
-        if component.cac.make_model != MakeModel.NCD__PR814SPST:
+        if component.cac.MakeModel != MakeModel.NCD__PR814SPST:
             raise Exception(f"Expected {MakeModel.NCD__PR814SPST}, got {component.cac}")
 
     def turn_on(self):

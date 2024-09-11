@@ -13,7 +13,7 @@ class GridworksSimPm1_PowerMeterDriver(PowerMeterDriver):
         super(GridworksSimPm1_PowerMeterDriver, self).__init__(
             component=component, settings=settings
         )
-        if component.cac.make_model != MakeModel.GRIDWORKS__SIMPM1:
+        if component.cac.MakeModel != MakeModel.GRIDWORKS__SIMPM1:
             raise Exception(
                 f"Expected {MakeModel.GRIDWORKS__SIMPM1}, got {component.cac}"
             )

@@ -2,6 +2,7 @@ from typing import Optional
 from typing import Tuple
 
 from gwproto.enums import ActorClass
+from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.types import FibaroSmartImplantCacGt
 from gwproto.types import FibaroSmartImplantComponentGt
@@ -65,6 +66,7 @@ def add_tank(
                     ComponentAttributeClassId=db.make_cac_id(fibaro_cac_type),
                     DisplayName="Fibaro SmartImplant FGBS-222",
                     Model="FGBS-222 v5.2",
+                    MakeModel=MakeModel.FIBARO__ANALOG_TEMP_SENSOR,
                 ),
             ]
         )
@@ -75,6 +77,7 @@ def add_tank(
                 HubitatCacGt(
                     ComponentAttributeClassId=db.make_cac_id(hubitat_cac_type),
                     DisplayName="Hubitat Elevation C-7",
+                    MakeModel=MakeModel.HUBITAT__C7__LAN1,
                 ),
             ]
         )
@@ -85,6 +88,7 @@ def add_tank(
                 HubitatTankCacGt(
                     ComponentAttributeClassId=db.make_cac_id(hubitat_tank_cac_type),
                     DisplayName="Hubitat Tank Module",
+                    MakeModel=MakeModel.GRIDWORKS__TANK_MODULE_1
                 ),
             ]
         )

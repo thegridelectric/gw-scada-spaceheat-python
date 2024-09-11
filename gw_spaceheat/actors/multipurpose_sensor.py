@@ -74,10 +74,10 @@ class MpDriverThreadSetupHelper:
         driver_module_name = ""
         driver_class_name = ""
         cac = self.component.cac
-        if cac.make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+        if cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             driver_module_name = UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME
             driver_class_name = UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME
-        elif cac.make_model == MakeModel.GRIDWORKS__TSNAP1:
+        elif cac.MakeModel == MakeModel.GRIDWORKS__TSNAP1:
             driver_module_name = "drivers.multipurpose_sensor.gridworks_tsnap1__multipurpose_sensor_driver"
             driver_class_name = "GridworksTsnap1_MultipurposeSensorDriver"
             for module_name in [
@@ -94,7 +94,7 @@ class MpDriverThreadSetupHelper:
                     break
         if not driver_module_name or not driver_class_name:
             raise NotImplementedError(
-                f"No MultipurposeSensor driver yet for {cac.make_model}"
+                f"No MultipurposeSensor driver yet for {cac.MakeModel}"
             )
         if driver_module_name not in sys.modules:
             importlib.import_module(driver_module_name)
@@ -133,7 +133,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         self.component = typing.cast(MultipurposeSensorComponent, node.component)
         self.poll_period_ms = max(
             self.FASTEST_POLL_PERIOD_MS,
-            self.component.cac.poll_period_ms,
+            self.component.cac.PollPeriodMs,
         )
         self._telemetry_destination = telemetry_destination
 
