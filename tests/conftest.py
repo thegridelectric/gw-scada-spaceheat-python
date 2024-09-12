@@ -9,7 +9,6 @@ from gwproactor_test import restore_loggers # noqa
 from gwproactor_test.certs import set_test_certificate_cache_dir
 
 
-from tests.utils import flush_all
 from types import NoneType
 from typing import Generator
 
@@ -100,11 +99,6 @@ class TestScadaEnv:
                 test_dotenv_path = Path(test_dotenv_file)
                 if test_dotenv_path.exists():
                     dotenv.load_dotenv(dotenv_path=test_dotenv_path)
-
-
-@pytest.fixture(autouse=True)
-def flush_local_registries():
-    flush_all()
 
 
 @pytest.fixture(autouse=True)

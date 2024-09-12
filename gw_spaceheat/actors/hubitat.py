@@ -37,17 +37,17 @@ class Hubitat(Actor, HubitatWebServerInterface):
                 f"ERROR. Component <{display_name}> has type {type(component)}. "
                 f"Expected HubitatComponent.\n"
                 f"  Node: {self.name}\n"
-                f"  Component id: {component.component_id}"
+                f"  Component id: {component.gt.ComponentId}"
             )
         self._component = component
         self._report_dst = services.name
         self._web_event_handlers = dict()
         super().__init__(name, services)
-        if self._component.hubitat_gt.WebListenEnabled:
+        if self._component.gt.Hubitat.WebListenEnabled:
             self._services.add_web_route(
                 server_name=DEFAULT_WEB_SERVER_NAME,
                 method="POST",
-                path="/" + self._component.hubitat_gt.listen_path,
+                path="/" + self._component.gt.Hubitat.listen_path,
                 handler=self._handle_web_post,
             )
             for web_listener_node in self._component.web_listener_nodes:
@@ -56,7 +56,7 @@ class Hubitat(Actor, HubitatWebServerInterface):
                     self.add_web_event_handlers(actor.get_hubitat_web_event_handlers())
 
     def add_web_event_handler(self, handler: HubitatWebEventHandler) -> None:
-        if self._component.hubitat_gt.WebListenEnabled:
+        if self._component.gt.Hubitat.WebListenEnabled:
             self._web_event_handlers[(handler.device_id, handler.event_name)] = handler
 
     def add_web_event_handlers(self, handlers: Sequence[HubitatWebEventHandler]) -> None:

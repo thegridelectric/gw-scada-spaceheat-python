@@ -2,8 +2,9 @@ import sys
 import importlib
 import importlib.util
 
+from gwproto import ShNode
+
 from actors.config import ScadaSettings
-from gwproto import HardwareLayout
 from gwproto.types import (
     PipeFlowSensorCacGt,
     RelayCacGt,
@@ -26,8 +27,7 @@ class NodeConfig:
     via Config messages.
     """
 
-    def __init__(self, layout: HardwareLayout, node_name: str, settings: ScadaSettings):
-        node = layout.node(node_name)
+    def __init__(self, node: ShNode, settings: ScadaSettings):
         self.node = node
         component = node.component
         self.seconds_per_report = settings.seconds_per_report
@@ -35,11 +35,11 @@ class NodeConfig:
         self.driver = None
         self.typical_response_time_ms = 0
         if isinstance(component, RelayComponent):
-            self.set_relay_config(layout=layout, component=component, settings=settings)
+            self.set_relay_config(component=component, settings=settings)
         elif isinstance(component, SimpleTempSensorComponent):
-            self.set_simple_temp_sensor_config(layout=layout, component=component, settings=settings)
+            self.set_simple_temp_sensor_config(component=component, settings=settings)
         elif isinstance(component, PipeFlowSensorComponent):
-            self.set_pipe_flow_sensor_config(layout=layout, component=component, settings=settings)
+            self.set_pipe_flow_sensor_config(component=component, settings=settings)
         if self.reporting is None:
             raise Exception(f"Failed to set reporting config for {node}!")
         if self.driver is None:
@@ -48,8 +48,8 @@ class NodeConfig:
     def __repr__(self):
         return f"Driver: {self.driver}. Reporting: {self.reporting}"
 
-    def set_pipe_flow_sensor_config(self, layout: HardwareLayout, component: PipeFlowSensorComponent, settings: ScadaSettings):
-        cac = layout.cac_from_component(component)
+    def set_pipe_flow_sensor_config(self, component: PipeFlowSensorComponent, settings: ScadaSettings):
+        cac = component.cac
         if not isinstance(cac, PipeFlowSensorCacGt):
             raise ValueError(f"ERROR. Pipe Flow Sensor must have cac of type PipeFlowSensorCacGt. Got {type(cac)}")
         if self.node.reporting_sample_period_s is None:
@@ -76,8 +76,8 @@ class NodeConfig:
         driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
         self.driver = driver_class(component=component, settings=settings)
 
-    def set_simple_temp_sensor_config(self, layout: HardwareLayout, component: SimpleTempSensorComponent, settings: ScadaSettings):
-        cac = layout.cac_from_component(component)
+    def set_simple_temp_sensor_config(self, component: SimpleTempSensorComponent, settings: ScadaSettings):
+        cac = component.cac
         if not isinstance(cac, SimpleTempSensorCacGt):
             raise ValueError(f"ERROR. Simple Temp Sensor must have cac of type SimpleTempSensorCacGt. Got {type(cac)}")
         self.typical_response_time_ms = cac.TypicalResponseTimeMs
@@ -108,8 +108,8 @@ class NodeConfig:
         driver_class = getattr(sys.modules[driver_module_name], driver_class_name)
         self.driver = driver_class(component=component, settings=settings)
 
-    def set_relay_config(self, layout: HardwareLayout, component: RelayComponent, settings: ScadaSettings):
-        cac = layout.cac_from_component(component)
+    def set_relay_config(self, component: RelayComponent, settings: ScadaSettings):
+        cac = component.cac
         if not isinstance(cac, RelayCacGt):
             raise ValueError(f"ERROR. Relay must have cac of type RelayCacGt. Got {type(cac)}")
         self.typical_response_time_ms = cac.TypicalResponseTimeMs

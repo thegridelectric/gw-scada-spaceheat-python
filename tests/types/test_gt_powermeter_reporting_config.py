@@ -11,7 +11,20 @@ from gwtypes import GtPowermeterReportingConfig_Maker as Maker
 def test_gt_powermeter_reporting_config_generated() -> None:
     d = {
         "ReportingPeriodS": 300,
-        "ElectricalQuantityReportingConfigList": [{ "TelemetryNameGtEnumSymbol": "af39eec9", "AboutNodeName": "a.elt1", "ReportOnChange": True, "SamplePeriodS": 300, "Exponent": 6, "UnitGtEnumSymbol": "f459a9c3", "AsyncReportThreshold": 0.2, "NameplateMaxValue": 4000, "TypeName": "telemetry.reporting.config", "Version": "000", }],
+        "ElectricalQuantityReportingConfigList": [
+            {
+                "TelemetryName": "PowerW",
+                "AboutNodeName": "a.elt1",
+                "ReportOnChange": True,
+                "SamplePeriodS": 300,
+                "Exponent": 6,
+                "Unit": "W",
+                "AsyncReportThreshold": 0.2,
+                "NameplateMaxValue": 4000,
+                "TypeName": "telemetry.reporting.config",
+                "Version": "000",
+            }
+        ],
         "PollPeriodMs": 1000,
         "HwUid": "1001ab",
         "TypeName": "gt.powermeter.reporting.config",
@@ -19,10 +32,10 @@ def test_gt_powermeter_reporting_config_generated() -> None:
     }
 
     with pytest.raises(SchemaError):
-        Maker.type_to_tuple(d)
+        Maker.type_to_tuple(d) # noqa
 
     with pytest.raises(SchemaError):
-        Maker.type_to_tuple('"not a dict"')
+        Maker.type_to_tuple('"not a dict"') # noqa
 
     # Test type_to_tuple
     gtype = json.dumps(d)
@@ -86,12 +99,12 @@ def test_gt_powermeter_reporting_config_generated() -> None:
     with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
-    d2  = dict(d, ElectricalQuantityReportingConfigList=["Not a list of dicts"])
+    d2  = dict(d, ElectricalQuantityReportingConfigList=["Not a list of dicts"]) # noqa
     with pytest.raises(SchemaError):
         Maker.dict_to_tuple(d2)
 
     d2  = dict(d, ElectricalQuantityReportingConfigList= [{"Failed": "Not a GtSimpleSingleStatus"}])
-    with pytest.raises(SchemaError):
+    with pytest.raises(ValidationError):
         Maker.dict_to_tuple(d2)
 
     d2 = dict(d, PollPeriodMs="1000.1")

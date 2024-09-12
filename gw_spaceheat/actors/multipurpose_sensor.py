@@ -63,9 +63,9 @@ class MpDriverThreadSetupHelper:
         self,
     ) -> Dict[TelemetrySpec, TelemetryReportingConfig]:
         d: Dict[TelemetrySpec, TelemetryReportingConfig] = OrderedDict()
-        for config in self.component.config_list:
-            list_idx = self.component.config_list.index(config)
-            channel_idx = self.component.channel_list[list_idx]
+        for config in self.component.gt.ConfigList:
+            list_idx = self.component.gt.ConfigList.index(config)
+            channel_idx = self.component.gt.ChannelList[list_idx]
             ts = TelemetrySpec(ChannelIdx=channel_idx, Type=config.TelemetryName)
             d[ts] = config
         return d

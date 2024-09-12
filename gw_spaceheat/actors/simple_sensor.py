@@ -154,7 +154,7 @@ class SimpleSensor(SyncThreadActor):
                 driver_thread_class = SimpleSensorDriverThread
             driver_thread = driver_thread_class(
                 name=name,
-                config=NodeConfig(services.hardware_layout, name, services.settings),
+                config=NodeConfig(services.hardware_layout.node(name), services.settings),
                 telemetry_destination=services.name,
                 channel=SyncAsyncQueueWriter(queue.Queue() if driver_receives_messages else None),
                 responsive_sleep_step_seconds=responsive_sleep_step_seconds,

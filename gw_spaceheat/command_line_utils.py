@@ -192,6 +192,6 @@ async def run_async_actors_main(argv: Optional[Sequence[str]] = None):
         # noinspection PyBroadException
         try:
             exception_logger.exception(f"ERROR in run_async_actors_main. Shutting down: [{e}] / [{type(e)}]")
-        except:
+        except:  # noqa: E722
             traceback.print_exception(e)
         raise e
