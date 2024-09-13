@@ -17,17 +17,12 @@ from gwproto import Decoders
 from gwproto import create_message_payload_discriminator
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtDispatchBoolean
-from gwproto.messages import GtDispatchBoolean_Maker
 from gwproto.messages import GtDispatchBooleanLocal
 from gwproto.messages import GtDriverBooleanactuatorCmd
-from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
 from gwproto.messages import GtShCliAtnCmd
-from gwproto.messages import GtShCliAtnCmd_Maker
 from gwproto.messages import GtShStatusEvent
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor
-from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
-from gwproto.messages import GtTelemetry_Maker
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from gwproto.messages import SnapshotSpaceheatEvent
@@ -67,10 +62,6 @@ class GridworksMQTTCodec(MQTTCodec):
         self.hardware_layout = hardware_layout
         super().__init__(
             Decoders.from_objects(
-                [
-                    GtDispatchBoolean_Maker,
-                    GtShCliAtnCmd_Maker,
-                ],
                 message_payload_discriminator=ScadaMessageDecoder,
             )
         )
@@ -88,11 +79,6 @@ class LocalMQTTCodec(MQTTCodec):
         self.hardware_layout = hardware_layout
         super().__init__(
             Decoders.from_objects(
-                [
-                    GtDriverBooleanactuatorCmd_Maker,
-                    GtShTelemetryFromMultipurposeSensor_Maker,
-                    GtTelemetry_Maker,
-                ],
                 message_payload_discriminator=ScadaMessageDecoder,
             )
         )
@@ -374,7 +360,7 @@ class Scada(ScadaInterface, Proactor):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
         self.send_threadsafe(
             GtDispatchBooleanLocalMessage(
-                src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=int(on)
+                src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=on
             )
         )
         return ScadaCmdDiagnostic.SUCCESS

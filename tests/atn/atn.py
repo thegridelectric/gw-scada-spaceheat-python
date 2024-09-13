@@ -10,6 +10,8 @@ from typing import Optional
 from typing import Sequence
 
 import pendulum
+from gwproto.types import GtDispatchBoolean
+from gwproto.types import GtShCliAtnCmd
 from paho.mqtt.client import MQTTMessageInfo
 import rich
 from pydantic import BaseModel
@@ -26,14 +28,9 @@ from gwproto.messages import GtShStatusEvent
 from gwproto.messages import SnapshotSpaceheatEvent
 from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
-from gwproto.messages import PowerWatts_Maker
-from gwproto.messages import GtDispatchBoolean_Maker
-from gwproto.messages import GtShCliAtnCmd_Maker
 from gwproto.messages import GtShStatus
 from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import GsPwr_Maker
-from gwproto.messages import GtShStatus_Maker
-from gwproto.messages import SnapshotSpaceheat_Maker
 
 from gwproactor import ActorInterface
 from gwproactor import QOS
@@ -63,11 +60,6 @@ class AtnMQTTCodec(MQTTCodec):
         self.hardware_layout = hardware_layout
         super().__init__(
             Decoders.from_objects(
-                [
-                    GtShStatus_Maker,
-                    SnapshotSpaceheat_Maker,
-                    PowerWatts_Maker,
-                ],
                 message_payload_discriminator=AtnMessageDecoder,
             ).add_decoder("p", CallableDecoder(lambda decoded: GsPwr_Maker(decoded[0]).tuple))
         )
@@ -170,12 +162,12 @@ class Atn(ActorInterface, Proactor):
         )
         path_dbg = 0
         match message.Payload:
-            case GtShCliAtnCmd_Maker():
+            case GtShCliAtnCmd():
                 path_dbg |= 0x00000001
-                self._publish_to_scada(message.Payload.tuple.as_dict())
-            case GtDispatchBoolean_Maker():
+                self._publish_to_scada(message.Payload)
+            case GtDispatchBoolean():
                 path_dbg |= 0x00000002
-                self._publish_to_scada(message.Payload.tuple.as_dict())
+                self._publish_to_scada(message.Payload)
             case DBGPayload():
                 path_dbg |= 0x00000004
                 self._publish_to_scada(message.Payload)
@@ -271,7 +263,7 @@ class Atn(ActorInterface, Proactor):
         if self.settings.save_events:
             status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
             with status_file.open("w") as f:
-                f.write(str(status.as_type()))
+                f.write(str(status))
         # self._logger.info(f"Wrote status file [{status_file}]")
         if self.settings.print_status:
             rich.print("Received GtShStatus")
@@ -285,17 +277,17 @@ class Atn(ActorInterface, Proactor):
                 / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
             )
             with event_file.open("w") as f:
-                f.write(event.json(sort_keys=True, indent=2))
+                f.write(event.model_dump_json(indent=2))
 
     def snap(self):
         self.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.name,
-                Payload=GtShCliAtnCmd_Maker(
-                    from_g_node_alias=self.layout.atn_g_node_alias,
-                    from_g_node_id=self.layout.atn_g_node_id,
-                    send_snapshot=True,
+                Payload=GtShCliAtnCmd(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromGNodeId=self.layout.atn_g_node_id,
+                    SendSnapshot=True,
                 ),
             )
         )
@@ -343,13 +335,13 @@ class Atn(ActorInterface, Proactor):
             Message(
                 Src=self.name,
                 Dst=self.name,
-                Payload=GtDispatchBoolean_Maker(
-                    about_node_name=name,
-                    to_g_node_alias=self.layout.scada_g_node_alias,
-                    from_g_node_alias=self.layout.atn_g_node_alias,
-                    from_g_node_instance_id=self.layout.atn_g_node_instance_id,
-                    relay_state=int(state),
-                    send_time_unix_ms=int(time.time() * 1000),
+                Payload=GtDispatchBoolean(
+                    AboutNodeName=name,
+                    ToGNodeAlias=self.layout.scada_g_node_alias,
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromGNodeInstanceId=self.layout.atn_g_node_instance_id,
+                    RelayState=state,
+                    SendTimeUnixMs=int(time.time() * 1000),
                 ),
             )
         )
@@ -375,8 +367,8 @@ class Atn(ActorInterface, Proactor):
         """Summarize results in a string"""
         s = (
             f"Atn [{self.node.alias}] total: {self._stats.num_received}  "
-            f"status:{self._stats.total_received(GtShStatus_Maker.type_name)}  "
-            f"snapshot:{self._stats.total_received(SnapshotSpaceheat_Maker.type_name)}"
+            f"status:{self._stats.total_received(GtShStatus.model_fields['TypeName'].default)}  "
+            f"snapshot:{self._stats.total_received(SnapshotSpaceheat.model_fields['TypeName'].default)}"
         )
         if self._stats.num_received_by_topic:
             s += "\n  Received by topic:"

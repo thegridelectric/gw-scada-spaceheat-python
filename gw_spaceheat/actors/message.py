@@ -8,15 +8,10 @@ from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
-from gwproto.messages import PowerWatts_Maker
 from gwproto.messages import GtDispatchBooleanLocal
-from gwproto.messages import GtDispatchBooleanLocal_Maker
 from gwproto.messages import GtDriverBooleanactuatorCmd
-from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor
-from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
-from gwproto.messages import GtTelemetry_Maker
 
 class GtTelemetryMessage(Message[GtTelemetry]):
     def __init__(
@@ -28,19 +23,15 @@ class GtTelemetryMessage(Message[GtTelemetry]):
         exponent: int,
         scada_read_time_unix_ms: int,
     ):
-        payload = GtTelemetry_Maker(
-            name=telemetry_name,
-            value=value,
-            exponent=exponent,
-            scada_read_time_unix_ms=scada_read_time_unix_ms,
-        ).tuple
         super().__init__(
-            Header=Header(
-                Src=src,
-                Dst=dst,
-                MessageType=payload.TypeName,
+            Src=src,
+            Dst=dst,
+            Payload=GtTelemetry(
+                Name=telemetry_name,
+                Value=value,
+                Exponent=exponent,
+                ScadaReadTimeUnixMs=scada_read_time_unix_ms,
             ),
-            Payload=payload,
         )
 
 
@@ -49,20 +40,16 @@ class GtDriverBooleanactuatorCmdResponse(Message[GtDriverBooleanactuatorCmd]):
         self,
         src: str,
         dst: str,
-        relay_state: int,
+        relay_state: bool,
     ):
-        payload = GtDriverBooleanactuatorCmd_Maker(
-            relay_state=relay_state,
-            command_time_unix_ms=int(time.time() * 1000),
-            sh_node_alias=src,
-        ).tuple
         super().__init__(
-            Header=Header(
-                Src=src,
-                Dst=dst,
-                MessageType=payload.TypeName,
+            Src=src,
+            Dst=dst,
+            Payload=GtDriverBooleanactuatorCmd(
+                RelayState=relay_state,
+                CommandTimeUnixMs=int(time.time() * 1000),
+                ShNodeAlias=src
             ),
-            Payload=payload,
         )
 
 
@@ -71,14 +58,14 @@ class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
         self,
         src: str,
         dst: str,
-        relay_state: int,
+        relay_state: bool,
     ):
-        payload = GtDispatchBooleanLocal_Maker(
-            from_node_name=src,
-            about_node_name=dst,
-            relay_state=relay_state,
-            send_time_unix_ms=int(time.time() * 1000),
-        ).tuple
+        payload = GtDispatchBooleanLocal(
+            FromNodeName=src,
+            AboutNodeName=dst,
+            RelayState=relay_state,
+            SendTimeUnixMs=int(time.time() * 1000),
+        )
         super().__init__(
             Header=Header(
                 Src=src,
@@ -96,7 +83,7 @@ class PowerWattsMessage(Message[PowerWatts]):
         dst: str,
         power: int,
     ):
-        payload = cast(PowerWatts, PowerWatts_Maker(watts=power).tuple)
+        payload = cast(PowerWatts, PowerWatts(Watts=power))
         super().__init__(
             Header=Header(
                 Src=src,
@@ -116,12 +103,12 @@ class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSe
         value_list: List[int],
         telemetry_name_list: List[TelemetryName],
     ):
-        payload = GtShTelemetryFromMultipurposeSensor_Maker(
-            about_node_alias_list=about_node_alias_list,
-            value_list=value_list,
-            telemetry_name_list=telemetry_name_list,
-            scada_read_time_unix_ms=int(1000 * time.time()),
-        ).tuple
+        payload = GtShTelemetryFromMultipurposeSensor(
+            AboutNodeAliasList=about_node_alias_list,
+            ValueList=value_list,
+            TelemetryNameList=telemetry_name_list,
+            ScadaReadTimeUnixMs=int(1000 * time.time()),
+        )
         super().__init__(
             Header=Header(
                 Src=src,

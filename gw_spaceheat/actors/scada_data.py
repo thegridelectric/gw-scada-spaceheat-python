@@ -9,17 +9,11 @@ from typing import Optional
 
 from gwproto.enums import TelemetryName
 from gwproto.messages import GtShBooleanactuatorCmdStatus
-from gwproto.messages import GtShBooleanactuatorCmdStatus_Maker
 from gwproto.messages import GtShMultipurposeTelemetryStatus
-from gwproto.messages import GtShMultipurposeTelemetryStatus_Maker
 from gwproto.messages import GtShSimpleTelemetryStatus
-from gwproto.messages import GtShSimpleTelemetryStatus_Maker
 from gwproto.messages import GtShStatus
-from gwproto.messages import GtShStatus_Maker
 from gwproto.messages import SnapshotSpaceheat
-from gwproto.messages import SnapshotSpaceheat_Maker
 from gwproto.messages import TelemetrySnapshotSpaceheat
-from gwproto.messages import TelemetrySnapshotSpaceheat_Maker
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -59,7 +53,7 @@ class ScadaData:
             for node in hardware_layout.my_simple_sensors
         }
 
-        self.latest_simple_value: Dict[ShNode, int] = {
+        self.latest_simple_value: Dict[ShNode, int] = {  # noqa
             node: None for node in hardware_layout.my_simple_sensors
         }
         self.recent_simple_values: Dict[ShNode, List] = {
@@ -69,7 +63,7 @@ class ScadaData:
             node: [] for node in hardware_layout.my_simple_sensors
         }
 
-        self.latest_value_from_multipurpose_sensor: Dict[TelemetryTuple, int] = {
+        self.latest_value_from_multipurpose_sensor: Dict[TelemetryTuple, int] = {  # noqa
             tt: None for tt in hardware_layout.my_telemetry_tuples
         }
         self.recent_values_from_multipurpose_sensor: Dict[TelemetryTuple, List] = {
@@ -112,15 +106,12 @@ class ScadaData:
         if node in self.hardware_layout.my_simple_sensors:
             if len(self.recent_simple_values[node]) == 0:
                 return None
-            read_time_unix_ms_list = self.recent_simple_read_times_unix_ms[node]
-            value_list = self.recent_simple_values[node]
-            telemetry_name = self.telemetry_names[node]
-            return GtShSimpleTelemetryStatus_Maker(
-                sh_node_alias=node.alias,
-                telemetry_name=telemetry_name,
-                value_list=value_list,
-                read_time_unix_ms_list=read_time_unix_ms_list,
-            ).tuple
+            return GtShSimpleTelemetryStatus(
+                ShNodeAlias=node.alias,
+                TelemetryName=self.telemetry_names[node],
+                ValueList=self.recent_simple_values[node],
+                ReadTimeUnixMsList=self.recent_simple_read_times_unix_ms[node],
+            )
         else:
             return None
 
@@ -130,17 +121,13 @@ class ScadaData:
         if tt in self.hardware_layout.my_telemetry_tuples:
             if len(self.recent_values_from_multipurpose_sensor[tt]) == 0:
                 return None
-            read_time_unix_ms_list = (
-                self.recent_read_times_unix_ms_from_multipurpose_sensor[tt]
+            return GtShMultipurposeTelemetryStatus(
+                AboutNodeAlias=tt.AboutNode.alias,
+                SensorNodeAlias=tt.SensorNode.alias,
+                TelemetryName=tt.TelemetryName,
+                ValueList=self.recent_values_from_multipurpose_sensor[tt],
+                ReadTimeUnixMsList=self.recent_read_times_unix_ms_from_multipurpose_sensor[tt],
             )
-            value_list = self.recent_values_from_multipurpose_sensor[tt]
-            return GtShMultipurposeTelemetryStatus_Maker(
-                about_node_alias=tt.AboutNode.alias,
-                sensor_node_alias=tt.SensorNode.alias,
-                telemetry_name=tt.TelemetryName,
-                value_list=value_list,
-                read_time_unix_ms_list=read_time_unix_ms_list,
-            ).tuple
         else:
             return None
 
@@ -151,11 +138,11 @@ class ScadaData:
             return None
         if len(self.recent_ba_cmds[node]) == 0:
             return None
-        return GtShBooleanactuatorCmdStatus_Maker(
-            sh_node_alias=node.alias,
-            relay_state_command_list=self.recent_ba_cmds[node],
-            command_time_unix_ms_list=self.recent_ba_cmd_times_unix_ms[node],
-        ).tuple
+        return GtShBooleanactuatorCmdStatus(
+            ShNodeAlias=node.alias,
+            RelayStateCommandList=self.recent_ba_cmds[node],
+            CommandTimeUnixMsList=self.recent_ba_cmd_times_unix_ms[node],
+        )
 
     def make_status(self, slot_start_seconds: int) -> GtShStatus:
         simple_telemetry_list = []
@@ -173,17 +160,17 @@ class ScadaData:
             status = self.make_booleanactuator_cmd_status(node)
             if status:
                 booleanactuator_cmd_list.append(status)
-        return GtShStatus_Maker(
-            from_g_node_alias=self.hardware_layout.scada_g_node_alias,
-            from_g_node_id=self.hardware_layout.scada_g_node_id,
-            status_uid=str(uuid.uuid4()),
-            about_g_node_alias=self.hardware_layout.terminal_asset_g_node_alias,
-            slot_start_unix_s=slot_start_seconds,
-            reporting_period_s=self.settings.seconds_per_report,
-            booleanactuator_cmd_list=booleanactuator_cmd_list,
-            multipurpose_telemetry_list=multipurpose_telemetry_list,
-            simple_telemetry_list=simple_telemetry_list,
-        ).tuple
+        return GtShStatus(
+            FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+            FromGNodeId=self.hardware_layout.scada_g_node_id,
+            StatusUid=str(uuid.uuid4()),
+            AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
+            SlotStartUnixS=slot_start_seconds,
+            ReportingPeriodS=self.settings.seconds_per_report,
+            BooleanactuatorCmdList=booleanactuator_cmd_list,
+            MultipurposeTelemetryList=multipurpose_telemetry_list,
+            SimpleTelemetryList=simple_telemetry_list,
+        )
 
     def make_telemetry_snapshot(self) -> TelemetrySnapshotSpaceheat:
         about_node_alias_list = []
@@ -199,19 +186,19 @@ class ScadaData:
                 about_node_alias_list.append(tt.AboutNode.alias)
                 value_list.append(self.latest_value_from_multipurpose_sensor[tt])
                 telemetry_name_list.append(tt.TelemetryName)
-        return TelemetrySnapshotSpaceheat_Maker(
-            about_node_alias_list=about_node_alias_list,
-            report_time_unix_ms=int(1000 * time.time()),
-            value_list=value_list,
-            telemetry_name_list=telemetry_name_list,
-        ).tuple
+        return TelemetrySnapshotSpaceheat(
+            AboutNodeAliasList=about_node_alias_list,
+            ReportTimeUnixMs=int(1000 * time.time()),
+            ValueList=value_list,
+            TelemetryNameList=telemetry_name_list,
+        )
 
     def make_snapshot(self) -> SnapshotSpaceheat:
-        return SnapshotSpaceheat_Maker(
-            from_g_node_alias=self.hardware_layout.scada_g_node_alias,
-            from_g_node_instance_id=self.hardware_layout.scada_g_node_id,
-            snapshot=self.make_telemetry_snapshot(),
-        ).tuple
+        return SnapshotSpaceheat(
+            FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+            FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
+            Snapshot=self.make_telemetry_snapshot(),
+        )
 
     def make_snaphsot_payload(self) -> dict:
-        return self.make_snapshot().as_dict()
+        return self.make_snapshot().model_dump()
