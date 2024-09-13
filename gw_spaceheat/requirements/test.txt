@@ -41,9 +41,9 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks-cert==0.4.3
     # via gridworks-proactor
-gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/components
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@as/messages
     # via -r requirements/test.in
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/components
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@as/messages
     # via gridworks-proactor
 idna==2.10
     # via yarl
