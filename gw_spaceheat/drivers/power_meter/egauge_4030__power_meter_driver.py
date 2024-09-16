@@ -94,7 +94,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super().__init__(component, settings)
         self._client_settings = ModbusClientSettings(
-            port=self.component.modbus_port,
+            port=self.component.gt.ModbusPort,
             timeout=self.CLIENT_TIMEOUT
         )
 
@@ -112,7 +112,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                 if self._modbus_client is None:
                     self._last_connect_time = now
                     try:
-                        self._client_settings.host = socket.gethostbyname(self.component.modbus_host)
+                        self._client_settings.host = socket.gethostbyname(self.component.gt.ModbusHost)
                         self._modbus_client = ModbusClient(**self._client_settings.model_dump())
                     except socket.gaierror as e:
                         comm_warnings.append(e)
@@ -161,12 +161,12 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             return connect_result
 
     def read_power_w(self, node: ShNode) -> Result[DriverResult[int | None], Exception]:
-        output_config_list = self.component.config_list
+        output_config_list = self.component.gt.ConfigList
         channel_list = list(filter(lambda x: x.TelemetryName == TelemetryName.PowerW and x.AboutNodeName==node.alias, output_config_list))
         if len(channel_list) == 0:
             raise Exception(f"Reading power for {node} but this is not in the ConfigList!")
         output_config = channel_list[0]
-        egauge_config = list(filter(lambda x: x.OutputConfig == output_config, self.component.egauge_io_list))[0].InputConfig
+        egauge_config = list(filter(lambda x: x.OutputConfig == output_config, self.component.gt.EgaugeIoList))[0].InputConfig
         if egauge_config.Type != 'f32':
             return Result[Exception(f"Misconfigured eGaugeConfig for power. Type must be f32: {egauge_config}")]
         if egauge_config.Unit != 'W':
@@ -176,7 +176,6 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         connect_result = self.try_connect()
         if connect_result.is_ok() and connect_result.value.value:
             _, _, power = readF32(self._modbus_client, egauge_config.Address)
-            returned_power: int | None
             driver_result: DriverResult[int | None] = DriverResult(None, connect_result.value.warnings)
             if power is None:
                 driver_result.warnings.append(

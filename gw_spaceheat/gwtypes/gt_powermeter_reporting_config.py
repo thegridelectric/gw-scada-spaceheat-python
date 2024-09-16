@@ -7,7 +7,7 @@ from gwproto.errors import SchemaError
 from pydantic import BaseModel, Field
 
 # sub-types
-from gwtypes import TelemetryReportingConfig, TelemetryReportingConfig_Maker
+from gwproto.types import TelemetryReportingConfig
 
 LOG_FORMAT = (
     "%(levelname) -10s %(asctime)s %(name) -30s %(funcName) "
@@ -74,7 +74,7 @@ class GtPowermeterReportingConfig(BaseModel):
         # Recursively calling as_dict()
         electrical_quantity_reporting_config_list = []
         for elt in self.ElectricalQuantityReportingConfigList:
-            electrical_quantity_reporting_config_list.append(elt.as_dict())
+            electrical_quantity_reporting_config_list.append(elt.model_dump())
         d["ElectricalQuantityReportingConfigList"] = electrical_quantity_reporting_config_list
         return d
 
@@ -125,11 +125,11 @@ class GtPowermeterReportingConfig_Maker:
         )
 
     @classmethod
-    def tuple_to_type(cls, tuple: GtPowermeterReportingConfig) -> bytes:
+    def tuple_to_type(cls, tpl: GtPowermeterReportingConfig) -> bytes:
         """
         Given a Python class object, returns the serialized JSON type object.
         """
-        return tuple.as_type()
+        return tpl.as_type()
 
     @classmethod
     def type_to_tuple(cls, t: bytes) -> GtPowermeterReportingConfig:
@@ -176,10 +176,10 @@ class GtPowermeterReportingConfig_Maker:
         if not isinstance(d2["ElectricalQuantityReportingConfigList"], List):
             raise SchemaError(f"ElectricalQuantityReportingConfigList <{d2['ElectricalQuantityReportingConfigList']}> must be a List!")
         electrical_quantity_reporting_config_list = []
-        for elt in d2["ElectricalQuantityReportingConfigList"]:
+        for elt in d2["ElectricalQuantityReportingConfigList"]: # noqa
             if not isinstance(elt, dict):
                 raise SchemaError(f"ElectricalQuantityReportingConfigList <{d2['ElectricalQuantityReportingConfigList']}> must be a List of TelemetryReportingConfig types")
-            t = TelemetryReportingConfig_Maker.dict_to_tuple(elt)
+            t = TelemetryReportingConfig.model_validate(elt)
             electrical_quantity_reporting_config_list.append(t)
         d2["ElectricalQuantityReportingConfigList"] = electrical_quantity_reporting_config_list
         if "PollPeriodMs" not in d2.keys():

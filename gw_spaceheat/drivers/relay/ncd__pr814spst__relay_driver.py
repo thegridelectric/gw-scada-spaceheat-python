@@ -1,15 +1,17 @@
 from typing import Optional
 
 import smbus2 as smbus
+from gwproto import property_format
+from gwproto.data_classes.components.relay_component import RelayComponent
+from result import Ok
+from result import Result
+
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 from drivers.exceptions import DriverWarning
 from drivers.relay.mcp23008.mcp_driver import mcp23008
 from drivers.relay.relay_driver import RelayDriver
 from enums import MakeModel
-from gwproto.data_classes.components.relay_component import RelayComponent
-from result import Err, Ok, Result
-from gwproto import property_format
 
 
 class NcdPr814SpstI2cReadWarning(DriverWarning):
@@ -36,17 +38,17 @@ class NcdPr814Spst_RelayDriver(RelayDriver):
 
     def turn_on(self):
         if self.mcp23008_driver is not None:
-            if self.component.normally_open:
-                self.mcp23008_driver.energize_relay(self.component.gpio)
+            if self.component.gt.NormallyOpen:
+                self.mcp23008_driver.energize_relay(self.component.gt.Gpio)
             else:
-                self.mcp23008_driver.deenergize_relay(self.component.gpio)
+                self.mcp23008_driver.deenergize_relay(self.component.gt.Gpio)
 
     def turn_off(self):
         if self.mcp23008_driver is not None:
-            if self.component.normally_open:
-                self.mcp23008_driver.deenergize_relay(self.component.gpio)
+            if self.component.gt.NormallyOpen:
+                self.mcp23008_driver.deenergize_relay(self.component.gt.Gpio)
             else:
-                self.mcp23008_driver.energize_relay(self.component.gpio)
+                self.mcp23008_driver.energize_relay(self.component.gt.Gpio)
 
     def start(self) -> Result[DriverResult[bool], Exception]:
         driver_result = DriverResult(True)
@@ -58,7 +60,7 @@ class NcdPr814Spst_RelayDriver(RelayDriver):
                 "gpio_output_map": gpio_output_map,
             }
             self.mcp23008_driver = mcp23008(bus, kwargs)
-            if self.component.normally_open:
+            if self.component.gt.NormallyOpen:
                 self.last_val = 0
             else:
                 self.last_val = 1
@@ -75,9 +77,9 @@ class NcdPr814Spst_RelayDriver(RelayDriver):
         else:
             try:
                 active = self.mcp23008_driver.relay_is_activated(
-                    self.component.gpio
+                    self.component.gt.Gpio
                 )
-                if not self.component.normally_open:
+                if not self.component.gt.NormallyOpen:
                     active = not active
                 driver_result.value = int(active)
                 self.last_val = driver_result.value

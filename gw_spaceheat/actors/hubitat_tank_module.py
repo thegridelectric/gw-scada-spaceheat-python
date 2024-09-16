@@ -251,7 +251,7 @@ class HubitatTankModule(Actor):
                 f"ERROR. Component <{display_name}> has type {type(component)}. "
                 f"Expected HubitatTankComponent.\n"
                 f"  Node: {self.name}\n"
-                f"  Component id: {component.component_id}"
+                f"  Component id: {component.gt.ComponentId}"
             )
 
         super().__init__(name, services)

@@ -26,7 +26,7 @@ async def test_simple_sensor_periodic_update(tmp_path, monkeypatch, request):
             # Artificially speed up the test by telling the SimpleSensor to report every second
             # and telling it's driver that the read time is .01 ms.
             # Note: The read delay can *still* be 1 second because the times compared are cast to floats.
-            thermo_node.reporting_sample_period_s = 0
+            thermo_node.ReportingSamplePeriodS = 0
             typing.cast(SimpleTempSensorComponent, thermo_node.component).cac.TypicalResponseTimeMs = .01
             self.runner.actors.thermo = actors.SimpleSensor(
                 name=thermo_node.alias,

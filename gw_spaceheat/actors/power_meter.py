@@ -102,7 +102,7 @@ class DriverThreadSetupHelper:
 
     def make_eq_reporting_config(self) -> Dict[TelemetryTuple, TelemetryReportingConfig]:
         eq_reporting_config: Dict[TelemetryTuple, TelemetryReportingConfig] = OrderedDict()
-        for config in self.component.config_list:
+        for config in self.component.gt.ConfigList:
             about_node = self.hardware_layout.node(config.AboutNodeName)
             eq_reporting_config[
                 TelemetryTuple(
@@ -124,8 +124,8 @@ class DriverThreadSetupHelper:
         return GtPowermeterReportingConfig_Maker(
             reporting_period_s=self.settings.seconds_per_report,
             poll_period_ms=poll_period_ms,
-            hw_uid=self.component.hw_uid,
-            electrical_quantity_reporting_config_list=self.component.config_list,
+            hw_uid=self.component.gt.HwUid,
+            electrical_quantity_reporting_config_list=self.component.gt.ConfigList,
         ).tuple
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
@@ -162,12 +162,12 @@ class DriverThreadSetupHelper:
 
     @classmethod
     def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
-        return cls.get_resistive_heater_component(node).cac.nameplate_max_power_w
+        return cls.get_resistive_heater_component(node).cac.NameplateMaxPowerW
 
 
     def get_nameplate_telemetry_value(self) -> Dict[TelemetryTuple, int]:
         response_dict: Dict[TelemetryTuple, int] = {}
-        for config in self.component.config_list:
+        for config in self.component.gt.ConfigList:
             tt = TelemetryTuple(
                 AboutNode=self.hardware_layout.node(config.AboutNodeName),
                 SensorNode=self.node,
@@ -252,14 +252,14 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                 if hw_uid_read_result.value.value:
                     self._hw_uid = hw_uid_read_result.value.value.strip("\u0000")
                     if (
-                            self.driver.component.hw_uid
-                            and self._hw_uid != self.driver.component.hw_uid
+                            self.driver.component.gt.HwUid
+                            and self._hw_uid != self.driver.component.gt.HwUid
                     ):
                         self._report_problems(
                             Problems(
                                 warnings=[
                                     HWUidMismatch(
-                                        expected=self.driver.component.hw_uid,
+                                        expected=self.driver.component.gt.HwUid,
                                         got=self._hw_uid,
                                     )
                                 ]

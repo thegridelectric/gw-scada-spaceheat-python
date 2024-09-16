@@ -210,8 +210,7 @@ class AsyncFragmentRunner:
             if not connected:
                 s = "MQTT CONNECTION ERROR\n"
                 # noinspection PyProtectedMember, PyShadowingNames
-                mosquitto_cmds = ""
-                for client_name in sorted(proactor._links.link_names()):
+                for client_name in sorted(proactor.links.link_names()):
                     # noinspection PyProtectedMember
                     client = proactor._links.mqtt_client_wrapper(client_name)
                     # noinspection PyProtectedMember
@@ -225,8 +224,7 @@ class AsyncFragmentRunner:
                         prefix = "      "
                         s += "    MQTTSettings:\n"
                         s += textwrap.indent(
-                            client_config.json( # noqa
-                                sort_keys=True,
+                            client_config.model_dump_json( # noqa
                                 indent=2
                             ),
                             prefix=prefix
@@ -261,31 +259,26 @@ class AsyncFragmentRunner:
             # noinspection PyBroadException
             try:
                 proactor.stop()
-            except:
+            except:  # noqa: E722
                 pass
         for proactor in self.proactors.values():
             if hasattr(proactor, "join"):
                 # noinspection PyBroadException
                 try:
                     await proactor.join()
-                except:
+                except:  # noqa: E722
                     pass
 
     async def async_run(self, *args, **kwargs):
         try:
             start_time = time.time()
             self.delimit("STARTING")
-            # TODO: Make this public access
-            # noinspection PyProtectedMember
-            self.actors.scada._links.enable_mqtt_loggers(self.actors.scada._logger)
+            self.actors.scada.links.enable_mqtt_loggers(self.actors.scada.logger)
             if self.actors.atn.name in self.proactors:
                 asyncio.create_task(self.actors.atn.run_forever(), name="atn_run_forever") # noqa
             asyncio.create_task(self.actors.scada.run_forever(), name="scada_run_forever") # noqa
-            # TODO: Make _logger public
-            # noinspection PyProtectedMember
-            await self.await_connect(cast(logging.Logger, self.actors.scada._logger))
-            # noinspection PyProtectedMember
-            self.actors.scada._links.disable_mqtt_loggers()
+            await self.await_connect(cast(logging.Logger, self.actors.scada.logger))
+            self.actors.scada.links.disable_mqtt_loggers()
             self.delimit("CONNECTED")
             for fragment in self.fragments:
                 await fragment.async_run(*args, **kwargs)
@@ -295,7 +288,7 @@ class AsyncFragmentRunner:
             # noinspection PyBroadException
             try:
                 await self.stop_and_join()
-            except:
+            except:  # noqa: E722
                 pass
 
             # TODO: What the heck? We should understand this.
@@ -306,7 +299,7 @@ class AsyncFragmentRunner:
             # noinspection PyBroadException
             try:
                 self.delimit("COMPLETE")
-            except:
+            except:  # noqa: E722
                 pass
 
     @classmethod

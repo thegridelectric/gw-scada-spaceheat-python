@@ -13,21 +13,15 @@ from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproactor.message import InternalShutdownMessage
 from gwproto import Message
-from gwproto import Decoders
-from gwproto import create_message_payload_discriminator
+from gwproto import create_message_model
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtDispatchBoolean
-from gwproto.messages import GtDispatchBoolean_Maker
 from gwproto.messages import GtDispatchBooleanLocal
 from gwproto.messages import GtDriverBooleanactuatorCmd
-from gwproto.messages import GtDriverBooleanactuatorCmd_Maker
 from gwproto.messages import GtShCliAtnCmd
-from gwproto.messages import GtShCliAtnCmd_Maker
 from gwproto.messages import GtShStatusEvent
 from gwproto.messages import GtShTelemetryFromMultipurposeSensor
-from gwproto.messages import GtShTelemetryFromMultipurposeSensor_Maker
 from gwproto.messages import GtTelemetry
-from gwproto.messages import GtTelemetry_Maker
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from gwproto.messages import SnapshotSpaceheatEvent
@@ -50,7 +44,7 @@ from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
-ScadaMessageDecoder = create_message_payload_discriminator(
+ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder",
     [
         "gwproto.messages",
@@ -65,15 +59,7 @@ class GridworksMQTTCodec(MQTTCodec):
 
     def __init__(self, hardware_layout: HardwareLayout):
         self.hardware_layout = hardware_layout
-        super().__init__(
-            Decoders.from_objects(
-                [
-                    GtDispatchBoolean_Maker,
-                    GtShCliAtnCmd_Maker,
-                ],
-                message_payload_discriminator=ScadaMessageDecoder,
-            )
-        )
+        super().__init__(ScadaMessageDecoder)
 
     def validate_source_alias(self, source_alias: str):
         if source_alias != self.hardware_layout.atn_g_node_alias:
@@ -86,16 +72,7 @@ class LocalMQTTCodec(MQTTCodec):
 
     def __init__(self, hardware_layout: HardwareLayout):
         self.hardware_layout = hardware_layout
-        super().__init__(
-            Decoders.from_objects(
-                [
-                    GtDriverBooleanactuatorCmd_Maker,
-                    GtShTelemetryFromMultipurposeSensor_Maker,
-                    GtTelemetry_Maker,
-                ],
-                message_payload_discriminator=ScadaMessageDecoder,
-            )
-        )
+        super().__init__(ScadaMessageDecoder)
 
     def validate_source_alias(self, source_alias: str):
         if source_alias not in self.hardware_layout.nodes.keys():
@@ -155,7 +132,7 @@ class Scada(ScadaInterface, Proactor):
                 self.add_communicator(
                     ActorInterface.load(
                         actor_node.alias,
-                        actor_node.actor_class.value,
+                        str(actor_node.actor_class.value),
                         self,
                         self.DEFAULT_ACTORS_MODULE
                     )
@@ -374,7 +351,7 @@ class Scada(ScadaInterface, Proactor):
             return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
         self.send_threadsafe(
             GtDispatchBooleanLocalMessage(
-                src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=int(on)
+                src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=on
             )
         )
         return ScadaCmdDiagnostic.SUCCESS

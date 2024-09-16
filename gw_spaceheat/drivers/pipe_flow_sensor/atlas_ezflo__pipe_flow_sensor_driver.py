@@ -54,7 +54,7 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
 
     def start(self) -> Result[DriverResult[bool], Exception]:
         driver_result = DriverResult(True)
-        device_address = self.component.i2c_address
+        device_address = self.component.gt.I2cAddress
         try:
             device = AtlasI2C()
             device.set_i2c_address(device_address)
@@ -80,7 +80,7 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
             if not cum_read.is_ok():
                 return Err(
                     Problems(
-                        msg=f"ERROR in start()/read_cumulative_gallons() for {self.component.display_name}",
+                        msg=f"ERROR in start()/read_cumulative_gallons() for {self.component.gt.DisplayName}",
                         warnings=driver_result.warnings,
                         errors=[cum_read.err()]
                     )
@@ -99,7 +99,7 @@ class AtlasEzflo_PipeFlowSensorDriver(PipeFlowSensorDriver):
         return Ok(driver_result)
 
     def __repr__(self):
-        return f"Atlas Ezflo driver for {self.component.display_name}"
+        return f"Atlas Ezflo driver for {self.component.gt.DisplayName}"
 
     def read_cumulative_gallons(self) -> Result[DriverResult[int | None], Exception]:
         driver_result = DriverResult(None)
