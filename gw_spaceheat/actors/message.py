@@ -46,7 +46,7 @@ class GtDriverBooleanactuatorCmdResponse(Message[GtDriverBooleanactuatorCmd]):
             Src=src,
             Dst=dst,
             Payload=GtDriverBooleanactuatorCmd(
-                RelayState=relay_state,
+                RelayState=int(relay_state),
                 CommandTimeUnixMs=int(time.time() * 1000),
                 ShNodeAlias=src
             ),
@@ -63,7 +63,7 @@ class GtDispatchBooleanLocalMessage(Message[GtDispatchBooleanLocal]):
         payload = GtDispatchBooleanLocal(
             FromNodeName=src,
             AboutNodeName=dst,
-            RelayState=relay_state,
+            RelayState=int(relay_state),
             SendTimeUnixMs=int(time.time() * 1000),
         )
         super().__init__(

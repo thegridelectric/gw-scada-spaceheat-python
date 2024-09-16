@@ -332,7 +332,7 @@ class Atn(ActorInterface, Proactor):
                     ToGNodeAlias=self.layout.scada_g_node_alias,
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromGNodeInstanceId=self.layout.atn_g_node_instance_id,
-                    RelayState=state,
+                    RelayState=int(state),
                     SendTimeUnixMs=int(time.time() * 1000),
                 ),
             )
