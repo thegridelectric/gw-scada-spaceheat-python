@@ -1,3 +1,4 @@
+from gwproto.enums import MakeModel
 from gwproto.types import WebServerGt
 from gwproto.types.web_server_cac_gt import WebServerCacGt
 from gwproto.types.web_server_component_gt import WebServerComponentGt
@@ -15,6 +16,7 @@ def add_web_server(
                 WebServerCacGt(
                     ComponentAttributeClassId=db.make_cac_id(cac_type),
                     DisplayName="Web Server CAC",
+                    MakeModel=MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
                 ),
             ]
         )

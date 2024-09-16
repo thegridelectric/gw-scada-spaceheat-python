@@ -13,7 +13,7 @@ class GridworksSimBool30AmpRelay_RelayDriver(RelayDriver):
         super(GridworksSimBool30AmpRelay_RelayDriver, self).__init__(
             component=component, settings=settings
         )
-        if component.cac.make_model != MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
+        if component.cac.MakeModel != MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY:
             raise Exception(
                 f"Expected {MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY}, got {component.cac}"
             )
@@ -21,7 +21,7 @@ class GridworksSimBool30AmpRelay_RelayDriver(RelayDriver):
         self._fake_relay_state = 0
 
     def cmd_delay(self):
-        delay_s = self.component.cac.typical_response_time_ms / 1000
+        delay_s = self.component.cac.TypicalResponseTimeMs / 1000
         time.sleep(delay_s)
 
     def turn_on(self):

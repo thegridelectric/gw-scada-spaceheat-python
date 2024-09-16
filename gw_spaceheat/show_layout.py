@@ -80,12 +80,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 def print_component_dicts(layout: HardwareLayout):
     print("All Components:")
     print({
-        component.component_id: component.display_name
+        component.gt.ComponentId: component.gt.DisplayName
         for component in layout.components.values()
     })
     print("All Cacs:")
     print({
-        cac.component_attribute_class_id: cac.display_name
+        cac.ComponentAttributeClassId: cac.DisplayName
         for cac in layout.cacs.values()
     })
     print("Nodes:")
@@ -116,7 +116,7 @@ def print_component_dicts(layout: HardwareLayout):
     # unused cacs
     unused_cacs = dict(layout.cacs)
     for component in layout.components.values():
-        unused_cacs.pop(component.component_attribute_class_id, None)
+        unused_cacs.pop(component.gt.ComponentAttributeClassId, None)
     print(f"Unused Cacs: {len(unused_cacs)}")
     if unused_cacs:
         print(unused_cacs)
@@ -131,8 +131,8 @@ def print_component_dicts(layout: HardwareLayout):
     # dangling cacs
     dangling_cac_components = set()
     for component in layout.components.values():
-        if component.component_attribute_class_id and component.component_attribute_class_id not in layout.cacs:
-            dangling_cac_components.add(component.display_name)
+        if component.gt.ComponentAttributeClassId and component.gt.ComponentAttributeClassId not in layout.cacs:
+            dangling_cac_components.add(component.gt.DisplayName)
     print(f"Components with cac_id but no cac: {len(dangling_cac_components)}")
     if dangling_cac_components:
         print(sorted(dangling_cac_components))
@@ -205,7 +205,7 @@ def print_layout_members(
 
 def print_layout_urls(layout: HardwareLayout) -> None:
     url_dicts = {
-        component.display_name: component.urls()
+        component.gt.DisplayName: component.urls()
         for component in [
         component for component in layout.components.values()
         if isinstance(component, (HubitatComponent, HubitatTankComponent, HubitatPollerComponent))
@@ -237,23 +237,23 @@ def print_layout_table(layout: HardwareLayout):
             else:
                 component_txt = none_text
         else:
-            component_txt = str(component.display_name)
+            component_txt = str(component.gt.DisplayName)
         cac = layout.cac(node.alias)
         if cac is None:
             make_model_text = none_text
-            if component is not None and component.component_attribute_class_id:
+            if component is not None and component.gt.ComponentAttributeClassId:
                 cac_txt = Text("MISSING", style="red") + \
-                    Text(f" Cac {component.component_attribute_class_id[:8]}", style=none_text.style)
+                    Text(f" Cac {component.gt.ComponentAttributeClassId[:8]}", style=none_text.style)
             else:
                 cac_txt = none_text
 
         else:
-            if cac.display_name:
-                cac_txt = Text(cac.display_name, style=table.columns[2].style)
+            if cac.DisplayName:
+                cac_txt = Text(cac.DisplayName, style=table.columns[2].style)
             else:
-                cac_txt = Text("Cac id: ") + Text(cac.component_attribute_class_id, style="light_coral")
+                cac_txt = Text("Cac id: ") + Text(cac.ComponentAttributeClassId, style="light_coral")
             if hasattr(cac, "make_model"):
-                make_model_text = Text(cac.make_model.value, style=table.columns[3].style)
+                make_model_text = Text(str(cac.MakeModel), style=table.columns[3].style)
             else:
                 make_model_text = none_text
         node = layout.node(node.alias)

@@ -9,7 +9,6 @@ from typing import TypeVar
 from gwproto import Message
 from gwproto.enums import TelemetryName
 from pydantic import ConfigDict, BaseModel
-from pydantic import Extra
 
 from actors.message import MultipurposeSensorTelemetryMessage
 from drivers.exceptions import DriverWarning
@@ -98,7 +97,7 @@ class HubitatEventContent(BaseModel):
     unit: Optional[str] = None
     type: Optional[Any] = None
     data: Optional[Any] = None
-    model_config = ConfigDict(allow_extra=True)
+    model_config = ConfigDict(extra="allow")
 
 ValueConverter = Callable[[HubitatValueType], Optional[int]]
 

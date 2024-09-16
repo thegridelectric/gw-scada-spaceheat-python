@@ -9,8 +9,6 @@ from drivers.driver_result import DriverResult
 
 from result import Err, Ok, Result
 
-DEFAULT_BAD_VALUE = -5
-
 # noinspection PyUnresolvedReferences
 import adafruit_ads1x15.ads1115 as ADS
 
@@ -31,6 +29,8 @@ from enums import MakeModel, TelemetryName
 from gwproto.data_classes.components.multipurpose_sensor_component import (
     MultipurposeSensorComponent,
 )
+
+DEFAULT_BAD_VALUE = -5
 
 
 class SetCompareWarning(DriverWarning):
@@ -208,12 +208,12 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         models: List[MakeModel] = [
             MakeModel.GRIDWORKS__TSNAP1,
         ]
-        if component.cac.make_model not in models:
+        if component.cac.MakeModel not in models:
             raise Exception(
-                f"Expected make model in {models}, got {component.cac.make_model}"
+                f"Expected make model in {models}, got {component.cac.MakeModel}"
             )
-        self.channel_list = component.channel_list
-        self.telemetry_name_list = component.cac.telemetry_name_list
+        self.channel_list = component.gt.ChannelList
+        self.telemetry_name_list = component.cac.TelemetryNameList
 
     def start(self) -> Result[DriverResult[bool], Exception]:
         if set(self.telemetry_name_list) != {TelemetryName.WaterTempCTimes1000}:
@@ -305,7 +305,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self, channel_telemetry_list: List[TelemetrySpec]
     ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
         for ts in channel_telemetry_list:
-            if not ts.Type in [
+            if ts.Type not in [
                 TelemetryName.WaterTempCTimes1000,
                 TelemetryName.WaterTempFTimes1000,
                 TelemetryName.AirTempCTimes1000,

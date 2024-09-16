@@ -103,7 +103,7 @@ class HubitatRESTPoller(RESTPoller):
             values = []
             telemetry_names = []
             warnings = []
-            for config_attribute in self._component.poller_gt.attributes:
+            for config_attribute in self._component.gt.Poller.attributes:
                 if (config_attribute.enabled and
                     config_attribute.web_poll_enabled and
                     config_attribute.attribute_name in self._value_converters
@@ -170,7 +170,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
                 f"ERROR. Component <{display_name}> has type {type(component)}. "
                 f"Expected HubitatPollerComponent.\n"
                 f"  Node: {self.name}\n"
-                f"  Component id: {component.component_id}"
+                f"  Component id: {component.gt.ComponentId}"
             )
 
         super().__init__(name, services)
@@ -192,8 +192,8 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         """
         poll_value_converters = dict()
         handlers = []
-        if self._component.poller_gt.enabled:
-            for attribute in self._component.poller_gt.attributes:
+        if self._component.gt.Poller.enabled:
+            for attribute in self._component.gt.Poller.attributes:
                 if attribute.enabled:
                     if (converter := self._make_value_converter(attribute)) is not None:
                         if attribute.web_poll_enabled:
@@ -201,7 +201,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
                         if attribute.web_listen_enabled:
                             handlers.append(
                                 HubitatWebEventHandler(
-                                    device_id=self._component.poller_gt.device_id,
+                                    device_id=self._component.gt.Poller.device_id,
                                     event_name=attribute.attribute_name,
                                     report_src_node_name=self.name,
                                     about_node_name=attribute.node_name,
@@ -229,14 +229,14 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
 
     def _get_hubitat_actor(self) -> Optional[HubitatWebServerInterface]:
         hubitat_actor = None
-        if self._component.poller_gt.web_listen_enabled:
+        if self._component.gt.Poller.web_listen_enabled:
             hubitat_component = self._services.hardware_layout.get_component_as_type(
-                self._component.poller_gt.hubitat_component_id,
+                self._component.gt.Poller.hubitat_component_id,
                 HubitatComponent
             )
             if hubitat_component is not None:
                 hubitat_node = self._services.hardware_layout.node_from_component(
-                    hubitat_component.component_id
+                    hubitat_component.gt.ComponentId
                 )
                 if hubitat_node is not None:
                     hubitat_actor = self._services.get_communicator_as_type(
@@ -252,11 +252,11 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
         raise ValueError("HubitatTankModule does not currently process any messages")
 
     def start(self) -> None:
-        if self._component.poller_gt.enabled:
+        if self._component.gt.Poller.enabled:
             self._poller.start()
 
     def stop(self) -> None:
-        if self._component.poller_gt.enabled:
+        if self._component.gt.Poller.enabled:
             try:
                 self._poller.stop()
             except: # noqa

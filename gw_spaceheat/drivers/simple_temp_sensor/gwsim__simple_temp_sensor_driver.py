@@ -26,14 +26,14 @@ class Gwsim_SimpleTempSensorDriver(SimpleTempSensorDriver):
             component=component,
             settings=settings,
         )
-        if component.cac.make_model != MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
+        if component.cac.MakeModel != MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION:
             raise Exception(f"Expected GridWorks__WaterTempHighPrecision, got {component.cac}")
-        if component.cac.temp_unit == Unit.Fahrenheit:
+        if component.cac.TempUnit == Unit.Fahrenheit:
             self._fake_temp_times_1000 = 67000
-        elif component.cac.temp_unit == Unit.Celcius:
+        elif component.cac.TempUnit == Unit.Celcius:
             self._fake_temp_times_1000 = 19444
         else:
-            raise Exception(f"TempSensor unit {component.cac.temp_unit} not recognized!")
+            raise Exception(f"TempSensor unit {component.cac.TempUnit} not recognized!")
         self.read_count = 0
         self.except_on_read = False
         self.except_on_read_after = 0
@@ -42,7 +42,7 @@ class Gwsim_SimpleTempSensorDriver(SimpleTempSensorDriver):
 
 
     def cmd_delay(self):
-        typical_delay_ms = self.component.cac.typical_response_time_ms
+        typical_delay_ms = self.component.cac.TypicalResponseTimeMs
         read_delay_ms = typical_delay_ms + int(self.READ_TIME_FUZZ_MULTIPLIER * random.random())
         time.sleep(read_delay_ms / 1000)
 

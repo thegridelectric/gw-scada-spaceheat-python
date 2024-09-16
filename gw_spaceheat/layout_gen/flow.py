@@ -83,7 +83,6 @@ def add_flow_meter(
                     I2cAddress=flow_meter.I2cAddress,
                     ConversionFactor=flow_meter.ConversionFactor,
                     DisplayName=flow_meter.component_alias(),
-                    PollPeriodS=flow_meter.PollPeriodS
                 )
             )
         ],

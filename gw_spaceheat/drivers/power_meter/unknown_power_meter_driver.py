@@ -14,7 +14,7 @@ from enums import MakeModel, TelemetryName
 class UnknownPowerMeterDriver(PowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super(UnknownPowerMeterDriver, self).__init__(component=component, settings=settings)
-        if component.cac.make_model != MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+        if component.cac.MakeModel != MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             raise Exception(f"Expected {MakeModel.UNKNOWNMAKE__UNKNOWNMODEL}, got {component.cac}")
 
     def __repr__(self):

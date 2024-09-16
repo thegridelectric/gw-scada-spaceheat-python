@@ -25,7 +25,7 @@ from gwproactor.config import LoggerLevels
 from gwproactor.config import LoggingSettings
 from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 from gwproto.enums import TelemetryName
-from gwproto.messages import PowerWatts_Maker
+from gwproto.messages import PowerWatts
 
 def test_power_meter_small():
     settings = ScadaSettings()
@@ -163,8 +163,8 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
             meter_node = self.runner.layout.node("a.m")
             meter_component = typing.cast(ElectricMeterComponent, meter_node.component)
             meter_cac = meter_component.cac
-            monkeypatch.setattr(meter_cac, "poll_period_ms", 0)
-            for config in meter_component.config_list:
+            monkeypatch.setattr(meter_cac, "PollPeriodMs", 0)
+            for config in meter_component.gt.ConfigList:
                 config.SamplePeriodS = 1
             self.runner.actors.meter = actors.PowerMeter(
                 name=meter_node.alias,
@@ -235,10 +235,10 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
         def get_requested_actors(self):
             meter_node = self.runner.layout.node("a.m")
             meter_component = typing.cast(ElectricMeterComponent, meter_node.component)
-            for config in meter_component.config_list:
+            for config in meter_component.gt.ConfigList:
                 config.SamplePeriodS = 1
             meter_cac = meter_component.cac
-            monkeypatch.setattr(meter_cac, "poll_period_ms", 0)
+            monkeypatch.setattr(meter_cac, "PollPeriodMs", 0)
             self.runner.actors.meter = actors.PowerMeter(
                 name=meter_node.alias,
                 services=self.runner.actors.scada,
@@ -267,7 +267,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
             for i in range(num_changes):
                 scada._logger.info(f"Generating PowerWatts change {i + 1}/{num_changes}")
                 latest_total_power_w = scada._data.latest_total_power_w
-                num_atn_power_watts = atn.stats.num_received_by_type[PowerWatts_Maker.type_name]
+                num_atn_power_watts = atn.stats.num_received_by_type[PowerWatts.model_fields['TypeName'].default]
 
                 # Simulate a change in aggregate power that should trigger a PowerWatts message
                 increment = int(
@@ -286,7 +286,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
 
                 # Verify Atn gets the forwarded message
                 await await_for(
-                    lambda: atn.stats.num_received_by_type[PowerWatts_Maker.type_name] > num_atn_power_watts,
+                    lambda: atn.stats.num_received_by_type[PowerWatts.model_fields['TypeName'].default] > num_atn_power_watts,
                     1,
                     "Atn wait for PowerWatts",
                     err_str_f=atn.summary_str,

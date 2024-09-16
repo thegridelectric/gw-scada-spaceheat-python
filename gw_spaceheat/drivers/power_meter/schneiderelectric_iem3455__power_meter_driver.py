@@ -24,7 +24,7 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         super(SchneiderElectricIem3455_PowerMeterDriver, self).__init__(
             component=component, settings=settings
         )
-        if component.cac.make_model != MakeModel.SCHNEIDERELECTRIC__IEM3455:
+        if component.cac.MakeModel != MakeModel.SCHNEIDERELECTRIC__IEM3455:
             raise Exception(f"Expected {MakeModel.SCHNEIDERELECTRIC__IEM3455}, got {component.cac}")
         self.component = component
         self.current_rms_micro_amps: Optional[int] = None

@@ -18,7 +18,7 @@ from enums import MakeModel
 class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super(OpenenergyEmonpi_PowerMeterDriver, self).__init__(component=component, settings=settings)
-        if component.cac.make_model != MakeModel.OPENENERGY__EMONPI:
+        if component.cac.MakeModel != MakeModel.OPENENERGY__EMONPI:
             raise Exception(f"Expected {MakeModel.OPENENERGY__EMONPI}, got {component.cac}")
         self.component = component
         self.power_w: Optional[int] = None

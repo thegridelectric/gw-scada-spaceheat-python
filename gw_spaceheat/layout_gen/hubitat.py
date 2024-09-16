@@ -1,4 +1,5 @@
 from gwproto.enums import ActorClass
+from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.types import HubitatCacGt
 from gwproto.types import HubitatComponentGt
@@ -19,6 +20,7 @@ def add_hubitat(
                 HubitatCacGt(
                     ComponentAttributeClassId=db.make_cac_id(cac_type),
                     DisplayName="Hubitat Elevation C-7",
+                    MakeModel=MakeModel.HUBITAT__C7__LAN1,
                 ),
             ]
         )

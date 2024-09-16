@@ -9,7 +9,7 @@ from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-import schema.property_format as property_format
+from gwproto import property_format
 from gwproto.data_classes.components.simple_temp_sensor_component import SimpleTempSensorComponent
 from drivers.driver_result import DriverResult
 from drivers.simple_temp_sensor.simple_temp_sensor_driver import SimpleTempSensorDriver
@@ -24,9 +24,9 @@ DEFAULT_BAD_TEMP_C_TIMES_1000_VALUE = 10 ** 6
 class Adafruit642_SimpleTempSensorDriver(SimpleTempSensorDriver):
     def __init__(self, component: SimpleTempSensorComponent, settings: ScadaSettings):
         super(Adafruit642_SimpleTempSensorDriver, self).__init__(component=component, settings=settings)
-        if component.cac.make_model != MakeModel.ADAFRUIT__642:
+        if component.cac.MakeModel != MakeModel.ADAFRUIT__642:
             raise Exception(f"Expected Adafruit__642, got {component.cac}")
-        property_format.is_64_bit_hex(component.hw_uid)
+        property_format.is_64_bit_hex(component.gt.HwUid)
 
     def read_temp_c_times_1000(self) -> Optional[int]:
         if platform.system() == "Darwin":
@@ -37,11 +37,11 @@ class Adafruit642_SimpleTempSensorDriver(SimpleTempSensorDriver):
             )
         )
         candidate_driver_data_folders = list(
-            filter(lambda x: x.endswith(self.component.hw_uid), all_driver_data_folders)
+            filter(lambda x: x.endswith(self.component.gt.HwUid), all_driver_data_folders)
         )
         if len(candidate_driver_data_folders) != 1:
             # raise Exception(
-            #     f"looking for unique folder ending in {self.component.hw_uid}."
+            #     f"looking for unique folder ending in {self.component.gt.HwUid}."
             #     f" Found {candidate_driver_data_folders}"
             # )
             return None
