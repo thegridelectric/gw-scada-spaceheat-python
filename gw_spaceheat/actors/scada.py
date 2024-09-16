@@ -13,8 +13,7 @@ from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproactor.message import InternalShutdownMessage
 from gwproto import Message
-from gwproto import Decoders
-from gwproto import create_message_payload_discriminator
+from gwproto import create_message_model
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtDispatchBoolean
 from gwproto.messages import GtDispatchBooleanLocal
@@ -45,7 +44,7 @@ from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
-ScadaMessageDecoder = create_message_payload_discriminator(
+ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder",
     [
         "gwproto.messages",
@@ -60,11 +59,7 @@ class GridworksMQTTCodec(MQTTCodec):
 
     def __init__(self, hardware_layout: HardwareLayout):
         self.hardware_layout = hardware_layout
-        super().__init__(
-            Decoders.from_objects(
-                message_payload_discriminator=ScadaMessageDecoder,
-            )
-        )
+        super().__init__(ScadaMessageDecoder)
 
     def validate_source_alias(self, source_alias: str):
         if source_alias != self.hardware_layout.atn_g_node_alias:
@@ -77,11 +72,7 @@ class LocalMQTTCodec(MQTTCodec):
 
     def __init__(self, hardware_layout: HardwareLayout):
         self.hardware_layout = hardware_layout
-        super().__init__(
-            Decoders.from_objects(
-                message_payload_discriminator=ScadaMessageDecoder,
-            )
-        )
+        super().__init__(ScadaMessageDecoder)
 
     def validate_source_alias(self, source_alias: str):
         if source_alias not in self.hardware_layout.nodes.keys():

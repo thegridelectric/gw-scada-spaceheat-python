@@ -16,9 +16,7 @@ from paho.mqtt.client import MQTTMessageInfo
 import rich
 from pydantic import BaseModel
 
-from gwproto import CallableDecoder
-from gwproto import Decoders
-from gwproto import create_message_payload_discriminator
+from gwproto import create_message_model
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -30,7 +28,6 @@ from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShStatus
 from gwproto.messages import SnapshotSpaceheat
-from gwproto.messages import GsPwr_Maker
 
 from gwproactor import ActorInterface
 from gwproactor import QOS
@@ -46,22 +43,17 @@ from actors import message as actor_message # noqa
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
 
-AtnMessageDecoder = create_message_payload_discriminator(
-    model_name="AtnMessageDecoder",
-    module_names=["gwproto.messages", "gwproactor.message", "actors.message", ],
-    modules=[messages],
-)
-
-
 class AtnMQTTCodec(MQTTCodec):
     hardware_layout: HardwareLayout
 
     def __init__(self, hardware_layout: HardwareLayout):
         self.hardware_layout = hardware_layout
         super().__init__(
-            Decoders.from_objects(
-                message_payload_discriminator=AtnMessageDecoder,
-            ).add_decoder("p", CallableDecoder(lambda decoded: GsPwr_Maker(decoded[0]).tuple))
+            create_message_model(
+                model_name="AtnMessageDecoder",
+                module_names=["gwproto.messages", "gwproactor.message", "actors.message", ],
+                modules=[messages],
+            )
         )
 
     def validate_source_alias(self, source_alias: str):
