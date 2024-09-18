@@ -1,4 +1,6 @@
 """Scratch atn implementation"""
+from collections import defaultdict
+
 PUMP_OFF_THRESHOLD = 2
 PUMP_ON_THRESHOLD = 4
 HP_DEFINITELY_HEATING_THRESHOLD = 6000
@@ -932,32 +934,54 @@ class Atn(ActorInterface, Proactor):
                 tt = [PumpPowerState.NoFlow, dist_pump_pwr_w, now]
                 self.enqueue_fifo_q(tt, self.dist_pump_pwr_state_q)
 
-        store_temp_idx = {1: {}, 2: {}, 3: {}, 4: {}}
-        store_temp_f = {1: {}, 2: {}, 3: {}, 4: {}}
+        # store_temp_idx = {1: {}, 2: {}, 3: {}, 4: {}}
+        # store_temp_f = {1: {}, 2: {}, 3: {}, 4: {}}
+        #
+        # for j in [1,2,3]:
+        #     store_temp_idx[1][j] = snap.AboutNodeAliasList.index(self.store[j].t1.alias)
+        #     store_temp_idx[2][j] = snap.AboutNodeAliasList.index(self.store[j].t2.alias)
+        #     store_temp_idx[3][j] = snap.AboutNodeAliasList.index(self.store[j].t3.alias)
+        #     store_temp_idx[4][j] = snap.AboutNodeAliasList.index(self.store[j].t4.alias)
+        #
+        # for i in range(1,5):
+        #     for j in range(1,4):
+        #         ignore_alias_list.append(store_temp_idx[i][j])
+        #         store_temp_f[i][j] = 9/5 * (snap.ValueList[store_temp_idx[i][j]] / 1000) + 32
 
-        for j in [1,2,3]:
-            store_temp_idx[1][j] = snap.AboutNodeAliasList.index(self.store[j].t1.alias)
-            store_temp_idx[2][j] = snap.AboutNodeAliasList.index(self.store[j].t2.alias)
-            store_temp_idx[3][j] = snap.AboutNodeAliasList.index(self.store[j].t3.alias)
-            store_temp_idx[4][j] = snap.AboutNodeAliasList.index(self.store[j].t4.alias)
+        store_temp_f = defaultdict(dict)
+        for depth in [1, 2, 3, 4]:
+            for tank in [1, 2, 3]:
+                alias = getattr(self.store[tank], f"t{depth}").alias
+                try:
+                    node_idx = snap.AboutNodeAliasList.index(alias)
+                    ignore_alias_list.append(node_idx)
+                    store_temp_f[depth][tank] =  9/5 * (snap.ValueList[node_idx] / 1000) + 32
+                except ValueError:
+                    ...
 
-        for i in range(1,5):
-            for j in range(1,4):
-                ignore_alias_list.append(store_temp_idx[i][j])
-                store_temp_f[i][j] = 9/5 * (snap.ValueList[store_temp_idx[i][j]] / 1000) + 32
 
-        buff_idx = {}
-        
-        buff_idx[1] = snap.AboutNodeAliasList.index(self.buffer.t1.alias)
-        buff_idx[2] = snap.AboutNodeAliasList.index(self.buffer.t2.alias)
-        buff_idx[3] = snap.AboutNodeAliasList.index(self.buffer.t3.alias)
-        buff_idx[4] = snap.AboutNodeAliasList.index(self.buffer.t4.alias)
-        
+        # buff_idx = {}
+        #
+        # buff_idx[1] = snap.AboutNodeAliasList.index(self.buffer.t1.alias)
+        # buff_idx[2] = snap.AboutNodeAliasList.index(self.buffer.t2.alias)
+        # buff_idx[3] = snap.AboutNodeAliasList.index(self.buffer.t3.alias)
+        # buff_idx[4] = snap.AboutNodeAliasList.index(self.buffer.t4.alias)
+        #
+        # buff_temp_f = {}
+        # for j in range(1,5):
+        #     assert snap.TelemetryNameList[buff_idx[j]] == TelemetryName.WaterTempCTimes1000
+        #     ignore_alias_list.append(buff_idx[j])
+        #     buff_temp_f[j] = 9/5 * (snap.ValueList[buff_idx[j]] / 1000) + 32
         buff_temp_f = {}
-        for j in range(1,5):
-            assert snap.TelemetryNameList[buff_idx[j]] == TelemetryName.WaterTempCTimes1000
-            ignore_alias_list.append(buff_idx[j])
-            buff_temp_f[j] = 9/5 * (snap.ValueList[buff_idx[j]] / 1000) + 32
+        for depth in [1, 2, 3, 4]:
+            alias = getattr(self.buffer, f"t{depth}").alias
+            try:
+                node_idx = snap.AboutNodeAliasList.index(alias)
+                ignore_alias_list.append(node_idx)
+                assert snap.TelemetryNameList[node_idx] == TelemetryName.WaterTempCTimes1000
+                buff_temp_f[depth] =  9/5 * (snap.ValueList[node_idx] / 1000) + 32
+            except ValueError:
+                ...
 
         hp_lwt_idx = snap.AboutNodeAliasList.index(self.hp_lwt_temp_node.alias)
         ignore_alias_list.append(hp_lwt_idx)
@@ -976,8 +1000,6 @@ class Atn(ActorInterface, Proactor):
         store_cold_idx = snap.AboutNodeAliasList.index(self.store_cold_pipe_temp_node.alias)
         ignore_alias_list.append(store_cold_idx)
 
-        stat_set_idx = {}
-        stat_wall_temp_idx = {}
         stat_temp_idx = {}
         stat_set_f = {}
         stat_wall_temp_f = {}
@@ -991,18 +1013,23 @@ class Atn(ActorInterface, Proactor):
                 stat_temp_centigrade = snap.ValueList[stat_temp_idx[j]] / 1000
                 stat_temp_f[j] = (stat_temp_centigrade  * 9/5) + 32
 
-            stat_set_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].set.alias)
-            ignore_alias_list.append(stat_set_idx[j])
-            stat_set_f[j] = snap.ValueList[stat_set_idx[j]] / 1000
-            if snap.TelemetryNameList[stat_set_idx[j]] != TelemetryName.AirTempFTimes1000:
-                raise Exception(f"Wrong TelemetryName for {self.stat[1].set.alias}. Use AirTempFTimes1000")
-            
-            stat_wall_temp_idx[j] = snap.AboutNodeAliasList.index(self.stat[j].wall_unit_temp.alias)
-            ignore_alias_list.append(stat_wall_temp_idx[j])
-            stat_wall_temp_f[j] = snap.ValueList[stat_wall_temp_idx[j]] / 1000
-            if snap.TelemetryNameList[stat_wall_temp_idx[j]] != TelemetryName.AirTempFTimes1000:
-                raise Exception(f"Wrong TelemetryName for {self.stat[1].wall_unit_temp.alias}. Use AirTempFTimes1000")
+            try:
+                stat_set_idx = snap.AboutNodeAliasList.index(self.stat[j].set.alias)
+                ignore_alias_list.append(stat_set_idx)
+                stat_set_f[j] = snap.ValueList[stat_set_idx] / 1000
+                if snap.TelemetryNameList[stat_set_idx] != TelemetryName.AirTempFTimes1000:
+                    raise Exception(f"Wrong TelemetryName for {self.stat[1].set.alias}. Use AirTempFTimes1000")
+            except ValueError:
+                ...
 
+            try:
+                stat_wall_temp_idx = snap.AboutNodeAliasList.index(self.stat[j].wall_unit_temp.alias)
+                ignore_alias_list.append(stat_wall_temp_idx)
+                stat_wall_temp_f[j] = snap.ValueList[stat_wall_temp_idx] / 1000
+                if snap.TelemetryNameList[stat_wall_temp_idx] != TelemetryName.AirTempFTimes1000:
+                    raise Exception(f"Wrong TelemetryName for {self.stat[1].wall_unit_temp.alias}. Use AirTempFTimes1000")
+            except ValueError:
+                ...
 
         if snap.TelemetryNameList[hp_lwt_idx] != TelemetryName.WaterTempCTimes1000:
             raise Exception("Wrong TelemetryName for hp lwt")
@@ -1081,10 +1108,21 @@ class Atn(ActorInterface, Proactor):
         
         # TODO: DISAMBIGUATE HEAT CALLS BETWEEN ZONES WHEN WE HAVE MULTIPLE ZONES
         for j in self.stat.keys():
-            if j in stat_temp_f.keys():
-                stat_row = [f"{self.stat[j].display_name}", f"{round(stat_set_f[j],1)}\u00b0F", f"{round(stat_wall_temp_f[j],1)}\u00b0F", f"{round(stat_temp_f[j],1)}\u00b0F"]
+            if j in stat_set_f:
+                stat_set_f_str = f"{round(stat_set_f[j],1)}\u00b0F"
             else:
-                stat_row = [f"{self.stat[j].display_name}", f"{round(stat_set_f[j],1)}\u00b0F", f"{round(stat_wall_temp_f[j],1)}\u00b0F", f"NA"]
+                stat_set_f_str = "---"
+            if j in stat_wall_temp_f:
+                stat_wall_temp_f_str = f"{round(stat_wall_temp_f[j],1)}\u00b0F"
+            else:
+                stat_wall_temp_f_str = "---"
+            stat_row = [
+                f"{self.stat[j].display_name}",
+                stat_set_f_str,
+                stat_wall_temp_f_str,
+            ]
+            if j in stat_temp_f.keys():
+                stat_row.append(f"{round(stat_temp_f[j],1)}\u00b0F")
             if len(self.dist_pump_pwr_state_q)> 0:
                 until = int(time.time())
                 t = self.dist_pump_pwr_state_q
@@ -1098,7 +1136,7 @@ class Atn(ActorInterface, Proactor):
                 stat_row.extend(start_times)
             stat_table.add_row(*stat_row)
 
-        
+        import rich
         rich.print(stat_table)
         
         power_table = Table()
@@ -1224,21 +1262,30 @@ class Atn(ActorInterface, Proactor):
             store_cold_f_str = f"{store_cold_ansii}{round(store_cold_f,1)}\u00b0F\033[0m"
 
         buff_temp_f_str = {}
-        for j in range(1,5):
-            if buff_temp_f[j] < 100:
-                buff_temp_f_str[j] = f" {round(buff_temp_f[j],1)}\u00b0F"
-            else:
-                buff_temp_f_str[j] = f"{round(buff_temp_f[j],1)}\u00b0F"
-        
-        store_temp_f_str = {1: {}, 2: {}, 3: {}, 4: {}}
-        for i in range(1,5):
-            for j in range(1,4):
-                if store_temp_f[i][j] < 100:
-                    store_temp_f_str[i][j] = f" {round(store_temp_f[i][j],1)}\u00b0F"
+        for depth in range(1,5):
+            if depth in buff_temp_f:
+                if buff_temp_f[depth] < 100:
+                    s = f" {round(buff_temp_f[depth],1)}\u00b0F"
                 else:
-                    store_temp_f_str[i][j] = f"{round(store_temp_f[i][j],1)}\u00b0F"
-        
+                    snap = f"{round(buff_temp_f[depth],1)}\u00b0F"
+            else:
+                s = "  ---  "
+            buff_temp_f_str[depth] = s
 
+        # store_temp_f_str = {1: {}, 2: {}, 3: {}, 4: {}}
+        store_temp_f_str = defaultdict(dict)
+        for depth in range(1,5):
+            for tank in range(1,4):
+                if depth in store_temp_f and tank in store_temp_f[depth]:
+                    if store_temp_f[depth][tank] < 100:
+                        s = f" {round(store_temp_f[depth][tank], 1)}\u00b0F"
+                    else:
+                        s = f"{round(store_temp_f[depth][tank], 1)}\u00b0F"
+                else:
+                    s = "  ---  "
+                store_temp_f_str[depth][tank] = s
+        
+        
         hack_hp_state = self.hack_hp_state_q[0]
         if hack_hp_state.state == HackHpState.Heating:
             heating = True
@@ -1259,7 +1306,6 @@ class Atn(ActorInterface, Proactor):
                 hp_health_comment_2 += f"1 start attempt."
             elif hack_hp_state.start_attempts > 1:
                 hp_health_comment_2 += f"{hack_hp_state.start_attempts} start attempts."
-
         atn_alias = self.layout.atn_g_node_alias
         short_name = atn_alias.split(".")[-1]
         print(f"""{short_name}:
