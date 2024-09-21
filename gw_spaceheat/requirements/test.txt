@@ -91,9 +91,12 @@ pydantic==2.8.2
     # via
     #   gridworks-proactor
     #   gridworks-protocol
+    #   pydantic-extra-types
     #   pydantic-settings
 pydantic-core==2.20.1
     # via pydantic
+pydantic-extra-types==2.9.0
+    # via gridworks-protocol
 pydantic-settings==2.4.0
     # via gridworks-proactor
 pygments==2.15.1
