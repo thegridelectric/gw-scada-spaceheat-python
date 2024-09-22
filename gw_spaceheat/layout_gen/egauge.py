@@ -17,6 +17,7 @@ from gwproto.types import TelemetryReportingConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 from pydantic import BaseModel
 
+from data_classes.house_0 import H0N
 from layout_gen.layout_db import LayoutDb
 
 class EGaugeIOGenCfg(BaseModel):
@@ -80,7 +81,7 @@ class EGaugeIOGenCfg(BaseModel):
         )
 
 class EGaugeGenCfg(BaseModel):
-    NodeName: str = "a.m"
+    NodeName: str = H0N.primary_power_meter
     NodeDisplayName: str = "Primary Power Meter"
     ComponentDisplayName: str = "EGauge Power Meter"
     HwUid: str

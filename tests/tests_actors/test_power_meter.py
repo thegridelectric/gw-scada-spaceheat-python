@@ -21,6 +21,7 @@ from gwproto.data_classes.components.electric_meter_component import ElectricMet
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
+from data_classes.house_0 import H0N
 from gwproactor.config import LoggerLevels
 from gwproactor.config import LoggingSettings
 from gwproto.data_classes.telemetry_tuple import TelemetryTuple
@@ -33,12 +34,12 @@ def test_power_meter_small():
         copy_keys("scada", settings)
     settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    scada = Scada("a.s", settings, layout)
+    scada = Scada(H0N.scada, settings, layout)
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        PowerMeter("a.s", services=scada)
+        PowerMeter(H0N.scada, services=scada)
 
-    meter = PowerMeter("a.m", services=scada)
+    meter = PowerMeter(H0N.primary_power_meter, services=scada)
     assert isinstance(meter._sync_thread, PowerMeterDriverThread)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
     driver_thread.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
@@ -61,13 +62,13 @@ def test_power_meter_small():
     amp_list = list(
         filter(
             lambda x: x.TelemetryName == TelemetryName.CurrentRmsMicroAmps
-            and x.AboutNodeName == "a.elt1",
+            and x.AboutNodeName == "elt1",
             all_eq_configs,
         )
     )
     assert (len(amp_list)) == 1
     tt_1 = TelemetryTuple(
-        AboutNode=layout.node("a.elt1"),
+        AboutNode=layout.node("elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.CurrentRmsMicroAmps,
     )
@@ -113,12 +114,12 @@ def test_power_meter_small():
     assert not driver_thread.should_report_aggregated_power()
 
     pwr_1 = TelemetryTuple(
-        AboutNode=layout.node("a.elt1"),
+        AboutNode=layout.node("elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.PowerW
     )
     pwr_2 = TelemetryTuple(
-        AboutNode=layout.node("a.elt2"),
+        AboutNode=layout.node("elt2"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.PowerW
     )
@@ -135,7 +136,7 @@ def test_power_meter_small():
     assert power_reporting_threshold_w == 180
 
     tt_1 = TelemetryTuple(
-        AboutNode=layout.node("a.elt1"),
+        AboutNode=layout.node("elt1"),
         SensorNode=meter.node,
         TelemetryName=TelemetryName.PowerW,
     )
@@ -160,7 +161,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
             return [self.runner.actors.scada]
 
         def get_requested_actors(self):
-            meter_node = self.runner.layout.node("a.m")
+            meter_node = self.runner.layout.node(H0N.primary_power_meter)
             meter_component = typing.cast(ElectricMeterComponent, meter_node.component)
             meter_cac = meter_component.cac
             monkeypatch.setattr(meter_cac, "PollPeriodMs", 0)
@@ -178,12 +179,12 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
 
             expected_tts = [
                 TelemetryTuple(
-                    AboutNode=self.runner.layout.node("a.elt1"),
+                    AboutNode=self.runner.layout.node("elt1"),
                     SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.PowerW,
                 ),
                 TelemetryTuple(
-                    AboutNode=self.runner.layout.node("a.elt2"),
+                    AboutNode=self.runner.layout.node("elt2"),
                     SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.PowerW,
                 )
@@ -233,7 +234,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
             return [self.runner.actors.scada, self.runner.actors.atn]
 
         def get_requested_actors(self):
-            meter_node = self.runner.layout.node("a.m")
+            meter_node = self.runner.layout.node(H0N.primary_power_meter)
             meter_component = typing.cast(ElectricMeterComponent, meter_node.component)
             for config in meter_component.gt.ConfigList:
                 config.SamplePeriodS = 1

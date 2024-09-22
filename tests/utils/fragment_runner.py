@@ -20,7 +20,7 @@ from gwproactor import setup_logging
 from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
-
+from data_classes.house_0 import H0N
 
 from tests.atn import Atn
 from tests.atn import AtnSettings
@@ -61,7 +61,6 @@ async def async_do_nothing(seconds: float, logger: Optional[logging.Logger] = No
 class Actors:
     atn: Atn
     scada: ScadaRecorder
-    relay: actors.BooleanActuator
     meter: actors.PowerMeter
 
     def __init__(
@@ -79,23 +78,15 @@ class Actors:
         atn_settings.paths.mkdirs(parents=True)
         self.atn = kwargs.get(
             "atn",
-            Atn("a", settings=atn_settings, hardware_layout=layout)
+            Atn(H0N.atn, settings=atn_settings, hardware_layout=layout)
         )
         self.scada = kwargs.get(
             "scada",
-            ScadaRecorder("a.s", settings, hardware_layout=layout)
-        )
-        self.relay = kwargs.get(
-            "relay",
-            actors.BooleanActuator("a.elt1.relay", services=self.scada)
-        )
-        self.thermo = kwargs.get(
-            "thermo",
-            actors.SimpleSensor("a.tank.temp0", services=self.scada)
+            ScadaRecorder(H0N.scada, settings, hardware_layout=layout)
         )
         self.meter = kwargs.get(
             "meter",
-            actors.PowerMeter("a.m", services=self.scada)
+            actors.PowerMeter(H0N.primary_power_meter, services=self.scada)
         )
 
 

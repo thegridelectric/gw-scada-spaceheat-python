@@ -20,6 +20,8 @@ from gwproto.types import SpaceheatNodeGt
 from gwproto.types import TelemetryReportingConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 
+from data_classes.house_0 import H0N
+
 @dataclass
 class StubConfig:
     add_stub_scada: bool = True
@@ -275,8 +277,8 @@ class LayoutDb:
             ],
             "ElectricMeterComponents"
         )
-        power_meter_alias = "a.m"
-        boost_element_alias = "a.elt1"
+        power_meter_alias = H0N.primary_power_meter
+        boost_element_alias = "elt1"
         self.add_nodes(
             [
                 SpaceheatNodeGt(
@@ -326,8 +328,8 @@ class LayoutDb:
                 "PrimaryGNodeRoleAlias": "TerminalAsset"
               }
 
-        scada_alias="a.s"
-        home_alias="a.home"
+        scada_alias=H0N.scada
+        home_alias=H0N.home_alone
         self.add_nodes(
             [
                 SpaceheatNodeGt(

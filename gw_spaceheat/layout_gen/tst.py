@@ -10,16 +10,12 @@ from gwproto.enums import Unit
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import ComponentGt
 from gwproto.types import ElectricMeterCacGt
-from gwproto.types import RelayCacGt
-from gwproto.types import RelayComponentGt
 from gwproto.types import ResistiveHeaterCacGt
 from gwproto.types import ResistiveHeaterComponentGt
-from gwproto.types import SimpleTempSensorCacGt
-from gwproto.types import SimpleTempSensorComponentGt
 from gwproto.types import SpaceheatNodeGt
 from gwproto.types import TelemetryReportingConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
-
+from data_classes.house_0 import H0N
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig
@@ -37,8 +33,6 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         )
     )
     _add_power_meter(db)
-    _add_relay(db)
-    _add_simple_sensor(db)
     _add_atn(db)
     return db
 
@@ -57,105 +51,6 @@ def _add_atn(db: LayoutDb) -> LayoutDb:
     )
     return db
 
-def _add_relay(db: LayoutDb) -> LayoutDb:
-    RELAY_CAC_TYPE_NAME = "relay.cac.gt"
-    RELAY_COMPONENT_DISPLAY_NAME = "Gridworks Simulated Boolean Actuator"
-    RELAY_NODE_NAME = "a.elt1.relay"
-    if not db.cac_id_by_type(RELAY_CAC_TYPE_NAME):
-        db.add_cacs(
-            [
-                typing.cast(
-                    ComponentAttributeClassGt,
-                    RelayCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(RELAY_CAC_TYPE_NAME),
-                        MakeModel=MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY,
-                        DisplayName="Gridworks Simulated Boolean Actuator",
-                        TypicalResponseTimeMs=400,
-                    )
-                ),
-            ],
-            "RelayCacs"
-        )
-    db.add_components(
-        [
-            typing.cast(
-                ComponentGt,
-                RelayComponentGt(
-                    ComponentId=db.make_component_id(RELAY_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(RELAY_CAC_TYPE_NAME),
-                    DisplayName=RELAY_COMPONENT_DISPLAY_NAME,
-                    Gpio=0,
-                    NormallyOpen=True,
-                ),
-            ),
-        ],
-        "RelayComponents"
-    )
-    db.add_nodes(
-        [
-            SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(RELAY_NODE_NAME),
-                Alias=RELAY_NODE_NAME,
-                Role=Role.BooleanActuator,
-                ActorClass=ActorClass.BooleanActuator,
-                DisplayName="30A Relay for first boost element",
-                ComponentId=db.component_id_by_alias(RELAY_COMPONENT_DISPLAY_NAME),
-            ),
-        ]
-    )
-    return db
-
-def _add_simple_sensor(db: LayoutDb) -> LayoutDb:
-    SIMPLE_SENSOR_CAC_TYPE_NAME = "simple.temp.sensor.cac.gt"
-    SIMPLE_SENSOR_COMPONENT_DISPLAY_NAME = "Component for a.tank.temp0 (on top)"
-    SIMPLE_SENSOR_NODE_NAME = "a.tank.temp0"
-    if not db.cac_id_by_type(SIMPLE_SENSOR_CAC_TYPE_NAME):
-        db.add_cacs(
-            [
-                typing.cast(
-                    ComponentAttributeClassGt,
-                    SimpleTempSensorCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(SIMPLE_SENSOR_CAC_TYPE_NAME),
-                        MakeModel=MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION,
-                        DisplayName="Simulated GridWorks high precision water temp sensor",
-                        CommsMethod="SassyMQ",
-                        Exponent=-3,
-                        TempUnit=Unit.Fahrenheit,
-                        TelemetryName=TelemetryName.WaterTempFTimes1000,
-                        TypicalResponseTimeMs=880,
-                    )
-                )
-            ],
-            "SimpleTempSensorCacs"
-        )
-    db.add_components(
-        [
-            typing.cast(
-                ComponentGt,
-                SimpleTempSensorComponentGt(
-                    ComponentId=db.make_component_id(SIMPLE_SENSOR_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(SIMPLE_SENSOR_CAC_TYPE_NAME),
-                    DisplayName=SIMPLE_SENSOR_COMPONENT_DISPLAY_NAME,
-                    HwUid="1023abcd"
-                ),
-            ),
-        ],
-        "SimpleTempSensorComponents"
-    )
-    db.add_nodes(
-        [
-            SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(SIMPLE_SENSOR_NODE_NAME),
-                Alias=SIMPLE_SENSOR_NODE_NAME,
-                Role=Role.TankWaterTempSensor,
-                ActorClass=ActorClass.SimpleSensor,
-                DisplayName="Tank temp sensor temp0 (on top)",
-                ComponentId=db.component_id_by_alias(SIMPLE_SENSOR_COMPONENT_DISPLAY_NAME),
-                ReportingSamplePeriodS=5,
-            ),
-        ]
-    )
-    return db
 
 def _add_power_meter(db: LayoutDb) -> LayoutDb:
     ELECTRIC_METER_CAC_TYPE_NAME = "electric.meter.cac.gt"
@@ -163,9 +58,9 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
     POWER_METER_COMPONENT_DISPLAY_NAME = "Power Meter for Simulated Test system"
     RESISTIVE_HEATER_1_COMPONENT_DISPLAY_NAME = "First 4.5 kW boost in tank"
     RESISTIVE_HEATER_2_COMPONENT_DISPLAY_NAME = "Second 4.5 kW boost in tank"
-    POWER_METER_NODE_NAME = "a.m"
-    RESISTIVE_HEATER_1_NODE_NAME = "a.elt1"
-    RESISTIVE_HEATER_2_NODE_NAME = "a.elt2"
+    POWER_METER_NODE_NAME = H0N.primary_power_meter
+    RESISTIVE_HEATER_1_NODE_NAME = "elt1"
+    RESISTIVE_HEATER_2_NODE_NAME = "elt2"
 
     if not db.cac_id_by_type(ELECTRIC_METER_CAC_TYPE_NAME):
         db.add_cacs(

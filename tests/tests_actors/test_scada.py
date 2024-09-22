@@ -28,7 +28,7 @@ from gwproto.messages import GtShMultipurposeTelemetryStatus
 from gwproto.messages import GtShSimpleTelemetryStatus
 from gwproto.messages import GtShStatus
 from gwproto.messages import SnapshotSpaceheat
-
+from data_classes.house_0 import H0N
 
 def test_scada_small():
     settings = ScadaSettings()
@@ -36,11 +36,9 @@ def test_scada_small():
         copy_keys("scada", settings)
     settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    scada = Scada("a.s", settings=settings, hardware_layout=layout)
-    assert layout.power_meter_node == layout.node("a.m")
-    meter_node = layout.node("a.m")
-    relay_node = layout.node("a.elt1.relay")
-    temp_node = layout.node("a.tank.temp0")
+    scada = Scada(H0N.scada, settings=settings, hardware_layout=layout)
+    assert layout.power_meter_node == layout.node(H0N.primary_power_meter)
+    meter_node = layout.node(H0N.primary_power_meter)
     assert list(scada._data.recent_ba_cmds.keys()) == layout.my_boolean_actuators
     assert (
         list(scada._data.recent_ba_cmd_times_unix_ms.keys())
@@ -318,7 +316,7 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
     actors = Actors(
         settings,
         layout=layout,
-        scada=ScadaRecorder("a.s", settings, hardware_layout=layout),
+        scada=ScadaRecorder(H0N.scada, settings, hardware_layout=layout),
         atn_settings=atn_settings,
     )
     actors.scada._last_status_second = int(time.time())
@@ -397,7 +395,7 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
     actors = Actors(
         settings,
         layout=layout,
-        scada=ScadaRecorder("a.s", settings, hardware_layout=layout),
+        scada=ScadaRecorder(H0N.scada, settings, hardware_layout=layout),
         atn_settings=atn_settings,
     )
     actors.scada._last_status_second = int(time.time())
