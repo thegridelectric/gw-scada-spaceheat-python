@@ -26,12 +26,6 @@ The `GtShStatus` message contains all the telemetry updates received by the Scad
 The `SnapshotSpaceheeat` contains the latest telemetry status for all known telemetry points.
 
 
-### SimpleSensor periodic telemetry
-
-    SimpleSensor  ->  GtTelemetry                 ->  Scada           
-
-This telemetry will be included in the next `GtShStatus` message.
-
 ### Meter asynchronous telemetry
 
     Meter   ->  GtShTelemetryFromMultipurposeSensor                  ->  Scada 
