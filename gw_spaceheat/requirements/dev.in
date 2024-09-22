@@ -4,5 +4,5 @@ pip-tools
 isort
 
 # gridworks-proactor[tests] >=0.5.0
-gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
+gridworks-proactor[tests] @ git+https://github.com/thegridelectric/gridworks-proactor.git@jm/reduce
 gridworks-cert>=0.4.4
