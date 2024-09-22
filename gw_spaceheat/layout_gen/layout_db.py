@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import Optional
 import uuid
 
+from gw.errors import DcError
+
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.enums import ActorClass
 from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
@@ -35,13 +38,13 @@ class StubConfig:
     boost_element_display_name: str = "Dummy Boost Element"
 
 class LayoutIDMap:
-    cacs_by_type: dict[str, str]
+    cacs_by_make_model: dict[MakeModel, str]
     components_by_alias: dict[str, str]
     nodes_by_alias: dict[str, str]
     gnodes: dict[str, dict]
 
     def __init__(self, d: Optional[dict] = None):
-        self.cacs_by_type = {}
+        self.cacs_by_make_model = {}
         self.components_by_alias = {}
         self.nodes_by_alias = {}
         self.gnodes = {}
@@ -64,9 +67,9 @@ class LayoutIDMap:
                 elif k.lower().endswith("cacs"):
                         for cac in v:
                             try:
-                                self.add_cac(
+                                self.add_cac_by_make_model(
                                     cac["ComponentAttributeClassId"],
-                                    cac["TypeName"],
+                                    cac["MakeModel"],
                                 )
                             except Exception as e:
                                 raise Exception(
@@ -85,8 +88,10 @@ class LayoutIDMap:
                                     f"ERROR in LayoutIDMap() for {k}:{component}. Error: {type(e)}, <{e}>"
                                 )
 
-    def add_cac(self, id_: str, type_: str):
-        self.cacs_by_type[type_] = id_
+    def add_cac_by_make_model(self, id_: str, make_model_: str):
+        if CACS_BY_MAKE_MODEL[make_model_] != id_:
+            raise DcError(f"MakeModel {make_model_} does not go with {id_}")
+        self.cacs_by_make_model[make_model_] = id_
 
     def add_component(self, id_: str, alias: str):
         self.components_by_alias[alias] = id_
@@ -154,8 +159,8 @@ class LayoutDb:
         if add_stubs:
             self.add_stubs(stub_config)
 
-    def cac_id_by_type(self, cac_type: str) -> Optional[str]:
-        return self.maps.cacs_by_type.get(cac_type, None)
+    def cac_id_by_make_model(self, make_model: MakeModel) -> Optional[str]:
+        return self.maps.cacs_by_make_model.get(make_model, None)
 
     def component_id_by_alias(self, component_alias: str) -> Optional[str]:
         return self.maps.components_by_alias.get(component_alias, None)
@@ -163,8 +168,16 @@ class LayoutDb:
     def node_id_by_alias(self, node_alias: str) -> Optional[str]:
         return self.maps.nodes_by_alias.get(node_alias, None)
 
-    def make_cac_id(self, cac_type: str) -> str:
-        return self.loaded.cacs_by_type.get(cac_type, str(uuid.uuid4()))
+    def make_cac_id(self, make_model: MakeModel) -> str:
+        if type(make_model) is str:
+            if make_model in CACS_BY_MAKE_MODEL:
+                return CACS_BY_MAKE_MODEL[make_model]
+            else:
+                return str(uuid.uuid4())
+        elif make_model.value in CACS_BY_MAKE_MODEL:
+            return CACS_BY_MAKE_MODEL[make_model.value]
+        else:
+            return str(uuid.uuid4())
 
     def make_component_id(self, component_alias: str) -> str:
         return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
@@ -179,16 +192,12 @@ class LayoutDb:
                     f"ERROR: cac with id <{cac.ComponentAttributeClassId}> "
                     "already present"
                 )
-            if cac.TypeName in self.maps.cacs_by_type:
-                raise ValueError(
-                    f"ERROR: cac with TypeName <{cac.TypeName}> "
-                    "already present"
-                )
             self.cacs_by_id[cac.ComponentAttributeClassId] = cac
-            self.maps.add_cac(
-                cac.ComponentAttributeClassId,
-                cac.TypeName
-            )
+            if cac.MakeModel in CACS_BY_MAKE_MODEL:
+                self.maps.add_cac_by_make_model(
+                    cac.ComponentAttributeClassId,
+                    cac.MakeModel
+                )
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(cac)
@@ -234,18 +243,17 @@ class LayoutDb:
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        electric_meter_cac_type = "electric.meter.cac.gt"
-        if not self.cac_id_by_type(electric_meter_cac_type):
+        if MakeModel.EGAUGE__4030 not in self.maps.cacs_by_make_model:
             self.add_cacs(
                 [
                     typing.cast(
                         ComponentAttributeClassGt,
                         ElectricMeterCacGt(
-                            ComponentAttributeClassId=self.make_cac_id(electric_meter_cac_type),
-                            MakeModel=MakeModel.GRIDWORKS__SIMPM1,
+                            ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.EGAUGE__4030],
+                            MakeModel=MakeModel.EGAUGE__4030,
                             DisplayName=cfg.power_meter_cac_alias,
                             TelemetryNameList=[TelemetryName.PowerW],
-                            Interface=LocalCommInterface.SIMRABBIT,
+                            Interface=LocalCommInterface.ETHERNET,
                             PollPeriodMs=1000,
                         )
                     ),
@@ -258,11 +266,11 @@ class LayoutDb:
                     ComponentGt,
                     ElectricMeterComponentGt(
                         ComponentId=self.make_component_id(cfg.power_meter_component_alias),
-                        ComponentAttributeClassId=self.cac_id_by_type(electric_meter_cac_type),
+                        ComponentAttributeClassId=self.cac_id_by_make_model(MakeModel.EGAUGE__4030),
                         DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
                             TelemetryReportingConfig(
-                                AboutNodeName="a.elt1",
+                                AboutNodeName="elt1",
                                 ReportOnChange=True,
                                 SamplePeriodS=300,
                                 NameplateMaxValue=4500,
@@ -362,7 +370,7 @@ class LayoutDb:
             self.misc,
             **{
                 list_name: [
-                    entry.as_dict() if hasattr(entry, "as_dict") else entry.model_dump(by_alias=True) for entry in entries
+                    entry.as_dict() if hasattr(entry, "as_dict") else entry.model_dump(by_alias=True, exclude_none=True) for entry in entries
                 ]
                 for list_name, entries in self.lists.items()
             }

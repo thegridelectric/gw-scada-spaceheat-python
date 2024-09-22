@@ -62,7 +62,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
     RESISTIVE_HEATER_1_NODE_NAME = "elt1"
     RESISTIVE_HEATER_2_NODE_NAME = "elt2"
 
-    if not db.cac_id_by_type(ELECTRIC_METER_CAC_TYPE_NAME):
+    if not db.cac_id_by_make_model(ELECTRIC_METER_CAC_TYPE_NAME):
         db.add_cacs(
             [
                 typing.cast(
@@ -79,7 +79,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
             ],
             "ElectricMeterCacs"
         )
-    if not db.cac_id_by_type(RESISTIVE_HEATER_CAC_TYPE_NAME):
+    if not db.cac_id_by_make_model(RESISTIVE_HEATER_CAC_TYPE_NAME):
         db.add_cacs(
             [
                 typing.cast(
@@ -102,13 +102,13 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(POWER_METER_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(ELECTRIC_METER_CAC_TYPE_NAME),
+                    ComponentAttributeClassId=db.cac_id_by_make_model(ELECTRIC_METER_CAC_TYPE_NAME),
                     DisplayName=POWER_METER_COMPONENT_DISPLAY_NAME,
                     ConfigList=[
                         # CurrentRmsMicroAmps
                         # AmpsRms
                         TelemetryReportingConfig(
-                            AboutNodeName="a.elt1",
+                            AboutNodeName="elt1",
                             ReportOnChange=True,
                             SamplePeriodS=300,
                             NameplateMaxValue=4500,
@@ -118,7 +118,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                             Unit=Unit.W,
                         ),
                         TelemetryReportingConfig(
-                            AboutNodeName="a.elt1",
+                            AboutNodeName="elt1",
                             ReportOnChange=True,
                             SamplePeriodS=300,
                             NameplateMaxValue=18750000,
@@ -128,7 +128,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                             Unit=Unit.AmpsRms,
                         ),
                         TelemetryReportingConfig(
-                            AboutNodeName="a.elt2",
+                            AboutNodeName="elt2",
                             ReportOnChange=True,
                             SamplePeriodS=300,
                             NameplateMaxValue=4500,
@@ -150,7 +150,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ComponentGt,
                 ResistiveHeaterComponentGt(
                     ComponentId=db.make_component_id(RESISTIVE_HEATER_1_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(RESISTIVE_HEATER_CAC_TYPE_NAME),
+                    ComponentAttributeClassId=db.cac_id_by_make_model(RESISTIVE_HEATER_CAC_TYPE_NAME),
                     DisplayName=RESISTIVE_HEATER_1_COMPONENT_DISPLAY_NAME,
                     HwUid="aaaa2222",
                     TestedMaxColdMilliOhms=14500,
@@ -161,7 +161,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ComponentGt,
                 ResistiveHeaterComponentGt(
                     ComponentId=db.make_component_id(RESISTIVE_HEATER_2_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(RESISTIVE_HEATER_CAC_TYPE_NAME),
+                    ComponentAttributeClassId=db.cac_id_by_make_model(RESISTIVE_HEATER_CAC_TYPE_NAME),
                     DisplayName=RESISTIVE_HEATER_2_COMPONENT_DISPLAY_NAME,
                     HwUid="bbbb2222",
                 )

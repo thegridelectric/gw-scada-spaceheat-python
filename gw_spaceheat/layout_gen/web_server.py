@@ -1,5 +1,5 @@
 from gwproto.enums import MakeModel
-from gwproto.types import WebServerGt
+from gwproto.type_helpers import WebServerGt
 from gwproto.types.web_server_cac_gt import WebServerCacGt
 from gwproto.types.web_server_component_gt import WebServerComponentGt
 
@@ -10,7 +10,7 @@ def add_web_server(
     web_server: WebServerGt
 ) -> WebServerComponentGt:
     cac_type = "web.server.cac.gt"
-    if not db.cac_id_by_type(cac_type):
+    if not db.cac_id_by_make_model(cac_type):
         db.add_cacs(
             [
                 WebServerCacGt(
@@ -26,7 +26,7 @@ def add_web_server(
             [
                 WebServerComponentGt(
                     ComponentId=db.make_component_id(component_alias),
-                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
+                    ComponentAttributeClassId=db.cac_id_by_make_model(cac_type),
                     DisplayName=component_alias,
                     WebServer=web_server,
                 ),

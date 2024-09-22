@@ -114,7 +114,16 @@ def test_tank_device_poll_period(tmp_path):
                 tanks.append(tankcj)
                 if tankcj["DisplayName"] == cfg.DisplayName:
                     tankj = tankcj["Tank"]
-                    if cfg.DefaultPollPeriodSeconds != tankj["DefaultPollPeriodSeconds"]:
+                    if cfg.DefaultPollPeriodSeconds is None:
+                        if  "DefaultPollPeriodSeconds" in tankj:
+                            errors.append(
+                                _err_str(
+                                    cfg.Name, "DefaultPollPeriodSeconds",
+                                    cfg.DefaultPollPeriodSeconds,
+                                    "DefaultPollPeriodSeconds",
+                                )
+                            )
+                    elif cfg.DefaultPollPeriodSeconds != tankj["DefaultPollPeriodSeconds"]:
                         errors.append(
                             _err_str(
                                 cfg.Name, "DefaultPollPeriodSeconds",
@@ -123,7 +132,16 @@ def test_tank_device_poll_period(tmp_path):
                             )
                         )
                     for i, devicej in enumerate(tankj["Devices"]):
-                        if str(cfg.DevicePollPeriodSeconds[i]) != str(devicej["PollPeriodSeconds"]):
+                        if cfg.DevicePollPeriodSeconds[i] is None:
+                            if "PollPeriodSeconds" in devicej:
+                                errors.append(
+                                _err_str(
+                                    f"{cfg.Name} layout device {i}", "PollPeriodSeconds",
+                                    cfg.DefaultPollPeriodSeconds[i],
+                                    "PollPeriodSeconds",
+                                )
+                            )
+                        elif str(cfg.DevicePollPeriodSeconds[i])!= str(devicej["PollPeriodSeconds"]):
                             errors.append(
                                 _err_str(
                                     f"{cfg.Name} layout device {i}", "PollPeriodSeconds",

@@ -5,6 +5,7 @@ from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.types import HubitatPollerCacGt
 from gwproto.types import HubitatPollerComponentGt
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.type_helpers import HubitatPollerGt
 from gwproto.type_helpers import MakerAPIAttributeGt
 from gwproto.types import SpaceheatNodeGt
@@ -55,14 +56,14 @@ def add_hubitat_poller(
     poller: HubitatPollerGenCfg,
 ) -> None:
     hubitat_alias = add_hubitat(db, poller.hubitat)
-    cac_type = "hubitat.poller.cac.gt"
-    if not db.cac_id_by_type(cac_type):
+    make_model = MakeModel.HONEYWELL__T6ZWAVETHERMOSTAT
+    if not db.cac_id_by_make_model(make_model):
         db.add_cacs(
             [
                 HubitatPollerCacGt(
-                    ComponentAttributeClassId=db.make_cac_id(cac_type),
-                    DisplayName="Hubitat Poller Cac",
-                    MakeModel=MakeModel.HUBITAT__C7__LAN1,
+                    ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
+                    DisplayName="Honeywell T6 Thermostat",
+                    MakeModel=make_model,
                 ),
             ]
         )
@@ -70,7 +71,7 @@ def add_hubitat_poller(
         [
             HubitatPollerComponentGt(
                 ComponentId=db.make_component_id(poller.display_name),
-                ComponentAttributeClassId=db.cac_id_by_type(cac_type),
+                ComponentAttributeClassId=db.cac_id_by_make_model(make_model),
                 DisplayName=poller.display_name,
                 Poller=HubitatPollerGt(
                     hubitat_component_id=db.component_id_by_alias(hubitat_alias),

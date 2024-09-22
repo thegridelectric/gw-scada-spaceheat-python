@@ -7,6 +7,7 @@ from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import ComponentGt
 from gwproto.types import MultipurposeSensorCacGt
@@ -54,15 +55,15 @@ def add_tsnap_multipurpose(
     db: LayoutDb,
     tsnap: TSnapMultipurposeGenCfg,
 ) -> None:
-    cac_type = "multipurpose.sensor.cac.gt"
-    if not db.cac_id_by_type(cac_type):
+    make_model = MakeModel.GRIDWORKS__TSNAP1
+    if not db.cac_id_by_make_model(make_model):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     MultipurposeSensorCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(cac_type),
-                        MakeModel=MakeModel.GRIDWORKS__TSNAP1,
+                        ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
+                        MakeModel=make_model,
                         PollPeriodMs=200,
                         Exponent=0,
                         TempUnit=Unit.Celcius,
@@ -81,7 +82,7 @@ def add_tsnap_multipurpose(
                 ComponentGt,
                 MultipurposeSensorComponentGt(
                     ComponentId=db.make_component_id(tsnap.component_alias()),
-                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
+                    ComponentAttributeClassId=db.cac_id_by_make_model(make_model),
                     ChannelList=list(tsnap.ChannelList),
                     ConfigList=[
                         TelemetryReportingConfig(

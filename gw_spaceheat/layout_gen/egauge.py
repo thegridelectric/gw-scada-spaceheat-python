@@ -1,6 +1,7 @@
 from typing import cast
 from typing import Optional
 
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.enums import ActorClass
 from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
@@ -110,15 +111,15 @@ def add_egauge(
     db: LayoutDb,
     egauge: EGaugeGenCfg,
 ) -> None:
-    cac_type = "electric.meter.cac.gt"
-    if not db.cac_id_by_type(cac_type):
+    make_model = MakeModel.EGAUGE__4030
+    if not db.cac_id_by_make_model(make_model):
         db.add_cacs(
             [
                 cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(cac_type),
-                        MakeModel=MakeModel.EGAUGE__4030,
+                        ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
+                        MakeModel=make_model,
                         PollPeriodMs=1000,
                         DisplayName="EGauge 4030",
                         Interface=LocalCommInterface.ETHERNET,
@@ -135,7 +136,7 @@ def add_egauge(
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(egauge.ComponentDisplayName),
-                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
+                    ComponentAttributeClassId=db.cac_id_by_make_model(make_model),
                     DisplayName=egauge.ComponentDisplayName,
                     ConfigList=[io.OutputConfig for io in io_list],
                     HwUid=egauge.HwUid,
