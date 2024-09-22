@@ -14,7 +14,7 @@ def test_gt_powermeter_reporting_config_generated() -> None:
         "ElectricalQuantityReportingConfigList": [
             {
                 "TelemetryName": "PowerW",
-                "AboutNodeName": "a.elt1",
+                "AboutNodeName": "elt1",
                 "ReportOnChange": True,
                 "SamplePeriodS": 300,
                 "Exponent": 6,

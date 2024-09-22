@@ -20,6 +20,7 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from enums import Role
 from pydantic_settings import BaseSettings
+from data_classes.house_0 import H0N
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
@@ -80,8 +81,8 @@ def get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
         requested = None
     else:
         requested = set(args.nodes)
-        requested.add("a.s")
-        requested.add("a.home")
+        requested.add(H0N.scada)
+        requested.add(H0N.home_alone)
     return requested
 
 
