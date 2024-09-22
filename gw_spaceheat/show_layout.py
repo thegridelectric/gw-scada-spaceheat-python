@@ -180,8 +180,6 @@ def print_layout_members(
     for attr in [
         "all_nodes_in_agg_power_metering",
         "all_resistive_heaters",
-        "my_boolean_actuators",
-        "my_simple_sensors",
         "my_multipurpose_sensors",
     ]:
         print(f"  {attr}:")

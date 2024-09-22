@@ -3,8 +3,6 @@
 from layout_gen.egauge import add_egauge
 from layout_gen.egauge import EGaugeGenCfg
 from layout_gen.egauge import EGaugeIOGenCfg
-from layout_gen.flow import add_flow_meter
-from layout_gen.flow import add_istec_flow_meter
 from layout_gen.hubitat import add_hubitat
 from layout_gen.layout_db import LayoutDb
 from layout_gen.layout_db import LayoutIDMap
@@ -21,8 +19,6 @@ from layout_gen.web_server import add_web_server
 
 __all__ = [
     "add_egauge",
-    "add_flow_meter",
-    "add_istec_flow_meter",
     "add_hubitat",
     "add_hubitat_poller",
     "add_hubitat_thermostat",
