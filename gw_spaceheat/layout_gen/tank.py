@@ -5,12 +5,10 @@ from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwproto.types import FibaroSmartImplantCacGt
+from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import FibaroSmartImplantComponentGt
 from gwproto.type_helpers import FibaroTempSensorSettingsGt
-from gwproto.types import HubitatCacGt
 from gwproto.types import HubitatComponentGt
-from gwproto.types import HubitatTankCacGt
 from gwproto.types import HubitatTankComponentGt
 from gwproto.type_helpers import HubitatTankSettingsGt
 from gwproto.types import SpaceheatNodeGt
@@ -41,7 +39,7 @@ class TankGenCfg(BaseModel):
         return f"Tank Module <{self.InHomeName}>  SN {self.SN}"
 
     def thermistor_node_alias(self, depth: int) -> str:
-        return f"{self.NodeAlias}.temp.depth{depth}"
+        return f"{self.NodeAlias}-depth{depth}"
 
     def thermistor_node_display_name(self, depth: int) -> str:
         if depth == 1:
@@ -63,7 +61,7 @@ def add_tank(
     if not db.cac_id_by_make_model(fibaro_make_model):
         db.add_cacs(
             [
-                FibaroSmartImplantCacGt(
+                ComponentAttributeClassGt(
                     ComponentAttributeClassId=CACS_BY_MAKE_MODEL[fibaro_make_model],
                     DisplayName="Fibaro SmartImplant FGBS-222",
                     Model="FGBS-222 v5.2",
@@ -75,7 +73,7 @@ def add_tank(
     if not db.cac_id_by_make_model(hubitat_make_model):
         db.add_cacs(
             [
-                HubitatCacGt(
+                ComponentAttributeClassGt(
                     ComponentAttributeClassId=CACS_BY_MAKE_MODEL[hubitat_make_model],
                     DisplayName="Hubitat Elevation C-7",
                     MakeModel=MakeModel.HUBITAT__C7__LAN1,
@@ -86,7 +84,7 @@ def add_tank(
     if not db.cac_id_by_make_model(tank_module_make_model):
         db.add_cacs(
             [
-                HubitatTankCacGt(
+                ComponentAttributeClassGt(
                     ComponentAttributeClassId=CACS_BY_MAKE_MODEL[tank_module_make_model],
                     DisplayName="Hubitat Tank Module",
                     MakeModel=MakeModel.GRIDWORKS__TANK_MODULE_1

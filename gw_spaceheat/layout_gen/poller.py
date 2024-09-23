@@ -3,7 +3,9 @@ from typing import Self
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
 from gwproto.enums import Role
-from gwproto.types import HubitatPollerCacGt
+from gwproto.enums import TelemetryName
+from gwproto.enums import Unit
+from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import HubitatPollerComponentGt
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.type_helpers import HubitatPollerGt
@@ -36,11 +38,12 @@ class HubitatPollerGenCfg(BaseModel):
     def _root_validator(self) -> Self:
         for attribute in self.attributes:
             attribute.attribute_gt.node_name = (
-                f"{self.node_name}.{attribute.attribute_gt.node_name}"
+                f"{self.node_name}-{attribute.attribute_gt.node_name}"
             )
         return self
 
 class HubitatThermostatGenCfg(BaseModel):
+    thermostat_idx: int
     node_name: str
     display_name: str = ""
     hubitat: HubitatGt
@@ -60,7 +63,7 @@ def add_hubitat_poller(
     if not db.cac_id_by_make_model(make_model):
         db.add_cacs(
             [
-                HubitatPollerCacGt(
+                ComponentAttributeClassGt(
                     ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
                     DisplayName="Honeywell T6 Thermostat",
                     MakeModel=make_model,
@@ -125,8 +128,8 @@ def add_hubitat_thermostat(
                     attribute_gt=MakerAPIAttributeGt(
                         attribute_name="temperature",
                         node_name="temp",
-                        telemetry_name_gt_enum_symbol="4c3f8c78",
-                        unit_gt_enum_symbol="7d8832f8",
+                        telemetry_name=TelemetryName.AirTempFTimes1000,
+                        unit=Unit.Fahrenheit,
                         web_poll_enabled=thermostat.web_poll_enabled,
                         web_listen_enabled=thermostat.web_listen_enabled,
                     ),
@@ -137,8 +140,8 @@ def add_hubitat_thermostat(
                     attribute_gt=MakerAPIAttributeGt(
                         attribute_name="heatingSetpoint",
                         node_name="set",
-                        telemetry_name_gt_enum_symbol="4c3f8c78",
-                        unit_gt_enum_symbol="7d8832f8",
+                        telemetry_name=TelemetryName.AirTempFTimes1000,
+                        unit=Unit.Fahrenheit,
                         web_poll_enabled=thermostat.web_poll_enabled,
                         web_listen_enabled=thermostat.web_listen_enabled,
                     ),
@@ -150,8 +153,8 @@ def add_hubitat_thermostat(
                         attribute_name="thermostatOperatingState",
                         node_name="state",
                         interpret_as_number=False,
-                        telemetry_name_gt_enum_symbol="00002000",
-                        unit_gt_enum_symbol="00003000",
+                        telemetry_name=TelemetryName.ThermostatState,
+                        unit=Unit.Fahrenheit,
                         web_poll_enabled=thermostat.web_poll_enabled,
                         web_listen_enabled=thermostat.web_listen_enabled,
                     ),

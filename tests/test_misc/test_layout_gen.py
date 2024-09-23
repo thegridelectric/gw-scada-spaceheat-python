@@ -59,20 +59,20 @@ def test_tank_device_poll_period(tmp_path):
 
     cfgs = [
         _TankDeviceTestConfig(
-            Name="a.unset",
+            Name="unset",
         ),
         _TankDeviceTestConfig(
-            Name="a.default",
+            Name="default",
             DefaultPollPeriodSeconds=1.0,
             RestExp=(1.0, 1.0, 1.0, 1.0),
         ),
         _TankDeviceTestConfig(
-            Name="a.one.explicit",
+            Name="one-explicit",
             DevicePollPeriodSeconds=(1.0, None, None, None),
             RestExp=(1.0, 60.0, 60.0, 60.0),
         ),
         _TankDeviceTestConfig(
-            Name="a.mixed",
+            Name="mixed",
             DefaultPollPeriodSeconds=1.0,
             DevicePollPeriodSeconds=(2.0, None, None, None),
             RestExp=(2.0, 1.0, 1.0, 1.0),
@@ -212,7 +212,7 @@ def test_hubitat():
         hubitat_component_id
     )
     assert node is not None
-    assert node.alias == f"a.hubitat.{hubitat_mac_address[-8:].replace(':', '')}".lower()
+    assert node.alias == "hubitat"
     assert node.component_id == hubitat_component_id
     assert node.actor_class == ActorClass.Hubitat
 
@@ -222,12 +222,15 @@ def test_honeywell_thermostat():
         stub_config=StubConfig(),
     )
 
-    thermostat_node_name = "garage"
+    zone_name = "garage"
+    zone_idx = 1
+    zone_node_name = f"zone{zone_idx}-{zone_name}"
     add_hubitat_thermostat(
         db,
         HubitatThermostatGenCfg(
-            node_name=thermostat_node_name,
-            display_name=f"{thermostat_node_name.capitalize()} Component",
+            node_name=zone_node_name,
+            thermostat_idx=zone_idx,
+            display_name=f"Zone {zone_idx}: {zone_name}",
             hubitat=HubitatGt(
                 Host="hubitat-dummy.local",
                 MakerApiId=4,
@@ -238,7 +241,7 @@ def test_honeywell_thermostat():
         ),
     )
     layout = HardwareLayout.load_dict(db.dict(), raise_errors=True)
-    assert layout.node(thermostat_node_name).actor_class == ActorClass.HoneywellThermostat
-    assert layout.node(f"{thermostat_node_name}.temp").actor_class == ActorClass.NoActor
-    assert layout.node(f"{thermostat_node_name}.set").actor_class == ActorClass.NoActor
-    assert layout.node(f"{thermostat_node_name}.state").actor_class == ActorClass.NoActor
+    assert layout.node(zone_node_name).actor_class == ActorClass.HoneywellThermostat
+    assert layout.node(f"{zone_node_name}-temp").actor_class == ActorClass.NoActor
+    assert layout.node(f"{zone_node_name}-set").actor_class == ActorClass.NoActor
+    assert layout.node(f"{zone_node_name}-state").actor_class == ActorClass.NoActor

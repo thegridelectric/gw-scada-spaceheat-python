@@ -22,7 +22,7 @@ def test_gt_powermeter_reporting_config_generated() -> None:
                 "AsyncReportThreshold": 0.2,
                 "NameplateMaxValue": 4000,
                 "TypeName": "telemetry.reporting.config",
-                "Version": "000",
+                "Version": "001",
             }
         ],
         "PollPeriodMs": 1000,

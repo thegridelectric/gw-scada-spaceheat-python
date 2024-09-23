@@ -24,7 +24,7 @@ class H0N:
     atn = "a"
     scada = "s"
     home_alone = "h"
-    primary_power_meter = "power.meter"
+    primary_power_meter = "power-meter"
 
     # core temperatures
     buffer_cold_pipe = "buffer-cold-pipe"
@@ -49,6 +49,8 @@ class H0N:
     dist_flow = "dist-flow"
     primary_flow = "primary-flow"
     store_flow = "store-flow"
+
+    hubitat = "hubitat"
 
     zone: Dict[str, ZoneName] = {}
     tank: Dict[int, TankNodes] = {}

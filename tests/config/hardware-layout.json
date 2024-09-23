@@ -41,7 +41,7 @@
           "AsyncReportThreshold": 0.02,
           "NameplateMaxValue": 4500,
           "TypeName": "telemetry.reporting.config",
-          "Version": "000",
+          "Version": "001",
           "TelemetryName": "PowerW",
           "Unit": "W"
         },
@@ -55,7 +55,7 @@
           "TelemetryName": "CurrentRmsMicroAmps",
           "TypeName": "telemetry.reporting.config",
           "Unit": "AmpsRms",
-          "Version": "000"
+          "Version": "001"
         },
         {
           "AboutNodeName": "elt2",
@@ -67,7 +67,7 @@
           "TelemetryName": "PowerW",
           "TypeName": "telemetry.reporting.config",
           "Unit": "W",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "HwUid": "1001ab",
@@ -101,7 +101,7 @@
       "ComponentId": "fe18bffa-4b46-4b03-89d4-26b3d6f3e9d1",
       "ConfigList": [
         {
-          "AboutNodeName": "hp.lwt",
+          "AboutNodeName": "hp-lwt",
           "AsyncReportThreshold": 0.0025,
           "Exponent": 3,
           "NameplateMaxValue": 100000,
@@ -110,10 +110,10 @@
           "TelemetryName": "WaterTempCTimes1000",
           "TypeName": "telemetry.reporting.config",
           "Unit": "Celsius",
-          "Version": "000"
+          "Version": "001"
         },
         {
-          "AboutNodeName": "hp.ewt",
+          "AboutNodeName": "hp-ewt",
           "AsyncReportThreshold": 0.0025,
           "Exponent": 3,
           "NameplateMaxValue": 100000,
@@ -122,7 +122,7 @@
           "TelemetryName": "WaterTempCTimes1000",
           "TypeName": "telemetry.reporting.config",
           "Unit": "Celsius",
-          "Version": "000"
+          "Version": "001"
         }
       ],
       "DisplayName": "Multipurpose Temp Sensor Component <100>",
@@ -230,7 +230,7 @@
       "DisplayName": "AtomicTNode",
       "ShNodeId": "b354edeb-0c82-4e55-80cb-7ab669ac2ad9",
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "110"
     },
     {
       "Alias": "home",
@@ -239,7 +239,7 @@
       "DisplayName": "Little Orange House HomeAlone",
       "ShNodeId": "34470c9d-fa25-4077-909b-2f981a691d7e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "110"
     },
     {
       "Alias": "s",
@@ -248,7 +248,7 @@
       "DisplayName": "Little Orange House Main Scada",
       "ShNodeId": "259f9431-c6a1-4170-8766-04cbf65cff4a",
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "110"
     },
     {
       "Alias": "elt1",
@@ -261,7 +261,7 @@
       "TypicalVoltageV": 240,
       "InPowerMetering": true,
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "110"
     },
     {
       "Alias": "elt2",
@@ -274,35 +274,79 @@
       "TypicalVoltageV": 240,
       "InPowerMetering": true,
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "110"
     },
     {
-      "Alias": "power.meter",
+      "Alias": "power-meter",
       "Role": "PowerMeter",
       "ActorClass": "PowerMeter",
       "DisplayName": "Main Power Meter Little Orange House Test System",
       "ShNodeId": "0dd8a803-4724-4f49-b845-14ff57bdb3e6",
       "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "110"
     },
     {
-      "Alias": "hp.ewt",
+      "Alias": "hp-ewt",
       "Role": "Unknown",
       "ActorClass": "NoActor",
       "DisplayName": "Heat Pump Entering Water Temp",
       "ShNodeId": "e76073f4-67ae-4324-b07f-0c9add733de7",
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "110"
     },
     {
-      "Alias": "hp.lwt",
+      "Alias": "hp-lwt",
       "Role": "Unknown",
       "ActorClass": "NoActor",
       "DisplayName": "Heat Pump Leaving Water Temp",
       "ShNodeId": "1fe2a01f-d60a-4362-bc5e-949ddfcd5003",
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "110"
+    },
+    {
+      "Alias": "store-pump",
+      "Role": "Unknown",
+      "ActorClass": "NoActor",
+      "DisplayName": "Store Pump",
+      "ShNodeId": "c35d9c77-1ebb-4822-b01e-00ff189092f7",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "110"
+    },
+    {
+      "Alias": "analog-temp",
+      "Role": "Unknown",
+      "ActorClass": "MultipurposeSensor",
+      "DisplayName": "GridWorks MultiTemp",
+      "ShNodeId": "8bfc40f1-7c84-4e88-9214-78c304730ae3",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "110"
     }
+  ],
+  "DataChannels": [
+      {
+         "Name": "store-pump-pwr",
+         "DisplayName": "Store pump power",
+         "AboutNodeName": "store-pump",
+         "CapturedByNodeName": "power-meter",
+         "TelemetryName": "PowerW",
+         "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+         "StartS": 1701293980,
+         "Id": "ac35c2a9-e317-45e8-a036-52fa5cbd8380",
+         "TypeName": "data.channel.gt",
+         "Version": "001"
+      },
+      {
+        "Name": "hp-lwt",
+        "DisplayName": "Heat Pump Leaving Water Temp",
+        "AboutNodeName": "hp-lwt",
+        "CapturedByNodeName": "analog-temp",
+        "TelemetryName": "WaterTempCTimes1000",
+        "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+        "StartS": 1701293980,
+        "Id": "ac35c2a9-e317-45e8-a036-52fa5cbd8380",
+        "TypeName": "data.channel.gt",
+        "Version": "001"
+     }
   ]
 }

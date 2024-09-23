@@ -10,7 +10,6 @@ from typing import Optional
 from typing import Sequence
 
 import pendulum
-from gwproto.types import GtDispatchBoolean
 from gwproto.types import GtShCliAtnCmd
 from paho.mqtt.client import MQTTMessageInfo
 import rich
@@ -156,9 +155,6 @@ class Atn(ActorInterface, Proactor):
         match message.Payload:
             case GtShCliAtnCmd():
                 path_dbg |= 0x00000001
-                self._publish_to_scada(message.Payload)
-            case GtDispatchBoolean():
-                path_dbg |= 0x00000002
                 self._publish_to_scada(message.Payload)
             case DBGPayload():
                 path_dbg |= 0x00000004
@@ -322,21 +318,21 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
-    def set_relay(self, name: str, state: bool) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=GtDispatchBoolean(
-                    AboutNodeName=name,
-                    ToGNodeAlias=self.layout.scada_g_node_alias,
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromGNodeInstanceId=self.layout.atn_g_node_instance_id,
-                    RelayState=int(state),
-                    SendTimeUnixMs=int(time.time() * 1000),
-                ),
-            )
-        )
+    # def set_relay(self, name: str, state: bool) -> None:
+    #     self.send_threadsafe(
+    #         Message(
+    #             Src=self.name,
+    #             Dst=self.name,
+    #             Payload=GtDispatchBoolean(
+    #                 AboutNodeName=name,
+    #                 ToGNodeAlias=self.layout.scada_g_node_alias,
+    #                 FromGNodeAlias=self.layout.atn_g_node_alias,
+    #                 FromGNodeInstanceId=self.layout.atn_g_node_instance_id,
+    #                 RelayState=int(state),
+    #                 SendTimeUnixMs=int(time.time() * 1000),
+    #             ),
+    #         )
+    #     )
 
     def turn_on(self, relay_node: ShNode):
         self.set_relay(relay_node.alias, True)
