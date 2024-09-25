@@ -96,16 +96,16 @@ def get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayou
     scada_node: Optional[ShNode] = None
     for node in requested_nodes:
         if node.role not in [Role.Atn, Role.HomeAlone] and node.has_actor:
-            if node.actor_class.value == "Scada":
+            if node.actor_class == "Scada":
                 if scada_node is not None:
                     raise ValueError(
                         "ERROR. Exactly 1 scada node must be present in alaises. Found at least two ("
                         f"{node.alias} and {node.alias}"
                     )
                 scada_node = node
-            elif not getattr(actors_package, node.actor_class.value):
+            elif not getattr(actors_package, node.actor_class):
                 raise ValueError(
-                    f"ERROR. Actor class {node.actor_class.value} for node {node.alias} "
+                    f"ERROR. Actor class {node.actor_class} for node {node.alias} "
                     f"not in actors package {actors_package_name}"
                 )
             else:

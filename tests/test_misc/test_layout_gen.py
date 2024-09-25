@@ -4,12 +4,13 @@ from typing import Tuple
 import rich
 from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.enums import TelemetryName
 from gwproto.enums import ActorClass
 from gwproto.types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
 
 from layout_gen import add_hubitat
-from layout_gen import add_hubitat_thermostat
+from layout_gen import add_thermostat
 from layout_gen import add_tank
 from layout_gen import FibaroGenCfg
 from layout_gen import HubitatThermostatGenCfg
@@ -224,13 +225,12 @@ def test_honeywell_thermostat():
 
     zone_name = "garage"
     zone_idx = 1
-    zone_node_name = f"zone{zone_idx}-{zone_name}"
-    add_hubitat_thermostat(
+    add_thermostat(
         db,
         HubitatThermostatGenCfg(
-            node_name=zone_node_name,
+            zone_idx=zone_idx,
+            zone_name=zone_name,
             thermostat_idx=zone_idx,
-            display_name=f"Zone {zone_idx}: {zone_name}",
             hubitat=HubitatGt(
                 Host="hubitat-dummy.local",
                 MakerApiId=4,
@@ -241,7 +241,15 @@ def test_honeywell_thermostat():
         ),
     )
     layout = HardwareLayout.load_dict(db.dict(), raise_errors=True)
-    assert layout.node(zone_node_name).actor_class == ActorClass.HoneywellThermostat
-    assert layout.node(f"{zone_node_name}-temp").actor_class == ActorClass.NoActor
-    assert layout.node(f"{zone_node_name}-set").actor_class == ActorClass.NoActor
-    assert layout.node(f"{zone_node_name}-state").actor_class == ActorClass.NoActor
+    assert layout.node("zone1-garage-stat").actor_class == ActorClass.HoneywellThermostat
+    assert layout.node("zone1-garage").actor_class == ActorClass.NoActor
+    assert layout.channel("zone1-garage-set").AboutNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-set").CapturedByNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-set").TelemetryName == TelemetryName.AirTempFTimes1000
+    assert layout.channel("zone1-garage-temp").AboutNodeName == "zone1-garage"
+    assert layout.channel("zone1-garage-temp").CapturedByNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-temp").TelemetryName == TelemetryName.AirTempFTimes1000
+    assert layout.channel("zone1-garage-state").AboutNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-state").CapturedByNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-state").TelemetryName == TelemetryName.ThermostatState
+

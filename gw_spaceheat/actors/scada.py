@@ -125,7 +125,7 @@ class Scada(ScadaInterface, Proactor):
                 self.add_communicator(
                     ActorInterface.load(
                         actor_node.alias,
-                        str(actor_node.actor_class.value),
+                        str(actor_node.actor_class),
                         self,
                         self.DEFAULT_ACTORS_MODULE
                     )
