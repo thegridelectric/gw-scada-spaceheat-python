@@ -26,10 +26,9 @@ from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     TelemetrySpec,
 )
 from enums import MakeModel, TelemetryName
-from gwproto.data_classes.components.multipurpose_sensor_component import (
-    MultipurposeSensorComponent,
+from gwproto.data_classes.components.ads111x_based_component import (
+    Ads111xBasedComponent
 )
-
 DEFAULT_BAD_VALUE = -5
 
 
@@ -176,20 +175,16 @@ VOLTAGE_DIVIDER_R_OHMS = 10000
 
 
 class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
-    # ADS_1_I2C_ADDRESS = 0x48
-    # ADS_2_I2C_ADDRESS = 0x49
-    # ADS_3_I2C_ADDRESS = 0x4B
-    ADS_1_I2C_ADDRESS = 0x4B
-    ADS_2_I2C_ADDRESS = 0x49
-    ADS_3_I2C_ADDRESS = 0x48
     # gives a range up to +/- 6.144V
     ADS_GAIN = 0.6666666666666666
 
     ads: dict[int, ADS]
     i2c: busio.I2C
 
-    def __init__(self, component: MultipurposeSensorComponent, settings: ScadaSettings):
+    def __init__(self, component: Ads111xBasedComponent, settings: ScadaSettings):
         """
+        Each Ads111xBasedCac is comprised of 1-4 4-channel Ads 1115 i2c devices, each
+        of which has a hex address 
         GridWorks TSnap1 has 12 terminal screwblocks, channels 1-12, that expect analog NTC
         Thermistors with R0= 10 kOhhms. These go to 3 4-channel Ads 1115 i2c devices:
         Ads1: channels 1-4
@@ -212,11 +207,13 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             raise Exception(
                 f"Expected make model in {models}, got {component.cac.MakeModel}"
             )
-        self.channel_list = component.gt.ChannelList
+        c = component.gt
+        self.terminal_block_idx_list = [tc.TerminalBlockIdx for tc in c.ThermistorConfigList]
         self.telemetry_name_list = component.cac.TelemetryNameList
+        self.ads_address = {i: address for i, address in enumerate(component.cac.AdsI2cAddressList)}
 
     def start(self) -> Result[DriverResult[bool], Exception]:
-        if set(self.telemetry_name_list) != {TelemetryName.WaterTempCTimes1000}:
+        if set(self.telemetry_name_list) != {TelemetryName.WaterTempCTimes1000.value}:
             return Err(
                 TSnap1WrongTelemetryList(
                     {TelemetryName.WaterTempCTimes1000}, self.telemetry_name_list
@@ -224,10 +221,12 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             )
 
         # Channel List needs to be a subset of [1, .., 12]
-        readable_channel_list = list(filter(lambda x: 1 <= x <= 12, self.channel_list))
-        if not set(self.channel_list) == set(readable_channel_list):
-            return Err(TSnap1BadChannelList(readable_channel_list, self.channel_list))
-
+        # This is now validated in hardware layout.
+        # See https://github.com/thegridelectric/gridworks-protocol/commit/a22e8c90d7fb6dd26cd11e81bfb939c3d6558118
+        # readable_channel_list = list(filter(lambda x: 1 <= x <= 12, self.terminal_block_idx_list))
+        # if not set(self.terminal_block_idx_list) == set(readable_channel_list):
+        #     return Err(TSnap1BadChannelList(readable_channel_list, self.terminal_block_idx_list))
+        
         try:
             self.i2c = busio.I2C(board.SCL, board.SDA)
         except BaseException as e:
@@ -238,12 +237,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             )
 
         driver_result = DriverResult(True)
-        self.ads = {}
-        for idx, addr in [
-            (0, self.ADS_1_I2C_ADDRESS),
-            (1, self.ADS_2_I2C_ADDRESS),
-            (2, self.ADS_3_I2C_ADDRESS),
-        ]:
+        for idx, addr in self.ads_address.items():
             try:
                 ads1115 = ADS.ADS1115(address=addr, i2c=self.i2c)
                 ads1115.gain = self.ADS_GAIN
@@ -261,9 +255,9 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self, ts: TelemetrySpec
     ) -> Result[DriverResult[float | None], Exception]:
         driver_result = DriverResult[float | None](None)
-        i = int((ts.ChannelIdx - 1) / 4)
+        i = int((ts.AdsTerminalBlockIdx - 1) / 4)
         if i in self.ads:
-            pin = [ADS.P0, ADS.P1, ADS.P2, ADS.P3][(ts.ChannelIdx - 1) % 4]
+            pin = [ADS.P0, ADS.P1, ADS.P2, ADS.P3][(ts.AdsTerminalBlockIdx - 1) % 4]
             try:
                 channel = AnalogIn(self.ads[i], pin)
                 voltage = channel.voltage
@@ -305,11 +299,9 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self, channel_telemetry_list: List[TelemetrySpec]
     ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
         for ts in channel_telemetry_list:
-            if ts.Type not in [
+            if ts.Type.value not in [
                 TelemetryName.WaterTempCTimes1000,
-                TelemetryName.WaterTempFTimes1000,
                 TelemetryName.AirTempCTimes1000,
-                TelemetryName.AirTempFTimes1000,
             ]:
                 return Err(TSnap1ComponentMisconfigured(str(ts)))
         driver_result = DriverResult[Dict[TelemetrySpec, int]]({})

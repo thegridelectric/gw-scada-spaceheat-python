@@ -4,12 +4,9 @@ from typing import List
 from result import Result
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.components.multipurpose_sensor_component import (
-    MultipurposeSensorComponent,
-)
+from gwproto.data_classes.components import Component
 from drivers.driver_result import DriverResult
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import TelemetrySpec
-from enums import MakeModel
 
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
@@ -17,7 +14,7 @@ from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
 
 
 class UnknownMultipurposeSensorDriver(MultipurposeSensorDriver):
-    def __init__(self, component: MultipurposeSensorComponent, settings: ScadaSettings):
+    def __init__(self, component: Component, settings: ScadaSettings):
         super(UnknownMultipurposeSensorDriver, self).__init__(
             component=component, settings=settings
         )

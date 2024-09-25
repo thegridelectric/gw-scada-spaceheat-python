@@ -13,8 +13,8 @@ from actors.config import ScadaSettings
 from actors.message import MultipurposeSensorTelemetryMessage
 from actors.scada_interface import ScadaInterface
 from gwproactor import SyncThreadActor
-from gwproto.data_classes.components.multipurpose_sensor_component import (
-    MultipurposeSensorComponent,
+from gwproto.data_classes.components.ads111x_based_component import (
+    Ads111xBasedComponent
 )
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
@@ -28,8 +28,8 @@ from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
 from enums import MakeModel
-from gwproto.types import TelemetryReportingConfig
-
+from gwproto.data_classes.data_channel import DataChannel
+from gwproto.types import AdsChannelConfig
 
 UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
 UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"
@@ -41,7 +41,7 @@ class MpDriverThreadSetupHelper:
     node: ShNode
     settings: ScadaSettings
     hardware_layout: HardwareLayout
-    component: MultipurposeSensorComponent
+    component: Ads111xBasedComponent
 
     def __init__(
         self,
@@ -49,24 +49,24 @@ class MpDriverThreadSetupHelper:
         settings: ScadaSettings,
         hardware_layout: HardwareLayout,
     ):
-        if not isinstance(node.component, MultipurposeSensorComponent):
+        if not isinstance(node.component, Ads111xBasedComponent):
             raise ValueError(
-                "ERROR. MultipurposeSensorDriverThread requires node with  MultipurposeSensorComponent. "
+                "ERROR. MultipurposeSensorDriverThread requires node with  Ads111xBasedComponent. "
                 f"Received node {node.alias} with componet type {type(node.component)}"
             )
         self.node = node
         self.settings = settings
         self.hardware_layout = hardware_layout
-        self.component = typing.cast(MultipurposeSensorComponent, node.component)
+        self.component = typing.cast(Ads111xBasedComponent, node.component)
 
     def make_config_by_telemetry_spec(
         self,
-    ) -> Dict[TelemetrySpec, TelemetryReportingConfig]:
-        d: Dict[TelemetrySpec, TelemetryReportingConfig] = OrderedDict()
+    ) -> Dict[TelemetrySpec, AdsChannelConfig]:
+        d: Dict[TelemetrySpec, AdsChannelConfig] = OrderedDict()
         for config in self.component.gt.ConfigList:
-            list_idx = self.component.gt.ConfigList.index(config)
-            channel_idx = self.component.gt.ChannelList[list_idx]
-            ts = TelemetrySpec(ChannelIdx=channel_idx, Type=config.TelemetryName)
+            terminal_block_idx = config.TerminalBlockIdx
+            channel = self.hardware_layout.data_channels[config.ChannelName]
+            ts = TelemetrySpec(AdsTerminalBlockIdx=terminal_block_idx, Type=channel.TelemetryName)
             d[ts] = config
         return d
 
@@ -106,12 +106,13 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
 
     FASTEST_POLL_PERIOD_MS = 40
     driver: MultipurposeSensorDriver
-    config_by_spec: Dict[TelemetrySpec, TelemetryReportingConfig]
+    config_by_spec: Dict[TelemetrySpec, AdsChannelConfig]
     telemetry_specs: List[TelemetrySpec]
-    telemetry_configs: List[TelemetryReportingConfig]
-    last_reported_telemetry_value: Dict[TelemetryReportingConfig, Optional[int]]
-    latest_telemetry_value: Dict[TelemetryReportingConfig, Optional[int]]
-    _last_sampled_s: Dict[TelemetryReportingConfig, Optional[int]]
+    my_channels: List[DataChannel]
+    telemetry_configs: List[AdsChannelConfig]
+    last_reported_telemetry_value: Dict[AdsChannelConfig, Optional[int]]
+    latest_telemetry_value: Dict[AdsChannelConfig, Optional[int]]
+    _last_sampled_s: Dict[AdsChannelConfig, Optional[int]]
     _telemetry_destination: str
     _hardware_layout: HardwareLayout
 
@@ -130,21 +131,24 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             daemon=daemon,
         )
         self._hardware_layout = hardware_layout
-        self.component = typing.cast(MultipurposeSensorComponent, node.component)
+        self.component = typing.cast(Ads111xBasedComponent, node.component)
         self.poll_period_ms = max(
             self.FASTEST_POLL_PERIOD_MS,
-            self.component.cac.PollPeriodMs,
+            self.component.cac.MinPollPeriodMs,
         )
         self._telemetry_destination = telemetry_destination
-
+        my_channel_names = [x.ChannelName for x in self.component.gt.ConfigList]
+        all_channels = self._hardware_layout.data_channels
+        self.my_channels = [ch for ch in all_channels.values() if ch.AboutNodeName in my_channel_names]
         setup_helper = MpDriverThreadSetupHelper(node, settings, hardware_layout)
         self.config_by_spec = setup_helper.make_config_by_telemetry_spec()
         self.telemetry_specs = list(self.config_by_spec.keys())
-        self.telemetry_configs = list(self.config_by_spec.values())
+        self.telemetry_configs = self.component.gt.ConfigList
         self.driver = setup_helper.make_driver()
         self.last_reported_telemetry_value = {tt: None for tt in self.telemetry_configs}
         self.latest_telemetry_value = {tc: None for tc in self.telemetry_configs}
         self._last_sampled_s = {tc: None for tc in self.telemetry_configs}
+    
 
     def _report_problems(self, problems: Problems, tag: str):
         self._put_to_async_queue(
@@ -198,15 +202,19 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 )
         else:
             raise read.value
+    
 
     def report_sampled_telemetry_values(
-        self, report_list: List[TelemetryReportingConfig]
+        self, report_list: List[AdsChannelConfig]
     ):
+        about_names = [self._hardware_layout.data_channels[tc.ChannelName].AboutNodeName 
+                        for tc in report_list]
+        
         self._put_to_async_queue(
             MultipurposeSensorTelemetryMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
-                about_node_alias_list=list(map(lambda x: x.AboutNodeName, report_list)),
+                about_node_alias_list=about_names,
                 value_list=list(
                     map(
                         lambda x: self.latest_telemetry_value[x],
@@ -222,33 +230,27 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def value_exceeds_async_threshold(
-        self, telemetry_config: TelemetryReportingConfig
+        self, telemetry_config: AdsChannelConfig
     ) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
         """
         if (
-                telemetry_config.ReportOnChange and
-                telemetry_config.AsyncReportThreshold is not None and
-                telemetry_config.NameplateMaxValue is not None
+                telemetry_config.AsyncCapture and
+                telemetry_config.AsyncCaptureDelta is not None
         ):
             abs_telemetry_delta = abs(
                 self.latest_telemetry_value[telemetry_config] -
                 self.last_reported_telemetry_value[telemetry_config]
             )
-            change_ratio = abs_telemetry_delta / telemetry_config.NameplateMaxValue
-            if change_ratio > telemetry_config.AsyncReportThreshold:
+            if abs_telemetry_delta > telemetry_config.AsyncCaptureDelta:
                 return True
         return False
 
     def should_report_telemetry_reading(
-        self, telemetry_config: TelemetryReportingConfig
+        self, telemetry_config: AdsChannelConfig
     ) -> bool:
-        """The telemetry data reports either synchronously (determined by the TelemetryReportingConfig
-        SamplePeriodS) or asynchronously on change (deterimined by the AsyncReportThreshold and
-        the NameplateMaxValue). The multipurpose component contains a list of TelemetryReportingConfigs.
-        """
         if self.latest_telemetry_value[telemetry_config] is None:
             return False
         if (
@@ -258,7 +260,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             return True
         if (
             time.time() - self._last_sampled_s[telemetry_config]
-            > telemetry_config.SamplePeriodS
+            > telemetry_config.CapturePeriodS
         ):
             return True
         if self.value_exceeds_async_threshold(telemetry_config):
