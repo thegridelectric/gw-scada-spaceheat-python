@@ -18,7 +18,7 @@ from actors.config import ScadaSettings
 from command_line_utils import get_actor_nodes
 from command_line_utils import get_requested_aliases
 from gwproactor.config import MQTTClient
-from gwproto.data_classes.errors import DataClassLoadingError
+from gw.errors import DcError
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from enums import ActorClass
 
@@ -277,7 +277,7 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
     try:
         scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
     except (
-            DataClassLoadingError,
+            DcError,
             KeyError,
             ModuleNotFoundError,
             ValueError,
