@@ -13,7 +13,8 @@ from gwproto.types import ElectricMeterCacGt
 from gwproto.types import ResistiveHeaterCacGt
 from gwproto.types import ResistiveHeaterComponentGt
 from gwproto.types import SpaceheatNodeGt
-from gwproto.types import TelemetryReportingConfig
+from gwproto.types import ChannelConfig
+from gwproto.types import DataChannelGt
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 from data_classes.house_0 import H0N
 from layout_gen import LayoutDb
@@ -107,36 +108,30 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                     ConfigList=[
                         # CurrentRmsMicroAmps
                         # AmpsRms
-                        TelemetryReportingConfig(
-                            AboutNodeName="elt1",
-                            ReportOnChange=True,
-                            SamplePeriodS=300,
-                            NameplateMaxValue=4500,
-                            Exponent=0,
-                            AsyncReportThreshold=0.02,
-                            TelemetryName=TelemetryName.PowerW,
-                            Unit=Unit.W,
-                        ),
-                        TelemetryReportingConfig(
-                            AboutNodeName="elt1",
-                            ReportOnChange=True,
-                            SamplePeriodS=300,
-                            NameplateMaxValue=18750000,
-                            AsyncReportThreshold=0.02,
-                            Exponent=6,
-                            TelemetryName=TelemetryName.CurrentRmsMicroAmps,
-                            Unit=Unit.AmpsRms,
-                        ),
-                        TelemetryReportingConfig(
-                            AboutNodeName="elt2",
-                            ReportOnChange=True,
-                            SamplePeriodS=300,
-                            NameplateMaxValue=4500,
-                            AsyncReportThreshold=0.02,
-                            Exponent=0,
-                            TelemetryName=TelemetryName.PowerW,
-                            Unit=Unit.W,
-                        ),
+                        ChannelConfig(
+                                ChannelName="elt1-pwr",
+                                PollPeriodMs=1000,
+                                CapturePeriodS=300,
+                                AsyncCapture=True,
+                                AsyncCaptoreDelta=200,
+                                Exponent=0
+                            ),
+                        ChannelConfig(
+                                ChannelName="elt1-current",
+                                PollPeriodMs=1000,
+                                CapturePeriodS=300,
+                                AsyncCapture=True,
+                                AsyncCaptoreDelta=1000,
+                                Exponent=0
+                            ), 
+                        ChannelConfig(
+                                ChannelName="elt2-pwr",
+                                PollPeriodMs=1000,
+                                CapturePeriodS=300,
+                                AsyncCapture=True,
+                                AsyncCaptoreDelta=200,
+                                Exponent=0
+                            ),
                     ],
                     EgaugeIoList=[]
                 )
@@ -197,6 +192,37 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 InPowerMetering=True,
                 ComponentId=db.component_id_by_alias(RESISTIVE_HEATER_2_COMPONENT_DISPLAY_NAME),
             ),
+        ]
+    )
+    db.add_data_channels(
+        [DataChannelGt(
+            Name="elt1-pwr",
+            AbotNodeName="elt1",
+            CapturedByNodeName=H0N.primary_power_meter,
+            TelemetryName=TelemetryName.PowerW,
+            InPowerMetering=True,
+            Id=db.make_channel_id("elt1-pwr"),
+            TerminalAssetAlias=db.terminal_asset_alias,
+        ),
+        DataChannelGt(
+            Name="elt1-current",
+            AbotNodeName="elt1",
+            CapturedByNodeName=H0N.primary_power_meter,
+            TelemetryName=TelemetryName.CurrentRmsMicroAmps,
+            InPowerMetering=True,
+            Id=db.make_channel_id("elt1-current"),
+            TerminalAssetAlias=db.terminal_asset_alias,
+        ),
+        DataChannelGt(
+            Name="elt2-pwr",
+            AbotNodeName="elt2",
+            CapturedByNodeName=H0N.primary_power_meter,
+            TelemetryName=TelemetryName.PowerW,
+            InPowerMetering=True,
+            Id=db.make_channel_id("elt2-pwr"),
+            TerminalAssetAlias=db.terminal_asset_alias,
+        )
+        
         ]
     )
     return db

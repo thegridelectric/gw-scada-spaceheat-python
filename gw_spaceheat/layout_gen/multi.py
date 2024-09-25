@@ -10,21 +10,20 @@ from gwproto.enums import Unit
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import ComponentGt
-from gwproto.types import MultipurposeSensorCacGt
+from gwproto.types import Ads111xBasedCacGt
 from gwproto.types import SpaceheatNodeGt
-from gwproto.types import TelemetryReportingConfig
-from gwproto.types.multipurpose_sensor_component_gt import MultipurposeSensorComponentGt
+from gwproto.types import  ChannelConfig
+from gwproto.types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from pydantic import BaseModel
 
 from layout_gen.layout_db import LayoutDb
 
 class SensorNodeGenCfg(BaseModel):
-    NodeAlias: str
+    ChannelName: str
     DisplayName: str
     Role: "Role" = Role.Unknown
-    ReportOnChange: bool = True
-    SamplePeriodS: int = 60
-    ReportingSamplePeriodS: Optional[int] = None
+    AsyncCapture: bool = True
+    CapturePeriodS: int = 60
     Exponent: int = 3
     # Using a forward reference here resolves a pydantic exception generated when this field
     # is actually set, as in tlayouts/gen_oak.py. I don't know why we should need a forward
@@ -35,8 +34,8 @@ class SensorNodeGenCfg(BaseModel):
     #   SensorNodeGenCfg.update_forward_refs().
     Unit: "Unit" = Unit.Celcius
     TelemetryName: "TelemetryName" = TelemetryName.WaterTempCTimes1000
-    AsyncReportThreshold: Optional[float] = None
-    NameplateMaxValue: Optional[int] = None
+    AsyncCaptureDelta: Optional[int] = None
+
 
 class TSnapMultipurposeGenCfg(BaseModel):
     NodeAlias: str
@@ -61,39 +60,36 @@ def add_tsnap_multipurpose(
             [
                 cast(
                     ComponentAttributeClassGt,
-                    MultipurposeSensorCacGt(
+                    Ads111xBasedCacGt(
                         ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
                         MakeModel=make_model,
-                        PollPeriodMs=200,
-                        Exponent=0,
-                        TempUnit=Unit.Celcius,
-                        TelemetryNameList=[TelemetryName.WaterTempCTimes1000],
-                        MaxThermistors=12,
+                        AdsI2cAddressList= ["0x4b", "0x48", "0x49"],
+                        TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
+                        TotalTerminalBlocks=12,
+                        MinPollPeriodMs=200,
                         DisplayName="GridWorks TSnap1.0 as 12-channel analog temp sensor",
                         CommsMethod="i2c",
                     )
                 )
             ],
-            "MultipurposeSensorCacs",
+            "Ads111xBasedCacs",
         )
     db.add_components(
         [
             cast(
                 ComponentGt,
-                MultipurposeSensorComponentGt(
+                Ads111xBasedComponentGt(
                     ComponentId=db.make_component_id(tsnap.component_alias()),
                     ComponentAttributeClassId=db.cac_id_by_make_model(make_model),
                     ChannelList=list(tsnap.ChannelList),
                     ConfigList=[
-                        TelemetryReportingConfig(
-                            AboutNodeName=sensor_cfg.NodeAlias,
-                            ReportOnChange=sensor_cfg.ReportOnChange,
-                            SamplePeriodS=sensor_cfg.SamplePeriodS,
+                        ChannelConfig(
+                            ChannelName=sensor_cfg.ChannelName,
+                            AsyncCapture=sensor_cfg.AsyncCapture,
+                            CapturePeriodS=sensor_cfg.CapturePeriodS,
                             Exponent=sensor_cfg.Exponent,
                             Unit=sensor_cfg.Unit,
-                            TelemetryName=sensor_cfg.TelemetryName,
-                            AsyncReportThreshold=sensor_cfg.AsyncReportThreshold,
-                            NameplateMaxValue=sensor_cfg.NameplateMaxValue,
+                            AsyncCaptureDelta=sensor_cfg.AsyncCaptureDelta,
                         )
                         for sensor_cfg in tsnap.SensorCfgs
                     ],
@@ -102,7 +98,7 @@ def add_tsnap_multipurpose(
                 )
             )
         ],
-        "MultipurposeSensorComponents",
+        "Ads111xBasedComponents",
     )
     db.add_nodes(
         [
@@ -116,13 +112,13 @@ def add_tsnap_multipurpose(
             )
         ] + [
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(sensor_cfg.NodeAlias),
-                Alias=sensor_cfg.NodeAlias,
+                ShNodeId=db.make_node_id(sensor_cfg.ChannelName),
+                Alias=sensor_cfg.ChannelName, # 
                 ActorClass=ActorClass.NoActor,
                 Role=sensor_cfg.Role,
                 DisplayName=sensor_cfg.DisplayName,
-                ReportingSamplePeriodS=sensor_cfg.ReportingSamplePeriodS,
             )
             for sensor_cfg in tsnap.SensorCfgs
         ]
     )
+    db.add_data_channels()

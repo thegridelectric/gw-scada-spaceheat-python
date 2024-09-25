@@ -14,13 +14,15 @@ from gwproto.enums import ActorClass
 from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
 from gwproto.enums import Role
-from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
+from gwproto.enums import TelemetryName
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import ComponentGt
 from gwproto.types import ElectricMeterCacGt
 from gwproto.types import SpaceheatNodeGt
-from gwproto.types import TelemetryReportingConfig
+from gwproto.types import DataChannelGt
+from gwproto.types import ElectricMeterChannelConfig
+from gwproto.types import EgaugeRegisterConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 
 from data_classes.house_0 import H0N
@@ -28,9 +30,10 @@ from data_classes.house_0 import H0N
 @dataclass
 class StubConfig:
     add_stub_scada: bool = True
-    atn_gnode_alias: str = "dummy.atn.gnode"
-    scada_gnode_alias: str = "dummy.scada.gnode"
-    scada_display_name: str = "Dummy Scada"
+    atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
+    scada_gnode_alias: str = "d1.isone.ct.newhaven.orange1.scada"
+    ta_gnode_alias: str = "d1.isone.ct.newhaven.orange1.ta"
+    scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
     power_meter_cac_alias: str = "Dummy Power Meter Cac"
     power_meter_component_alias: str = "Dummy Power Meter Component"
@@ -41,12 +44,14 @@ class LayoutIDMap:
     cacs_by_make_model: dict[MakeModel, str]
     components_by_alias: dict[str, str]
     nodes_by_alias: dict[str, str]
+    channels_by_name: dict[str, str]
     gnodes: dict[str, dict]
 
     def __init__(self, d: Optional[dict] = None):
         self.cacs_by_make_model = {}
         self.components_by_alias = {}
         self.nodes_by_alias = {}
+        self.channels_by_name = {}
         self.gnodes = {}
         if not d:
             return
@@ -64,6 +69,18 @@ class LayoutIDMap:
                                 raise Exception(
                                     f"ERROR in LayoutIDMap() for {k}:{node}. Error: {type(e)}, <{e}>"
                                 )
+                elif k == "DataChannels":
+                        for channel in v:
+                            try:
+                                self.add_channel(
+                                    channel["Id"],
+                                    channel["Name"]
+                                )
+                            except Exception as e:
+                                raise Exception(
+                                    f"ERROR in LayoutIDMap() for {k}:{channel}. Error: {type(e)}, <{e}>"
+                                )
+
                 elif k.lower().endswith("cacs"):
                         for cac in v:
                             try:
@@ -98,6 +115,9 @@ class LayoutIDMap:
 
     def add_node(self, id_: str, alias: str):
         self.nodes_by_alias[alias] = id_
+    
+    def add_channel(self, id_: str, name: str):
+        self.channels_by_name[name] = id_
 
     @classmethod
     def from_path(cls, path: Path) -> "LayoutIDMap":
@@ -129,6 +149,7 @@ class LayoutDb:
     cacs_by_id: dict[str, ComponentAttributeClassGt]
     components_by_id: dict[str, ComponentGt]
     nodes_by_id: dict[str, SpaceheatNodeGt]
+    channels_by_id: dict[str, DataChannelGt]
     loaded: LayoutIDMap
     maps: LayoutIDMap
     misc: dict
@@ -147,6 +168,7 @@ class LayoutDb:
         self.components_by_id = {}
         self.component_lists = {}
         self.nodes_by_id = {}
+        self.channels_by_id = {}
         self.misc = {}
         self.loaded = existing_layout or LayoutIDMap()
         self.maps = LayoutIDMap()
@@ -158,6 +180,7 @@ class LayoutDb:
             self.add_nodes(nodes)
         if add_stubs:
             self.add_stubs(stub_config)
+        self.terminal_asset_alias = self.misc["MyTerminalAssetGNode"]["Alias"]
 
     def cac_id_by_make_model(self, make_model: MakeModel) -> Optional[str]:
         return self.maps.cacs_by_make_model.get(make_model, None)
@@ -167,6 +190,9 @@ class LayoutDb:
 
     def node_id_by_alias(self, node_alias: str) -> Optional[str]:
         return self.maps.nodes_by_alias.get(node_alias, None)
+    
+    def channel_id_by_name(self, name: str) -> Optional[str]:
+        return self.maps.channels_by_name.get(name, None)
 
     def make_cac_id(self, make_model: MakeModel) -> str:
         if type(make_model) is str:
@@ -184,6 +210,9 @@ class LayoutDb:
 
     def make_node_id(self, node_alias: str) -> str:
         return self.loaded.nodes_by_alias.get(node_alias, str(uuid.uuid4()))
+    
+    def make_channel_id(self, name: str) -> str:
+        return self.loaded.channels_by_name.get(name, str(uuid.uuid4()))
 
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
         for cac in cacs:
@@ -239,47 +268,64 @@ class LayoutDb:
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(node)
+    
+    def add_data_channels(self, dcs: list[DataChannelGt]):
+        for dc in dcs:
+            if dc.Id in self.channels_by_id:
+                raise ValueError(
+                    f"ERROR channel id {dc.Id} already present."
+                )
+            if dc.Name in self.maps.channels_by_name:
+                raise ValueError(
+                    f"ERROR Channel name {dc.Name} already present"
+                )
+            self.channels_by_id[dc.Id] = dc
+            self.maps.add_channel(dc.Id, dc.Name)
+            layout_list_name = "DataChannels"
+            if layout_list_name not in self.lists:
+                self.lists[layout_list_name] = []
+            self.lists[layout_list_name].append(dc)
 
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        if MakeModel.EGAUGE__4030 not in self.maps.cacs_by_make_model:
+        if MakeModel.GRIDWORKS__SIMPM1 not in self.maps.cacs_by_make_model:
             self.add_cacs(
                 [
                     typing.cast(
                         ComponentAttributeClassGt,
                         ElectricMeterCacGt(
-                            ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.EGAUGE__4030],
-                            MakeModel=MakeModel.EGAUGE__4030,
+                            ComponentAttributeClassId=CACS_BY_MAKE_MODEL[MakeModel.GRIDWORKS__SIMPM1],
+                            MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                             DisplayName=cfg.power_meter_cac_alias,
                             TelemetryNameList=[TelemetryName.PowerW],
                             Interface=LocalCommInterface.ETHERNET,
-                            PollPeriodMs=1000,
+                            MinPollPeriodMs=1000,
                         )
                     ),
                 ],
                 "ElectricMeterCacs"
             )
+        
         self.add_components(
             [
                 typing.cast(
                     ComponentGt,
                     ElectricMeterComponentGt(
                         ComponentId=self.make_component_id(cfg.power_meter_component_alias),
-                        ComponentAttributeClassId=self.cac_id_by_make_model(MakeModel.EGAUGE__4030),
+                        ComponentAttributeClassId=self.cac_id_by_make_model(MakeModel.GRIDWORKS__SIMPM1),
                         DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
-                            TelemetryReportingConfig(
-                                AboutNodeName="elt1",
-                                ReportOnChange=True,
-                                SamplePeriodS=300,
-                                NameplateMaxValue=4500,
-                                Exponent=1,
-                                TelemetryName=TelemetryName.PowerW,
+                            ElectricMeterChannelConfig(
+                                ChannelName="elt1-pwr",
+                                PollPeriodMs=1000,
+                                CapturePeriodS=300,
+                                AsyncCapture=True,
+                                AsyncCaptoreDelta=200,
+                                Exponent=0,
                                 Unit=Unit.W,
                             ),
                         ],
-                        EgaugeIoList=[]
                     )
                 )
             ],
@@ -304,7 +350,23 @@ class LayoutDb:
                     ActorClass=ActorClass.NoActor,
                     DisplayName=cfg.boost_element_display_name,
                     InPowerMetering=True,
+                    NameplatePowerW=4500,
                 ),
+            ]
+        )
+        
+        self.add_data_channels(
+            [
+                DataChannelGt(
+                    Name=f"{boost_element_alias}-pwr",
+                    Id=self.make_channel_id(f"{boost_element_alias}-pwr"),
+                    DisplayName=' '.join(word.capitalize() for word in boost_element_alias.split('-')) + " Pwr",
+                    AboutNodeName=boost_element_alias,
+                    CapturedByNodeName=power_meter_alias,
+                    TelemetryName=TelemetryName.PowerW,
+                    InPowerMetering=True,
+                    TerminalAssetAlias= "hog" # self.terminal_asset_alias
+                )
             ]
         )
 
@@ -330,7 +392,7 @@ class LayoutDb:
             }
             self.misc["MyTerminalAssetGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
-                "Alias": "dummy.ta",
+                "Alias": cfg.ta_gnode_alias,
                 "DisplayName": "Dummy TerminalAsset",
                 "GNodeStatusValue": "Active",
                 "PrimaryGNodeRoleAlias": "TerminalAsset"

@@ -101,6 +101,7 @@ def add_tank(
                     ComponentAttributeClassId=db.cac_id_by_make_model(hubitat_make_model),
                     DisplayName=hubitat_alias,
                     Hubitat=hubitat,
+                    ConfigList=[],
                 ),
             ]
     )
@@ -111,12 +112,14 @@ def add_tank(
                 ComponentAttributeClassId=db.cac_id_by_make_model(fibaro_make_model),
                 DisplayName=fibaro_a.alias(),
                 ZWaveDSK=fibaro_a.ZWaveDSK,
+                ConfigList=[],
             ),
             FibaroSmartImplantComponentGt(
                 ComponentId=db.make_component_id(fibaro_b.alias()),
                 ComponentAttributeClassId=db.cac_id_by_make_model(fibaro_make_model),
                 DisplayName=fibaro_b.alias(),
                 ZWaveDSK=fibaro_b.ZWaveDSK,
+                ConfigList=[],
             ),
         ]
     )
@@ -126,6 +129,7 @@ def add_tank(
                 ComponentId=db.make_component_id(tank.component_alias()),
                 ComponentAttributeClassId=db.cac_id_by_make_model(tank_module_make_model),
                 DisplayName=tank.component_alias(),
+                ConfigList=[],
                 Tank=HubitatTankSettingsGt(
                     hubitat_component_id=db.component_id_by_alias(hubitat_alias),
                     default_poll_period_seconds=tank.DefaultPollPeriodSeconds,

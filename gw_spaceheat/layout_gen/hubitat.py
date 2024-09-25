@@ -35,6 +35,7 @@ def add_hubitat(
                     DisplayName=hubitat_component_alias,
                     Hubitat=hubitat,
                     HwUid=hubitat.MacAddress[-8:].replace(":", "").lower(),
+                    ConfigList=[],
                 )
             ]
     )
