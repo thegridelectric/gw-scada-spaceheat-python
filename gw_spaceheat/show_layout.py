@@ -256,11 +256,11 @@ def print_layout_table(layout: HardwareLayout):
                 make_model_text = none_text
         node = layout.node(node.alias)
         if node.role:
-            role_text = Text(str(node.role.value))
+            role_text = Text(str(node.role))
         else:
             role_text = none_text
         if node.actor_class and node.actor_class != ActorClass.NoActor:
-            actor_text = Text(str(node.actor_class.value))
+            actor_text = Text(str(node.actor_class))
         else:
             actor_text = none_text
         table.add_row(node.alias, component_txt, cac_txt, make_model_text, role_text, actor_text)
@@ -315,7 +315,7 @@ def show_layout(
     )
     return scada
 
-def main(argv: Optional[Sequence[str]] = None):
+def main(argv: Optional[Sequence[str]] = None) -> list[LoadError]:
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     print(f"Using .env file {dotenv_file}, exists: {Path(dotenv_file).exists()}")
@@ -351,6 +351,7 @@ def main(argv: Optional[Sequence[str]] = None):
             if args.verbose:
                 print(f"  {i+1:2d}:  element:\n{error.src_dict}\n")
         print(f"\nFound {len(errors)} ERRORS in layout.")
+    return errors
 
 if __name__ == "__main__":
     main()
