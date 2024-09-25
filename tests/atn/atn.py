@@ -1055,7 +1055,7 @@ class Atn(ActorInterface, Proactor):
 
         ## PRINT THE STUFF THAT IS NOT IN THE TABLES
         snapshot = self.data.latest_snapshot
-        s = "Odds and Ends:\n"
+        odds_end_str = "Odds and Ends:\n"
         for j in range(len(snapshot.Snapshot.AboutNodeAliasList)):
             if j not in ignore_alias_list:
                 telemetry_name = snapshot.Snapshot.TelemetryNameList[j]
@@ -1075,13 +1075,13 @@ class Atn(ActorInterface, Proactor):
                         f"{snapshot.Snapshot.ValueList[j]} "
                         f"{snapshot.Snapshot.TelemetryNameList[j].value}"
                     )
-                s += f"  {snapshot.Snapshot.AboutNodeAliasList[j]}: {extra}\n"
-        # s += f"snapshot is None:{snapshot is None}\n"
-        # s += "json.dumps(snapshot.asdict()):\n"
-        # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
-        # s += "\n"
-        self._logger.warning(s)
-    # rich.print(snapshot)
+                odds_end_str += f"  {snapshot.Snapshot.AboutNodeAliasList[j]}: {extra}\n"
+        # odds_end_str += f"snapshot is None:{snapshot is None}\n"
+        # odds_end_str += "json.dumps(snapshot.asdict()):\n"
+        # odds_end_str += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
+        # odds_end_str += "\n"
+        self._logger.warning(odds_end_str)
+        # rich.print(snapshot)
         
         est = pendulum.from_timestamp(snap.ReportTimeUnixMs / 1000).in_tz('America/New_York')
         print(f"{est.format('YYYY-MM-DD HH:mm:ss:SSS')}:")
@@ -1267,7 +1267,7 @@ class Atn(ActorInterface, Proactor):
                 if buff_temp_f[depth] < 100:
                     s = f" {round(buff_temp_f[depth],1)}\u00b0F"
                 else:
-                    snap = f"{round(buff_temp_f[depth],1)}\u00b0F"
+                    s = f"{round(buff_temp_f[depth],1)}\u00b0F"
             else:
                 s = "  ---  "
             buff_temp_f_str[depth] = s
