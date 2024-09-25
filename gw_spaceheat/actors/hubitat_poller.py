@@ -169,7 +169,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
             raise ValueError(
                 f"ERROR. Component <{display_name}> has type {type(component)}. "
                 f"Expected HubitatPollerComponent.\n"
-                f"  Node: {self.name}\n"
+                f"  Node: {name}\n"
                 f"  Component id: {component.gt.ComponentId}"
             )
 

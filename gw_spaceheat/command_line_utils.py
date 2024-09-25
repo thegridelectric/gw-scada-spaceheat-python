@@ -169,6 +169,7 @@ def get_scada(
         requested_aliases = get_requested_aliases(args)
         layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
         scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, actors_package_name)
+        print(f"actor_nodes is {actor_nodes}")
         scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
