@@ -289,8 +289,22 @@
   ],
   "OtherComponents": [
     {
+      "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
+      "ComponentId": "ab7bc99c-08ed-489e-b760-e36b57653e7e",
+      "DisplayName": "Hubitat 92:22:AB",
+      "Hubitat": {
+        "AccessToken": "f5a8d2ba-c155-4484-8b43-70599bc9037c",
+        "Host": "hubitat-orange.local",
+        "MacAddress": "34:E1:D1:92:22:AB",
+        "MakerApiId": 1,
+        "WebListenEnabled": true
+      },
+      "TypeName": "hubitat.component.gt",
+      "Version": "000"
+    },
+    {
       "ComponentId": "2c302eed-2f86-4ed6-8019-df31c22e1704",
-      "DisplayName": "Downstairs T6 Thermostat",
+      "DisplayName": "Downstairs Thermostat",
       "ComponentAttributeClassId": "03533a1f-3cb9-4a1f-8d57-690c0ad0475b",
       "ConfigList": [
         {
@@ -325,7 +339,74 @@
         "Version": "000"
       }
       ],
-      "TypeName": "component.gt",
+      "Poller": {
+        "Attributes": [
+          {
+            "AttributeName": "temperature",
+            "Enabled": true,
+            "InterpretAsNumber": true,
+            "NodeName": "zone1-down",
+            "ReportMissing": true,
+            "ReportParseError": true,
+            "TelemetryName": "AirTempFTimes1000",
+            "WebListenEnabled": true,
+            "WebPollEnabled": true,
+            "AsyncCapture": false,
+            "CapturePeriodS": 60,
+            "ChannelName": "zone1-down-temp",
+            "Exponent": 3,
+            "PollPeriodMs": 1000,
+            "TypeName": "channel.config",
+            "Unit": "Fahrenheit",
+            "Version": "000"
+          },
+          {
+            "AttributeName": "heatingSetpoint",
+            "Enabled": true,
+            "InterpretAsNumber": true,
+            "NodeName": "zone1-down-stat",
+            "ReportMissing": true,
+            "ReportParseError": true,
+            "TelemetryName": "AirTempFTimes1000",
+            "WebListenEnabled": true,
+            "WebPollEnabled": true,
+            "AsyncCapture": false,
+            "CapturePeriodS": 60,
+            "ChannelName": "zone1-down-set",
+            "Exponent": 3,
+            "PollPeriodMs": 1000,
+            "TypeName": "channel.config",
+            "Unit": "Fahrenheit",
+            "Version": "000"
+          },
+          {
+            "AttributeName": "thermostatOperatingState",
+            "Enabled": true,
+            "InterpretAsNumber": true,
+            "NodeName": "zone1-down-stat",
+            "ReportMissing": true,
+            "ReportParseError": true,
+            "TelemetryName": "ThermostatState",
+            "WebListenEnabled": true,
+            "WebPollEnabled": true,
+            "AsyncCapture": true,
+            "AsyncCaptureDelta": 1,
+            "CapturePeriodS": 60,
+            "ChannelName": "zone1-down-state",
+            "Exponent": 3,
+            "PollPeriodMs": 1000,
+            "TypeName": "channel.config",
+            "Unit": "ThermostatStateEnum",
+            "Version": "000"
+          }
+        ],
+      "DeviceId": 164,
+      "Enabled": true,
+      "HubitatComponentId": "ab7bc99c-08ed-489e-b760-e36b57653e7e",
+      "PollPeriodSeconds": 60.0,
+      "WebListenEnabled": true
+      },
+      "TypeName": "hubitat.poller.component.gt",
       "Version": "001"
     }
   ],
@@ -573,6 +654,16 @@
       "ShNodeId": "8c9c155c-5b9a-448c-8df3-2edd9f4ebdb7",
       "TypeName": "spaceheat.node.gt",
       "Version": "120"
+    },
+    {
+      "ActorClass": "Hubitat",
+      "Alias": "hubitat",
+      "ComponentId": "ab7bc99c-08ed-489e-b760-e36b57653e7e",
+      "DisplayName": "Hubitat 81:15:21",
+      "Role": "Unknown",
+      "ShNodeId": "13d9b3cb-2b13-444c-9e03-f31203772b64",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "100"
     }
   ],
   "DataChannels": [
