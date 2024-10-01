@@ -1,6 +1,7 @@
 from typing import Dict
 from typing import List
 
+from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
@@ -9,7 +10,6 @@ from gwproto.data_classes.components.multipurpose_sensor_component import (
 )
 from drivers.driver_result import DriverResult
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import TelemetrySpec
-from enums import MakeModel
 
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
@@ -27,4 +27,4 @@ class UnknownMultipurposeSensorDriver(MultipurposeSensorDriver):
 
     def read_telemetry_values(self, channel_telemetry_list: List[TelemetrySpec]) -> Result[
             DriverResult[Dict[TelemetrySpec, int]], Exception]:
-        pass
+        return Ok(DriverResult[Dict[TelemetrySpec, int]]({}))
