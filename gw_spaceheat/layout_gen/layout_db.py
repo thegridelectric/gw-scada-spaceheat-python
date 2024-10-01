@@ -22,7 +22,6 @@ from gwproto.types import ElectricMeterCacGt
 from gwproto.types import SpaceheatNodeGt
 from gwproto.types import DataChannelGt
 from gwproto.types import ElectricMeterChannelConfig
-from gwproto.types import EgaugeRegisterConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 
 from data_classes.house_0 import H0N
@@ -31,8 +30,6 @@ from data_classes.house_0 import H0N
 class StubConfig:
     add_stub_scada: bool = True
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
-    scada_gnode_alias: str = "d1.isone.ct.newhaven.orange1.scada"
-    ta_gnode_alias: str = "d1.isone.ct.newhaven.orange1.ta"
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
     power_meter_cac_alias: str = "Dummy Power Meter Cac"
@@ -41,14 +38,14 @@ class StubConfig:
     boost_element_display_name: str = "Dummy Boost Element"
 
 class LayoutIDMap:
-    cacs_by_make_model: dict[MakeModel, str]
+    cacs_by_alias: dict[str, str]
     components_by_alias: dict[str, str]
     nodes_by_alias: dict[str, str]
     channels_by_name: dict[str, str]
     gnodes: dict[str, dict]
 
     def __init__(self, d: Optional[dict] = None):
-        self.cacs_by_make_model = {}
+        self.cacs_by_alias = {}
         self.components_by_alias = {}
         self.nodes_by_alias = {}
         self.channels_by_name = {}
@@ -84,9 +81,10 @@ class LayoutIDMap:
                 elif k.lower().endswith("cacs"):
                         for cac in v:
                             try:
-                                self.add_cac_by_make_model(
+                                self.add_cacs_by_alias(
                                     cac["ComponentAttributeClassId"],
                                     cac["MakeModel"],
+                                    cac["DisplayName"],
                                 )
                             except Exception as e:
                                 raise Exception(
@@ -105,10 +103,13 @@ class LayoutIDMap:
                                     f"ERROR in LayoutIDMap() for {k}:{component}. Error: {type(e)}, <{e}>"
                                 )
 
-    def add_cac_by_make_model(self, id_: str, make_model_: str):
-        if CACS_BY_MAKE_MODEL[make_model_] != id_:
-            raise DcError(f"MakeModel {make_model_} does not go with {id_}")
-        self.cacs_by_make_model[make_model_] = id_
+    def add_cacs_by_alias(self, id_: str, make_model_: str, display_name_: str):
+        if make_model_ == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL.value:
+            self.cacs_by_alias[display_name_] = id_
+        else:
+            if CACS_BY_MAKE_MODEL[make_model_] != id_:
+                raise DcError(f"MakeModel {make_model_} does not go with {id_}")
+            self.cacs_by_alias[make_model_] = id_
 
     def add_component(self, id_: str, alias: str):
         self.components_by_alias[alias] = id_
@@ -182,8 +183,8 @@ class LayoutDb:
             self.add_stubs(stub_config)
         self.terminal_asset_alias = self.misc["MyTerminalAssetGNode"]["Alias"]
 
-    def cac_id_by_make_model(self, make_model: MakeModel) -> Optional[str]:
-        return self.maps.cacs_by_make_model.get(make_model, None)
+    def cac_id_by_alias(self, make_model: str) -> Optional[str]:
+        return self.maps.cacs_by_alias.get(make_model, None)
 
     def component_id_by_alias(self, component_alias: str) -> Optional[str]:
         return self.maps.components_by_alias.get(component_alias, None)
@@ -195,6 +196,8 @@ class LayoutDb:
         return self.maps.channels_by_name.get(name, None)
 
     def make_cac_id(self, make_model: MakeModel) -> str:
+        if make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
+            return str(uuid.uuid4())
         if type(make_model) is str:
             if make_model in CACS_BY_MAKE_MODEL:
                 return CACS_BY_MAKE_MODEL[make_model]
@@ -223,10 +226,12 @@ class LayoutDb:
                 )
             self.cacs_by_id[cac.ComponentAttributeClassId] = cac
             if cac.MakeModel in CACS_BY_MAKE_MODEL:
-                self.maps.add_cac_by_make_model(
+                self.maps.add_cacs_by_alias(
                     cac.ComponentAttributeClassId,
-                    cac.MakeModel
+                    cac.MakeModel,
+                    cac.DisplayName,
                 )
+
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(cac)
@@ -289,7 +294,7 @@ class LayoutDb:
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        if MakeModel.GRIDWORKS__SIMPM1 not in self.maps.cacs_by_make_model:
+        if MakeModel.GRIDWORKS__SIMPM1 not in self.maps.cacs_by_alias:
             self.add_cacs(
                 [
                     typing.cast(
@@ -313,7 +318,7 @@ class LayoutDb:
                     ComponentGt,
                     ElectricMeterComponentGt(
                         ComponentId=self.make_component_id(cfg.power_meter_component_alias),
-                        ComponentAttributeClassId=self.cac_id_by_make_model(MakeModel.GRIDWORKS__SIMPM1),
+                        ComponentAttributeClassId=self.cac_id_by_alias(MakeModel.GRIDWORKS__SIMPM1),
                         DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
                             ElectricMeterChannelConfig(
@@ -385,15 +390,15 @@ class LayoutDb:
             }
             self.misc["MyScadaGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
-                "Alias": cfg.scada_gnode_alias,
+                "Alias": f"{cfg.atn_gnode_alias}.scada",
                 "DisplayName": "Scada GNode",
                 "GNodeStatusValue": "Active",
                 "PrimaryGNodeRoleAlias": "Scada"
             }
             self.misc["MyTerminalAssetGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
-                "Alias": cfg.ta_gnode_alias,
-                "DisplayName": "Dummy TerminalAsset",
+                "Alias": f"{cfg.atn_gnode_alias}.ta",
+                "DisplayName": "TerminalAsset GNode",
                 "GNodeStatusValue": "Active",
                 "PrimaryGNodeRoleAlias": "TerminalAsset"
               }

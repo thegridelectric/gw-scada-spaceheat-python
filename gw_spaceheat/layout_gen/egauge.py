@@ -94,7 +94,7 @@ def add_egauge(
     egauge: PowerMeterGenConfig,
 ) -> None:
     make_model = MakeModel.EGAUGE__4030
-    if not db.cac_id_by_make_model(make_model):
+    if not db.cac_id_by_alias(make_model):
         db.add_cacs(
             [
                 cast(
@@ -117,7 +117,7 @@ def add_egauge(
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(egauge.ComponentDisplayName),
-                    ComponentAttributeClassId=db.cac_id_by_make_model(make_model),
+                    ComponentAttributeClassId=db.cac_id_by_alias(make_model),
                     DisplayName=egauge.ComponentDisplayName,
                     ConfigList=egauge.channel_configs(),
                     HwUid=egauge.HwUid,

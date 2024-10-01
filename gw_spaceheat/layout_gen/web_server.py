@@ -10,7 +10,7 @@ def add_web_server(
     web_server: WebServerGt
 ) -> WebServerComponentGt:
     cac_type = "web.server.cac.gt"
-    if not db.cac_id_by_make_model(cac_type):
+    if not db.cac_id_by_alias(cac_type):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
@@ -26,7 +26,7 @@ def add_web_server(
             [
                 WebServerComponentGt(
                     ComponentId=db.make_component_id(component_alias),
-                    ComponentAttributeClassId=db.cac_id_by_make_model(cac_type),
+                    ComponentAttributeClassId=db.cac_id_by_alias(cac_type),
                     DisplayName=component_alias,
                     WebServer=web_server,
                 ),

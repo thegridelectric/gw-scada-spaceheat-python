@@ -1,36 +1,59 @@
 {
-  "ElectricMeterCacs": [
+  "DataChannels": [
     {
-      "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-      "MakeModel": "GRIDWORKS__SIMPM1",
-      "DisplayName": "Gridworks Pm1 Simulated Power Meter",
-      "MinPollPeriodMs": 1000,
-      "TelemetryNameList": ["PowerW"],
-      "TypeName": "electric.meter.cac.gt",
+      "AboutNodeName": "hp-odu",
+      "CapturedByNodeName": "power-meter",
+      "DisplayName": "HP ODU PWR",
+      "Id": "4cb6a9e6-24c4-4b72-9a7d-af5b884c83bd",
+      "InPowerMetering": true,
+      "Name": "hp-odu-pwr",
+      "TelemetryName": "PowerW",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
       "Version": "001"
     },
     {
-      "ComponentAttributeClassId": "739a6e32-bb9c-43bc-a28d-fb61be665522",
-      "DisplayName": "EGauge 4030",
-      "MakeModel": "EGAUGE__4030",
+      "AboutNodeName": "hp-idu",
+      "CapturedByNodeName": "power-meter",
+      "DisplayName": "HP IDU PWR",
+      "Id": "5ac27781-2976-49c4-8890-0d0fdad219f7",
+      "InPowerMetering": true,
+      "Name": "hp-idu-pwr",
+      "TelemetryName": "PowerW",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "store-pump",
+      "CapturedByNodeName": "power-meter",
+      "DisplayName": "STORE PUMP PWR",
+      "Id": "7876ebb2-03d2-4c7f-9046-011b7c5d4deb",
+      "InPowerMetering": false,
+      "Name": "store-pump-pwr",
+      "TelemetryName": "PowerW",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    }
+  ],
+  "ElectricMeterCacs": [
+    {
+      "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
+      "DisplayName": "Gridworks Pm1 Simulated Power Meter",
+      "MakeModel": "GRIDWORKS__SIMPM1",
       "MinPollPeriodMs": 1000,
-      "DefaultBaud": 9600,
       "TelemetryNameList": [
-          "PowerW",
-          "MilliWattHours",
-          "VoltageRmsMilliVolts",
-          "CurrentRmsMicroAmps",
-          "FrequencyMicroHz"
+        "PowerW"
       ],
       "TypeName": "electric.meter.cac.gt",
       "Version": "001"
-  }
+    }
   ],
   "ElectricMeterComponents": [
     {
-      "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
       "ComponentAttributeClassId": "28897ac1-ea42-4633-96d3-196f63f5a951",
-      "DisplayName": "Power Meter for Simulated Test system",
+      "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
       "ConfigList": [
         {
           "AsyncCapture": true,
@@ -42,816 +65,125 @@
           "TypeName": "electric.meter.channel.config",
           "Unit": "W",
           "Version": "000"
-      },
-      {
-        "AsyncCapture": true,
-        "AsyncCaptureDelta": 200,
-        "CapturePeriodS": 300,
-        "ChannelName": "hp-idu-pwr",
-        "Exponent": 0,
-        "PollPeriodMs": 1000,
-        "TypeName": "electric.meter.channel.config",
-        "Unit": "W",
-        "Version": "000"
-      },
-      {
-        "AsyncCapture": true,
-        "AsyncCaptureDelta": 5,
-        "CapturePeriodS": 300,
-        "ChannelName": "store-pump-pwr",
-        "Exponent": 0,
-        "PollPeriodMs": 1000,
-        "TypeName": "electric.meter.channel.config",
-        "Unit": "W",
-        "Version": "000"
-      },
-      {
-        "AsyncCapture": true,
-        "AsyncCaptureDelta": 200,
-        "CapturePeriodS": 300,
-        "ChannelName": "elt1-pwr",
-        "Exponent": 0,
-        "PollPeriodMs": 1000,
-        "TypeName": "electric.meter.channel.config",
-        "Unit": "W",
-        "Version": "000"
-      }
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 200,
+          "CapturePeriodS": 300,
+          "ChannelName": "hp-idu-pwr",
+          "Exponent": 0,
+          "PollPeriodMs": 1000,
+          "TypeName": "electric.meter.channel.config",
+          "Unit": "W",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 5,
+          "CapturePeriodS": 300,
+          "ChannelName": "store-pump-pwr",
+          "Exponent": 0,
+          "PollPeriodMs": 1000,
+          "TypeName": "electric.meter.channel.config",
+          "Unit": "W",
+          "Version": "000"
+        }
       ],
-      "HwUid": "1001ab",
-      "ModbusHost": "eGauge6069.local",
-      "ModbusPort": 502,
+      "DisplayName": "Power Meter for Simulated Test system",
       "TypeName": "electric.meter.component.gt",
       "Version": "001"
     }
   ],
-  "Ads111xBasedCacs": [
-    {
-      "ComponentAttributeClassId": "432073b8-4d2b-4e36-9229-73893f33f846",
-      "MinPollPeriodMs": 200,
-      "MakeModel": "GRIDWORKS__TSNAP1",
-      "AdsI2cAddressList": ["0x4b", "0x48", "0x49"],
-      "TotalTerminalBlocks": 12,
-      "TelemetryNameList": ["WaterTempCTimes1000", "AirTempCTimes1000"],
-      "DisplayName": "Gridworks 12-channel MultiTemp Ads Sensor",
-      "TypeName": "ads111x.based.cac.gt",
-      "Version": "000"
-  }
-  ],
-  "Ads111xBasedComponents": [
-    {
-      "ComponentAttributeClassId": "432073b8-4d2b-4e36-9229-73893f33f846",
-      "ComponentId": "dfbb257e-a851-437b-b9af-55f948f7d4af",
-      "DisplayName": "GridWorks 12-Channel Ads-1115 based I2c Temp Sensor",
-      "OpenVoltageByAds": [4.95, 4.95, 4.95],
-      "ConfigList": [
-          {
-              "ChannelName": "dist-swt",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 1,
-              "ThermistorMakeModel": "TEWA__TT0P10KC3T1051500",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 250,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          },
-          {
-              "ChannelName": "dist-rwt",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 2,
-              "ThermistorMakeModel": "TEWA__TT0P10KC3T1051500",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 250,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          },
-          {
-              "ChannelName": "hp-lwt",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 3,
-              "ThermistorMakeModel": "TEWA__TT0P10KC3T1051500",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 250,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          },
-          {
-              "ChannelName": "hp-ewt",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 4,
-              "ThermistorMakeModel": "TEWA__TT0P10KC3T1051500",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 250,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          },
-          {
-              "ChannelName": "store-hot-pipe",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 5,
-              "ThermistorMakeModel": "TEWA__TT0P10KC3T1051500",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 250,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          },
-          {
-              "ChannelName": "store-cold-pipe",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 6,
-              "ThermistorMakeModel": "TEWA__TT0P10KC3T1051500",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 250,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          },
-          {
-              "ChannelName": "buffer-hot-pipe",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 7,
-              "ThermistorMakeModel": "TEWA__TT0P10KC3T1051500",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 250,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          },
-          {
-              "ChannelName": "buffer-cold-pipe",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 8,
-              "ThermistorMakeModel": "TEWA__TT0P10KC3T1051500",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 250,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          },
-          {
-              "ChannelName": "oat",
-              "DataProcessingDescription": "Using beta of 3977",
-              "DataProcessingMethod": "SimpleBeta",
-              "TerminalBlockIdx": 9,
-              "ThermistorMakeModel": "AMPHENOL__NTC_10K_THERMISTOR_MA100GG103BN",
-              "AsyncCapture": true,
-              "AsyncCaptureDelta": 500,
-              "CapturePeriodS": 60,
-              "Exponent": 3,
-              "PollPeriodMs": 200,
-              "Unit": "Celcius",
-              "TypeName": "ads.channel.config",
-              "Version": "000"
-          }
-      ],
-      "TypeName": "ads111x.based.component.gt",
-      "Version": "000"
-  }
-  ],
   "MyAtomicTNodeGNode": {
-    "GNodeId": "c4c9a280-453f-4c36-a081-970a3774b3ed",
     "Alias": "d1.isone.ct.newhaven.orange1",
     "DisplayName": "Little Orange House Garage Heating System AtomicTNode",
+    "GNodeId": "c4c9a280-453f-4c36-a081-970a3774b3ed",
     "GNodeStatusValue": "Active",
     "PrimaryGNodeRoleAlias": "AtomicTNode"
   },
-  "MyTerminalAssetGNode": {
-    "GNodeId": "e250a99c-7b7f-469a-8f54-96ea83e95112",
-    "Alias": "d1.isone.ct.newhaven.orange1.ta",
-    "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
-    "GNodeStatusValue": "Active",
-    "PrimaryGNodeRoleAlias": "TerminalAsset"
-  },
   "MyScadaGNode": {
-    "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
     "Alias": "d1.isone.ct.newhaven.orange1.scada",
     "DisplayName": "Little Orange House Garage Heating System SCADA",
+    "GNodeId": "c9794c6d-e013-4d74-9570-f9ba4b0f0b0d",
     "GNodeStatusValue": "Active",
     "PrimaryGNodeRoleAlias": "Scada"
   },
-  "ResistiveHeaterComponents": [
-    {
-      "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
-      "DisplayName": "First 4.5 kW boost in tank",
-      "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-      "TypeName": "resistive.heater.component.gt",
-      "Version": "001",
-      "HwUid": "aaaa2222",
-      "ConfigList": [],
-      "TestedMaxColdMilliOhms": 14500,
-      "TestedMaxHotMilliOhms": 13714
-    },
-    {
-      "ComponentId": "d5fbf9f4-18a5-48f8-abdf-919309424321",
-      "DisplayName": "Second 4.5 kW boost in tank",
-      "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-      "ConfigList": [],
-      "TypeName": "resistive.heater.component.gt",
-      "Version": "001",
-      "HwUid": "bbbb2222"
-    }
-  ],
-  "OtherComponents": [
-    {
-      "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
-      "ComponentId": "ab7bc99c-08ed-489e-b760-e36b57653e7e",
-      "DisplayName": "Hubitat 92:22:AB",
-      "Hubitat": {
-        "AccessToken": "f5a8d2ba-c155-4484-8b43-70599bc9037c",
-        "Host": "hubitat-orange.local",
-        "MacAddress": "34:E1:D1:92:22:AB",
-        "MakerApiId": 1,
-        "WebListenEnabled": true
-      },
-      "ConfigList": [],
-      "TypeName": "hubitat.component.gt",
-      "Version": "001"
-    },
-    {
-      "ComponentId": "2c302eed-2f86-4ed6-8019-df31c22e1704",
-      "DisplayName": "Downstairs Thermostat",
-      "ComponentAttributeClassId": "03533a1f-3cb9-4a1f-8d57-690c0ad0475b",
-      "ConfigList": [
-        {
-          "AsyncCapture": false,
-          "CapturePeriodS": 60,
-          "ChannelName": "zone1-down-temp",
-          "Exponent": 3,
-          "PollPeriodMs": 1000,
-          "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
-      },
-      {
-        "AsyncCapture": false,
-        "CapturePeriodS": 60,
-        "ChannelName": "zone1-down-set",
-        "Exponent": 3,
-        "PollPeriodMs": 1000,
-        "TypeName": "channel.config",
-        "Unit": "Fahrenheit",
-        "Version": "000"
-      },
-      {
-        "AsyncCapture": true,
-        "AsyncCaptureDelta": 1,
-        "CapturePeriodS": 60,
-        "ChannelName": "zone1-down-state",
-        "Exponent": 3,
-        "PollPeriodMs": 1000,
-        "TypeName": "channel.config",
-        "Unit": "Fahrenheit",
-        "Version": "000"
-      }
-      ],
-      "Poller": {
-        "Attributes": [
-          {
-            "AttributeName": "temperature",
-            "Enabled": true,
-            "InterpretAsNumber": true,
-            "NodeName": "zone1-down",
-            "ReportMissing": true,
-            "ReportParseError": true,
-            "TelemetryName": "AirTempFTimes1000",
-            "WebListenEnabled": true,
-            "WebPollEnabled": true,
-            "AsyncCapture": false,
-            "CapturePeriodS": 60,
-            "ChannelName": "zone1-down-temp",
-            "Exponent": 3,
-            "PollPeriodMs": 1000,
-            "TypeName": "channel.config",
-            "Unit": "Fahrenheit",
-            "Version": "000"
-          },
-          {
-            "AttributeName": "heatingSetpoint",
-            "Enabled": true,
-            "InterpretAsNumber": true,
-            "NodeName": "zone1-down-stat",
-            "ReportMissing": true,
-            "ReportParseError": true,
-            "TelemetryName": "AirTempFTimes1000",
-            "WebListenEnabled": true,
-            "WebPollEnabled": true,
-            "AsyncCapture": false,
-            "CapturePeriodS": 60,
-            "ChannelName": "zone1-down-set",
-            "Exponent": 3,
-            "PollPeriodMs": 1000,
-            "TypeName": "channel.config",
-            "Unit": "Fahrenheit",
-            "Version": "000"
-          },
-          {
-            "AttributeName": "thermostatOperatingState",
-            "Enabled": true,
-            "InterpretAsNumber": true,
-            "NodeName": "zone1-down-stat",
-            "ReportMissing": true,
-            "ReportParseError": true,
-            "TelemetryName": "ThermostatState",
-            "WebListenEnabled": true,
-            "WebPollEnabled": true,
-            "AsyncCapture": true,
-            "AsyncCaptureDelta": 1,
-            "CapturePeriodS": 60,
-            "ChannelName": "zone1-down-state",
-            "Exponent": 3,
-            "PollPeriodMs": 1000,
-            "TypeName": "channel.config",
-            "Unit": "ThermostatStateEnum",
-            "Version": "000"
-          }
-        ],
-      "DeviceId": 164,
-      "Enabled": true,
-      "HubitatComponentId": "ab7bc99c-08ed-489e-b760-e36b57653e7e",
-      "PollPeriodSeconds": 60.0,
-      "WebListenEnabled": true
-      },
-      "TypeName": "hubitat.poller.component.gt",
-      "Version": "001"
-    }
-  ],
-  "ResistiveHeaterCacs": [
-    {
-      "ComponentAttributeClassId": "cf1f2587-7462-4701-b962-d2b264744c1d",
-      "MakeModel": "UNKNOWNMAKE__UNKNOWNMODEL",
-      "DisplayName": "Fake Boost Element",
-      "NameplateMaxPowerW": 4500,
-      "RatedVoltageV": 240,
-      "MinPollPeriodMs": 1000,
-      "TypeName": "resistive.heater.cac.gt",
-      "Version": "001"
-    }
-  ],
-  "OtherCacs": [    
-    {
-      "ComponentAttributeClassId": "56498ea1-64b8-4102-b76f-4e29555d4d60",
-      "DisplayName": "Web Server CAC",
-      "MinPollPeriomdMs": 1000,
-      "MakeModel": "UNKNOWNMAKE__UNKNOWNMODEL",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "001"
-    },
-    {
-      "ComponentAttributeClassId": "7ce0ce69-14c6-4cb7-a33f-2aeca91e0680",
-      "DisplayName": "Fibaro SmartImplant FGBS-222",
-      "MinPollPeriomdMs": 1000,
-      "MakeModel": "FIBARO__ANALOG_TEMP_SENSOR",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "001"
-    },
-    {
-      "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
-      "DisplayName": "Hubitat Elevation C-7",
-      "MakeModel": "HUBITAT__C7__LAN1",
-      "MinPollPeriomdMs": 1000,
-      "TypeName": "component.attribute.class.gt",
-      "Version": "001"
-    },
-    {
-      "ComponentAttributeClassId": "60ac199d-679a-49f7-9142-8ca3e6428a5f",
-      "DisplayName": "Hubitat Tank Module",
-      "MakeModel": "GRIDWORKS__TANK_MODULE_1",
-      "MinPollPeriomdMs": 1000,
-      "TypeName": "component.attribute.class.gt",
-      "Version": "001"
-    },
-    {
-      "ComponentAttributeClassId": "03533a1f-3cb9-4a1f-8d57-690c0ad0475b",
-      "DisplayName": "Honeywell Z-Wave T6 Thermostat",
-      "MakeModel": "HONEYWELL__T6ZWAVETHERMOSTAT",
-      "MinPollPeriomdMs": 1000,
-      "TypeName": "component.attribute.class.gt",
-      "Version": "001"
-    }
-  ],
+  "MyTerminalAssetGNode": {
+    "Alias": "d1.isone.ct.newhaven.orange1.ta",
+    "DisplayName": "Little Orange House Garage Heating System TerminalAsset",
+    "GNodeId": "e250a99c-7b7f-469a-8f54-96ea83e95112",
+    "GNodeStatusValue": "Active",
+    "PrimaryGNodeRoleAlias": "TerminalAsset"
+  },
+  "OtherComponents": [],
   "ShNodes": [
     {
-      "Alias": "a",
-      "Role": "Atn",
-      "ActorClass": "Atn",
-      "DisplayName": "AtomicTNode",
-      "ShNodeId": "b354edeb-0c82-4e55-80cb-7ab669ac2ad9",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "home",
-      "Role": "HomeAlone",
-      "ActorClass": "HomeAlone",
-      "DisplayName": "Little Orange House HomeAlone",
-      "ShNodeId": "34470c9d-fa25-4077-909b-2f981a691d7e",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "s",
-      "Role": "Scada",
       "ActorClass": "Scada",
+      "Alias": "s",
       "DisplayName": "Little Orange House Main Scada",
+      "Role": "Scada",
       "ShNodeId": "259f9431-c6a1-4170-8766-04cbf65cff4a",
       "TypeName": "spaceheat.node.gt",
       "Version": "120"
     },
     {
-      "Alias": "elt1",
-      "Role": "BoostElement",
-      "ActorClass": "NoActor",
-      "DisplayName": "First boost element",
-      "ShNodeId": "41f2ae73-8782-406d-bda7-a95b5abe317e",
-      "ComponentId": "80f95280-e999-49e0-a0e4-a7faf3b5b3bd",
-      "InPowerMetering": true,
-      "NameplatePowerW": 4500,
+      "ActorClass": "HomeAlone",
+      "Alias": "h",
+      "DisplayName": "HomeAlone",
+      "Role": "HomeAlone",
+      "ShNodeId": "b982c966-8e59-4c07-b4a7-64ebc4a40ac7",
       "TypeName": "spaceheat.node.gt",
       "Version": "120"
     },
     {
-      "Alias": "power-meter",
-      "Role": "PowerMeter",
       "ActorClass": "PowerMeter",
-      "DisplayName": "Main Power Meter Little Orange House Test System",
-      "ShNodeId": "0dd8a803-4724-4f49-b845-14ff57bdb3e6",
+      "Alias": "power-meter",
       "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
+      "DisplayName": "Main Power Meter Little Orange House Test System",
+      "Role": "PowerMeter",
+      "ShNodeId": "0dd8a803-4724-4f49-b845-14ff57bdb3e6",
       "TypeName": "spaceheat.node.gt",
       "Version": "120"
     },
     {
-      "Alias": "buffer-cold-pipe",
-      "Role": "Unknown",
       "ActorClass": "NoActor",
-      "DisplayName": "Buffer Cold Pipe",
-      "ShNodeId": "d2aa5af6-2cc7-4067-bd70-251c65b86a34",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "buffer-hot-pipe",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Buffer Hot Pipe",
-      "ShNodeId": "d64e2fa3-5ca2-4665-b60a-253323455f5a",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "dist-rwt",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Dist Return Water Temp",
-      "ShNodeId": "dc8a3e92-e09b-4976-bc32-c7f2dae22dc5",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "dist-swt",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Dist Source Water Temp",
-      "ShNodeId": "dfb1c311-f2db-4752-be11-ac0d4d91d71b",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "hp-ewt",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Heat Pump Entering Water Temp",
-      "ShNodeId": "e76073f4-67ae-4324-b07f-0c9add733de7",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "hp-lwt",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Heat Pump Leaving Water Temp",
-      "ShNodeId": "1fe2a01f-d60a-4362-bc5e-949ddfcd5003",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "oat",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Store Cold Pipe",
-      "ShNodeId": "7ef9d1af-5f6c-430e-9d03-c00e480fcd9a",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "store-cold-pipe",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Store Cold Pipe",
-      "ShNodeId": "e0e9b848-a593-465d-b9df-9d42c16cfffa",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "store-hot-pipe",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Store Hot Pipe",
-      "ShNodeId": "26b31718-feec-446e-ba1e-c921d760f1dd",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "store-pump",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "Store Pump",
-      "ShNodeId": "c35d9c77-1ebb-4822-b01e-00ff189092f7",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "hp-idu",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
-      "DisplayName": "HP IDU",
-      "InPowerMetering": true,
-      "NameplatePowerW": 3500,
-      "ShNodeId": "7da56e55-3cf0-4a2f-9c06-0c6c176b795c",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
       "Alias": "hp-odu",
-      "Role": "Unknown",
-      "ActorClass": "NoActor",
       "DisplayName": "HP ODU",
       "InPowerMetering": true,
-      "NameplatePowerW": 6500,
+      "NameplatePowerW": 6000,
+      "Role": "Unknown",
       "ShNodeId": "f1692ea8-9866-423c-b260-93d2affc9881",
       "TypeName": "spaceheat.node.gt",
       "Version": "120"
     },
     {
-      "Alias": "zone1-down",
-      "Role": "Unknown",
       "ActorClass": "NoActor",
-      "DisplayName": "Down Zone",
-      "ShNodeId": "be8df9e8-1a72-4574-9575-dca70dbec214",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "analog-temp",
-      "Role": "Unknown",
-      "ActorClass": "MultipurposeSensor",
-      "DisplayName": "GridWorks MultiTemp",
-      "ShNodeId": "8bfc40f1-7c84-4e88-9214-78c304730ae3",
-      "ComponentId": "dfbb257e-a851-437b-b9af-55f948f7d4af",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "Alias": "zone1-down-stat",
-      "Role": "Unknown",
-      "ActorClass": "HoneywellThermostat",
-      "DisplayName": "Zone 1 (Down) Thermostat",
-      "ComponentId": "2c302eed-2f86-4ed6-8019-df31c22e1704",
-      "ShNodeId": "8c9c155c-5b9a-448c-8df3-2edd9f4ebdb7",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "ActorClass": "Hubitat",
-      "Alias": "hubitat",
-      "ComponentId": "ab7bc99c-08ed-489e-b760-e36b57653e7e",
-      "DisplayName": "Hubitat 81:15:21",
-      "Role": "Unknown",
-      "ShNodeId": "13d9b3cb-2b13-444c-9e03-f31203772b64",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    }
-  ],
-  "DataChannels": [
-    {
-      "Name": "buffer-cold-pipe",
-      "DisplayName": "Buffer Cold Pipe (C x 1000)",
-      "AboutNodeName": "buffer-cold-pipe",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "a10940de-b5c7-4373-8787-d8793b0b2d8f",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "buffer-hot-pipe",
-      "DisplayName": "Buffer Hot Pipe (C x 1000)",
-      "AboutNodeName": "buffer-hot-pipe",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "9310c8fe-ebd5-4fa9-a97f-a8bccee143a1",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "dist-rwt",
-      "DisplayName": "Dist RWT(C x 1000)",
-      "AboutNodeName": "dist-rwt",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "a2b250cd-c8b2-4651-a83e-aafe933d0ccd",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "dist-swt",
-      "DisplayName": "Dist SWT(C x 1000)",
-      "AboutNodeName": "dist-swt",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "50f78516-30eb-44c5-a2cf-396a973a8569",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "hp-ewt",
-      "DisplayName": "Heat Pump EWT(C x 1000)",
-      "AboutNodeName": "hp-ewt",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "0b01f7cd-bed1-478f-b3ae-03395b856eb6",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "hp-lwt",
-      "DisplayName": "Heat Pump Leaving Water Temp",
-      "AboutNodeName": "hp-lwt",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "StartS": 1701293980,
-      "Id": "ac35c2a9-e317-45e8-a036-52fa5cbd8380",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "store-cold-pipe",
-      "DisplayName": "Store Cold Pipe (C x 1000)",
-      "AboutNodeName": "store-cold-pipe",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "766077c5-57d9-4117-ac0b-22c4b231b391",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "store-hot-pipe",
-      "DisplayName": "Store Hot Pipe (C x 1000)",
-      "AboutNodeName": "store-hot-pipe",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "ec27e1cb-a0b9-424f-8279-894b0db5ee62",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "oat",
-      "DisplayName": "Outside Air Temp (C x 1000)",
-      "AboutNodeName": "oat",
-      "CapturedByNodeName": "analog-temp",
-      "TelemetryName": "WaterTempCTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "9439ca3a-9e40-46bb-99c0-674bbb3c914a",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "hp-odu-pwr",
-      "DisplayName": "HP ODU",
-      "AboutNodeName": "hp-odu",
-      "CapturedByNodeName": "power-meter",
-      "TelemetryName": "PowerW",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "StartS": 1701293980,
-      "InPowerMetering": true,
-      "Id": "4cb6a9e6-24c4-4b72-9a7d-af5b884c83bd",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "hp-idu-pwr",
+      "Alias": "hp-idu",
       "DisplayName": "HP IDU",
-      "AboutNodeName": "hp-idu",
-      "CapturedByNodeName": "power-meter",
-      "TelemetryName": "PowerW",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "StartS": 1701293980,
       "InPowerMetering": true,
-      "Id": "5ac27781-2976-49c4-8890-0d0fdad219f7",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
+      "NameplatePowerW": 4000,
+      "Role": "Unknown",
+      "ShNodeId": "7da56e55-3cf0-4a2f-9c06-0c6c176b795c",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "120"
     },
     {
-      "Name": "elt1-pwr",
-      "DisplayName": "Elt1 Power",
-      "AboutNodeName": "elt1",
-      "CapturedByNodeName": "power-meter",
-      "TelemetryName": "PowerW",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "StartS": 1701293980,
-      "InPowerMetering": true,
-      "Id": "f97d6920-3a9c-4d52-8ddb-fd89f16e1935",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
+      "ActorClass": "NoActor",
+      "Alias": "store-pump",
+      "DisplayName": "Store Pump",
+      "Role": "Unknown",
+      "ShNodeId": "c35d9c77-1ebb-4822-b01e-00ff189092f7",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "120"
     },
     {
-      "Name": "store-pump-pwr",
-      "DisplayName": "Store pump power",
-      "AboutNodeName": "store-pump",
-      "CapturedByNodeName": "power-meter",
-      "TelemetryName": "PowerW",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "StartS": 1701293980,
-      "Id": "7876ebb2-03d2-4c7f-9046-011b7c5d4deb",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "zone1-down-temp",
-      "DisplayName": "Zone 1 Down Temp",
-      "AboutNodeName": "zone1-down",
-      "CapturedByNodeName": "zone1-down-stat",
-      "TelemetryName": "AirTempFTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "b90caf01-0441-40d9-9e1b-7162ebda5aa7",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "zone1-down-set",
-      "DisplayName": "Zone 1 Down Setpoint",
-      "AboutNodeName": "zone1-down-stat",
-      "CapturedByNodeName": "zone1-down-stat",
-      "TelemetryName": "AirTempFTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "5b412e33-fbba-4237-9da9-993ce7880518",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "Name": "zone1-down-state",
-      "DisplayName": "Zone 1 Down Setpoint",
-      "AboutNodeName": "zone1-down-stat",
-      "CapturedByNodeName": "zone1-down-stat",
-      "TelemetryName": "ThermostatState",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "Id": "ba246554-6c17-424a-bfef-8bb80d4c4a6d",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
+      "ActorClass": "Atn",
+      "Alias": "a",
+      "DisplayName": "AtomicTNode",
+      "Role": "Atn",
+      "ShNodeId": "b354edeb-0c82-4e55-80cb-7ab669ac2ad9",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "120"
     }
-    
   ]
 }

@@ -58,7 +58,7 @@ def add_tank(
     tank: TankGenCfg,
 ) -> None:
     fibaro_make_model = MakeModel.FIBARO__ANALOG_TEMP_SENSOR
-    if not db.cac_id_by_make_model(fibaro_make_model):
+    if not db.cac_id_by_alias(fibaro_make_model):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
@@ -70,7 +70,7 @@ def add_tank(
             ]
         )
     hubitat_make_model = MakeModel.HUBITAT__C7__LAN1
-    if not db.cac_id_by_make_model(hubitat_make_model):
+    if not db.cac_id_by_alias(hubitat_make_model):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
@@ -81,7 +81,7 @@ def add_tank(
             ]
         )
     tank_module_make_model = MakeModel.GRIDWORKS__TANK_MODULE_1
-    if not db.cac_id_by_make_model(tank_module_make_model):
+    if not db.cac_id_by_alias(tank_module_make_model):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
@@ -98,7 +98,7 @@ def add_tank(
             [
                 HubitatComponentGt(
                     ComponentId=db.make_component_id(hubitat_alias),
-                    ComponentAttributeClassId=db.cac_id_by_make_model(hubitat_make_model),
+                    ComponentAttributeClassId=db.cac_id_by_alias(hubitat_make_model),
                     DisplayName=hubitat_alias,
                     Hubitat=hubitat,
                     ConfigList=[],
@@ -109,14 +109,14 @@ def add_tank(
         [
             FibaroSmartImplantComponentGt(
                 ComponentId=db.make_component_id(fibaro_a.alias()),
-                ComponentAttributeClassId=db.cac_id_by_make_model(fibaro_make_model),
+                ComponentAttributeClassId=db.cac_id_by_alias(fibaro_make_model),
                 DisplayName=fibaro_a.alias(),
                 ZWaveDSK=fibaro_a.ZWaveDSK,
                 ConfigList=[],
             ),
             FibaroSmartImplantComponentGt(
                 ComponentId=db.make_component_id(fibaro_b.alias()),
-                ComponentAttributeClassId=db.cac_id_by_make_model(fibaro_make_model),
+                ComponentAttributeClassId=db.cac_id_by_alias(fibaro_make_model),
                 DisplayName=fibaro_b.alias(),
                 ZWaveDSK=fibaro_b.ZWaveDSK,
                 ConfigList=[],
@@ -127,7 +127,7 @@ def add_tank(
         [
             HubitatTankComponentGt(
                 ComponentId=db.make_component_id(tank.component_alias()),
-                ComponentAttributeClassId=db.cac_id_by_make_model(tank_module_make_model),
+                ComponentAttributeClassId=db.cac_id_by_alias(tank_module_make_model),
                 DisplayName=tank.component_alias(),
                 ConfigList=[],
                 Tank=HubitatTankSettingsGt(

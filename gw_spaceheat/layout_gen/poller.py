@@ -44,7 +44,7 @@ def add_thermostat(
 ) -> None:
     hubitat_alias = add_hubitat(db, stat_cfg.hubitat)
     make_model = MakeModel.HONEYWELL__T6ZWAVETHERMOSTAT
-    if not db.cac_id_by_make_model(make_model):
+    if not db.cac_id_by_alias(make_model):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
@@ -63,7 +63,7 @@ def add_thermostat(
         [
             HubitatPollerComponentGt(
                 ComponentId=db.make_component_id(stat_component_display_name ),
-                ComponentAttributeClassId=db.cac_id_by_make_model(make_model),
+                ComponentAttributeClassId=db.cac_id_by_alias(make_model),
                 DisplayName=stat_component_display_name, 
                 Poller=HubitatPollerGt(
                     hubitat_component_id=db.component_id_by_alias(hubitat_alias),

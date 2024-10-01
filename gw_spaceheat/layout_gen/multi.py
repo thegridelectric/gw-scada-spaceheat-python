@@ -55,7 +55,7 @@ def add_tsnap_multipurpose(
     tsnap: TSnapMultipurposeGenCfg,
 ) -> None:
     make_model = MakeModel.GRIDWORKS__TSNAP1
-    if not db.cac_id_by_make_model(make_model):
+    if not db.cac_id_by_alias(make_model):
         db.add_cacs(
             [
                 cast(
@@ -80,7 +80,7 @@ def add_tsnap_multipurpose(
                 ComponentGt,
                 Ads111xBasedComponentGt(
                     ComponentId=db.make_component_id(tsnap.component_alias()),
-                    ComponentAttributeClassId=db.cac_id_by_make_model(make_model),
+                    ComponentAttributeClassId=db.cac_id_by_alias(make_model),
                     ChannelList=list(tsnap.ChannelList),
                     ConfigList=[
                         ChannelConfig(

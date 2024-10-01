@@ -15,7 +15,7 @@ def add_hubitat(
     hubitat: HubitatGt,
 ) -> str:
     make_model = MakeModel.HUBITAT__C7__LAN1
-    if not db.cac_id_by_make_model(make_model):
+    if not db.cac_id_by_alias(make_model):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
@@ -31,7 +31,7 @@ def add_hubitat(
             [
                 HubitatComponentGt(
                     ComponentId=db.make_component_id(hubitat_component_alias),
-                    ComponentAttributeClassId=db.cac_id_by_make_model(make_model),
+                    ComponentAttributeClassId=db.cac_id_by_alias(make_model),
                     DisplayName=hubitat_component_alias,
                     Hubitat=hubitat,
                     HwUid=hubitat.MacAddress[-8:].replace(":", "").lower(),

@@ -9,6 +9,7 @@ from tests.utils.fragment_runner import ProtocolFragment
 from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
+from data_classes.house_0 import H0N
 
 import actors
 import pytest
@@ -106,21 +107,19 @@ def test_power_meter_small():
     assert not driver_thread.should_report_aggregated_power()
 
     
-    hp_odu = layout.node('hp-odu')
-    hp_idu = layout.node('hp-idu')
-    elt1 = layout.node('elt1')
+    hp_odu = layout.node(H0N.hp_odu)
+    hp_idu = layout.node(H0N.hp_idu)
 
-    assert hp_odu.NameplatePowerW == 6500
-    assert hp_idu.NameplatePowerW == 3500
-    assert elt1.NameplatePowerW == 4500
-    assert driver_thread.nameplate_agg_power_w == 6500 + 3500 + 4500
+    assert hp_odu.NameplatePowerW == 6000
+    assert hp_idu.NameplatePowerW == 4000
+    assert driver_thread.nameplate_agg_power_w == 10_000
     power_reporting_threshold_ratio = driver_thread.async_power_reporting_threshold
     assert power_reporting_threshold_ratio == 0.02
     power_reporting_threshold_w = power_reporting_threshold_ratio * driver_thread.nameplate_agg_power_w
-    assert power_reporting_threshold_w == 290
+    assert power_reporting_threshold_w == 200
 
     tt = TelemetryTuple(
-        AboutNode=elt1,
+        AboutNode=hp_odu,
         SensorNode=meter.node,
         TelemetryName=TelemetryName.PowerW,
     )
@@ -161,22 +160,17 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
 
             expected_tts = [
                 TelemetryTuple(
-                    AboutNode=self.runner.layout.node("hp-odu"),
+                    AboutNode=self.runner.layout.node(H0N.hp_odu),
                     SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.PowerW,
                 ),
                 TelemetryTuple(
-                    AboutNode=self.runner.layout.node("hp-idu"),
+                    AboutNode=self.runner.layout.node(H0N.hp_idu),
                     SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.PowerW,
                 ),
                 TelemetryTuple(
-                    AboutNode=self.runner.layout.node("elt1"),
-                    SensorNode=self.runner.actors.meter.node,
-                    TelemetryName=TelemetryName.PowerW,
-                ),
-                TelemetryTuple(
-                    AboutNode=self.runner.layout.node("store-pump"),
+                    AboutNode=self.runner.layout.node(H0N.store_pump),
                     SensorNode=self.runner.actors.meter.node,
                     TelemetryName=TelemetryName.PowerW,
                 ),

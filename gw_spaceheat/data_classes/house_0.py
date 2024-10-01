@@ -1,8 +1,7 @@
 from typing import Dict, List
-
 DEFAULT_ANALOG_READER = "analog-temp"
-
-
+from gwproto.data_classes.telemetry_tuple import ChannelStub
+from gwproto.enums import TelemetryName
 class ZoneName:
     def __init__(self, zone: str, idx: int):
         zone_name = f"zone{idx + 1}-{zone}".lower()
@@ -61,3 +60,33 @@ class H0N:
         for i in range(len(zone_list)):
             self.zone[zone_list[i]] = ZoneName(zone=zone_list[i], idx=i)
 
+
+class H0CN:
+    hp_odu_pwr = "hp-odu-pwr"
+    hp_idu_pwr = "hp-idu-pwr"
+    store_pump_pwr = "store-pump-pwr"
+
+
+ChannelStubByName = {
+    H0CN.hp_odu_pwr: ChannelStub(
+        Name=H0CN.hp_odu_pwr,
+        AboutNodeName=H0N.hp_odu,
+        CapturedByNodeName=H0N.primary_power_meter,
+        TelemetryName=TelemetryName.PowerW,
+        InPowerMetering=True,
+    ),
+    H0CN.hp_idu_pwr: ChannelStub(
+        Name=H0CN.hp_idu_pwr,
+        AboutNodeName=H0N.hp_idu,
+        CapturedByNodeName=H0N.primary_power_meter,
+        TelemetryName=TelemetryName.PowerW,
+        InPowerMetering=True,
+    ),
+    H0CN.store_pump_pwr: ChannelStub(
+        Name=H0CN.store_pump_pwr,
+        AboutNodeName=H0N.store_pump,
+        CapturedByNodeName=H0N.primary_power_meter,
+        TelemetryName=TelemetryName.PowerW
+    ),
+
+}
