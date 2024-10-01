@@ -299,8 +299,9 @@
         "MakerApiId": 1,
         "WebListenEnabled": true
       },
+      "ConfigList": [],
       "TypeName": "hubitat.component.gt",
-      "Version": "000"
+      "Version": "001"
     },
     {
       "ComponentId": "2c302eed-2f86-4ed6-8019-df31c22e1704",
@@ -663,7 +664,7 @@
       "Role": "Unknown",
       "ShNodeId": "13d9b3cb-2b13-444c-9e03-f31203772b64",
       "TypeName": "spaceheat.node.gt",
-      "Version": "100"
+      "Version": "120"
     }
   ],
   "DataChannels": [
