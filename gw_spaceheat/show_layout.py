@@ -160,9 +160,25 @@ def print_layout_members(
         except Exception as e:
             errors.append(LoadError(attr, {}, e))
     print("Layout named items")
+
+    try:
+        attr = "power_meter_component"
+        item = getattr(layout, attr)
+        display = None if item is None else item.gt.DisplayName
+        print(f"  {attr}: <{display}>")
+    except Exception as e:
+        errors.append(LoadError(attr, {}, e))
+
+    try:
+        attr = "power_meter_cac"
+        item = getattr(layout, attr)
+        display = None if item is None else item.DisplayName
+        print(f"  {attr}: <{display}>")
+    except Exception as e:
+        errors.append(LoadError(attr, {}, e))
+
+
     for attr in [
-        "power_meter_component",
-        "power_meter_cac",
         "power_meter_node",
         "scada_node",
         "home_alone_node",
