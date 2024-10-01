@@ -8,6 +8,7 @@ from gwproto.enums import TelemetryName
 from gwproto.enums import ActorClass
 from gwproto.types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
+from pydantic_extra_types.mac_address import MacAddress
 
 from layout_gen import add_hubitat
 from layout_gen import add_thermostat
@@ -55,7 +56,7 @@ def test_tank_device_poll_period(tmp_path):
         Host="hubitat-dummy.local",
         MakerApiId=4,
         AccessToken="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
-        MacAddress="00:00:00:00:00:00",
+        MacAddress=MacAddress("00:00:00:00:00:00"),
     )
 
     cfgs = [
