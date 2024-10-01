@@ -266,7 +266,7 @@ def print_layout_table(layout: HardwareLayout):
                 cac_txt = Text(cac.DisplayName, style=table.columns[2].style)
             else:
                 cac_txt = Text("Cac id: ") + Text(cac.ComponentAttributeClassId, style="light_coral")
-            if hasattr(cac, "make_model"):
+            if hasattr(cac, "MakeModel"):
                 make_model_text = Text(str(cac.MakeModel), style=table.columns[3].style)
             else:
                 make_model_text = none_text
