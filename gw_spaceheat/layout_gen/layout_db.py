@@ -4,7 +4,7 @@ import subprocess
 import typing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 import uuid
 
 from gw.errors import DcError
@@ -23,8 +23,101 @@ from gwproto.types import SpaceheatNodeGt
 from gwproto.types import DataChannelGt
 from gwproto.types import ElectricMeterChannelConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
+from gwproto.enums import TelemetryName
+from gwproto.property_format import SpaceheatName
+from gwproto.data_classes.telemetry_tuple import ChannelStub
+from data_classes.house_0 import H0N, H0CN, H0Readers
 
-from data_classes.house_0 import H0N
+
+class ChannelStubDb(ChannelStub):
+    CapturedByNodeName: SpaceheatName
+
+ChanneStubDbByName: Dict[str, ChannelStubDb] = {
+    H0CN.hp_odu_pwr: ChannelStubDb(
+        Name=H0CN.hp_odu_pwr,
+        AboutNodeName=H0N.hp_odu,
+        TelemetryName=TelemetryName.PowerW,
+        InPowerMetering=True,
+        CapturedByNodeName=H0N.primary_power_meter,
+    ),
+    H0CN.hp_idu_pwr: ChannelStubDb(
+        Name=H0CN.hp_idu_pwr,
+        AboutNodeName=H0N.hp_idu,
+        TelemetryName=TelemetryName.PowerW,
+        InPowerMetering=True,
+        CapturedByNodeName=H0N.primary_power_meter,
+    ),
+    H0CN.dist_pump_pwr: ChannelStubDb(
+        Name=H0CN.dist_pump_pwr,
+        AboutNodeName=H0N.dist_pump,
+        TelemetryName=TelemetryName.PowerW,
+        CapturedByNodeName=H0N.primary_power_meter,
+    ),
+     H0CN.primary_pump_pwr: ChannelStubDb(
+        Name=H0CN.primary_pump_pwr,
+        AboutNodeName=H0N.primary_pump,
+        TelemetryName=TelemetryName.PowerW,
+        CapturedByNodeName=H0N.primary_power_meter,
+    ),
+    H0CN.store_pump_pwr: ChannelStubDb(
+        Name=H0CN.store_pump_pwr,
+        AboutNodeName=H0N.store_pump,
+        TelemetryName=TelemetryName.PowerW,
+        CapturedByNodeName=H0N.primary_power_meter,
+    ),
+
+    H0CN.dist_swt: ChannelStubDb(
+        Name=H0CN.dist_swt,
+        AboutNodeName=H0N.dist_swt,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+        CapturedByNodeName=H0Readers.analog_temp,
+    ),
+    H0CN.dist_rwt: ChannelStubDb(
+        Name=H0CN.dist_rwt,
+        AboutNodeName=H0N.dist_rwt,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+        CapturedByNodeName=H0Readers.analog_temp,
+    ),
+    H0CN.hp_lwt: ChannelStubDb(
+        Name=H0CN.hp_lwt,
+        AboutNodeName=H0N.hp_lwt,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+        CapturedByNodeName=H0Readers.analog_temp,
+    ),
+    H0CN.hp_ewt: ChannelStubDb(
+        Name=H0CN.hp_ewt,
+        AboutNodeName=H0N.hp_ewt,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+        CapturedByNodeName=H0Readers.analog_temp,
+    ),
+    H0CN.store_hot_pipe: ChannelStubDb(
+        Name=H0CN.store_hot_pipe,
+        AboutNodeName=H0N.store_hot_pipe,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+        CapturedByNodeName=H0Readers.analog_temp,
+    ),
+    H0CN.store_cold_pipe: ChannelStubDb(
+        Name=H0CN.store_cold_pipe,
+        AboutNodeName=H0N.store_cold_pipe,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+        CapturedByNodeName=H0Readers.analog_temp,
+    ),
+    H0CN.buffer_hot_pipe: ChannelStubDb(
+        Name=H0CN.buffer_hot_pipe,
+        AboutNodeName=H0N.buffer_hot_pipe,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+        CapturedByNodeName=H0Readers.analog_temp,
+    ),
+    H0CN.buffer_cold_pipe: ChannelStubDb(
+        Name=H0CN.buffer_cold_pipe,
+        AboutNodeName=H0N.buffer_cold_pipe,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+        CapturedByNodeName=H0Readers.analog_temp,
+    ),
+
+}
+
+
 
 @dataclass
 class StubConfig:
@@ -329,7 +422,7 @@ class LayoutDb:
                                 PollPeriodMs=1000,
                                 CapturePeriodS=300,
                                 AsyncCapture=True,
-                                AsyncCaptoreDelta=200,
+                                AsyncCaptureDelta=200,
                                 Exponent=0,
                                 Unit=Unit.W,
                             ),

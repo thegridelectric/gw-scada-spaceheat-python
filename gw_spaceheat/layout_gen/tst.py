@@ -13,11 +13,15 @@ from gwproto.types import SpaceheatNodeGt
 from gwproto.types import ElectricMeterChannelConfig
 from gwproto.types import DataChannelGt
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
-from data_classes.house_0 import H0N, H0CN,ChannelStubByName
+from data_classes.house_0 import H0N, H0CN
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig
-
+from layout_gen import (
+    add_thermostat,
+    HubitatThermostatGenCfg,
+)
+from gwproto.type_helpers import HubitatGt
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
     db = LayoutDb(
@@ -31,7 +35,27 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
     )
     _add_power_meter(db)
     _add_atn(db)
+
+    hubitat = HubitatGt(
+        Host="192.168.0.1",
+        MakerApiId=1,
+        AccessToken="64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
+        MacAddress="34:E1:D1:82:22:22",
+    )
+
+
+    add_thermostat(
+        db,
+        HubitatThermostatGenCfg(
+            zone_idx=1,
+            zone_name="main",
+            hubitat=hubitat,
+            device_id=1,
+        )
+    )
+
     return db
+
 
 def _add_atn(db: LayoutDb) -> LayoutDb:
     ATN_NODE_NAME = H0N.atn
@@ -149,20 +173,58 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
 
         ]
     )
+    # db.add_data_channels(
+    #     [
+    #         DataChannelGt(
+    #             Name=stub.Name,
+    #             DisplayName=' '.join(part.upper() for part in stub.Name.split('-')),
+    #             AboutNodeName=stub.AboutNodeName,
+    #             CapturedByNodeName=stub.CapturedByNodeName,
+    #             TelemetryName=stub.TelemetryName,
+    #             InPowerMetering=stub.InPowerMetering,
+    #             Id=db.make_channel_id(stub.Name),
+    #             TerminalAssetAlias=db.terminal_asset_alias,
+    #         )
+    #         for stub in ChanneStubDbByName.values()
+    #     ]
+    # )
     db.add_data_channels(
         [
             DataChannelGt(
-                Name=stub.Name,
-                DisplayName=' '.join(part.upper() for part in stub.Name.split('-')),
-                AboutNodeName=stub.AboutNodeName,
-                CapturedByNodeName=stub.CapturedByNodeName,
-                TelemetryName=stub.TelemetryName,
-                InPowerMetering=stub.InPowerMetering,
-                Id=db.make_channel_id(stub.Name),
+                Name=H0CN.hp_odu_pwr,
+                DisplayName=' '.join(part.upper() for part in H0CN.hp_odu_pwr.split('-')),
+                AboutNodeName=H0N.hp_odu,
+                CapturedByNodeName=H0N.primary_power_meter,
+                TelemetryName=TelemetryName.PowerW,
+                InPowerMetering=True,
+                Id=db.make_channel_id(H0CN.hp_odu_pwr),
                 TerminalAssetAlias=db.terminal_asset_alias,
-            )
-            for stub in ChannelStubByName.values()
+            ),
+            DataChannelGt(
+                Name=H0CN.hp_idu_pwr,
+                DisplayName=' '.join(part.upper() for part in H0CN.hp_idu_pwr.split('-')),
+                AboutNodeName=H0N.hp_idu,
+                CapturedByNodeName=H0N.primary_power_meter,
+                TelemetryName=TelemetryName.PowerW,
+                InPowerMetering=True,
+                Id=db.make_channel_id(H0CN.hp_idu_pwr),
+                TerminalAssetAlias=db.terminal_asset_alias,
+            ),
+            DataChannelGt(
+                Name=H0CN.store_pump_pwr,
+                DisplayName=' '.join(part.upper() for part in H0CN.store_pump_pwr.split('-')),
+                AboutNodeName=H0N.store_pump,
+                CapturedByNodeName=H0N.primary_power_meter,
+                TelemetryName=TelemetryName.PowerW,
+                InPowerMetering=False,
+                Id=db.make_channel_id(H0CN.store_pump_pwr),
+                TerminalAssetAlias=db.terminal_asset_alias,
+            ),
+            
+
+
         ]
+
     )
     return db
 

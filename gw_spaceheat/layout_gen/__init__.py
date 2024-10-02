@@ -7,7 +7,7 @@ from layout_gen.hubitat import add_hubitat
 from layout_gen.layout_db import LayoutDb
 from layout_gen.layout_db import LayoutIDMap
 from layout_gen.layout_db import StubConfig
-from layout_gen.multi import add_tsnap_multipurpose
+from layout_gen.multi import add_tsnap_multipurpose, TSnapMultipurposeGenCfg, SensorNodeGenCfg
 from layout_gen.poller import add_thermostat
 from layout_gen.poller import HubitatThermostatGenCfg
 from layout_gen.tank import FibaroGenCfg
@@ -31,6 +31,9 @@ __all__ = [
     "HubitatThermostatGenCfg",
     "StubConfig",
     "TankGenCfg",
+    "TSnapMultipurposeGenCfg",
+    "SensorNodeGenCfg",
+
 ]
 
 

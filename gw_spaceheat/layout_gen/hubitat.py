@@ -38,17 +38,17 @@ def add_hubitat(
                     ConfigList=[],
                 )
             ]
-    )
-    db.add_nodes(
-        [
-            SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(H0N.hubitat),
-                Alias=H0N.hubitat,
-                ActorClass=ActorClass.Hubitat,
-                Role=Role.Unknown,
-                DisplayName=hubitat_component_alias,
-                ComponentId=db.component_id_by_alias(hubitat_component_alias),
-            )
-        ]
-    )
+        )
+        db.add_nodes(
+            [
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(H0N.hubitat),
+                    Alias=H0N.hubitat,
+                    ActorClass=ActorClass.Hubitat,
+                    Role=Role.Unknown,
+                    DisplayName=hubitat_component_alias,
+                    ComponentId=db.component_id_by_alias(hubitat_component_alias),
+                )
+            ]
+        )
     return hubitat_component_alias

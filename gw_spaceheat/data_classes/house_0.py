@@ -61,32 +61,98 @@ class H0N:
             self.zone[zone_list[i]] = ZoneName(zone=zone_list[i], idx=i)
 
 
+class H0Readers:
+    analog_temp = "analog-temp"
+
+
 class H0CN:
     hp_odu_pwr = "hp-odu-pwr"
     hp_idu_pwr = "hp-idu-pwr"
+    dist_pump_pwr = "dist-pump-pwr"
+    primary_pump_pwr = "primary-pump-pwr"
     store_pump_pwr = "store-pump-pwr"
+    # required temp channels
+    dist_swt = "dist-swt"
+    dist_rwt = "dist-rwt"
+    hp_ewt = "hp-lwt"
+    hp_lwt = "hp-ewt"
+    store_hot_pipe="store-hot-pipe"
+    store_cold_pipe="store-cold-pipe"
+    buffer_hot_pipe="buffer-hot-pipe"
+    buffer_cold_pipe="buffer-cold-pipe"
+
+    
 
 
 ChannelStubByName = {
     H0CN.hp_odu_pwr: ChannelStub(
         Name=H0CN.hp_odu_pwr,
         AboutNodeName=H0N.hp_odu,
-        CapturedByNodeName=H0N.primary_power_meter,
         TelemetryName=TelemetryName.PowerW,
         InPowerMetering=True,
     ),
     H0CN.hp_idu_pwr: ChannelStub(
         Name=H0CN.hp_idu_pwr,
         AboutNodeName=H0N.hp_idu,
-        CapturedByNodeName=H0N.primary_power_meter,
         TelemetryName=TelemetryName.PowerW,
         InPowerMetering=True,
+    ),
+    H0CN.dist_pump_pwr: ChannelStub(
+        Name=H0CN.dist_pump_pwr,
+        AboutNodeName=H0N.dist_pump,
+        TelemetryName=TelemetryName.PowerW
+    ),
+     H0CN.primary_pump_pwr: ChannelStub(
+        Name=H0CN.primary_pump_pwr,
+        AboutNodeName=H0N.primary_pump,
+        TelemetryName=TelemetryName.PowerW
     ),
     H0CN.store_pump_pwr: ChannelStub(
         Name=H0CN.store_pump_pwr,
         AboutNodeName=H0N.store_pump,
-        CapturedByNodeName=H0N.primary_power_meter,
         TelemetryName=TelemetryName.PowerW
     ),
+
+    H0CN.dist_swt: ChannelStub(
+        Name=H0CN.dist_swt,
+        AboutNodeName=H0N.dist_swt,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+    ),
+    H0CN.dist_rwt: ChannelStub(
+        Name=H0CN.dist_rwt,
+        AboutNodeName=H0N.dist_rwt,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+    ),
+    H0CN.hp_lwt: ChannelStub(
+        Name=H0CN.hp_lwt,
+        AboutNodeName=H0N.hp_lwt,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+    ),
+    H0CN.hp_ewt: ChannelStub(
+        Name=H0CN.hp_ewt,
+        AboutNodeName=H0N.hp_ewt,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+    ),
+    H0CN.store_hot_pipe: ChannelStub(
+        Name=H0CN.store_hot_pipe,
+        AboutNodeName=H0N.store_hot_pipe,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+    ),
+    H0CN.store_cold_pipe: ChannelStub(
+        Name=H0CN.store_cold_pipe,
+        AboutNodeName=H0N.store_cold_pipe,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+    ),
+    H0CN.buffer_hot_pipe: ChannelStub(
+        Name=H0CN.buffer_hot_pipe,
+        AboutNodeName=H0N.buffer_hot_pipe,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+    ),
+    H0CN.buffer_cold_pipe: ChannelStub(
+        Name=H0CN.buffer_cold_pipe,
+        AboutNodeName=H0N.buffer_cold_pipe,
+        TelemetryName=TelemetryName.WaterTempCTimes1000,
+    ),
+
 
 }

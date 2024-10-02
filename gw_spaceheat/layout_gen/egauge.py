@@ -31,7 +31,7 @@ class EgaugeChannelConfig(BaseModel):
     InPowerMetering: bool = False
 
     @property
-    def AboutChannelName(self) -> str:
+    def ChannelName(self) -> str:
         return f"{self.AboutNodeName}-pwr"
 
     def node(self, db: LayoutDb) -> SpaceheatNodeGt:
@@ -144,9 +144,9 @@ def add_egauge(
     db.add_data_channels(
         [
             DataChannelGt(
-                Name=cfg.AboutChannelName,
-                DisplayName=' '.join(part.upper() for part in cfg.AboutChannelName.split('-')),
-                Id=db.make_channel_id(cfg.AboutChannelName),
+                Name=cfg.ChannelName,
+                DisplayName=' '.join(part.upper() for part in cfg.ChannelName.split('-')),
+                Id=db.make_channel_id(cfg.ChannelName),
                 AboutNodeName=cfg.AboutNodeName,
                 CapturedByNodeName=H0N.primary_power_meter,
                 TelemetryName=TelemetryName.PowerW,
