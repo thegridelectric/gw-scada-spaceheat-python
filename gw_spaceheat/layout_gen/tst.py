@@ -2,7 +2,6 @@ import typing
 from pathlib import Path
 
 from gwproto.enums import ActorClass
-from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.enums import TelemetryName
@@ -48,7 +47,6 @@ def _add_atn(db: LayoutDb) -> LayoutDb:
         ]
     )
     return db
-
 
 def _add_power_meter(db: LayoutDb) -> LayoutDb:
     POWER_METER_COMPONENT_DISPLAY_NAME = "Power Meter for Simulated Test system"

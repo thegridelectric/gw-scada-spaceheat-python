@@ -28,7 +28,6 @@ from data_classes.house_0 import H0N
 
 @dataclass
 class StubConfig:
-    add_stub_scada: bool = True
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
@@ -403,24 +402,22 @@ class LayoutDb:
                 "PrimaryGNodeRoleAlias": "TerminalAsset"
               }
 
-        scada_alias=H0N.scada
-        home_alias=H0N.home_alone
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(scada_alias),
-                    Alias=scada_alias,
+                    ShNodeId=self.make_node_id(H0N.scada),
+                    Alias=H0N.scada,
                     Role=Role.Scada,
                     ActorClass=ActorClass.Scada,
                     DisplayName=cfg.scada_display_name,
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(home_alias),
-                    Alias=home_alias,
+                    ShNodeId=self.make_node_id(H0N.home_alone),
+                    Alias=H0N.home_alone,
                     Role=Role.HomeAlone,
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
-                ),
+                )
             ]
         )
 
@@ -429,8 +426,7 @@ class LayoutDb:
             cfg = StubConfig()
         if cfg.add_stub_power_meter:
             self.add_stub_power_meter(cfg)
-        if cfg.add_stub_scada:
-            self.add_stub_scada(cfg)
+        self.add_stub_scada(cfg)
 
     def dict(self) -> dict:
         d = dict(

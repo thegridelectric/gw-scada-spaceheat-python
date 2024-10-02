@@ -2,7 +2,7 @@
 
 from layout_gen.egauge import add_egauge
 from layout_gen.egauge import PowerMeterGenConfig
-from layout_gen.egauge import ChannelMeterConfig
+from layout_gen.egauge import EgaugeChannelConfig
 from layout_gen.hubitat import add_hubitat
 from layout_gen.layout_db import LayoutDb
 from layout_gen.layout_db import LayoutIDMap
@@ -24,7 +24,7 @@ __all__ = [
     "add_tsnap_multipurpose",
     "add_web_server",
     "PowerMeterGenConfig",
-    "ChannelMeterConfig",
+    "EgaugeChannelConfig",
     "FibaroGenCfg",
     "LayoutDb",
     "LayoutIDMap",

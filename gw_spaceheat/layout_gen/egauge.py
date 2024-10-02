@@ -3,7 +3,6 @@ from typing import Optional
 
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.enums import ActorClass
-from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.enums import TelemetryName 
@@ -17,20 +16,23 @@ from gwproto.types import ElectricMeterChannelConfig
 from gwproto.types import DataChannelGt
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 from pydantic import BaseModel
+from gwproto.enums import TelemetryName
 
 from data_classes.house_0 import H0N
 from layout_gen.layout_db import LayoutDb
 
 
-class ChannelMeterConfig(BaseModel):
+class EgaugeChannelConfig(BaseModel):
     AboutNodeName: str
     EGaugeAddress: int
-    EGuageName: str
-    NameplatePowerW: int = 3500
-    AsyncCaptureDelta: int = 250
+    NameplatePowerW: int = 10
+    AsyncCaptureDelta: int = 1
     AsyncCapture: bool = True
     InPowerMetering: bool = False
 
+    @property
+    def AboutChannelName(self) -> str:
+        return f"{self.AboutNodeName}-pwr"
 
     def node(self, db: LayoutDb) -> SpaceheatNodeGt:
         return SpaceheatNodeGt(
@@ -54,7 +56,7 @@ class ChannelMeterConfig(BaseModel):
             Unit=Unit.W,
             EgaugeRegisterConfig=EgaugeRegisterConfig(
                                     Address=self.EGaugeAddress,
-                                    Name=self.EGuageName,
+                                    Name=self.AboutNodeName,
                                     Description="change in value",
                                     Type="f32",
                                     Denominator=1,
@@ -74,12 +76,12 @@ class PowerMeterGenConfig(BaseModel):
     ModbusPort: int = 502
     CapturePeriodS: int = 60
     PollPeriodMs: int = 1000
-    ChannelConfigs: list[ChannelMeterConfig]
+    ChannelConfigs: list[EgaugeChannelConfig]
 
     def channel_configs(
         self,
         kwargs: Optional[dict] = None,
-    ) -> list[ChannelMeterConfig]:
+    ) -> list[EgaugeChannelConfig]:
         if kwargs is None:
             kwargs = {}
         kwargs["CapturePeriodS"] = self.CapturePeriodS
@@ -102,9 +104,8 @@ def add_egauge(
                     ElectricMeterCacGt(
                         ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
                         MakeModel=make_model,
-                        PollPeriodMs=1000,
+                        MinPollPeriodMs=1000,
                         DisplayName="EGauge 4030",
-                        Interface=LocalCommInterface.ETHERNET,
                         TelemetryNameList=[TelemetryName.PowerW],
                     )
                 )
@@ -138,10 +139,20 @@ def add_egauge(
                 DisplayName=egauge.NodeDisplayName,
                 ComponentId=db.component_id_by_alias(egauge.ComponentDisplayName),
             )
-        ] + [io.node(db) for io in egauge.ChannelConfigs]
+        ] + [cfg.node(db) for cfg in egauge.ChannelConfigs]
     )
     db.add_data_channels(
         [
-            
+            DataChannelGt(
+                Name=cfg.AboutChannelName,
+                DisplayName=' '.join(part.upper() for part in cfg.AboutChannelName.split('-')),
+                Id=db.make_channel_id(cfg.AboutChannelName),
+                AboutNodeName=cfg.AboutNodeName,
+                CapturedByNodeName=H0N.primary_power_meter,
+                TelemetryName=TelemetryName.PowerW,
+                InPowerMetering=cfg.InPowerMetering,
+                TerminalAssetAlias=db.terminal_asset_alias,
+            )
+            for cfg in egauge.ChannelConfigs
         ]
     )
