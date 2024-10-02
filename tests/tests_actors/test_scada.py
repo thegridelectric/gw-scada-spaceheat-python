@@ -349,7 +349,6 @@ async def test_scada_snaphot_request_delivery(tmp_path, monkeypatch, request):
 async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
     """Verify Scada status contains command acks from BooleanActuators and telemetry from 
     MultipurposeSensor."""
-    pytest.skip("test_scada_status_content_dynamics currently hangs")
 
     monkeypatch.chdir(tmp_path)
     settings = ScadaSettings(seconds_per_report=2)
@@ -404,10 +403,11 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             )
             assert scada.scada_atn_fast_dispatch_contract_is_alive
             
-            # Provoke a message by increasing the power of elt1
-            elt1 = scada._data.hardware_layout.node('elt1')
+            # Provoke a message by increasing the power of hp-odu
+            element = scada._data.hardware_layout.node("hp-odu")
+            assert element is not None
             tt = TelemetryTuple(
-                AboutNode=elt1,
+                AboutNode=element,
                 SensorNode=meter.node,
                 TelemetryName=TelemetryName.PowerW,
             )
