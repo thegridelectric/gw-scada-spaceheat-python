@@ -357,6 +357,7 @@
     {
       "ActorClass": "HoneywellThermostat",
       "Alias": "zone1-main-stat",
+      "ComponentId": "229d50a6-e6df-4974-bfef-5913cf668ea4",
       "DisplayName": "Zone 1 Main Thermostat",
       "Role": "Unknown",
       "ShNodeId": "0a570f0d-5536-49f6-a4b6-f75145b4decb",

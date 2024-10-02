@@ -62,7 +62,7 @@ def add_thermostat(
     db.add_components(
         [
             HubitatPollerComponentGt(
-                ComponentId=db.make_component_id(stat_component_display_name ),
+                ComponentId=db.make_component_id(stat_component_display_name),
                 ComponentAttributeClassId=db.cac_id_by_alias(make_model),
                 DisplayName=stat_component_display_name, 
                 Poller=HubitatPollerGt(
@@ -144,7 +144,7 @@ def add_thermostat(
                 ActorClass=stat_cfg.actor_class,
                 Role=Role.Unknown,
                 DisplayName=stat_display_name,
-                ComponentId=db.component_id_by_alias(stat_display_name)
+                ComponentId=db.component_id_by_alias(stat_component_display_name)
             )
         ] + [
             SpaceheatNodeGt(
