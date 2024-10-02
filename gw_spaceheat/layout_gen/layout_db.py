@@ -160,6 +160,7 @@ class LayoutDb:
         cacs: Optional[list[ComponentAttributeClassGt]] = None,
         components: Optional[list[ComponentGt]] = None,
         nodes: Optional[list[SpaceheatNodeGt]] = None,
+        channels: Optional[list[DataChannelGt]] = None,
         add_stubs: bool = False,
         stub_config: Optional[StubConfig] = None,
     ):
@@ -178,6 +179,9 @@ class LayoutDb:
             self.add_components(components)
         if nodes is not None:
             self.add_nodes(nodes)
+        if channels is not None:
+            self.add_data_channels(channels)
+        
         if add_stubs:
             self.add_stubs(stub_config)
         self.terminal_asset_alias = self.misc["MyTerminalAssetGNode"]["Alias"]

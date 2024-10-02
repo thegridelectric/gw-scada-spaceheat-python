@@ -126,7 +126,7 @@ def add_thermostat(
                         AsyncCapture=True,
                         AsyncCaptureDelta=1,
                         Exponent=0,
-                        Unit=Unit.Unitless
+                        Unit=Unit.ThermostatStateEnum,
                     )
                 ]
             )
