@@ -208,7 +208,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                 f"Expected make model in {models}, got {component.cac.MakeModel}"
             )
         c = component.gt
-        self.terminal_block_idx_list = [tc.TerminalBlockIdx for tc in c.ThermistorConfigList]
+        self.terminal_block_idx_list = [tc.TerminalBlockIdx for tc in c.ConfigList]
         self.telemetry_name_list = component.cac.TelemetryNameList
         self.ads_address = {i: address for i, address in enumerate(component.cac.AdsI2cAddressList)}
 
