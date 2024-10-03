@@ -18,7 +18,7 @@ class ScadaSettings(ProactorSettings):
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
 
-    model_config = SettingsConfigDict(env_prefix="SCADA_")
+    model_config = SettingsConfigDict(env_prefix="SCADA_", extra="allow")
 
     @model_validator(mode="before")
     @classmethod
