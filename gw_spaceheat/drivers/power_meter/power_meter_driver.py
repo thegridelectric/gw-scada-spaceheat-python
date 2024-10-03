@@ -1,6 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import List
 
 from result import Err
 from result import Ok
@@ -15,6 +14,10 @@ from enums import TelemetryName
 
 
 class PowerMeterDriver(ABC):
+    component: ElectricMeterComponent
+    settings: ScadaSettings
+    logger: logging.Logger
+
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         if not isinstance(component, ElectricMeterComponent):
             raise Exception(f"ElectricMeterDriver requires ElectricMeterComponent. Got {component}")
