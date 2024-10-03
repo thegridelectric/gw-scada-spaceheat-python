@@ -167,6 +167,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                     Problems(warnings=result.value.warnings), "startup warning"
                 )
         else:
+            self.running = False
             self._report_problems(Problems(errors=[result.err()]), "startup error")
             self._put_to_async_queue(
                 InternalShutdownMessage(Src=self.name, Reason=f"Driver start error for {self.name}")

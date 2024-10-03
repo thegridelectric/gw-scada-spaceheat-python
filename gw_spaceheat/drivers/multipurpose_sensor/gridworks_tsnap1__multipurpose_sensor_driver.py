@@ -177,9 +177,14 @@ VOLTAGE_DIVIDER_R_OHMS = 10000
 class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
     # gives a range up to +/- 6.144V
     ADS_GAIN = 0.6666666666666666
+    SUPPORTED_TELEMETRIES = {
+        TelemetryName.WaterTempCTimes1000,
+        TelemetryName.AirTempCTimes1000
+    }
 
     ads: dict[int, ADS]
     i2c: busio.I2C
+
 
     def __init__(self, component: Ads111xBasedComponent, settings: ScadaSettings):
         """
@@ -213,10 +218,10 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self.ads_address = {i: address for i, address in enumerate(component.cac.AdsI2cAddressList)}
 
     def start(self) -> Result[DriverResult[bool], Exception]:
-        if set(self.telemetry_name_list) != {TelemetryName.WaterTempCTimes1000.value}:
+        if set(self.telemetry_name_list) != self.SUPPORTED_TELEMETRIES:
             return Err(
                 TSnap1WrongTelemetryList(
-                    {TelemetryName.WaterTempCTimes1000}, self.telemetry_name_list
+                    self.SUPPORTED_TELEMETRIES, self.telemetry_name_list
                 )
             )
 
