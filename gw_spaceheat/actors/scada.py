@@ -180,17 +180,21 @@ class Scada(ScadaInterface, Proactor):
                     self.send_status()
                     self._last_status_second = int(time.time())
                 await asyncio.sleep(self.seconds_until_next_status())
-            except asyncio.CancelledError:
-                ...
             except Exception as e:
-                self._send(
-                    InternalShutdownMessage( # noqa
-                        Src=self.name, # noqa
-                        Reason=( # noqa
-                            f"update_status() task got exception: <{type(e)}> {e}"
-                        ),
-                    ) # noqa
-                )
+                try:
+                    if not isinstance(e, asyncio.CancelledError):
+                        self._logger.exception(e)
+                        self._send(
+                            InternalShutdownMessage(
+                                Src=self.name,
+                                Reason=(
+                                    f"update_status() task got exception: <{type(e)}> {e}"
+                                ),
+                            )
+                        )
+                finally:
+                    break
+
 
     def send_status(self):
         status = self._data.make_status(self._last_status_second)
@@ -220,7 +224,6 @@ class Scada(ScadaInterface, Proactor):
     def time_to_send_status(self) -> bool:
         return time.time() > self.next_status_second()
 
-    # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
         return Ok()
@@ -374,11 +377,15 @@ class Scada(ScadaInterface, Proactor):
         self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
     ):
         self._logger.path(
-            "++gt_sh_telemetry_from_multipurpose_sensor_received from: %s", from_node.alias
+            "++gt_sh_telemetry_from_multipurpose_sensor_received from: %s  nodes: %d",
+            from_node.alias,
+            len(payload.AboutNodeAliasList)
         )
+        path_dbg = 0
         if from_node in self._layout.my_multipurpose_sensors:
-            about_node_alias_list = payload.AboutNodeAliasList
-            for idx, about_alias in enumerate(about_node_alias_list):
+            path_dbg |= 0x00000001
+            for idx, about_alias in enumerate(payload.AboutNodeAliasList):
+                path_dbg |= 0x00000002
                 if about_alias not in self._layout.nodes:
                     raise Exception(
                         f"alias {about_alias} in payload.AboutNodeAliasList not a recognized ShNode!"
@@ -399,6 +406,9 @@ class Scada(ScadaInterface, Proactor):
                 self._data.latest_value_from_multipurpose_sensor[
                     tt
                 ] = payload.ValueList[idx]
+        self._logger.path(
+            "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
+        )
 
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():

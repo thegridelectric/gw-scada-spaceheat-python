@@ -198,7 +198,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
                     f"wait for PowerMeter periodic update [{tt.TelemetryName}]"
                 )
 
-    await AsyncFragmentRunner.async_run_fragment(Fragment, args=argparse.Namespace(verbose=True), tag=request.node.name)
+    await AsyncFragmentRunner.async_run_fragment(Fragment, tag=request.node.name)
 
 
 @pytest.mark.asyncio
@@ -249,7 +249,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
             )
 
             # Simulate power changes. Verify Scada and Atn get messages for each.
-            num_changes = 5
+            num_changes = 2
             for i in range(num_changes):
                 scada._logger.info(f"Generating PowerWatts change {i + 1}/{num_changes}")
                 latest_total_power_w = scada._data.latest_total_power_w

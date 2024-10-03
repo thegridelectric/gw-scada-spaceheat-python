@@ -1,10 +1,10 @@
 from typing import Dict
 from typing import List
 
+from gwproto.data_classes.components import Ads111xBasedComponent
 from result import Result
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.components import Component
 from drivers.driver_result import DriverResult
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import TelemetrySpec
 
@@ -14,8 +14,8 @@ from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
 
 
 class UnknownMultipurposeSensorDriver(MultipurposeSensorDriver):
-    def __init__(self, component: Component, settings: ScadaSettings):
-        super(UnknownMultipurposeSensorDriver, self).__init__(
+    def __init__(self, component: Ads111xBasedComponent, settings: ScadaSettings):
+        super().__init__(
             component=component, settings=settings
         )
 

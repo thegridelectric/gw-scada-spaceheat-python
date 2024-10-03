@@ -318,28 +318,6 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
-    # def set_relay(self, name: str, state: bool) -> None:
-    #     self.send_threadsafe(
-    #         Message(
-    #             Src=self.name,
-    #             Dst=self.name,
-    #             Payload=GtDispatchBoolean(
-    #                 AboutNodeName=name,
-    #                 ToGNodeAlias=self.layout.scada_g_node_alias,
-    #                 FromGNodeAlias=self.layout.atn_g_node_alias,
-    #                 FromGNodeInstanceId=self.layout.atn_g_node_instance_id,
-    #                 RelayState=int(state),
-    #                 SendTimeUnixMs=int(time.time() * 1000),
-    #             ),
-    #         )
-    #     )
-
-    def turn_on(self, relay_node: ShNode):
-        self.set_relay(relay_node.alias, True)
-
-    def turn_off(self, relay_node: ShNode):
-        self.set_relay(relay_node.alias, False)
-
     def start(self):
         if self.event_loop_thread is not None:
             raise ValueError("ERROR. start() already called once.")

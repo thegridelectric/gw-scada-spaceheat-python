@@ -351,17 +351,16 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
     MultipurposeSensor."""
 
     monkeypatch.chdir(tmp_path)
-    settings = ScadaSettings(seconds_per_report=2)
+    settings = ScadaSettings(seconds_per_report=1)
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs(parents=True)
-    atn_settings = AtnSettings()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
     actors = Actors(
         settings,
         layout=layout,
         scada=ScadaRecorder(H0N.scada, settings, hardware_layout=layout),
-        atn_settings=atn_settings,
+        atn_settings=AsyncFragmentRunner.make_atn_settings()
     )
     actors.scada._last_status_second = int(time.time())
     actors.scada.suppress_status = True
@@ -376,7 +375,6 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             scada = self.runner.actors.scada
             link_stats = scada.stats.links["gridworks"]
             meter = self.runner.actors.meter
-            # telemetry_message_type = "gt.telemetry"
             meter_telemetry_message_type = "gt.sh.telemetry.from.multipurpose.sensor"
 
             # Verify scada status and snapshot are emtpy
@@ -388,7 +386,6 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             assert len(snapshot.Snapshot.TelemetryNameList) == 0
             assert len(snapshot.Snapshot.AboutNodeAliasList) == 0
             assert len(snapshot.Snapshot.ValueList) == 0
-            #assert link_stats.num_received_by_type[telemetry_message_type] == 0
             assert link_stats.num_received_by_type[meter_telemetry_message_type] == 0
 
             # Make sub-actors send their reports
@@ -415,7 +412,6 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
 
             await await_for(
                 lambda: (
-                    #scada.stats.num_received_by_type[telemetry_message_type] >= 3
                     scada.stats.num_received_by_type[meter_telemetry_message_type] >= 1
                 ),
                 5,
@@ -424,15 +420,6 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             )
 
             status = scada._data.make_status(int(time.time()))
-            # assert len(status.SimpleTelemetryList) == 2
-            # assert status.SimpleTelemetryList[0].ValueList[-1] == 1
-            # assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.alias
-            # assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
-            # assert status.SimpleTelemetryList[1].ShNodeAlias == thermo.node.alias
-            # assert status.SimpleTelemetryList[1].TelemetryName == TelemetryName.WaterTempFTimes1000
-            # assert len(status.BooleanactuatorCmdList) == 1
-            # assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
-            # assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.node.alias
             assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
@@ -457,26 +444,14 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             # Verify contents of status and snapshot are as expected
             status = atn.data.latest_status
             assert isinstance(status, GtShStatus)
-            # assert len(status.SimpleTelemetryList) == 2
-            # assert status.SimpleTelemetryList[0].ValueList == [0, 1]
-            # assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.alias
-            # assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
-            # assert status.SimpleTelemetryList[1].ShNodeAlias == thermo.node.alias
-            # assert status.SimpleTelemetryList[1].TelemetryName == TelemetryName.WaterTempFTimes1000
-            # assert len(status.BooleanactuatorCmdList) == 1
-            # assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
-            # assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.node.alias
             assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.alias
             snapshot = atn.data.latest_snapshot
-            # import pprint
-            # pprint.pprint(status.asdict())
-            # pprint.pprint(snapshot.asdict())
             assert isinstance(snapshot, SnapshotSpaceheat)
             assert set(snapshot.Snapshot.AboutNodeAliasList) == set(
                 [
-                    node.alias for node in self.runner.layout.all_nodes_in_agg_power_metering
+                    tpl.AboutNode.alias for tpl in self.runner.layout.all_power_meter_telemetry_tuples
                 ]
             )
             assert len(snapshot.Snapshot.AboutNodeAliasList) ==  \
@@ -503,6 +478,6 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             assert len(status.BooleanactuatorCmdList) == 0
             assert len(status.MultipurposeTelemetryList) == 0
 
-    runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
+    runner = AsyncFragmentRunner(settings, actors=actors, tag=request.node.name)
     runner.add_fragment(Fragment(runner))
     await runner.async_run()

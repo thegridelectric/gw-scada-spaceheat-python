@@ -122,7 +122,7 @@ def missing_tls_paths(paths: TLSPaths) -> list[tuple[str, Optional[Path]]]:
 
 def check_tls_paths_present(model: BaseModel | BaseSettings, raise_error: bool = True) -> str:
     missing_str = ""
-    for k, v in model._iter():  # noqa
+    for k, v in model.model_fields.items():
         if isinstance(v, MQTTClient):
             if v.tls.use_tls:
                 missing_paths = missing_tls_paths(v.tls.paths)

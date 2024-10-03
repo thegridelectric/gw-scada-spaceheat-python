@@ -287,7 +287,7 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
     settings.paths.mkdirs()
     scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, Scada.DEFAULT_ACTORS_MODULE)
     scada = None
-    for k, v in settings._iter():  # noqa
+    for k, v in settings.model_fields.items():
         if isinstance(v, MQTTClient):
             v.tls.use_tls = False
     try:
