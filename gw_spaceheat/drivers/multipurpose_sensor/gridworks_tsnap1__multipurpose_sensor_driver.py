@@ -299,7 +299,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self, channel_telemetry_list: List[TelemetrySpec]
     ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
         for ts in channel_telemetry_list:
-            if ts.Type.value not in [
+            if ts.Type not in [
                 TelemetryName.WaterTempCTimes1000,
                 TelemetryName.AirTempCTimes1000,
             ]:
