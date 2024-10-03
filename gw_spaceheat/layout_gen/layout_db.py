@@ -130,6 +130,8 @@ class StubConfig:
     boost_element_display_name: str = "Dummy Boost Element"
 
 class LayoutIDMap:
+    REMOTE_HARDWARE_LAYOUT_PATH: str = "/home/pi/.config/gridworks/scada/hardware-layout.json"
+
     cacs_by_alias: dict[str, str]
     components_by_alias: dict[str, str]
     nodes_by_alias: dict[str, str]
@@ -218,14 +220,18 @@ class LayoutIDMap:
             return LayoutIDMap(json.loads(f.read()))
 
     @classmethod
-    def from_rclone(cls, rclone_name: str, upload_dir: Path) -> "LayoutIDMap":
+    def from_rclone(
+        cls, rclone_name: str,
+        upload_dir: Path,
+        remote_path: str | Path = REMOTE_HARDWARE_LAYOUT_PATH
+    ) -> "LayoutIDMap":
         if not upload_dir.exists():
             upload_dir.mkdir(parents=True)
         dest_path = upload_dir / f"{rclone_name}.uploaded.json"
         upload = [
             "rclone",
             "copyto",
-            f"{rclone_name}:/home/pi/.config/gridworks/scada/hardware-layout.json",
+            f"{rclone_name}:{str(remote_path)}",
             f"{dest_path}",
         ]
         print(f"Running upload command:\n\n{' '.join(upload)}\n")
