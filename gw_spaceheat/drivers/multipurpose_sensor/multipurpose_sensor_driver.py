@@ -1,18 +1,15 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
+from gwproto.data_classes.data_channel import DataChannel
 from drivers.driver_result import DriverResult
 from result import Ok, Result
-from enums import TelemetryName
 
 
-class TelemetrySpec(NamedTuple):
-    AdsTerminalBlockIdx: int
-    Type: TelemetryName
 
 
 class MultipurposeSensorDriver(ABC):
@@ -30,6 +27,6 @@ class MultipurposeSensorDriver(ABC):
 
     @abstractmethod
     def read_telemetry_values(
-        self, channel_telemetry_list: List[TelemetrySpec]
-    ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
+        self, data_channels: List[DataChannel]
+    ) -> Result[DriverResult[Dict[DataChannel, int]], Exception]:
         raise NotImplementedError

@@ -4,7 +4,7 @@ from typing import Dict, List
 from typing import Optional
 
 from actors.config import ScadaSettings
-
+from gwproto.data_classes.data_channel import DataChannel
 from drivers.driver_result import DriverResult
 
 from result import Err, Ok, Result
@@ -23,12 +23,12 @@ from adafruit_ads1x15.analog_in import AnalogIn
 from drivers.exceptions import DriverWarning
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
-    TelemetrySpec,
 )
 from enums import MakeModel, TelemetryName
 from gwproto.data_classes.components.ads111x_based_component import (
     Ads111xBasedComponent
 )
+from gwproto.types import AdsChannelConfig
 DEFAULT_BAD_VALUE = -5
 
 
@@ -212,6 +212,15 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             raise Exception(
                 f"Expected make model in {models}, got {component.cac.MakeModel}"
             )
+        self.my_telemetry_names = component.cac.TelemetryNameList
+        if set(self.my_telemetry_names) != {
+            TelemetryName.WaterTempCTimes1000,
+            TelemetryName.AirTempCTimes1000
+            }:
+            raise Exception(
+                "Expect AirTempCTimes1000 and AirTempFTimes1000 for AdsCac "
+                "TelemetryNameList!"
+            )
         c = component.gt
         self.terminal_block_idx_list = [tc.TerminalBlockIdx for tc in c.ConfigList]
         self.telemetry_name_list = component.cac.TelemetryNameList
@@ -221,6 +230,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             return int(addr_, 16)
 
         self.ads_address = {i: _int_address(address) for i, address in enumerate(component.cac.AdsI2cAddressList)}
+        self.ads = {}
 
     def start(self) -> Result[DriverResult[bool], Exception]:
         if set(self.telemetry_name_list) != self.SUPPORTED_TELEMETRIES:
@@ -262,12 +272,13 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         return Ok(driver_result)
 
     def read_voltage(
-        self, ts: TelemetrySpec
+        self, ch: DataChannel
     ) -> Result[DriverResult[float | None], Exception]:
+        cfg = next((cfg for cfg in self.component.gt.ConfigList if cfg.ChannelName == ch.Name), None)
         driver_result = DriverResult[float | None](None)
-        i = int((ts.AdsTerminalBlockIdx - 1) / 4)
+        i = int((cfg.TerminalBlockIdx - 1) / 4)
         if i in self.ads:
-            pin = [ADS.P0, ADS.P1, ADS.P2, ADS.P3][(ts.AdsTerminalBlockIdx - 1) % 4]
+            pin = [ADS.P0, ADS.P1, ADS.P2, ADS.P3][(cfg.TerminalBlockIdx - 1) % 4]
             try:
                 channel = AnalogIn(self.ads[i], pin)
                 voltage = channel.voltage
@@ -306,24 +317,21 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         return Ok(driver_result)
 
     def read_telemetry_values(
-        self, channel_telemetry_list: List[TelemetrySpec]
-    ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
-        for ts in channel_telemetry_list:
-            if ts.Type not in [
-                TelemetryName.WaterTempCTimes1000,
-                TelemetryName.AirTempCTimes1000,
-            ]:
-                return Err(TSnap1ComponentMisconfigured(str(ts)))
-        driver_result = DriverResult[Dict[TelemetrySpec, int]]({})
-        for ts in channel_telemetry_list:
-            read_voltage_result = self.read_voltage(ts)
+        self, data_channels: List[DataChannel]
+    ) -> Result[DriverResult[Dict[DataChannel, int]], Exception]:
+        for ch in data_channels:
+            if ch.TelemetryName not in self.my_telemetry_names:
+                return Err(TSnap1ComponentMisconfigured(str(ch)))
+        driver_result = DriverResult[Dict[DataChannel, int]]({})
+        for ch in data_channels:
+            read_voltage_result = self.read_voltage(ch)
             if read_voltage_result.is_ok():
                 if read_voltage_result.value.warnings:
                     driver_result.warnings.extend(read_voltage_result.value.warnings)
                 if read_voltage_result.value.value is not None:
                     convert_voltage_result = self.voltage_to_c(read_voltage_result.value.value)
                     if convert_voltage_result.is_ok():
-                        driver_result.value[ts] = int(convert_voltage_result.value * 1000)
+                        driver_result.value[ch] = int(convert_voltage_result.value * 1000)
                     else:
                         driver_result.warnings.append(convert_voltage_result.err())
         return Ok(driver_result)

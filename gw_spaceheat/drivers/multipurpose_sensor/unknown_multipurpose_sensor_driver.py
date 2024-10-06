@@ -6,8 +6,7 @@ from result import Result
 
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
-from drivers.multipurpose_sensor.multipurpose_sensor_driver import TelemetrySpec
-
+from gwproto.data_classes.data_channel import DataChannel
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
 )
@@ -22,6 +21,6 @@ class UnknownMultipurposeSensorDriver(MultipurposeSensorDriver):
     def __repr__(self):
         return "UnknownMultipurposeSensorDriver"
 
-    def read_telemetry_values(self, channel_telemetry_list: List[TelemetrySpec]) -> Result[
-            DriverResult[Dict[TelemetrySpec, int]], Exception]:
+    def read_telemetry_values(self, channel_telemetry_list: List[DataChannel]) -> Result[
+            DriverResult[Dict[DataChannel, int]], Exception]:
         pass

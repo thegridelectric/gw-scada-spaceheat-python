@@ -6,7 +6,6 @@ import importlib.util
 import sys
 import time
 import typing
-from collections import OrderedDict
 from typing import Dict, List, Optional
 
 from actors.config import ScadaSettings
@@ -20,7 +19,6 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
-    TelemetrySpec,
 )
 from gwproto import Message
 
@@ -59,16 +57,6 @@ class MpDriverThreadSetupHelper:
         self.hardware_layout = hardware_layout
         self.component = typing.cast(Ads111xBasedComponent, node.component)
 
-    def make_config_by_telemetry_spec(
-        self,
-    ) -> Dict[TelemetrySpec, AdsChannelConfig]:
-        d: Dict[TelemetrySpec, AdsChannelConfig] = OrderedDict()
-        for config in self.component.gt.ConfigList:
-            terminal_block_idx = config.TerminalBlockIdx
-            channel = self.hardware_layout.data_channels[config.ChannelName]
-            ts = TelemetrySpec(AdsTerminalBlockIdx=terminal_block_idx, Type=channel.TelemetryName)
-            d[ts] = config
-        return d
 
     def make_driver(self) -> MultipurposeSensorDriver:
         driver_module_name = ""
@@ -106,13 +94,11 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
 
     FASTEST_POLL_PERIOD_MS = 40
     driver: MultipurposeSensorDriver
-    config_by_spec: Dict[TelemetrySpec, AdsChannelConfig]
-    telemetry_specs: List[TelemetrySpec]
+    cfg_by_ch: Dict[DataChannel, AdsChannelConfig]
     my_channels: List[DataChannel]
-    telemetry_configs: List[AdsChannelConfig]
-    last_reported_telemetry_value: Dict[AdsChannelConfig, Optional[int]]
-    latest_telemetry_value: Dict[AdsChannelConfig, Optional[int]]
-    _last_sampled_s: Dict[AdsChannelConfig, Optional[int]]
+    last_reported_telemetry_value: Dict[DataChannel, Optional[int]]
+    latest_telemetry_value: Dict[DataChannel, Optional[int]]
+    _last_sampled_s: Dict[DataChannel, Optional[int]]
     _telemetry_destination: str
     _hardware_layout: HardwareLayout
 
@@ -137,17 +123,17 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             self.component.cac.MinPollPeriodMs,
         )
         self._telemetry_destination = telemetry_destination
-        my_channel_names = [x.ChannelName for x in self.component.gt.ConfigList]
-        all_channels = self._hardware_layout.data_channels
-        self.my_channels = [ch for ch in all_channels.values() if ch.AboutNodeName in my_channel_names]
+        my_channel_names = {x.ChannelName for x in self.component.gt.ConfigList}
+        self.my_channels = [ch for ch in self._hardware_layout.data_channels.values() if ch.AboutNodeName in my_channel_names]
         setup_helper = MpDriverThreadSetupHelper(node, settings, hardware_layout)
-        self.config_by_spec = setup_helper.make_config_by_telemetry_spec()
-        self.telemetry_specs = list(self.config_by_spec.keys())
-        self.telemetry_configs = self.component.gt.ConfigList
+        self.cfg_by_ch = {
+            self._hardware_layout.data_channels[cfg.ChannelName]: cfg
+            for cfg in self.component.gt.ConfigList
+        }
         self.driver = setup_helper.make_driver()
-        self.last_reported_telemetry_value = {tt: None for tt in self.telemetry_configs}
-        self.latest_telemetry_value = {tc: None for tc in self.telemetry_configs}
-        self._last_sampled_s = {tc: None for tc in self.telemetry_configs}
+        self.last_reported_telemetry_value = {ch: None for ch in self.my_channels}
+        self.latest_telemetry_value = {ch: None for ch in self.my_channels}
+        self._last_sampled_s = {ch: None for ch in self.my_channels}
     
 
     def _report_problems(self, problems: Problems, tag: str):
@@ -177,9 +163,9 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         start_s = time.time()
         self.poll_sensor()
         report_list = [
-            tc
-            for tc in self.telemetry_configs
-            if self.should_report_telemetry_reading(tc)
+            ch
+            for ch in self.my_channels
+            if self.should_report_telemetry_reading(ch)
         ]
         if report_list:
             self.report_sampled_telemetry_values(report_list)
@@ -190,13 +176,12 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         self._iterate_sleep_seconds = sleep_time_ms / 1000
 
     def poll_sensor(self):
-        read = self.driver.read_telemetry_values(self.telemetry_specs)
+        read = self.driver.read_telemetry_values(self.my_channels)
         if read.is_ok():
-            reading_by_ts = read.value.value
-            for ts in self.telemetry_specs:
-                if ts in reading_by_ts:
-                    telemetry_config = self.config_by_spec[ts]
-                    self.latest_telemetry_value[telemetry_config] = reading_by_ts[ts]
+            reading_by_ch = read.value.value
+            for ch in self.my_channels:
+                if ch in reading_by_ch:
+                    self.latest_telemetry_value[ch] = reading_by_ch[ch]
             if read.value.warnings:
                 self._report_problems(
                     Problems(warnings=read.value.warnings), "read warnings"
@@ -206,10 +191,9 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     
 
     def report_sampled_telemetry_values(
-        self, report_list: List[AdsChannelConfig]
+        self, report_list: List[DataChannel]
     ):
-        about_names = [self._hardware_layout.data_channels[tc.ChannelName].AboutNodeName 
-                        for tc in report_list]
+        about_names = [ch.Name for ch in report_list]
         
         self._put_to_async_queue(
             MultipurposeSensorTelemetryMessage(
@@ -225,46 +209,47 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 telemetry_name_list=list(map(lambda x: x.TelemetryName, report_list)),
             )
         )
-        for tt in report_list:
-            self._last_sampled_s[tt] = int(time.time())
-            self.last_reported_telemetry_value[tt] = self.latest_telemetry_value[tt]
+        for ch in report_list:
+            self._last_sampled_s[ch] = int(time.time())
+            self.last_reported_telemetry_value[ch] = self.latest_telemetry_value[ch]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def value_exceeds_async_threshold(
-        self, telemetry_config: AdsChannelConfig
+        self, ch: DataChannel
     ) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
         the amount of change required (as a function of the absolute max value) determined
-        in the EqConfig.
+        in the Config.
         """
+        telemetry_config = self.cfg_by_ch[ch]
         if (
                 telemetry_config.AsyncCapture and
                 telemetry_config.AsyncCaptureDelta is not None
         ):
             abs_telemetry_delta = abs(
-                self.latest_telemetry_value[telemetry_config] -
-                self.last_reported_telemetry_value[telemetry_config]
+                self.latest_telemetry_value[ch] -
+                self.last_reported_telemetry_value[ch]
             )
             if abs_telemetry_delta > telemetry_config.AsyncCaptureDelta:
                 return True
         return False
 
     def should_report_telemetry_reading(
-        self, telemetry_config: AdsChannelConfig
+        self, ch: DataChannel
     ) -> bool:
-        if self.latest_telemetry_value[telemetry_config] is None:
+        if self.latest_telemetry_value[ch] is None:
             return False
         if (
-            self._last_sampled_s[telemetry_config] is None
-            or self.last_reported_telemetry_value[telemetry_config] is None
+            self._last_sampled_s[ch] is None
+            or self.last_reported_telemetry_value[ch] is None
         ):
             return True
         if (
-            time.time() - self._last_sampled_s[telemetry_config]
-            > telemetry_config.CapturePeriodS
+            time.time() - self._last_sampled_s[ch]
+            > self.cfg_by_ch[ch].CapturePeriodS
         ):
             return True
-        if self.value_exceeds_async_threshold(telemetry_config):
+        if self.value_exceeds_async_threshold(ch):
             return True
         return False
 
