@@ -417,7 +417,8 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             )
 
             status = scada._data.make_status(int(time.time()))
-            assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
+            NUM_STAT_CHANNELS = 3
+            assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples) - NUM_STAT_CHANNELS
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.Name
 
@@ -441,7 +442,7 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             # Verify contents of status and snapshot are as expected
             status = atn.data.latest_status
             assert isinstance(status, GtShStatus)
-            assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
+            assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples) - NUM_STAT_CHANNELS
             for entry in status.MultipurposeTelemetryList:
                 assert entry.SensorNodeAlias == meter.node.Name
             snapshot = atn.data.latest_snapshot

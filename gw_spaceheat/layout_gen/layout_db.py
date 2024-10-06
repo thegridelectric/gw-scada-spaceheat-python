@@ -11,7 +11,6 @@ from gw.errors import DcError
 
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.enums import ActorClass
-from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
 from gwproto.enums import Unit
 from gwproto.enums import TelemetryName
@@ -405,7 +404,6 @@ class LayoutDb:
                             MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                             DisplayName=cfg.power_meter_cac_alias,
                             TelemetryNameList=[TelemetryName.PowerW],
-                            Interface=LocalCommInterface.ETHERNET,
                             MinPollPeriodMs=1000,
                         )
                     ),

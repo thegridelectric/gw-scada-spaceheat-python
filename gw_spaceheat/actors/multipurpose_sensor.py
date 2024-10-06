@@ -193,7 +193,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     def report_sampled_telemetry_values(
         self, report_list: List[DataChannel]
     ):
-        about_names = [ch.Name for ch in report_list]
+        about_names = [ch.AboutNodeName for ch in report_list]
         
         self._put_to_async_queue(
             MultipurposeSensorTelemetryMessage(

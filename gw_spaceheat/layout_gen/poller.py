@@ -58,6 +58,8 @@ def add_thermostat(
     temp_channel_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}-{TEMP_CHANNEL_SUFFIX}"
     setpt_channel_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}-{SETPT_CHANNEL_SUFFIX}"
     state_channel_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}-{STATE_CHANNEL_SUFFIX}"
+    zone_node_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}"
+    stat_node_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}-stat"
     db.add_components(
         [
             HubitatPollerComponentGt(
@@ -70,7 +72,7 @@ def add_thermostat(
                     attributes=[
                         MakerAPIAttributeGt(
                         attribute_name=HUBITAT_TEMP_ATTRIBUTE_NAME,
-                        node_name=TEMP_CHANNEL_SUFFIX,
+                        node_name=zone_node_name,
                         channel_name=temp_channel_name,
                         telemetry_name=TelemetryName.AirTempFTimes1000,
                         unit=Unit.Fahrenheit,
@@ -79,7 +81,7 @@ def add_thermostat(
                     ),
                     MakerAPIAttributeGt(
                         attribute_name=HUBITAT_SETPT_ATTRIBUTE_NAME,
-                        node_name=SETPT_CHANNEL_SUFFIX,
+                        node_name=stat_node_name,
                         channel_name=setpt_channel_name,
                         telemetry_name=TelemetryName.AirTempFTimes1000,
                         unit=Unit.Fahrenheit,
@@ -88,7 +90,7 @@ def add_thermostat(
                     ),
                     MakerAPIAttributeGt(
                         attribute_name=HUBITAT_STATE_ATTRIBUTE_NAME,
-                        node_name=STATE_CHANNEL_SUFFIX,
+                        node_name=zone_node_name,
                         channel_name=state_channel_name,
                         interpret_as_number=False,
                         telemetry_name=TelemetryName.ThermostatState,
@@ -131,9 +133,8 @@ def add_thermostat(
             )
         ]
     )
-    stat_node_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}-stat"
+
     stat_display_name = f"Zone {stat_cfg.zone_idx} {stat_cfg.zone_name.capitalize()} Thermostat"
-    zone_node_name = f"zone{stat_cfg.zone_idx}-{stat_cfg.zone_name}"
     zone_display_name = f"Zone {stat_cfg.zone_idx} {stat_cfg.zone_name.capitalize()}"
     db.add_nodes(
         [
