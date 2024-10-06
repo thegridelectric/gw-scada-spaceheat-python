@@ -24,7 +24,7 @@ from gwproto.enums import TelemetryName
 from gwproto.messages import GtShMultipurposeTelemetryStatus
 from gwproto.messages import GtShStatus
 from gwproto.messages import SnapshotSpaceheat
-from data_classes.house_0 import H0N
+from data_classes.house_0 import H0N, H0CN
 
 def test_scada_small():
     settings = ScadaSettings()
@@ -403,12 +403,9 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             # Provoke a message by increasing the power of hp-odu
             element = scada._data.hardware_layout.node("hp-odu")
             assert element is not None
-            tt = TelemetryTuple(
-                AboutNode=element,
-                SensorNode=meter.node,
-                TelemetryName=TelemetryName.PowerW,
-            )
-            meter._sync_thread.latest_telemetry_value[tt] += 300
+            scada._layout.channel
+            ch = scada._layout.channel(H0CN.hp_odu_pwr)
+            meter._sync_thread.latest_telemetry_value[ch] += 300
 
             await await_for(
                 lambda: (

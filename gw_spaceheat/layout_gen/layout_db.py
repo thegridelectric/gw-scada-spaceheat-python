@@ -11,7 +11,6 @@ from gw.errors import DcError
 
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.enums import ActorClass
-from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
 from gwproto.enums import Role
 from gwproto.enums import Unit
@@ -23,7 +22,6 @@ from gwproto.types import SpaceheatNodeGt
 from gwproto.types import DataChannelGt
 from gwproto.types import ElectricMeterChannelConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
-from gwproto.enums import TelemetryName
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
 from data_classes.house_0 import H0N, H0CN, H0Readers
@@ -244,7 +242,7 @@ class LayoutIDMap:
         return cls.from_path(dest_path)
 
 class LayoutDb:
-    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt]]
+    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt | DataChannelGt]]
     cacs_by_id: dict[str, ComponentAttributeClassGt]
     components_by_id: dict[str, ComponentGt]
     nodes_by_id: dict[str, SpaceheatNodeGt]
@@ -297,7 +295,8 @@ class LayoutDb:
     def channel_id_by_name(self, name: str) -> Optional[str]:
         return self.maps.channels_by_name.get(name, None)
 
-    def make_cac_id(self, make_model: MakeModel) -> str:
+    @classmethod
+    def make_cac_id(cls, make_model: MakeModel) -> str:
         if make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             return str(uuid.uuid4())
         if type(make_model) is str:
@@ -306,7 +305,7 @@ class LayoutDb:
             else:
                 return str(uuid.uuid4())
         elif make_model.value in CACS_BY_MAKE_MODEL:
-            return CACS_BY_MAKE_MODEL[make_model.value]
+            return CACS_BY_MAKE_MODEL[str(make_model.value)]
         else:
             return str(uuid.uuid4())
 
@@ -327,7 +326,6 @@ class LayoutDb:
                     "already present"
                 )
             self.cacs_by_id[cac.ComponentAttributeClassId] = cac
-
             self.maps.add_cacs_by_alias(
                     cac.ComponentAttributeClassId,
                     cac.MakeModel,
@@ -406,7 +404,6 @@ class LayoutDb:
                             MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                             DisplayName=cfg.power_meter_cac_alias,
                             TelemetryNameList=[TelemetryName.PowerW],
-                            Interface=LocalCommInterface.ETHERNET,
                             MinPollPeriodMs=1000,
                         )
                     ),

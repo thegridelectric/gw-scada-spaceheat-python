@@ -36,23 +36,23 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
     _add_power_meter(db)
     _add_atn(db)
 
-    hubitat = HubitatGt(
-        Host="192.168.0.1",
-        MakerApiId=1,
-        AccessToken="64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
-        MacAddress="34:E1:D1:82:22:22",
-    )
+    # hubitat = HubitatGt(
+    #     Host="192.168.0.1",
+    #     MakerApiId=1,
+    #     AccessToken="64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
+    #     MacAddress="34:E1:D1:82:22:22",
+    # )
 
 
-    add_thermostat(
-        db,
-        HubitatThermostatGenCfg(
-            zone_idx=1,
-            zone_name="main",
-            hubitat=hubitat,
-            device_id=1,
-        )
-    )
+    # add_thermostat(
+    #     db,
+    #     HubitatThermostatGenCfg(
+    #         zone_idx=1,
+    #         zone_name="main",
+    #         hubitat=hubitat,
+    #         device_id=1,
+    #     )
+    # )
 
     return db
 

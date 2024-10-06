@@ -35,39 +35,6 @@
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
       "Version": "001"
-    },
-    {
-      "AboutNodeName": "zone1-main",
-      "CapturedByNodeName": "zone1-main-stat",
-      "DisplayName": "Zone1 Main Temp",
-      "Id": "f92fc2bb-e2a7-4d95-b091-b4703f221fdf",
-      "Name": "zone1-main-temp",
-      "TelemetryName": "AirTempFTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "AboutNodeName": "zone1-main-stat",
-      "CapturedByNodeName": "zone1-main-stat",
-      "DisplayName": "Zone1 Main Set",
-      "Id": "adf6f604-e286-4b92-a6a2-e6f96dffbe20",
-      "Name": "zone1-main-set",
-      "TelemetryName": "AirTempFTimes1000",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
-    },
-    {
-      "AboutNodeName": "zone1-main-stat",
-      "CapturedByNodeName": "zone1-main-stat",
-      "DisplayName": "Zone1 Main State",
-      "Id": "6d2337a2-cb7c-4c0c-a377-cb168a3ccf39",
-      "Name": "zone1-main-state",
-      "TelemetryName": "ThermostatState",
-      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
-      "TypeName": "data.channel.gt",
-      "Version": "001"
     }
   ],
   "ElectricMeterCacs": [
@@ -148,133 +115,7 @@
     "GNodeStatusValue": "Active",
     "PrimaryGNodeRoleAlias": "TerminalAsset"
   },
-  "OtherCacs": [
-    {
-      "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
-      "DisplayName": "Hubitat Elevation C-7",
-      "MakeModel": "HUBITAT__C7__LAN1",
-      "TypeName": "component.attribute.class.gt",
-      "Version": "001"
-    },
-    {
-      "ComponentAttributeClassId": "03533a1f-3cb9-4a1f-8d57-690c0ad0475b",
-      "DisplayName": "Honeywell T6 Thermostat",
-      "MakeModel": "HONEYWELL__T6ZWAVETHERMOSTAT",
-      "MinPollPeriodMs": 5000,
-      "TypeName": "component.attribute.class.gt",
-      "Version": "001"
-    }
-  ],
-  "OtherComponents": [
-    {
-      "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
-      "ComponentId": "3943ab99-f855-4710-ba29-5d1a27ce844b",
-      "ConfigList": [],
-      "DisplayName": "Hubitat 82:22:22",
-      "Hubitat": {
-        "AccessToken": "64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
-        "Host": "192.168.0.1",
-        "MacAddress": "34:e1:d1:82:22:22",
-        "MakerApiId": 1,
-        "WebListenEnabled": true
-      },
-      "HwUid": "822222",
-      "TypeName": "hubitat.component.gt",
-      "Version": "001"
-    },
-    {
-      "ComponentAttributeClassId": "03533a1f-3cb9-4a1f-8d57-690c0ad0475b",
-      "ComponentId": "229d50a6-e6df-4974-bfef-5913cf668ea4",
-      "ConfigList": [
-        {
-          "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
-          "CapturePeriodS": 60,
-          "ChannelName": "zone1-main-temp",
-          "Exponent": 3,
-          "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
-        },
-        {
-          "AsyncCapture": false,
-          "CapturePeriodS": 60,
-          "ChannelName": "zone1-main-set",
-          "Exponent": 3,
-          "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Unit": "Fahrenheit",
-          "Version": "000"
-        },
-        {
-          "AsyncCapture": true,
-          "AsyncCaptureDelta": 1,
-          "CapturePeriodS": 60,
-          "ChannelName": "zone1-main-state",
-          "Exponent": 0,
-          "PollPeriodMs": 5000,
-          "TypeName": "channel.config",
-          "Unit": "ThermostatStateEnum",
-          "Version": "000"
-        }
-      ],
-      "DisplayName": "Thermostat 1 for main",
-      "Poller": {
-        "Attributes": [
-          {
-            "AttributeName": "temperature",
-            "ChannelName": "zone1-main-temp",
-            "Enabled": true,
-            "Exponent": 3,
-            "InterpretAsNumber": true,
-            "NodeName": "temp",
-            "ReportMissing": true,
-            "ReportParseError": true,
-            "TelemetryName": "AirTempFTimes1000",
-            "Unit": "Fahrenheit",
-            "WebListenEnabled": true,
-            "WebPollEnabled": true
-          },
-          {
-            "AttributeName": "heatingSetpoint",
-            "ChannelName": "zone1-main-set",
-            "Enabled": true,
-            "Exponent": 3,
-            "InterpretAsNumber": true,
-            "NodeName": "set",
-            "ReportMissing": true,
-            "ReportParseError": true,
-            "TelemetryName": "AirTempFTimes1000",
-            "Unit": "Fahrenheit",
-            "WebListenEnabled": true,
-            "WebPollEnabled": true
-          },
-          {
-            "AttributeName": "thermostatOperatingState",
-            "ChannelName": "zone1-main-state",
-            "Enabled": true,
-            "Exponent": 3,
-            "InterpretAsNumber": false,
-            "NodeName": "state",
-            "ReportMissing": true,
-            "ReportParseError": true,
-            "TelemetryName": "ThermostatState",
-            "Unit": "Unitless",
-            "WebListenEnabled": true,
-            "WebPollEnabled": true
-          }
-        ],
-        "DeviceId": 1,
-        "Enabled": true,
-        "HubitatComponentId": "3943ab99-f855-4710-ba29-5d1a27ce844b",
-        "PollPeriodSeconds": 60.0,
-        "WebListenEnabled": true
-      },
-      "TypeName": "hubitat.poller.component.gt",
-      "Version": "001"
-    }
-  ],
+  "OtherComponents": [],
   "ShNodes": [
     {
       "ActorClass": "Scada",
@@ -341,35 +182,6 @@
       "DisplayName": "AtomicTNode",
       "Role": "Atn",
       "ShNodeId": "b354edeb-0c82-4e55-80cb-7ab669ac2ad9",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "ActorClass": "Hubitat",
-      "Alias": "hubitat",
-      "ComponentId": "3943ab99-f855-4710-ba29-5d1a27ce844b",
-      "DisplayName": "Hubitat 82:22:22",
-      "Role": "Unknown",
-      "ShNodeId": "0aa83074-bc44-46a5-94af-4efae0a0b634",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "ActorClass": "HoneywellThermostat",
-      "Alias": "zone1-main-stat",
-      "ComponentId": "229d50a6-e6df-4974-bfef-5913cf668ea4",
-      "DisplayName": "Zone 1 Main Thermostat",
-      "Role": "Unknown",
-      "ShNodeId": "0a570f0d-5536-49f6-a4b6-f75145b4decb",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "120"
-    },
-    {
-      "ActorClass": "NoActor",
-      "Alias": "zone1-main",
-      "DisplayName": "Zone 1 Main",
-      "Role": "Unknown",
-      "ShNodeId": "6895fcc6-97da-4b58-b897-f4f80eb6e436",
       "TypeName": "spaceheat.node.gt",
       "Version": "120"
     }
