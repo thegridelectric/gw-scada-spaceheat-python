@@ -2,6 +2,7 @@ from typing import Dict
 from typing import List
 
 from gwproto.data_classes.components import Ads111xBasedComponent
+from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
@@ -23,4 +24,5 @@ class UnknownMultipurposeSensorDriver(MultipurposeSensorDriver):
 
     def read_telemetry_values(self, channel_telemetry_list: List[DataChannel]) -> Result[
             DriverResult[Dict[DataChannel, int]], Exception]:
-        pass
+        return Ok(DriverResult[Dict[DataChannel, int]]({}))
+
