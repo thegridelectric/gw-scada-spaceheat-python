@@ -307,6 +307,35 @@ def try_scada_load(requested_aliases: Optional[set[str]], layout: HardwareLayout
             raise e
     return scada
 
+def print_web_server_info(
+    layout: HardwareLayout,
+    requested_aliases: Optional[set[str]],
+    settings: ScadaSettings,
+) -> None:
+    scada = try_scada_load(
+        requested_aliases,
+        layout,
+        settings,
+        raise_errors=False
+    )
+    if scada is None:
+        print("Cannot print Web server configs and routes since Scada could not be loaded")
+    else:
+        web_configs = scada.get_web_server_configs()
+        web_routes = scada.get_web_server_route_strings()
+        print(f"Web server configs: {len(web_configs)}")
+        if web_configs.keys() != web_routes.keys():
+           print(
+               "Keys for web configs and web routes do not match:\n"
+               f"  configs: {web_configs.keys()}\n"
+               f"  routes:  {web_routes.keys()}"
+           )
+        for k, v in web_configs.items():
+            print(f"Server <{k}>: WebServerGt({v})")
+            routes = web_routes[k]
+            print(f"Routes: {len(routes)}")
+            for route in routes:
+                print(f"  {route}")
 
 def show_layout(
         layout: HardwareLayout,
