@@ -11,6 +11,7 @@ from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from pymodbus.client.sync import ModbusSerialClient
 from enums import MakeModel, TelemetryName
+from gwproto.data_classes.data_channel import DataChannel
 
 PORT = "/dev/ttyUSB0"
 BAUD = 9600
@@ -53,7 +54,7 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         data_as_float = data_bytes.view(dtype=np.float32)
         return int(10**6 * data_as_float[0])
 
-    def read_current_rms_micro_amps(self) -> Result[DriverResult[int | None], Exception]:
+    def read_current_rms_micro_amps(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
         return Ok(DriverResult(self.read_register_exp_6(self.CURRENT_RMS_MICRO_A_ADDR)))
 
     def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
@@ -61,7 +62,7 @@ class SchneiderElectricIem3455_PowerMeterDriver(PowerMeterDriver):
         data_bytes = self.read_register_raw(self.SERIAL_NUMBER_ADDR, 2, np.uint32)
         return Ok(DriverResult(f"{str(data_bytes[0])}_{str(data_bytes[1])}"))
 
-    def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
+    def read_power_w(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError
 
     def telemetry_name_list(self) -> List[TelemetryName]:
