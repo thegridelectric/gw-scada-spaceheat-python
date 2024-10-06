@@ -327,12 +327,12 @@ class LayoutDb:
                     "already present"
                 )
             self.cacs_by_id[cac.ComponentAttributeClassId] = cac
-            if cac.MakeModel in CACS_BY_MAKE_MODEL:
-                self.maps.add_cacs_by_alias(
+
+            self.maps.add_cacs_by_alias(
                     cac.ComponentAttributeClassId,
                     cac.MakeModel,
                     cac.DisplayName,
-                )
+            )
 
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
