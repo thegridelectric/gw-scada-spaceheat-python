@@ -152,7 +152,7 @@ class HubitatWebEventHandler(BaseModel):
                 message = MultipurposeSensorTelemetryMessage(
                     src=self.report_src_node_name,
                     dst=report_dst,
-                    about_node_alias_list=[self.about_node_name],
+                    about_node_name_list=[self.about_node_name],
                     value_list=[value],
                     telemetry_name_list=[self.telemetry_name],
                 )

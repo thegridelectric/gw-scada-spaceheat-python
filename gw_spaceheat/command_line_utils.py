@@ -18,7 +18,7 @@ from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
-from enums import Role
+from enums import ActorClass
 from pydantic_settings import BaseSettings
 from data_classes.house_0 import H0N
 
@@ -40,7 +40,6 @@ def add_default_args(
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Increase logging verbosity")
     parser.add_argument("--message-summary", action="store_true", help="Turn on message summary logging")
-    parser.add_argument("--aiohttp-logging", action="store_true", help="Turn on aiohttp logging")
     parser.add_argument(
         "--seconds-per-report",
         default=ScadaSettings.model_fields["seconds_per_report"].default,
@@ -52,7 +51,7 @@ def add_default_args(
         "--nodes",
         default=default_nodes or None,
         nargs="*",
-        help="ShNode aliases to load.",
+        help="ShNode names to load.",
     )
     parser.add_argument(
         "--dry-run",
@@ -77,7 +76,7 @@ def parse_args(
         default_nodes=default_nodes,
     ).parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
 
-def get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
+def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
     if args.nodes is None:
         requested = None
     else:
@@ -87,26 +86,26 @@ def get_requested_aliases(args: argparse.Namespace) -> Optional[set[str]]:
     return requested
 
 
-def get_actor_nodes(requested_aliases: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
+def get_actor_nodes(requested_names: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
     actors_package = importlib.import_module(actors_package_name)
-    if requested_aliases:
-        requested_nodes = [layout.node(alias) for alias in requested_aliases]
+    if requested_names:
+        requested_nodes = [layout.node(name) for name in requested_names]
     else:
         requested_nodes = layout.nodes.values()
     actor_nodes = []
     scada_node: Optional[ShNode] = None
     for node in requested_nodes:
-        if node.role not in [Role.Atn, Role.HomeAlone] and node.has_actor:
+        if node.ActorClass not in [ActorClass.Atn, ActorClass.HomeAlone] and node.has_actor:
             if node.actor_class == "Scada":
                 if scada_node is not None:
                     raise ValueError(
                         "ERROR. Exactly 1 scada node must be present in alaises. Found at least two ("
-                        f"{node.alias} and {node.alias}"
+                        f"{scada_node.Name} and {node.Name}"
                     )
                 scada_node = node
             elif not getattr(actors_package, node.actor_class):
                 raise ValueError(
-                    f"ERROR. Actor class {node.actor_class} for node {node.alias} "
+                    f"ERROR. Actor class {node.actor_class} for node {node.Name} "
                     f"not in actors package {actors_package_name}"
                 )
             else:
@@ -167,11 +166,11 @@ def get_scada(
         logger.info(settings.model_dump_json(indent=2))
         rich.print(settings)
         check_tls_paths_present(settings)
-        requested_aliases = get_requested_aliases(args)
-        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_aliases)
-        scada_node, actor_nodes = get_actor_nodes(requested_aliases, layout, actors_package_name)
+        requested_names = get_requested_names(args)
+        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_names)
+        scada_node, actor_nodes = get_actor_nodes(requested_names, layout, actors_package_name)
         print(f"actor_nodes is {actor_nodes}")
-        scada = Scada(name=scada_node.alias, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+        scada = Scada(name=scada_node.Name, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
             scada.run_in_thread()

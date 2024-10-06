@@ -69,7 +69,7 @@ class LocalMQTTCodec(MQTTCodec):
 
     def validate_source_alias(self, source_alias: str):
         if source_alias not in self.hardware_layout.nodes.keys():
-            raise Exception(f"alias {source_alias} not in ShNode.by_alias keys!")
+            raise Exception(f"{source_alias} not a node name!")
 
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
@@ -115,7 +115,7 @@ class Scada(ScadaInterface, Proactor):
         self._links.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
         # TODO: clean this up
         self._links.log_subscriptions("construction")
-        # self._home_alone = HomeAlone(self.hardware_layout.my_home_alone.alias, self)
+        # self._home_alone = HomeAlone(H0N.home_alone, self)
         # self.add_communicator(self._home_alone)
         now = int(time.time())
         self._last_status_second = int(now - (now % self.settings.seconds_per_report))
@@ -124,7 +124,7 @@ class Scada(ScadaInterface, Proactor):
             for actor_node in actor_nodes:
                 self.add_communicator(
                     ActorInterface.load(
-                        actor_node.alias,
+                        actor_node.Name,
                         str(actor_node.actor_class),
                         self,
                         self.DEFAULT_ACTORS_MODULE
@@ -145,7 +145,7 @@ class Scada(ScadaInterface, Proactor):
         )
 
     @property
-    def alias(self):
+    def name(self):
         return self._name
 
     @property
@@ -233,7 +233,7 @@ class Scada(ScadaInterface, Proactor):
         return Ok()
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
-        message = Message(Src=from_node.alias, Payload=payload)
+        message = Message(Src=from_node.Name, Payload=payload)
         return self._links.publish_message(Scada.LOCAL_MQTT, message, qos=qos)
 
     def _derived_process_message(self, message: Message):
@@ -252,9 +252,7 @@ class Scada(ScadaInterface, Proactor):
                     )
             case GtShTelemetryFromMultipurposeSensor():
                 path_dbg |= 0x00000040
-                if from_node in self._layout.my_multipurpose_sensors:
-                    path_dbg |= 0x00000080
-                    self.gt_sh_telemetry_from_multipurpose_sensor_received(
+                self.gt_sh_telemetry_from_multipurpose_sensor_received(
                         from_node, message.Payload
                     )
             case _:
@@ -378,34 +376,32 @@ class Scada(ScadaInterface, Proactor):
     ):
         self._logger.path(
             "++gt_sh_telemetry_from_multipurpose_sensor_received from: %s  nodes: %d",
-            from_node.alias,
+            from_node.Name,
             len(payload.AboutNodeAliasList)
         )
         path_dbg = 0
-        if from_node in self._layout.my_multipurpose_sensors:
+        for idx, about_name in enumerate(payload.AboutNodeAliasList):
             path_dbg |= 0x00000001
-            for idx, about_alias in enumerate(payload.AboutNodeAliasList):
-                path_dbg |= 0x00000002
-                if about_alias not in self._layout.nodes:
-                    raise Exception(
-                        f"alias {about_alias} in payload.AboutNodeAliasList not a recognized ShNode!"
-                    )
-                tt = TelemetryTuple(
-                    AboutNode=self._layout.node(about_alias),
-                    SensorNode=from_node,
-                    TelemetryName=payload.TelemetryNameList[idx],
+            if about_name not in self._layout.nodes:
+                raise Exception(
+                    f"Name {about_name} in payload.AboutNodeAliasList not a recognized ShNode!"
                 )
-                if tt not in self._layout.my_telemetry_tuples:
-                    raise Exception(f"Scada not tracking telemetry tuple {tt}!")
-                self._data.recent_values_from_multipurpose_sensor[tt].append(
-                    payload.ValueList[idx]
-                )
-                self._data.recent_read_times_unix_ms_from_multipurpose_sensor[
-                    tt
-                ].append(payload.ScadaReadTimeUnixMs)
-                self._data.latest_value_from_multipurpose_sensor[
-                    tt
-                ] = payload.ValueList[idx]
+            tt = TelemetryTuple(
+                AboutNode=self._layout.node(about_name),
+                SensorNode=from_node,
+                TelemetryName=payload.TelemetryNameList[idx],
+            )
+            if tt not in self._layout.my_telemetry_tuples:
+                raise Exception(f"Scada not tracking telemetry tuple {tt}!")
+            self._data.recent_values_from_multipurpose_sensor[tt].append(
+                payload.ValueList[idx]
+            )
+            self._data.recent_read_times_unix_ms_from_multipurpose_sensor[
+                tt
+            ].append(payload.ScadaReadTimeUnixMs)
+            self._data.latest_value_from_multipurpose_sensor[
+                tt
+            ] = payload.ValueList[idx]
         self._logger.path(
             "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
         )

@@ -9,12 +9,12 @@ def add_web_server(
     db: LayoutDb,
     web_server: WebServerGt
 ) -> WebServerComponentGt:
-    cac_display_name = "Web Server CAC"
-    if not db.cac_id_by_alias(cac_display_name):
+    cac_type = "web.server.cac.gt"
+    if not db.cac_id_by_alias(cac_type):
         db.add_cacs(
             [
                 ComponentAttributeClassGt(
-                    ComponentAttributeClassId=db.make_cac_id(cac_display_name),
+                    ComponentAttributeClassId=db.make_cac_id(cac_type),
                     DisplayName="Web Server CAC",
                     MakeModel=MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
                 ),
@@ -26,10 +26,9 @@ def add_web_server(
             [
                 WebServerComponentGt(
                     ComponentId=db.make_component_id(component_alias),
-                    ComponentAttributeClassId=db.cac_id_by_alias(cac_display_name),
+                    ComponentAttributeClassId=db.cac_id_by_alias(cac_type),
                     DisplayName=component_alias,
                     WebServer=web_server,
-                    ConfigList=[],
                 ),
             ]
         )

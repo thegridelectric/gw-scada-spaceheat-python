@@ -66,8 +66,8 @@ class ScadaData:
             if len(self.recent_values_from_multipurpose_sensor[tt]) == 0:
                 return None
             return GtShMultipurposeTelemetryStatus(
-                AboutNodeAlias=tt.AboutNode.alias,
-                SensorNodeAlias=tt.SensorNode.alias,
+                AboutNodeAlias=tt.AboutNode.Name,
+                SensorNodeAlias=tt.SensorNode.Name,
                 TelemetryName=tt.TelemetryName,
                 ValueList=self.recent_values_from_multipurpose_sensor[tt],
                 ReadTimeUnixMsList=self.recent_read_times_unix_ms_from_multipurpose_sensor[tt],
@@ -101,7 +101,7 @@ class ScadaData:
         telemetry_name_list = []
         for tt in self.hardware_layout.my_telemetry_tuples:
             if self.latest_value_from_multipurpose_sensor[tt] is not None:
-                about_node_alias_list.append(tt.AboutNode.alias)
+                about_node_alias_list.append(tt.AboutNode.Name)
                 value_list.append(self.latest_value_from_multipurpose_sensor[tt])
                 telemetry_name_list.append(tt.TelemetryName)
         return TelemetrySnapshotSpaceheat(

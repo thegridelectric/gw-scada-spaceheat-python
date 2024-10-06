@@ -119,71 +119,64 @@
   "ShNodes": [
     {
       "ActorClass": "Scada",
-      "Alias": "s",
       "DisplayName": "Little Orange House Main Scada",
-      "Role": "Scada",
+      "Name": "s",
       "ShNodeId": "259f9431-c6a1-4170-8766-04cbf65cff4a",
       "TypeName": "spaceheat.node.gt",
-      "Version": "120"
+      "Version": "200"
     },
     {
       "ActorClass": "HomeAlone",
-      "Alias": "h",
       "DisplayName": "HomeAlone",
-      "Role": "HomeAlone",
+      "Name": "h",
       "ShNodeId": "b982c966-8e59-4c07-b4a7-64ebc4a40ac7",
       "TypeName": "spaceheat.node.gt",
-      "Version": "120"
+      "Version": "200"
     },
     {
       "ActorClass": "PowerMeter",
-      "Alias": "power-meter",
       "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
       "DisplayName": "Main Power Meter Little Orange House Test System",
-      "Role": "PowerMeter",
+      "Name": "power-meter",
       "ShNodeId": "0dd8a803-4724-4f49-b845-14ff57bdb3e6",
       "TypeName": "spaceheat.node.gt",
-      "Version": "120"
+      "Version": "200"
     },
     {
       "ActorClass": "NoActor",
-      "Alias": "hp-odu",
       "DisplayName": "HP ODU",
       "InPowerMetering": true,
+      "Name": "hp-odu",
       "NameplatePowerW": 6000,
-      "Role": "Unknown",
       "ShNodeId": "f1692ea8-9866-423c-b260-93d2affc9881",
       "TypeName": "spaceheat.node.gt",
-      "Version": "120"
+      "Version": "200"
     },
     {
       "ActorClass": "NoActor",
-      "Alias": "hp-idu",
       "DisplayName": "HP IDU",
       "InPowerMetering": true,
+      "Name": "hp-idu",
       "NameplatePowerW": 4000,
-      "Role": "Unknown",
       "ShNodeId": "7da56e55-3cf0-4a2f-9c06-0c6c176b795c",
       "TypeName": "spaceheat.node.gt",
-      "Version": "120"
+      "Version": "200"
     },
     {
       "ActorClass": "NoActor",
-      "Alias": "store-pump",
       "DisplayName": "Store Pump",
-      "Role": "Unknown",
+      "Name": "store-pump",
       "ShNodeId": "c35d9c77-1ebb-4822-b01e-00ff189092f7",
       "TypeName": "spaceheat.node.gt",
-      "Version": "120"
+      "Version": "200"
     },
     {
       "ActorClass": "Atn",
-      "Alias": "a",
       "DisplayName": "AtomicTNode",
-      "Role": "Atn",
+      "Name": "a",
       "ShNodeId": "b354edeb-0c82-4e55-80cb-7ab669ac2ad9",
       "TypeName": "spaceheat.node.gt",
-      "Version": "120"
+      "Version": "200"
     }
   ]
 }

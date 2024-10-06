@@ -162,7 +162,7 @@ def test_scada_small():
 #             status = scada._data.make_status(int(time.time()))
 #             assert len(status.SimpleTelemetryList) == 1
 #             assert status.SimpleTelemetryList[0].ValueList == [0]
-#             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.alias
+#             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.node.Name
 #             assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
 
 #             # Verify relay is off
@@ -419,7 +419,7 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             status = scada._data.make_status(int(time.time()))
             assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
             for entry in status.MultipurposeTelemetryList:
-                assert entry.SensorNodeAlias == meter.node.alias
+                assert entry.SensorNodeAlias == meter.node.Name
 
             # Cause scada to send a status (and snapshot) now
             scada.suppress_status = False
@@ -443,12 +443,12 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             assert isinstance(status, GtShStatus)
             assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples)
             for entry in status.MultipurposeTelemetryList:
-                assert entry.SensorNodeAlias == meter.node.alias
+                assert entry.SensorNodeAlias == meter.node.Name
             snapshot = atn.data.latest_snapshot
             assert isinstance(snapshot, SnapshotSpaceheat)
             assert set(snapshot.Snapshot.AboutNodeAliasList) == set(
                 [
-                    tpl.AboutNode.alias for tpl in self.runner.layout.all_power_meter_telemetry_tuples
+                    tpl.AboutNode.Name for tpl in self.runner.layout.all_power_meter_telemetry_tuples
                 ]
             )
             assert len(snapshot.Snapshot.AboutNodeAliasList) ==  \

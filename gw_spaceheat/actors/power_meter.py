@@ -84,7 +84,7 @@ class DriverThreadSetupHelper:
         if not isinstance(node.component, ElectricMeterComponent):
             raise ValueError(
                 "ERROR. PowerMeterDriverThread requires node with ElectricMeterComponent. "
-                f"Received node {node.alias} with componet type {type(node.component)}"
+                f"Received node {node.Name} with componet type {type(node.component)}"
             )
         self.node = node
         self.settings = settings
@@ -150,7 +150,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         daemon: bool = True,
     ):
         super().__init__(
-            name=node.alias,
+            name=node.Name,
             responsive_sleep_step_seconds=responsive_sleep_step_seconds,
             daemon=daemon,
         )
@@ -256,7 +256,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             MultipurposeSensorTelemetryMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
-                about_node_alias_list=list(
+                about_node_name_list=list(
                     map(lambda x: x.AboutNodeName, channel_report_list)
                 ),
                 value_list=list(

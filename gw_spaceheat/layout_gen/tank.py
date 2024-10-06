@@ -3,7 +3,6 @@ from typing import Tuple
 
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import FibaroSmartImplantComponentGt
@@ -25,7 +24,7 @@ class FibaroGenCfg(BaseModel):
         return f"Fibaro Smart Implant {self.SN}"
 
 class TankGenCfg(BaseModel):
-    NodeAlias: str
+    NodeName: str
     InHomeName: str
     SN: str
     DeviceIds: Tuple[int, int, int, int]
@@ -38,8 +37,8 @@ class TankGenCfg(BaseModel):
     def component_alias(self) -> str:
         return f"Tank Module <{self.InHomeName}>  SN {self.SN}"
 
-    def thermistor_node_alias(self, depth: int) -> str:
-        return f"{self.NodeAlias}-depth{depth}"
+    def thermistor_node_name(self, depth: int) -> str:
+        return f"{self.NodeName}-depth{depth}"
 
     def thermistor_node_display_name(self, depth: int) -> str:
         if depth == 1:
@@ -179,40 +178,35 @@ def add_tank(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.NodeAlias),
-                Alias=tank.NodeAlias,
+                ShNodeId=db.make_node_id(tank.NodeName),
+                Name=tank.NodeName,
                 ActorClass=ActorClass.HubitatTankModule,
-                Role=Role.MultiChannelAnalogTempSensor,
                 DisplayName=tank.node_display_name(),
                 ComponentId=db.component_id_by_alias(tank.component_alias())
             ),
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.thermistor_node_alias(1)),
-                Alias=tank.thermistor_node_alias(1),
+                ShNodeId=db.make_node_id(tank.thermistor_node_name(1)),
+                Name=tank.thermistor_node_name(1),
                 ActorClass=ActorClass.NoActor,
-                Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(1),
             ),
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.thermistor_node_alias(2)),
-                Alias=tank.thermistor_node_alias(2),
+                ShNodeId=db.make_node_id(tank.thermistor_node_name(2)),
+                Name=tank.thermistor_node_name(2),
                 ActorClass=ActorClass.NoActor,
-                Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(2),
             ),
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.thermistor_node_alias(3)),
-                Alias=tank.thermistor_node_alias(3),
+                ShNodeId=db.make_node_id(tank.thermistor_node_name(3)),
+                Name=tank.thermistor_node_name(3),
                 ActorClass=ActorClass.NoActor,
-                Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(3),
             ),
 
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.thermistor_node_alias(4)),
-                Alias=tank.thermistor_node_alias(4),
+                ShNodeId=db.make_node_id(tank.thermistor_node_name(4)),
+                Name=tank.thermistor_node_name(4),
                 ActorClass=ActorClass.NoActor,
-                Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(4),
             ),
         ]

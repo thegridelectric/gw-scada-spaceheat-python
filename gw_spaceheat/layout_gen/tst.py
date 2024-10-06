@@ -3,7 +3,6 @@ from pathlib import Path
 
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
 from gwproto.types import ComponentAttributeClassGt
@@ -17,11 +16,6 @@ from data_classes.house_0 import H0N, H0CN
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig
-from layout_gen import (
-    add_thermostat,
-    HubitatThermostatGenCfg,
-)
-from gwproto.type_helpers import HubitatGt
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
     db = LayoutDb(
@@ -63,8 +57,7 @@ def _add_atn(db: LayoutDb) -> LayoutDb:
         [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(ATN_NODE_NAME),
-                Alias=ATN_NODE_NAME,
-                Role=Role.Atn,
+                Name=ATN_NODE_NAME,
                 ActorClass=ActorClass.Atn,
                 DisplayName="AtomicTNode",
             ),
@@ -139,16 +132,14 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
         [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(H0N.primary_power_meter),
-                Alias=H0N.primary_power_meter,
-                Role=Role.PowerMeter,
+                Name=H0N.primary_power_meter,
                 ActorClass=ActorClass.PowerMeter,
                 DisplayName="Main Power Meter Little Orange House Test System",
                 ComponentId=db.component_id_by_alias(POWER_METER_COMPONENT_DISPLAY_NAME),
             ),
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(H0N.hp_odu),
-                Alias=H0N.hp_odu,
-                Role=Role.Unknown,
+                Name=H0N.hp_odu,
                 ActorClass=ActorClass.NoActor,
                 DisplayName="HP ODU",
                 NameplatePowerW=6000,
@@ -156,8 +147,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
             ),
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(H0N.hp_idu),
-                Alias=H0N.hp_idu,
-                Role=Role.Unknown,
+                Name=H0N.hp_idu,
                 ActorClass=ActorClass.NoActor,
                 DisplayName="HP IDU",
                 NameplatePowerW=4000,
@@ -165,8 +155,7 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
             ),
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(H0N.store_pump),
-                Alias=H0N.store_pump,
-                Role=Role.Unknown,
+                Name=H0N.store_pump,
                 ActorClass=ActorClass.NoActor,
                 DisplayName="Store Pump",
             ),

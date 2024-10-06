@@ -130,7 +130,7 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
             for config in meter_component.gt.ConfigList:
                 config.CapturePeriodS = 1
             self.runner.actors.meter = actors.PowerMeter(
-                name=meter_node.alias,
+                name=meter_node.Name,
                 services=self.runner.actors.scada,
                 settings=ScadaSettings(seconds_per_report=1)
             )
@@ -207,7 +207,7 @@ async def test_power_meter_aggregate_power_forward(tmp_path, monkeypatch, reques
             for config in meter_component.gt.ConfigList:
                 config.CapturePeriodS = 1
             self.runner.actors.meter = actors.PowerMeter(
-                name=meter_node.alias,
+                name=meter_node.name,
                 services=self.runner.actors.scada,
                 settings=ScadaSettings(seconds_per_report=1)
             )

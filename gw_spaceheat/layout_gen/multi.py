@@ -4,7 +4,6 @@ from typing import Optional
 
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
@@ -15,7 +14,7 @@ from gwproto.types import SpaceheatNodeGt
 from gwproto.types import  AdsChannelConfig
 from gwproto.types import DataChannelGt
 from gwproto.types.ads111x_based_component_gt import Ads111xBasedComponentGt
-from gwproto.enums import ThermistorDataMethod, MakeModel
+from gwproto.enums import ThermistorDataMethod
 from pydantic import BaseModel
 from data_classes.house_0 import H0Readers
 
@@ -110,21 +109,19 @@ def add_tsnap_multipurpose(
         [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(H0Readers.analog_temp),
-                Alias=H0Readers.analog_temp,
+                Name=H0Readers.analog_temp,
                 ActorClass=ActorClass.MultipurposeSensor,
-                Role=Role.MultiChannelAnalogTempSensor,
                 DisplayName=' '.join(part.upper() for part in H0Readers.analog_temp.split('-')),
                 ComponentId=db.component_id_by_alias(tsnap.component_alias())
             )
         ] + [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(cfg.about_node_name()),
-                Alias=cfg.about_node_name(), 
+                Name=cfg.about_node_name(), 
                 ActorClass=ActorClass.NoActor,
-                Role=Role.Unknown,
                 DisplayName=' '.join(part.upper() for part in cfg.about_node_name().split('-')),
             )
-            for cfg in tsnap.SensorCfgs if not db.node_id_by_alias(cfg.about_node_name())
+            for cfg in tsnap.SensorCfgs if not db.node_id_by_name(cfg.about_node_name())
         ]
     )
     db.add_data_channels(

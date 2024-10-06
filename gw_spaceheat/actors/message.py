@@ -34,12 +34,12 @@ class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSe
         self,
         src: str,
         dst: str,
-        about_node_alias_list: List[str],
+        about_node_name_list: List[str],
         value_list: List[int],
         telemetry_name_list: List[TelemetryName],
     ):
         payload = GtShTelemetryFromMultipurposeSensor(
-            AboutNodeAliasList=about_node_alias_list,
+            AboutNodeAliasList=about_node_name_list,
             ValueList=value_list,
             TelemetryNameList=telemetry_name_list,
             ScadaReadTimeUnixMs=int(1000 * time.time()),

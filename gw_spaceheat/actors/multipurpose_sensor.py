@@ -50,7 +50,7 @@ class MpDriverThreadSetupHelper:
         if not isinstance(node.component, Ads111xBasedComponent):
             raise ValueError(
                 "ERROR. MultipurposeSensorDriverThread requires node with  Ads111xBasedComponent. "
-                f"Received node {node.alias} with componet type {type(node.component)}"
+                f"Received node {node.Name} with componet type {type(node.component)}"
             )
         self.node = node
         self.settings = settings
@@ -112,7 +112,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         daemon: bool = True,
     ):
         super().__init__(
-            name=node.alias,
+            name=node.Name,
             responsive_sleep_step_seconds=responsive_sleep_step_seconds,
             daemon=daemon,
         )
@@ -199,7 +199,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             MultipurposeSensorTelemetryMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
-                about_node_alias_list=about_names,
+                about_node_name_list=about_names,
                 value_list=list(
                     map(
                         lambda x: self.latest_telemetry_value[x],

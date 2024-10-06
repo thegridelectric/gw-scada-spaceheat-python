@@ -2,7 +2,6 @@ from typing import Self
 
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
 from gwproto.types import ComponentAttributeClassGt
@@ -140,18 +139,16 @@ def add_thermostat(
         [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(stat_node_name),
-                Alias=stat_node_name,
+                Name=stat_node_name,
                 ActorClass=stat_cfg.actor_class,
-                Role=Role.Unknown,
                 DisplayName=stat_display_name,
                 ComponentId=db.component_id_by_alias(stat_component_display_name)
             )
         ] + [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(zone_node_name),
-                Alias=zone_node_name,
+                Name=zone_node_name,
                 ActorClass=ActorClass.NoActor,
-                Role=Role.Unknown,
                 DisplayName=zone_display_name,
             )
         ]

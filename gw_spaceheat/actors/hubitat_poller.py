@@ -124,7 +124,7 @@ class HubitatRESTPoller(RESTPoller):
                 return MultipurposeSensorTelemetryMessage(
                     src=self._name,
                     dst=self._report_dst,
-                    about_node_alias_list=about_nodes,
+                    about_node_name_list=about_nodes,
                     value_list=values,
                     telemetry_name_list=telemetry_names,
                 )
@@ -240,7 +240,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
                 )
                 if hubitat_node is not None:
                     hubitat_actor = self._services.get_communicator_as_type(
-                        hubitat_node.alias,
+                        hubitat_node.Name,
                         HubitatWebServerInterface
                     )
         return hubitat_actor

@@ -1,6 +1,5 @@
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import HubitatComponentGt
@@ -43,9 +42,8 @@ def add_hubitat(
             [
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(H0N.hubitat),
-                    Alias=H0N.hubitat,
+                    Name=H0N.hubitat,
                     ActorClass=ActorClass.Hubitat,
-                    Role=Role.Unknown,
                     DisplayName=hubitat_component_alias,
                     ComponentId=db.component_id_by_alias(hubitat_component_alias),
                 )

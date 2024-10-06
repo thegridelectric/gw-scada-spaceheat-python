@@ -36,7 +36,6 @@ from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
 from gwproactor.proactor_implementation import Proactor
 
-from enums import Role
 from actors import message as actor_message # noqa
 
 from tests.atn import messages
@@ -77,8 +76,6 @@ class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
 
     data: AtnData
-    my_sensors: Sequence[ShNode]
-    my_relays: Sequence[ShNode]
     event_loop_thread: Optional[threading.Thread] = None
 
     def __init__(
@@ -89,22 +86,9 @@ class Atn(ActorInterface, Proactor):
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self._web_manager.disable()
-        self.my_sensors = list(
-            filter(
-                lambda x: (
-                    x.role == Role.TankWaterTempSensor
-                    or x.role == Role.BooleanActuator
-                    or x.role == Role.PipeTempSensor
-                    or x.role == Role.PipeFlowMeter
-                    or x.role == Role.PowerMeter
-                ),
-                list(self.layout.nodes.values()),
-            )
-        )
-        self.my_relays = list(
-            filter(lambda x: x.role == Role.BooleanActuator, list(self.layout.nodes.values()))
-        )
-        self.data = AtnData(relay_state={x: RecentRelayState() for x in self.my_relays})
+
+
+        self.data = AtnData()
         self._links.add_mqtt_link(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
         self._links.subscribe(
             Atn.SCADA_MQTT,
@@ -117,7 +101,7 @@ class Atn(ActorInterface, Proactor):
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
 
     @property
-    def alias(self) -> str:
+    def name(self) -> str:
         return self._name
 
     @property
@@ -203,21 +187,7 @@ class Atn(ActorInterface, Proactor):
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
-        for node in self.my_relays:
-            possible_indices = []
-            for idx in range(len(snapshot.Snapshot.AboutNodeAliasList)):
-                if (
-                    snapshot.Snapshot.AboutNodeAliasList[idx] == node.alias
-                    and snapshot.Snapshot.TelemetryNameList[idx] == TelemetryName.RelayState
-                ):
-                    possible_indices.append(idx)
-            if len(possible_indices) != 1:
-                continue
-            idx = possible_indices[0]
-            old_state = self.data.relay_state[node].State
-            if old_state != snapshot.Snapshot.ValueList[idx]:
-                self.data.relay_state[node].State = snapshot.Snapshot.ValueList[idx]
-                self.data.relay_state[node].LastChangeTimeUnixMs = int(time.time() * 1000)
+
 
         if self.settings.print_snap:
             s = "\n\nSnapshot received:\n"
@@ -332,7 +302,7 @@ class Atn(ActorInterface, Proactor):
     def summary_str(self) -> str:
         """Summarize results in a string"""
         s = (
-            f"Atn [{self.node.alias}] total: {self._stats.num_received}  "
+            f"Atn [{self.node.Name}] total: {self._stats.num_received}  "
             f"status:{self._stats.total_received(GtShStatus.model_fields['TypeName'].default)}  "
             f"snapshot:{self._stats.total_received(SnapshotSpaceheat.model_fields['TypeName'].default)}"
         )
@@ -361,7 +331,7 @@ class Atn(ActorInterface, Proactor):
         """
         snap = self.data.latest_snapshot.Snapshot
         try:
-            idx = snap.AboutNodeAliasList.index(node.alias)
+            idx = snap.AboutNodeAliasList.index(node.Name)
         except ValueError:
             return None
 

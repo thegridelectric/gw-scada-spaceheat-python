@@ -11,8 +11,8 @@ from gw.errors import DcError
 
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.enums import ActorClass
+from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.enums import Unit
 from gwproto.enums import TelemetryName
 from gwproto.types import ComponentAttributeClassGt
@@ -132,14 +132,14 @@ class LayoutIDMap:
 
     cacs_by_alias: dict[str, str]
     components_by_alias: dict[str, str]
-    nodes_by_alias: dict[str, str]
+    nodes_by_name: dict[str, str]
     channels_by_name: dict[str, str]
     gnodes: dict[str, dict]
 
     def __init__(self, d: Optional[dict] = None):
         self.cacs_by_alias = {}
         self.components_by_alias = {}
-        self.nodes_by_alias = {}
+        self.nodes_by_name = {}
         self.channels_by_name = {}
         self.gnodes = {}
         if not d:
@@ -152,7 +152,7 @@ class LayoutIDMap:
                             try:
                                 self.add_node(
                                     node["ShNodeId"],
-                                    node["Alias"],
+                                    node["Name"],
                                 )
                             except Exception as e:
                                 raise Exception(
@@ -206,8 +206,8 @@ class LayoutIDMap:
     def add_component(self, id_: str, alias: str):
         self.components_by_alias[alias] = id_
 
-    def add_node(self, id_: str, alias: str):
-        self.nodes_by_alias[alias] = id_
+    def add_node(self, id_: str, name: str):
+        self.nodes_by_name[name] = id_
     
     def add_channel(self, id_: str, name: str):
         self.channels_by_name[name] = id_
@@ -242,7 +242,7 @@ class LayoutIDMap:
         return cls.from_path(dest_path)
 
 class LayoutDb:
-    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt | DataChannelGt]]
+    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt]]
     cacs_by_id: dict[str, ComponentAttributeClassGt]
     components_by_id: dict[str, ComponentGt]
     nodes_by_id: dict[str, SpaceheatNodeGt]
@@ -250,6 +250,7 @@ class LayoutDb:
     loaded: LayoutIDMap
     maps: LayoutIDMap
     misc: dict
+    terminal_asset_alias: str
 
     def __init__(
         self,
@@ -289,14 +290,13 @@ class LayoutDb:
     def component_id_by_alias(self, component_alias: str) -> Optional[str]:
         return self.maps.components_by_alias.get(component_alias, None)
 
-    def node_id_by_alias(self, node_alias: str) -> Optional[str]:
-        return self.maps.nodes_by_alias.get(node_alias, None)
+    def node_id_by_name(self, node_name: str) -> Optional[str]:
+        return self.maps.nodes_by_name.get(node_name, None)
     
     def channel_id_by_name(self, name: str) -> Optional[str]:
         return self.maps.channels_by_name.get(name, None)
 
-    @classmethod
-    def make_cac_id(cls, make_model: MakeModel) -> str:
+    def make_cac_id(self, make_model: MakeModel) -> str:
         if make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             return str(uuid.uuid4())
         if type(make_model) is str:
@@ -305,15 +305,15 @@ class LayoutDb:
             else:
                 return str(uuid.uuid4())
         elif make_model.value in CACS_BY_MAKE_MODEL:
-            return CACS_BY_MAKE_MODEL[str(make_model.value)]
+            return CACS_BY_MAKE_MODEL[make_model.value]
         else:
             return str(uuid.uuid4())
 
     def make_component_id(self, component_alias: str) -> str:
         return self.loaded.components_by_alias.get(component_alias, str(uuid.uuid4()))
 
-    def make_node_id(self, node_alias: str) -> str:
-        return self.loaded.nodes_by_alias.get(node_alias, str(uuid.uuid4()))
+    def make_node_id(self, node_name: str) -> str:
+        return self.loaded.nodes_by_name.get(node_name, str(uuid.uuid4()))
     
     def make_channel_id(self, name: str) -> str:
         return self.loaded.channels_by_name.get(name, str(uuid.uuid4()))
@@ -326,11 +326,12 @@ class LayoutDb:
                     "already present"
                 )
             self.cacs_by_id[cac.ComponentAttributeClassId] = cac
-            self.maps.add_cacs_by_alias(
+            if cac.MakeModel in CACS_BY_MAKE_MODEL:
+                self.maps.add_cacs_by_alias(
                     cac.ComponentAttributeClassId,
                     cac.MakeModel,
                     cac.DisplayName,
-            )
+                )
 
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
@@ -363,12 +364,12 @@ class LayoutDb:
                 raise ValueError(
                     f"ERROR Node id {node.ShNodeId} already present."
                 )
-            if node.Alias in self.maps.nodes_by_alias:
+            if node.Name in self.maps.nodes_by_name:
                 raise ValueError(
-                    f"ERROR Node alias {node.Alias} already present."
+                    f"ERROR Node name {node.Name} already present."
                 )
             self.nodes_by_id[node.ShNodeId] = node
-            self.maps.add_node(node.ShNodeId, node.Alias)
+            self.maps.add_node(node.ShNodeId, node.Name)
             layout_list_name = "ShNodes"
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
@@ -404,6 +405,7 @@ class LayoutDb:
                             MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                             DisplayName=cfg.power_meter_cac_alias,
                             TelemetryNameList=[TelemetryName.PowerW],
+                            Interface=LocalCommInterface.ETHERNET,
                             MinPollPeriodMs=1000,
                         )
                     ),
@@ -421,7 +423,7 @@ class LayoutDb:
                         DisplayName=cfg.power_meter_component_alias,
                         ConfigList=[
                             ElectricMeterChannelConfig(
-                                ChannelName="elt1-pwr",
+                                ChannelName=H0CN.hp_odu_pwr,
                                 PollPeriodMs=1000,
                                 CapturePeriodS=300,
                                 AsyncCapture=True,
@@ -435,22 +437,18 @@ class LayoutDb:
             ],
             "ElectricMeterComponents"
         )
-        power_meter_alias = H0N.primary_power_meter
-        boost_element_alias = "elt1"
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(power_meter_alias),
-                    Alias=power_meter_alias,
-                    Role=Role.PowerMeter,
+                    ShNodeId=self.make_node_id(H0N.primary_power_meter),
+                    Name=H0N.primary_power_meter,
                     ActorClass=ActorClass.PowerMeter,
                     DisplayName=cfg.power_meter_node_display_name,
                     ComponentId=self.component_id_by_alias(cfg.power_meter_component_alias),
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(boost_element_alias),
-                    Alias=boost_element_alias,
-                    Role=Role.BoostElement,
+                    ShNodeId=self.make_node_id(H0N.hp_odu),
+                    Name=H0N.hp_odu,
                     ActorClass=ActorClass.NoActor,
                     DisplayName=cfg.boost_element_display_name,
                     InPowerMetering=True,
@@ -462,14 +460,14 @@ class LayoutDb:
         self.add_data_channels(
             [
                 DataChannelGt(
-                    Name=f"{boost_element_alias}-pwr",
-                    Id=self.make_channel_id(f"{boost_element_alias}-pwr"),
-                    DisplayName=' '.join(word.capitalize() for word in boost_element_alias.split('-')) + " Pwr",
-                    AboutNodeName=boost_element_alias,
-                    CapturedByNodeName=power_meter_alias,
+                    Name=H0CN.hp_odu_pwr,
+                    Id=self.make_channel_id(H0CN.hp_odu_pwr),
+                    DisplayName=' '.join(word.capitalize() for word in H0CN.hp_odu_pwr.split('-')) + " Pwr",
+                    AboutNodeName=H0N.hp_odu,
+                    CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
                     InPowerMetering=True,
-                    TerminalAssetAlias= "hog" # self.terminal_asset_alias
+                    TerminalAssetAlias="some.ta.alias"
                 )
             ]
         )
@@ -506,15 +504,13 @@ class LayoutDb:
             [
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.scada),
-                    Alias=H0N.scada,
-                    Role=Role.Scada,
+                    Name=H0N.scada,
                     ActorClass=ActorClass.Scada,
                     DisplayName=cfg.scada_display_name,
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone),
-                    Alias=H0N.home_alone,
-                    Role=Role.HomeAlone,
+                    Name=H0N.home_alone,
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
                 )

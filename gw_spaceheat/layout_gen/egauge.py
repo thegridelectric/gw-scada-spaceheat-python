@@ -4,7 +4,6 @@ from typing import Optional
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.enums import TelemetryName 
 from gwproto.enums import Unit
 from gwproto.types import ComponentAttributeClassGt
@@ -16,7 +15,6 @@ from gwproto.types import ElectricMeterChannelConfig
 from gwproto.types import DataChannelGt
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 from pydantic import BaseModel
-from gwproto.enums import TelemetryName
 
 from data_classes.house_0 import H0N
 from layout_gen.layout_db import LayoutDb
@@ -37,9 +35,8 @@ class EgaugeChannelConfig(BaseModel):
     def node(self, db: LayoutDb) -> SpaceheatNodeGt:
         return SpaceheatNodeGt(
             ShNodeId=db.make_node_id(self.AboutNodeName),
-            Alias=self.AboutNodeName,
+            Name=self.AboutNodeName,
             ActorClass=ActorClass.NoActor,
-            Role=Role.Unknown,
             DisplayName=' '.join(word.capitalize() for word in self.AboutNodeName.split('-')),
             InPowerMetering=self.InPowerMetering,
             NameplatePowerW=self.NameplatePowerW
@@ -133,13 +130,21 @@ def add_egauge(
         [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(egauge.NodeName),
-                Alias=egauge.NodeName,
+                Name=egauge.NodeName,
                 ActorClass=ActorClass.PowerMeter,
-                Role=Role.PowerMeter,
                 DisplayName=egauge.NodeDisplayName,
                 ComponentId=db.component_id_by_alias(egauge.ComponentDisplayName),
             )
-        ] + [cfg.node(db) for cfg in egauge.ChannelConfigs]
+        ] + [
+            SpaceheatNodeGt(
+            ShNodeId=db.make_node_id(cfg.AboutNodeName),
+            Name=cfg.AboutNodeName,
+            ActorClass=ActorClass.NoActor,
+            DisplayName=' '.join(word.capitalize() for word in cfg.AboutNodeName.split('-')),
+            InPowerMetering=cfg.InPowerMetering,
+            NameplatePowerW=cfg.NameplatePowerW
+        )
+            for cfg in egauge.ChannelConfigs if not db.node_id_by_name(cfg.AboutNodeName)]
     )
     db.add_data_channels(
         [

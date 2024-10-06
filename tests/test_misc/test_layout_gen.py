@@ -83,7 +83,7 @@ def test_tank_device_poll_period(tmp_path):
 
     for cfg in cfgs:
         tank_gen_cfg = TankGenCfg(
-            NodeAlias=cfg.Name,
+            NodeName=cfg.Name,
             InHomeName=cfg.Name,
             SN=_dummy_sn(),
             DeviceIds=(1, 2, 3, 4),
@@ -214,7 +214,7 @@ def test_hubitat():
         hubitat_component_id
     )
     assert node is not None
-    assert node.alias == "hubitat"
+    assert node.Name == "hubitat"
     assert node.component_id == hubitat_component_id
     assert node.actor_class == ActorClass.Hubitat
 

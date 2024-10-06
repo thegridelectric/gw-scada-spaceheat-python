@@ -216,7 +216,7 @@ class FibaroTankTempPoller(RESTPoller):
                 return MultipurposeSensorTelemetryMessage(
                     src=self._report_src,
                     dst=self._report_dst,
-                    about_node_alias_list=[self._settings.node_name],
+                    about_node_name_list=[self._settings.node_name],
                     value_list=[temp_c1000],
                     telemetry_name_list=[self._settings.telemetry_name],
                 )
