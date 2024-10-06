@@ -9,7 +9,7 @@ import typing
 from typing import Dict, List, Optional
 
 from actors.config import ScadaSettings
-from actors.message import MultipurposeSensorTelemetryMessage
+from actors.message import SyncedReadingsMessage
 from actors.scada_interface import ScadaInterface
 from gwproactor import SyncThreadActor
 from gwproto.data_classes.components.ads111x_based_component import (
@@ -193,20 +193,18 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     def report_sampled_telemetry_values(
         self, report_list: List[DataChannel]
     ):
-        about_names = [ch.AboutNodeName for ch in report_list]
         
         self._put_to_async_queue(
-            MultipurposeSensorTelemetryMessage(
+            SyncedReadingsMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
-                about_node_name_list=about_names,
+                channel_name_list=[ch.Name for ch in report_list],
                 value_list=list(
                     map(
                         lambda x: self.latest_telemetry_value[x],
                         report_list,
                     )
                 ),
-                telemetry_name_list=list(map(lambda x: x.TelemetryName, report_list)),
             )
         )
         for ch in report_list:

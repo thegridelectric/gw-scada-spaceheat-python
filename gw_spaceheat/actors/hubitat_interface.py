@@ -10,7 +10,7 @@ from gwproto import Message
 from gwproto.enums import TelemetryName
 from pydantic import ConfigDict, BaseModel
 
-from actors.message import MultipurposeSensorTelemetryMessage
+from actors.message import SyncedReadingsMessage
 from drivers.exceptions import DriverWarning
 
 
@@ -140,8 +140,7 @@ class HubitatWebEventHandler(BaseModel):
     device_id: int
     event_name: str
     report_src_node_name: str
-    about_node_name: str
-    telemetry_name: TelemetryName
+    channel_name: str
     value_converter: ValueConverter
 
     def __call__(self, event: HubitatEventContent, report_dst: str) -> Optional[Message]:
@@ -149,12 +148,11 @@ class HubitatWebEventHandler(BaseModel):
         try:
             value = self.value_converter(event.value)
             if value is not None:
-                message = MultipurposeSensorTelemetryMessage(
+                message = SyncedReadingsMessage(
                     src=self.report_src_node_name,
                     dst=report_dst,
-                    about_node_name_list=[self.about_node_name],
+                    channel_name_list=[self.channel_name],
                     value_list=[value],
-                    telemetry_name_list=[self.telemetry_name],
                 )
         except: # noqa
             pass

@@ -8,7 +8,7 @@ from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
-from gwproto.messages import GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import SyncedReadings
 
 
 class PowerWattsMessage(Message[PowerWatts]):
@@ -29,19 +29,17 @@ class PowerWattsMessage(Message[PowerWatts]):
         )
 
 
-class MultipurposeSensorTelemetryMessage(Message[GtShTelemetryFromMultipurposeSensor]):
+class SyncedReadingsMessage(Message[SyncedReadings]):
     def __init__(
         self,
         src: str,
         dst: str,
-        about_node_name_list: List[str],
+        channel_name_list: List[str],
         value_list: List[int],
-        telemetry_name_list: List[TelemetryName],
     ):
-        payload = GtShTelemetryFromMultipurposeSensor(
-            AboutNodeAliasList=about_node_name_list,
+        payload = SyncedReadings(
+            ChannelNameList=channel_name_list,
             ValueList=value_list,
-            TelemetryNameList=telemetry_name_list,
             ScadaReadTimeUnixMs=int(1000 * time.time()),
         )
         super().__init__(

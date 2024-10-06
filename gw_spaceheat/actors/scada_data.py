@@ -7,115 +7,109 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from gwproto.messages import GtShMultipurposeTelemetryStatus
-from gwproto.messages import GtShStatus
+from gwproto.messages import ChannelReadings
+from gwproto.messages import Report
+from gwproto.messages import SingleReading
 from gwproto.messages import SnapshotSpaceheat
-from gwproto.messages import TelemetrySnapshotSpaceheat
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.telemetry_tuple import TelemetryTuple
-
+from gwproto.data_classes.data_channel import DataChannel
 
 class ScadaData:
     latest_total_power_w: Optional[int]
-    status_to_store: Dict[str, GtShStatus]
-    latest_value_from_multipurpose_sensor: Dict[TelemetryTuple, int]
-    recent_values_from_multipurpose_sensor: Dict[TelemetryTuple, List]
-    recent_read_times_unix_ms_from_multipurpose_sensor: Dict[TelemetryTuple, List]
+    reports_to_store: Dict[str, Report]
+    latest_channel_unix_ms: Dict[DataChannel, int]
+    latest_channel_values: Dict[DataChannel, int]
+    recent_channel_values: Dict[DataChannel, List]
+    recent_channel_unix_ms: Dict[DataChannel, List]
     settings: ScadaSettings
     hardware_layout: HardwareLayout
 
     def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self.latest_total_power_w: Optional[int] = None
-
-        # status_to_store is a placeholder Dict of GtShStatus
-        # objects by StatusUid key that we want to store
-        # (probably about 3 weeks worth) and access on restart
         self.latest_total_power_w: Optional[int] = None
-        self.status_to_store: Dict[str:GtShStatus] = {}
+        self.reports_to_store: Dict[str:Report] = {}
 
         self.settings = settings
         self.hardware_layout = hardware_layout
+        self.my_channels = self.get_my_channels()
 
-        self.latest_value_from_multipurpose_sensor: Dict[TelemetryTuple, int] = {  # noqa
-            tt: None for tt in hardware_layout.my_telemetry_tuples
+        self.latest_channel_values: Dict[DataChannel, int] = {  # noqa
+            ch: None for ch in self.my_channels
         }
-        self.recent_values_from_multipurpose_sensor: Dict[TelemetryTuple, List] = {
-            tt: [] for tt in hardware_layout.my_telemetry_tuples
+        self.latest_channel_unix_ms: Dict[DataChannel, int] = {  # noqa
+            ch: None for ch in self.my_channels
         }
-        self.recent_read_times_unix_ms_from_multipurpose_sensor: Dict[
-            TelemetryTuple, List
-        ] = {tt: [] for tt in hardware_layout.my_telemetry_tuples}
+        self.recent_channel_values: Dict[DataChannel, List] = {
+            ch: [] for ch in self.my_channels
+        }
+        self.recent_channel_unix_ms: Dict[
+            DataChannel, List
+        ] = {ch: [] for ch in self.my_channels}
 
         self.flush_latest_readings()
+    
+    def get_my_channels(self) -> List[DataChannel]:
+        return list(self.hardware_layout.data_channels.values())
 
     def flush_latest_readings(self):
-        self.recent_values_from_multipurpose_sensor = {
-            tt: [] for tt in self.hardware_layout.my_telemetry_tuples
+        self.recent_channel_values = {
+            ch: [] for ch in self.my_channels
         }
-        self.recent_read_times_unix_ms_from_multipurpose_sensor = {
-            tt: [] for tt in self.hardware_layout.my_telemetry_tuples
+        self.recent_channel_unix_ms = {
+            ch: [] for ch in self.my_channels
         }
 
-    def make_multipurpose_telemetry_status(
-        self, tt: TelemetryTuple
-    ) -> Optional[GtShMultipurposeTelemetryStatus]:
-        if tt in self.hardware_layout.my_telemetry_tuples:
-            if len(self.recent_values_from_multipurpose_sensor[tt]) == 0:
+    def make_channel_readings(
+        self, ch: DataChannel
+    ) -> Optional[ChannelReadings]:
+        if ch in self.my_channels:
+            if len(self.recent_channel_values[ch]) == 0:
                 return None
-            return GtShMultipurposeTelemetryStatus(
-                AboutNodeAlias=tt.AboutNode.Name,
-                SensorNodeAlias=tt.SensorNode.Name,
-                TelemetryName=tt.TelemetryName,
-                ValueList=self.recent_values_from_multipurpose_sensor[tt],
-                ReadTimeUnixMsList=self.recent_read_times_unix_ms_from_multipurpose_sensor[tt],
+            return ChannelReadings(
+                ChannelName=ch.Name,
+                ChannelId=ch.Id,
+                ValueList=self.recent_channel_values[ch],
+                ScadaReadTimeUnixMsList=self.recent_channel_unix_ms[ch],
             )
         else:
             return None
 
-    def make_status(self, slot_start_seconds: int) -> GtShStatus:
-        simple_telemetry_list = []
-        multipurpose_telemetry_list = []
-        booleanactuator_cmd_list = []
-        for tt in self.hardware_layout.my_telemetry_tuples:
-            status = self.make_multipurpose_telemetry_status(tt)
-            if status:
-                multipurpose_telemetry_list.append(status)
-        return GtShStatus(
+    def make_report(self, slot_start_seconds: int) -> Report:
+        channel_reading_list = []
+        for ch in self.my_channels:
+            channel_readings = self.make_channel_readings(ch)
+            if  channel_readings:
+                channel_reading_list.append(channel_readings)
+        return Report(
             FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-            FromGNodeId=self.hardware_layout.scada_g_node_id,
-            StatusUid=str(uuid.uuid4()),
+            FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
             AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
             SlotStartUnixS=slot_start_seconds,
-            ReportingPeriodS=self.settings.seconds_per_report,
-            BooleanactuatorCmdList=booleanactuator_cmd_list,
-            MultipurposeTelemetryList=multipurpose_telemetry_list,
-            SimpleTelemetryList=simple_telemetry_list,
+            BatchedTransmissionPeriodS=self.settings.seconds_per_report,
+            ChannelReadingList=channel_reading_list,
+            MessageCreatedMs=int(time.time() * 1000),
+            Id=str(uuid.uuid4())
         )
 
-    def make_telemetry_snapshot(self) -> TelemetrySnapshotSpaceheat:
-        about_node_alias_list = []
-        value_list = []
-        telemetry_name_list = []
-        for tt in self.hardware_layout.my_telemetry_tuples:
-            if self.latest_value_from_multipurpose_sensor[tt] is not None:
-                about_node_alias_list.append(tt.AboutNode.Name)
-                value_list.append(self.latest_value_from_multipurpose_sensor[tt])
-                telemetry_name_list.append(tt.TelemetryName)
-        return TelemetrySnapshotSpaceheat(
-            AboutNodeAliasList=about_node_alias_list,
-            ReportTimeUnixMs=int(1000 * time.time()),
-            ValueList=value_list,
-            TelemetryNameList=telemetry_name_list,
-        )
 
     def make_snapshot(self) -> SnapshotSpaceheat:
+        latest_reading_list = []
+        for ch in self.my_channels:
+            if self.latest_channel_values[ch]:
+                latest_reading_list.append(
+                    SingleReading(
+                        ChannelName=ch.Name,
+                        Value=self.latest_channel_values[ch],
+                        ScadaReadTimeUnixMs=self.latest_channel_unix_ms[ch]
+                    )
+                )
         return SnapshotSpaceheat(
             FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
             FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
-            Snapshot=self.make_telemetry_snapshot(),
+            SnapshotTimeUnixMs=int(time.time() * 1000),
+            LatestReadingList=latest_reading_list,
         )
 
     def make_snaphsot_payload(self) -> dict:

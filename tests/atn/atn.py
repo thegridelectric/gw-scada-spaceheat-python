@@ -1,13 +1,11 @@
 """Scada implementation"""
 import asyncio
-import dataclasses
 import threading
-import time
 from dataclasses import dataclass
 from typing import Any
 from typing import cast
 from typing import Optional
-from typing import Sequence
+from typing import List
 
 import pendulum
 from gwproto.types import GtShCliAtnCmd
@@ -19,13 +17,14 @@ from gwproto import create_message_model
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
-from gwproto.messages import GtShStatusEvent
+from gwproto.messages import ReportEvent
 from gwproto.messages import SnapshotSpaceheatEvent
 from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
-from gwproto.messages import GtShStatus
+from gwproto.messages import Report
 from gwproto.messages import SnapshotSpaceheat
 
 from gwproactor import ActorInterface
@@ -36,7 +35,6 @@ from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
 from gwproactor.proactor_implementation import Proactor
 
-from actors import message as actor_message # noqa
 
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
@@ -62,19 +60,21 @@ class Telemetry(BaseModel):
     Value: int
     Unit: TelemetryName
 
-class RecentRelayState(BaseModel):
-    State: Optional[int] = None
-    LastChangeTimeUnixMs: Optional[int] = None
-
 @dataclass
 class AtnData:
+    layout: HardwareLayout
+    my_channels: List[DataChannel]
     latest_snapshot: Optional[SnapshotSpaceheat] = None
-    latest_status: Optional[GtShStatus] = None
-    relay_state: dict[ShNode, RecentRelayState] = dataclasses.field(default_factory=dict)
+    latest_report: Optional[Report] = None
+
+    def __init__(self, layout: HardwareLayout):
+        self.layout=layout
+        self.my_channels = list(layout.data_channels.values())
+        self.latest_snapshot = None
+        self.latest_report = None
 
 class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
-
     data: AtnData
     event_loop_thread: Optional[threading.Thread] = None
 
@@ -88,7 +88,7 @@ class Atn(ActorInterface, Proactor):
         self._web_manager.disable()
 
 
-        self.data = AtnData()
+        self.data = AtnData(hardware_layout)
         self._links.add_mqtt_link(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
         self._links.subscribe(
             Atn.SCADA_MQTT,
@@ -96,7 +96,7 @@ class Atn(ActorInterface, Proactor):
             QOS.AtMostOnce,
         )
 
-        self.latest_status: Optional[GtShStatus] = None
+        self.latest_report: Optional[Report] = None
         self.status_output_dir = self.settings.paths.data_dir / "status"
         self.status_output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -164,18 +164,18 @@ class Atn(ActorInterface, Proactor):
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000002
                 self._process_snapshot(decoded.Payload)
-            case GtShStatus():
+            case Report():
                 path_dbg |= 0x00000004
-                self._process_status(decoded.Payload)
+                self.process_report(decoded.Payload)
             case EventBase():
                 path_dbg |= 0x00000008
                 self._process_event(decoded.Payload)
-                if decoded.Payload.TypeName == GtShStatusEvent.model_fields["TypeName"].default:
+                if decoded.Payload.TypeName == ReportEvent.model_fields["TypeName"].default:
                     path_dbg |= 0x00000010
-                    self._process_status(decoded.Payload.status)
+                    self.process_report(decoded.Payload.Report)
                 elif decoded.Payload.TypeName == SnapshotSpaceheatEvent.model_fields["TypeName"].default:
                     path_dbg |= 0x00000020
-                    self._process_snapshot(decoded.Payload.snap)
+                    self._process_snapshot(decoded.Payload.Snap)
             case _:
                 path_dbg |= 0x00000040
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
@@ -191,12 +191,13 @@ class Atn(ActorInterface, Proactor):
 
         if self.settings.print_snap:
             s = "\n\nSnapshot received:\n"
-            for i in range(len(snapshot.Snapshot.AboutNodeAliasList)):
-                telemetry_name = snapshot.Snapshot.TelemetryNameList[i]
+            for single_reading in snapshot.LatestReadingList:
+                channel = self.layout.data_channels[single_reading.ChannelName]
+                telemetry_name = channel.TelemetryName
                 if (telemetry_name == TelemetryName.WaterTempCTimes1000
                    or telemetry_name == TelemetryName.WaterTempCTimes1000.value
                         ):
-                    centigrade = snapshot.Snapshot.ValueList[i] / 1000
+                    centigrade = single_reading.Value / 1000
                     if self.settings.c_to_f:
                         fahrenheit = (centigrade * 9/5) + 32
                         extra = f"{fahrenheit:5.2f} F"
@@ -204,27 +205,24 @@ class Atn(ActorInterface, Proactor):
                         extra = f"{centigrade:5.2f} C"
                 else:
                     extra = (
-                        f"{snapshot.Snapshot.ValueList[i]} "
-                        f"{snapshot.Snapshot.TelemetryNameList[i].value}"
+                        f"{single_reading.Value} "
+                        f"{telemetry_name}"
                     )
-                s += f"  {snapshot.Snapshot.AboutNodeAliasList[i]}: {extra}\n"
-            # s += f"snapshot is None:{snapshot is None}\n"
-            # s += "json.dumps(snapshot.asdict()):\n"
-            # s += json.dumps(snapshot.asdict(), sort_keys=True, indent=2)
-            # s += "\n"
+                s += f"  {channel.AboutNodeName}: {extra}\n"
+
             self._logger.warning(s)
 
             # rich.print(snapshot)
 
-    def _process_status(self, status: GtShStatus) -> None:
-        self.data.latest_status = status
+    def process_report(self, status: Report) -> None:
+        self.data.latest_report = status
         if self.settings.save_events:
-            status_file = self.status_output_dir / f"GtShStatus.{status.SlotStartUnixS}.json"
+            status_file = self.status_output_dir / f"Report.{status.SlotStartUnixS}.json"
             with status_file.open("w") as f:
                 f.write(str(status))
         # self._logger.info(f"Wrote status file [{status_file}]")
         if self.settings.print_status:
-            rich.print("Received GtShStatus")
+            rich.print("Received Report")
             rich.print(status)
 
     def _process_event(self, event: EventBase) -> None:
@@ -303,7 +301,7 @@ class Atn(ActorInterface, Proactor):
         """Summarize results in a string"""
         s = (
             f"Atn [{self.node.Name}] total: {self._stats.num_received}  "
-            f"status:{self._stats.total_received(GtShStatus.model_fields['TypeName'].default)}  "
+            f"status:{self._stats.total_received(Report.model_fields['TypeName'].default)}  "
             f"snapshot:{self._stats.total_received(SnapshotSpaceheat.model_fields['TypeName'].default)}"
         )
         if self._stats.num_received_by_topic:
@@ -316,23 +314,3 @@ class Atn(ActorInterface, Proactor):
                 s += f"\n    {self._stats.num_received_by_type[message_type]:3d}: [{message_type}]"
 
         return s
-
-    def latest_simple_reading(self, node: ShNode) -> Optional[Telemetry]:
-        """Provides the latest reported Telemetry value as reported in a snapshot
-        message from the Scada, for a simple sensor.
-
-        Args:
-            node (ShNode): A Spaceheat Node associated to a simple sensor.
-
-        Returns:
-            Optional[int]: Returns None if no value has been reported.
-            This will happen for example if the node is not associated to
-            a simple sensor.
-        """
-        snap = self.data.latest_snapshot.Snapshot
-        try:
-            idx = snap.AboutNodeAliasList.index(node.Name)
-        except ValueError:
-            return None
-
-        return Telemetry(Value=snap.ValueList[idx], Unit=snap.TelemetryNameList[idx])

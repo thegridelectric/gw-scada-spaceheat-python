@@ -25,8 +25,6 @@ from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
 )
 from gwproactor.config import LoggerLevels
 from gwproactor.config import LoggingSettings
-from gwproto.data_classes.telemetry_tuple import TelemetryTuple
-from gwproto.enums import TelemetryName
 from gwproto.messages import PowerWatts
 
 def test_power_meter_small():
@@ -139,44 +137,31 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
         async def async_run(self):
             scada = self.runner.actors.scada
 
-            expected_tts = [
-                TelemetryTuple(
-                    AboutNode=self.runner.layout.node(H0N.hp_odu),
-                    SensorNode=self.runner.actors.meter.node,
-                    TelemetryName=TelemetryName.PowerW,
-                ),
-                TelemetryTuple(
-                    AboutNode=self.runner.layout.node(H0N.hp_idu),
-                    SensorNode=self.runner.actors.meter.node,
-                    TelemetryName=TelemetryName.PowerW,
-                ),
-                TelemetryTuple(
-                    AboutNode=self.runner.layout.node(H0N.store_pump),
-                    SensorNode=self.runner.actors.meter.node,
-                    TelemetryName=TelemetryName.PowerW,
-                ),
-
+            expected_channels = [
+                scada._layout.data_channels[H0CN.hp_odu_pwr],
+                scada._layout.data_channels[H0CN.hp_idu_pwr],
+                scada._layout.data_channels[H0CN.store_pump_pwr],
             ]
 
             # Wait for at least one reading to be delivered since one is delivered on thread startup.
-            for tt in expected_tts:
+            for ch in expected_channels:
                 # TODO: Test-public access for this
                 await await_for(
-                    lambda: len(scada._data.recent_values_from_multipurpose_sensor[tt]) > 0,
+                    lambda: len(scada._data.recent_channel_values[ch]) > 0,
                     5,
-                    f"wait for PowerMeter first periodic report, [{tt.TelemetryName}]"
+                    f"wait for PowerMeter first periodic report, [{ch.Name}]"
                 )
 
             # Verify periodic delivery.
-            received_tt_counts = [
-                len(scada._data.recent_values_from_multipurpose_sensor[tt]) for tt in expected_tts
+            received_ch_counts = [
+                len(scada._data.recent_channel_values[ch]) for ch in expected_channels
             ]
-            scada._logger.info(received_tt_counts)
-            for received_count, tt in zip(received_tt_counts, expected_tts):
+            scada._logger.info(received_ch_counts)
+            for received_count, tt in zip(received_ch_counts, expected_channels):
                 await await_for(
-                    lambda: len(scada._data.recent_values_from_multipurpose_sensor[tt]) > received_count,
+                    lambda: len(scada._data.recent_channel_values[ch]) > received_count,
                     5,
-                    f"wait for PowerMeter periodic update [{tt.TelemetryName}]"
+                    f"wait for PowerMeter periodic update [{tt.Name}]"
                 )
 
     await AsyncFragmentRunner.async_run_fragment(Fragment, tag=request.node.name)

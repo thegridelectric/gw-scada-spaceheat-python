@@ -1,10 +1,12 @@
 """Test Scada"""
 import logging
 import time
+import uuid
 from typing import cast
 
-from gwproto.messages import GtShStatusEvent
+from gwproto.messages import ReportEvent
 from gwproto.messages import SnapshotSpaceheatEvent
+from gwproto.messages import ChannelReadings
 
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from tests.atn import AtnSettings
@@ -19,11 +21,12 @@ from gwproactor_test.certs import copy_keys
 import pytest
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.telemetry_tuple import TelemetryTuple
+from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import TelemetryName
 from gwproto.messages import GtShMultipurposeTelemetryStatus
 from gwproto.messages import GtShStatus
 from gwproto.messages import SnapshotSpaceheat
+from gwproto.messages import Report
 from data_classes.house_0 import H0N, H0CN
 
 def test_scada_small():
@@ -34,46 +37,36 @@ def test_scada_small():
     layout = HardwareLayout.load(settings.paths.hardware_layout)
     scada = Scada(H0N.scada, settings=settings, hardware_layout=layout)
     assert layout.power_meter_node == layout.node(H0N.primary_power_meter)
-    meter_node = layout.node(H0N.primary_power_meter)
 
     assert (
-        list(scada._data.latest_value_from_multipurpose_sensor.keys())
-        == layout.my_telemetry_tuples
+        list(scada._data.latest_channel_values.keys())
+        == scada._data.my_channels
     )
     assert (
-        list(scada._data.recent_values_from_multipurpose_sensor.keys())
-        == layout.my_telemetry_tuples
+        list(scada._data.recent_channel_values.keys())
+        == scada._data.my_channels
     )
     assert (
-        list(scada._data.recent_read_times_unix_ms_from_multipurpose_sensor.keys())
-        == layout.my_telemetry_tuples
+        list(scada._data.recent_channel_unix_ms.keys())
+        == scada._data.my_channels
     )
 
     ###########################################
-    # Testing making status messages
+    # Testing making report events
     ###########################################
 
+    ch = scada._layout.data_channels[H0CN.store_pump_pwr]
 
-    tt = TelemetryTuple(
-        AboutNode=layout.node("store-pump"),
-        SensorNode=layout.node(H0N.primary_power_meter),
-        TelemetryName=TelemetryName.PowerW,
-    )
-    scada._data.recent_values_from_multipurpose_sensor[tt] = [43]
-    scada._data.recent_read_times_unix_ms_from_multipurpose_sensor[tt] = [
+    scada._data.recent_channel_values[ch] = [43]
+    scada._data.recent_channel_unix_ms[ch] = [
         int(time.time() * 1000)
     ]
     
-    s = scada._data.make_multipurpose_telemetry_status(
-        tt=cast(TelemetryTuple, "garbage")
-    )
-    assert s is None
-
-    s = scada._data.make_multipurpose_telemetry_status(tt=tt)
-    assert isinstance(s, GtShMultipurposeTelemetryStatus)
+    s = scada._data.make_channel_readings(ch=ch)
+    assert isinstance(s, ChannelReadings)
 
 
-    scada.send_status()
+    scada.send_report()
 
     # ##################################
     # # Testing actuation
@@ -90,8 +83,8 @@ def test_scada_small():
     # Other SCADA small tests
     ##################################
 
-    scada._last_status_second = int(time.time() - 400)
-    assert scada.time_to_send_status() is True
+    scada._last_report_second = int(time.time() - 400)
+    assert scada.time_to_send_report() is True
 
 
 # @pytest.mark.asyncio
@@ -117,7 +110,7 @@ def test_scada_small():
 #     )
 #     actors.scada._scada_atn_fast_dispatch_contract_is_alive_stub = True
 #     actors.scada._last_status_second = int(time.time())
-#     actors.scada.suppress_status = True
+#     actors.scada.suppress_report = True
 #     runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
 
 #     class Fragment(ProtocolFragment):
@@ -223,10 +216,10 @@ def test_scada_small():
 
 #             # Cause scada to send a status (and snapshot) now
 #             snapshots_received = atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default]
-#             scada.suppress_status = False
+#             scada.suppress_report = False
 #             # Verify Atn got status and snapshot
 #             await await_for(
-#                 lambda: atn.stats.num_received_by_type[GtShStatusEvent.model_fields["TypeName"].default] == 1,
+#                 lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
 #                 5,
 #                 "Atn wait for status message",
 #                 err_str_f=atn.summary_str
@@ -284,8 +277,8 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
         scada=ScadaRecorder(H0N.scada, settings, hardware_layout=layout),
         atn_settings=atn_settings,
     )
-    actors.scada._last_status_second = int(time.time())
-    actors.scada.suppress_status = True
+    actors.scada._last_report_second = int(time.time())
+    actors.scada.suppress_report = True
 
     class Fragment(ProtocolFragment):
 
@@ -295,13 +288,13 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
         async def async_run(self):
             scada = self.runner.actors.scada
             atn = self.runner.actors.atn
-            assert atn.stats.num_received_by_type[GtShStatusEvent.model_fields["TypeName"].default] == 0
+            assert atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 0
             assert atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 0
-            scada.suppress_status = False
+            scada.suppress_report = False
             await await_for(
-                lambda: atn.stats.num_received_by_type[GtShStatusEvent.model_fields["TypeName"].default] == 1,
+                lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
                 5,
-                "Atn wait for status message"
+                "Atn wait for report message"
             )
             await await_for(
                 lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 1,
@@ -324,7 +317,7 @@ async def test_scada_snaphot_request_delivery(tmp_path, monkeypatch, request):
     class Fragment(ProtocolFragment):
 
         def get_requested_proactors(self):
-            self.runner.actors.scada.suppress_status = True
+            self.runner.actors.scada.suppress_report = True
             return [self.runner.actors.scada, self.runner.actors.atn]
 
         async def async_run(self):
@@ -363,7 +356,7 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
         atn_settings=AsyncFragmentRunner.make_atn_settings()
     )
     actors.scada._last_status_second = int(time.time())
-    actors.scada.suppress_status = True
+    actors.scada.suppress_report = True
 
     class Fragment(ProtocolFragment):
 
@@ -375,17 +368,13 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             scada = self.runner.actors.scada
             link_stats = scada.stats.links["gridworks"]
             meter = self.runner.actors.meter
-            meter_telemetry_message_type = "gt.sh.telemetry.from.multipurpose.sensor"
+            meter_telemetry_message_type = "synced.readings"
 
             # Verify scada status and snapshot are emtpy
-            status = scada._data.make_status(int(time.time()))
+            report = scada._data.make_report(int(time.time()))
             snapshot = scada._data.make_snapshot()
-            assert len(status.SimpleTelemetryList) == 0
-            assert len(status.BooleanactuatorCmdList) == 0
-            assert len(status.MultipurposeTelemetryList) == 0
-            assert len(snapshot.Snapshot.TelemetryNameList) == 0
-            assert len(snapshot.Snapshot.AboutNodeAliasList) == 0
-            assert len(snapshot.Snapshot.ValueList) == 0
+            assert len(report.ChannelReadingList) == 0
+            assert len(snapshot.LatestReadingList) == 0
             assert link_stats.num_received_by_type[meter_telemetry_message_type] == 0
 
             # Make sub-actors send their reports
@@ -401,8 +390,8 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             assert scada.scada_atn_fast_dispatch_contract_is_alive
             
             # Provoke a message by increasing the power of hp-odu
-            element = scada._data.hardware_layout.node("hp-odu")
-            assert element is not None
+            hp_odu = scada._data.hardware_layout.node(H0N.hp_odu)
+            assert hp_odu is not None
             scada._layout.channel
             ch = scada._layout.channel(H0CN.hp_odu_pwr)
             meter._sync_thread.latest_telemetry_value[ch] += 300
@@ -416,18 +405,17 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
                 err_str_f=scada.summary_str
             )
 
-            status = scada._data.make_status(int(time.time()))
-            NUM_STAT_CHANNELS = 3
-            assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples) - NUM_STAT_CHANNELS
-            for entry in status.MultipurposeTelemetryList:
-                assert entry.SensorNodeAlias == meter.node.Name
+            report = scada._data.make_report(int(time.time()))
+            NUM_POWER_CHANNELS = 3
+            assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
 
-            # Cause scada to send a status (and snapshot) now
-            scada.suppress_status = False
+
+            # Cause scada to send a report (and snapshot) now
+            scada.suppress_report = False
 
             # Verify Atn got status and snapshot
             await await_for(
-                lambda: atn.stats.num_received_by_type[GtShStatusEvent.model_fields["TypeName"].default] == 1,
+                lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
                 5,
                 "Atn wait for status message",
                 err_str_f=atn.summary_str
@@ -440,21 +428,15 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             )
 
             # Verify contents of status and snapshot are as expected
-            status = atn.data.latest_status
-            assert isinstance(status, GtShStatus)
-            assert len(status.MultipurposeTelemetryList) == len(self.runner.layout.my_telemetry_tuples) - NUM_STAT_CHANNELS
-            for entry in status.MultipurposeTelemetryList:
-                assert entry.SensorNodeAlias == meter.node.Name
+            report = atn.data.latest_report
+            assert isinstance(report, Report)
+            print(report.ChannelReadingList)
+            assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
             snapshot = atn.data.latest_snapshot
             assert isinstance(snapshot, SnapshotSpaceheat)
-            assert set(snapshot.Snapshot.AboutNodeAliasList) == set(
-                [
-                    tpl.AboutNode.Name for tpl in self.runner.layout.all_power_meter_telemetry_tuples
-                ]
-            )
-            assert len(snapshot.Snapshot.AboutNodeAliasList) ==  \
-                len(self.runner.layout.all_power_meter_telemetry_tuples)
-            assert len(snapshot.Snapshot.ValueList) == len(snapshot.Snapshot.AboutNodeAliasList)
+            
+            assert len(snapshot.LatestReadingList) ==  1
+
 
             # Turn off telemtry reporting
             for actor in [meter]:
@@ -462,19 +444,19 @@ async def test_scada_status_content_dynamics(tmp_path, monkeypatch, request):
             for actor in [meter]:
                 await actor.join()
             # Wait for scada to send at least one more status.
-            statuses_received = atn.stats.total_received(GtShStatusEvent.model_fields["TypeName"].default)
+            statuses_received = atn.stats.total_received(ReportEvent.model_fields["TypeName"].default)
             await await_for(
-                lambda: atn.stats.total_received(GtShStatusEvent.model_fields["TypeName"].default) > statuses_received,
+                lambda: atn.stats.total_received(ReportEvent.model_fields["TypeName"].default) > statuses_received,
                 5,
                 "Atn wait for status message 2",
                 err_str_f=atn.summary_str
             )
 
             # Verify scada has cleared its state
-            status = scada._data.make_status(int(time.time()))
-            assert len(status.SimpleTelemetryList) == 0
-            assert len(status.BooleanactuatorCmdList) == 0
-            assert len(status.MultipurposeTelemetryList) == 0
+            report = scada._data.make_status(int(time.time()))
+            assert len(report.SimpleTelemetryList) == 0
+            assert len(report.BooleanactuatorCmdList) == 0
+            assert len(report.MultipurposeTelemetryList) == 0
 
     runner = AsyncFragmentRunner(settings, actors=actors, tag=request.node.name)
     runner.add_fragment(Fragment(runner))

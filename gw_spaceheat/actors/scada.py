@@ -15,8 +15,8 @@ from gwproto import Message
 from gwproto import create_message_model
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
-from gwproto.messages import GtShStatusEvent
-from gwproto.messages import GtShTelemetryFromMultipurposeSensor
+from gwproto.messages import ReportEvent
+from gwproto.messages import SyncedReadings
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from gwproto.messages import SnapshotSpaceheatEvent
@@ -29,8 +29,8 @@ from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 from gwproactor import QOS
 from gwproactor.links import Transition
 from gwproactor.message import MQTTReceiptPayload
@@ -87,7 +87,7 @@ class Scada(ScadaInterface, Proactor):
     LOCAL_MQTT = "local"
 
     _data: ScadaData
-    _last_status_second: int
+    _last_report_second: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
     _home_alone: HomeAlone
 
@@ -118,7 +118,7 @@ class Scada(ScadaInterface, Proactor):
         # self._home_alone = HomeAlone(H0N.home_alone, self)
         # self.add_communicator(self._home_alone)
         now = int(time.time())
-        self._last_status_second = int(now - (now % self.settings.seconds_per_report))
+        self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
         if actor_nodes is not None:
             for actor_node in actor_nodes:
@@ -170,16 +170,16 @@ class Scada(ScadaInterface, Proactor):
 
     def _start_derived_tasks(self):
         self._tasks.append(
-            asyncio.create_task(self.update_status(), name="update_status")
+            asyncio.create_task(self.update_report(), name="update_report")
         )
 
-    async def update_status(self):
+    async def update_report(self):
         while not self._stop_requested:
             try:
-                if self.time_to_send_status():
-                    self.send_status()
-                    self._last_status_second = int(time.time())
-                await asyncio.sleep(self.seconds_until_next_status())
+                if self.time_to_send_report():
+                    self.send_report()
+                    self._last_report_second = int(time.time())
+                await asyncio.sleep(self.seconds_til_next_report())
             except Exception as e:
                 try:
                     if not isinstance(e, asyncio.CancelledError):
@@ -188,7 +188,7 @@ class Scada(ScadaInterface, Proactor):
                             InternalShutdownMessage(
                                 Src=self.name,
                                 Reason=(
-                                    f"update_status() task got exception: <{type(e)}> {e}"
+                                    f"update_report() task got exception: <{type(e)}> {e}"
                                 ),
                             )
                         )
@@ -196,14 +196,14 @@ class Scada(ScadaInterface, Proactor):
                     break
 
 
-    def send_status(self):
-        status = self._data.make_status(self._last_status_second)
-        self._data.status_to_store[status.StatusUid] = status
-        self.generate_event(GtShStatusEvent(status=status))
+    def send_report(self):
+        report = self._data.make_report(self._last_report_second)
+        self._data.reports_to_store[report.Id] = report
+        self.generate_event(ReportEvent(Report=report))
         snapshot = self._data.make_snapshot()
-        self._publish_to_local(self._node, status)
+        self._publish_to_local(self._node, report)
         self._publish_to_local(self._node, snapshot)
-        self.generate_event(SnapshotSpaceheatEvent(snap=snapshot))
+        self.generate_event(SnapshotSpaceheatEvent(Snap=snapshot))
         # try:
         #     self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
         # except BaseException as e:
@@ -211,18 +211,18 @@ class Scada(ScadaInterface, Proactor):
         #     raise e
         self._data.flush_latest_readings()
 
-    def next_status_second(self) -> int:
-        last_status_second_nominal = int(
-            self._last_status_second
-            - (self._last_status_second % self.settings.seconds_per_report)
+    def next_report_second(self) -> int:
+        last_br_second_nominal = int(
+            self._last_report_second
+            - (self._last_report_second % self.settings.seconds_per_report)
         )
-        return last_status_second_nominal + self.settings.seconds_per_report
+        return last_br_second_nominal + self.settings.seconds_per_report
 
-    def seconds_until_next_status(self) -> float:
-        return self.next_status_second() - time.time()
+    def seconds_til_next_report(self) -> float:
+        return self.next_report_second() - time.time()
 
-    def time_to_send_status(self) -> bool:
-        return time.time() > self.next_status_second()
+    def time_to_send_report(self) -> bool:
+        return time.time() > self.next_report_second()
 
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
@@ -250,9 +250,9 @@ class Scada(ScadaInterface, Proactor):
                     raise Exception(
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
-            case GtShTelemetryFromMultipurposeSensor():
+            case SyncedReadings():
                 path_dbg |= 0x00000040
-                self.gt_sh_telemetry_from_multipurpose_sensor_received(
+                self.synced_readings_received(
                         from_node, message.Payload
                     )
             case _:
@@ -371,37 +371,30 @@ class Scada(ScadaInterface, Proactor):
         self._links.publish_upstream(payload, QOS.AtMostOnce)
         self._data.latest_total_power_w = payload.Watts
 
-    def gt_sh_telemetry_from_multipurpose_sensor_received(
-        self, from_node: ShNode, payload: GtShTelemetryFromMultipurposeSensor
+    def synced_readings_received(
+        self, from_node: ShNode, payload: SyncedReadings
     ):
         self._logger.path(
-            "++gt_sh_telemetry_from_multipurpose_sensor_received from: %s  nodes: %d",
+            "++synced_readings_received from: %s  channels: %d",
             from_node.Name,
-            len(payload.AboutNodeAliasList)
+            len(payload.ChannelNameList)
         )
         path_dbg = 0
-        for idx, about_name in enumerate(payload.AboutNodeAliasList):
+        for idx, channel_name in enumerate(payload.ChannelNameList):
             path_dbg |= 0x00000001
-            if about_name not in self._layout.nodes:
+            if channel_name not in self._layout.data_channels:
                 raise Exception(
-                    f"Name {about_name} in payload.AboutNodeAliasList not a recognized ShNode!"
+                    f"Name {channel_name} in payload.SyncedReadingsnot a recognized Data Channel!"
                 )
-            tt = TelemetryTuple(
-                AboutNode=self._layout.node(about_name),
-                SensorNode=from_node,
-                TelemetryName=payload.TelemetryNameList[idx],
-            )
-            if tt not in self._layout.my_telemetry_tuples:
-                raise Exception(f"Scada not tracking telemetry tuple {tt}!")
-            self._data.recent_values_from_multipurpose_sensor[tt].append(
+            ch = self._layout.data_channels[channel_name]
+            self._data.recent_channel_values[ch].append(
                 payload.ValueList[idx]
             )
-            self._data.recent_read_times_unix_ms_from_multipurpose_sensor[
-                tt
+            self._data.recent_channel_unix_ms[
+                ch
             ].append(payload.ScadaReadTimeUnixMs)
-            self._data.latest_value_from_multipurpose_sensor[
-                tt
-            ] = payload.ValueList[idx]
+            self._data.latest_channel_values[ch] = payload.ValueList[idx]
+            self._data.latest_channel_unix_ms[ch] = payload.ScadaReadTimeUnixMs
         self._logger.path(
             "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
         )

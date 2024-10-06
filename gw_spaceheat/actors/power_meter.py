@@ -9,7 +9,7 @@ from typing import Optional
 from gwproto import Message
 
 from actors.message import PowerWattsMessage
-from actors.message import MultipurposeSensorTelemetryMessage
+from actors.message import SyncedReadingsMessage
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproactor import SyncThreadActor
@@ -253,21 +253,11 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self, channel_report_list: List[DataChannel]
     ):
         self._put_to_async_queue(
-            MultipurposeSensorTelemetryMessage(
+            SyncedReadingsMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
-                about_node_name_list=list(
-                    map(lambda x: x.AboutNodeName, channel_report_list)
-                ),
-                value_list=list(
-                    map(
-                        lambda x: self.latest_telemetry_value[x],
-                        channel_report_list,
-                    )
-                ),
-                telemetry_name_list=list(
-                    map(lambda x: x.TelemetryName, channel_report_list)
-                ),
+                channel_name_list= [ch.Name for ch in channel_report_list],
+                value_list=[self.latest_telemetry_value[ch] for ch in channel_report_list],
             )
         )
         for ch in channel_report_list:
