@@ -40,6 +40,7 @@ def add_default_args(
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Increase logging verbosity")
     parser.add_argument("--message-summary", action="store_true", help="Turn on message summary logging")
+    parser.add_argument("--aiohttp-logging", action="store_true", help="Turn on aiohttp logging")
     parser.add_argument(
         "--seconds-per-report",
         default=ScadaSettings.model_fields["seconds_per_report"].default,

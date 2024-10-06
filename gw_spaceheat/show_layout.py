@@ -351,6 +351,7 @@ def show_layout(
         print_component_dicts(layout)
         print_layout_members(layout, errors)
         print_layout_urls(layout)
+        print_web_server_info(layout, requested_aliases, settings)
     print_layout_table(layout)
     scada = try_scada_load(
         requested_aliases,
