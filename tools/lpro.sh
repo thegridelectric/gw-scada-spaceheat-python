@@ -9,6 +9,8 @@ then
   exit 0
 fi
 
+deactivate | true
+source gw_spaceheat/venv/bin/activate
 pip uninstall gridworks-protocol
 pip uninstall gridworks-proactor
 pip install -e ../gridworks-proactor --no-cache-dir
