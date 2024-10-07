@@ -74,8 +74,8 @@ class H0CN:
     # required temp channels
     dist_swt = "dist-swt"
     dist_rwt = "dist-rwt"
-    hp_ewt = "hp-lwt"
-    hp_lwt = "hp-ewt"
+    hp_ewt = "hp-ewt"
+    hp_lwt = "hp-lwt"
     store_hot_pipe="store-hot-pipe"
     store_cold_pipe="store-cold-pipe"
     buffer_hot_pipe="buffer-hot-pipe"
