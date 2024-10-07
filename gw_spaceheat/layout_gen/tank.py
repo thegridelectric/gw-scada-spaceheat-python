@@ -3,13 +3,11 @@ from typing import Tuple
 
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
-from gwproto.types import FibaroSmartImplantCacGt
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import FibaroSmartImplantComponentGt
 from gwproto.type_helpers import FibaroTempSensorSettingsGt
-from gwproto.types import HubitatCacGt
 from gwproto.types import HubitatComponentGt
-from gwproto.types import HubitatTankCacGt
 from gwproto.types import HubitatTankComponentGt
 from gwproto.type_helpers import HubitatTankSettingsGt
 from gwproto.types import SpaceheatNodeGt
@@ -26,7 +24,7 @@ class FibaroGenCfg(BaseModel):
         return f"Fibaro Smart Implant {self.SN}"
 
 class TankGenCfg(BaseModel):
-    NodeAlias: str
+    NodeName: str
     InHomeName: str
     SN: str
     DeviceIds: Tuple[int, int, int, int]
@@ -39,8 +37,8 @@ class TankGenCfg(BaseModel):
     def component_alias(self) -> str:
         return f"Tank Module <{self.InHomeName}>  SN {self.SN}"
 
-    def thermistor_node_alias(self, depth: int) -> str:
-        return f"{self.NodeAlias}.temp.depth{depth}"
+    def thermistor_node_name(self, depth: int) -> str:
+        return f"{self.NodeName}-depth{depth}"
 
     def thermistor_node_display_name(self, depth: int) -> str:
         if depth == 1:
@@ -58,35 +56,35 @@ def add_tank(
     hubitat: HubitatGt,
     tank: TankGenCfg,
 ) -> None:
-    fibaro_cac_type = "fibaro.smart.implant.cac.gt"
-    if not db.cac_id_by_type(fibaro_cac_type):
+    fibaro_make_model = MakeModel.FIBARO__ANALOG_TEMP_SENSOR
+    if not db.cac_id_by_alias(fibaro_make_model):
         db.add_cacs(
             [
-                FibaroSmartImplantCacGt(
-                    ComponentAttributeClassId=db.make_cac_id(fibaro_cac_type),
+                ComponentAttributeClassGt(
+                    ComponentAttributeClassId=CACS_BY_MAKE_MODEL[fibaro_make_model],
                     DisplayName="Fibaro SmartImplant FGBS-222",
                     Model="FGBS-222 v5.2",
                     MakeModel=MakeModel.FIBARO__ANALOG_TEMP_SENSOR,
                 ),
             ]
         )
-    hubitat_cac_type = "hubitat.cac.gt"
-    if not db.cac_id_by_type(hubitat_cac_type):
+    hubitat_make_model = MakeModel.HUBITAT__C7__LAN1
+    if not db.cac_id_by_alias(hubitat_make_model):
         db.add_cacs(
             [
-                HubitatCacGt(
-                    ComponentAttributeClassId=db.make_cac_id(hubitat_cac_type),
+                ComponentAttributeClassGt(
+                    ComponentAttributeClassId=CACS_BY_MAKE_MODEL[hubitat_make_model],
                     DisplayName="Hubitat Elevation C-7",
                     MakeModel=MakeModel.HUBITAT__C7__LAN1,
                 ),
             ]
         )
-    hubitat_tank_cac_type = "hubitat.tank.cac.gt"
-    if not db.cac_id_by_type(hubitat_tank_cac_type):
+    tank_module_make_model = MakeModel.GRIDWORKS__TANK_MODULE_1
+    if not db.cac_id_by_alias(tank_module_make_model):
         db.add_cacs(
             [
-                HubitatTankCacGt(
-                    ComponentAttributeClassId=db.make_cac_id(hubitat_tank_cac_type),
+                ComponentAttributeClassGt(
+                    ComponentAttributeClassId=CACS_BY_MAKE_MODEL[tank_module_make_model],
                     DisplayName="Hubitat Tank Module",
                     MakeModel=MakeModel.GRIDWORKS__TANK_MODULE_1
                 ),
@@ -99,9 +97,10 @@ def add_tank(
             [
                 HubitatComponentGt(
                     ComponentId=db.make_component_id(hubitat_alias),
-                    ComponentAttributeClassId=db.cac_id_by_type(hubitat_cac_type),
+                    ComponentAttributeClassId=db.cac_id_by_alias(hubitat_make_model),
                     DisplayName=hubitat_alias,
                     Hubitat=hubitat,
+                    ConfigList=[],
                 ),
             ]
     )
@@ -109,15 +108,17 @@ def add_tank(
         [
             FibaroSmartImplantComponentGt(
                 ComponentId=db.make_component_id(fibaro_a.alias()),
-                ComponentAttributeClassId=db.cac_id_by_type(fibaro_cac_type),
+                ComponentAttributeClassId=db.cac_id_by_alias(fibaro_make_model),
                 DisplayName=fibaro_a.alias(),
                 ZWaveDSK=fibaro_a.ZWaveDSK,
+                ConfigList=[],
             ),
             FibaroSmartImplantComponentGt(
                 ComponentId=db.make_component_id(fibaro_b.alias()),
-                ComponentAttributeClassId=db.cac_id_by_type(fibaro_cac_type),
+                ComponentAttributeClassId=db.cac_id_by_alias(fibaro_make_model),
                 DisplayName=fibaro_b.alias(),
                 ZWaveDSK=fibaro_b.ZWaveDSK,
+                ConfigList=[],
             ),
         ]
     )
@@ -125,8 +126,9 @@ def add_tank(
         [
             HubitatTankComponentGt(
                 ComponentId=db.make_component_id(tank.component_alias()),
-                ComponentAttributeClassId=db.cac_id_by_type(hubitat_tank_cac_type),
+                ComponentAttributeClassId=db.cac_id_by_alias(tank_module_make_model),
                 DisplayName=tank.component_alias(),
+                ConfigList=[],
                 Tank=HubitatTankSettingsGt(
                     hubitat_component_id=db.component_id_by_alias(hubitat_alias),
                     default_poll_period_seconds=tank.DefaultPollPeriodSeconds,
@@ -176,40 +178,35 @@ def add_tank(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.NodeAlias),
-                Alias=tank.NodeAlias,
+                ShNodeId=db.make_node_id(tank.NodeName),
+                Name=tank.NodeName,
                 ActorClass=ActorClass.HubitatTankModule,
-                Role=Role.MultiChannelAnalogTempSensor,
                 DisplayName=tank.node_display_name(),
                 ComponentId=db.component_id_by_alias(tank.component_alias())
             ),
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.thermistor_node_alias(1)),
-                Alias=tank.thermistor_node_alias(1),
+                ShNodeId=db.make_node_id(tank.thermistor_node_name(1)),
+                Name=tank.thermistor_node_name(1),
                 ActorClass=ActorClass.NoActor,
-                Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(1),
             ),
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.thermistor_node_alias(2)),
-                Alias=tank.thermistor_node_alias(2),
+                ShNodeId=db.make_node_id(tank.thermistor_node_name(2)),
+                Name=tank.thermistor_node_name(2),
                 ActorClass=ActorClass.NoActor,
-                Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(2),
             ),
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.thermistor_node_alias(3)),
-                Alias=tank.thermistor_node_alias(3),
+                ShNodeId=db.make_node_id(tank.thermistor_node_name(3)),
+                Name=tank.thermistor_node_name(3),
                 ActorClass=ActorClass.NoActor,
-                Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(3),
             ),
 
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(tank.thermistor_node_alias(4)),
-                Alias=tank.thermistor_node_alias(4),
+                ShNodeId=db.make_node_id(tank.thermistor_node_name(4)),
+                Name=tank.thermistor_node_name(4),
                 ActorClass=ActorClass.NoActor,
-                Role=Role.TankWaterTempSensor,
                 DisplayName=tank.thermistor_node_display_name(4),
             ),
         ]

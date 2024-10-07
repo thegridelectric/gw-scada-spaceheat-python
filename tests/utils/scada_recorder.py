@@ -48,13 +48,13 @@ class ProactorStats2(ProactorStats):
 
 class ScadaRecorder(Scada):
 
-    suppress_status: bool
+    suppress_report: bool
     subacks_paused: bool
     pending_subacks: list[Message]
     ack_timeout_seconds: float = 5.0
 
     def __init__(self, name: str, settings: ScadaSettings, hardware_layout: HardwareLayout, actor_nodes: Optional[List[ShNode]] = None):
-        self.suppress_status = False
+        self.suppress_report = False
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout, actor_nodes=actor_nodes)
         self.subacks_paused = False
         self.pending_subacks = []
@@ -63,8 +63,8 @@ class ScadaRecorder(Scada):
     def make_stats(cls) -> ProactorStats2:
         return ProactorStats2()
 
-    def time_to_send_status(self) -> bool:
-        return not self.suppress_status and super().time_to_send_status()
+    def time_to_send_report(self) -> bool:
+        return not self.suppress_report and super().time_to_send_report()
 
     def generate_event(self, event: EventT) -> None:
         if isinstance(event, CommEvent):

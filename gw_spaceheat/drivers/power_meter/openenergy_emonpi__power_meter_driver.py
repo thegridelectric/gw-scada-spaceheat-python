@@ -13,8 +13,7 @@ from gwproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from enums import MakeModel
-
-
+from gwproto.data_classes.data_channel import DataChannel
 class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
         super(OpenenergyEmonpi_PowerMeterDriver, self).__init__(component=component, settings=settings)
@@ -61,13 +60,13 @@ class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
         if emon_telemetry_handle == 'power1':
             self.power_w = int(payload)
 
-    def read_current_rms_micro_amps(self) -> Result[DriverResult[int], Exception]:
+    def read_current_rms_micro_amps(self, channel: DataChannel) -> Result[DriverResult[int], Exception]:
         raise NotImplementedError
 
     def read_hw_uid(self) -> Result[DriverResult[str | None], Exception]:
         return Ok(DriverResult("1001ab"))
 
-    def read_power_w(self) -> Result[DriverResult[int | None], Exception]:
+    def read_power_w(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
         return Ok(DriverResult(self.power_w))
 
     def start(self) -> Result[DriverResult[bool], Exception]:

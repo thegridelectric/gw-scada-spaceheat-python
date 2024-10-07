@@ -1,8 +1,7 @@
-from pydantic import model_validator
+from pydantic import root_validator
 
 from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
-from pydantic_settings import SettingsConfigDict
 
 DEFAULT_NAME = "atn"
 
@@ -14,13 +13,12 @@ class AtnSettings(ProactorSettings):
     day_cron_file: str = "cron_last_day.txt"
     c_to_f: bool = True
     save_events: bool = False
-    print_report: bool = False
-    print_snap: bool = True
+    print_status: bool = False
+    ops_genie_api_key: str = ""
 
-    model_config = SettingsConfigDict(env_prefix="ATN_")
+    class Config(ProactorSettings.Config):
+        env_prefix = "ATN_"
 
-
-    @model_validator(mode="before")
-    @classmethod
+    @root_validator(pre=True)
     def pre_root_validator(cls, values: dict) -> dict:
         return ProactorSettings.update_paths_name(values, DEFAULT_NAME)

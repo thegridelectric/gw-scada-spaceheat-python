@@ -25,7 +25,7 @@ from actors.hubitat_interface import HubitatWebEventListenerInterface
 from actors.hubitat_interface import HubitatWebServerInterface
 from actors.hubitat_interface import MakerAPIRefreshResponse
 from actors.hubitat_interface import ValueConverter
-from actors.message import MultipurposeSensorTelemetryMessage
+from actors.message import SyncedReadingsMessage
 
 
 
@@ -99,9 +99,8 @@ class HubitatRESTPoller(RESTPoller):
             response = MakerAPIRefreshResponse(
                 **await response.json(content_type=None)
             )
-            about_nodes = []
+            about_channels = []
             values = []
-            telemetry_names = []
             warnings = []
             for config_attribute in self._component.gt.Poller.attributes:
                 if (config_attribute.enabled and
@@ -115,18 +114,16 @@ class HubitatRESTPoller(RESTPoller):
                     )
                     if convert_result.is_ok():
                         if convert_result.value is not None:
-                            about_nodes.append(config_attribute.node_name)
+                            about_channels.append(config_attribute.channel_name)
                             values.append(convert_result.value)
-                            telemetry_names.append(config_attribute.telemetry_name)
                     else:
                         warnings.append(convert_result.err())
             if values:
-                return MultipurposeSensorTelemetryMessage(
+                return SyncedReadingsMessage(
                     src=self._name,
                     dst=self._report_dst,
-                    about_node_alias_list=about_nodes,
+                    channel_name_list=about_channels,
                     value_list=values,
-                    telemetry_name_list=telemetry_names,
                 )
             if warnings:
                 self._forward(
@@ -169,7 +166,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
             raise ValueError(
                 f"ERROR. Component <{display_name}> has type {type(component)}. "
                 f"Expected HubitatPollerComponent.\n"
-                f"  Node: {self.name}\n"
+                f"  Node: {name}\n"
                 f"  Component id: {component.gt.ComponentId}"
             )
 
@@ -204,8 +201,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
                                     device_id=self._component.gt.Poller.device_id,
                                     event_name=attribute.attribute_name,
                                     report_src_node_name=self.name,
-                                    about_node_name=attribute.node_name,
-                                    telemetry_name=attribute.telemetry_name,
+                                    channel_name=attribute.channel_name,
                                     value_converter=converter,
                                 )
                             )
@@ -240,7 +236,7 @@ class HubitatPoller(Actor, HubitatWebEventListenerInterface):
                 )
                 if hubitat_node is not None:
                     hubitat_actor = self._services.get_communicator_as_type(
-                        hubitat_node.alias,
+                        hubitat_node.Name,
                         HubitatWebServerInterface
                     )
         return hubitat_actor

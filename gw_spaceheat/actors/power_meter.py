@@ -3,21 +3,19 @@ isolates code used only in PowerMeterDriverThread constructor. """
 
 import time
 import typing
-from collections import OrderedDict
 from typing import Dict
 from typing import List
 from typing import Optional
-
 from gwproto import Message
 
 from actors.message import PowerWattsMessage
-from actors.message import MultipurposeSensorTelemetryMessage
+from actors.message import SyncedReadingsMessage
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproactor import SyncThreadActor
 from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
-from gwproto.data_classes.components.resistive_heater_component import ResistiveHeaterComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
 from drivers.exceptions import DriverWarning
 from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_PowerMeterDriver
@@ -32,18 +30,11 @@ from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
     SchneiderElectricIem3455_PowerMeterDriver,
 )
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
-from gwproto.data_classes.telemetry_tuple import TelemetryTuple
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
 from enums import MakeModel
-from enums import Role
-from gwproto.types import (
-    TelemetryReportingConfig,
-)
-from gwtypes import GtPowermeterReportingConfig as ReportingConfig
-
-from gwtypes import GtPowermeterReportingConfig_Maker
+from gwproto.types import ElectricMeterChannelConfig
 
 
 
@@ -93,40 +84,12 @@ class DriverThreadSetupHelper:
         if not isinstance(node.component, ElectricMeterComponent):
             raise ValueError(
                 "ERROR. PowerMeterDriverThread requires node with ElectricMeterComponent. "
-                f"Received node {node.alias} with componet type {type(node.component)}"
+                f"Received node {node.Name} with componet type {type(node.component)}"
             )
         self.node = node
         self.settings = settings
         self.hardware_layout = hardware_layout
         self.component = typing.cast(ElectricMeterComponent, node.component)
-
-    def make_eq_reporting_config(self) -> Dict[TelemetryTuple, TelemetryReportingConfig]:
-        eq_reporting_config: Dict[TelemetryTuple, TelemetryReportingConfig] = OrderedDict()
-        for config in self.component.gt.ConfigList:
-            about_node = self.hardware_layout.node(config.AboutNodeName)
-            eq_reporting_config[
-                TelemetryTuple(
-                    AboutNode=about_node,
-                    SensorNode=self.node,
-                    TelemetryName=config.TelemetryName
-                )
-            ] = config
-        return eq_reporting_config
-
-    def make_reporting_config(self) -> ReportingConfig:
-        if self.component.cac.PollPeriodMs is None:
-            poll_period_ms = self.FASTEST_POWER_METER_POLL_PERIOD_MS
-        else:
-            poll_period_ms = max(
-                self.FASTEST_POWER_METER_POLL_PERIOD_MS,
-                self.component.cac.PollPeriodMs,
-            )
-        return GtPowermeterReportingConfig_Maker(
-            reporting_period_s=self.settings.seconds_per_report,
-            poll_period_ms=poll_period_ms,
-            hw_uid=self.component.gt.HwUid,
-            electrical_quantity_reporting_config_list=self.component.gt.ConfigList,
-        ).tuple
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
         cac = self.component.cac
@@ -148,45 +111,30 @@ class DriverThreadSetupHelper:
             )
         return driver
 
-    @classmethod
-    def get_resistive_heater_component(cls, node: ShNode) -> ResistiveHeaterComponent:
-        if node.role != Role.BoostElement:
-            raise ValueError(
-                "This function should only be called for nodes that are boost elements"
-            )
-        if not isinstance(node.component, ResistiveHeaterComponent):
-            raise ValueError(
-                f"Node component has type {type(node.component)}. Requires type ResistiveHeaterComponent"
-            )
-        return typing.cast(ResistiveHeaterComponent, node.component)
-
-    @classmethod
-    def get_resistive_heater_nameplate_power_w(cls, node: ShNode) -> int:
-        return cls.get_resistive_heater_component(node).cac.NameplateMaxPowerW
-
-
-    def get_nameplate_telemetry_value(self) -> Dict[TelemetryTuple, int]:
-        response_dict: Dict[TelemetryTuple, int] = {}
+    def make_eq_reporting_config(self) -> Dict[DataChannel, ElectricMeterChannelConfig]:
+        response_dict: Dict[DataChannel, ElectricMeterChannelConfig] = {}
         for config in self.component.gt.ConfigList:
-            tt = TelemetryTuple(
-                AboutNode=self.hardware_layout.node(config.AboutNodeName),
-                SensorNode=self.node,
-                TelemetryName=config.TelemetryName,
-            )
-            response_dict[tt] = config.NameplateMaxValue
+            ch = self.hardware_layout.data_channels[config.ChannelName]
+            response_dict[ch] = config
+        return response_dict
+
+    def get_transactive_nameplate_watts(self) -> Dict[DataChannel, int]:
+        response_dict: Dict[DataChannel, int] = {}
+        for config in self.component.gt.ConfigList:
+            ch = self.hardware_layout.data_channels[config.ChannelName]
+            if ch.InPowerMetering:
+                response_dict[ch] = ch.about_node.NameplatePowerW
         return response_dict
 
 
 class PowerMeterDriverThread(SyncAsyncInteractionThread):
-
-    eq_reporting_config: Dict[TelemetryTuple, TelemetryReportingConfig]
-    reporting_config: ReportingConfig
+    eq_reporting_config: Dict[DataChannel, ElectricMeterChannelConfig]
     driver: PowerMeterDriver
-    nameplate_telemetry_value: Dict[TelemetryTuple, int]
+    transactive_nameplate_watts: Dict[DataChannel, int]
     last_reported_agg_power_w: Optional[int] = None
-    last_reported_telemetry_value: Dict[TelemetryTuple, Optional[int]]
-    latest_telemetry_value: Dict[TelemetryTuple, Optional[int]]
-    _last_sampled_s: Dict[TelemetryTuple, Optional[int]]
+    last_reported_telemetry_value: Dict[DataChannel, Optional[int]]
+    latest_telemetry_value: Dict[DataChannel, Optional[int]]
+    _last_sampled_s: Dict[DataChannel, Optional[int]]
     async_power_reporting_threshold: float
     _telemetry_destination: str
     _hardware_layout: HardwareLayout
@@ -202,7 +150,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         daemon: bool = True,
     ):
         super().__init__(
-            name=node.alias,
+            name=node.Name,
             responsive_sleep_step_seconds=responsive_sleep_step_seconds,
             daemon=daemon,
         )
@@ -210,18 +158,20 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self._telemetry_destination = telemetry_destination
         setup_helper = DriverThreadSetupHelper(node, settings, hardware_layout)
         self.eq_reporting_config = setup_helper.make_eq_reporting_config()
-        self.reporting_config = setup_helper.make_reporting_config()
         self.driver = setup_helper.make_power_meter_driver()
-        self.nameplate_telemetry_value = setup_helper.get_nameplate_telemetry_value()
+        self.transactive_nameplate_watts = setup_helper.get_transactive_nameplate_watts()
         self.last_reported_agg_power_w: Optional[int] = None
+        component: ElectricMeterComponent = node.component
+        my_channel_names = [cfg.ChannelName for cfg in component.gt.ConfigList]
+        self.my_channels = [hardware_layout.data_channels[name] for name in my_channel_names]
         self.last_reported_telemetry_value = {
-            tt: None for tt in self._hardware_layout.all_power_meter_telemetry_tuples
+            ch: None for ch in self.my_channels
         }
         self.latest_telemetry_value = {
-            tt: None for tt in self._hardware_layout.all_power_meter_telemetry_tuples
+            ch: None for ch in self.my_channels
         }
         self._last_sampled_s = {
-            tt: None for tt in self._hardware_layout.all_power_meter_telemetry_tuples
+            ch: None for ch in self.my_channels
         }
         self.async_power_reporting_threshold = settings.async_power_reporting_threshold
 
@@ -275,73 +225,61 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self.update_latest_value_dicts()
         if self.should_report_aggregated_power():
             self.report_aggregated_power_w()
-        telemetry_tuple_report_list = [
-            tpl
-            for tpl in self._hardware_layout.all_power_meter_telemetry_tuples
-            if self.should_report_telemetry_reading(tpl)
+        channel_report_list = [
+            ch
+            for ch in self.my_channels
+            if self.should_report_telemetry_reading(ch)
         ]
-        if telemetry_tuple_report_list:
-            self.report_sampled_telemetry_values(telemetry_tuple_report_list)
-        sleep_time_ms = self.reporting_config.PollPeriodMs
+        if channel_report_list:
+            self.report_sampled_telemetry_values(channel_report_list)
+        sleep_time_ms = self.driver.component.cac.MinPollPeriodMs
         delta_ms = 1000 * (time.time() - start_s)
-        if delta_ms < self.reporting_config.PollPeriodMs:
+        if delta_ms < sleep_time_ms:
             sleep_time_ms -= delta_ms
         self._iterate_sleep_seconds = sleep_time_ms / 1000
 
     def update_latest_value_dicts(self):
-        for tt in self._hardware_layout.all_power_meter_telemetry_tuples:
-            read = self.driver.read_telemetry_value(tt.AboutNode, tt.TelemetryName)
+        for ch in self.my_channels:
+            read = self.driver.read_telemetry_value(ch)
             if read.is_ok():
                 if read.value.value is not None:
-                    self.latest_telemetry_value[tt] = read.value.value
+                    self.latest_telemetry_value[ch] = read.value.value
                 if read.value.warnings:
                     self._report_problems(Problems(warnings=read.value.warnings), "read warnings")
             else:
                 raise read.value
 
     def report_sampled_telemetry_values(
-        self, telemetry_sample_report_list: List[TelemetryTuple]
+        self, channel_report_list: List[DataChannel]
     ):
         self._put_to_async_queue(
-            MultipurposeSensorTelemetryMessage(
+            SyncedReadingsMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
-                about_node_alias_list=list(
-                    map(lambda x: x.AboutNode.alias, telemetry_sample_report_list)
-                ),
-                value_list=list(
-                    map(
-                        lambda x: self.latest_telemetry_value[x],
-                        telemetry_sample_report_list,
-                    )
-                ),
-                telemetry_name_list=list(
-                    map(lambda x: x.TelemetryName, telemetry_sample_report_list)
-                ),
+                channel_name_list= [ch.Name for ch in channel_report_list],
+                value_list=[self.latest_telemetry_value[ch] for ch in channel_report_list],
             )
         )
-        for tt in telemetry_sample_report_list:
-            self._last_sampled_s[tt] = int(time.time())
-            self.last_reported_telemetry_value[tt] = self.latest_telemetry_value[tt]
+        for ch in channel_report_list:
+            self._last_sampled_s[ch] = int(time.time())
+            self.last_reported_telemetry_value[ch] = self.latest_telemetry_value[ch]
 
-    def value_exceeds_async_threshold(self, telemetry_tuple: TelemetryTuple) -> bool:
+    def value_exceeds_async_threshold(self, ch: DataChannel) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
         the amount of change required (as a function of the absolute max value) determined
         in the EqConfig.
         """
-        telemetry_reporting_config = self.eq_reporting_config[telemetry_tuple]
-        if telemetry_reporting_config.AsyncReportThreshold is None:
+        config = self.eq_reporting_config[ch]
+        if config.AsyncCaptureDelta is None:
             return False
-        last_reported_value = self.last_reported_telemetry_value[telemetry_tuple]
-        latest_telemetry_value = self.latest_telemetry_value[telemetry_tuple]
-        abs_telemetry_delta = abs(latest_telemetry_value - last_reported_value)
-        max_telemetry_value = self.nameplate_telemetry_value[telemetry_tuple]
-        change_ratio = abs_telemetry_delta / max_telemetry_value
-        if change_ratio > telemetry_reporting_config.AsyncReportThreshold:
+        last_reported_value = self.last_reported_telemetry_value[ch]
+        latest_telemetry_value = self.latest_telemetry_value[ch]
+        telemetry_delta = abs(latest_telemetry_value - last_reported_value)
+        if telemetry_delta > config.AsyncCaptureDelta:
             return True
         return False
 
-    def should_report_telemetry_reading(self, telemetry_tuple: TelemetryTuple) -> bool:
+    def should_report_telemetry_reading(self, ch: DataChannel) -> bool:
         """The telemetry data should get reported synchronously once every SamplePeriodS, and also asynchronously
         on a big enough change - both configured in the eq_config (eq for electrical quantity) config for this
         telemetry tuple.
@@ -352,19 +290,19 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         get at least one reading for this telemetry tuple in the Scada's status report; it does not need to be
         at the beginning or end of the status report time period.
         """
-        if self.latest_telemetry_value[telemetry_tuple] is None:
+        if self.latest_telemetry_value[ch] is None:
             return False
         if (
-            self._last_sampled_s[telemetry_tuple] is None
-            or self.last_reported_telemetry_value[telemetry_tuple] is None
+            self._last_sampled_s[ch] is None
+            or self.last_reported_telemetry_value[ch] is None
         ):
             return True
         if (
-            time.time() - self._last_sampled_s[telemetry_tuple]
-            > self.eq_reporting_config[telemetry_tuple].SamplePeriodS
+            time.time() - self._last_sampled_s[ch]
+            > self.eq_reporting_config[ch].CapturePeriodS
         ):
             return True
-        if self.value_exceeds_async_threshold(telemetry_tuple):
+        if self.value_exceeds_async_threshold(ch):
             return True
         return False
 
@@ -374,7 +312,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         latest_power_list = [
             v
             for k, v in self.latest_telemetry_value.items()
-            if k in self._hardware_layout.all_telemetry_tuples_for_agg_power_metering
+            if k in self.my_channels and k.InPowerMetering
         ]
         if None in latest_power_list:
             return None
@@ -382,12 +320,7 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
 
     @property
     def nameplate_agg_power_w(self) -> int:
-        nameplate_power_list = [
-            v
-            for k, v in self.nameplate_telemetry_value.items()
-            if k in self._hardware_layout.all_telemetry_tuples_for_agg_power_metering
-        ]
-        return int(sum(nameplate_power_list))
+        return int(sum(self.transactive_nameplate_watts.values()))
 
     def report_aggregated_power_w(self):
         self._put_to_async_queue(

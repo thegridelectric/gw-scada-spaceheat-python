@@ -14,16 +14,16 @@ from gwproactor_test import ProactorCommTests
 
 class RecordedScada(Scada):
 
-    suppress_status: bool = False
+    suppress_report: bool = False
 
-    def time_to_send_status(self) -> bool:
-        return not self.suppress_status and super().time_to_send_status()
+    def time_to_send_report(self) -> bool:
+        return not self.suppress_report and super().time_to_send_report()
 
     def disable_derived_events(self) -> None:
-        self.suppress_status = True
+        self.suppress_report = True
 
     def enable_derived_events(self) -> None:
-        self.suppress_status = False
+        self.suppress_report = False
 
     def mqtt_quiescent(self) -> bool:
         return (

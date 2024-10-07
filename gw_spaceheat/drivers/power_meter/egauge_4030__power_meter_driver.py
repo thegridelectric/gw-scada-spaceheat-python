@@ -1,5 +1,6 @@
 import socket
 import time
+import struct
 from typing import Any
 from typing import Optional
 
@@ -10,7 +11,7 @@ from result import Ok
 from result import Result
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.sh_node import ShNode
+from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.components.electric_meter_component import ElectricMeterComponent
 from gwproto.enums import TelemetryName
 from drivers.driver_result import DriverResult
@@ -160,13 +161,13 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         else:
             return connect_result
 
-    def read_power_w(self, node: ShNode) -> Result[DriverResult[int | None], Exception]:
-        output_config_list = self.component.gt.ConfigList
-        channel_list = list(filter(lambda x: x.TelemetryName == TelemetryName.PowerW and x.AboutNodeName==node.alias, output_config_list))
-        if len(channel_list) == 0:
-            raise Exception(f"Reading power for {node} but this is not in the ConfigList!")
-        output_config = channel_list[0]
-        egauge_config = list(filter(lambda x: x.OutputConfig == output_config, self.component.gt.EgaugeIoList))[0].InputConfig
+    def read_power_w(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
+        if channel.TelemetryName != TelemetryName.PowerW:
+            raise Exception(f"read_power_w got a channel with {channel.TelemetryName}")
+        my_config = next((cfg for cfg in self.component.gt.ConfigList if cfg.ChannelName == channel.Name), None)
+        if my_config is None:
+            raise Exception(f"Reading power for channel {channel.Name} but this is not in the ConfigList!")
+        egauge_config = my_config.EgaugeRegisterConfig
         if egauge_config.Type != 'f32':
             return Result[Exception(f"Misconfigured eGaugeConfig for power. Type must be f32: {egauge_config}")]
         if egauge_config.Unit != 'W':
@@ -189,7 +190,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
                 )
             else:
                 driver_result.value = int(power)
-                if not property_format.is_short_integer(driver_result.value):
+                if not is_short_integer(driver_result.value):
                     unclipped_int_power = driver_result.value
                     MIN_POWER = -2**15
                     MAX_POWER = 2**15 - 1
@@ -208,5 +209,13 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         else:
             return connect_result
 
-    def read_current_rms_micro_amps(self, node: ShNode) -> Result[DriverResult[int | None], Exception]:
+    def read_current_rms_micro_amps(self, channel: DataChannel) -> Result[DriverResult[int | None], Exception]:
         raise NotImplementedError
+
+
+def is_short_integer(candidate: int) -> bool:
+    try:
+        struct.pack("h", candidate)
+    except:  # noqa
+        return False
+    return True

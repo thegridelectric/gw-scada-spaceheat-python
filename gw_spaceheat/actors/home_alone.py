@@ -12,7 +12,6 @@ from result import Err
 from result import Ok
 from result import Result
 
-from actors.message import GtDispatchBooleanLocalMessage
 from actors.scada_interface import ScadaInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import MonitoredName
@@ -179,7 +178,8 @@ class HomeAlone(Actor):
             await asyncio.sleep(self.LOOP_SLEEP_SECONDS)
 
     def _set_relay(self, relay_name: str, state: bool):
-        self._send(GtDispatchBooleanLocalMessage(src=self.name, dst=relay_name, relay_state=int(state)))
+        ...
+        # self._send(GtDispatchBooleanLocalMessage(src=self.name, dst=relay_name, relay_state=int(state)))
 
     def per_minute_job(self, now: float) -> None:
         latest_pipe_reading = self._data.latest_simple_reading(self.PIPE_THERMO_NAME)

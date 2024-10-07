@@ -1,26 +1,26 @@
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
-from gwproto.types import HubitatCacGt
+from gwproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import HubitatComponentGt
 from gwproto.types import SpaceheatNodeGt
 from gwproto.types.hubitat_gt import HubitatGt
 
 from layout_gen.layout_db import LayoutDb
+from data_classes.house_0 import H0N
 
 def add_hubitat(
     db: LayoutDb,
     hubitat: HubitatGt,
-    hubitat_node_alias: str = "",
 ) -> str:
-    cac_type = "hubitat.cac.gt"
-    if not db.cac_id_by_type(cac_type):
+    make_model = MakeModel.HUBITAT__C7__LAN1
+    if not db.cac_id_by_alias(make_model):
         db.add_cacs(
             [
-                HubitatCacGt(
-                    ComponentAttributeClassId=db.make_cac_id(cac_type),
+                ComponentAttributeClassGt(
+                    ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
                     DisplayName="Hubitat Elevation C-7",
-                    MakeModel=MakeModel.HUBITAT__C7__LAN1,
+                    MakeModel=make_model,
                 ),
             ]
         )
@@ -30,22 +30,20 @@ def add_hubitat(
             [
                 HubitatComponentGt(
                     ComponentId=db.make_component_id(hubitat_component_alias),
-                    ComponentAttributeClassId=db.cac_id_by_type(cac_type),
+                    ComponentAttributeClassId=db.cac_id_by_alias(make_model),
                     DisplayName=hubitat_component_alias,
                     Hubitat=hubitat,
-                ),
+                    HwUid=hubitat.MacAddress[-8:].replace(":", "").lower(),
+                    ConfigList=[],
+                )
             ]
-    )
-    if not hubitat_node_alias:
-        hubitat_node_alias = f"a.hubitat.{hubitat.MacAddress[-8:]}".replace(":", "").lower()
-    if not db.node_id_by_alias(hubitat_node_alias):
+        )
         db.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=db.make_node_id(hubitat_node_alias),
-                    Alias=hubitat_node_alias,
+                    ShNodeId=db.make_node_id(H0N.hubitat),
+                    Name=H0N.hubitat,
                     ActorClass=ActorClass.Hubitat,
-                    Role=Role.Unknown,
                     DisplayName=hubitat_component_alias,
                     ComponentId=db.component_id_by_alias(hubitat_component_alias),
                 )

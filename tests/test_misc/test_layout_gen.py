@@ -4,13 +4,14 @@ from typing import Tuple
 import rich
 from gwproto.data_classes.components.hubitat_tank_component import HubitatTankComponent
 from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.enums import TelemetryName
 from gwproto.enums import ActorClass
 from gwproto.types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
 from pydantic_extra_types.mac_address import MacAddress
 
 from layout_gen import add_hubitat
-from layout_gen import add_hubitat_thermostat
+from layout_gen import add_thermostat
 from layout_gen import add_tank
 from layout_gen import FibaroGenCfg
 from layout_gen import HubitatThermostatGenCfg
@@ -60,20 +61,20 @@ def test_tank_device_poll_period(tmp_path):
 
     cfgs = [
         _TankDeviceTestConfig(
-            Name="a.unset",
+            Name="unset",
         ),
         _TankDeviceTestConfig(
-            Name="a.default",
+            Name="default",
             DefaultPollPeriodSeconds=1.0,
             RestExp=(1.0, 1.0, 1.0, 1.0),
         ),
         _TankDeviceTestConfig(
-            Name="a.one.explicit",
+            Name="one-explicit",
             DevicePollPeriodSeconds=(1.0, None, None, None),
             RestExp=(1.0, 60.0, 60.0, 60.0),
         ),
         _TankDeviceTestConfig(
-            Name="a.mixed",
+            Name="mixed",
             DefaultPollPeriodSeconds=1.0,
             DevicePollPeriodSeconds=(2.0, None, None, None),
             RestExp=(2.0, 1.0, 1.0, 1.0),
@@ -82,7 +83,7 @@ def test_tank_device_poll_period(tmp_path):
 
     for cfg in cfgs:
         tank_gen_cfg = TankGenCfg(
-            NodeAlias=cfg.Name,
+            NodeName=cfg.Name,
             InHomeName=cfg.Name,
             SN=_dummy_sn(),
             DeviceIds=(1, 2, 3, 4),
@@ -115,7 +116,16 @@ def test_tank_device_poll_period(tmp_path):
                 tanks.append(tankcj)
                 if tankcj["DisplayName"] == cfg.DisplayName:
                     tankj = tankcj["Tank"]
-                    if cfg.DefaultPollPeriodSeconds != tankj["DefaultPollPeriodSeconds"]:
+                    if cfg.DefaultPollPeriodSeconds is None:
+                        if  "DefaultPollPeriodSeconds" in tankj:
+                            errors.append(
+                                _err_str(
+                                    cfg.Name, "DefaultPollPeriodSeconds",
+                                    cfg.DefaultPollPeriodSeconds,
+                                    "DefaultPollPeriodSeconds",
+                                )
+                            )
+                    elif cfg.DefaultPollPeriodSeconds != tankj["DefaultPollPeriodSeconds"]:
                         errors.append(
                             _err_str(
                                 cfg.Name, "DefaultPollPeriodSeconds",
@@ -124,7 +134,16 @@ def test_tank_device_poll_period(tmp_path):
                             )
                         )
                     for i, devicej in enumerate(tankj["Devices"]):
-                        if str(cfg.DevicePollPeriodSeconds[i]) != str(devicej["PollPeriodSeconds"]):
+                        if cfg.DevicePollPeriodSeconds[i] is None:
+                            if "PollPeriodSeconds" in devicej:
+                                errors.append(
+                                _err_str(
+                                    f"{cfg.Name} layout device {i}", "PollPeriodSeconds",
+                                    cfg.DefaultPollPeriodSeconds[i],
+                                    "PollPeriodSeconds",
+                                )
+                            )
+                        elif str(cfg.DevicePollPeriodSeconds[i])!= str(devicej["PollPeriodSeconds"]):
                             errors.append(
                                 _err_str(
                                     f"{cfg.Name} layout device {i}", "PollPeriodSeconds",
@@ -195,7 +214,7 @@ def test_hubitat():
         hubitat_component_id
     )
     assert node is not None
-    assert node.alias == f"a.hubitat.{hubitat_mac_address[-8:].replace(':', '')}".lower()
+    assert node.Name == "hubitat"
     assert node.component_id == hubitat_component_id
     assert node.actor_class == ActorClass.Hubitat
 
@@ -205,12 +224,14 @@ def test_honeywell_thermostat():
         stub_config=StubConfig(),
     )
 
-    thermostat_node_name = "garage"
-    add_hubitat_thermostat(
+    zone_name = "garage"
+    zone_idx = 1
+    add_thermostat(
         db,
         HubitatThermostatGenCfg(
-            node_name=thermostat_node_name,
-            display_name=f"{thermostat_node_name.capitalize()} Component",
+            zone_idx=zone_idx,
+            zone_name=zone_name,
+            thermostat_idx=zone_idx,
             hubitat=HubitatGt(
                 Host="hubitat-dummy.local",
                 MakerApiId=4,
@@ -221,7 +242,15 @@ def test_honeywell_thermostat():
         ),
     )
     layout = HardwareLayout.load_dict(db.dict(), raise_errors=True)
-    assert layout.node(thermostat_node_name).actor_class == ActorClass.HoneywellThermostat
-    assert layout.node(f"{thermostat_node_name}.temp").actor_class == ActorClass.NoActor
-    assert layout.node(f"{thermostat_node_name}.set").actor_class == ActorClass.NoActor
-    assert layout.node(f"{thermostat_node_name}.state").actor_class == ActorClass.NoActor
+    assert layout.node("zone1-garage-stat").actor_class == ActorClass.HoneywellThermostat
+    assert layout.node("zone1-garage").actor_class == ActorClass.NoActor
+    assert layout.channel("zone1-garage-set").AboutNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-set").CapturedByNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-set").TelemetryName == TelemetryName.AirTempFTimes1000
+    assert layout.channel("zone1-garage-temp").AboutNodeName == "zone1-garage"
+    assert layout.channel("zone1-garage-temp").CapturedByNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-temp").TelemetryName == TelemetryName.AirTempFTimes1000
+    assert layout.channel("zone1-garage-state").AboutNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-state").CapturedByNodeName == "zone1-garage-stat"
+    assert layout.channel("zone1-garage-state").TelemetryName == TelemetryName.ThermostatState
+

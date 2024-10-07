@@ -1,25 +1,22 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.components.multipurpose_sensor_component import \
-    MultipurposeSensorComponent
+from gwproto.data_classes.components.ads111x_based_component import \
+    Ads111xBasedComponent
+from gwproto.data_classes.data_channel import DataChannel
 from drivers.driver_result import DriverResult
 from result import Ok, Result
-from enums import TelemetryName
 
 
-class TelemetrySpec(NamedTuple):
-    ChannelIdx: int
-    Type: TelemetryName
 
 
 class MultipurposeSensorDriver(ABC):
-    def __init__(self, component: MultipurposeSensorComponent, settings: ScadaSettings):
-        if not isinstance(component, MultipurposeSensorComponent):
+    def __init__(self, component: Ads111xBasedComponent, settings: ScadaSettings):
+        if not isinstance(component, Ads111xBasedComponent):
             raise Exception(
-                f"MultipurposeSensorDriver requires MultipurposeSensorComponent. Got {component}"
+                f"MultipurposeSensorDriver requires Ads111xBasedComponent. Got {component}"
             )
         self.component = component
         self.settings: ScadaSettings = settings
@@ -30,6 +27,6 @@ class MultipurposeSensorDriver(ABC):
 
     @abstractmethod
     def read_telemetry_values(
-        self, channel_telemetry_list: List[TelemetrySpec]
-    ) -> Result[DriverResult[Dict[TelemetrySpec, int]], Exception]:
+        self, data_channels: List[DataChannel]
+    ) -> Result[DriverResult[Dict[DataChannel, int]], Exception]:
         raise NotImplementedError

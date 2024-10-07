@@ -2,28 +2,23 @@ import typing
 from pathlib import Path
 
 from gwproto.enums import ActorClass
-from gwproto.enums import LocalCommInterface
 from gwproto.enums import MakeModel
-from gwproto.enums import Role
 from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
+from gwproto.type_helpers import HubitatGt
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types import ComponentGt
 from gwproto.types import ElectricMeterCacGt
-from gwproto.types import RelayCacGt
-from gwproto.types import RelayComponentGt
-from gwproto.types import ResistiveHeaterCacGt
-from gwproto.types import ResistiveHeaterComponentGt
-from gwproto.types import SimpleTempSensorCacGt
-from gwproto.types import SimpleTempSensorComponentGt
 from gwproto.types import SpaceheatNodeGt
-from gwproto.types import TelemetryReportingConfig
+from gwproto.types import ElectricMeterChannelConfig
+from gwproto.types import DataChannelGt
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
-
+from data_classes.house_0 import H0N, H0CN
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig
-
+from layout_gen import HubitatThermostatGenCfg
+from layout_gen import add_thermostat
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
     db = LayoutDb(
@@ -31,25 +26,41 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         add_stubs=True,
         stub_config=StubConfig(
             atn_gnode_alias="d1.isone.ct.newhaven.orange1",
-            scada_gnode_alias="d1.isone.ct.newhaven.orange1.scada",
             scada_display_name="Little Orange House Main Scada",
             add_stub_power_meter=False,
         )
     )
     _add_power_meter(db)
-    _add_relay(db)
-    _add_simple_sensor(db)
     _add_atn(db)
+
+    hubitat = HubitatGt(
+        Host="192.168.0.1",
+        MakerApiId=1,
+        AccessToken="64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
+        MacAddress="34:E1:D1:82:22:22",
+    )
+
+
+    add_thermostat(
+        db,
+        HubitatThermostatGenCfg(
+            zone_idx=1,
+            zone_name="main",
+            hubitat=hubitat,
+            device_id=1,
+        )
+    )
+
     return db
 
+
 def _add_atn(db: LayoutDb) -> LayoutDb:
-    ATN_NODE_NAME = "a"
+    ATN_NODE_NAME = H0N.atn
     db.add_nodes(
         [
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(ATN_NODE_NAME),
-                Alias=ATN_NODE_NAME,
-                Role=Role.Atn,
+                Name=ATN_NODE_NAME,
                 ActorClass=ActorClass.Atn,
                 DisplayName="AtomicTNode",
             ),
@@ -57,148 +68,25 @@ def _add_atn(db: LayoutDb) -> LayoutDb:
     )
     return db
 
-def _add_relay(db: LayoutDb) -> LayoutDb:
-    RELAY_CAC_TYPE_NAME = "relay.cac.gt"
-    RELAY_COMPONENT_DISPLAY_NAME = "Gridworks Simulated Boolean Actuator"
-    RELAY_NODE_NAME = "a.elt1.relay"
-    if not db.cac_id_by_type(RELAY_CAC_TYPE_NAME):
-        db.add_cacs(
-            [
-                typing.cast(
-                    ComponentAttributeClassGt,
-                    RelayCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(RELAY_CAC_TYPE_NAME),
-                        MakeModel=MakeModel.GRIDWORKS__SIMBOOL30AMPRELAY,
-                        DisplayName="Gridworks Simulated Boolean Actuator",
-                        TypicalResponseTimeMs=400,
-                    )
-                ),
-            ],
-            "RelayCacs"
-        )
-    db.add_components(
-        [
-            typing.cast(
-                ComponentGt,
-                RelayComponentGt(
-                    ComponentId=db.make_component_id(RELAY_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(RELAY_CAC_TYPE_NAME),
-                    DisplayName=RELAY_COMPONENT_DISPLAY_NAME,
-                    Gpio=0,
-                    NormallyOpen=True,
-                ),
-            ),
-        ],
-        "RelayComponents"
-    )
-    db.add_nodes(
-        [
-            SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(RELAY_NODE_NAME),
-                Alias=RELAY_NODE_NAME,
-                Role=Role.BooleanActuator,
-                ActorClass=ActorClass.BooleanActuator,
-                DisplayName="30A Relay for first boost element",
-                ComponentId=db.component_id_by_alias(RELAY_COMPONENT_DISPLAY_NAME),
-            ),
-        ]
-    )
-    return db
-
-def _add_simple_sensor(db: LayoutDb) -> LayoutDb:
-    SIMPLE_SENSOR_CAC_TYPE_NAME = "simple.temp.sensor.cac.gt"
-    SIMPLE_SENSOR_COMPONENT_DISPLAY_NAME = "Component for a.tank.temp0 (on top)"
-    SIMPLE_SENSOR_NODE_NAME = "a.tank.temp0"
-    if not db.cac_id_by_type(SIMPLE_SENSOR_CAC_TYPE_NAME):
-        db.add_cacs(
-            [
-                typing.cast(
-                    ComponentAttributeClassGt,
-                    SimpleTempSensorCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(SIMPLE_SENSOR_CAC_TYPE_NAME),
-                        MakeModel=MakeModel.GRIDWORKS__WATERTEMPHIGHPRECISION,
-                        DisplayName="Simulated GridWorks high precision water temp sensor",
-                        CommsMethod="SassyMQ",
-                        Exponent=-3,
-                        TempUnit=Unit.Fahrenheit,
-                        TelemetryName=TelemetryName.WaterTempFTimes1000,
-                        TypicalResponseTimeMs=880,
-                    )
-                )
-            ],
-            "SimpleTempSensorCacs"
-        )
-    db.add_components(
-        [
-            typing.cast(
-                ComponentGt,
-                SimpleTempSensorComponentGt(
-                    ComponentId=db.make_component_id(SIMPLE_SENSOR_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(SIMPLE_SENSOR_CAC_TYPE_NAME),
-                    DisplayName=SIMPLE_SENSOR_COMPONENT_DISPLAY_NAME,
-                    HwUid="1023abcd"
-                ),
-            ),
-        ],
-        "SimpleTempSensorComponents"
-    )
-    db.add_nodes(
-        [
-            SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(SIMPLE_SENSOR_NODE_NAME),
-                Alias=SIMPLE_SENSOR_NODE_NAME,
-                Role=Role.TankWaterTempSensor,
-                ActorClass=ActorClass.SimpleSensor,
-                DisplayName="Tank temp sensor temp0 (on top)",
-                ComponentId=db.component_id_by_alias(SIMPLE_SENSOR_COMPONENT_DISPLAY_NAME),
-                ReportingSamplePeriodS=5,
-            ),
-        ]
-    )
-    return db
-
 def _add_power_meter(db: LayoutDb) -> LayoutDb:
-    ELECTRIC_METER_CAC_TYPE_NAME = "electric.meter.cac.gt"
-    RESISTIVE_HEATER_CAC_TYPE_NAME = "resistive.heater.cac.gt"
     POWER_METER_COMPONENT_DISPLAY_NAME = "Power Meter for Simulated Test system"
-    RESISTIVE_HEATER_1_COMPONENT_DISPLAY_NAME = "First 4.5 kW boost in tank"
-    RESISTIVE_HEATER_2_COMPONENT_DISPLAY_NAME = "Second 4.5 kW boost in tank"
-    POWER_METER_NODE_NAME = "a.m"
-    RESISTIVE_HEATER_1_NODE_NAME = "a.elt1"
-    RESISTIVE_HEATER_2_NODE_NAME = "a.elt2"
 
-    if not db.cac_id_by_type(ELECTRIC_METER_CAC_TYPE_NAME):
+
+    if not db.cac_id_by_alias(MakeModel.GRIDWORKS__SIMPM1):
         db.add_cacs(
             [
                 typing.cast(
                     ComponentAttributeClassGt,
                     ElectricMeterCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(ELECTRIC_METER_CAC_TYPE_NAME),
+                        ComponentAttributeClassId=db.make_cac_id(MakeModel.GRIDWORKS__SIMPM1),
                         MakeModel=MakeModel.GRIDWORKS__SIMPM1,
                         DisplayName="Gridworks Pm1 Simulated Power Meter",
                         TelemetryNameList=[TelemetryName.PowerW],
-                        Interface=LocalCommInterface.SIMRABBIT,
-                        PollPeriodMs=1000,
+                        MinPollPeriodMs=1000,
                     )
                 ),
             ],
             "ElectricMeterCacs"
-        )
-    if not db.cac_id_by_type(RESISTIVE_HEATER_CAC_TYPE_NAME):
-        db.add_cacs(
-            [
-                typing.cast(
-                    ComponentAttributeClassGt,
-                    ResistiveHeaterCacGt(
-                        ComponentAttributeClassId=db.make_cac_id(RESISTIVE_HEATER_CAC_TYPE_NAME),
-                        MakeModel=MakeModel.UNKNOWNMAKE__UNKNOWNMODEL,
-                        DisplayName="Fake Boost Element",
-                        NameplateMaxPowerW=4500,
-                        RatedVoltageV=240,
-                    )
-                ),
-            ],
-            "ResistiveHeaterCacs"
         )
 
     db.add_components(
@@ -207,102 +95,128 @@ def _add_power_meter(db: LayoutDb) -> LayoutDb:
                 ComponentGt,
                 ElectricMeterComponentGt(
                     ComponentId=db.make_component_id(POWER_METER_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(ELECTRIC_METER_CAC_TYPE_NAME),
+                    ComponentAttributeClassId=db.cac_id_by_alias(MakeModel.GRIDWORKS__SIMPM1),
                     DisplayName=POWER_METER_COMPONENT_DISPLAY_NAME,
                     ConfigList=[
-                        # CurrentRmsMicroAmps
-                        # AmpsRms
-                        TelemetryReportingConfig(
-                            AboutNodeName="a.elt1",
-                            ReportOnChange=True,
-                            SamplePeriodS=300,
-                            NameplateMaxValue=4500,
-                            Exponent=0,
-                            AsyncReportThreshold=0.02,
-                            TelemetryName=TelemetryName.PowerW,
-                            Unit=Unit.W,
-                        ),
-                        TelemetryReportingConfig(
-                            AboutNodeName="a.elt1",
-                            ReportOnChange=True,
-                            SamplePeriodS=300,
-                            NameplateMaxValue=18750000,
-                            AsyncReportThreshold=0.02,
-                            Exponent=6,
-                            TelemetryName=TelemetryName.CurrentRmsMicroAmps,
-                            Unit=Unit.AmpsRms,
-                        ),
-                        TelemetryReportingConfig(
-                            AboutNodeName="a.elt2",
-                            ReportOnChange=True,
-                            SamplePeriodS=300,
-                            NameplateMaxValue=4500,
-                            AsyncReportThreshold=0.02,
-                            Exponent=0,
-                            TelemetryName=TelemetryName.PowerW,
-                            Unit=Unit.W,
-                        ),
+                        ElectricMeterChannelConfig(
+                                ChannelName=H0CN.hp_odu_pwr,
+                                PollPeriodMs=1000,
+                                CapturePeriodS=300,
+                                AsyncCapture=True,
+                                AsyncCaptureDelta=200,
+                                Exponent=0,
+                                Unit=Unit.W,
+                            ),
+                        ElectricMeterChannelConfig(
+                                ChannelName=H0CN.hp_idu_pwr,
+                                PollPeriodMs=1000,
+                                CapturePeriodS=300,
+                                AsyncCapture=True,
+                                AsyncCaptureDelta=200,
+                                Exponent=0,
+                                Unit=Unit.W,
+                            ),
+                        ElectricMeterChannelConfig(
+                                ChannelName=H0CN.store_pump_pwr,
+                                PollPeriodMs=1000,
+                                CapturePeriodS=300,
+                                AsyncCapture=True,
+                                AsyncCaptureDelta=5,
+                                Exponent=0,
+                                Unit=Unit.W,
+                            )
                     ],
-                    EgaugeIoList=[]
                 )
             ),
         ],
         "ElectricMeterComponents"
     )
-    db.add_components(
-        [
-            typing.cast(
-                ComponentGt,
-                ResistiveHeaterComponentGt(
-                    ComponentId=db.make_component_id(RESISTIVE_HEATER_1_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(RESISTIVE_HEATER_CAC_TYPE_NAME),
-                    DisplayName=RESISTIVE_HEATER_1_COMPONENT_DISPLAY_NAME,
-                    HwUid="aaaa2222",
-                    TestedMaxColdMilliOhms=14500,
-                    TestedMaxHotMilliOhms=13714,
-                )
-            ),
-            typing.cast(
-                ComponentGt,
-                ResistiveHeaterComponentGt(
-                    ComponentId=db.make_component_id(RESISTIVE_HEATER_2_COMPONENT_DISPLAY_NAME),
-                    ComponentAttributeClassId=db.cac_id_by_type(RESISTIVE_HEATER_CAC_TYPE_NAME),
-                    DisplayName=RESISTIVE_HEATER_2_COMPONENT_DISPLAY_NAME,
-                    HwUid="bbbb2222",
-                )
-            ),
-        ],
-        "ResistiveHeaterComponents"
-    )
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(POWER_METER_NODE_NAME),
-                Alias=POWER_METER_NODE_NAME,
-                Role=Role.PowerMeter,
+                ShNodeId=db.make_node_id(H0N.primary_power_meter),
+                Name=H0N.primary_power_meter,
                 ActorClass=ActorClass.PowerMeter,
                 DisplayName="Main Power Meter Little Orange House Test System",
                 ComponentId=db.component_id_by_alias(POWER_METER_COMPONENT_DISPLAY_NAME),
             ),
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(RESISTIVE_HEATER_1_NODE_NAME),
-                Alias=RESISTIVE_HEATER_1_NODE_NAME,
-                Role=Role.BoostElement,
+                ShNodeId=db.make_node_id(H0N.hp_odu),
+                Name=H0N.hp_odu,
                 ActorClass=ActorClass.NoActor,
-                DisplayName="First 4.5 kW boost in tank",
+                DisplayName="HP ODU",
+                NameplatePowerW=6000,
                 InPowerMetering=True,
-                ComponentId=db.component_id_by_alias(RESISTIVE_HEATER_1_COMPONENT_DISPLAY_NAME),
             ),
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(RESISTIVE_HEATER_2_NODE_NAME),
-                Alias=RESISTIVE_HEATER_2_NODE_NAME,
-                Role=Role.BoostElement,
+                ShNodeId=db.make_node_id(H0N.hp_idu),
+                Name=H0N.hp_idu,
                 ActorClass=ActorClass.NoActor,
-                DisplayName="Second boost element",
+                DisplayName="HP IDU",
+                NameplatePowerW=4000,
                 InPowerMetering=True,
-                ComponentId=db.component_id_by_alias(RESISTIVE_HEATER_2_COMPONENT_DISPLAY_NAME),
             ),
+            SpaceheatNodeGt(
+                ShNodeId=db.make_node_id(H0N.store_pump),
+                Name=H0N.store_pump,
+                ActorClass=ActorClass.NoActor,
+                DisplayName="Store Pump",
+            ),
+
         ]
+    )
+    # db.add_data_channels(
+    #     [
+    #         DataChannelGt(
+    #             Name=stub.Name,
+    #             DisplayName=' '.join(part.upper() for part in stub.Name.split('-')),
+    #             AboutNodeName=stub.AboutNodeName,
+    #             CapturedByNodeName=stub.CapturedByNodeName,
+    #             TelemetryName=stub.TelemetryName,
+    #             InPowerMetering=stub.InPowerMetering,
+    #             Id=db.make_channel_id(stub.Name),
+    #             TerminalAssetAlias=db.terminal_asset_alias,
+    #         )
+    #         for stub in ChanneStubDbByName.values()
+    #     ]
+    # )
+    db.add_data_channels(
+        [
+            DataChannelGt(
+                Name=H0CN.hp_odu_pwr,
+                DisplayName=' '.join(part.upper() for part in H0CN.hp_odu_pwr.split('-')),
+                AboutNodeName=H0N.hp_odu,
+                CapturedByNodeName=H0N.primary_power_meter,
+                TelemetryName=TelemetryName.PowerW,
+                InPowerMetering=True,
+                Id=db.make_channel_id(H0CN.hp_odu_pwr),
+                TerminalAssetAlias=db.terminal_asset_alias,
+            ),
+            DataChannelGt(
+                Name=H0CN.hp_idu_pwr,
+                DisplayName=' '.join(part.upper() for part in H0CN.hp_idu_pwr.split('-')),
+                AboutNodeName=H0N.hp_idu,
+                CapturedByNodeName=H0N.primary_power_meter,
+                TelemetryName=TelemetryName.PowerW,
+                InPowerMetering=True,
+                Id=db.make_channel_id(H0CN.hp_idu_pwr),
+                TerminalAssetAlias=db.terminal_asset_alias,
+            ),
+            DataChannelGt(
+                Name=H0CN.store_pump_pwr,
+                DisplayName=' '.join(part.upper() for part in H0CN.store_pump_pwr.split('-')),
+                AboutNodeName=H0N.store_pump,
+                CapturedByNodeName=H0N.primary_power_meter,
+                TelemetryName=TelemetryName.PowerW,
+                InPowerMetering=False,
+                Id=db.make_channel_id(H0CN.store_pump_pwr),
+                TerminalAssetAlias=db.terminal_asset_alias,
+            ),
+            
+
+
+        ]
+
     )
     return db
 

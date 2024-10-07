@@ -11,6 +11,9 @@ from typing import List
 from typing import Optional
 from typing import Sequence
 
+from gwproactor.config import LoggerLevels
+from gwproactor.config import LoggingSettings
+
 import actors
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -20,7 +23,7 @@ from gwproactor import setup_logging
 from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
-
+from data_classes.house_0 import H0N
 
 from tests.atn import Atn
 from tests.atn import AtnSettings
@@ -61,7 +64,6 @@ async def async_do_nothing(seconds: float, logger: Optional[logging.Logger] = No
 class Actors:
     atn: Atn
     scada: ScadaRecorder
-    relay: actors.BooleanActuator
     meter: actors.PowerMeter
 
     def __init__(
@@ -79,23 +81,15 @@ class Actors:
         atn_settings.paths.mkdirs(parents=True)
         self.atn = kwargs.get(
             "atn",
-            Atn("a", settings=atn_settings, hardware_layout=layout)
+            Atn(H0N.atn, settings=atn_settings, hardware_layout=layout)
         )
         self.scada = kwargs.get(
             "scada",
-            ScadaRecorder("a.s", settings, hardware_layout=layout)
-        )
-        self.relay = kwargs.get(
-            "relay",
-            actors.BooleanActuator("a.elt1.relay", services=self.scada)
-        )
-        self.thermo = kwargs.get(
-            "thermo",
-            actors.SimpleSensor("a.tank.temp0", services=self.scada)
+            ScadaRecorder(H0N.scada, settings, hardware_layout=layout)
         )
         self.meter = kwargs.get(
             "meter",
-            actors.PowerMeter("a.m", services=self.scada)
+            actors.PowerMeter(H0N.primary_power_meter, services=self.scada)
         )
 
 
@@ -132,26 +126,32 @@ class AsyncFragmentRunner:
 
     def __init__(
         self,
-        settings: ScadaSettings,
-        atn_settings: AtnSettings,
+        settings: Optional[ScadaSettings] = None,
+        atn_settings: Optional[AtnSettings] = None,
         wait_at_least: float = 0.0,
         do_nothing_time: float = 0.0,
         actors: Optional[Actors] = None, # noqa
         tag: str = "",
-        args: Optional[argparse.Namespace] = None,
+        scada_logging_args: Optional[argparse.Namespace] = None,
+        atn_logging_args: Optional[argparse.Namespace] = None,
     ):
+        if scada_logging_args is None:
+            scada_logging_args = argparse.Namespace(verbose=True)
+        if atn_logging_args is None:
+            atn_logging_args = argparse.Namespace()
         if settings is None:
             settings = ScadaSettings()
         if atn_settings is None:
-            atn_settings = AtnSettings()
+            atn_settings = self.make_atn_settings(
+                verbose=getattr(atn_logging_args, "verbose", False),
+                message_summary=getattr(atn_logging_args, "message_summary", False),
+            )
         settings.paths.mkdirs(parents=True)
         atn_settings.paths.mkdirs(parents=True)
         errors = []
-        if args is None:
-            args = argparse.Namespace(verbose=True)
-        setup_logging(args, settings, errors=errors, add_screen_handler=True)
+        setup_logging(scada_logging_args, settings, errors=errors, add_screen_handler=True)
         assert not errors
-        setup_logging(args, cast(ScadaSettings, atn_settings), errors=errors, add_screen_handler=False)
+        setup_logging(atn_logging_args, cast(ScadaSettings, atn_settings), errors=errors, add_screen_handler=False)
         assert not errors
 
         self.settings = settings
@@ -169,6 +169,36 @@ class AsyncFragmentRunner:
         ) if actors is None else actors
         self.proactors = dict()
         self.fragments = []
+
+    @classmethod
+    def make_atn_log_levels(cls, verbose: bool = False, message_summary: bool = False) -> LoggerLevels:
+        if verbose:
+            return LoggerLevels(
+                message_summary=logging.DEBUG,
+                lifecycle=logging.INFO,
+                comm_event=logging.INFO,
+            )
+        elif message_summary:
+            return LoggerLevels(
+                message_summary=logging.INFO,
+                lifecycle=logging.INFO,
+                comm_event=logging.INFO,
+            )
+        return LoggerLevels(
+            message_summary=logging.CRITICAL,
+            lifecycle=logging.CRITICAL,
+            comm_event=logging.CRITICAL,
+        )
+
+
+    @classmethod
+    def make_atn_settings(cls, verbose: bool = False, message_summary: bool = False) -> AtnSettings:
+        return AtnSettings(
+            logging=LoggingSettings(
+                base_log_name="atn-gridworks",
+                levels=cls.make_atn_log_levels(verbose=verbose, message_summary=message_summary),
+            )
+        )
 
     def delimit(self, text: str = "") -> None:
         if self.logger:
@@ -209,18 +239,15 @@ class AsyncFragmentRunner:
             )
             if not connected:
                 s = "MQTT CONNECTION ERROR\n"
-                # noinspection PyProtectedMember, PyShadowingNames
                 for client_name in sorted(proactor.links.link_names()):
-                    # noinspection PyProtectedMember
-                    client = proactor._links.mqtt_client_wrapper(client_name)
-                    # noinspection PyProtectedMember
+                    client = proactor.links.mqtt_client_wrapper(client_name)
+                    client_config = client._client_config  # noqa
                     s += (
                         f"  {client_name:20s}  subscribed:{int(client.subscribed())}"
-                        f"  connected:{int(client.connected())} ({client._client_config.host}:{client._client_config.port})"
+                        f"  connected:{int(client.connected())} ({client_config.host}:{client_config.port})"
                         f"  subs:{client.num_subscriptions()}   subs pending: {client.num_pending_subscriptions()}\n"
                     )
                     if not client.connected():
-                        client_config = client._client_config # noqa
                         prefix = "      "
                         s += "    MQTTSettings:\n"
                         s += textwrap.indent(
@@ -308,10 +335,17 @@ class AsyncFragmentRunner:
         fragment_factory: Callable[["AsyncFragmentRunner"], ProtocolFragment],
         settings: Optional[ScadaSettings] = None,
         atn_settings: Optional[AtnSettings] = None,
-        args: Optional[argparse.Namespace] = None,
-        tag: str = ""
+        tag: str = "",
+        scada_logging_args: Optional[argparse.Namespace] = None,
+        atn_logging_args: Optional[argparse.Namespace] = None,
     ):
-        runner = AsyncFragmentRunner(settings, atn_settings=atn_settings, tag=tag, args=args)
+        runner = AsyncFragmentRunner(
+            settings,
+            atn_settings=atn_settings,
+            tag=tag,
+            scada_logging_args=scada_logging_args,
+            atn_logging_args=atn_logging_args,
+        )
         runner.add_fragment(fragment_factory(runner))
         await runner.async_run()
 

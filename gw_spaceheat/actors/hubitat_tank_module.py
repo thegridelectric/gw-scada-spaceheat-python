@@ -14,7 +14,7 @@ from gwproto.type_helpers import FibaroTempSensorSettings
 from pydantic import BaseModel
 from result import Result
 
-from actors.message import MultipurposeSensorTelemetryMessage
+from actors.message import SyncedReadingsMessage
 from drivers.exceptions import DriverError
 
 
@@ -213,12 +213,11 @@ class FibaroTankTempPoller(RESTPoller):
                 return None
             else:
                 temp_c1000 = int(temp_c_beta.c * 1000)
-                return MultipurposeSensorTelemetryMessage(
+                return SyncedReadingsMessage(
                     src=self._report_src,
                     dst=self._report_dst,
-                    about_node_alias_list=[self._settings.node_name],
+                    channel_name_list=[self._settings.node_name],
                     value_list=[temp_c1000],
-                    telemetry_name_list=[self._settings.telemetry_name],
                 )
         except BaseException as e:
             self._forward(
