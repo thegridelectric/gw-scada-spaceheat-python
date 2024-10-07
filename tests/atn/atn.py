@@ -97,8 +97,8 @@ class Atn(ActorInterface, Proactor):
         )
 
         self.latest_report: Optional[Report] = None
-        self.status_output_dir = self.settings.paths.data_dir / "status"
-        self.status_output_dir.mkdir(parents=True, exist_ok=True)
+        self.report_output_dir = self.settings.paths.data_dir / "report"
+        self.report_output_dir.mkdir(parents=True, exist_ok=True)
 
     @property
     def name(self) -> str:
@@ -214,16 +214,13 @@ class Atn(ActorInterface, Proactor):
 
             # rich.print(snapshot)
 
-    def process_report(self, status: Report) -> None:
-        self.data.latest_report = status
+    def process_report(self, report: Report) -> None:
+        self.data.latest_report = report
         if self.settings.save_events:
-            status_file = self.status_output_dir / f"Report.{status.SlotStartUnixS}.json"
-            with status_file.open("w") as f:
-                f.write(str(status))
-        # self._logger.info(f"Wrote status file [{status_file}]")
-        if self.settings.print_status:
-            rich.print("Received Report")
-            rich.print(status)
+            report_file = self.report_output_dir / f"Report.{report.SlotStartUnixS}.json"
+            with report_file.open("w") as f:
+                f.write(str(report))
+
 
     def _process_event(self, event: EventBase) -> None:
         if self.settings.save_events:
@@ -301,7 +298,7 @@ class Atn(ActorInterface, Proactor):
         """Summarize results in a string"""
         s = (
             f"Atn [{self.node.Name}] total: {self._stats.num_received}  "
-            f"status:{self._stats.total_received(Report.model_fields['TypeName'].default)}  "
+            f"report:{self._stats.total_received(Report.model_fields['TypeName'].default)}  "
             f"snapshot:{self._stats.total_received(SnapshotSpaceheat.model_fields['TypeName'].default)}"
         )
         if self._stats.num_received_by_topic:

@@ -14,7 +14,7 @@ class AtnSettings(ProactorSettings):
     day_cron_file: str = "cron_last_day.txt"
     c_to_f: bool = True
     save_events: bool = False
-    print_status: bool = False
+    print_report: bool = False
     print_snap: bool = True
 
     model_config = SettingsConfigDict(env_prefix="ATN_")

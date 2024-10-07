@@ -8,10 +8,10 @@ pydantic
 xdg
 result
 # gridworks-protocol >=0.8.0
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@jm/report
+gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
 
 # gridworks-proactor >=0.5.0
-gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@jm/report
+gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
 rich
 smbus2
 pymodbus
