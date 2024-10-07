@@ -97,7 +97,7 @@ class ScadaData:
     def make_snapshot(self) -> SnapshotSpaceheat:
         latest_reading_list = []
         for ch in self.my_channels:
-            if self.latest_channel_values[ch]:
+            if self.latest_channel_values[ch] is not None:
                 latest_reading_list.append(
                     SingleReading(
                         ChannelName=ch.Name,
