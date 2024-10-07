@@ -64,7 +64,7 @@ def add_tsnap_multipurpose(
                     Ads111xBasedCacGt(
                         ComponentAttributeClassId=CACS_BY_MAKE_MODEL[make_model],
                         MakeModel=make_model,
-                        AdsI2cAddressList= ["0x4b", "0x48", "0x49"],
+                        AdsI2cAddressList= [0x4b, 0x49, 0x48],
                         TelemetryNameList=[TelemetryName.WaterTempCTimes1000, TelemetryName.AirTempCTimes1000],
                         TotalTerminalBlocks=12,
                         MinPollPeriodMs=200,

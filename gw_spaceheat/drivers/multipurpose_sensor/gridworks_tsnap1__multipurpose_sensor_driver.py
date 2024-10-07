@@ -224,12 +224,8 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         c = component.gt
         self.terminal_block_idx_list = [tc.TerminalBlockIdx for tc in c.ConfigList]
         self.telemetry_name_list = component.cac.TelemetryNameList
-        def _int_address(addr_: str) -> int:
-            if not addr_[:2] == "0x":
-                raise ValueError("ERROR. Address must be unambigously in hex format")
-            return int(addr_, 16)
 
-        self.ads_address = {i: _int_address(address) for i, address in enumerate(component.cac.AdsI2cAddressList)}
+        self.ads_address = {i: address for i, address in enumerate(component.cac.AdsI2cAddressList)}
         self.ads = {}
 
     def start(self) -> Result[DriverResult[bool], Exception]:
