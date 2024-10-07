@@ -241,7 +241,7 @@ class LayoutIDMap:
         return cls.from_path(dest_path)
 
 class LayoutDb:
-    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt]]
+    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt | DataChannelGt]]
     cacs_by_id: dict[str, ComponentAttributeClassGt]
     components_by_id: dict[str, ComponentGt]
     nodes_by_id: dict[str, SpaceheatNodeGt]
@@ -295,7 +295,8 @@ class LayoutDb:
     def channel_id_by_name(self, name: str) -> Optional[str]:
         return self.maps.channels_by_name.get(name, None)
 
-    def make_cac_id(self, make_model: MakeModel) -> str:
+    @classmethod
+    def make_cac_id(cls, make_model: MakeModel) -> str:
         if make_model == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             return str(uuid.uuid4())
         if type(make_model) is str:
@@ -304,7 +305,7 @@ class LayoutDb:
             else:
                 return str(uuid.uuid4())
         elif make_model.value in CACS_BY_MAKE_MODEL:
-            return CACS_BY_MAKE_MODEL[make_model.value]
+            return CACS_BY_MAKE_MODEL[str(make_model.value)]
         else:
             return str(uuid.uuid4())
 
