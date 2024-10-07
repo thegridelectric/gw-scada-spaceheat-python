@@ -96,9 +96,9 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     driver: MultipurposeSensorDriver
     cfg_by_ch: Dict[DataChannel, AdsChannelConfig]
     my_channels: List[DataChannel]
-    last_reported_telemetry_value: Dict[DataChannel, Optional[int]]
-    latest_telemetry_value: Dict[DataChannel, Optional[int]]
-    _last_sampled_s: Dict[DataChannel, Optional[int]]
+    last_reported_telemetry_value: Dict[str, Optional[int]] # channel name to value
+    latest_telemetry_value: Dict[str, Optional[int]]
+    _last_sampled_s: Dict[str, Optional[int]]
     _telemetry_destination: str
     _hardware_layout: HardwareLayout
 
@@ -131,9 +131,9 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             for cfg in self.component.gt.ConfigList
         }
         self.driver = setup_helper.make_driver()
-        self.last_reported_telemetry_value = {ch: None for ch in self.my_channels}
-        self.latest_telemetry_value = {ch: None for ch in self.my_channels}
-        self._last_sampled_s = {ch: None for ch in self.my_channels}
+        self.last_reported_telemetry_value = {ch.Name: None for ch in self.my_channels}
+        self.latest_telemetry_value = {ch.Name: None for ch in self.my_channels}
+        self._last_sampled_s = {ch.Name: None for ch in self.my_channels}
     
 
     def _report_problems(self, problems: Problems, tag: str):
@@ -181,7 +181,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
             reading_by_ch = read.value.value
             for ch in self.my_channels:
                 if ch in reading_by_ch:
-                    self.latest_telemetry_value[ch] = reading_by_ch[ch]
+                    self.latest_telemetry_value[ch.Name] = reading_by_ch[ch]
             if read.value.warnings:
                 self._report_problems(
                     Problems(warnings=read.value.warnings), "read warnings"
@@ -191,25 +191,25 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     
 
     def report_sampled_telemetry_values(
-        self, report_list: List[DataChannel]
+        self, channel_list: List[DataChannel]
     ):
         
         self._put_to_async_queue(
             SyncedReadingsMessage(
                 src=self.name,
                 dst=self._telemetry_destination,
-                channel_name_list=[ch.Name for ch in report_list],
+                channel_name_list=[ch.Name for ch in channel_list],
                 value_list=list(
                     map(
-                        lambda x: self.latest_telemetry_value[x],
-                        report_list,
+                        lambda x: self.latest_telemetry_value[x.Name],
+                        channel_list,
                     )
                 ),
             )
         )
-        for ch in report_list:
-            self._last_sampled_s[ch] = int(time.time())
-            self.last_reported_telemetry_value[ch] = self.latest_telemetry_value[ch]
+        for ch in channel_list:
+            self._last_sampled_s[ch.Name] = int(time.time())
+            self.last_reported_telemetry_value[ch.Name] = self.latest_telemetry_value[ch.Name]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def value_exceeds_async_threshold(
@@ -225,8 +225,8 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 telemetry_config.AsyncCaptureDelta is not None
         ):
             abs_telemetry_delta = abs(
-                self.latest_telemetry_value[ch] -
-                self.last_reported_telemetry_value[ch]
+                self.latest_telemetry_value[ch.Name] -
+                self.last_reported_telemetry_value[ch.Name]
             )
             if abs_telemetry_delta > telemetry_config.AsyncCaptureDelta:
                 return True
@@ -235,15 +235,15 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     def should_report_telemetry_reading(
         self, ch: DataChannel
     ) -> bool:
-        if self.latest_telemetry_value[ch] is None:
+        if self.latest_telemetry_value[ch.Name] is None:
             return False
         if (
-            self._last_sampled_s[ch] is None
-            or self.last_reported_telemetry_value[ch] is None
+            self._last_sampled_s[ch.Name] is None
+            or self.last_reported_telemetry_value[ch.Name] is None
         ):
             return True
         if (
-            time.time() - self._last_sampled_s[ch]
+            time.time() - self._last_sampled_s[ch.Name]
             > self.cfg_by_ch[ch].CapturePeriodS
         ):
             return True
