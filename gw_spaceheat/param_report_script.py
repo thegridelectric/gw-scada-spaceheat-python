@@ -42,7 +42,8 @@ d = {
 }
 
 print(d)
-msg = KeyparamChangeLog.model_validate(d).model_dump(exclude_none=True)
+c = KeyparamChangeLog.model_validate(d)
+msg = c.model_dump(exclude_none=True)
 
 print(msg)
 
