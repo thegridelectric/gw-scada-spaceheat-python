@@ -111,6 +111,3 @@ class ScadaData:
             SnapshotTimeUnixMs=int(time.time() * 1000),
             LatestReadingList=latest_reading_list,
         )
-
-    def make_snaphsot_payload(self) -> dict:
-        return self.make_snapshot().model_dump()

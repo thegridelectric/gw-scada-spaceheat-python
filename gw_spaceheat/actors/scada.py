@@ -13,6 +13,7 @@ from gwproactor.links import LinkManagerTransition
 from gwproactor.message import InternalShutdownMessage
 from gwproto import Message
 from gwproto import create_message_model
+from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import ReportEvent
@@ -46,6 +47,7 @@ ScadaMessageDecoder = create_message_model(
     ]
 )
 
+SYNC_SNAP_S = 30
 
 class GridworksMQTTCodec(MQTTCodec):
     hardware_layout: HardwareLayout
@@ -88,6 +90,7 @@ class Scada(ScadaInterface, Proactor):
 
     _data: ScadaData
     _last_report_second: int
+    _last_sync_snap_s: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
     _home_alone: HomeAlone
 
@@ -119,6 +122,7 @@ class Scada(ScadaInterface, Proactor):
         # self.add_communicator(self._home_alone)
         now = int(time.time())
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
+        self._last_sync_snap_s = int(now)
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
         if actor_nodes is not None:
             for actor_node in actor_nodes:
@@ -176,6 +180,9 @@ class Scada(ScadaInterface, Proactor):
     async def update_report(self):
         while not self._stop_requested:
             try:
+                if self.time_to_send_snap():
+                    self.send_snap()
+                    self._last_sync_snap_s = int(time.time())
                 if self.time_to_send_report():
                     self.send_report()
                     self._last_report_second = int(time.time())
@@ -200,29 +207,39 @@ class Scada(ScadaInterface, Proactor):
         report = self._data.make_report(self._last_report_second)
         self._data.reports_to_store[report.Id] = report
         self.generate_event(ReportEvent(Report=report))
-        snapshot = self._data.make_snapshot()
         self._publish_to_local(self._node, report)
-        self._publish_to_local(self._node, snapshot)
-        self.generate_event(SnapshotSpaceheatEvent(Snap=snapshot))
-        # try:
-        #     self._home_alone.process_message(Message(Src=self.name, Payload=snapshot))
-        # except BaseException as e:
-        #     self._logger.exception(e)
-        #     raise e
         self._data.flush_latest_readings()
+    
+    def send_snap(self):
+        snapshot = self._data.make_snapshot()
+        self._publish_to_local(self._node, snapshot)
+        self._links.publish_upstream(snapshot)
 
     def next_report_second(self) -> int:
-        last_br_second_nominal = int(
+        last_report_second_nominal = int(
             self._last_report_second
             - (self._last_report_second % self.settings.seconds_per_report)
         )
-        return last_br_second_nominal + self.settings.seconds_per_report
+        return last_report_second_nominal + self.settings.seconds_per_report
+
+    def next_sync_snap_s(self) -> int:
+        last_sync_snap_s = int(
+            self._last_sync_snap_s
+            - (self._last_sync_snap_s % SYNC_SNAP_S)
+        )
+        return last_sync_snap_s + SYNC_SNAP_S
 
     def seconds_til_next_report(self) -> float:
         return self.next_report_second() - time.time()
 
     def time_to_send_report(self) -> bool:
         return time.time() > self.next_report_second()
+    
+    def time_to_send_snap(self) -> bool:
+        if time.time() > self.next_sync_snap_s():
+            return True
+        #TODO: add sending on change.
+
 
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
@@ -282,49 +299,10 @@ class Scada(ScadaInterface, Proactor):
                 )
         self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-
-    # def _boolean_dispatch_received(
-    #     self, payload: GtDispatchBoolean
-    # ) -> ScadaCmdDiagnostic:
-    #     """This is a dispatch message received from the atn. It is
-    #     honored whenever DispatchContract with the Atn is live."""
-    #     if not self.scada_atn_fast_dispatch_contract_is_alive:
-    #         return ScadaCmdDiagnostic.IGNORING_ATN_DISPATCH
-    #     return self._process_boolean_dispatch(payload)
-
-    # def _process_boolean_dispatch(
-    #     self, payload: GtDispatchBoolean
-    # ) -> ScadaCmdDiagnostic:
-    #     ba = self._layout.node(payload.AboutNodeName)
-    #     if not isinstance(ba.component, RelayComponent):
-    #         return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
-    #     self._communicators[ba.alias].process_message(
-    #         GtDispatchBooleanLocalMessage(
-    #             src=self.name, dst=ba.alias, relay_state=payload.RelayState
-    #         )
-    #     )
-    #     return ScadaCmdDiagnostic.SUCCESS
-
-    # def _set_relay_state_threadsafe(self, ba: ShNode, on: bool):
-    #     if not isinstance(ba.component, RelayComponent):
-    #         return ScadaCmdDiagnostic.DISPATCH_NODE_NOT_RELAY
-    #     self.send_threadsafe(
-    #         GtDispatchBooleanLocalMessage(
-    #             src=self._layout.home_alone_node.alias, dst=ba.alias, relay_state=on
-    #         )
-    #     )
-    #     return ScadaCmdDiagnostic.SUCCESS
-
-    # def turn_on(self, ba: ShNode) -> ScadaCmdDiagnostic:
-    #     return self._set_relay_state_threadsafe(ba, True)
-
-    # def turn_off(self, ba: ShNode) -> ScadaCmdDiagnostic:
-    #     return self._set_relay_state_threadsafe(ba, False)
-
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
             return
-        self._links.publish_upstream(self._data.make_snaphsot_payload())
+        self._links.publish_upstream(self._data.make_snapshot())
 
     @property
     def scada_atn_fast_dispatch_contract_is_alive(self):
