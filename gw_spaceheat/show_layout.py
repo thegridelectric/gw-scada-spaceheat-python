@@ -227,10 +227,73 @@ def print_layout_urls(layout: HardwareLayout) -> None:
             for k, v in urls.items():
                 print(f"    {k}: {str(v)}")
 
+def print_web_server_info(
+    layout: HardwareLayout,
+    requested_aliases: Optional[set[str]],
+    settings: ScadaSettings,
+) -> None:
+    scada = try_scada_load(
+        requested_aliases,
+        layout,
+        settings,
+        raise_errors=False
+    )
+    if scada is None:
+        print("Cannot print Web server configs and routes since Scada could not be loaded")
+    else:
+        web_configs = scada.get_web_server_configs()
+        web_routes = scada.get_web_server_route_strings()
+        print(f"Web server configs: {len(web_configs)}")
+        if web_configs.keys() != web_routes.keys():
+           print(
+               "Keys for web configs and web routes do not match:\n"
+               f"  configs: {web_configs.keys()}\n"
+               f"  routes:  {web_routes.keys()}"
+           )
+        for k, v in web_configs.items():
+            print(f"Server <{k}>: WebServerGt({v})")
+            routes = web_routes[k]
+            print(f"Routes: {len(routes)}")
+            for route in routes:
+                print(f"  {route}")
+
+def print_channels(layout: HardwareLayout, *, raise_errors: bool = False) -> None:
+    print()
+    try:
+        table = Table(
+            title="Data channels",
+            title_justify="left",
+            title_style="bold blue",
+        )
+        table.add_column("Channel Name", header_style="bold green", style="green")
+        table.add_column("About", header_style="bold dark_orange", style="dark_orange")
+        table.add_column("Capturer", header_style="bold dark_orange", style="dark_orange")
+        table.add_column("Telemetry", header_style="bold green1", style="green1")
+        table.add_column("Power", header_style="bold red", style="red")
+
+        for channel in layout.data_channels.values():
+            table.add_row(
+                Text(channel.Name),
+                Text(channel.AboutNodeName),
+                Text(channel.CapturedByNodeName),
+                Text(channel.TelemetryName),
+                Text("✔" if channel.InPowerMetering else ""),
+            )
+        print(table)
+    except Exception as e: # noqa
+        print(f"ERROR printing channels: <{e}> {type(e)}")
+        print("Use '-r' to see full error stack.")
+        if raise_errors:
+            raise
 
 def print_layout_table(layout: HardwareLayout):
-    table = Table()
-    table.add_column("Name", header_style="bold green", style="green")
+    print()
+    table = Table(
+        title="Nodes, Components, Cacs, Actors",
+        title_justify="left",
+        title_style="bold blue",
+    )
+    table.add_column("Node", header_style="bold green", style="green")
     table.add_column("Component", header_style="bold dark_orange", style="dark_orange")
     table.add_column("Cac", header_style="bold dark_orange", style="dark_orange")
     table.add_column("Make/Model", header_style="bold dark_orange", style="dark_orange")
@@ -297,36 +360,6 @@ def try_scada_load(requested_names: Optional[set[str]], layout: HardwareLayout, 
             raise e
     return scada
 
-def print_web_server_info(
-    layout: HardwareLayout,
-    requested_aliases: Optional[set[str]],
-    settings: ScadaSettings,
-) -> None:
-    scada = try_scada_load(
-        requested_aliases,
-        layout,
-        settings,
-        raise_errors=False
-    )
-    if scada is None:
-        print("Cannot print Web server configs and routes since Scada could not be loaded")
-    else:
-        web_configs = scada.get_web_server_configs()
-        web_routes = scada.get_web_server_route_strings()
-        print(f"Web server configs: {len(web_configs)}")
-        if web_configs.keys() != web_routes.keys():
-           print(
-               "Keys for web configs and web routes do not match:\n"
-               f"  configs: {web_configs.keys()}\n"
-               f"  routes:  {web_routes.keys()}"
-           )
-        for k, v in web_configs.items():
-            print(f"Server <{k}>: WebServerGt({v})")
-            routes = web_routes[k]
-            print(f"Routes: {len(routes)}")
-            for route in routes:
-                print(f"  {route}")
-
 def show_layout(
         layout: HardwareLayout,
         requested_names: Optional[set[str]],
@@ -342,6 +375,7 @@ def show_layout(
         print_layout_members(layout, errors)
         print_layout_urls(layout)
         print_web_server_info(layout, requested_names, settings)
+        print_channels(layout, raise_errors=raise_errors)
     print_layout_table(layout)
     scada = try_scada_load(
         requested_names,
