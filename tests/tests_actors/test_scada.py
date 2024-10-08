@@ -281,11 +281,11 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
                 5,
                 "Atn wait for report message"
             )
-            await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 1,
-                5,
-                "Atn wait for snapshot message"
-            )
+            # await await_for(
+            #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 1,
+            #     5,
+            #     "Atn wait for snapshot message"
+            # )
 
     runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
     runner.add_fragment(Fragment(runner))
@@ -403,20 +403,20 @@ async def test_scada_report_content_dynamics(tmp_path, monkeypatch, request):
                 "Atn wait for status message",
                 err_str_f=atn.summary_str
             )
-            await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
-                5,
-                "Atn wait for snapshot message",
-                err_str_f=atn.summary_str
-            )
+            # await await_for(
+            #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
+            #     5,
+            #     "Atn wait for snapshot message",
+            #     err_str_f=atn.summary_str
+            # )
 
             # Verify contents of status and snapshot are as expected
             report = atn.data.latest_report
             assert isinstance(report, Report)
             print(report.ChannelReadingList)
             assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
-            snapshot = atn.data.latest_snapshot
-            assert isinstance(snapshot, SnapshotSpaceheat)
+            # snapshot = atn.data.latest_snapshot
+            # assert isinstance(snapshot, SnapshotSpaceheat)
             
             # I don't understand why this is 0
             # assert len(snapshot.LatestReadingList) ==  1

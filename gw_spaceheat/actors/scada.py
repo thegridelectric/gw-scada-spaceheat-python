@@ -176,6 +176,9 @@ class Scada(ScadaInterface, Proactor):
         self._tasks.append(
             asyncio.create_task(self.update_report(), name="update_report")
         )
+        self._tasks.append(
+            asyncio.create_task(self.update_snap(), name="update_snap")
+        )
 
     async def update_report(self):
         while not self._stop_requested:
@@ -187,6 +190,27 @@ class Scada(ScadaInterface, Proactor):
                     self.send_report()
                     self._last_report_second = int(time.time())
                 await asyncio.sleep(self.seconds_til_next_report())
+            except Exception as e:
+                try:
+                    if not isinstance(e, asyncio.CancelledError):
+                        self._logger.exception(e)
+                        self._send(
+                            InternalShutdownMessage(
+                                Src=self.name,
+                                Reason=(
+                                    f"update_report() task got exception: <{type(e)}> {e}"
+                                ),
+                            )
+                        )
+                finally:
+                    break
+    
+    async def update_snap(self):
+        while not self._stop_requested:
+            try:
+                if self.time_to_send_snap():
+                    self.send_snap()
+                await asyncio.sleep(5)
             except Exception as e:
                 try:
                     if not isinstance(e, asyncio.CancelledError):
@@ -237,9 +261,9 @@ class Scada(ScadaInterface, Proactor):
     
     def time_to_send_snap(self) -> bool:
         if time.time() > self.next_sync_snap_s():
+            self._last_sync_snap_s = int(time.time())
             return True
         #TODO: add sending on change.
-
 
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
