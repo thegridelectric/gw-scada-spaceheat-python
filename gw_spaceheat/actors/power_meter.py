@@ -33,7 +33,7 @@ from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriv
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
-from enums import MakeModel
+from gwproto.enums import MakeModel
 from gwproto.types import ElectricMeterChannelConfig
 
 

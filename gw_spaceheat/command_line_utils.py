@@ -18,7 +18,7 @@ from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
-from enums import ActorClass
+from gwproto.enums import ActorClass
 from pydantic_settings import BaseSettings
 from data_classes.house_0 import H0N
 

@@ -25,7 +25,7 @@ from gwproto import Message
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
-from enums import MakeModel
+from gwproto.enums import MakeModel
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.types import AdsChannelConfig
 

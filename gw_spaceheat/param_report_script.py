@@ -3,8 +3,8 @@ import pendulum
 from gwproto.data_classes.hardware_layout import HardwareLayout
 
 from actors.config import ScadaSettings
-from enums import KindOfParam
-from gwtypes import KeyparamChangeLog_Maker as Maker
+from gwproto.enums import KindOfParam
+from gwproto.types import KeyparamChangeLog
 
 settings = ScadaSettings(_env_file=dotenv.find_dotenv())
 
@@ -42,8 +42,7 @@ d = {
 }
 
 print(d)
-c = Maker.dict_to_tuple(d)
-msg = Maker.tuple_to_type(c)
+msg = KeyparamChangeLog.model_validate(d).model_dump(exclude_none=True)
 
 print(msg)
 
