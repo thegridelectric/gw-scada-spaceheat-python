@@ -1,7 +1,6 @@
 """Test Scada"""
 import logging
 import time
-import uuid
 from typing import cast
 
 from gwproto.messages import ReportEvent
@@ -21,10 +20,6 @@ from gwproactor_test.certs import copy_keys
 import pytest
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.enums import TelemetryName
-from gwproto.messages import GtShMultipurposeTelemetryStatus
-from gwproto.messages import GtShStatus
 from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import Report
 from data_classes.house_0 import H0N, H0CN
@@ -232,16 +227,6 @@ def test_scada_small():
 #                 err_str_f=atn.summary_str,
 #             )
 
-#             # Verify contents of status and snapshot are as expected
-#             status = atn.data.latest_status
-#             assert isinstance(status, GtShStatus)
-#             assert len(status.SimpleTelemetryList) == 1
-#             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
-#             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.name
-#             assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
-#             assert len(status.BooleanactuatorCmdList) == 1
-#             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
-#             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.name
 #             snapshot = atn.data.latest_snapshot
 #             assert isinstance(snapshot, SnapshotSpaceheat)
 #             assert snapshot.Snapshot.AboutNodeAliasList == [relay.name]
