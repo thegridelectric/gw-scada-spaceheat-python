@@ -2,6 +2,7 @@
 import asyncio
 import threading
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Any
 from typing import cast
 from typing import Optional
@@ -35,7 +36,7 @@ from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
 from gwproactor.proactor_implementation import Proactor
 
-
+from tests.atn.dashboard.dashboard import Dashboard
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
 
@@ -77,6 +78,7 @@ class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
     data: AtnData
     event_loop_thread: Optional[threading.Thread] = None
+    dashboard: Optional[Dashboard]
 
     def __init__(
         self,
@@ -86,8 +88,6 @@ class Atn(ActorInterface, Proactor):
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self._web_manager.disable()
-
-
         self.data = AtnData(hardware_layout)
         self._links.add_mqtt_link(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
         self._links.subscribe(
@@ -95,14 +95,26 @@ class Atn(ActorInterface, Proactor):
             MQTTTopic.encode_subscription(Message.type_name(), self.layout.scada_g_node_alias),
             QOS.AtMostOnce,
         )
-
         self.latest_report: Optional[Report] = None
         self.report_output_dir = self.settings.paths.data_dir / "report"
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
+        if self.settings.dashboard.print_gui:
+            self.dashboard = Dashboard(
+                settings=self.settings.dashboard,
+                atn_g_node_alias=self.layout.atn_g_node_alias,
+                data_channels=self.layout.data_channels,
+                logger=self.logger,
+            )
+        else:
+            self.dashboard = None
 
     @property
     def name(self) -> str:
         return self._name
+
+    @cached_property
+    def short_name(self) -> str:
+        return self.layout.atn_g_node_alias.split(".")[-1]
 
     @property
     def node(self) -> ShNode:
@@ -180,39 +192,41 @@ class Atn(ActorInterface, Proactor):
                 path_dbg |= 0x00000040
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-    # noinspection PyMethodMayBeStatic
     def _process_pwr(self, pwr: PowerWatts) -> None:
-        rich.print("Received PowerWatts")
-        rich.print(pwr)
+        if self.settings.dashboard.print_gui:
+            self.dashboard.process_power(pwr)
+        else:
+            rich.print("Received PowerWatts")
+            rich.print(pwr)
+
+    def snaphot_str(self, snapshot: SnapshotSpaceheat) -> str:
+        s = "\n\nSnapshot received:\n"
+        for single_reading in snapshot.LatestReadingList:
+            channel = self.layout.data_channels[single_reading.ChannelName]
+            telemetry_name = channel.TelemetryName
+            if (telemetry_name == TelemetryName.WaterTempCTimes1000
+                    or telemetry_name == TelemetryName.WaterTempCTimes1000.value
+            ):
+                centigrade = single_reading.Value / 1000
+                if self.settings.c_to_f:
+                    fahrenheit = (centigrade * 9 / 5) + 32
+                    extra = f"{fahrenheit:5.2f} F"
+                else:
+                    extra = f"{centigrade:5.2f} C"
+            else:
+                extra = (
+                    f"{single_reading.Value} "
+                    f"{telemetry_name}"
+                )
+            s += f"  {channel.AboutNodeName}: {extra}\n"
+        return s
 
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
-
-
-        if self.settings.print_snap:
-            s = "\n\nSnapshot received:\n"
-            for single_reading in snapshot.LatestReadingList:
-                channel = self.layout.data_channels[single_reading.ChannelName]
-                telemetry_name = channel.TelemetryName
-                if (telemetry_name == TelemetryName.WaterTempCTimes1000
-                   or telemetry_name == TelemetryName.WaterTempCTimes1000.value
-                        ):
-                    centigrade = single_reading.Value / 1000
-                    if self.settings.c_to_f:
-                        fahrenheit = (centigrade * 9/5) + 32
-                        extra = f"{fahrenheit:5.2f} F"
-                    else:
-                        extra = f"{centigrade:5.2f} C"
-                else:
-                    extra = (
-                        f"{single_reading.Value} "
-                        f"{telemetry_name}"
-                    )
-                s += f"  {channel.AboutNodeName}: {extra}\n"
-
-            self._logger.warning(s)
-
-            # rich.print(snapshot)
+        if self.settings.dashboard.print_gui:
+            self.dashboard.refresh_gui()
+        if self.settings.dashboard.print_snap:
+            self._logger.warning(self.snaphot_str(snapshot))
 
     def process_report(self, report: Report) -> None:
         self.data.latest_report = report
