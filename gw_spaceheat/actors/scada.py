@@ -20,7 +20,6 @@ from gwproto.messages import ReportEvent
 from gwproto.messages import SyncedReadings
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
-from gwproto.messages import SnapshotSpaceheatEvent
 from result import Ok
 from result import Result
 
@@ -30,7 +29,6 @@ from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 from gwproactor.links import Transition

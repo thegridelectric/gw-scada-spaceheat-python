@@ -4,7 +4,6 @@ import time
 from typing import cast
 
 from gwproto.messages import ReportEvent
-from gwproto.messages import SnapshotSpaceheatEvent
 from gwproto.messages import ChannelReadings
 
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -210,7 +209,7 @@ def test_scada_small():
 #             assert relay_value == 1
 
 #             # Cause scada to send a status (and snapshot) now
-#             snapshots_received = atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default]
+#             snapshots_received = atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default]
 #             scada.suppress_report = False
 #             # Verify Atn got status and snapshot
 #             await await_for(
@@ -220,7 +219,7 @@ def test_scada_small():
 #                 err_str_f=atn.summary_str
 #             )
 #             await await_for(
-#                 lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields[
+#                 lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields[
 #                     "TypeName"].default] == snapshots_received + 1,
 #                 5,
 #                 "Atn wait for snapshot message",
@@ -274,7 +273,7 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
             scada = self.runner.actors.scada
             atn = self.runner.actors.atn
             assert atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 0
-            assert atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 0
+            assert atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 0
             scada.suppress_report = False
             await await_for(
                 lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
@@ -282,7 +281,7 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
                 "Atn wait for report message"
             )
             # await await_for(
-            #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 1,
+            #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
             #     5,
             #     "Atn wait for snapshot message"
             # )
