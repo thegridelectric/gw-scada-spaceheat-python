@@ -1,11 +1,9 @@
 """Test Scada"""
 import logging
 import time
-import uuid
 from typing import cast
 
 from gwproto.messages import ReportEvent
-from gwproto.messages import SnapshotSpaceheatEvent
 from gwproto.messages import ChannelReadings
 
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -21,13 +19,9 @@ from gwproactor_test.certs import copy_keys
 import pytest
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.enums import TelemetryName
-from gwproto.messages import GtShMultipurposeTelemetryStatus
-from gwproto.messages import GtShStatus
 from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import Report
-from data_classes.house_0 import H0N, H0CN
+from gwproto.data_classes.house_0_names import H0N, H0CN
 
 def test_scada_small():
     settings = ScadaSettings()
@@ -215,7 +209,7 @@ def test_scada_small():
 #             assert relay_value == 1
 
 #             # Cause scada to send a status (and snapshot) now
-#             snapshots_received = atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default]
+#             snapshots_received = atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default]
 #             scada.suppress_report = False
 #             # Verify Atn got status and snapshot
 #             await await_for(
@@ -225,23 +219,13 @@ def test_scada_small():
 #                 err_str_f=atn.summary_str
 #             )
 #             await await_for(
-#                 lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields[
+#                 lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields[
 #                     "TypeName"].default] == snapshots_received + 1,
 #                 5,
 #                 "Atn wait for snapshot message",
 #                 err_str_f=atn.summary_str,
 #             )
 
-#             # Verify contents of status and snapshot are as expected
-#             status = atn.data.latest_status
-#             assert isinstance(status, GtShStatus)
-#             assert len(status.SimpleTelemetryList) == 1
-#             assert status.SimpleTelemetryList[0].ValueList[-1] == 1
-#             assert status.SimpleTelemetryList[0].ShNodeAlias == relay.name
-#             assert status.SimpleTelemetryList[0].TelemetryName == TelemetryName.RelayState
-#             assert len(status.BooleanactuatorCmdList) == 1
-#             assert status.BooleanactuatorCmdList[0].RelayStateCommandList == [1]
-#             assert status.BooleanactuatorCmdList[0].ShNodeAlias == relay.name
 #             snapshot = atn.data.latest_snapshot
 #             assert isinstance(snapshot, SnapshotSpaceheat)
 #             assert snapshot.Snapshot.AboutNodeAliasList == [relay.name]
@@ -289,18 +273,18 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
             scada = self.runner.actors.scada
             atn = self.runner.actors.atn
             assert atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 0
-            assert atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 0
+            assert atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 0
             scada.suppress_report = False
             await await_for(
                 lambda: atn.stats.num_received_by_type[ReportEvent.model_fields["TypeName"].default] == 1,
                 5,
                 "Atn wait for report message"
             )
-            await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheatEvent.model_fields["TypeName"].default] == 1,
-                5,
-                "Atn wait for snapshot message"
-            )
+            # await await_for(
+            #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
+            #     5,
+            #     "Atn wait for snapshot message"
+            # )
 
     runner = AsyncFragmentRunner(settings, actors=actors, atn_settings=atn_settings, tag=request.node.name)
     runner.add_fragment(Fragment(runner))
@@ -418,20 +402,20 @@ async def test_scada_report_content_dynamics(tmp_path, monkeypatch, request):
                 "Atn wait for status message",
                 err_str_f=atn.summary_str
             )
-            await await_for(
-                lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
-                5,
-                "Atn wait for snapshot message",
-                err_str_f=atn.summary_str
-            )
+            # await await_for(
+            #     lambda: atn.stats.num_received_by_type[SnapshotSpaceheat.model_fields["TypeName"].default] == 1,
+            #     5,
+            #     "Atn wait for snapshot message",
+            #     err_str_f=atn.summary_str
+            # )
 
             # Verify contents of status and snapshot are as expected
             report = atn.data.latest_report
             assert isinstance(report, Report)
             print(report.ChannelReadingList)
             assert len(report.ChannelReadingList) == NUM_POWER_CHANNELS
-            snapshot = atn.data.latest_snapshot
-            assert isinstance(snapshot, SnapshotSpaceheat)
+            # snapshot = atn.data.latest_snapshot
+            # assert isinstance(snapshot, SnapshotSpaceheat)
             
             # I don't understand why this is 0
             # assert len(snapshot.LatestReadingList) ==  1

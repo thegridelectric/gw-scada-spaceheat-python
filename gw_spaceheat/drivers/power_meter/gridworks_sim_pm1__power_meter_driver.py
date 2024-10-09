@@ -1,7 +1,7 @@
 from actors.config import ScadaSettings
 from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from enums import MakeModel
+from gwproto.enums import MakeModel
 from gwproto.data_classes.components.electric_meter_component import (
     ElectricMeterComponent,
 )

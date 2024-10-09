@@ -24,7 +24,7 @@ from drivers.exceptions import DriverWarning
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
 )
-from enums import MakeModel, TelemetryName
+from gwproto.enums import MakeModel, TelemetryName
 from gwproto.data_classes.components.ads111x_based_component import (
     Ads111xBasedComponent
 )

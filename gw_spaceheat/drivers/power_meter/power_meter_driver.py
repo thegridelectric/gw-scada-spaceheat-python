@@ -11,7 +11,7 @@ from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.driver_result import DriverResult
-from enums import TelemetryName
+from gwproto.enums import TelemetryName
 
 
 class PowerMeterDriver(ABC):

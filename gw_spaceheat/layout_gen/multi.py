@@ -16,7 +16,7 @@ from gwproto.types import DataChannelGt
 from gwproto.types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwproto.enums import ThermistorDataMethod
 from pydantic import BaseModel
-from data_classes.house_0 import H0Readers
+from gwproto.data_classes.house_0_names import H0Readers
 
 from layout_gen.layout_db import LayoutDb
 

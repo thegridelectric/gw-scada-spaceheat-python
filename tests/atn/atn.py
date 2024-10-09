@@ -22,7 +22,6 @@ from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
 from gwproto.messages import ReportEvent
-from gwproto.messages import SnapshotSpaceheatEvent
 from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
 from gwproto.messages import Report
@@ -185,9 +184,9 @@ class Atn(ActorInterface, Proactor):
                 if decoded.Payload.TypeName == ReportEvent.model_fields["TypeName"].default:
                     path_dbg |= 0x00000010
                     self.process_report(decoded.Payload.Report)
-                elif decoded.Payload.TypeName == SnapshotSpaceheatEvent.model_fields["TypeName"].default:
+                elif decoded.Payload.TypeName == SnapshotSpaceheat.model_fields["TypeName"].default:
                     path_dbg |= 0x00000020
-                    self._process_snapshot(decoded.Payload.Snap)
+                    self._process_snapshot(decoded.Payload)
             case _:
                 path_dbg |= 0x00000040
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)

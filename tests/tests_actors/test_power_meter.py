@@ -9,7 +9,7 @@ from tests.utils.fragment_runner import ProtocolFragment
 from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
-from data_classes.house_0 import H0N, H0CN
+from gwproto.data_classes.house_0_names import H0N, H0CN
 
 import actors
 import pytest

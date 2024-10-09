@@ -10,7 +10,7 @@ from gwproto.data_classes.components.electric_meter_component import ElectricMet
 from drivers.driver_result import DriverResult
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
 from pymodbus.client.sync import ModbusSerialClient
-from enums import MakeModel, TelemetryName
+from gwproto.enums import MakeModel, TelemetryName
 from gwproto.data_classes.data_channel import DataChannel
 
 PORT = "/dev/ttyUSB0"

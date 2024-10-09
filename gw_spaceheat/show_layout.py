@@ -20,7 +20,7 @@ from command_line_utils import get_requested_names
 from gwproactor.config import MQTTClient
 from gw.errors import DcError
 from gwproto.data_classes.hardware_layout import HardwareLayout
-from enums import ActorClass
+from gwproto.enums import ActorClass
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:

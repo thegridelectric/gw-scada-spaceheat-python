@@ -12,7 +12,7 @@ from actors.config import ScadaSettings
 from gwproto.data_classes.components.electric_meter_component import \
     ElectricMeterComponent
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from enums import MakeModel
+from gwproto.enums import MakeModel
 from gwproto.data_classes.data_channel import DataChannel
 class OpenenergyEmonpi_PowerMeterDriver(PowerMeterDriver):
     def __init__(self, component: ElectricMeterComponent, settings: ScadaSettings):
