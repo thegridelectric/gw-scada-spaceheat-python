@@ -21,7 +21,7 @@ from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import Report
-from data_classes.house_0 import H0N, H0CN
+from gwproto.data_classes.house_0_names import H0N, H0CN
 
 def test_scada_small():
     settings = ScadaSettings()

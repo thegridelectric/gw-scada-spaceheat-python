@@ -13,7 +13,7 @@ from gwproto.types import SpaceheatNodeGt
 from gwproto.types import ElectricMeterChannelConfig
 from gwproto.types import DataChannelGt
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
-from data_classes.house_0 import H0N, H0CN
+from gwproto.data_classes.house_0_names import H0N, H0CN
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig

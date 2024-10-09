@@ -23,7 +23,7 @@ from gwproactor import setup_logging
 from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
-from data_classes.house_0 import H0N
+from gwproto.data_classes.house_0_names import H0N
 
 from tests.atn import Atn
 from tests.atn import AtnSettings

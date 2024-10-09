@@ -23,7 +23,7 @@ from gwproto.types import ElectricMeterChannelConfig
 from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
-from data_classes.house_0 import H0N, H0CN, H0Readers
+from gwproto.data_classes.house_0_names import H0N, H0CN, H0Readers
 
 
 class ChannelStubDb(ChannelStub):

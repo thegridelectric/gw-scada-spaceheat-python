@@ -20,7 +20,7 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass
 from pydantic_settings import BaseSettings
-from data_classes.house_0 import H0N
+from gwproto.data_classes.house_0_names import H0N
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 
