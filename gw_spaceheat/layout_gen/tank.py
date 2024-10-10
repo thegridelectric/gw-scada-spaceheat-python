@@ -3,8 +3,12 @@ from typing import Tuple
 
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
+from gwproto.enums import TelemetryName
+from gwproto.enums import Unit
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
+from gwproto.types import ChannelConfig
 from gwproto.types import ComponentAttributeClassGt
+from gwproto.types import DataChannelGt
 from gwproto.types import FibaroSmartImplantComponentGt
 from gwproto.type_helpers import FibaroTempSensorSettingsGt
 from gwproto.types import HubitatComponentGt
@@ -63,7 +67,6 @@ def add_tank(
                 ComponentAttributeClassGt(
                     ComponentAttributeClassId=CACS_BY_MAKE_MODEL[fibaro_make_model],
                     DisplayName="Fibaro SmartImplant FGBS-222",
-                    Model="FGBS-222 v5.2",
                     MakeModel=MakeModel.FIBARO__ANALOG_TEMP_SENSOR,
                 ),
             ]
@@ -111,14 +114,34 @@ def add_tank(
                 ComponentAttributeClassId=db.cac_id_by_alias(fibaro_make_model),
                 DisplayName=fibaro_a.alias(),
                 ZWaveDSK=fibaro_a.ZWaveDSK,
-                ConfigList=[],
+                ConfigList=[
+                    ChannelConfig(
+                        ChannelName=channel_name,
+                        PollPeriodMs=1000,
+                        CapturePeriodS=10,
+                        AsyncCapture=False,
+                        Exponent=1,
+                        Unit=Unit.Celcius,
+                    )
+                    for channel_name in [tank.thermistor_node_name(i) for i in range(1, 3)]
+                ],
             ),
             FibaroSmartImplantComponentGt(
                 ComponentId=db.make_component_id(fibaro_b.alias()),
                 ComponentAttributeClassId=db.cac_id_by_alias(fibaro_make_model),
                 DisplayName=fibaro_b.alias(),
                 ZWaveDSK=fibaro_b.ZWaveDSK,
-                ConfigList=[],
+                ConfigList=[
+                    ChannelConfig(
+                        ChannelName=channel_name,
+                        PollPeriodMs=1000,
+                        CapturePeriodS=10,
+                        AsyncCapture=False,
+                        Exponent=1,
+                        Unit=Unit.Celcius,
+                    )
+                    for channel_name in [tank.thermistor_node_name(i) for i in range(3, 5)]
+                ],
             ),
         ]
     )
@@ -210,5 +233,21 @@ def add_tank(
                 DisplayName=tank.thermistor_node_display_name(4),
             ),
         ]
+    )
+
+
+    db.add_data_channels(
+       [
+           DataChannelGt(
+               Name=thermistor_node_name,
+               DisplayName=' '.join(word.capitalize() for word in thermistor_node_name.split('-')),
+               AboutNodeName=thermistor_node_name,
+               CapturedByNodeName=thermistor_node_name,
+               TelemetryName=TelemetryName.WaterTempCTimes1000,
+               TerminalAssetAlias=db.terminal_asset_alias,
+               Id=db.make_channel_id(thermistor_node_name)
+           )
+           for thermistor_node_name in [tank.thermistor_node_name(i) for i in range(1, 5)]
+       ]
     )
 

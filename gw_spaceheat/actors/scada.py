@@ -11,7 +11,6 @@ from typing import Optional
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproactor.message import InternalShutdownMessage
-from gwproto import Message
 from gwproto import create_message_model
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
@@ -114,7 +113,8 @@ class Scada(ScadaInterface, Proactor):
         topic = MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias)
 
         self._links.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
-        # TODO: clean this up
+        self._links.subscribe(Scada.LOCAL_MQTT, topic, QOS.AtMostOnce)
+
         self._links.log_subscriptions("construction")
         # self._home_alone = HomeAlone(H0N.home_alone, self)
         # self.add_communicator(self._home_alone)
@@ -383,8 +383,8 @@ class Scada(ScadaInterface, Proactor):
         for idx, channel_name in enumerate(payload.ChannelNameList):
             path_dbg |= 0x00000001
             if channel_name not in self._layout.data_channels:
-                raise Exception(
-                    f"Name {channel_name} in payload.SyncedReadingsnot a recognized Data Channel!"
+                raise ValueError(
+                    f"Name {channel_name} in payload.SyncedReadings not a recognized Data Channel!"
                 )
             ch = self._layout.data_channels[channel_name]
             self._data.recent_channel_values[ch].append(
