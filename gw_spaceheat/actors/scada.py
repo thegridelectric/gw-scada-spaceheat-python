@@ -110,10 +110,17 @@ class Scada(ScadaInterface, Proactor):
             upstream=True,
             primary_peer=True,
         )
-        topic = MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias)
-
-        self._links.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
-        self._links.subscribe(Scada.LOCAL_MQTT, topic, QOS.AtMostOnce)
+        self._links.subscribe(
+            Scada.GRIDWORKS_MQTT,
+            MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
+            QOS.AtMostOnce
+        )
+        # FIXME: this causes tests to fail horrible ways.
+        # self._links.subscribe(
+        #     Scada.LOCAL_MQTT,
+        #     MQTTTopic.encode_subscription(Message.type_name(), self._layout.scada_g_node_alias),
+        #     QOS.AtMostOnce
+        # )
 
         self._links.log_subscriptions("construction")
         # self._home_alone = HomeAlone(H0N.home_alone, self)
