@@ -68,7 +68,7 @@ class LocalMQTTCodec(MQTTCodec):
 
     def validate_source_alias(self, source_alias: str):
         if source_alias not in self.hardware_layout.nodes.keys():
-            raise Exception(f"{source_alias} not a node name!")
+            raise ValueError(f"{source_alias} not a node name!")
 
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
@@ -110,10 +110,17 @@ class Scada(ScadaInterface, Proactor):
             upstream=True,
             primary_peer=True,
         )
-        topic = MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias)
-
-        self._links.subscribe(Scada.GRIDWORKS_MQTT, topic, QOS.AtMostOnce)
-        self._links.subscribe(Scada.LOCAL_MQTT, topic, QOS.AtMostOnce)
+        self._links.subscribe(
+            Scada.GRIDWORKS_MQTT,
+            MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
+            QOS.AtMostOnce
+        )
+        # FIXME: this causes tests to fail horrible ways.  
+        # self._links.subscribe(
+        #     Scada.LOCAL_MQTT,
+        #     MQTTTopic.encode_subscription(Message.type_name(), self._layout.scada_g_node_alias),
+        #     QOS.AtMostOnce
+        # )
 
         self._links.log_subscriptions("construction")
         # self._home_alone = HomeAlone(H0N.home_alone, self)
