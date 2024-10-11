@@ -68,7 +68,7 @@ class LocalMQTTCodec(MQTTCodec):
 
     def validate_source_alias(self, source_alias: str):
         if source_alias not in self.hardware_layout.nodes.keys():
-            raise ValueError(f"{source_alias} not a node name!")
+            raise Exception(f"{source_alias} not a node name!")
 
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
@@ -115,7 +115,7 @@ class Scada(ScadaInterface, Proactor):
             MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
             QOS.AtMostOnce
         )
-        # FIXME: this causes tests to fail horrible ways.  
+        # FIXME: this causes tests to fail horrible ways.
         # self._links.subscribe(
         #     Scada.LOCAL_MQTT,
         #     MQTTTopic.encode_subscription(Message.type_name(), self._layout.scada_g_node_alias),

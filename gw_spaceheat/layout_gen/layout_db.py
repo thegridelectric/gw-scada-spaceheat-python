@@ -429,6 +429,15 @@ class LayoutDb:
                                 Exponent=0,
                                 Unit=Unit.W,
                             ),
+                            ElectricMeterChannelConfig(
+                                ChannelName=H0CN.hp_idu_pwr,
+                                PollPeriodMs=1000,
+                                CapturePeriodS=300,
+                                AsyncCapture=True,
+                                AsyncCaptureDelta=200,
+                                Exponent=0,
+                                Unit=Unit.W,
+                            ),
                         ],
                     )
                 )
@@ -452,6 +461,14 @@ class LayoutDb:
                     InPowerMetering=True,
                     NameplatePowerW=4500,
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.hp_idu),
+                    Name=H0N.hp_idu,
+                    ActorClass=ActorClass.NoActor,
+                    DisplayName=cfg.boost_element_display_name,
+                    InPowerMetering=True,
+                    NameplatePowerW=4500,
+                ),
             ]
         )
         
@@ -462,6 +479,16 @@ class LayoutDb:
                     Id=self.make_channel_id(H0CN.hp_odu_pwr),
                     DisplayName=' '.join(word.capitalize() for word in H0CN.hp_odu_pwr.split('-')) + " Pwr",
                     AboutNodeName=H0N.hp_odu,
+                    CapturedByNodeName=H0N.primary_power_meter,
+                    TelemetryName=TelemetryName.PowerW,
+                    InPowerMetering=True,
+                    TerminalAssetAlias="some.ta.alias"
+                ),
+                DataChannelGt(
+                    Name=H0CN.hp_idu_pwr,
+                    Id=self.make_channel_id(H0CN.hp_idu_pwr),
+                    DisplayName=' '.join(word.capitalize() for word in H0CN.hp_idu_pwr.split('-')) + " Pwr",
+                    AboutNodeName=H0N.hp_idu,
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
                     InPowerMetering=True,
