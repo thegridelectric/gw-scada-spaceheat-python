@@ -51,19 +51,21 @@ class DisplayChannel:
 
     def __init__(
         self,
-        channel: DataChannel,
+        name: str,
+        channels: dict[str, DataChannel],
         *,
         format_string: str = DEFAULT_FORMAT_STRING,
-        missing_value: str = DEFAULT_MISSING_STRING,
+        missing_string: str = DEFAULT_MISSING_STRING,
         raise_errors: bool = False,
         logger: Optional[logging.Logger | logging.LoggerAdapter] = None
     ) -> None:
-        self.name = channel.Name
+        self.name = name
+        channel = channels.get(name)
         self.exists = channel is not None
         if self.exists:
             self.telemetry_name = channel.TelemetryName
         self.format_string = format_string
-        self.missing_string = missing_value
+        self.missing_string = missing_string
         self.raise_errors = raise_errors
         if logger is None:
             logger = logging.Logger(__file__)
@@ -115,11 +117,12 @@ class TemperatureChannel(DisplayChannel):
 
     def __init__(
         self,
-        channel: DataChannel,
+        name: str,
+        channels: dict[str, DataChannel],
         *,
         celcius_data: bool = True,
         fahrenheit_display: bool = True,
-        missing_value: str = DEFAULT_MISSING_STRING,
+        missing_string: str = DEFAULT_MISSING_STRING,
         raise_errors: bool = False,
         logger: Optional[logging.Logger | logging.LoggerAdapter] = None
     ) -> None:
@@ -131,17 +134,18 @@ class TemperatureChannel(DisplayChannel):
         else:
             format_string += "C"
         super().__init__(
-            channel=channel,
+            name=name,
+            channels=channels,
             format_string=format_string,
-            missing_value=missing_value,
+            missing_string=missing_string,
             raise_errors=raise_errors,
             logger=logger,
         )
         if self.exists:
             if self.celcius_data:
-                valid_telemtery_names = TelemetryName.AirTempCTimes1000, TelemetryName.AirTempCTimes1000
+                valid_telemtery_names = TelemetryName.AirTempCTimes1000, TelemetryName.WaterTempCTimes1000
             else:
-                valid_telemtery_names = TelemetryName.AirTempFTimes1000, TelemetryName.AirTempFTimes1000
+                valid_telemtery_names = TelemetryName.AirTempFTimes1000, TelemetryName.WaterTempFTimes1000
             if self.telemetry_name not in valid_telemtery_names:
                 raise ValueError(
                     f"ERROR. Temperature channel {self.name} expects data in "
@@ -161,7 +165,7 @@ class PowerChannel(DisplayChannel):
     kW: bool = True
 
     def __init__(self, *args, **kwargs) -> None:
-        self.kW = kwargs.get('kW', True)
+        self.kW = kwargs.pop('kW', True)
         super().__init__(*args, **kwargs)
         if self.exists and self.telemetry_name != TelemetryName.PowerW:
             raise ValueError(
@@ -222,9 +226,9 @@ class ReadMixin:
                 collected_channels.append(member)
             elif isinstance(member, ReadMixin):
                 collected_channels.extend(member.collect_channels())
-            elif isinstance(member, Mapping):
+            elif isinstance(member, Mapping) and member:
                 collected_channels.extend(self.collect_channels(list(member.values())))
-            elif isinstance(member, Sequence):
+            elif isinstance(member, (tuple, list)) and member:
                 collected_channels.extend(self.collect_channels(member))
         return collected_channels
 
@@ -239,10 +243,10 @@ class PumpPowerChannels(ReadMixin):
     boiler: PumpPowerChannel
 
     def __init__(self, channels: dict[str, DataChannel]) -> None:
-        self.primary = PumpPowerChannel(channels.get("primary-pump-pwr"))
-        self.store = PumpPowerChannel(channels.get("store-pump-pwr"))
-        self.dist = PumpPowerChannel(channels.get("dist-pump-pwr"))
-        self.boiler = PumpPowerChannel(channels.get("oil-boiler-pwr"))
+        self.primary = PumpPowerChannel("primary-pump-pwr", channels)
+        self.store = PumpPowerChannel("store-pump-pwr", channels)
+        self.dist = PumpPowerChannel("dist-pump-pwr", channels)
+        self.boiler = PumpPowerChannel("oil-boiler-pwr", channels)
 
 
 class PowerChannels(ReadMixin):
@@ -251,8 +255,8 @@ class PowerChannels(ReadMixin):
     pumps: PumpPowerChannels
 
     def __init__(self, channels: dict[str, DataChannel]) -> None:
-        self.hp_indoor = PowerChannel(channels.get("hp-idu-pwr"))
-        self.hp_outdoor = PowerChannel(channels.get("hp-odu-pwr"))
+        self.hp_indoor = PowerChannel("hp-idu-pwr", channels)
+        self.hp_outdoor = PowerChannel("hp-odu-pwr", channels)
         self.hp_total = MissingReading()
         self.pumps = PumpPowerChannels(channels)
 
@@ -261,19 +265,68 @@ class Thermostat(ReadMixin):
     set_point: TemperatureChannel
     temperature: TemperatureChannel
 
-    def __init__(self, name: str, channels: dict[str, DataChannel]) -> None:
+    def __init__(
+        self, name: str,
+        channels: dict[str, DataChannel],
+        *,
+        celcius_data: bool = True,
+        fahrenheit_display: bool = True,
+        missing_string: str = DEFAULT_MISSING_STRING,
+        raise_errors: bool = False,
+        logger: Optional[logging.Logger | logging.LoggerAdapter] = None
+    ) -> None:
         self.name = name
-        self.set_point = TemperatureChannel(channels.get(self.name + "-set"))
-        self.temperature = TemperatureChannel(channels.get(self.name + "-temp"))
+        self.set_point = TemperatureChannel(
+            self.name + "-set",
+            channels,
+            celcius_data=celcius_data,
+            fahrenheit_display=fahrenheit_display,
+            missing_string=missing_string,
+            raise_errors=raise_errors,
+            logger=logger
+        )
+        self.temperature = TemperatureChannel(
+            self.name + "-temp",
+            channels,
+            celcius_data = celcius_data,
+            fahrenheit_display = fahrenheit_display,
+            missing_string = missing_string,
+            raise_errors = raise_errors,
+            logger = logger,
+            )
 
 class HoneywellThermostat(Thermostat):
     state: DisplayChannel
 
-    def __init__(self, name: str, channels: dict[str, DataChannel]) -> None:
-        super().__init__(name, channels)
-        self.state = TemperatureChannel(channels.get(self.name + "-state"))
+    def __init__(
+        self, name:
+        str, channels: dict[str, DataChannel],
+        *,
+        fahrenheit_display: bool = True,
+        missing_string: str = DEFAULT_MISSING_STRING,
+        raise_errors: bool = False,
+        logger: Optional[logging.Logger | logging.LoggerAdapter] = None
+
+    ) -> None:
+        super().__init__(
+            name,
+            channels,
+            celcius_data=False,
+            fahrenheit_display=fahrenheit_display,
+            missing_string=missing_string,
+            raise_errors=raise_errors,
+            logger=logger,
+        )
+        self.state = DisplayChannel(
+            self.name + "-state",
+            channels,
+            missing_string=missing_string,
+            raise_errors=raise_errors,
+            logger=logger,
+        )
 
 class Tank(ReadMixin):
+    name: str
     depth1: TemperatureChannel
     depth2: TemperatureChannel
     depth3: TemperatureChannel
@@ -282,10 +335,10 @@ class Tank(ReadMixin):
 
     def __init__(self, tank_name: str, channels: dict[str, DataChannel], *, is_buffer: bool = False) -> None:
         self.name = tank_name
-        self.depth1 = TemperatureChannel(channels.get(self.name + "-depth1"))
-        self.depth2 = TemperatureChannel(channels.get(self.name + "-depth2"))
-        self.depth3 = TemperatureChannel(channels.get(self.name + "-depth3"))
-        self.depth4 = TemperatureChannel(channels.get(self.name + "-depth4"))
+        self.depth1 = TemperatureChannel(self.name + "-depth1", channels)
+        self.depth2 = TemperatureChannel(self.name + "-depth2", channels)
+        self.depth3 = TemperatureChannel(self.name + "-depth3", channels)
+        self.depth4 = TemperatureChannel(self.name + "-depth4", channels)
         self.is_buffer = is_buffer
 
 
@@ -295,8 +348,11 @@ class Tanks(ReadMixin):
 
     def __init__(self, num_tanks: int, channels: dict[str, DataChannel]) -> None:
         self.buffer = Tank("buffer", channels, is_buffer=True)
-        for tank_idx in range(1, num_tanks + 1):
-            self.store.append(Tank(f"tank{tank_idx}", channels))
+        self.store = [
+            Tank(f"tank{tank_idx}", channels)
+            for tank_idx in range(1, num_tanks + 1)
+        ]
+
 
 class Channels(ReadMixin):
     power: PowerChannels
@@ -307,13 +363,19 @@ class Channels(ReadMixin):
     def __init__(
         self,
         channels: dict[str, DataChannel],
-        thermostats: Optional[list[HoneywellThermostat]] = None,
+        thermostat_names: Optional[list[str]] = None,
         tanks: Optional[Tanks] = None
     ) -> None:
         self.power = PowerChannels(channels)
-        if thermostats is None:
-            thermostats = []
-        self.thermostats = thermostats
+
+        if thermostat_names is None:
+            self.thermostats = []
+        else:
+            self.thermostats = [
+                HoneywellThermostat(
+                    f"zone{i+1}-{thermostat_name}", channels
+                ) for i, thermostat_name in enumerate(thermostat_names)
+            ]
         if tanks is None:
             tanks = Tanks(3, channels)
         self.tanks = tanks

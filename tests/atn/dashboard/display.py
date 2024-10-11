@@ -26,11 +26,12 @@ class Displays:
     def __init__(self, channels: Channels):
         self.update(channels)
 
-    def update(self, channels: Channels):
+    def update(self, channels: Channels) -> "Displays":
         self.update_odds_and_ends(channels)
         self.update_thermostat_table(channels)
         self.update_power_table(channels)
         self.update_picture(channels)
+        return self
 
     def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:
         yield self.odds_and_ends
@@ -56,7 +57,7 @@ class Displays:
                 telemetry_str = "\u00b0F"
             else:
                 value_str = str(reading.Value)
-                telemetry_str = reading.Telemetry.value
+                telemetry_str = str(reading.Telemetry)
             self.odds_and_ends.add_row(reading.ChannelName, value_str, telemetry_str)
 
     def update_thermostat_table(self, channels: Channels):

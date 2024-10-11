@@ -3,6 +3,7 @@ import time
 
 from typing import Optional
 
+import rich
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.types import PowerWatts
 from gwproto.types import SnapshotSpaceheat
@@ -26,6 +27,7 @@ class Dashboard:
         settings: DashboardSettings,
         atn_g_node_alias: str,
         data_channels: dict[str, DataChannel],
+        thermostat_names: Optional[list[str]] = None,
         logger = Optional[logging.Logger | logging.LoggerAdapter]
     ):
         self.settings = settings
@@ -40,35 +42,34 @@ class Dashboard:
             raise_dashboard_exceptions=self.settings.raise_dashboard_exceptions,
             logger=self.logger
         )
-        self.channels = Channels(channels=self.data_channels)
+        self.channels = Channels(channels=self.data_channels, thermostat_names=thermostat_names)
         self.displays = Displays(self.channels)
 
-    def process_snapshot(self, snapshot: SnapshotSpaceheat):
-        self.latest_snapshot = snapshot
-        self.channels.read_snapshot(self.latest_snapshot, self.data_channels)
-        self.hack_hp.update_pwr(
-            fastpath_pwr_w=None,
-            channels=self.channels,
-            report_time_s=int(snapshot.SnapshotTimeUnixMs / 1000),
-        )
-        self.refresh_gui()
-
-    def process_power(self, power: PowerWatts) -> None:
-        self.channels.read_snapshot(self.latest_snapshot, self.data_channels)
-        self.hack_hp.update_pwr(
-            fastpath_pwr_w=power.Watts,
-            channels=self.channels,
-            report_time_s=int(time.time())
-        )
-        self.refresh_gui()
-
-    def refresh_gui(self) -> None:
+    def update(
+            self,
+            *,
+            fast_path_power_w: Optional[float],
+            report_time_s: int,
+    ):
         if self.latest_snapshot is None:
             return
         try:
-            ...
+            self.channels.read_snapshot(self.latest_snapshot, self.data_channels)
+            self.hack_hp.update_pwr(
+                fastpath_pwr_w=fast_path_power_w,
+                channels=self.channels,
+                report_time_s=report_time_s,
+            )
+            rich.print(self.displays.update(self.channels))
         except Exception as e:
             self.logger.error("ERROR in refresh_gui")
             self.logger.exception(e)
             if self.settings.raise_dashboard_exceptions:
                 raise
+
+    def process_snapshot(self, snapshot: SnapshotSpaceheat):
+        self.latest_snapshot = snapshot
+        self.update(fast_path_power_w=None, report_time_s=int(snapshot.SnapshotTimeUnixMs / 1000))
+
+    def process_power(self, power: PowerWatts) -> None:
+        self.update(fast_path_power_w=power.Watts, report_time_s=int(time.time()))

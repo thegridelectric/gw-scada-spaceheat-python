@@ -102,6 +102,7 @@ class Atn(ActorInterface, Proactor):
                 settings=self.settings.dashboard,
                 atn_g_node_alias=self.layout.atn_g_node_alias,
                 data_channels=self.layout.data_channels,
+                thermostat_names=None,
                 logger=self.logger,
             )
         else:
@@ -223,7 +224,7 @@ class Atn(ActorInterface, Proactor):
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
         if self.settings.dashboard.print_gui:
-            self.dashboard.refresh_gui()
+            self.dashboard.process_snapshot(snapshot)
         if self.settings.dashboard.print_snap:
             self._logger.warning(self.snaphot_str(snapshot))
 
@@ -237,7 +238,7 @@ class Atn(ActorInterface, Proactor):
 
     def _process_event(self, event: EventBase) -> None:
         if self.settings.save_events:
-            event_dt = pendulum.from_timestamp(event.TimeNS / 1000000000)
+            event_dt = pendulum.from_timestamp(event.TimeCreatedMs / 1000)
             event_file = (
                 self.settings.paths.event_dir
                 / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"

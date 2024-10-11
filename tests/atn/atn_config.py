@@ -22,14 +22,11 @@ class DashboardSettings(BaseModel):
 
 class AtnSettings(ProactorSettings):
     scada_mqtt: MQTTClient = MQTTClient()
-    minute_cron_file: str = "cron_last_minute.txt"
-    hour_cron_file: str = "cron_last_hour.txt"
-    day_cron_file: str = "cron_last_day.txt"
     c_to_f: bool = True
     save_events: bool = False
     dashboard: DashboardSettings = DashboardSettings()
 
-    model_config = SettingsConfigDict(env_prefix="ATN_")
+    model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
 
 
     @model_validator(mode="before")
