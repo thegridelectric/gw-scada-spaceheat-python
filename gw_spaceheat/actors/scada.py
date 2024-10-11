@@ -12,6 +12,7 @@ from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
+from gwproto.messages import MyDataChannels
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
@@ -139,6 +140,7 @@ class Scada(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
+        self.send_channels()
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
@@ -231,6 +233,17 @@ class Scada(ScadaInterface, Proactor):
                 finally:
                     break
 
+    def send_channels(self):
+        msg = MyDataChannels(
+            FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+            FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
+            AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
+            ChannelList=[ch.to_gt() for ch in self.data.my_channels],
+            MessageCreatedMs=int(time.time() * 1000)
+        )
+        print(f"Sending {msg}")
+        self._publish_to_local(self._node, msg)
+        self._links.publish_upstream(msg)
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
@@ -410,6 +423,7 @@ class Scada(ScadaInterface, Proactor):
         async def _async_run_forever():
             try:
                 await self.run_forever()
+
             finally:
                 self.stop()
 
