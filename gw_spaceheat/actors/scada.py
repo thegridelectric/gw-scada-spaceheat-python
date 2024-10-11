@@ -195,15 +195,7 @@ class Scada(ScadaInterface, Proactor):
     async def update_channels(self):
         if not self._channels_reported:
             try:
-                msg = MyDataChannels(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
-                AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
-                ChannelList=[ch.to_gt() for ch in self.data.my_channels],
-                MessageCreatedMs=int(time.time() * 1000)
-                )
-                self._publish_to_local(self._node, msg)
-                self._links.publish_upstream(msg)
+                self.send_my_channels()
                 self._channels_reported = True
             except Exception as e:
                 if not isinstance(e, asyncio.CancelledError):
@@ -265,6 +257,17 @@ class Scada(ScadaInterface, Proactor):
                         )
                 finally:
                     break
+
+    def send_my_channels(self) -> None:
+        msg = MyDataChannels(
+            FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+            FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
+            AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
+            ChannelList=[ch.to_gt() for ch in self.data.my_channels],
+            MessageCreatedMs=int(time.time() * 1000)
+        )
+        self._publish_to_local(self._node, msg)
+        self._links.publish_upstream(msg)
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
