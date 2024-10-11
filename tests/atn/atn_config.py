@@ -1,3 +1,5 @@
+import re
+
 from pydantic import BaseModel
 from pydantic import model_validator
 
@@ -19,6 +21,18 @@ class DashboardSettings(BaseModel):
     raise_dashboard_exceptions: bool = False
     hack_hp: HackHpSettings = HackHpSettings()
 
+    @classmethod
+    def thermostat_names(cls, node_names: list[str]) -> list[str]:
+        name_to_human_name :dict[str, str] = {}
+        thermostat_name_pattern = re.compile(
+            "^zone(?P<zone_number>\d)-(?P<human_name>.*)$"
+        )
+        for node_name in node_names:
+            if match := thermostat_name_pattern.match(node_name):
+                name_to_human_name[node_name] = match.group("human_name")
+        return [
+            name_to_human_name[name] for name in sorted(name_to_human_name.keys())
+        ]
 
 class AtnSettings(ProactorSettings):
     scada_mqtt: MQTTClient = MQTTClient()

@@ -35,6 +35,7 @@ from gwproactor.config import LoggerLevels
 from gwproactor.message import MQTTReceiptPayload, Message
 from gwproactor.proactor_implementation import Proactor
 
+from tests.atn.atn_config import DashboardSettings
 from tests.atn.dashboard.dashboard import Dashboard
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
@@ -102,7 +103,9 @@ class Atn(ActorInterface, Proactor):
                 settings=self.settings.dashboard,
                 atn_g_node_alias=self.layout.atn_g_node_alias,
                 data_channels=self.layout.data_channels,
-                thermostat_names=None,
+                thermostat_names=DashboardSettings.thermostat_names(
+                    [node.name for node in self.layout.nodes.values()]
+                ),
                 logger=self.logger,
             )
         else:

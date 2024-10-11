@@ -198,7 +198,12 @@ class HackHp:
                 idu_pwr_w = None
                 odu_pwr_w = None
             else:
-                if not channels.power.hp_indoor or not channels.power.hp_outdoor:
+                if (
+                    not channels.power.hp_indoor or
+                    not channels.power.hp_outdoor or
+                    not channels.power.hp_indoor.last_reading or
+                    not not channels.power.hp_outdoor.last_reading
+                ):
                     return
                 if now - report_time_s > 5:
                     return
