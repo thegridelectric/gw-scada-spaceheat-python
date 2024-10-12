@@ -10,6 +10,7 @@ from typing import Optional
 import requests
 
 from tests.atn.atn_config import HackHpSettings
+from tests.atn.dashboard.channels import enqueue_fifo_q
 from tests.atn.dashboard.channels import Channels
 from tests.atn.dashboard.channels import PUMP_OFF_THRESHOLD
 
@@ -211,7 +212,6 @@ class HackHp:
                 odu_pwr_w = channels.power.hp_outdoor.last_reading.raw
                 hp_pwr_w = idu_pwr_w + odu_pwr_w
 
-            # primary_idx = snap.AboutNodeAliasList.index(self.primary_pump_power_node.alias)
             primary_pump_pwr_w = channels.power.pumps.primary.last_reading.raw
 
             if (self.state_q[0].state != HackHpState.Heating and
@@ -235,7 +235,7 @@ class HackHp:
                         priority=AlertPriority.P5Info
                     )
                 self.state_q[0].state_end_s = now
-                self.enqueue_fifo_q(hp_state_capture, self.state_q)
+                enqueue_fifo_q(hp_state_capture, self.state_q)
             elif (self.state_q[0].state != HackHpState.NoOp and
                   hp_pwr_w < HP_DEFINITELY_OFF_THRESHOLD and
                   primary_pump_pwr_w < PUMP_OFF_THRESHOLD):
@@ -249,7 +249,7 @@ class HackHp:
                     odu_pwr_w=odu_pwr_w,
                 )
                 self.state_q[0].state_end_s = now
-                self.enqueue_fifo_q(hp_state_capture, self.state_q)
+                enqueue_fifo_q(hp_state_capture, self.state_q)
             elif (self.state_q[0].state == HackHpState.Heating and
                   hp_pwr_w < HP_DEFINITELY_OFF_THRESHOLD and
                   primary_pump_pwr_w > PUMP_ON_THRESHOLD):
@@ -263,7 +263,7 @@ class HackHp:
                     odu_pwr_w=odu_pwr_w,
                 )
                 self.state_q[0].state_end_s = now
-                self.enqueue_fifo_q(hp_state_capture, self.state_q)
+                enqueue_fifo_q(hp_state_capture, self.state_q)
             elif (self.state_q[0].state == HackHpState.NoOp
                   and primary_pump_pwr_w > PUMP_ON_THRESHOLD):
                 hp_state_capture = HackHpStateCapture(
@@ -275,7 +275,7 @@ class HackHp:
                     odu_pwr_w=odu_pwr_w,
                 )
                 self.state_q[0].state_end_s = now
-                self.enqueue_fifo_q(hp_state_capture, self.state_q)
+                enqueue_fifo_q(hp_state_capture, self.state_q)
             elif (self.state_q[0].state == HackHpState.Idling
                   and hp_pwr_w > HP_TRYING_TO_START_THRESHOLD):
                 # update the HackHpStateCapture state from ProbablyResting to TryingToStart
@@ -313,20 +313,3 @@ class HackHp:
             self.logger.exception(e)
             if self.raise_dashboard_exceptions:
                 raise
-
-    @classmethod
-    def enqueue_fifo_q(cls, element: HackHpStateCapture, fifo_q: Deque[HackHpStateCapture], max_length: int = 10) -> None:
-        """
-        Enqueues an element into a FIFO queue represented by a deque object.
-
-        Args:
-            element (HackHpStateCapture): The element to be enqueued.
-            fifo_q (Deque[HackHpStateCapture]): The FIFO queue represented by a deque object.
-            max_length (int, optional): The maximum length of the FIFO queue. Defaults to 10.
-
-        Returns:
-            None
-        """
-        if len(fifo_q) >= max_length:
-            fifo_q.pop()  # Remove the oldest element if queue length is equal to max_length
-        fifo_q.appendleft(element)  # Add the new element at the beginning

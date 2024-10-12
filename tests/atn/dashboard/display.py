@@ -1,3 +1,7 @@
+import time
+from datetime import datetime
+from typing import Deque
+
 from gwproto.enums import TelemetryName
 from rich.console import Console
 from rich.console import ConsoleOptions
@@ -7,6 +11,9 @@ from rich.table import Table
 from rich.text import Text
 
 from tests.atn.dashboard.channels import Channels
+from tests.atn.dashboard.channels import PumpPowerState
+from tests.atn.dashboard.hackhp import HackHpState
+from tests.atn.dashboard.hackhp import HackHpStateCapture
 
 cold_style = Style(bold=True, color="#008000")
 hot_style = Style(bold=True, color="dark_orange")
@@ -23,13 +30,13 @@ class Displays:
     power_table: Table
     picture: str
 
-    def __init__(self, channels: Channels):
-        self.update(channels)
+    def __init__(self, channels: Channels, hack_hp_state_q: Deque[HackHpStateCapture]):
+        self.update(channels, hack_hp_state_q)
 
-    def update(self, channels: Channels) -> "Displays":
+    def update(self, channels: Channels, hack_hp_state_q: Deque[HackHpStateCapture]) -> "Displays":
         self.update_odds_and_ends(channels)
         self.update_thermostat_table(channels)
-        self.update_power_table(channels)
+        self.update_power_table(channels, hack_hp_state_q)
         self.update_picture(channels)
         return self
 
@@ -65,100 +72,102 @@ class Displays:
         self.thermostat_table.add_column("Stats", header_style="bold")
         self.thermostat_table.add_column("Setpt", header_style="bold")
         self.thermostat_table.add_column("HW Temp", header_style="bold")
-        # self.thermostat_table.add_column("GW Temp", header_style="bold")
 
-        # if len(self.dist_pump_pwr_state_q) > 0:
-        #     until = int(time.time())
-        #     t = self.dist_pump_pwr_state_q
-        #     self.thermostat_table.add_column("Heat Call", header_style="bold")
-        #     for j in range(min(6, len(t))):
-        #         start_s = t[j][2]
-        #         minutes = int((until - start_s) / 60)
-        #         if t[j][0] == PumpPowerState.Flow:
-        #             self.thermostat_table.add_column(f"On {minutes}", header_style=hot_style)
-        #         else:
-        #             self.thermostat_table.add_column(f"Off {minutes}", header_style=cold_style)
-        #         until = start_s
+        if len(channels.power.pumps.dist_pump_pwr_state_q) > 0:
+            until = int(time.time())
+            t = channels.power.pumps.dist_pump_pwr_state_q
+            self.thermostat_table.add_column("Heat Call", header_style="bold")
+            for j in range(min(6, len(t))):
+                start_s = t[j][2]
+                minutes = int((until - start_s) / 60)
+                if t[j][0] == PumpPowerState.Flow:
+                    self.thermostat_table.add_column(f"On {minutes}", header_style=hot_style)
+                else:
+                    self.thermostat_table.add_column(f"Off {minutes}", header_style=cold_style)
+                until = start_s
 
-        for thermostat in channels.thermostats:
-            self.thermostat_table.add_row(
+        for thermostat in channels.temperatures.thermostats:
+            row = [
                 thermostat.name,
                 str(thermostat.set_point),
-                str(thermostat.temperature)
-            )
-            # if j in stat_temp_f.keys():
-            #     stat_row.append(f"{round(stat_temp_f[j], 1)}\u00b0F")
+                str(thermostat.temperature),
+            ]
+            if len(channels.power.pumps.dist_pump_pwr_state_q) > 0:
+                t = channels.power.pumps.dist_pump_pwr_state_q
+                start_times = []
+                for k in range(min(6, len(t))):
+                    start_s = t[k][2]
+                    start_times.append(datetime.fromtimestamp(start_s).strftime("%H:%M"))
+                row.append("Start")
+                row.extend(start_times)
+            self.thermostat_table.add_row(*row)
 
-            # if len(self.dist_pump_pwr_state_q) > 0:
-            #     t = self.dist_pump_pwr_state_q
-            #     start_times = []
-            #     for k in range(min(6, len(t))):
-            #         start_s = t[k][2]
-            #         start_times.append(pendulum.from_timestamp(start_s, tz='America/New_York').format('HH:mm'))
-            #     stat_row.append("Start")
-            #     stat_row.extend(start_times)
-
-    def update_power_table(self, channels: Channels):
+    def update_power_table(self, channels: Channels, hack_hp_state_q: Deque[HackHpStateCapture]):
         self.power_table = Table()
 
         self.power_table.add_column("HP Power", header_style="bold")
         self.power_table.add_column("kW", header_style="bold")
-        self.power_table.add_column("X", header_style="bold dark_orange", style="dark_orange")
+        self.power_table.add_column(
+            "X",
+            header_style="bold dark_orange",
+            style="dark_orange"
+        )
         self.power_table.add_column("Pump", header_style="bold")
         self.power_table.add_column("Gpm", header_style="bold")
         self.power_table.add_column("Pwr (W)", header_style="bold")
-        # power_table.add_column("HP State", header_style="bold dark_orange", style="bold dark_orange")
-        #
-        # extra_cols = min(len(self.hack_hp_state_q), 5)
-        # for i in range(extra_cols):
-        #     power_table.add_column(f"{self.hack_hp_state_q[i].state.value}", header_style="bold")
-        #
-        # hp_pwr_w_str = f"{round(self.hack_hp_state_q[0].hp_pwr_w / 1000, 2)}"
-        # if self.hack_hp_state_q[0].idu_pwr_w is None:
-        #     idu_pwr_w_str = none_text
-        #     odu_pwr_w_str = none_text
-        # else:
-        #     idu_pwr_w_str = f"{round(self.hack_hp_state_q[0].idu_pwr_w / 1000, 2)}"
-        #     odu_pwr_w_str = f"{round(self.hack_hp_state_q[0].odu_pwr_w / 1000, 2)}"
+        self.power_table.add_column(
+            "HP State",
+            header_style="bold dark_orange",
+            style="bold dark_orange"
+        )
+        extra_cols = min(len(hack_hp_state_q), 5)
+        for i in range(extra_cols):
+            self.power_table.add_column(
+                f"{hack_hp_state_q[i].state.value}",
+                header_style="bold"
+            )
 
-        # pump_pwr_str = {}
-        # gpm_str = {}
-        # for j in [0, 1, 2]:
-        #     if pump_pwr_value[j] is None:
-        #         pump_pwr_str[j] = "---"
-        #     elif pump_pwr_value[j] < PUMP_OFF_THRESHOLD:
-        #         pump_pwr_str[j] = "OFF"
-        #     else:
-        #         pump_pwr_str[j] = f"{round(pump_pwr_value[j], 2)}"
-        #     flow_node = self.flow_nodes[j]
-        #     try:
-        #         idx = snap.AboutNodeAliasList.index(flow_node.alias)
-        #         if snap.TelemetryNameList[idx] != TelemetryName.GallonsTimes100:
-        #             raise Exception('Error in units. Expect TelemetryName.GallonsTimes100')
-        #         delta_gallons = (snap.ValueList[idx] - prev_prev_snap.ValueList[idx]) / 100
-        #         delta_min = (snap.ReportTimeUnixMs - prev_prev_snap.ReportTimeUnixMs) / 60_000
-        #         speed = delta_gallons / delta_min
-        #         if speed > 20:
-        #             gpm_str[j] = "BAD"
-        #         else:
-        #             gpm_str[j] = f"{round(speed, 1)}"
-        #     except:  # noqa
-        #         gpm_str[j] = "NA"
+        hp_pwr_w_str = f"{round(hack_hp_state_q[0].hp_pwr_w / 1000, 2)}"
+        if hack_hp_state_q[0].idu_pwr_w is None:
+            idu_pwr_w_str = none_text
+            odu_pwr_w_str = none_text
+        else:
+            idu_pwr_w_str = f"{round(hack_hp_state_q[0].idu_pwr_w / 1000, 2)}"
+            odu_pwr_w_str = f"{round(hack_hp_state_q[0].odu_pwr_w / 1000, 2)}"
 
-        gpm_str = ["whoops-gpm-1", "whoops-gpm-2", "whoops-gpm-3"]
-        pump_pwr_str = ["whoops-pump1", "whoops-pump2", "whoops-pump3"]
-        row_1 = ["Hp Total", "whoops-hp-total", "x", "Primary", gpm_str[0], pump_pwr_str[0], "Started"]
-        row_2 = ["Outdoor", str(channels.power.hp_outdoor), "x", "Dist", gpm_str[1], pump_pwr_str[1], "Tries"]
-        row_3 = ["Indoor", str(channels.power.hp_indoor), "x", "Store", gpm_str[2], pump_pwr_str[2], "PumpPwr"]
-        # for i in range(extra_cols):
-        #     row_1.append(
-        #         f"{pendulum.from_timestamp(self.hack_hp_state_q[i].state_start_s, tz='America/New_York').format('HH:mm')}")
-        #     if (self.hack_hp_state_q[i].state == HackHpState.Idling
-        #             or self.hack_hp_state_q[i].state == HackHpState.Trying):
-        #         row_2.append(f"{self.hack_hp_state_q[i].start_attempts}")
-        #     else:
-        #         row_2.append(f"")
-        #     row_3.append(f"{self.hack_hp_state_q[i].primary_pump_pwr_w} W")
+        row_1 = [
+            "Hp Total", hp_pwr_w_str,
+            "x",
+            "Primary", str(channels.flows.primary_flow),
+            str(channels.power.pumps.primary),
+            "Started"
+        ]
+        row_2 = [
+            "Outdoor", odu_pwr_w_str,
+            "x",
+            "Dist", str(channels.flows.dist_flow),
+            str(channels.power.pumps.dist),
+            "Tries"
+        ]
+        row_3 = [
+            "Indoor", idu_pwr_w_str,
+            "x",
+            "Store", str(channels.flows.store_flow),
+            str(channels.power.pumps.store),
+            "PumpPwr"
+        ]
+        for i in range(extra_cols):
+            row_1.append(
+                datetime.fromtimestamp(
+                    hack_hp_state_q[i].state_start_s
+                ).strftime("%H:%M")
+            )
+            if (hack_hp_state_q[i].state == HackHpState.Idling
+                    or hack_hp_state_q[i].state == HackHpState.Trying):
+                row_2.append(f"{hack_hp_state_q[i].start_attempts}")
+            else:
+                row_2.append(f"")
+            row_3.append(f"{hack_hp_state_q[i].primary_pump_pwr_w} W")
 
         self.power_table.add_row(*row_1)
         self.power_table.add_row(*row_2)
@@ -293,5 +302,5 @@ class Displays:
         ┃  hi ho hi ho, it's off to plot I go  ┃
         ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
         
-        Thermostats: {len(channels.thermostats)}
+        Thermostats: {len(channels.temperatures.thermostats)}
         """

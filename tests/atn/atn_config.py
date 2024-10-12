@@ -25,7 +25,7 @@ class DashboardSettings(BaseModel):
     def thermostat_names(cls, node_names: list[str]) -> list[str]:
         name_to_human_name :dict[str, str] = {}
         thermostat_name_pattern = re.compile(
-            "^zone(?P<zone_number>\d)-(?P<human_name>.*)$"
+            r"^zone(?P<zone_number>\d)-(?P<human_name>.*)$"
         )
         for node_name in node_names:
             if match := thermostat_name_pattern.match(node_name):

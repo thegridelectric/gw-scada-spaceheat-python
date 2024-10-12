@@ -43,7 +43,7 @@ class Dashboard:
             logger=self.logger
         )
         self.channels = Channels(channels=self.data_channels, thermostat_names=thermostat_names)
-        self.displays = Displays(self.channels)
+        self.displays = Displays(self.channels, self.hack_hp.state_q)
 
     def update(
             self,
@@ -60,7 +60,7 @@ class Dashboard:
                 channels=self.channels,
                 report_time_s=report_time_s,
             )
-            rich.print(self.displays.update(self.channels))
+            rich.print(self.displays.update(self.channels, self.hack_hp.state_q))
         except Exception as e:
             self.logger.error("ERROR in refresh_gui")
             self.logger.exception(e)

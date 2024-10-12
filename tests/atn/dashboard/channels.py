@@ -1,5 +1,9 @@
 import logging
+import time
+from enum import auto
+from enum import StrEnum
 from typing import Any
+from typing import Deque
 from typing import Mapping
 from typing import Sequence
 
@@ -85,25 +89,21 @@ class DisplayChannel:
         return self.format_string.format(converted=converted)
 
     def read_snapshot(self, snap: SnapshotSpaceheat) -> Reading | MissingReading:
-        if not self.exists:
-            self.last_reading = MissingReading(string=self.missing_string)
-        else:
+        self.last_reading = MissingReading(string=self.missing_string)
+        if self.exists:
             try:
-                idx = None
                 for i, reading in enumerate(snap.LatestReadingList):
                     if reading.ChannelName == self.name:
-                        idx = i
+                        raw = snap.LatestReadingList[i].Value
+                        converted = self.convert(raw)
+                        self.last_reading = Reading(
+                            string=self.format(converted),
+                            raw=raw,
+                            converted=converted,
+                            report_time_unix_ms=snap.LatestReadingList[i].ScadaReadTimeUnixMs,
+                            idx=i,
+                        )
                         break
-                if idx is not None:
-                    raw = snap.LatestReadingList[idx].Value
-                    converted = self.convert(raw)
-                    self.last_reading = Reading(
-                        string=self.format(converted),
-                        raw=raw,
-                        converted=converted,
-                        report_time_unix_ms=snap.LatestReadingList[idx].ScadaReadTimeUnixMs,
-                        idx=idx,
-                    )
             except Exception as e:  # noqa
                 self.logger.error(f"ERROR in channel <{self.name}> read")
                 self.logger.exception(e)
@@ -194,13 +194,31 @@ class PumpPowerChannel(PowerChannel):
 class UnusedReading(SingleReading):
     Telemetry: TelemetryName
 
+class FlowChannel(DisplayChannel):
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        if self.exists and self.telemetry_name != TelemetryName.GpmTimes100:
+            raise ValueError(
+                f"ERROR. Flow channel {self.name} expects telemetry "
+                f"{TelemetryName.GpmTimes100}. Got {self.telemetry_name}"
+            )
+
+
 class ReadMixin:
     def read_snapshot(self, snap: SnapshotSpaceheat, channels: dict[str, DataChannel]) -> list[UnusedReading]:
+        """Read all existing child channels, update any ReadMixin children,
+        return indices of any readings in the snapshot not read by a configured
+        channel.
+
+        This function itself is not meant to be called recursively.
+        """
         for channel in self.channels:
             channel.read_snapshot(snap)
+        self.update()
         return self.collect_unused_readings(snap, channels)
 
-    def collect_unused_readings(self, snap: SnapshotSpaceheat, channels: dict[str, DataChannel]) -> list[UnusedReading]:
+    def collect_unused_readings(self, snap: SnapshotSpaceheat, data_channels: dict[str, DataChannel]) -> list[UnusedReading]:
         used_indices = {channel.last_reading.idx for channel in self.channels if channel.last_reading}
         unused_readings = []
         for reading_idx in range(len(snap.LatestReadingList)):
@@ -211,11 +229,33 @@ class ReadMixin:
                         ChannelName=unused_reading.ChannelName,
                         Value=unused_reading.Value,
                         ScadaReadTimeUnixMs=unused_reading.ScadaReadTimeUnixMs,
-                        Telemetry=channels.get(unused_reading.ChannelName).TelemetryName
+                        Telemetry=data_channels.get(unused_reading.ChannelName).TelemetryName
                     )
                 )
         return unused_readings
 
+    def update_self(self) -> None:
+        """Overide with any extra code that must be called after ReadSnapshot"""
+
+    def update_children(self) -> None:
+        children = []
+        for member in self.__dict__.values():
+            if isinstance(member, ReadMixin):
+                children.append(member)
+            elif isinstance(member, Mapping) and member:
+                for submember in member.values():
+                    if isinstance(submember, ReadMixin):
+                        children.append(submember)
+            elif isinstance(member, (tuple, list)) and member:
+                for submember in member:
+                    if isinstance(submember, ReadMixin):
+                        children.append(submember)
+        for child in children:
+            child.update()
+
+    def update(self):
+        self.update_self()
+        self.update_children()
 
     def collect_channels(self, members: Optional[Sequence[Any]] = None) -> list[DisplayChannel]:
         collected_channels = []
@@ -236,17 +276,55 @@ class ReadMixin:
     def channels(self) -> list[DisplayChannel]:
         return self.collect_channels()
 
+def enqueue_fifo_q(element: Any, fifo_q: Deque[Any], max_length: int = 10) -> None:
+    """
+    Enqueues an element into a FIFO queue represented by a deque object.
+
+    Args:
+        element (HackHpStateCapture): The element to be enqueued.
+        fifo_q (Deque[HackHpStateCapture]): The FIFO queue represented by a deque object.
+        max_length (int, optional): The maximum length of the FIFO queue. Defaults to 10.
+
+    Returns:
+        None
+    """
+    if len(fifo_q) >= max_length:
+        fifo_q.pop()  # Remove the oldest element if queue length is equal to max_length
+    fifo_q.appendleft(element)  # Add the new element at the beginning
+
+class PumpPowerState(StrEnum):
+    NoFlow = auto()
+    Flow = auto()
+
 class PumpPowerChannels(ReadMixin):
     primary: PumpPowerChannel
     store: PumpPowerChannel
     dist: PumpPowerChannel
     boiler: PumpPowerChannel
+    dist_pump_pwr_state_q: Deque[tuple[PumpPowerState, int, int]]
+    dist_pump_pwr_state: PumpPowerState
 
     def __init__(self, channels: dict[str, DataChannel]) -> None:
         self.primary = PumpPowerChannel("primary-pump-pwr", channels)
         self.store = PumpPowerChannel("store-pump-pwr", channels)
         self.dist = PumpPowerChannel("dist-pump-pwr", channels)
         self.boiler = PumpPowerChannel("oil-boiler-pwr", channels)
+        self.dist_pump_pwr_state_q = Deque[tuple[PumpPowerState, int, int]](maxlen=10)
+        self.dist_pump_pwr_state = PumpPowerState.NoFlow
+
+    def update(self):
+        now = int(time.time())
+        if self.dist.last_reading:
+            if self.dist_pump_pwr_state == PumpPowerState.NoFlow:
+                if self.dist.last_reading.converted > PUMP_OFF_THRESHOLD:
+                    self.dist_pump_pwr_state = PumpPowerState.Flow
+                    tt = [PumpPowerState.Flow, self.dist.last_reading.converted, now]
+                    enqueue_fifo_q(tt, self.dist_pump_pwr_state_q)
+            elif self.dist_pump_pwr_state == PumpPowerState.Flow:
+                if self.dist.last_reading.converted < PUMP_OFF_THRESHOLD:
+                    self.dist_pump_pwr_state = PumpPowerState.NoFlow
+                    tt = [PumpPowerState.NoFlow, self.dist.last_reading.converted, now]
+                    enqueue_fifo_q(tt, self.dist_pump_pwr_state_q)
 
 
 class PowerChannels(ReadMixin):
@@ -353,32 +431,65 @@ class Tanks(ReadMixin):
             for tank_idx in range(1, num_tanks + 1)
         ]
 
+class Temperatures(ReadMixin):
+    tanks: Tanks
+    thermostats: list[HoneywellThermostat]
+    dist_swt: TemperatureChannel   # = "dist-swt"
+    dist_rwt: TemperatureChannel   # = "dist-rwt"
+    hp_lwt: TemperatureChannel   # = "hp-lwt"
+    hp_ewt: TemperatureChannel   # = "hp-ewt"
+    buffer_hot_pipe: TemperatureChannel   # = "buffer-hot-pipe"
+    buffer_cold_pipe: TemperatureChannel   # = "buffer-cold-pipe"
+    store_hot_pipe: TemperatureChannel   # = "store-hot-pipe"
+    store_cold_pipe: TemperatureChannel   # = "store-cold-pipe"
+    oat: TemperatureChannel   # = "oat"
+
+    def __init__(
+        self,
+        num_tanks: int,
+        thermostat_names: list[str],
+        channels: dict[str, DataChannel]
+    ) -> None:
+        self.tanks = Tanks(num_tanks, channels)
+        self.thermostats = [
+            HoneywellThermostat(
+                f"zone{i+1}-{thermostat_name}", channels
+            ) for i, thermostat_name in enumerate(thermostat_names)
+        ]
+        self.dist_swt = TemperatureChannel("dist-swt", channels)
+        self.dist_rwt = TemperatureChannel("dist-rwt", channels)
+        self.hp_lwt = TemperatureChannel("hp-lwt", channels)
+        self.hp_ewt = TemperatureChannel("hp-ewt", channels)
+        self.buffer_hot_pipe = TemperatureChannel("buffer-hot-pipe", channels)
+        self.buffer_cold_pipe = TemperatureChannel("buffer-cold-pipe", channels)
+        self.store_hot_pipe = TemperatureChannel("store-hot-pipe", channels)
+        self.store_cold_pipe = TemperatureChannel("store-cold-pipe", channels)
+        self.oat = TemperatureChannel("oat", channels)
+
+class FlowChannels(ReadMixin):
+    dist_flow: FlowChannel
+    primary_flow: FlowChannel
+    store_flow: FlowChannel
+
+    def __init__(self, channels: dict[str, DataChannel]) -> None:
+        self.dist_flow = FlowChannel("dist-flow", channels)
+        self.primary_flow = FlowChannel("primary-flow", channels)
+        self.store_flow = FlowChannel("store-flow", channels)
 
 class Channels(ReadMixin):
     power: PowerChannels
-    thermostats: list[HoneywellThermostat]
-    tanks: Tanks
+    temperatures: Temperatures
+    flows: FlowChannels
     last_unused_readings: list[UnusedReading]
 
     def __init__(
         self,
         channels: dict[str, DataChannel],
-        thermostat_names: Optional[list[str]] = None,
-        tanks: Optional[Tanks] = None
+        thermostat_names: list[str],
     ) -> None:
         self.power = PowerChannels(channels)
-
-        if thermostat_names is None:
-            self.thermostats = []
-        else:
-            self.thermostats = [
-                HoneywellThermostat(
-                    f"zone{i+1}-{thermostat_name}", channels
-                ) for i, thermostat_name in enumerate(thermostat_names)
-            ]
-        if tanks is None:
-            tanks = Tanks(3, channels)
-        self.tanks = tanks
+        self.temperatures = Temperatures(num_tanks=3, thermostat_names=thermostat_names, channels=channels)
+        self.flows = FlowChannels(channels)
         self.last_unused_readings = []
 
     def read_snapshot(self, snap: SnapshotSpaceheat, channels: dict[str, DataChannel]) -> list[UnusedReading]:
