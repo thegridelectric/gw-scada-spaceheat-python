@@ -2,6 +2,7 @@
 
 import asyncio
 import enum
+import uuid
 import threading
 import time
 from typing import Any
@@ -12,7 +13,7 @@ from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
-from gwproto.messages import MyDataChannels
+from gwproto.messages import MyChannels, MyChannelsEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
@@ -142,10 +143,11 @@ class Scada(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
-
+        self.send_my_channels()
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
+        print("hi!")
 
     @classmethod
     def make_event_persister(cls, settings: ScadaSettings) -> TimedRollingFilePersister:
@@ -188,29 +190,6 @@ class Scada(ScadaInterface, Proactor):
         self._tasks.append(
             asyncio.create_task(self.update_snap(), name="update_snap")
         )
-        self._tasks.append(
-            asyncio.create_task(self.update_channels(), name="update_channels")
-        )
-
-    async def update_channels(self):
-        if not self._channels_reported:
-            try:
-                self.send_my_channels()
-                self._channels_reported = True
-            except Exception as e:
-                if not isinstance(e, asyncio.CancelledError):
-                        self._logger.exception(e)
-                #         self._send(
-                #             InternalShutdownMessage(
-                #                 Src=self.name,
-                #                 Reason=(
-                #                     f"update_channels() task got exception: <{type(e)}> {e}"
-                #                 ),
-                #             )
-                #         )
-                # finally:
-                #     break
-
 
     async def update_report(self):
         while not self._stop_requested:
@@ -259,15 +238,15 @@ class Scada(ScadaInterface, Proactor):
                     break
 
     def send_my_channels(self) -> None:
-        msg = MyDataChannels(
+        my_channels = MyChannels(
             FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
             FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
             AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
             ChannelList=[ch.to_gt() for ch in self.data.my_channels],
-            MessageCreatedMs=int(time.time() * 1000)
+            MessageCreatedMs=int(time.time() * 1000),
+            MessageId=str(uuid.uuid4())
         )
-        self._publish_to_local(self._node, msg)
-        self._links.publish_upstream(msg)
+        self.generate_event(MyChannelsEvent(MyChannels=my_channels))
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
