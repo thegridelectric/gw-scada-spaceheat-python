@@ -2,6 +2,7 @@
 
 import asyncio
 import enum
+import uuid
 import threading
 import time
 from typing import Any
@@ -12,6 +13,7 @@ from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
+from gwproto.messages import MyChannels, MyChannelsEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
@@ -90,6 +92,7 @@ class Scada(ScadaInterface, Proactor):
     _last_sync_snap_s: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
     _home_alone: HomeAlone
+    _channels_reported: bool
 
     def __init__(
         self,
@@ -126,6 +129,7 @@ class Scada(ScadaInterface, Proactor):
         # self._home_alone = HomeAlone(H0N.home_alone, self)
         # self.add_communicator(self._home_alone)
         now = int(time.time())
+        self._channels_reported = False
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_sync_snap_s = int(now)
         self._scada_atn_fast_dispatch_contract_is_alive_stub = False
@@ -139,9 +143,11 @@ class Scada(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
+        self.send_my_channels()
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
+        print("hi!")
 
     @classmethod
     def make_event_persister(cls, settings: ScadaSettings) -> TimedRollingFilePersister:
@@ -231,6 +237,16 @@ class Scada(ScadaInterface, Proactor):
                 finally:
                     break
 
+    def send_my_channels(self) -> None:
+        my_channels = MyChannels(
+            FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+            FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
+            AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
+            ChannelList=[ch.to_gt() for ch in self.data.my_channels],
+            MessageCreatedMs=int(time.time() * 1000),
+            MessageId=str(uuid.uuid4())
+        )
+        self.generate_event(MyChannelsEvent(MyChannels=my_channels))
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
@@ -410,6 +426,7 @@ class Scada(ScadaInterface, Proactor):
         async def _async_run_forever():
             try:
                 await self.run_forever()
+
             finally:
                 self.stop()
 

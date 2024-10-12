@@ -87,8 +87,10 @@ class ScadaData:
             FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
             AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
             SlotStartUnixS=slot_start_seconds,
-            BatchedTransmissionPeriodS=self.settings.seconds_per_report,
+            SlotDurationS=self.settings.seconds_per_report,
             ChannelReadingList=channel_reading_list,
+            FsmActionList=[],
+            FsmReportList=[],
             MessageCreatedMs=int(time.time() * 1000),
             Id=str(uuid.uuid4())
         )
