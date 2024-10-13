@@ -46,7 +46,7 @@ class EgaugeChannelConfig(BaseModel):
         kwargs_used = dict(
             ChannelName=f"{self.AboutNodeName}-pwr",
             PollPeriodMs = 1000,
-            CapturePeriodS=60,
+            CapturePeriodS=300,
             AsyncCapture=self.AsyncCapture,
             AsyncCaptureDelta=self.AsyncCaptureDelta,
             Exponent=0,

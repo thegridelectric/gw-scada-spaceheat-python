@@ -25,7 +25,7 @@ class SensorNodeGenCfg(BaseModel):
     AboutNodeName: Optional[str] = None
     TerminalBlockIdx: int
     AsyncCapture: bool = True
-    CapturePeriodS: int = 60
+    CapturePeriodS: int = 300
     ThermistorMakeModel: MakeModel = MakeModel.TEWA__TT0P10KC3T1051500
     # Using a forward reference here resolves a pydantic exception generated when this field
     # is actually set, as in tlayouts/gen_oak.py. I don't know why we should need a forward
@@ -34,7 +34,7 @@ class SensorNodeGenCfg(BaseModel):
     # pydantic.errors.ConfigError: field "TelemetryName" not yet prepared so
     #   type is still a ForwardRef, you might need to call
     #   SensorNodeGenCfg.update_forward_refs().
-    AsyncCaptureDelta: int = 200
+    AsyncCaptureDelta: int = 500
     MyTelemetryName: TelemetryName = TelemetryName.WaterTempCTimes1000
 
     def about_node_name(self) -> str:

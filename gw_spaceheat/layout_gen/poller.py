@@ -31,7 +31,7 @@ class HubitatThermostatGenCfg(BaseModel):
     zone_name: str
     hubitat: HubitatGt
     device_id: int
-    capture_period_seconds: float = 60
+    capture_period_seconds: float = 300
     enabled: bool = True
     web_poll_enabled: bool = True
     web_listen_enabled: bool = True
