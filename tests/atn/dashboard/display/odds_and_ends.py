@@ -30,7 +30,13 @@ class OddsAndEnds:
                     TelemetryName.WaterTempCTimes1000,
                     TelemetryName.AirTempCTimes1000
             ):
-                value_str = f"{round((reading.Value * 9 / 5) + 32, 2)}"
+                value_str = f"{round((reading.Value / 1000 * 9 / 5) + 32, 2)}"
+                telemetry_str = "\u00b0F"
+            elif reading.Telemetry in (
+                    TelemetryName.WaterTempFTimes1000,
+                    TelemetryName.AirTempFTimes1000
+            ):
+                value_str = f"{round(reading.Value / 1000, 2)}"
                 telemetry_str = "\u00b0F"
             else:
                 value_str = str(reading.Value)

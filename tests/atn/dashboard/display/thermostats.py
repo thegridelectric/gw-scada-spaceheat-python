@@ -22,7 +22,7 @@ class ThermostatDisplay:
 
     def update(self) -> Self:
         self.table = Table()
-        self.table.add_column("Stats", header_style="bold")
+        self.table.add_column("Thermostats", header_style="bold")
         self.table.add_column("Setpt", header_style="bold")
         self.table.add_column("HW Temp", header_style="bold")
         if len(self.channels.power.pumps.dist_pump_pwr_state_q) > 0:
