@@ -10,9 +10,9 @@ from typing import Optional
 import requests
 
 from tests.atn.atn_config import HackHpSettings
-from tests.atn.dashboard.channels import enqueue_fifo_q
-from tests.atn.dashboard.channels import Channels
-from tests.atn.dashboard.channels import PUMP_OFF_THRESHOLD
+from tests.atn.dashboard.channels.containers import enqueue_fifo_q
+from tests.atn.dashboard.channels.containers import Channels
+from tests.atn.dashboard.channels.channel import PUMP_OFF_THRESHOLD
 
 PUMP_ON_THRESHOLD = 4
 HP_DEFINITELY_HEATING_THRESHOLD = 6000
@@ -202,17 +202,17 @@ class HackHp:
                 if (
                     not channels.power.hp_indoor or
                     not channels.power.hp_outdoor or
-                    not channels.power.hp_indoor.last_reading or
-                    not not channels.power.hp_outdoor.last_reading
+                    not channels.power.hp_indoor.reading or
+                    not not channels.power.hp_outdoor.reading
                 ):
                     return
                 if now - report_time_s > 5:
                     return
-                idu_pwr_w = channels.power.hp_indoor.last_reading.raw
-                odu_pwr_w = channels.power.hp_outdoor.last_reading.raw
+                idu_pwr_w = channels.power.hp_indoor.reading.raw
+                odu_pwr_w = channels.power.hp_outdoor.reading.raw
                 hp_pwr_w = idu_pwr_w + odu_pwr_w
 
-            primary_pump_pwr_w = channels.power.pumps.primary.last_reading.raw
+            primary_pump_pwr_w = channels.power.pumps.primary.reading.raw
 
             if (self.state_q[0].state != HackHpState.Heating and
                     hp_pwr_w > HP_DEFINITELY_HEATING_THRESHOLD):
