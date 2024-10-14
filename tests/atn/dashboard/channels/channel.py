@@ -12,7 +12,7 @@ from tests.atn.dashboard.channels.reading import Reading
 
 PUMP_OFF_THRESHOLD = 2
 
-DEFAULT_MISSING_STRING = " --- "
+DEFAULT_MISSING_STRING = "  ---  "
 DEFAULT_FORMAT_STRING = "{converted:3.1f}"
 
 class DisplayChannel:
@@ -112,7 +112,7 @@ class TemperatureChannel(DisplayChannel):
     ) -> None:
         self.fahrenheit_display = fahrenheit_display
         self.celcius_data = celcius_data
-        format_string = "{converted:3.1f}\u00b0"
+        format_string = "{converted:3.1f} \u00b0"
         if self.fahrenheit_display:
             format_string += "F"
         else:

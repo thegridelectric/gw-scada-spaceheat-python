@@ -47,21 +47,21 @@ class AsciiPicture:
         store2 = tanks.store[1]
         store3 = tanks.store[2]
         self.ascii_picture = f"""{self.short_name}:
-                                 {hp_lwt_color}HP LWT\033[0m   ┏━━━━━┓   {hp_health_1}
+                                 {hp_lwt_color}HP LWT[/]   ┏━━━━━┓   {hp_health_1}
                                ┏━{hp_lwt}━━┃ HP  ┃   {hp_health_2}
-  {buff_hot_color}Buff Hot\033[0m ━━┓                 ┃    ┏─────┃     ┃   Lift: {lift}\u00b0F
-   {buff_hot}   ┃                 ┃ {hp_ewt_color}HP EWT\033[0m   └─────┘
+  {buff_hot_color}Buff Hot[/] ━━┓                 ┃    ┏─────┃     ┃   Lift: {lift}\u00b0F
+   {buff_hot}   ┃                 ┃ {hp_ewt_color}HP EWT[/]   └─────┘
  ┏━━━━━━━━━┓ ▼                 ┃ {hp_ewt}
  ┃  Buffer ┃━━━━━━━━━┳━ ISO ━━─┴─━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
  ┡━━━━━━━━━┩         ┃              │         ┏━━━━━━━━━┓   ┏━━━━━━━━━┓   ┏━━━━━━━━━┓    ┃
- │ {buff.depth1} │       {dist_swt_color}Dist FWT\033[0m         │         ┃  Tank3  ┃   ┃  Tank2  ┃   ┃  Tank1  ┃    ┃
- │ {buff.depth1} │       {dist_swt}          │         ┡━━━━━━━━━┩━┓ ┡━━━━━━━━━┩━┓ ┡━━━━━━━━━┩━━━{store_hot_color}{store_hot}
+ │ {buff.depth1} │       {dist_swt_color}Dist FWT[/]         │         ┃  Tank3  ┃   ┃  Tank2  ┃   ┃  Tank1  ┃    ┃
+ │ {buff.depth1} │       {dist_swt}          │         ┡━━━━━━━━━┩━┓ ┡━━━━━━━━━┩━┓ ┡━━━━━━━━━┩━━━{store_hot_color}{store_hot}[/]
  │ {buff.depth1} │         ┃              │         │ {store3.depth1} │ │ │ {store2.depth1} │ │ │ {store1.depth1} │
  │ {buff.depth1} │────┓    ┃              │         │ {store3.depth2} │ │ │ {store2.depth2} │ │ │ {store1.depth2} │
  └─────────┘ ▲  │    ┃              │         │ {store3.depth3} │ │ │ {store2.depth3} │ │ │ {store1.depth3} │
-  {buff_cold_color}Buff Cold\033[0m  │  ┡────┃──────────────┴─{store_cold_color}{store_cold}─│ {store3.depth4} │ └━│ {store2.depth4} │ └━│ {store1.depth4} │
+  {buff_cold_color}Buff Cold[/]  │  ┡────┃──────────────┴─{store_cold_color}{store_cold}[/]─│ {store3.depth4} │ └━│ {store2.depth4} │ └━│ {store1.depth4} │
    {buff_cold} ──┘  │    ┃                        └─────────┘   └─────────┘   └─────────┘
-            {dist_rwt_color}Dist RWT\033[0m ┃
+            {dist_rwt_color}Dist RWT[/] ┃
             {dist_rwt}  ┃  Emitter \u0394 = {emitter}\u00b0F
 """
         return self
