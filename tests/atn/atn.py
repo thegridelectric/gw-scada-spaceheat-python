@@ -104,7 +104,7 @@ class Atn(ActorInterface, Proactor):
                 atn_g_node_alias=self.layout.atn_g_node_alias,
                 data_channels=self.layout.data_channels,
                 thermostat_names=DashboardSettings.thermostat_names(
-                    [node.name for node in self.layout.nodes.values()]
+                    [channel.Name for channel in self.layout.data_channels.values()]
                 ),
                 logger=self.logger,
             )
