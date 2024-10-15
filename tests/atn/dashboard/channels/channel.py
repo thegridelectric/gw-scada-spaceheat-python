@@ -112,7 +112,7 @@ class TemperatureChannel(DisplayChannel):
     ) -> None:
         self.fahrenheit_display = fahrenheit_display
         self.celcius_data = celcius_data
-        format_string = "{converted:5.1f}\u00b0"
+        format_string = "{converted:5.1f}°"
         if self.fahrenheit_display:
             format_string += "F"
         else:
