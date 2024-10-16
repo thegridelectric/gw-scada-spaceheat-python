@@ -39,6 +39,8 @@ frozenlist==1.4.0
     # via
     #   aiohttp
     #   aiosignal
+gridworks==1.2.0
+    # via gridworks-protocol
 gridworks-cert==0.4.3
     # via gridworks-proactor
 gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
@@ -89,6 +91,7 @@ pycparser==2.21
     # via cffi
 pydantic==2.8.2
     # via
+    #   gridworks
     #   gridworks-proactor
     #   gridworks-protocol
     #   pydantic-extra-types
@@ -116,6 +119,7 @@ python-dateutil==2.8.2
     # via freezegun
 python-dotenv==1.0.0
     # via
+    #   gridworks
     #   gridworks-proactor
     #   pydantic-settings
 pytz==2024.1

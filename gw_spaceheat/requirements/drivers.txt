@@ -48,6 +48,8 @@ frozenlist==1.4.0
     # via
     #   aiohttp
     #   aiosignal
+gridworks==1.2.0
+    # via gridworks-protocol
 gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
     # via -r requirements/base.in
 gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
@@ -85,6 +87,7 @@ platformdirs==4.3.2
 pydantic==2.8.2
     # via
     #   -r requirements/base.in
+    #   gridworks
     #   gridworks-proactor
     #   gridworks-protocol
     #   pydantic-extra-types
@@ -113,6 +116,7 @@ python-dateutil==2.8.2
 python-dotenv==1.0.0
     # via
     #   -r requirements/base.in
+    #   gridworks
     #   gridworks-proactor
     #   pydantic-settings
 pytz==2024.1
