@@ -92,7 +92,7 @@ jobs:
         env:
           GWPROACTOR_TEST_CA_CERT_PATH: ${{ github.workspace }}/tests/.ci-ca/ca.crt
           GWPROACTOR_TEST_CA_KEY_PATH: ${{ github.workspace }}/tests/.ci-ca/private/ca_key.pem
-        run: coverage run -m pytest
+        run: coverage run -m pytest -s
 
       - name: Upload coverage data
         if: always()
