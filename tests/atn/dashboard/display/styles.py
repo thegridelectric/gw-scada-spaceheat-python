@@ -38,14 +38,20 @@ def fahrenheit_color(fahrenheit: float) -> str:
         cyan_graded_degrees=8,
     )
 
-def celcius_color(fahrenheit: float) -> str:
+def fahrenheit_style(fahrenheit: float) -> Style:
+    return Style.parse(fahrenheit_color(fahrenheit))
+
+def celcius_color(celcius: float) -> str:
     return temperature_color(
-        fahrenheit,
+        celcius,
         graded_min=0,
         graded_max=100,
         cyan_ceiling=6,
         cyan_graded_degrees=6,
     )
+
+def celcius_style(celcius: float) -> Style:
+    return Style.parse(celcius_color(celcius))
 
 def tank_color(fahrenheit: float) -> str:
     return temperature_color(
@@ -56,25 +62,44 @@ def tank_color(fahrenheit: float) -> str:
         cyan_graded_degrees=8,
     )
 
+def tank_style(fahrenheit: float) -> Style:
+    return Style.parse(tank_color(fahrenheit))
 
-def markup_temperature(
+def temperature_text(
     temperature: Optional[float],
-    style_generator: Callable[[float | int], str] | str | Style = fahrenheit_color,
+    style_calculator: Callable[[float | int], str | Style] | str | Style = fahrenheit_color,
+    *,
+    unit_str: str = "F",
+    number_format_str: str = "{temperature:5.1f}",
+) -> Text:
+    if isinstance(style_calculator, (str, Style)):
+        style = style_calculator
+    else:
+        style = style_calculator(temperature)
+    if temperature is None:
+        s = "  ---  "
+    else:
+        degree_str = number_format_str.format(temperature=temperature)
+        s = f"{degree_str}°{unit_str}"
+    return Text(s, style=style)
+
+def temperature_markup(
+    temperature: Optional[float],
+    style_calculator: Callable[[float | int], str | Style] | str | Style = fahrenheit_color,
     *,
     unit_str: str = "F",
     number_format_str: str = "{temperature:5.1f}",
 ) -> str:
-    if isinstance(style_generator, (str, Style)):
-        style = style_generator
-    else:
-        style = style_generator(temperature)
-    if temperature is None:
-        degree_str = " --- "
-    else:
-        degree_str = number_format_str.format(temperature=temperature)
-    return Text(f"{degree_str}°{unit_str}", style=style).markup
+    return temperature_text(
+        temperature=temperature,
+        style_calculator=style_calculator,
+        unit_str=unit_str,
+        number_format_str=number_format_str,
+    ).markup
 
-def markup_tank_temperature(
-    temperature: float,
-):
-    return markup_temperature(temperature, style_generator=tank_color)
+def tank_temperature_text(temperature: float) -> Text:
+    return temperature_text(temperature=temperature, style_calculator=tank_style)
+
+def tank_temperature_markup(temperature: float) -> str:
+    return tank_temperature_text(temperature=temperature).markup
+

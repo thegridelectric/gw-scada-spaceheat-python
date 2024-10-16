@@ -8,8 +8,8 @@ from rich.console import RenderResult
 from rich.style import Style
 from rich.text import Text
 
+from tests.atn.dashboard.display.styles import temperature_markup
 from tests.atn.dashboard.channels.channel import TemperatureChannel
-from tests.atn.dashboard.display.styles import markup_temperature
 from tests.atn.dashboard.display.styles import misc_style
 from tests.atn.dashboard.display.styles import cold_style
 from tests.atn.dashboard.display.styles import hot_style
@@ -36,8 +36,8 @@ class PipePair:
         )
         self.hot_title = Text(hot_title, style=pair_hot_style).markup
         self.cold_title = Text(cold_title, style=pair_cold_style).markup
-        self.hot = markup_temperature(hot_channel.converted, pair_hot_style)
-        self.cold = markup_temperature(cold_channel.converted, pair_cold_style)
+        self.hot = temperature_markup(hot_channel.converted, pair_hot_style)
+        self.cold = temperature_markup(cold_channel.converted, pair_cold_style)
 
     @classmethod
     def hot_cold_styles(
@@ -71,7 +71,7 @@ class AsciiPicture:
         )
         dist = PipePair(
             temperatures.dist_swt, temperatures.dist_rwt,
-            "Dist RWT", "Dist FWT"
+            "Dist SWT", "Dist RWT"
         )
         buff = PipePair(
             temperatures.buffer_hot_pipe, temperatures.buffer_cold_pipe,
@@ -106,7 +106,10 @@ class AsciiPicture:
    {buff.cold} ──┘  │    ┃                        └─────────┘   └─────────┘   └─────────┘
             {dist.cold_title} ┃
             {dist.cold}  ┃  Emitter Δ = {emitter}
+                │    ┃
+                └⏴🏠⏴┛
 """
+
         return self
 
     def _hot_cold_styles(self, hot:str, cold: str) -> tuple[Style, Style]:
@@ -120,7 +123,7 @@ class AsciiPicture:
         hot_f = getattr(self.channels.temperatures, hot).converted
         cold_f = getattr(self.channels.temperatures, cold).converted
         if hot_f is not None and cold_f is not None and hot_f < cold_f - 1:
-            return markup_temperature(round(hot_f - cold_f, 1), style_generator=style)
+            return temperature_markup(round(hot_f - cold_f, 1), style_calculator=style)
         return " --- "
 
     def _hp_hack_comments(self) -> tuple[str, str]:

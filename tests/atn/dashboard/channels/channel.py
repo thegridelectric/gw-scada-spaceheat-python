@@ -1,4 +1,5 @@
 import logging
+from typing import Callable
 
 from typing import Optional
 
@@ -6,24 +7,35 @@ from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import TelemetryName
 from gwproto.types import SingleReading
 from gwproto.types import SnapshotSpaceheat
+from rich.console import Console
+from rich.console import ConsoleOptions
+from rich.console import RenderResult
+from rich.style import Style
+from rich.text import Text
 
+from tests.atn.dashboard.display.styles import fahrenheit_style
+from tests.atn.dashboard.display.styles import tank_style
 from tests.atn.dashboard.channels.reading import MissingReading
 from tests.atn.dashboard.channels.reading import Reading
 
 PUMP_OFF_THRESHOLD = 2
 
-DEFAULT_MISSING_STRING = "  ---  "
-DEFAULT_FORMAT_STRING = "{converted:3.1f}"
+DEFAULT_MISSING_STRING = " --- "
+DEFAULT_FORMAT_STRING = "{converted:5.1f}"
+DEFAULT_STYLE = ""
 
 class DisplayChannel:
     name: str
     telemetry_name: TelemetryName = TelemetryName.Unknown
     format_string: str
+    style: Style
+    style_calculator: Optional[Callable[[float | int], Style]] = None
     exists: bool = False
     missing_string: str
     raise_errors: bool = False
     logger: logging.Logger | logging.LoggerAdapter
     reading: Reading | MissingReading
+    _missing_reading: MissingReading
 
     def __init__(
         self,
@@ -31,6 +43,8 @@ class DisplayChannel:
         channels: dict[str, DataChannel],
         *,
         format_string: str = DEFAULT_FORMAT_STRING,
+        style: Style | str  = DEFAULT_STYLE,
+        style_calculator: Optional[Callable[[float|int], Style]] = None,
         missing_string: str = DEFAULT_MISSING_STRING,
         raise_errors: bool = False,
         logger: Optional[logging.Logger | logging.LoggerAdapter] = None
@@ -41,18 +55,31 @@ class DisplayChannel:
         if self.exists:
             self.telemetry_name = channel.TelemetryName
         self.format_string = format_string
+        if isinstance(style, str):
+            style = Style.parse(style)
+        self.style = style
+        self.style_calculator = style_calculator
         self.missing_string = missing_string
         self.raise_errors = raise_errors
         if logger is None:
             logger = logging.Logger(__file__)
         self.logger = logger
-        self.reading = MissingReading(string=self.missing_string)
+        self._missing_reading = MissingReading(
+            text=Text(
+                self.missing_string,
+                self.style
+            )
+        )
+        self.reading = self._missing_reading
 
     def __bool__(self) -> bool:
         return self.exists
 
     def __str__(self) -> str:
-        return str(self.reading)
+        return str(self.reading.text.markup)
+
+    def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:
+        yield self.reading
 
     @property
     def raw(self) -> Optional[int]:
@@ -66,14 +93,22 @@ class DisplayChannel:
             return self.reading.converted
         return None
 
-    def convert(self, raw:int) -> float | int:  # noqa
+    def get_style(self, converted: float | int) -> Style:
+        if self.style_calculator is None or not self.exists:
+            return self.style
+        return self.style_calculator(converted)
+
+    def convert(self, raw: int) -> float | int:  # noqa
         return float(raw)
 
-    def format(self, converted: float | int) -> str:
-        return self.format_string.format(converted=converted)
+    def format(self, converted: float | int) -> Text:
+        return Text(
+            self.format_string.format(converted=converted),
+            style=self.get_style(converted)
+        )
 
     def read_snapshot(self, snap: SnapshotSpaceheat) -> Reading | MissingReading:
-        self.reading = MissingReading(string=self.missing_string)
+        self.reading = self._missing_reading
         if self.exists:
             try:
                 for i, reading in enumerate(snap.LatestReadingList):
@@ -81,7 +116,7 @@ class DisplayChannel:
                         raw = snap.LatestReadingList[i].Value
                         converted = self.convert(raw)
                         self.reading = Reading(
-                            string=self.format(converted),
+                            text=self.format(converted),
                             raw=raw,
                             converted=converted,
                             report_time_unix_ms=snap.LatestReadingList[i].ScadaReadTimeUnixMs,
@@ -106,13 +141,15 @@ class TemperatureChannel(DisplayChannel):
         *,
         celcius_data: bool = True,
         fahrenheit_display: bool = True,
-        missing_string: str = DEFAULT_MISSING_STRING,
+        missing_string: str = "  ---  ",
+        style: Style | str = DEFAULT_STYLE,
+        style_calculator: Optional[Callable[[float | int], Style]] = fahrenheit_style,
         raise_errors: bool = False,
         logger: Optional[logging.Logger | logging.LoggerAdapter] = None
     ) -> None:
         self.fahrenheit_display = fahrenheit_display
         self.celcius_data = celcius_data
-        format_string = "{converted:5.1f}°"
+        format_string = DEFAULT_FORMAT_STRING + "°"
         if self.fahrenheit_display:
             format_string += "F"
         else:
@@ -121,6 +158,8 @@ class TemperatureChannel(DisplayChannel):
             name=name,
             channels=channels,
             format_string=format_string,
+            style=style,
+            style_calculator=style_calculator,
             missing_string=missing_string,
             raise_errors=raise_errors,
             logger=logger,
@@ -144,6 +183,15 @@ class TemperatureChannel(DisplayChannel):
         elif not self.celcius_data and not self.fahrenheit_display:
             return (scaled - 32) * 5 / 9
         return scaled
+
+class TankChannel(TemperatureChannel):
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["style_calculator"] = kwargs.get("style_calculator", tank_style)
+        super().__init__(*args, **kwargs)
+
+    def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:
+        yield self.reading
 
 class PowerChannel(DisplayChannel):
     kW: bool = True

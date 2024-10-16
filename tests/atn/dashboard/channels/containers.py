@@ -11,6 +11,7 @@ from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import TelemetryName
 from gwproto.types import SnapshotSpaceheat
 
+from tests.atn.dashboard.channels.channel import TankChannel
 from tests.atn.dashboard.channels.channel import DEFAULT_MISSING_STRING
 from tests.atn.dashboard.channels.channel import DisplayChannel
 from tests.atn.dashboard.channels.channel import FlowChannel
@@ -152,18 +153,18 @@ class HoneywellThermostat(Thermostat):
 
 class Tank(ReadMixin):
     name: str
-    depth1: TemperatureChannel
-    depth2: TemperatureChannel
-    depth3: TemperatureChannel
-    depth4: TemperatureChannel
+    depth1: TankChannel
+    depth2: TankChannel
+    depth3: TankChannel
+    depth4: TankChannel
     is_buffer: bool
 
     def __init__(self, tank_name: str, channels: dict[str, DataChannel], *, is_buffer: bool = False) -> None:
         self.name = tank_name
-        self.depth1 = TemperatureChannel(self.name + "-depth1", channels)
-        self.depth2 = TemperatureChannel(self.name + "-depth2", channels)
-        self.depth3 = TemperatureChannel(self.name + "-depth3", channels)
-        self.depth4 = TemperatureChannel(self.name + "-depth4", channels)
+        self.depth1 = TankChannel(self.name + "-depth1", channels)
+        self.depth2 = TankChannel(self.name + "-depth2", channels)
+        self.depth3 = TankChannel(self.name + "-depth3", channels)
+        self.depth4 = TankChannel(self.name + "-depth4", channels)
         self.is_buffer = is_buffer
 
     @cached_property

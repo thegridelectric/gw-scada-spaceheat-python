@@ -64,7 +64,7 @@ def main(argv: Optional[Sequence[str]] = None):
         time.sleep(1)
         while True:
             text = input("> ? ")
-            if text == "exit()":
+            if text == "exit()" or text == "q":
                 break
             elif text:
                 # noinspection PyProtectedMember
