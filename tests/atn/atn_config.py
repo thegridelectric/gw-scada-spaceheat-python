@@ -15,9 +15,9 @@ class HackHpSettings(BaseModel):
     moscone_team_id: str = ""
 
 class DashboardSettings(BaseModel):
-    print_report: bool = True
-    print_snap: bool = True
-    print_gui: bool = False
+    print_report: bool = False
+    print_snap: bool = False
+    print_gui: bool = True
     print_hack_hp: bool = False
     print_thermostat_history: bool = False
     raise_dashboard_exceptions: bool = False
