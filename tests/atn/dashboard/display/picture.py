@@ -56,10 +56,19 @@ class AsciiPicture:
     short_name: str
     channels: Channels
     ascii_picture: str
+    print_hack_hp: bool
 
-    def __init__(self, short_name: str, channels: Channels, hack_hp_state_q: Deque[HackHpStateCapture]):
+    def __init__(
+        self,
+        short_name: str,
+        channels: Channels,
+        *,
+        print_hack_hp: bool,
+        hack_hp_state_q: Deque[HackHpStateCapture]
+    ):
         self.short_name = short_name
         self.channels = channels
+        self.print_hack_hp = print_hack_hp
         self.hack_hp_state_q = hack_hp_state_q
         self.ascii_picture = ""
 
@@ -122,30 +131,32 @@ class AsciiPicture:
     def _temp_diff(self, hot:str, cold:str, style: Style | str = misc_style) -> str:
         hot_f = getattr(self.channels.temperatures, hot).converted
         cold_f = getattr(self.channels.temperatures, cold).converted
-        if hot_f is not None and cold_f is not None and hot_f < cold_f - 1:
+        if hot_f is not None and cold_f is not None:
             return temperature_markup(round(hot_f - cold_f, 1), style_calculator=style)
         return " --- "
 
     def _hp_hack_comments(self) -> tuple[str, str]:
-        hack_hp_state = self.hack_hp_state_q[0]
-        if hack_hp_state.state == HackHpState.Heating:
-            heating = True
-        else:
-            heating = False
-        if heating is True:
-            hp_health_comment_1 = ""
-            hp_health_comment_2 = ""
-        else:
-            hp_health_comment_1 = f"{hack_hp_state.state.value}."
-            last_heating = next((x for x in self.hack_hp_state_q if x.state == HackHpState.Heating), None)
-            hp_health_comment_2 = ""
-            if last_heating is not None:
-                if last_heating.state_end_s:
-                    hp_health_comment_2 += f"Last time heating: {datetime.fromtimestamp(last_heating.state_end_s).strftime('%H:%M')}. "
-            if hack_hp_state.start_attempts == 1:
-                hp_health_comment_2 += "1 start attempt."
-            elif hack_hp_state.start_attempts > 1:
-                hp_health_comment_2 += f"{hack_hp_state.start_attempts} start attempts."
+        hp_health_comment_1 = hp_health_comment_2 = ""
+        if self.print_hack_hp:
+            hack_hp_state = self.hack_hp_state_q[0]
+            if hack_hp_state.state == HackHpState.Heating:
+                heating = True
+            else:
+                heating = False
+            if heating is True:
+                hp_health_comment_1 = ""
+                hp_health_comment_2 = ""
+            else:
+                hp_health_comment_1 = f"{hack_hp_state.state.value}."
+                last_heating = next((x for x in self.hack_hp_state_q if x.state == HackHpState.Heating), None)
+                hp_health_comment_2 = ""
+                if last_heating is not None:
+                    if last_heating.state_end_s:
+                        hp_health_comment_2 += f"Last time heating: {datetime.fromtimestamp(last_heating.state_end_s).strftime('%H:%M')}. "
+                if hack_hp_state.start_attempts == 1:
+                    hp_health_comment_2 += "1 start attempt."
+                elif hack_hp_state.start_attempts > 1:
+                    hp_health_comment_2 += f"{hack_hp_state.start_attempts} start attempts."
         return hp_health_comment_1, hp_health_comment_2
 
     def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:

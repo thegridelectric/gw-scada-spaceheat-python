@@ -33,7 +33,12 @@ class Displays:
             print_hack_hp=settings.print_hack_hp,
             hack_hp_state_q=hack_hp_state_q,
         )
-        self.picture = AsciiPicture(short_name, channels, hack_hp_state_q)
+        self.picture = AsciiPicture(
+            short_name,
+            channels,
+            print_hack_hp=settings.print_hack_hp,
+            hack_hp_state_q=hack_hp_state_q,
+        )
         self.update()
 
     def update(self) -> Self:
