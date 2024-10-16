@@ -13,6 +13,7 @@ from rich.console import RenderResult
 from rich.style import Style
 from rich.text import Text
 
+from actors.honeywell_thermostat import HoneywellThermostatOperatingState
 from tests.atn.dashboard.display.styles import fahrenheit_style
 from tests.atn.dashboard.display.styles import tank_style
 from tests.atn.dashboard.channels.reading import MissingReading
@@ -235,3 +236,39 @@ class FlowChannel(DisplayChannel):
                 f"ERROR. Flow channel {self.name} expects telemetry "
                 f"{TelemetryName.GpmTimes100}. Got {self.telemetry_name}"
             )
+
+class HoneywellThermostatStateChannel(DisplayChannel):
+
+    UNEXPECTED_STYLE = Style(bold=True, color="cyan1")
+
+    STYLES: dict[HoneywellThermostatOperatingState, Style] = {
+        HoneywellThermostatOperatingState.idle: Style(color="chartreuse1"),
+        HoneywellThermostatOperatingState.heating: Style(color="dark_orange"),
+        HoneywellThermostatOperatingState.pending_heat: UNEXPECTED_STYLE,
+        HoneywellThermostatOperatingState.pending_cool: UNEXPECTED_STYLE,
+        HoneywellThermostatOperatingState.vent_economizer: UNEXPECTED_STYLE,
+        HoneywellThermostatOperatingState.cooling: UNEXPECTED_STYLE,
+        HoneywellThermostatOperatingState.fan_only: UNEXPECTED_STYLE,
+    }
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs["format_string"] = kwargs.get("format_string", "{converted}")
+        super().__init__(*args, **kwargs)
+
+    def convert(self, raw: int) -> float | int:  # noqa
+        return raw
+
+    def format(self, converted: float | int) -> Text:
+        try:
+            state = HoneywellThermostatOperatingState(int(converted))
+            return Text(state.name, style=self.STYLES[state])
+        except Exception as e:
+            self.logger.error(
+                f"ERROR converting raw state value <{converted}> to "
+                "HoneywellThermostatOperatingState"
+            )
+            self.logger.exception(e)
+            if self.raise_errors:
+                raise
+        return Text(f"{converted} (?)", style=self.UNEXPECTED_STYLE)
+

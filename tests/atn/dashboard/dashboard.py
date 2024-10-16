@@ -46,8 +46,16 @@ class Dashboard:
             raise_dashboard_exceptions=self.settings.raise_dashboard_exceptions,
             logger=self.logger
         )
-        self.channels = Channels(channels=data_channels, thermostat_names=thermostat_names)
-        self.displays = Displays(self.short_name, self.channels, self.hack_hp.state_q)
+        self.channels = Channels(
+            channels=data_channels,
+            thermostat_names=thermostat_names
+        )
+        self.displays = Displays(
+            self.settings,
+            self.short_name,
+            self.channels,
+            self.hack_hp.state_q
+        )
 
     def update(
             self,

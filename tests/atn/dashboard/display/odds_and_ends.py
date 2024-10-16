@@ -18,7 +18,7 @@ class OddsAndEnds:
 
     def update(self) -> Self:
         self.table = Table(
-            title="Odds and Ends",
+            # title="Odds and Ends",
             title_justify="left",
             title_style="bold blue",
         )

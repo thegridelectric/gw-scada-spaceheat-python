@@ -11,9 +11,9 @@ from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import TelemetryName
 from gwproto.types import SnapshotSpaceheat
 
+from tests.atn.dashboard.channels.channel import HoneywellThermostatStateChannel
 from tests.atn.dashboard.channels.channel import TankChannel
 from tests.atn.dashboard.channels.channel import DEFAULT_MISSING_STRING
-from tests.atn.dashboard.channels.channel import DisplayChannel
 from tests.atn.dashboard.channels.channel import FlowChannel
 from tests.atn.dashboard.channels.channel import MissingReading
 from tests.atn.dashboard.channels.channel import PowerChannel
@@ -122,7 +122,7 @@ class Thermostat(ReadMixin):
             )
 
 class HoneywellThermostat(Thermostat):
-    state: DisplayChannel
+    state: HoneywellThermostatStateChannel
 
     def __init__(
         self, name:
@@ -143,7 +143,7 @@ class HoneywellThermostat(Thermostat):
             raise_errors=raise_errors,
             logger=logger,
         )
-        self.state = DisplayChannel(
+        self.state = HoneywellThermostatStateChannel(
             self.name + "-state",
             channels,
             missing_string=missing_string,
