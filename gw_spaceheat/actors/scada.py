@@ -26,6 +26,9 @@ from result import Result
 
 from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
+
+from actors.pico import MicroVolts
+from actors.pico import TankModuleParams
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
@@ -317,6 +320,11 @@ class Scada(ScadaInterface, Proactor):
                 self.synced_readings_received(
                         from_node, message.Payload
                     )
+            case MicroVolts():
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case TankModuleParams():
+                self.get_communicator(message.Header.Dst).process_message(message)
+
             case _:
                 raise ValueError(
                     f"There is no handler for mqtt message payload type [{type(message.Payload)}]"
