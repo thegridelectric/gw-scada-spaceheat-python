@@ -156,13 +156,15 @@ class ApiTankModule(Actor):
         self.params_text = text
         try:
             params = TankModuleParams(**json.loads(text))
-        except:
+        except BaseException as e:
+            self._report_post_error(e, "malformed tankmodule parameters!")
             return
         if params.ActorNodeName != self.name:
             return
         if params.HwUid not in self._component.gt.PicoHwUidList:
+            self._report_post_error(ValueError("params"),
+                                    f"{params.HwUid} not associated with {params.ActorNodeName}!")
             return
-
 
         if isinstance(text, str):
             try:
@@ -188,8 +190,19 @@ class ApiTankModule(Actor):
                 temp_c = temp_beta(r_therm_kohms, fahrenheit=False)
                 value_list.append(int(temp_c * 1000))
                 about_node_list.append(data.AboutNodeNameList[i])
-            except:
-                print("note the problem")
+            except BaseException as e:
+                self.services.send_threadsafe(
+                    Message(
+                        Payload=Problems(
+                            msg=f"Volts to temp problem for {data.AboutNodeNameList[i]} with {volts} V",
+                            errors=[e]
+                        ).problem_event(
+                            summary=(
+                                "Volts to temp problem"
+                            ),
+                        )
+                    )
+                )
 
         self._send(
                 SyncedReadingsMessage(
@@ -199,19 +212,7 @@ class ApiTankModule(Actor):
                     value_list=value_list,
                 )
             )
-
-
-    def _process_params(self, params: TankModuleParams) -> None:
-        self.latest_params = params
-        if params.HwUid not in self._component.gt.PicoHwUidList:
-            return
-        else:
-            correct_params = self.params_by_hw_uid[params.HwUid]
-            # Possibly add error checking. For example
-            # if the actor node name is incorrect?
-            # TODO: return correct params to the post.
-        ...
-
+        
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case MicroVolts():
