@@ -166,17 +166,6 @@ class ApiTankModule(Actor):
                                     f"{params.HwUid} not associated with {params.ActorNodeName}!")
             return
 
-        if isinstance(text, str):
-            try:
-                self.services.send_threadsafe(
-                    Message(
-                        Src=self.name,
-                        Dst=self.name,
-                        Payload=TankModuleParams(**json.loads(text))
-                    )
-                )
-            except Exception as e: # noqa
-                self._report_post_error(e, text)
         return Response(text=self.params_by_hw_uid[params.HwUid].model_dump_json())
 
     def _process_microvolts(self, data: MicroVolts) -> None:
