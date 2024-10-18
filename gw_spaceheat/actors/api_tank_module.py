@@ -1,55 +1,35 @@
 import json
+import math
 from functools import cached_property
 from typing import Callable
-from typing import List
+from typing import Dict, List
 from typing import Literal
 from typing import Optional
 from typing import Sequence
-
+import re
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import Actor
 from gwproactor import Problems
 from gwproactor import ServicesInterface
-from gwproactor.message import MessageType
 from gwproto import Message
+from gwproto.types import ComponentGt
 from gwproto.data_classes.components import Component
-from gwproto.data_classes.components.hubitat_component import HubitatComponent
 from gwproto.types import ComponentAttributeClassGt
 from gwproto.types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from pydantic import ConfigDict
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from result import Ok
 from result import Result
-
-from actors.hubitat_interface import HubitatEventContent
-from actors.hubitat_interface import HubitatWebEventHandler
-from actors.hubitat_interface import HubitatWebEventListenerInterface
-from actors.hubitat_interface import HubitatWebServerInterface
 from actors.message import SyncedReadingsMessage
+from typing_extensions import Self
 
-
-class PicoGt(BaseModel):
-    Enabled: bool = True
-    HwUid: str
-    StuffFromPico: int
-    model_config = ConfigDict(extra="allow")
-
-class PiocComponentGt(PicoGt):
-    Pico: PicoGt
-    TypeName: Literal["pico.component.gt"] = "pico.component.gt"
-    Version: Literal["000"] = "000"
-
-class PicoComponent(Component[PiocComponentGt, ComponentAttributeClassGt]):
-    ...
-
-class MicroVolts(BaseModel):
-    HwUid: str
-    AboutNodeNameList: List[str]
-    MicroVoltsList: List[int]
-    TypeName: Literal["microvolts"] = "microvolts"
-    Version: Literal["100"] = "100"
+R_FIXED_KOHMS = 5.65
+R_PICO_KOHMS = 30
+THERMISTOR_BETA = 3977
+THERMISTOR_T0 = 298  # i.e. 25 degrees C
+THERMISTOR_R0_KOHMS = 10
 
 class TankModuleParams(BaseModel):
     HwUid: str
@@ -72,10 +52,63 @@ class TankModuleParams(BaseModel):
         return v
 
 
-class Pico(Actor):
+class PicoTankModuleComponentGt(ComponentGt):
+    PicoHwUidList: List[str]
+    Enabled: bool
+    SendMicroVolts: bool
+    Samples: int
+    NumSampleAverages: int
+    TypeName: Literal["pico.tank.module.component.gt"] = "pico.tank.module.component.gt"
+    Version: Literal["000"] = "000"
 
-    _component: PicoComponent
+    model_config = ConfigDict(extra="allow")
 
+    @model_validator(mode="after")
+    def check_axiom_1(self) -> Self:
+        if len(self.PicoHwUidList) != 2:
+            raise ValueError("Check Axiom 1: Tank Modules have two picos!")
+        if len(self.ConfigList) != 4:
+            raise ValueError("Check Axiom 1: tank modules have 4 configs")
+        channel_names = [cfg.ChannelName for cfg in self.ConfigList]
+        actor_names = {n.split("-")[0] for n in channel_names}
+        if len(actor_names) > 1:
+            raise ValueError(f"Channel names need to have the pattern actor_name-depthi")
+        for n in channel_names:
+            try:
+                n.split("-")[1]
+            except IndexError as e:
+                raise ValueError("Channel names have the pattern actor_name-depthi")
+            if not re.match(r"depth[1-4]$", n.split("-")[1]):
+                raise ValueError("Channel names have the pattern actor_name-depthi")
+            return self
+            
+    
+    @model_validator(mode="after")
+    def check_axiom_2(self) -> Self:
+        # TODO: make sure PollPeriod, CapturePeriod, AsyncCapture etc all match between 0/1
+        # and 2/3
+        return self
+        
+    
+
+class PicoTankModuleComponent(Component[PicoTankModuleComponentGt, ComponentAttributeClassGt]):
+    ...
+
+    
+
+class MicroVolts(BaseModel):
+    HwUid: str
+    AboutNodeNameList: List[str]
+    MicroVoltsList: List[int]
+    TypeName: Literal["microvolts"] = "microvolts"
+    Version: Literal["100"] = "100"
+
+
+
+class ApiTankModule(Actor):
+
+    _component: PicoTankModuleComponent
+    params_by_hw_uid: Dict[str, TankModuleParams]
     def __init__(
         self,
         name: str,
@@ -83,7 +116,7 @@ class Pico(Actor):
     ):
         super().__init__(name, services)
         component = services.hardware_layout.component(name)
-        if not isinstance(component, PicoComponent):
+        if not isinstance(component, PicoTankModuleComponent):
             display_name = getattr(
                 component, "display_name", "MISSING ATTRIBUTE display_name"
             )
@@ -94,7 +127,7 @@ class Pico(Actor):
                 f"  Component id: {component.gt.ComponentId}"
             )
         self._component = component
-        if self._component.gt.Pico.Enabled:
+        if self._component.gt.Enabled:
             self._services.add_web_route(
                 server_name=DEFAULT_WEB_SERVER_NAME,
                 method="POST",
@@ -107,7 +140,32 @@ class Pico(Actor):
                 path="/" + self.params_path,
                 handler=self._handle_params_post,
             )
-
+        self.params_by_hw_uid = {}
+        self.set_params()
+        
+    def set_params(self) -> None:
+        c = self._component.gt
+        id_a = c.PicoHwUidList[0]
+        self.params_by_hw_uid[id_a] = TankModuleParams(
+            HwUid=id_a,
+            ActorNodeName=self.name,
+            PicoAB="a",
+            CapturePeriodS=c.ConfigList[0].CapturePeriodS,
+            Samples=c.Samples,
+            NumSampleAverages=c.NumSampleAverages,
+            AsyncCaptureDeltaMicroVolts=c.ConfigList[0].AsyncCaptureDelta, 
+        )
+        id_b = c.PicoHwUidList[1]
+        self.params_by_hw_uid[id_b] = TankModuleParams(
+            HwUid=id_a,
+            ActorNodeName=self.name,
+            PicoAB="b",
+            CapturePeriodS=c.ConfigList[2].CapturePeriodS,
+            Samples=c.Samples,
+            NumSampleAverages=c.NumSampleAverages,
+            AsyncCaptureDeltaMicroVolts=c.ConfigList[2].AsyncCaptureDelta, 
+        )
+     
     @cached_property
     def microvolts_path(self) -> str:
         return f"{self.name}/microvolts"
@@ -180,23 +238,37 @@ class Pico(Actor):
                 self._report_post_error(e, text)
         return Response()
 
-    def _process_microvolts(self, microvolts: MicroVolts) -> None:
-        ## filter and optionally send data to scada
-        forward_on = False
-        if forward_on:
-            self._send(
+    def _process_microvolts(self, data: MicroVolts) -> None:
+        about_node_list = []
+        value_list = []
+        for i in range(len(data.AboutNodeNameList)):
+            volts = data.MicroVoltsList[i] / 1e6
+            try:
+                r_therm_kohms = thermistor_resistance(volts)
+                temp_c = temp_beta(r_therm_kohms, fahrenheit=False)
+                value_list.append(temp_c * 1000)
+                about_node_list.append(data.AboutNodeNameList[i])
+            except:
+                print("note the problem")
+
+        self._send(
                 SyncedReadingsMessage(
                     src=self.name,
                     dst=self.services.name,
-                    channel_name_list=[self._component.gt.channel_name],
-                    value_list=[-1],
+                    channel_name_list=about_node_list,
+                    value_list=value_list,
                 )
             )
 
-        ...
 
-    def _process_params(self, microvolts: TankModuleParams) -> None:
-        ## filter and optionally send data to scada
+    def _process_params(self, params: TankModuleParams) -> None:
+        if params.HwUid not in self._component.gt.PicoHwUidList:
+            return
+        else:
+            correct_params = self.params_by_hw_uid[params.HwUid]
+            # Possibly add error checking. For example
+            # if the actor node name is incorrect?
+            # TODO: return correct params to the post.
         ...
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
@@ -215,3 +287,21 @@ class Pico(Actor):
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
+
+def thermistor_resistance(volts, r_fixed=R_FIXED_KOHMS, r_pico=R_PICO_KOHMS):
+    r_therm = 1/((3.3/volts-1)/r_fixed - 1/r_pico)
+    return r_therm
+
+def temp_beta(r_therm_kohms: float, fahrenheit: bool=False) -> float:
+    """
+    beta formula specs for the Amphenol MA100GG103BN
+    Uses T0 and R0 are a matching pair of values: this is a 10 K thermistor
+    which means at 25 deg C (T0) it has a resistance of 10K Ohms
+    
+    [More info](https://drive.google.com/drive/u/0/folders/1f8SaqCHOFt8iJNW64A_kNIBGijrJDlsx)
+    """
+    t0, r0, beta = THERMISTOR_T0, THERMISTOR_R0_KOHMS, THERMISTOR_BETA
+    r_therm = r_therm_kohms
+    temp_c = 1 / ((1/t0) + (math.log(r_therm/r0) / beta)) - 273
+    temp_f = 32 + (temp_c * 9/5)
+    return round(temp_f, 2) if fahrenheit else round(temp_c, 2)

@@ -27,8 +27,8 @@ from result import Result
 from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
 
-from actors.pico import MicroVolts
-from actors.pico import TankModuleParams
+from actors.api_tank_module import MicroVolts
+from actors.api_tank_module import TankModuleParams
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
