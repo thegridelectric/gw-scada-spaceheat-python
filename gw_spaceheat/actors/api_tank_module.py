@@ -217,8 +217,6 @@ class ApiTankModule(Actor):
         match message.Payload:
             case MicroVolts():
                 self._process_microvolts(message.Payload)
-            case TankModuleParams():
-                self._process_params(message.Payload)
         return Ok(True)
 
     def start(self) -> None:

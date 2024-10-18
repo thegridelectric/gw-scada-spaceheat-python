@@ -28,7 +28,6 @@ from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
 
 from actors.api_tank_module import MicroVolts
-from actors.api_tank_module import TankModuleParams
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
@@ -321,9 +320,6 @@ class Scada(ScadaInterface, Proactor):
                         from_node, message.Payload
                     )
             case MicroVolts():
-                self.get_communicator(message.Header.Dst).process_message(message)
-            case TankModuleParams():
-                print("TankModule Params message got to scada _derived_process_message!")
                 self.get_communicator(message.Header.Dst).process_message(message)
 
             case _:
