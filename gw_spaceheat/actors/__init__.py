@@ -1,6 +1,7 @@
 """Temporary package with asyncio actor implementation, currently exists with actors package to make work in progress
 easier."""
 
+from actors.api_tank_module import ApiTankModule
 from actors.home_alone import HomeAlone
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
@@ -12,6 +13,7 @@ from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
 
 __all__ = [
+    "ApiTankModule",
     "HomeAlone",
     "HoneywellThermostat",
     "Hubitat",
