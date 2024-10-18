@@ -1,98 +1,29 @@
 import json
 import math
 from functools import cached_property
-from typing import Callable
 from typing import Dict, List
 from typing import Literal
 from typing import Optional
-from typing import Sequence
-import re
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import Actor
 from gwproactor import Problems
 from gwproactor import ServicesInterface
 from gwproto import Message
-from gwproto.types import ComponentGt
-from gwproto.data_classes.components import Component
-from gwproto.types import ComponentAttributeClassGt
 from gwproto.types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwproto.types import TankModuleParams
+from gwproto.data_classes.components import PicoTankModuleComponent
 from pydantic import BaseModel
-from pydantic import ConfigDict
-from pydantic import field_validator, model_validator
+
 from result import Ok
 from result import Result
 from actors.message import SyncedReadingsMessage
-from typing_extensions import Self
 
 R_FIXED_KOHMS = 5.65
 R_PICO_KOHMS = 30
 THERMISTOR_BETA = 3977
 THERMISTOR_T0 = 298  # i.e. 25 degrees C
 THERMISTOR_R0_KOHMS = 10
-
-class TankModuleParams(BaseModel):
-    HwUid: str
-    ActorNodeName: Optional[str]
-    PicoAB: Optional[str]
-    CapturePeriodS: int
-    Samples: int
-    NumSampleAverages: int
-    AsyncCaptureDeltaMicroVolts: int
-    CaptureOffsetS: Optional[float] = 0.0
-    TypeName: Literal["tank.module.params"]
-    Version: Literal["100"] = "100"
-
-    @field_validator("PicoAB")
-    @classmethod
-    def _check_pico_a_b(cls, v: str) -> str:
-        if v:
-            if v not in {"a", "b"}:
-                raise ValueError(f"If it exists, PicoAB must be lowercase a or lowercase b, not <{v}>")
-        return v
-
-
-class PicoTankModuleComponentGt(ComponentGt):
-    PicoHwUidList: List[str]
-    Enabled: bool
-    SendMicroVolts: bool
-    Samples: int
-    NumSampleAverages: int
-    TypeName: Literal["pico.tank.module.component.gt"] = "pico.tank.module.component.gt"
-    Version: Literal["000"] = "000"
-
-    model_config = ConfigDict(extra="allow")
-
-    @model_validator(mode="after")
-    def check_axiom_1(self) -> Self:
-        if len(self.PicoHwUidList) != 2:
-            raise ValueError("Check Axiom 1: Tank Modules have two picos!")
-        if len(self.ConfigList) != 4:
-            raise ValueError("Check Axiom 1: tank modules have 4 configs")
-        channel_names = [cfg.ChannelName for cfg in self.ConfigList]
-        actor_names = {n.split("-")[0] for n in channel_names}
-        if len(actor_names) > 1:
-            raise ValueError(f"Channel names need to have the pattern actor_name-depthi")
-        for n in channel_names:
-            try:
-                n.split("-")[1]
-            except IndexError as e:
-                raise ValueError("Channel names have the pattern actor_name-depthi")
-            if not re.match(r"depth[1-4]$", n.split("-")[1]):
-                raise ValueError("Channel names have the pattern actor_name-depthi")
-            return self
-            
-    
-    @model_validator(mode="after")
-    def check_axiom_2(self) -> Self:
-        # TODO: make sure PollPeriod, CapturePeriod, AsyncCapture etc all match between 0/1
-        # and 2/3
-        return self
-        
-    
-
-class PicoTankModuleComponent(Component[PicoTankModuleComponentGt, ComponentAttributeClassGt]):
-    ...
 
     
 
@@ -118,7 +49,7 @@ class ApiTankModule(Actor):
         component = services.hardware_layout.component(name)
         if not isinstance(component, PicoTankModuleComponent):
             display_name = getattr(
-                component, "display_name", "MISSING ATTRIBUTE display_name"
+                component.gt, "display_name", "MISSING ATTRIBUTE display_name"
             )
             raise ValueError(
                 f"ERROR. Component <{display_name}> has type {type(component)}. "
@@ -205,16 +136,15 @@ class ApiTankModule(Actor):
         )
 
     async def _handle_microvolts_post(self, request: Request) -> Response:
-        text = self._get_text(request)
+        text = await self._get_text(request)
+        self.readings_text = text
         if isinstance(text, str):
             try:
                 self.services.send_threadsafe(
                     Message(
                         Src=self.name,
                         Dst=self.name,
-                        Payload=MicroVolts(
-                            **json.loads(text).get("content", {})
-                        )
+                        Payload=MicroVolts(**json.loads(text))
                     )
                 )
             except Exception as e: # noqa
@@ -222,23 +152,33 @@ class ApiTankModule(Actor):
         return Response()
 
     async def _handle_params_post(self, request: Request) -> Response:
-        text = self._get_text(request)
+        text = await self._get_text(request)
+        self.params_text = text
+        try:
+            params = TankModuleParams(**json.loads(text))
+        except:
+            return
+        if params.ActorNodeName != self.name:
+            return
+        if params.HwUid not in self._component.gt.PicoHwUidList:
+            return
+
+
         if isinstance(text, str):
             try:
                 self.services.send_threadsafe(
                     Message(
                         Src=self.name,
                         Dst=self.name,
-                        Payload=TankModuleParams(
-                            **json.loads(text).get("content", {})
-                        )
+                        Payload=TankModuleParams(**json.loads(text))
                     )
                 )
             except Exception as e: # noqa
                 self._report_post_error(e, text)
-        return Response()
+        return Response(text=self.params_by_hw_uid[params.HwUid].model_dump_json())
 
     def _process_microvolts(self, data: MicroVolts) -> None:
+        self.latest_readings = data
         about_node_list = []
         value_list = []
         for i in range(len(data.AboutNodeNameList)):
@@ -246,7 +186,7 @@ class ApiTankModule(Actor):
             try:
                 r_therm_kohms = thermistor_resistance(volts)
                 temp_c = temp_beta(r_therm_kohms, fahrenheit=False)
-                value_list.append(temp_c * 1000)
+                value_list.append(int(temp_c * 1000))
                 about_node_list.append(data.AboutNodeNameList[i])
             except:
                 print("note the problem")
@@ -262,6 +202,7 @@ class ApiTankModule(Actor):
 
 
     def _process_params(self, params: TankModuleParams) -> None:
+        self.latest_params = params
         if params.HwUid not in self._component.gt.PicoHwUidList:
             return
         else:

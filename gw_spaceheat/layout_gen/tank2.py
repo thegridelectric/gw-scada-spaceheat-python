@@ -1,4 +1,4 @@
-from actors.api_tank_module import PicoTankModuleComponentGt
+from gwproto.types import PicoTankModuleComponentGt
 from typing import List
 from pydantic import BaseModel
 from gwproto.property_format import SpaceheatName
@@ -91,8 +91,6 @@ def add_tank2(
                 for i in  range(1,5)
             ]
         )
-
-        #db.add_data_channels
 
         db.add_data_channels(
             [ DataChannelGt(
