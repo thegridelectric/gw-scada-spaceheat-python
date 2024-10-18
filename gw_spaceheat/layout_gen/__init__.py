@@ -13,6 +13,8 @@ from layout_gen.poller import HubitatThermostatGenCfg
 from layout_gen.tank import FibaroGenCfg
 from layout_gen.tank import TankGenCfg
 from layout_gen.tank import add_tank
+from layout_gen.tank2 import add_tank2
+from layout_gen.tank2 import Tank2Cfg
 from layout_gen.web_server import add_web_server
 
 __all__ = [
@@ -21,6 +23,7 @@ __all__ = [
     "add_thermostat",
     "add_hubitat_thermostat",
     "add_tank",
+    "add_tank2",
     "add_tsnap_multipurpose",
     "add_web_server",
     "PowerMeterGenConfig",
@@ -31,6 +34,7 @@ __all__ = [
     "HubitatThermostatGenCfg",
     "StubConfig",
     "TankGenCfg",
+    "Tank2Cfg",
     "TSnapMultipurposeGenCfg",
     "SensorNodeGenCfg",
 
