@@ -1,5 +1,6 @@
 import json
 import math
+import time
 from functools import cached_property
 from typing import Dict, List
 from typing import Literal
@@ -12,12 +13,13 @@ from gwproactor import ServicesInterface
 from gwproto import Message
 from gwproto.types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from gwproto.types import TankModuleParams
+from gwproto.types import SyncedReadings
 from gwproto.data_classes.components import PicoTankModuleComponent
 from pydantic import BaseModel
 
 from result import Ok
 from result import Result
-from actors.message import SyncedReadingsMessage
+
 
 R_FIXED_KOHMS = 5.65
 R_PICO_KOHMS = 30
@@ -136,10 +138,8 @@ class ApiTankModule(Actor):
         )
 
     async def _handle_microvolts_post(self, request: Request) -> Response:
-        print("handle microvolts")
         text = await self._get_text(request)
         self.readings_text = text
-        print("awaited the text")
         if isinstance(text, str):
             try:
                 self.services.send_threadsafe(
@@ -154,7 +154,6 @@ class ApiTankModule(Actor):
         return Response()
 
     async def _handle_params_post(self, request: Request) -> Response:
-        print("Got to handle params")
         text = await self._get_text(request)
         self.params_text = text
         try:
@@ -172,7 +171,6 @@ class ApiTankModule(Actor):
         return Response(text=self.params_by_hw_uid[params.HwUid].model_dump_json())
 
     def _process_microvolts(self, data: MicroVolts) -> None:
-        "processing microvolts!"
         self.latest_readings = data
         about_node_list = []
         value_list = []
@@ -196,15 +194,11 @@ class ApiTankModule(Actor):
                         )
                     )
                 )
-        print("About to send from inside _process_microvolts")
-        self._send(
-                SyncedReadingsMessage(
-                    src=self.name,
-                    dst=self.services.name,
-                    channel_name_list=about_node_list,
-                    value_list=value_list,
-                )
-            )
+        msg = SyncedReadings(ChannelNameList=about_node_list,
+                            ValueList=value_list,
+                            ScadaReadTimeUnixMs=int(time.time() * 1000))
+        # print(f"Publishing to local: ({msg.ScadaReadTimeUnixMs})")
+        self.services._publish_to_local(self._node, msg)
         
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
