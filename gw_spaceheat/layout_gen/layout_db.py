@@ -535,8 +535,8 @@ class LayoutDb:
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.scada),
-                    Name=H0N.scada,
+                    ShNodeId=self.make_node_id(H0N.primary_scada),
+                    Name=H0N.primary_scada,
                     ActorClass=ActorClass.Scada,
                     DisplayName=cfg.scada_display_name,
                 ),

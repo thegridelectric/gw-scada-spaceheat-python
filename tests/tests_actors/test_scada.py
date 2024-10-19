@@ -29,7 +29,7 @@ def test_scada_small():
         copy_keys("scada", settings)
     settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    scada = Scada(H0N.scada, settings=settings, hardware_layout=layout)
+    scada = Scada(H0N.primary_scada, settings=settings, hardware_layout=layout)
     assert layout.power_meter_node == layout.node(H0N.primary_power_meter)
 
     assert (
@@ -100,7 +100,7 @@ def test_scada_small():
 #     actors = Actors(
 #         settings,
 #         layout=layout,
-#         scada=ScadaRecorder(H0N.scada, settings, hardware_layout=layout)
+#         scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout)
 #     )
 #     actors.scada._scada_atn_fast_dispatch_contract_is_alive_stub = True
 #     actors.scada._last_status_second = int(time.time())
@@ -258,7 +258,7 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
     actors = Actors(
         settings,
         layout=layout,
-        scada=ScadaRecorder(H0N.scada, settings, hardware_layout=layout),
+        scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout),
         atn_settings=atn_settings,
     )
     actors.scada._last_report_second = int(time.time())
@@ -334,7 +334,7 @@ async def test_scada_report_content_dynamics(tmp_path, monkeypatch, request):
     actors = Actors(
         settings,
         layout=layout,
-        scada=ScadaRecorder(H0N.scada, settings, hardware_layout=layout),
+        scada=ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout),
         atn_settings=AsyncFragmentRunner.make_atn_settings()
     )
     actors.scada._last_status_second = int(time.time())
