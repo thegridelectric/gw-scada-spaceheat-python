@@ -136,8 +136,10 @@ class ApiTankModule(Actor):
         )
 
     async def _handle_microvolts_post(self, request: Request) -> Response:
+        print("handle microvolts")
         text = await self._get_text(request)
         self.readings_text = text
+        print("awaited the text")
         if isinstance(text, str):
             try:
                 self.services.send_threadsafe(
@@ -152,6 +154,7 @@ class ApiTankModule(Actor):
         return Response()
 
     async def _handle_params_post(self, request: Request) -> Response:
+        print("Got to handle params")
         text = await self._get_text(request)
         self.params_text = text
         try:
@@ -169,6 +172,7 @@ class ApiTankModule(Actor):
         return Response(text=self.params_by_hw_uid[params.HwUid].model_dump_json())
 
     def _process_microvolts(self, data: MicroVolts) -> None:
+        "processing microvolts!"
         self.latest_readings = data
         about_node_list = []
         value_list = []
@@ -192,7 +196,7 @@ class ApiTankModule(Actor):
                         )
                     )
                 )
-
+        print("About to send from inside _process_microvolts")
         self._send(
                 SyncedReadingsMessage(
                     src=self.name,

@@ -8,6 +8,7 @@ from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
 from actors.hubitat_tank_module import HubitatTankModule
 from actors.multipurpose_sensor import MultipurposeSensor
+from actors.parentless import Parentless
 from actors.power_meter import PowerMeter
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
@@ -20,6 +21,7 @@ __all__ = [
     "HubitatPoller",
     "HubitatTankModule",
     "MultipurposeSensor",
+    "Parentless",
     "PowerMeter",
     "Scada",
     "ScadaInterface",

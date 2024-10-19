@@ -68,6 +68,50 @@
       "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
       "TypeName": "data.channel.gt",
       "Version": "001"
+    },
+    {
+      "AboutNodeName": "buffer-depth1",
+      "CapturedByNodeName": "buffer",
+      "DisplayName": "Buffer Depth 1",
+      "Id": "fce72680-0592-47a6-be22-aad0e7a7527d",
+      "Name": "buffer-depth1",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "buffer-depth2",
+      "CapturedByNodeName": "buffer",
+      "DisplayName": "Buffer Depth 2",
+      "Id": "bd8010bd-3307-4d74-9c9b-9544fcff29b2",
+      "Name": "buffer-depth2",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "buffer-depth3",
+      "CapturedByNodeName": "buffer",
+      "DisplayName": "Buffer Depth 3",
+      "Id": "bf9e1389-0c63-4b99-a1de-0e20cdd5019d",
+      "Name": "buffer-depth3",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "buffer-depth4",
+      "CapturedByNodeName": "buffer",
+      "DisplayName": "Buffer Depth 4",
+      "Id": "54aa8087-9b21-401a-9d47-b5242262a3ae",
+      "Name": "buffer-depth4",
+      "TelemetryName": "WaterTempCTimes1000",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
     }
   ],
   "ElectricMeterCacs": [
@@ -150,6 +194,20 @@
   },
   "OtherCacs": [
     {
+      "ComponentAttributeClassId": "39943778-3cfd-4cff-8ee3-99478193d7c0",
+      "DisplayName": "Web Server CAC",
+      "MakeModel": "UNKNOWNMAKE__UNKNOWNMODEL",
+      "TypeName": "component.attribute.class.gt",
+      "Version": "001"
+    },
+    {
+      "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
+      "DisplayName": "GridWorks TankModule2 (Uses 2 picos)",
+      "MakeModel": "GRIDWORKS__TANKMODULE2",
+      "TypeName": "component.attribute.class.gt",
+      "Version": "001"
+    },
+    {
       "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
       "DisplayName": "Hubitat Elevation C-7",
       "MakeModel": "HUBITAT__C7__LAN1",
@@ -166,6 +224,83 @@
     }
   ],
   "OtherComponents": [
+    {
+      "ComponentAttributeClassId": "39943778-3cfd-4cff-8ee3-99478193d7c0",
+      "ComponentId": "69e8869f-b0d0-4017-aba9-7e03c021d692",
+      "ConfigList": [],
+      "DisplayName": "Web Server default",
+      "TypeName": "web.server.component.gt",
+      "Version": "001",
+      "WebServer": {
+        "Enabled": true,
+        "Host": "0.0.0.0",
+        "Kwargs": {},
+        "Name": "default",
+        "Port": 8000
+      }
+    },
+    {
+      "ComponentAttributeClassId": "f88fbf89-5b74-46d6-84a3-8e7494d08435",
+      "ComponentId": "2690ebcf-76e0-4ec8-ab2b-2ec3328087fe",
+      "ConfigList": [
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "buffer-depth1",
+          "Exponent": 3,
+          "PollPeriodMs": 1000,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "buffer-depth2",
+          "Exponent": 3,
+          "PollPeriodMs": 1000,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "buffer-depth3",
+          "Exponent": 3,
+          "PollPeriodMs": 1000,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 2000,
+          "CapturePeriodS": 60,
+          "ChannelName": "buffer-depth4",
+          "Exponent": 3,
+          "PollPeriodMs": 1000,
+          "TypeName": "channel.config",
+          "Unit": "Celcius",
+          "Version": "000"
+        }
+      ],
+      "DisplayName": "buffer PicoTankModule",
+      "Enabled": true,
+      "HwUid": "101",
+      "NumSampleAverages": 10,
+      "PicoHwUidList": [
+        "pico_4c1a21",
+        "pico_487a22"
+      ],
+      "Samples": 1000,
+      "SendMicroVolts": false,
+      "TypeName": "pico.tank.module.component.gt",
+      "Version": "000"
+    },
     {
       "ComponentAttributeClassId": "62528da5-b510-4ac2-82c1-3782842eae07",
       "ComponentId": "4a5e3fca-2b8e-4321-bd61-b43401535cc2",
@@ -285,6 +420,14 @@
       "Version": "200"
     },
     {
+      "ActorClass": "Parentless",
+      "DisplayName": "Little Orange House Second Scada",
+      "Name": "s2",
+      "ShNodeId": "a7842e1d-05d6-4111-b7fc-1f240ed0d0b7",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
       "ActorClass": "HomeAlone",
       "DisplayName": "HomeAlone",
       "Name": "h",
@@ -296,6 +439,7 @@
       "ActorClass": "PowerMeter",
       "ComponentId": "2bfd0036-0b0e-4732-8790-bc7d0536a85e",
       "DisplayName": "Main Power Meter Little Orange House Test System",
+      "ActorHierarchyName": "s.power-meter",
       "Name": "power-meter",
       "ShNodeId": "0dd8a803-4724-4f49-b845-14ff57bdb3e6",
       "TypeName": "spaceheat.node.gt",
@@ -341,6 +485,7 @@
       "ActorClass": "Hubitat",
       "ComponentId": "4a5e3fca-2b8e-4321-bd61-b43401535cc2",
       "DisplayName": "Hubitat 82:22:22",
+      "ActorHierarchyName": "s.hubitat",
       "Name": "hubitat",
       "ShNodeId": "9c486fe7-370d-4eba-b6d2-26e1059f66aa",
       "TypeName": "spaceheat.node.gt",
@@ -350,6 +495,7 @@
       "ActorClass": "HoneywellThermostat",
       "ComponentId": "e5e2fb2c-3f96-4079-907f-f96db22d1568",
       "DisplayName": "Zone 1 Main Thermostat",
+      "ActorHierarchyName": "s.zone1-main-stat",
       "Name": "zone1-main-stat",
       "ShNodeId": "24212380-515b-4842-9541-ad680919de19",
       "TypeName": "spaceheat.node.gt",
@@ -360,6 +506,48 @@
       "DisplayName": "Zone 1 Main",
       "Name": "zone1-main",
       "ShNodeId": "9d1067d3-4d20-4bad-a7f7-a14e277c6cb2",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "ApiTankModule",
+      "ComponentId": "2690ebcf-76e0-4ec8-ab2b-2ec3328087fe",
+      "DisplayName": "Buffer Tank",
+      "Name": "buffer",
+      "ActorHierarchyName": "s2.buffer",
+      "ShNodeId": "68596845-2e66-4f9d-a876-90da381ddc37",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "buffer-depth1",
+      "Name": "buffer-depth1",
+      "ShNodeId": "575642e0-2c83-49b5-b682-8032d6a63f7e",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "buffer-depth2",
+      "Name": "buffer-depth2",
+      "ShNodeId": "04eb01a7-af6c-40fd-a5bd-f0ca1e3919f4",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "buffer-depth3",
+      "Name": "buffer-depth3",
+      "ShNodeId": "4f78d07e-3ddc-4cc9-8955-5a1796d7b740",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "buffer-depth4",
+      "Name": "buffer-depth4",
+      "ShNodeId": "cf5a5804-81a7-464d-b70d-590f41401cf2",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     }

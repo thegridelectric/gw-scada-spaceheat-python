@@ -8,6 +8,7 @@ from gwproto.types.data_channel_gt import DataChannelGt
 from gwproto.enums import MakeModel, Unit, ActorClass, TelemetryName
 from gwproto.types.channel_config import ChannelConfig
 from gwproto.types import SpaceheatNodeGt
+from gwproto.data_classes.house_0_names import H0N
 
 
 class Tank2Cfg(BaseModel):
@@ -77,6 +78,7 @@ def add_tank2(
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(tank_cfg.ActorNodeName),
                     Name=tank_cfg.ActorNodeName,
+                    ActorHierarchyName=f"{H0N.secondary_scada}.{tank_cfg.ActorNodeName}",
                     ActorClass=ActorClass.ApiTankModule,
                     DisplayName=f"{tank_cfg.ActorNodeName.capitalize()} Tank",
                     ComponentId=db.component_id_by_alias(tank_cfg.component_display_name())

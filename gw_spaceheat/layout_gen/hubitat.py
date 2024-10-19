@@ -43,6 +43,7 @@ def add_hubitat(
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(H0N.hubitat),
                     Name=H0N.hubitat,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hubitat}",
                     ActorClass=ActorClass.Hubitat,
                     DisplayName=hubitat_component_alias,
                     ComponentId=db.component_id_by_alias(hubitat_component_alias),

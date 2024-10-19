@@ -17,7 +17,7 @@ from gwproto.types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwproto.enums import ThermistorDataMethod
 from pydantic import BaseModel
 from gwproto.data_classes.house_0_names import H0Readers
-
+from gwproto.data_classes.house_0_names import H0N
 from layout_gen.layout_db import LayoutDb
 
 class SensorNodeGenCfg(BaseModel):
@@ -110,6 +110,7 @@ def add_tsnap_multipurpose(
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(H0Readers.analog_temp),
                 Name=H0Readers.analog_temp,
+                ActorHierarchyName=f"{H0N.primary_scada}.{H0Readers.analog_temp}",
                 ActorClass=ActorClass.MultipurposeSensor,
                 DisplayName=' '.join(part.upper() for part in H0Readers.analog_temp.split('-')),
                 ComponentId=db.component_id_by_alias(tsnap.component_alias())

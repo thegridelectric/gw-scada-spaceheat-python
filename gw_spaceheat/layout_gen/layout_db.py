@@ -122,6 +122,7 @@ class StubConfig:
     terminal_asset_alias: Optional[str] = None
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
+    add_scada2: bool = True
     power_meter_cac_alias: str = "Dummy Power Meter Cac"
     power_meter_component_alias: str = "Dummy Power Meter Component"
     power_meter_node_display_name: str = "Dummy Power Meter"
@@ -394,6 +395,7 @@ class LayoutDb:
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(dc)
+        
 
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
@@ -501,7 +503,7 @@ class LayoutDb:
             ]
         )
 
-    def add_stub_scada(self, cfg: Optional[StubConfig] = None):
+    def add_stub_scadas(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
         if self.loaded.gnodes:
@@ -541,6 +543,12 @@ class LayoutDb:
                     DisplayName=cfg.scada_display_name,
                 ),
                 SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.secondary_scada),
+                    Name=H0N.secondary_scada,
+                    ActorClass=ActorClass.Parentless,
+                    DisplayName="Secondary Scada"
+                ),
+                SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone),
                     Name=H0N.home_alone,
                     ActorClass=ActorClass.HomeAlone,
@@ -548,11 +556,12 @@ class LayoutDb:
                 )
             ]
         )
+    
 
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
-        self.add_stub_scada(cfg)
+        self.add_stub_scadas(cfg)
         if cfg.add_stub_power_meter:
             self.add_stub_power_meter(cfg)
         
