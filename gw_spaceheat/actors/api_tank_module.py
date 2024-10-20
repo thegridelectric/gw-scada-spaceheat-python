@@ -14,6 +14,7 @@ from gwproto import Message
 from gwproto.types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from gwproto.types import TankModuleParams
 from gwproto.types import SyncedReadings
+from actors.message import SyncedReadingsMessage
 from gwproto.data_classes.components import PicoTankModuleComponent
 from pydantic import BaseModel
 
@@ -199,6 +200,15 @@ class ApiTankModule(Actor):
                             ScadaReadTimeUnixMs=int(time.time() * 1000))
         # print(f"Publishing to local: ({msg.ScadaReadTimeUnixMs})")
         self.services._publish_to_local(self._node, msg)
+        self._send(
+                SyncedReadingsMessage(
+                    src=self.name,
+                    dst=self.services.name,
+                    channel_name_list=about_node_list,
+                    value_list=value_list,
+                )
+            )
+        
         
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
