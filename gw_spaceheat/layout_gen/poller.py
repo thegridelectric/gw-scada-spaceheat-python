@@ -14,7 +14,7 @@ from gwproto.types import DataChannelGt
 from gwproto.types.hubitat_gt import HubitatGt
 from gwproto.types import ChannelConfig
 from pydantic import BaseModel
-
+from gwproto.data_classes.house_0_names import H0N
 from layout_gen import LayoutDb
 from layout_gen.hubitat import add_hubitat
 
@@ -141,6 +141,7 @@ def add_thermostat(
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(stat_node_name),
                 Name=stat_node_name,
+                ActorHierarchyName=f"{H0N.primary_scada}.{stat_node_name}",
                 ActorClass=stat_cfg.actor_class,
                 DisplayName=stat_display_name,
                 ComponentId=db.component_id_by_alias(stat_component_display_name)

@@ -119,6 +119,7 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
 @dataclass
 class StubConfig:
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
+    terminal_asset_alias: Optional[str] = None
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
     power_meter_cac_alias: str = "Dummy Power Meter Cac"
@@ -281,7 +282,10 @@ class LayoutDb:
         
         if add_stubs:
             self.add_stubs(stub_config)
-        self.terminal_asset_alias = self.misc["MyTerminalAssetGNode"]["Alias"]
+    
+    @property
+    def terminal_asset_alias(self):
+        return self.misc["MyTerminalAssetGNode"]["Alias"]
 
     def cac_id_by_alias(self, make_model: str) -> Optional[str]:
         return self.maps.cacs_by_alias.get(make_model, None)
@@ -390,6 +394,7 @@ class LayoutDb:
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(dc)
+        
 
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
@@ -482,7 +487,7 @@ class LayoutDb:
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
                     InPowerMetering=True,
-                    TerminalAssetAlias="some.ta.alias"
+                    TerminalAssetAlias=self.terminal_asset_alias
                 ),
                 DataChannelGt(
                     Name=H0CN.hp_idu_pwr,
@@ -492,12 +497,12 @@ class LayoutDb:
                     CapturedByNodeName=H0N.primary_power_meter,
                     TelemetryName=TelemetryName.PowerW,
                     InPowerMetering=True,
-                    TerminalAssetAlias="some.ta.alias"
+                    TerminalAssetAlias=self.terminal_asset_alias
                 )
             ]
         )
 
-    def add_stub_scada(self, cfg: Optional[StubConfig] = None):
+    def add_stub_scadas(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
         if self.loaded.gnodes:
@@ -517,9 +522,12 @@ class LayoutDb:
                 "GNodeStatusValue": "Active",
                 "PrimaryGNodeRoleAlias": "Scada"
             }
+            ta_alias = f"{cfg.atn_gnode_alias}.ta"
+            if cfg.terminal_asset_alias:
+                ta_alias = cfg.terminal_asset_alias
             self.misc["MyTerminalAssetGNode"] = {
                 "GNodeId": str(uuid.uuid4()),
-                "Alias": f"{cfg.atn_gnode_alias}.ta",
+                "Alias": ta_alias,
                 "DisplayName": "TerminalAsset GNode",
                 "GNodeStatusValue": "Active",
                 "PrimaryGNodeRoleAlias": "TerminalAsset"
@@ -528,10 +536,16 @@ class LayoutDb:
         self.add_nodes(
             [
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.scada),
-                    Name=H0N.scada,
+                    ShNodeId=self.make_node_id(H0N.primary_scada),
+                    Name=H0N.primary_scada,
                     ActorClass=ActorClass.Scada,
                     DisplayName=cfg.scada_display_name,
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.secondary_scada),
+                    Name=H0N.secondary_scada,
+                    ActorClass=ActorClass.Parentless,
+                    DisplayName="Secondary Scada"
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone),
@@ -541,13 +555,15 @@ class LayoutDb:
                 )
             ]
         )
+    
 
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
             cfg = StubConfig()
+        self.add_stub_scadas(cfg)
         if cfg.add_stub_power_meter:
             self.add_stub_power_meter(cfg)
-        self.add_stub_scada(cfg)
+        
 
     def dict(self) -> dict:
         d = dict(
