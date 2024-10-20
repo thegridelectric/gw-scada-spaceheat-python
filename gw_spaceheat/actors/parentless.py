@@ -67,7 +67,6 @@ class Parentless(ScadaInterface, Proactor):
                     self,                    self.DEFAULT_ACTORS_MODULE
                 )
             )
-        self.latest_snap = None
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
