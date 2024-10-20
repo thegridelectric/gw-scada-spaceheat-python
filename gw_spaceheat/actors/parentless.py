@@ -6,6 +6,7 @@ from typing import Any, Optional
 from typing import List
 
 from gwproto.message import Message
+from gwproto.types import Report
 from gwproto.types import SnapshotSpaceheat
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -24,8 +25,10 @@ from actors.scada import (
 
 class Scada2Data:
     latest_snap: Optional[SnapshotSpaceheat]
+    latest_report: Optional[Report]
     def __init__(self) -> None:
         self.latest_snap = None
+        self.latest_report = None
 
 class Parentless(ScadaInterface, Proactor):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
@@ -137,8 +140,11 @@ class Parentless(ScadaInterface, Proactor):
         payload = codec.decode(topic=mqtt_msg.topic, payload=mqtt_msg.payload).Payload
         if from_node:
             match payload:
-                case SnapshotSpaceheat():
+                case Report():
                     path_dbg |= 0x00000001
+                    self.report_received(payload)
+                case SnapshotSpaceheat():
+                    path_dbg |= 0x00000002
                     self.snapshot_received(payload)
                 case _:
                     raise ValueError(
@@ -147,9 +153,11 @@ class Parentless(ScadaInterface, Proactor):
                     )
         self._logger.path("--Parentless._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-    def snapshot_received(self, snap: SnapshotSpaceheat)-> None:
-        self._data.latest_snap = snap
-        print("Snapshot received")
+    def snapshot_received(self, payload: SnapshotSpaceheat)-> None:
+        self._data.latest_snap = payload
+
+    def report_received(self, payload: Report)-> None:
+        self._data.latest_report = payload
     
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():
