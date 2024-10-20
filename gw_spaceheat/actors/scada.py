@@ -26,14 +26,17 @@ from result import Result
 
 from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
+
+from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
+
 from gwproactor.links import Transition
-from gwproactor.message import MQTTReceiptPayload
+from gwproactor.message import MQTTReceiptPayload, MQTTMessageModel
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
@@ -118,6 +121,16 @@ class Scada(ScadaInterface, Proactor):
             MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
             QOS.AtMostOnce
         )
+        remote_actor_nodes = [node for node in self._layout.nodes.values() if 
+                   self._layout.parent_node(node) != self._node and 
+                   node != self._node and
+                   node.has_actor]
+        for node in remote_actor_nodes:
+            self._links.subscribe(
+                self.LOCAL_MQTT,
+                f"gw/{node.name}/#",
+                QOS.AtMostOnce
+            )
         # FIXME: this causes tests to fail horrible ways.
         # self._links.subscribe(
         #     Scada.LOCAL_MQTT,
@@ -317,6 +330,9 @@ class Scada(ScadaInterface, Proactor):
                 self.synced_readings_received(
                         from_node, message.Payload
                     )
+            case MicroVolts():
+                self.get_communicator(message.Header.Dst).process_message(message)
+
             case _:
                 raise ValueError(
                     f"There is no handler for mqtt message payload type [{type(message.Payload)}]"
@@ -328,21 +344,42 @@ class Scada(ScadaInterface, Proactor):
     ):
         self._logger.path("++Scada._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
-        if message.Payload.client_name != self.GRIDWORKS_MQTT:
-            raise ValueError(
-                f"There are no messages expected to be received from [{message.Payload.client_name}] mqtt broker. "
-                f"Received\n\t topic: [{message.Payload.message.topic}]"
-            )
-        match decoded.Payload:
-            case GtShCliAtnCmd():
-                path_dbg |= 0x00000002
-                self._gt_sh_cli_atn_cmd_received(decoded.Payload)
-            case _:
-                raise ValueError(
-                    f"There is no handler for mqtt message payload type [{type(decoded.Payload)}]\n"
-                    f"Received\n\t topic: [{message.Payload.message.topic}]"
-                )
-        self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
+        if message.Payload.client_name == self.LOCAL_MQTT:
+                # raise ValueError(
+                #     f"There are no messages expected to be received from [{message.Payload.client_name}] mqtt broker. "
+                #     f"Received\n\t topic: [{message.Payload.message.topic}]"
+                # )
+            self._process_local_mqtt_message(message.Payload.message)
+        elif message.Payload.client_name == self.GRIDWORKS_MQTT:
+            match decoded.Payload:
+                case GtShCliAtnCmd():
+                    path_dbg |= 0x00000002
+                    self._gt_sh_cli_atn_cmd_received(decoded.Payload)
+                case _:
+                    raise ValueError(
+                        f"There is no handler for mqtt message payload type [{type(decoded.Payload)}]\n"
+                        f"Received\n\t topic: [{message.Payload.message.topic}]"
+                    )
+            self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
+
+    def _process_local_mqtt_message(self, mqtt_msg: MQTTMessageModel) -> None:
+        from_node_name = mqtt_msg.topic.split('/')[1]
+        from_node = self._layout.node(from_node_name)
+        codec = self._links._mqtt_codecs['local']
+        payload = codec.decode(topic=mqtt_msg.topic, payload=mqtt_msg.payload).Payload
+        if from_node:
+            match payload:
+                case SyncedReadings():
+                    self.synced_readings_received(
+                        from_node, payload
+                    )
+                case PowerWatts():
+                    if from_node is self._layout.power_meter_node:
+                        self.power_watts_received(payload)
+                    else:
+                        raise Exception(
+                            f"message.Header.Src {from_node.name} must be from {self._layout.power_meter_node} for PowerWatts message"
+                        )
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
