@@ -140,12 +140,14 @@ def check_tls_paths_present(model: BaseModel | BaseSettings, raise_error: bool =
     return error_str
 
 def get_scada(
-    name: str = H0N.primary_scada,
+    name: str,
     argv: Optional[Sequence[str]] = None,
     run_in_thread: bool = False,
     add_screen_handler: bool = True,
     actors_package_name: str = Scada.DEFAULT_ACTORS_MODULE,
 ) -> Scada:
+    if name is None:
+        name = H0N.primary_scada
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
@@ -179,7 +181,8 @@ def get_scada(
                 scada.run_in_thread()
         else:
             print(f"name is {name}")
-            scada = Parentless(name=name, settings=settings,hardware_layout=layout, actors_package_name=actors_package_name)
+            # NOTE: THIS DOES NOT WORK
+            scada = Parentless(name=name, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
             if run_in_thread:
                 logger.info("run_async_actors_main() starting")
                 scada.run_in_thread()
