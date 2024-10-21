@@ -80,8 +80,12 @@ class Dashboard:
                 raise
 
     def process_snapshot(self, snapshot: SnapshotSpaceheat):
+        # rich.print("++process_snapshot")
         self.latest_snapshot = snapshot
         self.update(fast_path_power_w=None, report_time_s=int(snapshot.SnapshotTimeUnixMs / 1000))
+        # rich.print("--process_snapshot")
 
     def process_power(self, power: PowerWatts) -> None:
+        # rich.print("++process_power")
         self.update(fast_path_power_w=power.Watts, report_time_s=int(time.time()))
+        # rich.print("--process_power")

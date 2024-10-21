@@ -33,12 +33,12 @@ class PowerDisplay:
     def update(self) -> Self:
         self.table = Table()
 
-        self.table.add_column("HP Power", header_style="bold")
-        self.table.add_column("kW", header_style="bold")
+        self.table.add_column("HP Power", header_style="bold green", style="green")
+        self.table.add_column("kW", header_style="bold dark_orange", style="dark_orange")
         self.table.add_column("X")
-        self.table.add_column("Pump", header_style="bold")
+        self.table.add_column("Pump", header_style="bold green", style="green")
         self.table.add_column("Gpm", header_style="bold")
-        self.table.add_column("Pwr (W)", header_style="bold")
+        self.table.add_column("Pwr (W)", header_style="bold cyan1", style="cyan1")
         extra_cols = min(len(self.hack_hp_state_q), 5)
         if self.print_hack_hp:
             self.table.add_column(
