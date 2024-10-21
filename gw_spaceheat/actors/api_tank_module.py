@@ -198,6 +198,8 @@ class ApiTankModule(Actor):
         msg = SyncedReadings(ChannelNameList=about_node_list,
                             ValueList=value_list,
                             ScadaReadTimeUnixMs=int(time.time() * 1000))
+        self.msg = msg
+        print(f"About to publish to local: {self.msg}")
         self.services._publish_to_local(self._node, msg)
         
     def process_message(self, message: Message) -> Result[bool, BaseException]:
