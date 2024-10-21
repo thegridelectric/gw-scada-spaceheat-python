@@ -7,6 +7,7 @@ from rich.console import ConsoleOptions
 from rich.console import RenderResult
 from rich.style import Style
 from rich.text import Text
+from textual.messages import Layout
 
 from tests.atn.dashboard.misc import UpdateSources
 from tests.atn.atn_config import DashboardSettings
@@ -24,6 +25,7 @@ class Displays:
     thermostat: ThermostatDisplay
     power: PowerDisplay
     picture: AsciiPicture
+    layout: Layout
 
     def __init__(
             self,
@@ -70,16 +72,28 @@ class Displays:
         self.thermostat.update()
         self.power.update()
         self.picture.update()
+        self.layout = Layout(
+
+        )
         return self
 
     def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:
-        yield "\n"
+        yield Text(
+            "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+            style=Style(color="yellow1", bold=True),
+        )
+        yield Text("++", style=Style(color="yellow1", bold=True), end="")
         yield self.title
         yield self.odds_and_ends
         yield self.thermostat
         yield self.power
         yield self.picture
-
-
+        yield "\n"
+        yield Text("--", style=Style(color="yellow1", bold=True), end="")
+        yield self.title
+        yield Text(
+            "--------------------------------------------------------------------------",
+            style=Style(color="yellow1", bold=True),
+        )
 
 
