@@ -42,7 +42,7 @@ class MicroVolts(BaseModel):
 class ApiTankModule(Actor):
 
     _component: PicoTankModuleComponent
-    params_by_hw_uid: Dict[str, TankModuleParams]
+    hw_uid_list: List[str]
     def __init__(
         self,
         name: str,
@@ -74,32 +74,17 @@ class ApiTankModule(Actor):
                 path="/" + self.params_path,
                 handler=self._handle_params_post,
             )
-        self.params_by_hw_uid = {}
-        self.set_params()
+        self.hw_uid_list = []
+        self.initailize_hw_uid_list()
+
+
+    def initailize_hw_uid_list(self):
+        if self._component.gt.PicoAHwUid:
+            self.hw_uid_list.append(self._component.gt.PicoAHwUid)
+        if self._component.gt.PicoBHwUid:
+            self.hw_uid_list.append(self._component.gt.PicoBHwUid)
+
         
-    def set_params(self) -> None:
-        c = self._component.gt
-        id_a = c.PicoHwUidList[0]
-        self.params_by_hw_uid[id_a] = TankModuleParams(
-            HwUid=id_a,
-            ActorNodeName=self.name,
-            PicoAB="a",
-            CapturePeriodS=c.ConfigList[0].CapturePeriodS,
-            Samples=c.Samples,
-            NumSampleAverages=c.NumSampleAverages,
-            AsyncCaptureDeltaMicroVolts=c.ConfigList[0].AsyncCaptureDelta, 
-        )
-        id_b = c.PicoHwUidList[1]
-        self.params_by_hw_uid[id_b] = TankModuleParams(
-            HwUid=id_a,
-            ActorNodeName=self.name,
-            PicoAB="b",
-            CapturePeriodS=c.ConfigList[2].CapturePeriodS,
-            Samples=c.Samples,
-            NumSampleAverages=c.NumSampleAverages,
-            AsyncCaptureDeltaMicroVolts=c.ConfigList[2].AsyncCaptureDelta, 
-        )
-     
     @cached_property
     def microvolts_path(self) -> str:
         return f"{self.name}/microvolts"
@@ -138,6 +123,73 @@ class ApiTankModule(Actor):
             )
         )
 
+
+    def is_valid_pico_uid(self, params: TankModuleParams) -> bool:
+        if params.PicoAB == "a":
+            return (self._component.gt.PicoAHwUid is None or 
+                    self._component.gt.PicoAHwUid == params.HwUid)
+        elif params.PicoAB == "b":
+            return (self._component.gt.PicoBHwUid is None or 
+                    self._component.gt.PicoBHwUid == params.HwUid)
+        return False
+    
+    def need_to_update_layout(self, params: TankModuleParams) -> bool:
+        if params.PicoAB == "a":
+            if self._component.gt.PicoAHwUid:
+                return False
+            else:
+                return True
+        elif params.PicoAB == "b":
+            if self._component.gt.PicoBHwUid:
+                return False
+            else:
+                return True
+    
+    def update_layout(self, params: TankModuleParams) -> None:
+        if params.PicoAB == "a":
+            new_layout = self.services.hardware_layout.layout
+
+    async def _handle_params_post(self, request: Request) -> Response:
+        text = await self._get_text(request)
+        self.params_text = text
+        try:
+            params = TankModuleParams(**json.loads(text))
+        except BaseException as e:
+            self._report_post_error(e, "malformed tankmodule parameters!")
+            return
+        if params.ActorNodeName != self.name:
+            return
+        
+        if self.is_valid_pico_uid(params):
+            if params.PicoAB == 'a':
+                cfg = next((cfg for cfg in self._component.gt.ConfigList if 
+                        cfg.ChannelName == f'{self.name}-depth1-micro-v'), None)
+            else:
+                cfg = next((cfg for cfg in self._component.gt.ConfigList if 
+                        cfg.ChannelName == f'{self.name}-depth3-micro-v'), None)
+            
+            new_params = TankModuleParams(
+                HwUid=params.HwUid,
+                ActorNodeName=self.name,
+                PicoAB=params.PicoAB,
+                CapturePeriodS=cfg.CapturePeriodS,
+                Samples=self._component.gt.Samples,
+                NumSampleAverages=self._component.gt.NumSampleAverages,
+                AsyncCaptureDeltaMicroVolts=cfg.AsyncCaptureDelta,
+                CaptureOffsetS=round(60-time.time()%60,3)-1,
+            )
+            if self.need_to_update_layout(params):
+                self.hw_uid_list.append(params.HwUid)
+                print(f"Layout update: {self.name} Pico {params.PicoAB} HWUID {params.HwUid}")
+                # TODO: send message to self so that writing to hardware layout isn't 
+                # happening in IO loop
+            return Response(text=new_params.model_dump_json())
+        else:
+            # A strange pico is identifying itself as our "a" tank
+            print(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+            # TODO: send problem report?
+            return Response()
+                
     async def _handle_microvolts_post(self, request: Request) -> Response:
         text = await self._get_text(request)
         self.readings_text = text
@@ -152,36 +204,27 @@ class ApiTankModule(Actor):
                 )
             except Exception as e: # noqa
                 self._report_post_error(e, text)
-        return Response()
+        return Response()  
+     
+    def recognized_hw_uid(self, data: MicroVolts) -> bool:
+        return (data.HwUid in self.hw_uid_list)
 
-    async def _handle_params_post(self, request: Request) -> Response:
-        text = await self._get_text(request)
-        self.params_text = text
-        try:
-            params = TankModuleParams(**json.loads(text))
-        except BaseException as e:
-            self._report_post_error(e, "malformed tankmodule parameters!")
-            return
-        if params.ActorNodeName != self.name:
-            return
-        if params.HwUid not in self._component.gt.PicoHwUidList:
-            self._report_post_error(ValueError("params"),
-                                    f"{params.HwUid} not associated with {params.ActorNodeName}!")
-            return
-
-        return Response(text=self.params_by_hw_uid[params.HwUid].model_dump_json())
 
     def _process_microvolts(self, data: MicroVolts) -> None:
+        if data.HwUid not in self.hw_uid_list:
+            print(f"Ignoring data from pico {data.HwUid} - not recognized!")
+            return
         self.latest_readings = data
-        about_node_list = []
+        channel_name_list = []
         value_list = []
         for i in range(len(data.AboutNodeNameList)):
+            if self._component.gt.SendMicroVolts:
+                value_list.append(data.MicroVoltsList[i])
+                channel_name_list.append(f"{data.AboutNodeNameList[i]}-micro-v")
             volts = data.MicroVoltsList[i] / 1e6
             try:
-                r_therm_kohms = thermistor_resistance(volts)
-                temp_c = temp_beta(r_therm_kohms, fahrenheit=False)
-                value_list.append(int(temp_c * 1000))
-                about_node_list.append(data.AboutNodeNameList[i])
+                value_list.append(int(simple_beta_one(volts) * 1000))
+                channel_name_list.append(data.AboutNodeNameList[i])
             except BaseException as e:
                 self.services.send_threadsafe(
                     Message(
@@ -195,9 +238,10 @@ class ApiTankModule(Actor):
                         )
                     )
                 )
-        msg = SyncedReadings(ChannelNameList=about_node_list,
+        msg = SyncedReadings(ChannelNameList=channel_name_list,
                             ValueList=value_list,
                             ScadaReadTimeUnixMs=int(time.time() * 1000))
+        self.msg = msg
         self.services._publish_to_local(self._node, msg)
         
     def process_message(self, message: Message) -> Result[bool, BaseException]:
@@ -214,6 +258,14 @@ class ApiTankModule(Actor):
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
+
+def simple_beta_one(volts: float) -> float:
+        """
+        Return temperature Celcius as a function of volts.
+        Uses a fixed estimated resistance for the pico 
+        """
+        r_therm_kohms = thermistor_resistance(volts)
+        return temp_beta(r_therm_kohms, fahrenheit=False)
 
 def thermistor_resistance(volts, r_fixed=R_FIXED_KOHMS, r_pico=R_PICO_KOHMS):
     r_therm = 1/((3.3/volts-1)/r_fixed - 1/r_pico)

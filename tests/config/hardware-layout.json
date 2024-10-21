@@ -292,10 +292,8 @@
       "Enabled": true,
       "HwUid": "101",
       "NumSampleAverages": 10,
-      "PicoHwUidList": [
-        "pico_4c1a21",
-        "pico_487a22"
-      ],
+      "PicoAHwUid": "pico_4c1a21",
+      "PicoBHwUid": "pico_487a22",
       "Samples": 1000,
       "SendMicroVolts": false,
       "TypeName": "pico.tank.module.component.gt",
