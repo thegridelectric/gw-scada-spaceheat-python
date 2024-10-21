@@ -15,7 +15,7 @@ from rich.text import Text
 
 from actors import Scada
 from actors.config import ScadaSettings
-from command_line_utils import get_actor_nodes
+from command_line_utils import get_nodes_run_by_scada
 from command_line_utils import get_requested_names
 from gwproactor.config import MQTTClient
 from gw.errors import DcError
@@ -338,7 +338,7 @@ def print_layout_table(layout: HardwareLayout):
 def try_scada_load(requested_names: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
     settings = settings.model_copy(deep=True)
     settings.paths.mkdirs()
-    scada_node, actor_nodes = get_actor_nodes(requested_names, layout, Scada.DEFAULT_ACTORS_MODULE)
+    scada_node, actor_nodes = get_nodes_run_by_scada(requested_names, layout, Scada.DEFAULT_ACTORS_MODULE)
     scada = None
     for k, v in settings.model_fields.items():
         if isinstance(v, MQTTClient):

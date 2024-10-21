@@ -33,10 +33,10 @@ def test_power_meter_small():
         copy_keys("scada", settings)
     settings.paths.mkdirs()
     layout = HardwareLayout.load(settings.paths.hardware_layout)
-    scada = Scada(H0N.scada, settings, layout)
+    scada = Scada(H0N.primary_scada, settings, layout)
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):
-        PowerMeter(H0N.scada, services=scada)
+        PowerMeter(H0N.primary_scada, services=scada)
 
     meter = PowerMeter(H0N.primary_power_meter, services=scada)
     assert isinstance(meter._sync_thread, PowerMeterDriverThread)

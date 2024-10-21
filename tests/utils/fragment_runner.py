@@ -85,7 +85,7 @@ class Actors:
         )
         self.scada = kwargs.get(
             "scada",
-            ScadaRecorder(H0N.scada, settings, hardware_layout=layout)
+            ScadaRecorder(H0N.primary_scada, settings, hardware_layout=layout)
         )
         self.meter = kwargs.get(
             "meter",

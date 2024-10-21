@@ -3,7 +3,7 @@ import logging
 import sys
 import argparse
 from pathlib import Path
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Sequence, Tuple, List
 import traceback
 
 import dotenv
@@ -14,7 +14,7 @@ from gwproactor.config import MQTTClient
 from gwproactor.config.paths import TLSPaths
 from pydantic import BaseModel
 
-from actors import Scada
+from actors import Scada, Parentless
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
@@ -81,18 +81,18 @@ def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
         requested = None
     else:
         requested = set(args.nodes)
-        requested.add(H0N.scada)
+        requested.add(H0N.primary_scada)
         requested.add(H0N.home_alone)
     return requested
 
 
-def get_actor_nodes(requested_names: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
+def get_nodes_run_by_scada(requested_names: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
     actors_package = importlib.import_module(actors_package_name)
     if requested_names:
         requested_nodes = [layout.node(name) for name in requested_names]
     else:
         requested_nodes = layout.nodes.values()
-    actor_nodes = []
+    actor_nodes: List[ShNode] = []
     scada_node: Optional[ShNode] = None
     for node in requested_nodes:
         if node.ActorClass not in [ActorClass.Atn, ActorClass.HomeAlone] and node.has_actor:
@@ -110,6 +110,7 @@ def get_actor_nodes(requested_names: Optional[set[str]], layout: HardwareLayout,
                 )
             else:
                 actor_nodes.append(node)
+    actor_nodes = [n for n in actor_nodes if layout.parent_node(n) == scada_node]
     return scada_node, actor_nodes
 
 def missing_tls_paths(paths: TLSPaths) -> list[tuple[str, Optional[Path]]]:
@@ -139,11 +140,14 @@ def check_tls_paths_present(model: BaseModel | BaseSettings, raise_error: bool =
     return error_str
 
 def get_scada(
+    name: str,
     argv: Optional[Sequence[str]] = None,
     run_in_thread: bool = False,
     add_screen_handler: bool = True,
     actors_package_name: str = Scada.DEFAULT_ACTORS_MODULE,
 ) -> Scada:
+    if name is None:
+        name = H0N.primary_scada
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
@@ -168,13 +172,22 @@ def get_scada(
         check_tls_paths_present(settings)
         requested_names = get_requested_names(args)
         layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_names)
-        scada_node, actor_nodes = get_actor_nodes(requested_names, layout, actors_package_name)
-        print(f"actor_nodes is {actor_nodes}")
-        scada = Scada(name=scada_node.Name, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-        if run_in_thread:
-            logger.info("run_async_actors_main() starting")
-            scada.run_in_thread()
+        if name == H0N.primary_scada:
+            scada_node, actor_nodes = get_nodes_run_by_scada(requested_names, layout, actors_package_name)
+            print(f"actor nodes run by scada: {actor_nodes}")
+            scada = Scada(name=scada_node.Name, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+            if run_in_thread:
+                logger.info("run_async_actors_main() starting")
+                scada.run_in_thread()
+        else:
+            print(f"name is {name}")
+            # NOTE: THIS DOES NOT WORK
+            scada = Parentless(name=name, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
+            if run_in_thread:
+                logger.info("run_async_actors_main() starting")
+                scada.run_in_thread()
     return scada
+
 
 
 async def run_async_actors_main(argv: Optional[Sequence[str]] = None):
