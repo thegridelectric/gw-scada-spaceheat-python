@@ -25,10 +25,10 @@ class ThermostatDisplay:
 
     def update(self) -> Self:
         self.table = Table()
-        self.table.add_column("Thermostats", header_style="bold")
+        self.table.add_column("Thermostats", header_style="bold green", style="green")
         self.table.add_column("Set Point", header_style="bold")
         self.table.add_column("HW Temp", header_style="bold")
-        self.table.add_column("State", header_style="bold")
+        self.table.add_column("State", header_style="bold cyan1")
         if self.print_history:
             if len(self.channels.power.pumps.dist_pump_pwr_state_q) > 0:
                 until = int(time.time())
