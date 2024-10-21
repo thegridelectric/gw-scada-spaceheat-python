@@ -208,6 +208,7 @@ class ApiTankModule(Actor):
     def _process_microvolts(self, data: MicroVolts) -> None:
         if data.HwUid not in self.hw_uid_list:
             print(f"Ignoring data from pico {data.HwUid} - not recognized!")
+            return
         self.latest_readings = data
         channel_name_list = []
         value_list = []
@@ -236,7 +237,6 @@ class ApiTankModule(Actor):
                             ValueList=value_list,
                             ScadaReadTimeUnixMs=int(time.time() * 1000))
         self.msg = msg
-        print(f"About to publish to local: {self.msg}")
         self.services._publish_to_local(self._node, msg)
         
     def process_message(self, message: Message) -> Result[bool, BaseException]:
