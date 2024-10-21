@@ -78,22 +78,23 @@ class Displays:
         return self
 
     def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:
-        yield Text(
-            "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
-            style=Style(color="yellow1", bold=True),
-        )
-        yield Text("++", style=Style(color="yellow1", bold=True), end="")
+        # yield Text(
+        #     "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++",
+        #     style=Style(color="yellow1", bold=True),
+        # )
+        # yield Text("++", style=Style(color="yellow1", bold=True), end="")
+        yield "\n"
         yield self.title
         yield self.odds_and_ends
         yield self.thermostat
         yield self.power
-        yield self.picture
-        yield "\n"
-        yield Text("--", style=Style(color="yellow1", bold=True), end="")
         yield self.title
-        yield Text(
-            "--------------------------------------------------------------------------",
-            style=Style(color="yellow1", bold=True),
-        )
+        yield self.picture
+        # yield Text("--", style=Style(color="yellow1", bold=True), end="")
+        # yield self.title
+        # yield Text(
+        #     "--------------------------------------------------------------------------",
+        #     style=Style(color="yellow1", bold=True),
+        # )
 
 
