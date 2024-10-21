@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Deque
 from typing import Self
 
+import pytz
 from rich.console import Console
 from rich.console import ConsoleOptions
 from rich.console import RenderResult
@@ -52,7 +53,8 @@ class Displays:
         self.update(UpdateSources.Initialization, int(datetime.now().timestamp()))
 
     def update_title(self, update_source: UpdateSources, report_time_s: int) -> Self:
-        report_dt = datetime.fromtimestamp(report_time_s)
+        tz = pytz.timezone('America/New_York')
+        report_dt = datetime.fromtimestamp(report_time_s).astimezone(tz)
         self.title = Text.assemble(
             Text(
                 self.short_name.capitalize(),
