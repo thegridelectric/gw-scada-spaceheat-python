@@ -144,6 +144,10 @@ class ApiTankModule(Actor):
                 return False
             else:
                 return True
+    
+    def update_layout(self, params: TankModuleParams) -> None:
+        if params.PicoAB == "a":
+            new_layout = self.services.hardware_layout.layout
 
     async def _handle_params_post(self, request: Request) -> Response:
         text = await self._get_text(request)
@@ -171,7 +175,8 @@ class ApiTankModule(Actor):
                 CapturePeriodS=cfg.CapturePeriodS,
                 Samples=self._component.gt.Samples,
                 NumSampleAverages=self._component.gt.NumSampleAverages,
-                AsyncCaptureDeltaMicroVolts=cfg.AsyncCaptureDelta
+                AsyncCaptureDeltaMicroVolts=cfg.AsyncCaptureDelta,
+                CaptureOffsetS=round(60-time.time()%60,3)-1,
             )
             if self.need_to_update_layout(params):
                 self.hw_uid_list.append(params.HwUid)
