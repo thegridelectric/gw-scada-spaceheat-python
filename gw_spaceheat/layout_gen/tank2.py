@@ -1,5 +1,5 @@
 from gwproto.types import PicoTankModuleComponentGt
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from gwproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
@@ -13,14 +13,15 @@ from gwproto.data_classes.house_0_names import H0N
 
 class Tank2Cfg(BaseModel):
     SerialNumber: str
-    PicoIds: List[str]
+    PicoAHwUid: Optional[str] = None
+    PicoBHwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = "buffer"
     CapturePeriodS: int = 60
     AsyncCaptureDeltaMicroVolts: int = 2000
     Samples:int  = 1000
     NumSampleAverages:int = 10
     Enabled: bool = True
-    SendMicroVolts: bool = False
+    SendMicroVolts: bool = True
 
     def component_display_name(self) -> str:
         return f"{self.ActorNodeName} PicoTankModule"
@@ -48,14 +49,24 @@ def add_tank2(
             config_list.append(
                 ChannelConfig(
                     ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}",
-                    PollPeriodMs=1000,
                     CapturePeriodS=tank_cfg.CapturePeriodS,
                     AsyncCapture=True,
-                    AsyncCaptureDelta=tank_cfg.AsyncCaptureDeltaMicroVolts,
                     Exponent=3,
                     Unit=Unit.Celcius
                 )
             )
+        if tank_cfg.SendMicroVolts:
+            for i in range(1,5):
+                config_list.append(
+                    ChannelConfig(
+                        ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-micro-v",
+                        CapturePeriodS=tank_cfg.CapturePeriodS,
+                        AsyncCapture=True,
+                        AsyncCaptureDelta=tank_cfg.AsyncCaptureDeltaMicroVolts,
+                        Exponent=6,
+                        Unit=Unit.VoltsRms
+                    )
+                )
         db.add_components(
             [
                 PicoTankModuleComponentGt(
@@ -64,7 +75,8 @@ def add_tank2(
                     DisplayName=tank_cfg.component_display_name(),
                     HwUid=tank_cfg.SerialNumber,
                     ConfigList=config_list,
-                    PicoHwUidList=tank_cfg.PicoIds,
+                    PicoAHwUid=tank_cfg.PicoAHwUid,
+                    PicoBHwUid=tank_cfg.PicoBHwUid,
                     Enabled=tank_cfg.Enabled,
                     SendMicroVolts=tank_cfg.SendMicroVolts,
                     Samples=tank_cfg.Samples,
@@ -106,3 +118,17 @@ def add_tank2(
                ) for i in range(1,5)
             ]
         )
+
+        if tank_cfg.SendMicroVolts:
+            db.add_data_channels(
+                [ DataChannelGt(
+                    Name=f"{tank_cfg.ActorNodeName}-depth{i}-micro-v",
+                    DisplayName=f"{tank_cfg.ActorNodeName.capitalize()} Depth {i} MicroVolts",
+                    AboutNodeName=f"{tank_cfg.ActorNodeName}-depth{i}",
+                    CapturedByNodeName=tank_cfg.ActorNodeName,
+                    TelemetryName=TelemetryName.MicroVolts,
+                    TerminalAssetAlias=db.terminal_asset_alias,
+                    Id=db.make_channel_id(f"{tank_cfg.ActorNodeName}-depth{i}-micro-v")
+                ) for i in range(1,5)
+                ]
+            )
