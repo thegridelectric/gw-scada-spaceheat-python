@@ -222,11 +222,14 @@ class ApiTankModule(Actor):
                 value_list.append(data.MicroVoltsList[i])
                 channel_name_list.append(f"{data.AboutNodeNameList[i]}-micro-v")
                 print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
+                print(f"{self.name} TempCalcMethod is {self._component.gt.TempCalcMethod}")
             if self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
+                print("Got into the if loop")
                 try:
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
                     channel_name_list.append(data.AboutNodeNameList[i])
                 except BaseException as e:
+                    print(f"Problem! {e}")
                     self.services.send_threadsafe(
                         Message(
                             Payload=Problems(
