@@ -9,6 +9,7 @@ from gwproto.enums import TelemetryName
 from gwproto.types import PowerWatts
 from gwproto.types import SnapshotSpaceheat
 
+from tests.atn.dashboard.misc import UpdateSources
 from tests.atn.atn_config import DashboardSettings
 from tests.atn.dashboard.channels.containers import Channels
 from tests.atn.dashboard.display.displays import Displays
@@ -72,7 +73,12 @@ class Dashboard:
                 channels=self.channels,
                 report_time_s=report_time_s,
             )
-            rich.print(self.displays.update())
+            rich.print(
+                self.displays.update(
+                    UpdateSources.Power if fast_path_power_w is not None else UpdateSources.Snapshot,
+                    report_time_s=report_time_s,
+                )
+            )
         except Exception as e:
             self.logger.error("ERROR in refresh_gui")
             self.logger.exception(e)
