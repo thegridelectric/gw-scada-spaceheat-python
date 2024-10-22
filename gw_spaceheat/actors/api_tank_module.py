@@ -11,10 +11,10 @@ from gwproactor import Actor
 from gwproactor import Problems
 from gwproactor import ServicesInterface
 from gwproto import Message
+from gwproto.enums import TempCalcMethod
 from gwproto.types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from gwproto.types import TankModuleParams
 from gwproto.types import SyncedReadings
-from actors.message import SyncedReadingsMessage
 from gwproto.data_classes.components import PicoTankModuleComponent
 from pydantic import BaseModel
 
@@ -23,8 +23,6 @@ from result import Result
 
 
 R_FIXED_KOHMS = 5.65
-R_PICO_KOHMS = 30
-THERMISTOR_BETA = 3977
 THERMISTOR_T0 = 298  # i.e. 25 degrees C
 THERMISTOR_R0_KOHMS = 10
 
@@ -180,7 +178,8 @@ class ApiTankModule(Actor):
             )
             if self.need_to_update_layout(params):
                 self.hw_uid_list.append(params.HwUid)
-                print(f"Layout update: {self.name} Pico {params.PicoAB} HWUID {params.HwUid}")
+                print(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} ")
+                print(f'and add Pico{params.PicoAB.capitalize()}HwUid = "{params.HwUid}')
                 # TODO: send message to self so that writing to hardware layout isn't 
                 # happening in IO loop
             return Response(text=new_params.model_dump_json())
@@ -218,26 +217,33 @@ class ApiTankModule(Actor):
         channel_name_list = []
         value_list = []
         for i in range(len(data.AboutNodeNameList)):
+            volts = data.MicroVoltsList[i] / 1e6
             if self._component.gt.SendMicroVolts:
                 value_list.append(data.MicroVoltsList[i])
                 channel_name_list.append(f"{data.AboutNodeNameList[i]}-micro-v")
-            volts = data.MicroVoltsList[i] / 1e6
-            try:
-                value_list.append(int(simple_beta_one(volts) * 1000))
-                channel_name_list.append(data.AboutNodeNameList[i])
-            except BaseException as e:
-                self.services.send_threadsafe(
-                    Message(
-                        Payload=Problems(
-                            msg=f"Volts to temp problem for {data.AboutNodeNameList[i]} with {volts} V",
-                            errors=[e]
-                        ).problem_event(
-                            summary=(
-                                "Volts to temp problem"
-                            ),
+                print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
+            if self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
+                try:
+                    value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
+                    channel_name_list.append(data.AboutNodeNameList[i])
+                except BaseException as e:
+                    self.services.send_threadsafe(
+                        Message(
+                            Payload=Problems(
+                                msg=(
+                                    f"Volts to temp problem for {data.AboutNodeNameList[i]} with {volts} V"
+                                    f" using SimpleBetaForPico calculation method"
+                                ),
+                                errors=[e]
+                            ).problem_event(
+                                summary=(
+                                    "Volts to temp problem"
+                                ),
+                            )
                         )
                     )
-                )
+            else:
+                raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
         msg = SyncedReadings(ChannelNameList=channel_name_list,
                             ValueList=value_list,
                             ScadaReadTimeUnixMs=int(time.time() * 1000))
@@ -259,28 +265,31 @@ class ApiTankModule(Actor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
 
-def simple_beta_one(volts: float) -> float:
-        """
-        Return temperature Celcius as a function of volts.
-        Uses a fixed estimated resistance for the pico 
-        """
-        r_therm_kohms = thermistor_resistance(volts)
-        return temp_beta(r_therm_kohms, fahrenheit=False)
-
-def thermistor_resistance(volts, r_fixed=R_FIXED_KOHMS, r_pico=R_PICO_KOHMS):
-    r_therm = 1/((3.3/volts-1)/r_fixed - 1/r_pico)
-    return r_therm
-
-def temp_beta(r_therm_kohms: float, fahrenheit: bool=False) -> float:
-    """
-    beta formula specs for the Amphenol MA100GG103BN
-    Uses T0 and R0 are a matching pair of values: this is a 10 K thermistor
-    which means at 25 deg C (T0) it has a resistance of 10K Ohms
+    def simple_beta_for_pico(self, volts: float) -> float:
+            """
+            Return temperature Celcius as a function of volts.
+            Uses a fixed estimated resistance for the pico 
+            """
+            r_therm_kohms = self.thermistor_resistance(volts)
+            return self.temp_beta(r_therm_kohms, fahrenheit=False)
     
-    [More info](https://drive.google.com/drive/u/0/folders/1f8SaqCHOFt8iJNW64A_kNIBGijrJDlsx)
-    """
-    t0, r0, beta = THERMISTOR_T0, THERMISTOR_R0_KOHMS, THERMISTOR_BETA
-    r_therm = r_therm_kohms
-    temp_c = 1 / ((1/t0) + (math.log(r_therm/r0) / beta)) - 273
-    temp_f = 32 + (temp_c * 9/5)
-    return round(temp_f, 2) if fahrenheit else round(temp_c, 2)
+    def temp_beta(self, r_therm_kohms: float, fahrenheit: bool=False) -> float:
+        """
+        beta formula specs for the Amphenol MA100GG103BN
+        Uses T0 and R0 are a matching pair of values: this is a 10 K thermistor
+        which means at 25 deg C (T0) it has a resistance of 10K Ohms
+        
+        [More info](https://drive.google.com/drive/u/0/folders/1f8SaqCHOFt8iJNW64A_kNIBGijrJDlsx)
+        """
+        t0, r0= THERMISTOR_T0, THERMISTOR_R0_KOHMS, 
+        beta = self._component.gt.ThermistorBeta
+        r_therm = r_therm_kohms
+        temp_c = 1 / ((1/t0) + (math.log(r_therm/r0) / beta)) - 273
+        temp_f = 32 + (temp_c * 9/5)
+        return round(temp_f, 2) if fahrenheit else round(temp_c, 2)
+
+    def thermistor_resistance(self, volts, r_fixed=R_FIXED_KOHMS):
+        r_pico = self._component.gt.PicoKOhms
+        r_therm = 1/((3.3/volts-1)/r_fixed - 1/r_pico)
+        return r_therm
+
