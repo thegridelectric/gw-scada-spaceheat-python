@@ -2,7 +2,7 @@ import json
 import math
 import time
 from functools import cached_property
-from typing import Dict, List
+from typing import List
 from typing import Literal
 from typing import Optional
 from aiohttp.web_request import Request
@@ -17,16 +17,14 @@ from gwproto.types import TankModuleParams
 from gwproto.types import SyncedReadings
 from gwproto.data_classes.components import PicoTankModuleComponent
 from pydantic import BaseModel
-
+from gw.errors import DcError
 from result import Ok
 from result import Result
 
+R_FIXED_KOHMS = 5.65 # The voltage divider resistors in the TankModule
+THERMISTOR_T0 = 298  # i.e. 25 degrees
+THERMISTOR_R0_KOHMS = 10 # The R0 of the NTC thermistor - an industry standard
 
-R_FIXED_KOHMS = 5.65
-THERMISTOR_T0 = 298  # i.e. 25 degrees C
-THERMISTOR_R0_KOHMS = 10
-
-    
 
 class MicroVolts(BaseModel):
     HwUid: str
@@ -221,7 +219,7 @@ class ApiTankModule(Actor):
             if self._component.gt.SendMicroVolts:
                 value_list.append(data.MicroVoltsList[i])
                 channel_name_list.append(f"{data.AboutNodeNameList[i]}-micro-v")
-                print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
+                # print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
             if self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
                 try:
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
@@ -232,8 +230,7 @@ class ApiTankModule(Actor):
                         Message(
                             Payload=Problems(
                                 msg=(
-                                    f"Volts to temp problem for {data.AboutNodeNameList[i]} with {volts} V"
-                                    f" using SimpleBetaForPico calculation method"
+                                    f"Volts to temp problem for {data.AboutNodeNameList[i]}"
                                 ),
                                 errors=[e]
                             ).problem_event(
@@ -282,16 +279,21 @@ class ApiTankModule(Actor):
         
         [More info](https://drive.google.com/drive/u/0/folders/1f8SaqCHOFt8iJNW64A_kNIBGijrJDlsx)
         """
-        t0, r0= THERMISTOR_T0, THERMISTOR_R0_KOHMS, 
+        t0, r0 = THERMISTOR_T0, THERMISTOR_R0_KOHMS, 
         beta = self._component.gt.ThermistorBeta
         r_therm = r_therm_kohms
         temp_c = 1 / ((1/t0) + (math.log(r_therm/r0) / beta)) - 273
+    
         temp_f = 32 + (temp_c * 9/5)
         return round(temp_f, 2) if fahrenheit else round(temp_c, 2)
 
-    def thermistor_resistance(self, volts, r_fixed=R_FIXED_KOHMS):
+    def thermistor_resistance(self, volts):
+        r_fixed = R_FIXED_KOHMS
         r_pico = self._component.gt.PicoKOhms
-        r_pico = 30 # remove once layout fixed
+        if r_pico is None:
+            raise DcError(f"{self.name} component missing PicoKOhms!")
         r_therm = 1/((3.3/volts-1)/r_fixed - 1/r_pico)
+        if r_therm <= 0:
+            raise ValueError("Disconnected thermistor!")
         return r_therm
 

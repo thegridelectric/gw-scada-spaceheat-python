@@ -295,7 +295,9 @@
       "PicoAHwUid": "pico_4c1a21",
       "PicoBHwUid": "pico_487a22",
       "Samples": 1000,
-      "SendMicroVolts": false,
+      "SendMicroVolts": true,
+      "TempCalcMethod": "SimpleBetaForPico",
+      "ThermistorBeta": 3977,
       "TypeName": "pico.tank.module.component.gt",
       "Version": "000"
     },

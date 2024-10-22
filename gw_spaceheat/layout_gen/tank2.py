@@ -9,7 +9,7 @@ from gwproto.enums import MakeModel, Unit, ActorClass, TelemetryName
 from gwproto.types.channel_config import ChannelConfig
 from gwproto.types import SpaceheatNodeGt
 from gwproto.data_classes.house_0_names import H0N
-
+from gwproto.enums import TempCalcMethod
 
 class Tank2Cfg(BaseModel):
     SerialNumber: str
@@ -22,6 +22,10 @@ class Tank2Cfg(BaseModel):
     NumSampleAverages:int = 10
     Enabled: bool = True
     SendMicroVolts: bool = True
+    TempCalc: TempCalcMethod = TempCalcMethod.SimpleBetaForPico
+    ThermistorBeta: Optional[int] = 3977 # Beta for the Amphenols
+    PicoKOhms: int = 30
+    
 
     def component_display_name(self) -> str:
         return f"{self.ActorNodeName} PicoTankModule"
@@ -80,7 +84,10 @@ def add_tank2(
                     Enabled=tank_cfg.Enabled,
                     SendMicroVolts=tank_cfg.SendMicroVolts,
                     Samples=tank_cfg.Samples,
-                    NumSampleAverages=tank_cfg.NumSampleAverages 
+                    NumSampleAverages=tank_cfg.NumSampleAverages,
+                    TempCalcMethod=tank_cfg.TempCalc,
+                    ThermistorBeta=tank_cfg.ThermistorBeta,
+                    PicoKOhms=tank_cfg.PicoKOhms
                 ),
             ]
         )
