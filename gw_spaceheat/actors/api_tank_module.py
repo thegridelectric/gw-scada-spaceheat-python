@@ -293,6 +293,7 @@ class ApiTankModule(Actor):
 
     def thermistor_resistance(self, volts, r_fixed=R_FIXED_KOHMS):
         r_pico = self._component.gt.PicoKOhms
+        r_pico = 30 # remove once layout fixed
         r_therm = 1/((3.3/volts-1)/r_fixed - 1/r_pico)
         return r_therm
 
