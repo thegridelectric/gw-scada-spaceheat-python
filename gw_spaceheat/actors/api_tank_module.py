@@ -278,7 +278,7 @@ class ApiTankModule(Actor):
             Uses a fixed estimated resistance for the pico 
             """
             r_therm_kohms = self.thermistor_resistance(volts)
-            return self.temp_beta(r_therm_kohms, fahrenheit=False)
+            return self.temp_beta(r_therm_kohms, fahrenheit=fahrenheit)
     
     def temp_beta(self, r_therm_kohms: float, fahrenheit: bool=False) -> float:
         """
