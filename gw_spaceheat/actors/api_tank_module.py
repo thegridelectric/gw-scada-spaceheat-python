@@ -143,9 +143,6 @@ class ApiTankModule(Actor):
             else:
                 return True
     
-    def update_layout(self, params: TankModuleParams) -> None:
-        if params.PicoAB == "a":
-            new_layout = self.services.hardware_layout.layout
 
     async def _handle_params_post(self, request: Request) -> Response:
         text = await self._get_text(request)
@@ -229,7 +226,6 @@ class ApiTankModule(Actor):
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
                     channel_name_list.append(data.AboutNodeNameList[i])
                 except BaseException as e:
-                    print(f"Problem! {e}")
                     self.services.send_threadsafe(
                         Message(
                             Payload=Problems(
@@ -252,9 +248,9 @@ class ApiTankModule(Actor):
         self.msg = msg
         self.services._publish_to_local(self._node, msg)
         if self.report_on_data:
-            current_time = datetime.now()
-            print("")
-            print(current_time.strftime("%H:%M:%S"))
+            combined = list(zip(data.AboutNodeNameList, data.MicroVoltsList))
+            combined.sort(key=lambda x: x[0])
+            data.AboutNodeNameList, data.MicroVoltsList = zip(*combined)
             for i in range(len(data.MicroVoltsList)):
                 mv = data.MicroVoltsList[i]
                 try:
