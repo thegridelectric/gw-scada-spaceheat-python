@@ -72,6 +72,7 @@ class ApiTankModule(Actor):
             )
         self.hw_uid_list = []
         self.initailize_hw_uid_list()
+        self.report_on_data = False
 
 
     def initailize_hw_uid_list(self):
@@ -247,7 +248,15 @@ class ApiTankModule(Actor):
                             ScadaReadTimeUnixMs=int(time.time() * 1000))
         self.msg = msg
         self.services._publish_to_local(self._node, msg)
-        
+        if self.report_on_data:
+            for i in range(len(data.MicroVoltsList)):
+                mv = data.MicroVoltsList[i]
+                try:
+                    temp_f = self.simple_beta_for_pico(mv/1e6, fahrenheit=True)
+                    print(f"{data.AboutNodeNameList[i]}: {round(temp_f, 2)} F")
+                except Exception:
+                    print(f"{data.AboutNodeNameList[i]}: OPEN")
+
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case MicroVolts():
@@ -263,7 +272,7 @@ class ApiTankModule(Actor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
 
-    def simple_beta_for_pico(self, volts: float) -> float:
+    def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
             """
             Return temperature Celcius as a function of volts.
             Uses a fixed estimated resistance for the pico 
