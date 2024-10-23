@@ -181,6 +181,8 @@ class ApiTankModule(Actor):
                 print(f'and add Pico{params.PicoAB.capitalize()}HwUid = "{params.HwUid}')
                 # TODO: send message to self so that writing to hardware layout isn't 
                 # happening in IO loop
+            print(f"Got {params}")
+            print(f"Returning {new_params}")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
