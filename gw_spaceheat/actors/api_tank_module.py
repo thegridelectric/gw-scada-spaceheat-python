@@ -1,6 +1,7 @@
 import json
 import math
 import time
+from datetime import datetime
 from functools import cached_property
 from typing import List
 from typing import Literal
@@ -251,6 +252,9 @@ class ApiTankModule(Actor):
         self.msg = msg
         self.services._publish_to_local(self._node, msg)
         if self.report_on_data:
+            current_time = datetime.now()
+            print("")
+            print(current_time.strftime("%H:%M:%S"))
             for i in range(len(data.MicroVoltsList)):
                 mv = data.MicroVoltsList[i]
                 try:
