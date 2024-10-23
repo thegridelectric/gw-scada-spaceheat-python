@@ -14,7 +14,7 @@ from gwproactor.config import MQTTClient
 from gwproactor.config.paths import TLSPaths
 from pydantic import BaseModel
 
-from actors import Scada, Parentless
+from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
@@ -140,14 +140,11 @@ def check_tls_paths_present(model: BaseModel | BaseSettings, raise_error: bool =
     return error_str
 
 def get_scada(
-    name: str,
     argv: Optional[Sequence[str]] = None,
     run_in_thread: bool = False,
     add_screen_handler: bool = True,
     actors_package_name: str = Scada.DEFAULT_ACTORS_MODULE,
 ) -> Scada:
-    if name is None:
-        name = H0N.primary_scada
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
@@ -171,21 +168,30 @@ def get_scada(
         rich.print(settings)
         check_tls_paths_present(settings)
         requested_names = get_requested_names(args)
-        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_names)
-        if name == H0N.primary_scada:
-            scada_node, actor_nodes = get_nodes_run_by_scada(requested_names, layout, actors_package_name)
-            print(f"actor nodes run by scada: {actor_nodes}")
-            scada = Scada(name=scada_node.Name, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
-            if run_in_thread:
-                logger.info("run_async_actors_main() starting")
-                scada.run_in_thread()
-        else:
-            print(f"name is {name}")
-            # NOTE: THIS DOES NOT WORK
-            scada = Parentless(name=name, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
-            if run_in_thread:
-                logger.info("run_async_actors_main() starting")
-                scada.run_in_thread()
+        layout = HardwareLayout.load(
+            settings.paths.hardware_layout, 
+            included_node_names=requested_names
+        )
+        scada_node, actor_nodes = get_nodes_run_by_scada(
+            requested_names, 
+            layout, 
+            actors_package_name
+        )
+        print(f"actor nodes run by scada: {actor_nodes}")
+        scada = Scada(
+            name=scada_node.Name, 
+            settings=settings, 
+            hardware_layout=layout, 
+            actor_nodes=actor_nodes
+        )
+        if run_in_thread:
+            logger.info("run_async_actors_main() starting")
+            scada.run_in_thread()
+        # # NOTE: THIS DOES NOT WORK
+        # scada = Parentless(name=name, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
+        # if run_in_thread:
+        #     logger.info("run_async_actors_main() starting")
+        #     scada.run_in_thread()
     return scada
 
 
