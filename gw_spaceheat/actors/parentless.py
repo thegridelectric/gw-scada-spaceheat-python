@@ -5,6 +5,7 @@ import threading
 from typing import Any, Optional
 from typing import List
 
+from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
 from gwproto.types import Report
 from gwproto.types import SnapshotSpaceheat
@@ -45,15 +46,18 @@ class Parentless(ScadaInterface, Proactor):
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self._links.add_mqtt_link(
-            Parentless.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec(self._layout)
+            LinkSettings(
+                client_name=Parentless.LOCAL_MQTT,
+                gnode_name=H0N.primary_scada,
+                spaceheat_name=H0N.primary_scada,
+                upstream=True,
+                mqtt=self.settings.local_mqtt,
+                codec=LocalMQTTCodec(primary_scada=False),
+                primary_peer=False,
+            )
         )
-        self._links.subscribe(
-            Parentless.LOCAL_MQTT,
-            f"gw/{H0N.primary_scada}/#",
-            qos=QOS.AtMostOnce,
-        )
-        self._data = Scada2Data()
         self._links.log_subscriptions("construction")
+        self._data = Scada2Data()
         self.actors_package_name = actors_package_name
         if actors_package_name is None:
             self.actors_package_name = self.DEFAULT_ACTORS_MODULE

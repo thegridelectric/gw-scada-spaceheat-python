@@ -9,6 +9,8 @@ from typing import Optional
 from typing import List
 
 import pendulum
+from gwproactor.links.link_settings import LinkSettings
+from gwproto.data_classes.house_0_names import H0N
 from gwproto.types import GtShCliAtnCmd
 from paho.mqtt.client import MQTTMessageInfo
 import rich
@@ -16,7 +18,6 @@ from pydantic import BaseModel
 
 from gwproto import create_message_model
 from gwproto import MQTTCodec
-from gwproto import MQTTTopic
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
@@ -41,10 +42,11 @@ from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
 
 class AtnMQTTCodec(MQTTCodec):
-    hardware_layout: HardwareLayout
+    exp_src: str
+    exp_dst: str = H0N.atn
 
     def __init__(self, hardware_layout: HardwareLayout):
-        self.hardware_layout = hardware_layout
+        self.exp_src = hardware_layout.scada_g_node_alias
         super().__init__(
             create_message_model(
                 model_name="AtnMessageDecoder",
@@ -53,9 +55,14 @@ class AtnMQTTCodec(MQTTCodec):
             )
         )
 
-    def validate_source_alias(self, source_alias: str):
-        if source_alias != self.hardware_layout.scada_g_node_alias:
-            raise Exception(f"alias {source_alias} not my Scada!")
+    def validate_source_and_destination(self, src: str, dst: str) -> None:
+        if src != self.exp_src or dst != self.exp_dst:
+            raise ValueError(
+                "ERROR validating src and/or dst\n"
+                f"  exp: {self.exp_src} -> {self.exp_dst}\n"
+                f"  got: {src} -> {dst}"
+            )
+
 
 class Telemetry(BaseModel):
     Value: int
@@ -89,11 +96,16 @@ class Atn(ActorInterface, Proactor):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self._web_manager.disable()
         self.data = AtnData(hardware_layout)
-        self._links.add_mqtt_link(Atn.SCADA_MQTT, self.settings.scada_mqtt, AtnMQTTCodec(self.layout), primary_peer=True)
-        self._links.subscribe(
-            Atn.SCADA_MQTT,
-            MQTTTopic.encode_subscription(Message.type_name(), self.layout.scada_g_node_alias),
-            QOS.AtMostOnce,
+        self._links.add_mqtt_link(
+            LinkSettings(
+                client_name=Atn.SCADA_MQTT,
+                gnode_name=self.hardware_layout.scada_g_node_alias,
+                spaceheat_name=H0N.primary_scada,
+                upstream=False,
+                mqtt=settings.scada_mqtt,
+                codec=AtnMQTTCodec(self.layout),
+                primary_peer=True,
+            )
         )
         self.latest_report: Optional[Report] = None
         self.report_output_dir = self.settings.paths.data_dir / "report"
@@ -126,6 +138,10 @@ class Atn(ActorInterface, Proactor):
     @property
     def publication_name(self) -> str:
         return self.layout.atn_g_node_alias
+
+    @property
+    def subscription_name(self) -> str:
+        return H0N.atn
 
     @property
     def settings(self) -> AtnSettings:

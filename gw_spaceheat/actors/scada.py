@@ -11,8 +11,10 @@ from typing import Optional
 
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
+from gwproactor.links.link_settings import LinkSettings
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
+from gwproto.data_classes.house_0_names import H0N
 from gwproto.messages import MyChannels, MyChannelsEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
@@ -20,7 +22,6 @@ from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import ReportEvent
 from gwproto.messages import SyncedReadings
 from gwproto import MQTTCodec
-from gwproto import MQTTTopic
 from result import Ok
 from result import Result
 
@@ -52,28 +53,43 @@ ScadaMessageDecoder = create_message_model(
 SYNC_SNAP_S = 30
 
 class GridworksMQTTCodec(MQTTCodec):
-    hardware_layout: HardwareLayout
+    exp_src: str
+    exp_dst: str = H0N.primary_scada
 
     def __init__(self, hardware_layout: HardwareLayout):
-        self.hardware_layout = hardware_layout
+        self.exp_src = hardware_layout.atn_g_node_alias
         super().__init__(ScadaMessageDecoder)
 
-    def validate_source_alias(self, source_alias: str):
-        if source_alias != self.hardware_layout.atn_g_node_alias:
-            raise Exception(
-                f"alias {source_alias} not my AtomicTNode ({self.hardware_layout.atn_g_node_alias})!"
+    def validate_source_and_destination(self, src: str, dst: str) -> None:
+        if src != self.exp_src or dst != self.exp_dst:
+            raise ValueError(
+                "ERROR validating src and/or dst\n"
+                f"  exp: {self.exp_src} -> {self.exp_dst}\n"
+                f"  got: {src} -> {dst}"
             )
 
 
 class LocalMQTTCodec(MQTTCodec):
+    exp_src: str
+    exp_dst: str
 
-    def __init__(self, hardware_layout: HardwareLayout):
-        self.hardware_layout = hardware_layout
+    def __init__(self, *, primary_scada: bool):
+        self.primary_scada = primary_scada
+        if self.primary_scada:
+            self.exp_src = H0N.secondary_scada
+            self.exp_dst = H0N.primary_scada
+        else:
+            self.exp_src = H0N.primary_scada
+            self.exp_dst = H0N.secondary_scada
         super().__init__(ScadaMessageDecoder)
 
-    def validate_source_alias(self, source_alias: str):
-        if source_alias not in self.hardware_layout.nodes.keys():
-            raise Exception(f"{source_alias} not a node name!")
+    def validate_source_and_destination(self, src: str, dst: str) -> None:
+        if src != self.exp_src or dst != self.exp_dst:
+            raise ValueError(
+                "ERROR validating src and/or dst\n"
+                f"  exp: {self.exp_src} -> {self.exp_dst}\n"
+                f"  got: {src} -> {dst}"
+            )
 
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
@@ -107,21 +123,28 @@ class Scada(ScadaInterface, Proactor):
         self._data = ScadaData(settings, hardware_layout)
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self._links.add_mqtt_link(
-            Scada.LOCAL_MQTT, self.settings.local_mqtt, LocalMQTTCodec(self._layout)
+            LinkSettings(
+                client_name=self.LOCAL_MQTT,
+                gnode_name=H0N.secondary_scada,
+                spaceheat_name=H0N.secondary_scada,
+                upstream=False,
+                mqtt=self.settings.local_mqtt,
+                codec=LocalMQTTCodec(primary_scada=True),
+                primary_peer=False,
+            )
         )
         self._links.add_mqtt_link(
-            Scada.GRIDWORKS_MQTT,
-            self.settings.gridworks_mqtt,
-            GridworksMQTTCodec(self._layout),
-            upstream=True,
-            primary_peer=True,
+            LinkSettings(
+                client_name=self.GRIDWORKS_MQTT,
+                gnode_name=self._layout.atn_g_node_alias,
+                spaceheat_name=H0N.atn,
+                upstream=True,
+                mqtt=self.settings.gridworks_mqtt,
+                codec=GridworksMQTTCodec(self._layout),
+                primary_peer=True,
+            )
         )
-        self._links.subscribe(
-            Scada.GRIDWORKS_MQTT,
-            MQTTTopic.encode_subscription(Message.type_name(), self._layout.atn_g_node_alias),
-            QOS.AtMostOnce
-        )
-        remote_actor_nodes = [node for node in self._layout.nodes.values() if 
+        remote_actor_nodes = [node for node in self._layout.nodes.values() if
                    self._layout.parent_node(node) != self._node and 
                    node != self._node and
                    node.has_actor]
@@ -183,6 +206,10 @@ class Scada(ScadaInterface, Proactor):
     @property
     def publication_name(self) -> str:
         return self._layout.scada_g_node_alias
+
+    @property
+    def subscription_name(self) -> str:
+        return H0N.primary_scada
 
     @property
     def settings(self):
