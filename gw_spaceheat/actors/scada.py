@@ -19,6 +19,11 @@ from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import ReportEvent
 from gwproto.messages import SyncedReadings
+from gwproto.messages import ChannelReadings
+from gwproto.messages import TicklistReed
+from gwproto.messages import TicklistReedReport
+from gwproto.messages import TicklistHall
+from gwproto.messages import TicklistHallReport
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
 from result import Ok
@@ -326,12 +331,14 @@ class Scada(ScadaInterface, Proactor):
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
             case SyncedReadings():
-                path_dbg |= 0x00000040
+                path_dbg |= 0x00000004
                 self.synced_readings_received(
                         from_node, message.Payload
                     )
             case MicroVolts():
+                path_dbg |= 0x00000008
                 self.get_communicator(message.Header.Dst).process_message(message)
+
 
             case _:
                 raise ValueError(
@@ -369,17 +376,20 @@ class Scada(ScadaInterface, Proactor):
         payload = codec.decode(topic=mqtt_msg.topic, payload=mqtt_msg.payload).Payload
         if from_node:
             match payload:
+                case ChannelReadings():
+                    self.channel_readings_received(
+                        from_node, payload
+                    )
                 case SyncedReadings():
                     self.synced_readings_received(
                         from_node, payload
                     )
-                case PowerWatts():
-                    if from_node is self._layout.power_meter_node:
-                        self.power_watts_received(payload)
-                    else:
-                        raise Exception(
-                            f"message.Header.Src {from_node.name} must be from {self._layout.power_meter_node} for PowerWatts message"
-                        )
+                case TicklistHallReport():
+                    self._links.publish_upstream(payload, QOS.AtMostOnce)
+            
+                case TicklistReedReport():
+                    self._links.publish_upstream(payload, QOS.AtMostOnce)
+
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
@@ -430,6 +440,9 @@ class Scada(ScadaInterface, Proactor):
 
         self._links.publish_upstream(payload, QOS.AtMostOnce)
         self._data.latest_total_power_w = payload.Watts
+    
+
+        
 
     def synced_readings_received(
         self, from_node: ShNode, payload: SyncedReadings
@@ -458,7 +471,33 @@ class Scada(ScadaInterface, Proactor):
         self._logger.path(
             "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
         )
-
+    
+    def channel_readings_received(
+            self, from_node: ShNode, payload: ChannelReadings
+    ) -> None:
+        self._logger.path(
+            "++channel_readings_received for channel: %d",
+            payload.ChannelName
+        )
+        if payload.ChannelName not in self._layout.data_channels:
+            raise ValueError(
+                    f"Name {payload.ChannelName} in ChannelReadings not a recognized Data Channel!"
+                )
+        ch = self._layout.data_channels[payload.ChannelName]
+        if from_node != ch.captured_by_node:
+            raise ValueError(
+                f"{payload.ChannelName} shoudl be read by {ch.captured_by_node}, not {from_node}!"
+            )
+        self._data.recent_channel_values[ch].append(
+            payload.ValueList
+        )
+        self._data.recent_channel_unix_ms[
+            ch
+        ].append(payload.ScadaReadTimeUnixMsList)
+        if len(payload.ValueList) > 0:
+            self._data.latest_channel_values[ch] = payload.ValueList[-1]
+            self._data.latest_channel_unix_ms[ch] = payload.ScadaReadTimeUnixMsList[-1]
+        
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():
             try:
