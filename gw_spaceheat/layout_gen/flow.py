@@ -15,7 +15,6 @@ from gwproto.enums import GpmFromHzMethod, HzCalcMethod
 SAIER_CONSTANT_GALLONS_PER_TICK = 0.0009
 EKM_CONSTANT_GALLONS_PER_TICK = 0.0748
 HALL_PUBLISH_TICKLIST_AFTER_S = 60
-REED_PUBLISH_TICKLIST_AFTER_S = 180
 
 class HallCfg(BaseModel):
     Enabled: bool = True
@@ -27,14 +26,13 @@ class HallCfg(BaseModel):
     HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     CapturePeriodS: int = 300
-    AsyncCaptureThresholdGpmTimes10: int = 20
+    AsyncCaptureThresholdGpmTimes100: int = 5
     SendHz: bool = True
     SendTickLists: bool = False
-    ConstantGallonsPerTick = SAIER_CONSTANT_GALLONS_PER_TICK
+    ConstantGallonsPerTick: float = SAIER_CONSTANT_GALLONS_PER_TICK
     SendHz: bool = True
     NoFlowMs: int = 250
     PublishEmptyTicklistAfterS: int = HALL_PUBLISH_TICKLIST_AFTER_S
-    AsyncCaptureThresholdGpmTimes10: int = 20
     PublishTicklistPeriodS: int = 10 
     ExpAlpha: Optional[float] = None # 
     CutoffFrequency: Optional[float] = None
@@ -52,19 +50,18 @@ class ReedCfg(BaseModel):
     HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     CapturePeriodS: int = 300
-    AsyncCaptureThresholdGpmTimes10: int = 20
+    AsyncCaptureThresholdGpmTimes100: int = 5
     SendHz: bool = True
     SendTickLists: bool = False
-    ConstantGallonsPerTick = EKM_CONSTANT_GALLONS_PER_TICK
-    NoFlowMs: int = 250
-    PublishEmptyTicklistAfterS: int = REED_PUBLISH_TICKLIST_AFTER_S
-    AsyncCaptureThresholdGpmTimes10: int = 20
+    ConstantGallonsPerTick: float = EKM_CONSTANT_GALLONS_PER_TICK
+    NoFlowMs: int = 10_000
+    PublishAnyTicklistAfterS: int = 10_000
     PublishTicklistLength: int = 10 
     ExpAlpha: Optional[float] = None # 
     CutoffFrequency: Optional[float] = None
 
     def component_display_name(self) -> str:
-        return f"{self.ActorNodeName} ReedFlowModule"
+        return f"{self.ActorNodeName.replace('-', ' ').title()} ReedFlowModule"
 
 
 def add_flow(
@@ -135,7 +132,7 @@ def add_flow(
                         SendTickLists=flow_hall_cfg.SendTickLists,
                         NoFlowMs=flow_hall_cfg.NoFlowMs,
                         PublishEmptyTicklistAfterS=flow_hall_cfg.PublishEmptyTicklistAfterS,
-                        AsyncCaptureThresholdGpmTimes10=flow_hall_cfg.AsyncCaptureThresholdGpmTimes10,
+                        AsyncCaptureThresholdGpmTimes100=flow_hall_cfg.AsyncCaptureThresholdGpmTimes100,
                         PublishTicklistPeriodS=flow_hall_cfg.PublishTicklistPeriodS,
                         ExpAlpha=flow_hall_cfg.ExpAlpha,
                     ),
@@ -160,8 +157,8 @@ def add_flow(
                         SendGallons=False,
                         SendTickLists=flow_reed_cfg.SendTickLists,
                         NoFlowMs=flow_reed_cfg.NoFlowMs,
-                        PublishEmptyTicklistAfterS=flow_reed_cfg.PublishEmptyTicklistAfterS,
-                        AsyncCaptureThresholdGpmTimes10=flow_reed_cfg.AsyncCaptureThresholdGpmTimes10,
+                        PublishAnyTicklistAfterS=flow_reed_cfg.PublishAnyTicklistAfterS,
+                        AsyncCaptureThresholdGpmTimes100=flow_reed_cfg.AsyncCaptureThresholdGpmTimes100,
                         PublishTicklistLength=flow_reed_cfg.PublishTicklistLength,
                         ExpAlpha=flow_reed_cfg.ExpAlpha,
                     ),
@@ -174,7 +171,7 @@ def add_flow(
                     Name=flow_cfg.ActorNodeName,
                     ActorHierarchyName=f"{H0N.secondary_scada}.{flow_cfg.ActorNodeName}",
                     ActorClass=ActorClass.ApiFlowModule,
-                    DisplayName=f"{flow_cfg.ActorNodeName.replace('-', '').title()}",
+                    DisplayName=f"{flow_cfg.ActorNodeName.replace('-', ' ').title()}",
                     ComponentId=db.component_id_by_alias(flow_cfg.component_display_name())
                 )
             ] 
@@ -183,7 +180,7 @@ def add_flow(
         db.add_data_channels(
             [ DataChannelGt(
                Name=flow_cfg.ActorNodeName,
-               DisplayName=f"{flow_cfg.ActorNodeName.capitalize()} Gpm X 100",
+               DisplayName=f"{flow_cfg.ActorNodeName.replace('-', ' ').title()} Gpm X 100",
                AboutNodeName=flow_cfg.FlowNodeName,
                CapturedByNodeName=flow_cfg.ActorNodeName,
                TelemetryName=TelemetryName.GpmTimes100,
@@ -197,12 +194,12 @@ def add_flow(
             db.add_data_channels(
                 [ DataChannelGt(
                     Name=f"{flow_cfg.ActorNodeName}-hz",
-                    DisplayName=f"{flow_cfg.ActorNodeName.capitalize()} MicroHz",
+                    DisplayName=f"{flow_cfg.ActorNodeName.replace('-', ' ').title()} MicroHz",
                     AboutNodeName=flow_cfg.ActorNodeName,
                     CapturedByNodeName=flow_cfg.ActorNodeName,
                     TelemetryName=TelemetryName.MicroHz,
                     TerminalAssetAlias=db.terminal_asset_alias,
                     Id=db.make_channel_id(f"{flow_cfg.ActorNodeName}-hz")
-                ) for i in range(1,5)
+                )
                 ]
             )

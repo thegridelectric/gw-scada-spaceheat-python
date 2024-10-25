@@ -236,6 +236,11 @@ class FlowChannel(DisplayChannel):
                 f"ERROR. Flow channel {self.name} expects telemetry "
                 f"{TelemetryName.GpmTimes100}. Got {self.telemetry_name}"
             )
+    
+    def convert(self, raw: int) -> float:
+        raw = float(raw)
+        raw /= 100
+        return round(raw, 1)
 
 class HoneywellThermostatStateChannel(DisplayChannel):
 

@@ -20,9 +20,7 @@ from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import ReportEvent
 from gwproto.messages import SyncedReadings
 from gwproto.messages import ChannelReadings
-from gwproto.messages import TicklistReed
 from gwproto.messages import TicklistReedReport
-from gwproto.messages import TicklistHall
 from gwproto.messages import TicklistHallReport
 from gwproto import MQTTCodec
 from gwproto import MQTTTopic
@@ -77,6 +75,7 @@ class LocalMQTTCodec(MQTTCodec):
         super().__init__(ScadaMessageDecoder)
 
     def validate_source_alias(self, source_alias: str):
+        source_alias = source_alias.replace(".", "-")
         if source_alias not in self.hardware_layout.nodes.keys():
             raise Exception(f"{source_alias} not a node name!")
 
@@ -388,6 +387,7 @@ class Scada(ScadaInterface, Proactor):
                     self._links.publish_upstream(payload, QOS.AtMostOnce)
             
                 case TicklistReedReport():
+                    print(f"Publishing {payload.TypeName}")
                     self._links.publish_upstream(payload, QOS.AtMostOnce)
 
 
@@ -442,8 +442,6 @@ class Scada(ScadaInterface, Proactor):
         self._data.latest_total_power_w = payload.Watts
     
 
-        
-
     def synced_readings_received(
         self, from_node: ShNode, payload: SyncedReadings
     ):
@@ -488,12 +486,9 @@ class Scada(ScadaInterface, Proactor):
             raise ValueError(
                 f"{payload.ChannelName} shoudl be read by {ch.captured_by_node}, not {from_node}!"
             )
-        self._data.recent_channel_values[ch].append(
-            payload.ValueList
-        )
-        self._data.recent_channel_unix_ms[
-            ch
-        ].append(payload.ScadaReadTimeUnixMsList)
+        self._data.recent_channel_values[ch] += payload.ValueList
+        
+        self._data.recent_channel_unix_ms[ch] += payload.ScadaReadTimeUnixMsList
         if len(payload.ValueList) > 0:
             self._data.latest_channel_values[ch] = payload.ValueList[-1]
             self._data.latest_channel_unix_ms[ch] = payload.ScadaReadTimeUnixMsList[-1]
