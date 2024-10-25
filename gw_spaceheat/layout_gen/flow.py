@@ -1,0 +1,208 @@
+from gwproto.types import PicoFlowModuleComponentGt
+from typing import Optional, Any
+from pydantic import BaseModel
+from gwproto.property_format import SpaceheatName
+from layout_gen import LayoutDb
+from gwproto.types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwproto.types.data_channel_gt import DataChannelGt
+from gwproto.enums import MakeModel, Unit, ActorClass, TelemetryName
+from gwproto.types.channel_config import ChannelConfig
+from gwproto.types import SpaceheatNodeGt
+from gwproto.data_classes.house_0_names import H0N
+from gwproto.enums import GpmFromHzMethod, HzCalcMethod
+
+
+SAIER_CONSTANT_GALLONS_PER_TICK = 0.0009
+EKM_CONSTANT_GALLONS_PER_TICK = 0.0748
+HALL_PUBLISH_TICKLIST_AFTER_S = 60
+REED_PUBLISH_TICKLIST_AFTER_S = 180
+
+class HallCfg(BaseModel):
+    Enabled: bool = True
+    SerialNumber: str
+    PicoHwUid: Optional[str] = None
+    ActorNodeName: SpaceheatName = H0N.dist_flow
+    FlowNodeName: Optional[SpaceheatName] = None
+    FlowMeterType: MakeModel = MakeModel.SAIER__SENHZG1WA
+    HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
+    GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
+    CapturePeriodS: int = 300
+    AsyncCaptureThresholdGpmTimes10: int = 20
+    SendHz: bool = True
+    SendTickLists: bool = False
+    ConstantGallonsPerTick = SAIER_CONSTANT_GALLONS_PER_TICK
+    SendHz: bool = True
+    NoFlowMs: int = 250
+    PublishEmptyTicklistAfterS: int = HALL_PUBLISH_TICKLIST_AFTER_S
+    AsyncCaptureThresholdGpmTimes10: int = 20
+    PublishTicklistPeriodS: int = 10 
+    ExpAlpha: Optional[float] = None # 
+    CutoffFrequency: Optional[float] = None
+
+    def component_display_name(self) -> str:
+        return f"{self.ActorNodeName} ReedFlowModule"
+    
+class ReedCfg(BaseModel):
+    Enabled: bool = True
+    SerialNumber: str = "NA"
+    PicoHwUid: Optional[str] = None
+    ActorNodeName: SpaceheatName = H0N.dist_flow
+    FlowNodeName: Optional[SpaceheatName] = None
+    FlowMeterType: MakeModel = MakeModel.EKM__HOTSPWM075HD
+    HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
+    GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
+    CapturePeriodS: int = 300
+    AsyncCaptureThresholdGpmTimes10: int = 20
+    SendHz: bool = True
+    SendTickLists: bool = False
+    ConstantGallonsPerTick = EKM_CONSTANT_GALLONS_PER_TICK
+    NoFlowMs: int = 250
+    PublishEmptyTicklistAfterS: int = REED_PUBLISH_TICKLIST_AFTER_S
+    AsyncCaptureThresholdGpmTimes10: int = 20
+    PublishTicklistLength: int = 10 
+    ExpAlpha: Optional[float] = None # 
+    CutoffFrequency: Optional[float] = None
+
+    def component_display_name(self) -> str:
+        return f"{self.ActorNodeName} ReedFlowModule"
+
+
+def add_flow(
+        db: LayoutDb,
+        flow_cfg: Any
+) -> None:
+    if flow_cfg.FlowNodeName is None:
+        flow_cfg.FlowNodeName = flow_cfg.ActorNodeName
+    flow_reed_cfg: ReedCfg = flow_cfg
+    flow_hall_cfg: HallCfg = flow_cfg
+    if type(flow_cfg) is HallCfg:
+        is_hall = True
+        make_model = MakeModel.GRIDWORKS__PICOFLOWHALL
+        cac_display_name = "Pico Flow Hall"
+    else:
+        is_hall = False
+        make_model = MakeModel.GRIDWORKS__PICOFLOWREED
+        cac_display_name = "Pico Flow Reed"
+    if not db.cac_id_by_alias(make_model):
+        db.add_cacs(
+            [
+                ComponentAttributeClassGt(
+                    ComponentAttributeClassId=db.make_cac_id(make_model),
+                    DisplayName=cac_display_name,
+                    MakeModel=make_model,
+                ),
+            ]
+        )
+
+    
+    if not db.component_id_by_alias(flow_cfg.component_display_name):
+        config_list = [
+                ChannelConfig(
+                    ChannelName=f"{flow_cfg.FlowNodeName}",
+                    CapturePeriodS=flow_cfg.CapturePeriodS,
+                    AsyncCapture=True,
+                    Exponent=2,
+                    Unit=Unit.Gpm
+                )
+        ]
+        if flow_cfg.SendHz:
+            config_list.append(
+                ChannelConfig(
+                    ChannelName=f"{flow_cfg.FlowNodeName}-hz",
+                    CapturePeriodS=flow_cfg.CapturePeriodS,
+                    AsyncCapture=True,
+                    Exponent=6,
+                    Unit=Unit.VoltsRms
+                )
+            )
+        if is_hall:
+            db.add_components(
+                [
+                    PicoFlowModuleComponentGt(
+                        ComponentId=db.make_component_id(flow_hall_cfg.component_display_name),
+                        ComponentAttributeClassId=db.cac_id_by_alias(make_model),
+                        DisplayName=flow_hall_cfg.component_display_name(),
+                        ConfigList=config_list,
+                        Enabled = flow_hall_cfg.Enabled,
+                        HwUid=flow_hall_cfg.SerialNumber,            
+                        PicoHwUid=flow_hall_cfg.PicoHwUid,
+                        FlowNodeName=flow_hall_cfg.FlowNodeName,
+                        HzCalcMethod=flow_hall_cfg.HzMethod,
+                        GpmFromHzMethod=flow_hall_cfg.GpmMethod,
+                        ConstantGallonsPerTick=flow_hall_cfg.ConstantGallonsPerTick,
+                        SendHz=flow_hall_cfg.SendHz,
+                        SendGallons=False,
+                        SendTickLists=flow_hall_cfg.SendTickLists,
+                        NoFlowMs=flow_hall_cfg.NoFlowMs,
+                        PublishEmptyTicklistAfterS=flow_hall_cfg.PublishEmptyTicklistAfterS,
+                        AsyncCaptureThresholdGpmTimes10=flow_hall_cfg.AsyncCaptureThresholdGpmTimes10,
+                        PublishTicklistPeriodS=flow_hall_cfg.PublishTicklistPeriodS,
+                        ExpAlpha=flow_hall_cfg.ExpAlpha,
+                    ),
+                ]
+            )
+        else:
+            db.add_components(
+                [
+                    PicoFlowModuleComponentGt(
+                        ComponentId=db.make_component_id(flow_reed_cfg.component_display_name),
+                        ComponentAttributeClassId=db.cac_id_by_alias(make_model),
+                        DisplayName=flow_reed_cfg.component_display_name(),
+                        ConfigList=config_list,
+                        Enabled = flow_reed_cfg.Enabled,
+                        HwUid=flow_reed_cfg.SerialNumber,            
+                        PicoHwUid=flow_reed_cfg.PicoHwUid,
+                        FlowNodeName=flow_reed_cfg.FlowNodeName,
+                        HzCalcMethod=flow_reed_cfg.HzMethod,
+                        GpmFromHzMethod=flow_reed_cfg.GpmMethod,
+                        ConstantGallonsPerTick=flow_reed_cfg.ConstantGallonsPerTick,
+                        SendHz=flow_reed_cfg.SendHz,
+                        SendGallons=False,
+                        SendTickLists=flow_reed_cfg.SendTickLists,
+                        NoFlowMs=flow_reed_cfg.NoFlowMs,
+                        PublishEmptyTicklistAfterS=flow_reed_cfg.PublishEmptyTicklistAfterS,
+                        AsyncCaptureThresholdGpmTimes10=flow_reed_cfg.AsyncCaptureThresholdGpmTimes10,
+                        PublishTicklistLength=flow_reed_cfg.PublishTicklistLength,
+                        ExpAlpha=flow_reed_cfg.ExpAlpha,
+                    ),
+                ]
+            )
+        db.add_nodes(
+            [
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(flow_cfg.ActorNodeName),
+                    Name=flow_cfg.ActorNodeName,
+                    ActorHierarchyName=f"{H0N.secondary_scada}.{flow_cfg.ActorNodeName}",
+                    ActorClass=ActorClass.ApiFlowModule,
+                    DisplayName=f"{flow_cfg.ActorNodeName.replace('-', '').title()}",
+                    ComponentId=db.component_id_by_alias(flow_cfg.component_display_name())
+                )
+            ] 
+        )
+
+        db.add_data_channels(
+            [ DataChannelGt(
+               Name=flow_cfg.ActorNodeName,
+               DisplayName=f"{flow_cfg.ActorNodeName.capitalize()} Gpm X 100",
+               AboutNodeName=flow_cfg.FlowNodeName,
+               CapturedByNodeName=flow_cfg.ActorNodeName,
+               TelemetryName=TelemetryName.GpmTimes100,
+               TerminalAssetAlias=db.terminal_asset_alias,
+               Id=db.make_channel_id(flow_cfg.ActorNodeName)
+            )
+            ]
+        )
+
+        if flow_cfg.SendHz:
+            db.add_data_channels(
+                [ DataChannelGt(
+                    Name=f"{flow_cfg.ActorNodeName}-hz",
+                    DisplayName=f"{flow_cfg.ActorNodeName.capitalize()} MicroHz",
+                    AboutNodeName=flow_cfg.ActorNodeName,
+                    CapturedByNodeName=flow_cfg.ActorNodeName,
+                    TelemetryName=TelemetryName.MicroHz,
+                    TerminalAssetAlias=db.terminal_asset_alias,
+                    Id=db.make_channel_id(f"{flow_cfg.ActorNodeName}-hz")
+                ) for i in range(1,5)
+                ]
+            )
