@@ -304,7 +304,13 @@ class ApiFlowModule(Actor):
     def publish_zero_flow(self):
         channel_names = [self.gpm_channel.Name]
         values = [0]
+        # if there weren't any ticks, then we want to set the flow
+        # to be zero very shortly after the LAST tick we got (unless
+        # this is the first message we've ever gotten
 
+        zero_flow_ms = int(time.time() * 1000)
+        if self.latest_tick_ns:
+            zero_flow_ms = int(self.latest_tick_ns / 1e6) + 200 # say 100 ms AFTER last tick
         if self._component.gt.SendHz:
             channel_names.append(self.hz_channel.Name)
             values.append(0)
@@ -313,7 +319,7 @@ class ApiFlowModule(Actor):
             SyncedReadings(
                 ChannelNameList=channel_names,
                 ValueList=values,
-                ScadaReadTimeUnixMs=int(time.time() * 1000),
+                ScadaReadTimeUnixMs=zero_flow_ms,
             )
         )
     
