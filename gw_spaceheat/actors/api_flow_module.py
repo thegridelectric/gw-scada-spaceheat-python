@@ -378,13 +378,14 @@ class ApiFlowModule(Actor):
                     Ticklist=data
                 ))
         if len(data.RelativeMillisecondList) == 1:
-            this_tick_ns = self.nano_timestamps[-1]
-            self.latest_hz = int(1e9/(this_tick_ns - self.latest_tick_ns))
-            self.latest_tick_ns = this_tick_ns
+            final_tick_ns = self.nano_timestamps[-1]
+            final_nonzero_hz = int(1e9/(final_tick_ns - self.latest_tick_ns))
+            self.latest_tick_ns = final_tick_ns
+            self.latest_hz = 0
             micro_hz_readings = ChannelReadings(
                 ChannelName=self.hz_channel.Name,
-                ValueList=[int(self.latest_hz * 1e6)],
-                ScadaReadTimeUnixMsList=[int(this_tick_ns/1e6)]
+                ValueList=[int(final_nonzero_hz * 1e6), 0],
+                ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6), int(final_tick_ns/1e6) + 10]
             )
         else:
             micro_hz_readings = self.get_micro_hz_readings()
