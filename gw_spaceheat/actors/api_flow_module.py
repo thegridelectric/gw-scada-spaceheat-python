@@ -364,7 +364,7 @@ class ApiFlowModule(Actor):
             self.latest_tick_ns = this_tick_ns
             micro_hz_readings = ChannelReadings(
                 ChannelName=self.hz_channel.Name,
-                ValueList=[self.latest_hz * 1e6],
+                ValueList=[int(self.latest_hz * 1e6)],
                 ScadaReadTimeUnixMsList=[int(this_tick_ns/1e6)]
             )
         else:
