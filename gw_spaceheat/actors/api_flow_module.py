@@ -65,7 +65,6 @@ class ApiFlowModule(Actor):
         self.layout = self.services.hardware_layout
         self._component = component
         self.hw_uid = self._component.gt.HwUid
-        self.pico_hw_uid = self._component.gt.PicoHwUid
         self.nano_timestamps: List[int] = [] # nanoseconds
         self.latest_tick_ns = None
         self.latest_hz = None
@@ -204,7 +203,7 @@ class ApiFlowModule(Actor):
         if (self._component.gt.PicoHwUid is None or 
             self._component.gt.PicoHwUid == params.HwUid):
             if self._component.gt.PicoHwUid is None:
-                self.pico_hw_uid = params.HwUid
+                self.hw_uid = params.HwUid
                 # TODO: update params from layout
                 print(f"Layout update: {self.name} Pico HWUID {params.HwUid}")
                 # TODO: send message to self so that writing to hardware layout isn't 
@@ -230,7 +229,7 @@ class ApiFlowModule(Actor):
         if (self._component.gt.PicoHwUid is None or 
             self._component.gt.PicoHwUid == params.HwUid):
             if self._component.gt.PicoHwUid is None:
-                self.pico_hw_uid = params.HwUid
+                self.hw_uid = params.HwUid
                 # TODO: update params from layout
                 print(f"Layout update: {self.name} Pico HWUID {params.HwUid}")
                 # TODO: send message to self so that writing to hardware layout isn't 
@@ -341,7 +340,7 @@ class ApiFlowModule(Actor):
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         self.ticklist = data
-        if data.HwUid != self.pico_hw_uid:
+        if data.HwUid != self.hw_uid:
             print(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
         if len(data.RelativeMillisecondList) == 0:

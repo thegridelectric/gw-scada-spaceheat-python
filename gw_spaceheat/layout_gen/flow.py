@@ -19,7 +19,7 @@ HALL_PUBLISH_TICKLIST_AFTER_S = 60
 class HallCfg(BaseModel):
     Enabled: bool = True
     SerialNumber: str
-    PicoHwUid: Optional[str] = None
+    HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = H0N.dist_flow
     FlowNodeName: Optional[SpaceheatName] = None
     FlowMeterType: MakeModel = MakeModel.SAIER__SENHZG1WA
@@ -43,7 +43,7 @@ class HallCfg(BaseModel):
 class ReedCfg(BaseModel):
     Enabled: bool = True
     SerialNumber: str = "NA"
-    PicoHwUid: Optional[str] = None
+    HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = H0N.dist_flow
     FlowNodeName: Optional[SpaceheatName] = None
     FlowMeterType: MakeModel = MakeModel.EKM__HOTSPWM075HD
@@ -121,8 +121,8 @@ def add_flow(
                         DisplayName=flow_hall_cfg.component_display_name(),
                         ConfigList=config_list,
                         Enabled = flow_hall_cfg.Enabled,
-                        HwUid=flow_hall_cfg.SerialNumber,            
-                        PicoHwUid=flow_hall_cfg.PicoHwUid,
+                        SerialNumber=flow_hall_cfg.SerialNumber,            
+                        HwUid=flow_hall_cfg.HwUid,
                         FlowNodeName=flow_hall_cfg.FlowNodeName,
                         HzCalcMethod=flow_hall_cfg.HzMethod,
                         GpmFromHzMethod=flow_hall_cfg.GpmMethod,
@@ -147,8 +147,8 @@ def add_flow(
                         DisplayName=flow_reed_cfg.component_display_name(),
                         ConfigList=config_list,
                         Enabled = flow_reed_cfg.Enabled,
-                        HwUid=flow_reed_cfg.SerialNumber,            
-                        PicoHwUid=flow_reed_cfg.PicoHwUid,
+                        SerialNumber=flow_reed_cfg.SerialNumber,            
+                        HwUid=flow_reed_cfg.HwUid,
                         FlowNodeName=flow_reed_cfg.FlowNodeName,
                         HzCalcMethod=flow_reed_cfg.HzMethod,
                         GpmFromHzMethod=flow_reed_cfg.GpmMethod,
