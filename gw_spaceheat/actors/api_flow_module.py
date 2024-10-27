@@ -200,6 +200,11 @@ class ApiFlowModule(Actor):
             return
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             return
+        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
+            raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
+                            "but got FlowHallParams!")
+        # temporary hack prior to installerapp - in case a pico gets installed
+        # and the hardware layout does not have its id yet
         if (self._component.gt.HwUid is None or 
             self._component.gt.HwUid == params.HwUid):
             if self._component.gt.HwUid is None:
@@ -225,6 +230,9 @@ class ApiFlowModule(Actor):
             return
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             return
+        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
+            raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
+                            "but got FlowReedParams!")
         print(f"Got {params}")
         if (self._component.gt.HwUid is None or 
             self._component.gt.HwUid == params.HwUid):
@@ -251,6 +259,9 @@ class ApiFlowModule(Actor):
             return Response()
         
     async def _handle_ticklist_reed_post(self, request: Request) -> Response:
+        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
+            raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
+                            "but got TicklistReed!")
         text = await self._get_text(request)
         self.readings_text = text
         if isinstance(text, str):
@@ -267,6 +278,9 @@ class ApiFlowModule(Actor):
         return Response()
                 
     async def _handle_ticklist_hall_post(self, request: Request) -> Response:
+        if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
+            raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
+                            "but got TicklistHall!")
         text = await self._get_text(request)
         self.readings_text = text
         if isinstance(text, str):
