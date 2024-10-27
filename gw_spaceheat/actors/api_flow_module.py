@@ -186,7 +186,7 @@ class ApiFlowModule(Actor):
         )
 
     def need_to_update_layout(self) -> bool:
-        if self._component.gt.PicoHwUid:
+        if self._component.gt.HwUid:
             return False
         return True
 
@@ -200,9 +200,9 @@ class ApiFlowModule(Actor):
             return
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             return
-        if (self._component.gt.PicoHwUid is None or 
-            self._component.gt.PicoHwUid == params.HwUid):
-            if self._component.gt.PicoHwUid is None:
+        if (self._component.gt.HwUid is None or 
+            self._component.gt.HwUid == params.HwUid):
+            if self._component.gt.HwUid is None:
                 self.hw_uid = params.HwUid
                 # TODO: update params from layout
                 print(f"Layout update: {self.name} Pico HWUID {params.HwUid}")
@@ -226,9 +226,9 @@ class ApiFlowModule(Actor):
         if params.FlowNodeName != self._component.gt.FlowNodeName:
             return
         print(f"Got {params}")
-        if (self._component.gt.PicoHwUid is None or 
-            self._component.gt.PicoHwUid == params.HwUid):
-            if self._component.gt.PicoHwUid is None:
+        if (self._component.gt.HwUid is None or 
+            self._component.gt.HwUid == params.HwUid):
+            if self._component.gt.HwUid is None:
                 self.hw_uid = params.HwUid
                 # TODO: update params from layout
                 print(f"Layout update: {self.name} Pico HWUID {params.HwUid}")
