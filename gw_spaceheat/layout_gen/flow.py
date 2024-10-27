@@ -55,7 +55,7 @@ class ReedCfg(BaseModel):
     SendTickLists: bool = False
     ConstantGallonsPerTick: float = EKM_CONSTANT_GALLONS_PER_TICK
     NoFlowMs: int = 10_000
-    PublishAnyTicklistAfterS: int = 10_000
+    PublishAnyTicklistAfterS: int = 10
     PublishTicklistLength: int = 10 
     ExpAlpha: Optional[float] = None # 
     CutoffFrequency: Optional[float] = None
