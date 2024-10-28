@@ -1,5 +1,7 @@
 import json
 import time
+import asyncio
+from gwproactor.message import InternalShutdownMessage
 from functools import cached_property
 from typing import List, Literal, Optional
 from gw.errors import DcError
@@ -43,7 +45,7 @@ class FlowReedParams(BaseModel):
 
 
 class ApiFlowModule(Actor):
-
+    _stop_requested: bool
     _component: PicoFlowModuleComponent
     def __init__(
         self,
@@ -62,6 +64,7 @@ class ApiFlowModule(Actor):
                 f"  Node: {self.name}\n"
                 f"  Component id: {component.gt.ComponentId}"
             )
+        self._stop_requested: bool = False
         self.layout = self.services.hardware_layout
         self._component = component
         self.hw_uid = self._component.gt.HwUid
@@ -73,8 +76,7 @@ class ApiFlowModule(Actor):
         self.gpm_channel = self.layout.data_channels[f"{self.name}"]
         self.hz_channel = self.layout.data_channels[f"{self.name}-hz"]
         self.capture_s = self._component.gt.ConfigList[0].CapturePeriodS
-        self.latest_send_s = 0
-
+        self.latest_sync_send_s = time.time()
         self.validate_config_params()
         if self._component.gt.Enabled:
             if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
@@ -121,6 +123,61 @@ class ApiFlowModule(Actor):
                 raise DcError(f"SendHz but missing {self.hz_channel.Name}!")
         if self._component.gt.SendGallons:
             raise ValueError("Not set up to send gallons right now")
+
+    @property
+    def last_sync_s(self) -> int:
+        last_sync_s = self.latest_sync_send_s - ((self.latest_sync_send_s + 1) % self.capture_s)
+        return int(last_sync_s)
+
+    @property
+    def next_sync_s(self) -> int:
+        return self.last_sync_s + self.capture_s
+
+    def sync_reading_sleep(self) -> int:
+        if self.capture_s <= 3:
+            return 1
+        if (time.time() - self.last_sync_s) < 2:
+            return self.capture_s - 2.2
+        else:
+            return 1
+
+    def publish_synced_readings(self):
+        if self.latest_gpm is not None:
+            channel_names = [self.gpm_channel.Name]
+            values = [int(self.latest_gpm * 100)]
+            if self._component.gt.SendHz:
+                channel_names.append(self.hz_channel.Name)
+                values.append(int(1e6 * self.latest_hz))
+            self._send_to_scada(
+                SyncedReadings(
+                    ChannelNameList=channel_names,
+                    ValueList=values,
+                    ScadaReadTimeUnixMs=int(time.time() * 1000)
+                )
+            )
+
+    async def update_flow_sync_readings(self):
+        while not self._stop_requested:
+            try:
+                if time.time() > self.next_sync_s:
+                    self.publish_synced_readings()
+                    self.latest_sync_send_s = int(time.time())
+                print(f"sleeping {self.sync_reading_sleep()}")
+                await asyncio.sleep(self.sync_reading_sleep())
+            except Exception as e:
+                try:
+                    if not isinstance(e, asyncio.CancelledError):
+                        self.services.logger.exception(e)
+                        self._send(
+                            InternalShutdownMessage(
+                                Src=self.name,
+                                Reason=(
+                                    f"update_flow_sync_readings() task got exception: <{type(e)}> {e}"
+                                ),
+                            )
+                        )
+                finally:
+                    break
 
     @cached_property
     def hall_params_path(self) -> str:
@@ -335,22 +392,7 @@ class ApiFlowModule(Actor):
                 ScadaReadTimeUnixMs=zero_flow_ms,
             )
         )
-    
-    def publish_synced_readings(self):
-        if self.latest_gpm:
-            channel_names = [self.gpm_channel.Name]
-            values = [int(self.latest_gpm * 100)]
-            if self._component.gt.SendHz:
-                channel_names.append(self.hz_channel.Name)
-                values.append(int(1e6 * self.latest_hz))
 
-            self._send_to_scada(
-                SyncedReadings(
-                    ChannelNameList=channel_names,
-                    ValueList=values,
-                    ScadaReadTimeUnixMs=int(time.time() * 1000)
-                )
-            )
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         self.ticklist = data
@@ -364,9 +406,6 @@ class ApiFlowModule(Actor):
                 self.publish_zero_flow()
             elif self.latest_gpm * 100 > self._component.gt.AsyncCaptureThresholdGpmTimes100:
                 self.publish_zero_flow()
-            if time.time() - self.latest_send_s > self.capture_s:
-                self.publish_synced_readings()
-                self.latest_send_s = time.time()
             return
         # now we can assume we have at least one tick
         self.update_timestamps_for_reed(data)
@@ -395,13 +434,10 @@ class ApiFlowModule(Actor):
             self.gpm_readings = gpm_readings
             print(f"gpm_readings: {gpm_readings}")
             self._send_to_scada(gpm_readings)
-            self.latest_send_s = time.time()
+            self.latest_sync_send_s = time.time()
             if self._component.gt.SendHz:
                 self._send_to_scada(micro_hz_readings)
         
-        if time.time() - self.latest_send_s > self.capture_s:
-            self.publish_synced_readings()
-            self.latest_send_s = time.time()
 
     def _process_ticklist_hall(self, data: TicklistHall) -> None:
         if data.HwUid != self.hw_uid:
@@ -438,10 +474,16 @@ class ApiFlowModule(Actor):
         return Ok(True)
 
     def start(self) -> None:
-        """IOLoop will take care of start."""
+        self.services.add_task(
+            asyncio.create_task(self.update_flow_sync_readings(), name="update_flow_sync_readings")
+        )
 
     def stop(self) -> None:
-        """IOLoop will take care of stop."""
+        """
+        IOLoop will take care of shutting down webserver interaction.
+        Here we stop periodic reporting task.
+        """
+        self._stop_requested = True
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
