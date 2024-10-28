@@ -162,7 +162,6 @@ class ApiFlowModule(Actor):
                 if time.time() > self.next_sync_s:
                     self.publish_synced_readings()
                     self.latest_sync_send_s = int(time.time())
-                print(f"sleeping {self.sync_reading_sleep()}")
                 await asyncio.sleep(self.sync_reading_sleep())
             except Exception as e:
                 try:
