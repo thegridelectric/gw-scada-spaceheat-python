@@ -70,6 +70,7 @@ class ApiFlowModule(Actor):
         self.hw_uid = self._component.gt.HwUid
         self.nano_timestamps: List[int] = [] # nanoseconds
         self.latest_tick_ns = None
+        self.latest_report_ns = None
         self.latest_hz = None
         self.latest_gpm = None
         self.latest_gallons = 0
@@ -160,6 +161,7 @@ class ApiFlowModule(Actor):
         while not self._stop_requested:
             try:
                 if time.time() > self.next_sync_s:
+                    # print("Publishing synced readings")
                     self.publish_synced_readings()
                     self.latest_sync_send_s = int(time.time())
                 await asyncio.sleep(self.sync_reading_sleep())
@@ -376,10 +378,11 @@ class ApiFlowModule(Actor):
         # if there weren't any ticks, then we want to set the flow
         # to be zero very shortly after the LAST tick we got (unless
         # this is the first message we've ever gotten
-
         zero_flow_ms = int(time.time() * 1000)
-        # if self.latest_tick_ns:
-        #     zero_flow_ms = int(self.latest_tick_ns / 1e6) + 200 # say 100 ms AFTER last tick
+        if self.latest_report_ns:
+            if self.latest_tick_ns == self.latest_report_ns:
+                self.latest_report_ns = self.latest_tick_ns + 1e8 # 100 ms AFTER last tick
+                zero_flow_ms = int(self.latest_report_ns / 1e6)
         if self._component.gt.SendHz:
             channel_names.append(self.hz_channel.Name)
             values.append(0)
@@ -421,6 +424,7 @@ class ApiFlowModule(Actor):
             final_tick_ns = self.nano_timestamps[-1]
             final_nonzero_hz = int(1e9/(final_tick_ns - self.latest_tick_ns))
             self.latest_tick_ns = final_tick_ns
+            self.latest_report_ns = final_tick_ns
             self.latest_hz = 0
             micro_hz_readings = ChannelReadings(
                 ChannelName=self.hz_channel.Name,
@@ -433,7 +437,6 @@ class ApiFlowModule(Actor):
         if len(micro_hz_readings.ValueList) > 0:
             gpm_readings = self.get_gpm_readings(micro_hz_readings)
             self.gpm_readings = gpm_readings
-            print(f"gpm_readings: {gpm_readings}")
             self._send_to_scada(gpm_readings)
             self.latest_sync_send_s = time.time()
             if self._component.gt.SendHz:
@@ -592,6 +595,7 @@ class ApiFlowModule(Actor):
                 unix_ms_times.append(int(sampled_timestamps[i]/1e6))
         self.latest_hz = smoothed_frequencies[-1]
         self.latest_tick_ns = sampled_timestamps[-1]
+        self.latest_report_ns = sampled_timestamps[-1]
         
         return ChannelReadings(
             ChannelName=self.hz_channel.Name,
