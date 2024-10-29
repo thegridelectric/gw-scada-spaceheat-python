@@ -14,6 +14,7 @@ from gwproactor.links import LinkManagerTransition
 from gwproactor.links.link_settings import LinkSettings
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
+from gwproto import MQTTTopic
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.messages import MyChannels, MyChannelsEvent
 from gwproto.message import Message
@@ -150,16 +151,15 @@ class Scada(ScadaInterface, Proactor):
                    node.has_actor]
         for node in remote_actor_nodes:
             self._links.subscribe(
-                self.LOCAL_MQTT,
-                f"gw/{node.name}/#",
-                QOS.AtMostOnce
+                client=self.LOCAL_MQTT,
+                topic=MQTTTopic.encode(
+                    envelope_type=Message.type_name(),
+                    src=node.name,
+                    dst=self.subscription_name,
+                    message_type="#",
+                ),
+                qos=QOS.AtMostOnce,
             )
-        # FIXME: this causes tests to fail horrible ways.
-        # self._links.subscribe(
-        #     Scada.LOCAL_MQTT,
-        #     MQTTTopic.encode_subscription(Message.type_name(), self._layout.scada_g_node_alias),
-        #     QOS.AtMostOnce
-        # )
 
         self._links.log_subscriptions("construction")
         # self._home_alone = HomeAlone(H0N.home_alone, self)
