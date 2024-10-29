@@ -31,7 +31,6 @@ class Tank2Cfg(BaseModel):
         return f"{self.ActorNodeName} PicoTankModule"
 
 
-
 def add_tank2(
         db: LayoutDb,
         tank_cfg: Tank2Cfg

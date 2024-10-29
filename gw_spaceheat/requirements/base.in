@@ -1,5 +1,6 @@
 setuptools
 numpy
+scipy
 pendulum
 paho-mqtt
 pytz
