@@ -378,8 +378,8 @@ class ApiFlowModule(Actor):
         # this is the first message we've ever gotten
 
         zero_flow_ms = int(time.time() * 1000)
-        if self.latest_tick_ns:
-            zero_flow_ms = int(self.latest_tick_ns / 1e6) + 200 # say 100 ms AFTER last tick
+        # if self.latest_tick_ns:
+        #     zero_flow_ms = int(self.latest_tick_ns / 1e6) + 200 # say 100 ms AFTER last tick
         if self._component.gt.SendHz:
             channel_names.append(self.hz_channel.Name)
             values.append(0)
@@ -405,6 +405,8 @@ class ApiFlowModule(Actor):
                 self.publish_zero_flow()
             elif self.latest_gpm * 100 > self._component.gt.AsyncCaptureThresholdGpmTimes100:
                 self.publish_zero_flow()
+                self.latest_gpm = 0
+                self.latest_hz = 0
             return
         # now we can assume we have at least one tick
         self.update_timestamps_for_reed(data)
