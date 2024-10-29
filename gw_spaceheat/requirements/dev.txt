@@ -92,7 +92,9 @@ mypy-extensions==0.4.3
     #   black
     #   mypy
 numpy==1.24.1
-    # via -r gw_spaceheat/requirements/base.in
+    # via
+    #   -r gw_spaceheat/requirements/base.in
+    #   scipy
 ownca==0.4.0
     # via gridworks-cert
 packaging==21.3
@@ -180,6 +182,8 @@ rich==13.5.2
     #   gridworks-cert
     #   textual
     #   typer
+scipy==1.14.1
+    # via -r gw_spaceheat/requirements/base.in
 shellingham==1.5.3
     # via typer
 six==1.16.0

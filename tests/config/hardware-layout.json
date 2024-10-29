@@ -298,6 +298,7 @@
       "SendMicroVolts": true,
       "TempCalcMethod": "SimpleBetaForPico",
       "ThermistorBeta": 3977,
+      "PicoKOhms": 30,
       "TypeName": "pico.tank.module.component.gt",
       "Version": "000"
     },

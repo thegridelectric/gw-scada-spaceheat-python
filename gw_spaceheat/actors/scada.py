@@ -22,6 +22,9 @@ from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import ReportEvent
 from gwproto.messages import SyncedReadings
+from gwproto.messages import ChannelReadings
+from gwproto.messages import TicklistReedReport
+from gwproto.messages import TicklistHallReport
 from gwproto import MQTTCodec
 from result import Ok
 from result import Result
@@ -71,24 +74,26 @@ class GridworksMQTTCodec(MQTTCodec):
 
 
 class LocalMQTTCodec(MQTTCodec):
-    exp_src: str
+    exp_srcs: set[str]
     exp_dst: str
 
-    def __init__(self, *, primary_scada: bool):
+    def __init__(self, *, primary_scada: bool, remote_node_names: set[str]):
         self.primary_scada = primary_scada
+        self.exp_srcs = remote_node_names
         if self.primary_scada:
-            self.exp_src = H0N.secondary_scada
+            self.exp_srcs.add(H0N.secondary_scada)
             self.exp_dst = H0N.primary_scada
         else:
-            self.exp_src = H0N.primary_scada
+            self.exp_srcs.add(H0N.primary_scada)
             self.exp_dst = H0N.secondary_scada
+
         super().__init__(ScadaMessageDecoder)
 
     def validate_source_and_destination(self, src: str, dst: str) -> None:
-        if src != self.exp_src or dst != self.exp_dst:
+        if dst != self.exp_dst or src not in self.exp_srcs:
             raise ValueError(
                 "ERROR validating src and/or dst\n"
-                f"  exp: {self.exp_src} -> {self.exp_dst}\n"
+                f"  exp: one of {self.exp_srcs} -> {self.exp_dst}\n"
                 f"  got: {src} -> {dst}"
             )
 
@@ -123,6 +128,10 @@ class Scada(ScadaInterface, Proactor):
     ):
         self._data = ScadaData(settings, hardware_layout)
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
+        remote_actor_node_names = {node.name for node in self._layout.nodes.values() if
+                   self._layout.parent_node(node) != self._node and
+                   node != self._node and
+                   node.has_actor}
         self._links.add_mqtt_link(
             LinkSettings(
                 client_name=self.LOCAL_MQTT,
@@ -130,7 +139,10 @@ class Scada(ScadaInterface, Proactor):
                 spaceheat_name=H0N.secondary_scada,
                 upstream=False,
                 mqtt=self.settings.local_mqtt,
-                codec=LocalMQTTCodec(primary_scada=True),
+                codec=LocalMQTTCodec(
+                    primary_scada=True,
+                    remote_node_names=remote_actor_node_names
+                ),
                 primary_peer=False,
             )
         )
@@ -145,16 +157,12 @@ class Scada(ScadaInterface, Proactor):
                 primary_peer=True,
             )
         )
-        remote_actor_nodes = [node for node in self._layout.nodes.values() if
-                   self._layout.parent_node(node) != self._node and 
-                   node != self._node and
-                   node.has_actor]
-        for node in remote_actor_nodes:
+        for node_name in remote_actor_node_names:
             self._links.subscribe(
                 client=self.LOCAL_MQTT,
                 topic=MQTTTopic.encode(
                     envelope_type=Message.type_name(),
-                    src=node.name,
+                    src=node_name,
                     dst=self.subscription_name,
                     message_type="#",
                 ),
@@ -281,7 +289,6 @@ class Scada(ScadaInterface, Proactor):
         my_channels = MyChannels(
             FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
             FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
-            AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
             ChannelList=[ch.to_gt() for ch in self.data.my_channels],
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4())
@@ -353,12 +360,14 @@ class Scada(ScadaInterface, Proactor):
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
             case SyncedReadings():
-                path_dbg |= 0x00000040
+                path_dbg |= 0x00000004
                 self.synced_readings_received(
                         from_node, message.Payload
                     )
             case MicroVolts():
+                path_dbg |= 0x00000008
                 self.get_communicator(message.Header.Dst).process_message(message)
+
 
             case _:
                 raise ValueError(
@@ -396,17 +405,21 @@ class Scada(ScadaInterface, Proactor):
         payload = codec.decode(topic=mqtt_msg.topic, payload=mqtt_msg.payload).Payload
         if from_node:
             match payload:
+                case ChannelReadings():
+                    self.channel_readings_received(
+                        from_node, payload
+                    )
                 case SyncedReadings():
                     self.synced_readings_received(
                         from_node, payload
                     )
-                case PowerWatts():
-                    if from_node is self._layout.power_meter_node:
-                        self.power_watts_received(payload)
-                    else:
-                        raise Exception(
-                            f"message.Header.Src {from_node.name} must be from {self._layout.power_meter_node} for PowerWatts message"
-                        )
+                case TicklistHallReport():
+                    self._links.publish_upstream(payload, QOS.AtMostOnce)
+            
+                case TicklistReedReport():
+                    print(f"Publishing {payload.TypeName}")
+                    self._links.publish_upstream(payload, QOS.AtMostOnce)
+
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
@@ -457,6 +470,7 @@ class Scada(ScadaInterface, Proactor):
 
         self._links.publish_upstream(payload, QOS.AtMostOnce)
         self._data.latest_total_power_w = payload.Watts
+    
 
     def synced_readings_received(
         self, from_node: ShNode, payload: SyncedReadings
@@ -485,7 +499,30 @@ class Scada(ScadaInterface, Proactor):
         self._logger.path(
             "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
         )
-
+    
+    def channel_readings_received(
+            self, from_node: ShNode, payload: ChannelReadings
+    ) -> None:
+        self._logger.path(
+            "++channel_readings_received for channel: %d",
+            payload.ChannelName
+        )
+        if payload.ChannelName not in self._layout.data_channels:
+            raise ValueError(
+                    f"Name {payload.ChannelName} in ChannelReadings not a recognized Data Channel!"
+                )
+        ch = self._layout.data_channels[payload.ChannelName]
+        if from_node != ch.captured_by_node:
+            raise ValueError(
+                f"{payload.ChannelName} shoudl be read by {ch.captured_by_node}, not {from_node}!"
+            )
+        self._data.recent_channel_values[ch] += payload.ValueList
+        
+        self._data.recent_channel_unix_ms[ch] += payload.ScadaReadTimeUnixMsList
+        if len(payload.ValueList) > 0:
+            self._data.latest_channel_values[ch] = payload.ValueList[-1]
+            self._data.latest_channel_unix_ms[ch] = payload.ScadaReadTimeUnixMsList[-1]
+        
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():
             try:

@@ -14,6 +14,7 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 
 from actors.api_tank_module import MicroVolts
+from actors.api_flow_module import TicklistHall, TicklistReed
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproactor import QOS
@@ -124,6 +125,12 @@ class Parentless(ScadaInterface, Proactor):
         match message.Payload:
             case MicroVolts():
                 path_dbg |= 0x00000001
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case TicklistHall():
+                path_dbg |= 0x00000002
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case TicklistReed():
+                path_dbg |= 0x00000004
                 self.get_communicator(message.Header.Dst).process_message(message)
             case _:
                 raise ValueError(

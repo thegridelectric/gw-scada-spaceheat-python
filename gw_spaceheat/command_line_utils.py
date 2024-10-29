@@ -14,6 +14,7 @@ from gwproactor.config import MQTTClient
 from gwproactor.config.paths import TLSPaths
 from pydantic import BaseModel
 
+from actors import Parentless
 from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -194,6 +195,41 @@ def get_scada(
         #     scada.run_in_thread()
     return scada
 
+def get_scada2(
+    argv: Optional[Sequence[str]] = None,
+    run_in_thread: bool = False,
+    add_screen_handler: bool = True,
+    actors_package_name: str = Scada.DEFAULT_ACTORS_MODULE,
+) -> Parentless:
+    args = parse_args(argv)
+    dotenv_file = dotenv.find_dotenv(args.env_file)
+    dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
+    settings = ScadaSettings(_env_file=dotenv_file)
+    if args.dry_run:
+        rich.print(dotenv_file_debug_str)
+        rich.print(settings)
+        missing_tls_paths_ = check_tls_paths_present(settings, raise_error=False)
+        if missing_tls_paths_:
+            rich.print(missing_tls_paths_)
+        rich.print("Dry run. Doing nothing.")
+        sys.exit(0)
+    else:
+        settings.paths.mkdirs()
+        setup_logging(args, settings, add_screen_handler=add_screen_handler)
+        logger = logging.getLogger(settings.logging.qualified_logger_names()["lifecycle"])
+        logger.info("")
+        logger.info(dotenv_file_debug_str)
+        logger.info("Settings:")
+        logger.info(settings.model_dump_json(indent=2))
+        rich.print(settings)
+        check_tls_paths_present(settings)
+        requested_names = get_requested_names(args)
+        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_names)
+        scada2 = Parentless(name=H0N.secondary_scada, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
+        if run_in_thread:
+            logger.info("run_async_actors_main() starting")
+            scada2.run_in_thread()
+    return scada2
 
 
 async def run_async_actors_main(argv: Optional[Sequence[str]] = None):
