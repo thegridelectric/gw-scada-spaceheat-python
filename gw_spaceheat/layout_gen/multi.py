@@ -16,7 +16,6 @@ from gwproto.types import DataChannelGt
 from gwproto.types.ads111x_based_component_gt import Ads111xBasedComponentGt
 from gwproto.enums import ThermistorDataMethod
 from pydantic import BaseModel
-from gwproto.data_classes.house_0_names import H0Readers
 from gwproto.data_classes.house_0_names import H0N
 from layout_gen.layout_db import LayoutDb
 
@@ -108,11 +107,11 @@ def add_tsnap_multipurpose(
     db.add_nodes(
         [
             SpaceheatNodeGt(
-                ShNodeId=db.make_node_id(H0Readers.analog_temp),
-                Name=H0Readers.analog_temp,
-                ActorHierarchyName=f"{H0N.primary_scada}.{H0Readers.analog_temp}",
+                ShNodeId=db.make_node_id(H0N.analog_temp),
+                Name=H0N.analog_temp,
+                ActorHierarchyName=f"{H0N.primary_scada}.{H0N.analog_temp}",
                 ActorClass=ActorClass.MultipurposeSensor,
-                DisplayName=' '.join(part.upper() for part in H0Readers.analog_temp.split('-')),
+                DisplayName=' '.join(part.upper() for part in H0N.analog_temp.split('-')),
                 ComponentId=db.component_id_by_alias(tsnap.component_alias())
             )
         ] + [
@@ -132,7 +131,7 @@ def add_tsnap_multipurpose(
                 DisplayName=' '.join(part.upper() for part in cfg.ChannelName.split('-')),
                 Id=db.make_channel_id(cfg.ChannelName),
                 AboutNodeName=cfg.about_node_name(),
-                CapturedByNodeName=H0Readers.analog_temp,
+                CapturedByNodeName=H0N.analog_temp,
                 TelemetryName=cfg.MyTelemetryName,
                 TerminalAssetAlias=db.terminal_asset_alias,
             )
