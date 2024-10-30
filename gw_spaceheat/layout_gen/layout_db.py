@@ -23,7 +23,7 @@ from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
-from gwproto.data_classes.house_0_names import H0N, H0CN, H0Readers
+from gwproto.data_classes.house_0_names import H0N, H0CN, H0N
 
 
 class ChannelStubDb(ChannelStub):
@@ -67,49 +67,49 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
         Name=H0CN.dist_swt,
         AboutNodeName=H0N.dist_swt,
         TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0Readers.analog_temp,
+        CapturedByNodeName=H0N.analog_temp,
     ),
     H0CN.dist_rwt: ChannelStubDb(
         Name=H0CN.dist_rwt,
         AboutNodeName=H0N.dist_rwt,
         TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0Readers.analog_temp,
+        CapturedByNodeName=H0N.analog_temp,
     ),
     H0CN.hp_lwt: ChannelStubDb(
         Name=H0CN.hp_lwt,
         AboutNodeName=H0N.hp_lwt,
         TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0Readers.analog_temp,
+        CapturedByNodeName=H0N.analog_temp,
     ),
     H0CN.hp_ewt: ChannelStubDb(
         Name=H0CN.hp_ewt,
         AboutNodeName=H0N.hp_ewt,
         TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0Readers.analog_temp,
+        CapturedByNodeName=H0N.analog_temp,
     ),
     H0CN.store_hot_pipe: ChannelStubDb(
         Name=H0CN.store_hot_pipe,
         AboutNodeName=H0N.store_hot_pipe,
         TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0Readers.analog_temp,
+        CapturedByNodeName=H0N.analog_temp,
     ),
     H0CN.store_cold_pipe: ChannelStubDb(
         Name=H0CN.store_cold_pipe,
         AboutNodeName=H0N.store_cold_pipe,
         TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0Readers.analog_temp,
+        CapturedByNodeName=H0N.analog_temp,
     ),
     H0CN.buffer_hot_pipe: ChannelStubDb(
         Name=H0CN.buffer_hot_pipe,
         AboutNodeName=H0N.buffer_hot_pipe,
         TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0Readers.analog_temp,
+        CapturedByNodeName=H0N.analog_temp,
     ),
     H0CN.buffer_cold_pipe: ChannelStubDb(
         Name=H0CN.buffer_cold_pipe,
         AboutNodeName=H0N.buffer_cold_pipe,
         TelemetryName=TelemetryName.WaterTempCTimes1000,
-        CapturedByNodeName=H0Readers.analog_temp,
+        CapturedByNodeName=H0N.analog_temp,
     ),
 
 }
