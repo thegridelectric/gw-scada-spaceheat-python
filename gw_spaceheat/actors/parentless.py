@@ -51,10 +51,12 @@ class Parentless(ScadaInterface, Proactor):
                 client_name=Parentless.LOCAL_MQTT,
                 gnode_name=H0N.primary_scada,
                 spaceheat_name=H0N.primary_scada,
-                upstream=True,
                 mqtt=self.settings.local_mqtt,
-                codec=LocalMQTTCodec(primary_scada=False),
-                primary_peer=False,
+                codec=LocalMQTTCodec(
+                    primary_scada=False,
+                    remote_node_names=set(),
+                ),
+                upstream=True,
             )
         )
         self._links.log_subscriptions("construction")

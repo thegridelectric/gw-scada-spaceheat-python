@@ -137,13 +137,12 @@ class Scada(ScadaInterface, Proactor):
                 client_name=self.LOCAL_MQTT,
                 gnode_name=H0N.secondary_scada,
                 spaceheat_name=H0N.secondary_scada,
-                upstream=False,
                 mqtt=self.settings.local_mqtt,
                 codec=LocalMQTTCodec(
                     primary_scada=True,
                     remote_node_names=remote_actor_node_names
                 ),
-                primary_peer=False,
+                downstream=True,
             )
         )
         self._links.add_mqtt_link(
@@ -151,10 +150,9 @@ class Scada(ScadaInterface, Proactor):
                 client_name=self.GRIDWORKS_MQTT,
                 gnode_name=self._layout.atn_g_node_alias,
                 spaceheat_name=H0N.atn,
-                upstream=True,
                 mqtt=self.settings.gridworks_mqtt,
                 codec=GridworksMQTTCodec(self._layout),
-                primary_peer=True,
+                upstream=True,
             )
         )
         for node_name in remote_actor_node_names:

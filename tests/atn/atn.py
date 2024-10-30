@@ -101,10 +101,9 @@ class Atn(ActorInterface, Proactor):
                 client_name=Atn.SCADA_MQTT,
                 gnode_name=self.hardware_layout.scada_g_node_alias,
                 spaceheat_name=H0N.primary_scada,
-                upstream=False,
                 mqtt=settings.scada_mqtt,
                 codec=AtnMQTTCodec(self.layout),
-                primary_peer=True,
+                downstream=True,
             )
         )
         self.latest_report: Optional[Report] = None
