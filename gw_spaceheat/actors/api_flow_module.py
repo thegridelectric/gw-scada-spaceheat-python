@@ -291,8 +291,8 @@ class ApiFlowModule(Actor):
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
             raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
                             "but got FlowReedParams!")
-        print(f"Got {params}")
-        if self._component.gt.HwUid == 'pico_836d31':
+        print(f"\nGot params for {params.HwUid}:\n{params}")
+        if params.HwUid == 'pico_836d31':
             print('\nTHIS IS THE STORE PUMP\n')
         if (self._component.gt.HwUid is None or 
             self._component.gt.HwUid == params.HwUid):
