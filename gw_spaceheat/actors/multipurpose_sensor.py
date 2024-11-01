@@ -27,7 +27,7 @@ from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
 from gwproto.enums import MakeModel
 from gwproto.data_classes.data_channel import DataChannel
-from gwproto.types import AdsChannelConfig
+from gwproto.named_types import AdsChannelConfig
 
 UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
 UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"

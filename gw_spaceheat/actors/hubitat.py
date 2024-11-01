@@ -8,7 +8,7 @@ from gwproactor import Problems
 from gwproactor import ServicesInterface
 from gwproto import Message
 from gwproto.data_classes.components.hubitat_component import HubitatComponent
-from gwproto.types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from result import Result
 
 from actors.hubitat_interface import HubitatEventContent

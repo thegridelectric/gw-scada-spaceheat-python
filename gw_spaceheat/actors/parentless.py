@@ -7,8 +7,8 @@ from typing import List
 
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
-from gwproto.types import Report
-from gwproto.types import SnapshotSpaceheat
+from gwproto.named_types import Report
+from gwproto.named_types import SnapshotSpaceheat
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
@@ -51,10 +51,12 @@ class Parentless(ScadaInterface, Proactor):
                 client_name=Parentless.LOCAL_MQTT,
                 gnode_name=H0N.primary_scada,
                 spaceheat_name=H0N.primary_scada,
-                upstream=True,
                 mqtt=self.settings.local_mqtt,
-                codec=LocalMQTTCodec(primary_scada=False),
-                primary_peer=False,
+                codec=LocalMQTTCodec(
+                    primary_scada=False,
+                    remote_node_names=set(),
+                ),
+                upstream=True,
             )
         )
         self._links.log_subscriptions("construction")

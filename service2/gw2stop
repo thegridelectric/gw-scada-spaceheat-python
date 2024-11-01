@@ -1,0 +1,2 @@
+sudo systemctl stop gwspaceheat2-restart.timer
+sudo systemctl stop gwspaceheat2

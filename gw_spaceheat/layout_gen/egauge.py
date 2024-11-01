@@ -6,14 +6,14 @@ from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
 from gwproto.enums import TelemetryName 
 from gwproto.enums import Unit
-from gwproto.types import ComponentAttributeClassGt
-from gwproto.types import ComponentGt
-from gwproto.types import EgaugeRegisterConfig
-from gwproto.types import ElectricMeterCacGt
-from gwproto.types import SpaceheatNodeGt
-from gwproto.types import ElectricMeterChannelConfig
-from gwproto.types import DataChannelGt
-from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
+from gwproto.named_types import ComponentAttributeClassGt
+from gwproto.named_types import ComponentGt
+from gwproto.named_types import EgaugeRegisterConfig
+from gwproto.named_types import ElectricMeterCacGt
+from gwproto.named_types import SpaceheatNodeGt
+from gwproto.named_types import ElectricMeterChannelConfig
+from gwproto.named_types import DataChannelGt
+from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from pydantic import BaseModel
 
 from gwproto.data_classes.house_0_names import H0N

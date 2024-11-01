@@ -11,7 +11,7 @@ from typing import List
 import pendulum
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.types import GtShCliAtnCmd
+from gwproto.named_types import GtShCliAtnCmd
 from paho.mqtt.client import MQTTMessageInfo
 import rich
 from pydantic import BaseModel
@@ -101,10 +101,9 @@ class Atn(ActorInterface, Proactor):
                 client_name=Atn.SCADA_MQTT,
                 gnode_name=self.hardware_layout.scada_g_node_alias,
                 spaceheat_name=H0N.primary_scada,
-                upstream=False,
                 mqtt=settings.scada_mqtt,
                 codec=AtnMQTTCodec(self.layout),
-                primary_peer=True,
+                downstream=True,
             )
         )
         self.latest_report: Optional[Report] = None
