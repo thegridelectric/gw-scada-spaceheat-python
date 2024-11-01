@@ -260,6 +260,7 @@ class ApiFlowModule(Actor):
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
             raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
                             "but got FlowHallParams!")
+        print(f"\nGot params for {params.HwUid}:\n{params}")
         # temporary hack prior to installerapp - in case a pico gets installed
         # and the hardware layout does not have its id yet
         if (self._component.gt.HwUid is None or 
@@ -578,6 +579,7 @@ class ApiFlowModule(Actor):
                                         if sampled_timestamps[i]>=timestamps[1]]
                 sampled_timestamps = [x for x in sampled_timestamps if x>=timestamps[1]]
             else:
+                print(f"Warning: ticklist was too short ({len(frequencies)} instead of 20), so no filtering applied.")
                 sampled_timestamps = timestamps
                 smoothed_frequencies = frequencies
         if len(sampled_timestamps) != len(smoothed_frequencies):
