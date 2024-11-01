@@ -536,8 +536,9 @@ class ApiFlowModule(Actor):
                     new_frequencies.append(0.001)
         new_timestamps.append(self.nano_timestamps[-1])
         new_frequencies.append(frequencies[-1])
-        timestamps = new_timestamps
-        frequencies = new_frequencies
+        timestamps = list(new_timestamps)
+        frequencies = list(new_frequencies)
+        del new_timestamps, new_frequencies
         # First reading
         if self.latest_hz is None:
             self.latest_hz = new_frequencies[0]
@@ -550,7 +551,7 @@ class ApiFlowModule(Actor):
             for t in range(len(frequencies)):
                 latest = (1-alpha)*latest + alpha*new_frequencies[t]
                 smoothed_frequencies.append(latest)
-            sampled_timestamps = list(new_timestamps)
+            sampled_timestamps = timestamps
         # Butterworth filter
         elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
             if len(frequencies) > 20: #TODO: make this a parameter? Issue a warning if too short?
