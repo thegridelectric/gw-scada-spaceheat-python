@@ -538,7 +538,6 @@ class ApiFlowModule(Actor):
         new_frequencies.append(frequencies[-1])
         timestamps = new_timestamps
         frequencies = new_frequencies
-        del new_timestamps
         # First reading
         if self.latest_hz is None:
             self.latest_hz = new_frequencies[0]
