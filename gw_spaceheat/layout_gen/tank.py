@@ -6,16 +6,16 @@ from gwproto.enums import MakeModel
 from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwproto.types import ChannelConfig
-from gwproto.types import ComponentAttributeClassGt
-from gwproto.types import DataChannelGt
-from gwproto.types import FibaroSmartImplantComponentGt
+from gwproto.named_types import ChannelConfig
+from gwproto.named_types import ComponentAttributeClassGt
+from gwproto.named_types import DataChannelGt
+from gwproto.named_types import FibaroSmartImplantComponentGt
 from gwproto.type_helpers import FibaroTempSensorSettingsGt
-from gwproto.types import HubitatComponentGt
-from gwproto.types import HubitatTankComponentGt
+from gwproto.named_types import HubitatComponentGt
+from gwproto.named_types import HubitatTankComponentGt
 from gwproto.type_helpers import HubitatTankSettingsGt
-from gwproto.types import SpaceheatNodeGt
-from gwproto.types.hubitat_gt import HubitatGt
+from gwproto.named_types import SpaceheatNodeGt
+from gwproto.named_types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
 
 from layout_gen import LayoutDb

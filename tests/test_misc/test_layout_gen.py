@@ -6,7 +6,7 @@ from gwproto.data_classes.components.hubitat_tank_component import HubitatTankCo
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.enums import TelemetryName
 from gwproto.enums import ActorClass
-from gwproto.types.hubitat_gt import HubitatGt
+from gwproto.named_types.hubitat_gt import HubitatGt
 from pydantic import BaseModel
 from pydantic_extra_types.mac_address import MacAddress
 

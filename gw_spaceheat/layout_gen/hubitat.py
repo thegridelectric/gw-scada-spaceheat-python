@@ -1,10 +1,10 @@
 from gwproto.enums import ActorClass
 from gwproto.enums import MakeModel
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwproto.types import ComponentAttributeClassGt
-from gwproto.types import HubitatComponentGt
-from gwproto.types import SpaceheatNodeGt
-from gwproto.types.hubitat_gt import HubitatGt
+from gwproto.named_types import ComponentAttributeClassGt
+from gwproto.named_types import HubitatComponentGt
+from gwproto.named_types import SpaceheatNodeGt
+from gwproto.named_types.hubitat_gt import HubitatGt
 
 from layout_gen.layout_db import LayoutDb
 from gwproto.data_classes.house_0_names import H0N
