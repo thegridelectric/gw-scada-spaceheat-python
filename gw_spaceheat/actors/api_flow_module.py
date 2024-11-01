@@ -450,6 +450,16 @@ class ApiFlowModule(Actor):
         if data.HwUid != self.hw_uid:
             print(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
+        if len(data.RelativeMillisecondList) == 0:
+            if self.latest_gpm is None:
+                self.latest_gpm = 0
+                self.latest_hz = 0
+                self.publish_zero_flow()
+            elif self.latest_gpm * 100 > self._component.gt.AsyncCaptureThresholdGpmTimes100:
+                self.publish_zero_flow()
+                self.latest_gpm = 0
+                self.latest_hz = 0
+            return
         if len(data.RelativeMicrosecondList) <= 1:
             if self.latest_gpm is None:
                 self.publish_zero_flow()
@@ -465,12 +475,13 @@ class ApiFlowModule(Actor):
                 ))
             self.ticklist = data
             self.update_timestamps_for_hall(data)
-            hz_readings = self.get_micro_hz_readings()
-            if len(hz_readings) > 0:
-                gpm_readings = self.get_gpm_readings(hz_readings)
-                self._send_to_scada(gpm_readings)
-                if self._component.gt.SendHz:
-                    self._send_to_scada(hz_readings)
+            if len(data.RelativeMicrosecondList) > 0:
+                hz_readings = self.get_micro_hz_readings()
+                if len(hz_readings) > 0:
+                    gpm_readings = self.get_gpm_readings(hz_readings)
+                    self._send_to_scada(gpm_readings)
+                    if self._component.gt.SendHz:
+                        self._send_to_scada(hz_readings)
         
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
