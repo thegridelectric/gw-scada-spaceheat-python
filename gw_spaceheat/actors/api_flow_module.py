@@ -320,6 +320,7 @@ class ApiFlowModule(Actor):
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
             raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
                             "but got TicklistReed!")
+        print('received ticks from reed!')
         text = await self._get_text(request)
         self.readings_text = text
         if isinstance(text, str):
