@@ -541,7 +541,7 @@ class ApiFlowModule(Actor):
         del new_timestamps, new_frequencies
         # First reading
         if self.latest_hz is None:
-            self.latest_hz = new_frequencies[0]
+            self.latest_hz = frequencies[0]
             first_reading = True
         # Exponential weighted average
         if self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
@@ -549,7 +549,7 @@ class ApiFlowModule(Actor):
             smoothed_frequencies = []
             latest = self.latest_hz
             for t in range(len(frequencies)):
-                latest = (1-alpha)*latest + alpha*new_frequencies[t]
+                latest = (1-alpha)*latest + alpha*frequencies[t]
                 smoothed_frequencies.append(latest)
             sampled_timestamps = timestamps
         # Butterworth filter
