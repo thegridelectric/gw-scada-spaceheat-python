@@ -477,7 +477,7 @@ class ApiFlowModule(Actor):
             self.update_timestamps_for_hall(data)
             if len(data.RelativeMicrosecondList) > 0:
                 hz_readings = self.get_micro_hz_readings()
-                if len(hz_readings) > 0:
+                if len(hz_readings.ValueList) > 0:
                     gpm_readings = self.get_gpm_readings(hz_readings)
                     self._send_to_scada(gpm_readings)
                     if self._component.gt.SendHz:
