@@ -1,0 +1,21 @@
+[Unit]
+Description=GridWorks scada 2 service
+After=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+User=pi
+Environment=VIRTUAL_ENV=/home/pi/gw-scada-spaceheat-python/gw_spaceheat/venv
+Environment=PYTHONPATH=/home/pi/gw-scada-spaceheat-python/gw_spaceheat
+Environment=SCADA_RUNNING_AS_SERVICE=1
+ExecStart=/home/pi/gw-scada-spaceheat-python/gw_spaceheat/venv/bin/python \
+    /home/pi/gw-scada-spaceheat-python/gw_spaceheat/run_scada.py \
+    --s2 \
+    --message-summary
+RestartSec=1
+WatchdogSec=20
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target

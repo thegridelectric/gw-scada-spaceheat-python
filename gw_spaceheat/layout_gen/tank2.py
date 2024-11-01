@@ -1,13 +1,13 @@
-from gwproto.types import PicoTankModuleComponentGt
+from gwproto.named_types import PicoTankModuleComponentGt
 from typing import List, Optional
 from pydantic import BaseModel
 from gwproto.property_format import SpaceheatName
 from layout_gen import LayoutDb
-from gwproto.types.component_attribute_class_gt import ComponentAttributeClassGt
-from gwproto.types.data_channel_gt import DataChannelGt
+from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwproto.named_types.data_channel_gt import DataChannelGt
 from gwproto.enums import MakeModel, Unit, ActorClass, TelemetryName
-from gwproto.types.channel_config import ChannelConfig
-from gwproto.types import SpaceheatNodeGt
+from gwproto.named_types.channel_config import ChannelConfig
+from gwproto.named_types import SpaceheatNodeGt
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.enums import TempCalcMethod
 

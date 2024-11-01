@@ -1,7 +1,7 @@
 from gwproto.enums import MakeModel
 from gwproto.type_helpers import WebServerGt
-from gwproto.types.component_attribute_class_gt import ComponentAttributeClassGt
-from gwproto.types.web_server_component_gt import WebServerComponentGt
+from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
+from gwproto.named_types.web_server_component_gt import WebServerComponentGt
 
 from layout_gen import LayoutDb
 

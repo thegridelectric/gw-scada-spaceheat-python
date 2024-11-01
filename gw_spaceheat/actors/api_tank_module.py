@@ -13,9 +13,9 @@ from gwproactor import Problems
 from gwproactor import ServicesInterface
 from gwproto import Message
 from gwproto.enums import TempCalcMethod
-from gwproto.types.web_server_gt import DEFAULT_WEB_SERVER_NAME
-from gwproto.types import TankModuleParams
-from gwproto.types import SyncedReadings
+from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwproto.named_types import TankModuleParams
+from gwproto.named_types import SyncedReadings
 from gwproto.data_classes.components import PicoTankModuleComponent
 from pydantic import BaseModel
 from gw.errors import DcError

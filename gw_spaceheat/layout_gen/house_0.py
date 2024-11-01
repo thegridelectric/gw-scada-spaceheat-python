@@ -7,7 +7,7 @@
 
 # from gwproto.enums import ActorClass, MakeModel, TelemetryName, Unit
 # from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-# from gwproto.types import (
+# from gwproto.named_types import (
 #     ChannelConfig,
 #     ComponentAttributeClassGt,
 #     ComponentGt,
@@ -15,7 +15,7 @@
 #     ElectricMeterCacGt,
 #     SpaceheatNodeGt,
 # )
-# from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
+# from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 # from pydantic import BaseModel
 
 # from gwproto.data_classes.house_0_names import H0N
