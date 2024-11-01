@@ -8,13 +8,15 @@ import traceback
 
 import dotenv
 import rich
+from gwproactor import Actor
 
 from gwproactor import setup_logging
 from gwproactor.config import MQTTClient
 from gwproactor.config.paths import TLSPaths
 from pydantic import BaseModel
 
-from actors import Scada, Parentless
+from actors import Parentless
+from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
@@ -68,25 +70,41 @@ def parse_args(
     parser: Optional[argparse.ArgumentParser] = None,
 ) -> argparse.Namespace:
     """Parse command line arguments"""
-    return add_default_args(
-        parser
-        or argparse.ArgumentParser(
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        ),
-        default_nodes=default_nodes,
-    ).parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
+    parser = (
+        add_default_args(
+            parser
+            or argparse.ArgumentParser(
+                formatter_class=argparse.ArgumentDefaultsHelpFormatter
+            ),
+            default_nodes=default_nodes,
+        )
+    )
+    parser.add_argument(
+        "--s2",
+        action="store_true",
+        help="Whether to run Parentless ('scada 2') instead of Scada."
+    )
+    return parser.parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
 
 def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
     if args.nodes is None:
         requested = None
     else:
         requested = set(args.nodes)
-        requested.add(H0N.primary_scada)
         requested.add(H0N.home_alone)
+        if args.s2:
+            requested.add(H0N.secondary_scada)
+        else:
+            requested.add(H0N.primary_scada)
     return requested
 
 
-def get_nodes_run_by_scada(requested_names: Optional[set[str]], layout: HardwareLayout, actors_package_name: str) -> Tuple[ShNode, list[ShNode]]:
+def get_nodes_run_by_scada(
+        requested_names: Optional[set[str]],
+        layout: HardwareLayout,
+        actors_package_name: str,
+        scada_actor_class: ActorClass = ActorClass.Scada,
+) -> Tuple[ShNode, list[ShNode]]:
     actors_package = importlib.import_module(actors_package_name)
     if requested_names:
         requested_nodes = [layout.node(name) for name in requested_names]
@@ -96,7 +114,7 @@ def get_nodes_run_by_scada(requested_names: Optional[set[str]], layout: Hardware
     scada_node: Optional[ShNode] = None
     for node in requested_nodes:
         if node.ActorClass not in [ActorClass.Atn, ActorClass.HomeAlone] and node.has_actor:
-            if node.actor_class == "Scada":
+            if node.actor_class == scada_actor_class:
                 if scada_node is not None:
                     raise ValueError(
                         "ERROR. Exactly 1 scada node must be present in alaises. Found at least two ("
@@ -149,6 +167,10 @@ def get_scada(
     dotenv_file = dotenv.find_dotenv(args.env_file)
     dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
     settings = ScadaSettings(_env_file=dotenv_file)
+    if args.s2:
+        scada_actor_class = ActorClass.Parentless
+    else:
+        scada_actor_class = ActorClass.Scada
     if args.dry_run:
         rich.print(dotenv_file_debug_str)
         rich.print(settings)
@@ -168,14 +190,38 @@ def get_scada(
         rich.print(settings)
         check_tls_paths_present(settings)
         requested_names = get_requested_names(args)
-        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_names)
-        scada_node, actor_nodes = get_nodes_run_by_scada(requested_names, layout, actors_package_name)
+        layout = HardwareLayout.load(
+            settings.paths.hardware_layout, 
+            included_node_names=requested_names
+        )
+        scada_node, actor_nodes = get_nodes_run_by_scada(
+            requested_names, 
+            layout, 
+            actors_package_name,
+            scada_actor_class=scada_actor_class,
+        )
         print(f"actor nodes run by scada: {actor_nodes}")
-        scada = Scada(name=scada_node.Name, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+        if scada_actor_class == ActorClass.Scada:
+            scada = Scada(
+                name=scada_node.Name,
+                settings=settings,
+                hardware_layout=layout,
+                actor_nodes=actor_nodes,
+            )
+        else:
+            scada = Parentless(
+                name=scada_node.Name,
+                settings=settings,
+                hardware_layout=layout,
+            )
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
             scada.run_in_thread()
-
+        # # NOTE: THIS DOES NOT WORK
+        # scada = Parentless(name=name, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
+        # if run_in_thread:
+        #     logger.info("run_async_actors_main() starting")
+        #     scada.run_in_thread()
     return scada
 
 def get_scada2(

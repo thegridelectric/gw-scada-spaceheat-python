@@ -5,8 +5,8 @@ from typing import Optional
 from typing import Sequence
 
 from gwproto.enums import TelemetryName
-from gwproto.types import SingleReading
-from gwproto.types import SnapshotSpaceheat
+from gwproto.named_types import SingleReading
+from gwproto.named_types import SnapshotSpaceheat
 
 from tests.atn.dashboard.channels.channel import DisplayChannel
 

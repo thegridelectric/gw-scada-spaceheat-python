@@ -34,7 +34,7 @@ from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproactor import Problems
 from gwproto.enums import MakeModel
-from gwproto.types import ElectricMeterChannelConfig
+from gwproto.named_types import ElectricMeterChannelConfig
 
 
 

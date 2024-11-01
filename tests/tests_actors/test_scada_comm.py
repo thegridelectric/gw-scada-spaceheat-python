@@ -1,8 +1,5 @@
 from typing import Callable
 
-import pytest
-from gwproactor.links import StateName
-
 from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
@@ -29,7 +26,7 @@ class RecordedScada(Scada):
     def mqtt_quiescent(self) -> bool:
         return (
             self._links.link(self.GRIDWORKS_MQTT).active_for_send() and
-            self._links.link(self.LOCAL_MQTT).state == StateName.awaiting_setup_and_peer
+            self._links.link(self.LOCAL_MQTT).active_for_send()
         )
 
 
@@ -50,6 +47,5 @@ class ScadaCommTestHelper(CommTestHelper):
             helper.kwargs["hardware_layout"] = HardwareLayout.load(helper.settings.paths.hardware_layout)
         return super()._make(recorder_t, helper)
 
-@pytest.mark.skip(reason="Failing due to two scadas")
 class TestScadaProactorComm(ProactorCommTests):
     CTH = ScadaCommTestHelper

@@ -14,9 +14,9 @@ from gwproto.message import Header
 from gwproto.data_classes.components import PicoFlowModuleComponent
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.enums import MakeModel, HzCalcMethod, GpmFromHzMethod, TelemetryName
-from gwproto.types import  ChannelReadings, SyncedReadings
-from gwproto.types import TicklistHall, TicklistReed, TicklistHallReport, TicklistReedReport
-from gwproto.types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from gwproto.named_types import  ChannelReadings, SyncedReadings
+from gwproto.named_types import TicklistHall, TicklistReed, TicklistHallReport, TicklistReedReport
+from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from gwproactor import QOS
 from result import Ok, Result
