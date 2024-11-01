@@ -6,13 +6,13 @@ from gwproto.enums import MakeModel
 from gwproto.enums import TelemetryName
 from gwproto.enums import Unit
 from gwproto.type_helpers import HubitatGt
-from gwproto.types import ComponentAttributeClassGt
-from gwproto.types import ComponentGt
-from gwproto.types import ElectricMeterCacGt
-from gwproto.types import SpaceheatNodeGt
-from gwproto.types import ElectricMeterChannelConfig
-from gwproto.types import DataChannelGt
-from gwproto.types.electric_meter_component_gt import ElectricMeterComponentGt
+from gwproto.named_types import ComponentAttributeClassGt
+from gwproto.named_types import ComponentGt
+from gwproto.named_types import ElectricMeterCacGt
+from gwproto.named_types import SpaceheatNodeGt
+from gwproto.named_types import ElectricMeterChannelConfig
+from gwproto.named_types import DataChannelGt
+from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.data_classes.house_0_names import H0N, H0CN
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap

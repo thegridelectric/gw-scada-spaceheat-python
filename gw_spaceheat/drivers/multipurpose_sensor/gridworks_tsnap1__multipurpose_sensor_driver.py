@@ -28,7 +28,7 @@ from gwproto.enums import MakeModel, TelemetryName
 from gwproto.data_classes.components.ads111x_based_component import (
     Ads111xBasedComponent
 )
-from gwproto.types import AdsChannelConfig
+from gwproto.named_types import AdsChannelConfig
 DEFAULT_BAD_VALUE = -5
 
 

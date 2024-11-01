@@ -13,7 +13,7 @@ from gwproto.data_classes.house_0_names import H0N, H0CN
 
 import actors
 import pytest
-from gwproto.types import DataChannelGt
+from gwproto.named_types import DataChannelGt
 from actors import Scada
 from actors.power_meter import DriverThreadSetupHelper
 from actors.power_meter import PowerMeter

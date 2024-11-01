@@ -9,7 +9,7 @@ from gwproto.enums import (
     Unit,
 )
 from gwproto.type_helpers import CACS_BY_MAKE_MODEL
-from gwproto.types import (
+from gwproto.named_types import (
     ChannelConfig,
     ComponentAttributeClassGt,
     ComponentGt,
@@ -17,7 +17,7 @@ from gwproto.types import (
     RelayActorConfig,
     SpaceheatNodeGt,
 )
-from gwproto.types.i2c_multichannel_dt_relay_component_gt import (
+from gwproto.named_types.i2c_multichannel_dt_relay_component_gt import (
     I2cMultichannelDtRelayComponentGt,
 )
 from pydantic import BaseModel

@@ -4,7 +4,7 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 
 from actors.config import ScadaSettings
 from gwproto.enums import KindOfParam
-from gwproto.types import KeyparamChangeLog
+from gwproto.named_types import KeyparamChangeLog
 
 settings = ScadaSettings(_env_file=dotenv.find_dotenv())
 

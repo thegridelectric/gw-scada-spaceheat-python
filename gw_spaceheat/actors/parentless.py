@@ -7,8 +7,8 @@ from typing import List
 
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
-from gwproto.types import Report
-from gwproto.types import SnapshotSpaceheat
+from gwproto.named_types import Report
+from gwproto.named_types import SnapshotSpaceheat
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
