@@ -115,7 +115,7 @@ class ApiFlowModule(Actor):
                 raise DcError(f"{self.name}: BasicExpWeightedAvg requires ExpAlpha")
         if self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
             if self._component.gt.CutoffFrequency is None:
-                raise DcError(f"{self.name}: BasicButterWorth requiresCutoffFrequency")
+                raise DcError(f"{self.name}: BasicButterWorth requires CutoffFrequency")
         channel_names = [x.ChannelName for x in self._component.gt.ConfigList]
         if self.gpm_channel.Name not in channel_names:
             raise DcError(f"Missing {self.gpm_channel.Name} channel!")
@@ -420,7 +420,10 @@ class ApiFlowModule(Actor):
                 ))
         if len(data.RelativeMillisecondList) == 1:
             final_tick_ns = self.nano_timestamps[-1]
-            final_nonzero_hz = int(1e9/(final_tick_ns - self.latest_tick_ns))
+            if self.latest_tick_ns is not None:
+                final_nonzero_hz = int(1e9/(final_tick_ns - self.latest_tick_ns))
+            else:
+                final_nonzero_hz = 0
             self.latest_tick_ns = final_tick_ns
             self.latest_report_ns = final_tick_ns
             self.latest_hz = 0
@@ -509,14 +512,15 @@ class ApiFlowModule(Actor):
         if len(self.nano_timestamps) < 2:
             raise ValueError(f"Should only call get_hz_readings with at least 2 timestamps!")
         first_reading = False
-        self.nano_timestamps = sorted(self.nano_timestamps) # Make sure timestamps are sorted
+        # Sort timestamps and compute frequencies
+        self.nano_timestamps = sorted(self.nano_timestamps)
         frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
-        # Sort values by time
         # Remove outliers
-        min_hz, max_hz = 0, 500
-        self.nano_timestamps = [self.nano_timestamps[i] for i in range(len(frequencies)) if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
+        min_hz, max_hz = 0, 500 # TODO: make these parameters? Or enforce on the Pico (if not already done)
+        self.nano_timestamps = [self.nano_timestamps[i] 
+                                for i in range(len(frequencies)) 
+                                if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
         frequencies = [x for x in frequencies  if (x<max_hz and x>=min_hz)]
-
         # Add 0 flow when there is more than no_flow_ms between two points
         new_timestamps = []
         new_frequencies = []
@@ -534,10 +538,13 @@ class ApiFlowModule(Actor):
         new_frequencies.append(frequencies[-1])
         timestamps = new_timestamps
         frequencies = new_frequencies
+        del new_timestamps
 
+        # First reading
         if self.latest_hz is None:
-                self.latest_hz = new_frequencies[0]
-                first_reading = True
+            self.latest_hz = new_frequencies[0]
+            first_reading = True
+        # Exponential weighted average
         if self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
             alpha = self._component.gt.ExpAlpha
             smoothed_frequencies = []
