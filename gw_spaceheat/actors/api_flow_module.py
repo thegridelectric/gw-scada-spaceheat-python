@@ -539,7 +539,6 @@ class ApiFlowModule(Actor):
         timestamps = new_timestamps
         frequencies = new_frequencies
         del new_timestamps
-
         # First reading
         if self.latest_hz is None:
             self.latest_hz = new_frequencies[0]
@@ -553,26 +552,29 @@ class ApiFlowModule(Actor):
                 latest = (1-alpha)*latest + alpha*new_frequencies[t]
                 smoothed_frequencies.append(latest)
             sampled_timestamps = list(new_timestamps)
-
+        # Butterworth filter
         elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
-            if len(frequencies) > 20:
+            if len(frequencies) > 20: #TODO: make this a parameter? Issue a warning if too short?
                 # Add the last recorded frequency before the filtering (avoids overfitting the first point)
                 timestamps = [timestamps[0]-0.01*1e9] + list(timestamps)
                 frequencies = [self.latest_hz] + list(frequencies)
                 # Re-sample time at sampling frequency f_s
                 f_s = 5 * max(frequencies)
-                sampled_timestamps = np.linspace(min(timestamps), max(timestamps), int((max(timestamps)-min(timestamps))/1e9 * f_s))
+                sampled_timestamps = np.linspace(min(timestamps), 
+                                                 max(timestamps), 
+                                                 int((max(timestamps)-min(timestamps))/1e9 * f_s))
                 # Re-sample frequency accordingly using a linear interpolaton
                 interpolation_function = interp1d(timestamps, frequencies)
                 sampled_frequencies = interpolation_function(sampled_timestamps)
-                # Butterworth low-pass filter
+                # Butterworth low-pass filter on the re-sampled data
                 cutoff_frequency=self._component.gt.CutoffFrequency
                 b, a = butter(N=5, Wn=cutoff_frequency, fs=f_s, btype='low', analog=False)
                 smoothed_frequencies = filtfilt(b, a, sampled_frequencies)
                 # Remove points resulting from adding the first recorded frequency
                 frequencies = frequencies[1:]
                 timestamps = timestamps[1:]
-                smoothed_frequencies = [smoothed_frequencies[i] for i in range(len(smoothed_frequencies)) 
+                smoothed_frequencies = [smoothed_frequencies[i] 
+                                        for i in range(len(smoothed_frequencies)) 
                                         if sampled_timestamps[i]>=timestamps[1]]
                 sampled_timestamps = [x for x in sampled_timestamps if x>=timestamps[1]]
             else:
@@ -580,20 +582,19 @@ class ApiFlowModule(Actor):
                 smoothed_frequencies = frequencies
         if len(sampled_timestamps) != len(smoothed_frequencies):
             raise Exception("Sampled Timestamps and Smoothed Frequencies not the same length!")
-        
-        self.smoothed_frequencies = smoothed_frequencies
+        # Convert GPM threshold to Hz threshold
         threshold_gpm = self._component.gt.AsyncCaptureThresholdGpmTimes100 / 100
         gallons_per_tick = self._component.gt.ConstantGallonsPerTick
         threshold_hz = threshold_gpm/60/gallons_per_tick
-
+        # For the first reading
         if first_reading:
-            micro_hz_list = [int(smoothed_frequencies[0]*1e6)] # self.latest_hz
+            self.latest_hz = int(smoothed_frequencies[0]*1e6) #TODO: check with Jessica
+            micro_hz_list = [int(smoothed_frequencies[0]*1e6)]
             unix_ms_times = [int(sampled_timestamps[0]/1e6)]
-            print("Sending back first reading")
+        # Record Hz on change
         else:
             micro_hz_list = []
             unix_ms_times = []
-        # apply the async on change criterion:
         for i in range(len(smoothed_frequencies)):
             if abs(smoothed_frequencies[i] - self.latest_hz) > threshold_hz:
                 micro_hz_list.append(int(smoothed_frequencies[i]*1e6))
