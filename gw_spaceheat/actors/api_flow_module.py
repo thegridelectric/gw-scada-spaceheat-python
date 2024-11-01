@@ -450,7 +450,7 @@ class ApiFlowModule(Actor):
         if data.HwUid != self.hw_uid:
             print(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
-        if len(data.RelativeMillisecondList) == 0:
+        if len(data.RelativeMicrosecondList) == 0:
             if self.latest_gpm is None:
                 self.latest_gpm = 0
                 self.latest_hz = 0
