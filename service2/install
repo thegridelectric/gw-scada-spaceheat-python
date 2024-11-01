@@ -1,4 +1,4 @@
-$HOME/gw-scada-spaceheat-python/service/uninstall > /dev/null 2>&1
+$HOME/gw-scada-spaceheat-python/service2/uninstall > /dev/null 2>&1
 
 sudo ln -s $HOME/gw-scada-spaceheat-python/service2/gwspaceheat2.service /lib/systemd/system
 sudo ln -s $HOME/gw-scada-spaceheat-python/service2/gwspaceheat2-restart.service /lib/systemd/system
