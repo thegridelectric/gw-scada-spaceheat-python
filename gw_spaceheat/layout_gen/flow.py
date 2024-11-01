@@ -18,7 +18,7 @@ HALL_PUBLISH_TICKLIST_AFTER_S = 60
 
 class HallCfg(BaseModel):
     Enabled: bool = True
-    SerialNumber: str
+    SerialNumber: str = "NA"
     HwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = H0N.dist_flow
     FlowNodeName: Optional[SpaceheatName] = None
