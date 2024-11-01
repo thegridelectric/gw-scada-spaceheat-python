@@ -90,6 +90,16 @@ class LocalMQTTCodec(MQTTCodec):
         super().__init__(ScadaMessageDecoder)
 
     def validate_source_and_destination(self, src: str, dst: str) -> None:
+        ## Black Magic 🪄
+        ##   The message from scada2 contain the *spaceheat name* as
+        ##   src, *not* the gnode name, in particular because they might come
+        ##   from individual nodes that don't have a gnode.
+        ##   Since spaceheat names now contain '-', the encoding/decoding by
+        ##   MQTTCodec (done for Rabbit) is not what we we want: "-" ends up as
+        ##   "." So we have undo that in this particular case.
+        src = src.replace(".", "-")
+        ## End Black Magic 🪄
+
         if dst != self.exp_dst or src not in self.exp_srcs:
             raise ValueError(
                 "ERROR validating src and/or dst\n"
