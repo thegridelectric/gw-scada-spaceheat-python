@@ -161,7 +161,6 @@ class ApiFlowModule(Actor):
         while not self._stop_requested:
             try:
                 if time.time() > self.next_sync_s:
-                    # print("Publishing synced readings")
                     self.publish_synced_readings()
                     self.latest_sync_send_s = int(time.time())
                 await asyncio.sleep(self.sync_reading_sleep())
@@ -268,7 +267,7 @@ class ApiFlowModule(Actor):
             if self._component.gt.HwUid is None:
                 self.hw_uid = params.HwUid
                 # TODO: update params from layout
-                print(f"Layout update: {self.name} Pico HWUID {params.HwUid}")
+                # print(f"Layout update: {self.name} Pico HWUID {params.HwUid}")
                 # TODO: send message to self so that writing to hardware layout isn't 
                 # happening in IO loop
             return Response(text=params.model_dump_json())
@@ -292,8 +291,6 @@ class ApiFlowModule(Actor):
             raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
                             "but got FlowReedParams!")
         print(f"\nGot params for {params.HwUid}:\n{params}")
-        if params.HwUid == 'pico_836d31':
-            print('\nTHIS IS THE STORE PUMP\n')
         if (self._component.gt.HwUid is None or 
             self._component.gt.HwUid == params.HwUid):
             if self._component.gt.HwUid is None:
@@ -396,7 +393,6 @@ class ApiFlowModule(Actor):
                 ScadaReadTimeUnixMs=zero_flow_ms,
             )
         )
-
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         self.ticklist = data
