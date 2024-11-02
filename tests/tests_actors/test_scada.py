@@ -6,7 +6,7 @@ from typing import cast
 from gwproto.messages import ReportEvent
 from gwproto.messages import ChannelReadings
 
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.house_0_layout import House0Layout
 from tests.atn import AtnSettings
 from tests.utils.fragment_runner import Actors
 from tests.utils.fragment_runner import AsyncFragmentRunner
@@ -28,7 +28,7 @@ def test_scada_small():
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs()
-    layout = HardwareLayout.load(settings.paths.hardware_layout)
+    layout = House0Layout.load(settings.paths.hardware_layout)
     scada = Scada(H0N.primary_scada, settings=settings, hardware_layout=layout)
     assert layout.power_meter_node == layout.node(H0N.primary_power_meter)
 
@@ -96,7 +96,7 @@ def test_scada_small():
 #     if uses_tls(atn_settings):
 #         copy_keys("atn", atn_settings)
 #     atn_settings.paths.mkdirs(parents=True)
-#     layout = HardwareLayout.load(settings.paths.hardware_layout)
+#     layout = House0Layout.load(settings.paths.hardware_layout)
 #     actors = Actors(
 #         settings,
 #         layout=layout,
@@ -254,7 +254,7 @@ async def test_scada_periodic_status_delivery(tmp_path, monkeypatch, request):
     if uses_tls(atn_settings):
         copy_keys("atn", atn_settings)
     atn_settings.paths.mkdirs()
-    layout = HardwareLayout.load(settings.paths.hardware_layout)
+    layout = House0Layout.load(settings.paths.hardware_layout)
     actors = Actors(
         settings,
         layout=layout,
@@ -330,7 +330,7 @@ async def test_scada_report_content_dynamics(tmp_path, monkeypatch, request):
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs(parents=True)
-    layout = HardwareLayout.load(settings.paths.hardware_layout)
+    layout = House0Layout.load(settings.paths.hardware_layout)
     actors = Actors(
         settings,
         layout=layout,

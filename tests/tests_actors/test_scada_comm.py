@@ -2,7 +2,7 @@ from typing import Callable
 
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.house_0_layout import House0Layout
 from tests.atn import Atn
 from tests.atn import AtnSettings
 from gwproactor_test import CommTestHelper
@@ -44,7 +44,7 @@ class ScadaCommTestHelper(CommTestHelper):
     @classmethod
     def _make(cls, recorder_t: Callable[..., RecorderInterface], helper: ProactorTestHelper) -> RecorderInterface:
         if "hardware_layout" not in helper.kwargs:
-            helper.kwargs["hardware_layout"] = HardwareLayout.load(helper.settings.paths.hardware_layout)
+            helper.kwargs["hardware_layout"] = House0Layout.load(helper.settings.paths.hardware_layout)
         return super()._make(recorder_t, helper)
 
 class TestScadaProactorComm(ProactorCommTests):

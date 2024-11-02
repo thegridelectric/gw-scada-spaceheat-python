@@ -8,7 +8,6 @@ import traceback
 
 import dotenv
 import rich
-from gwproactor import Actor
 
 from gwproactor import setup_logging
 from gwproactor.config import MQTTClient
@@ -18,7 +17,7 @@ from pydantic import BaseModel
 from actors import Parentless
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass
 from pydantic_settings import BaseSettings
@@ -101,7 +100,7 @@ def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
 
 def get_nodes_run_by_scada(
         requested_names: Optional[set[str]],
-        layout: HardwareLayout,
+        layout: House0Layout,
         actors_package_name: str,
         scada_actor_class: ActorClass = ActorClass.Scada,
 ) -> Tuple[ShNode, list[ShNode]]:
@@ -190,7 +189,7 @@ def get_scada(
         rich.print(settings)
         check_tls_paths_present(settings)
         requested_names = get_requested_names(args)
-        layout = HardwareLayout.load(
+        layout = House0Layout.load(
             settings.paths.hardware_layout, 
             included_node_names=requested_names
         )
@@ -253,7 +252,8 @@ def get_scada2(
         rich.print(settings)
         check_tls_paths_present(settings)
         requested_names = get_requested_names(args)
-        layout = HardwareLayout.load(settings.paths.hardware_layout, included_node_names=requested_names)
+        layout = House0Layout.load(settings.paths.hardware_layout, included_node_names=requested_names)
+        print(f"type of layout is {type(layout)}")
         scada2 = Parentless(name=H0N.secondary_scada, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")

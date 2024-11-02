@@ -2,9 +2,9 @@
 import json
 import subprocess
 import typing
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple,List
 import uuid
 
 from gw.errors import DcError
@@ -23,7 +23,7 @@ from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
-from gwproto.data_classes.house_0_names import H0N, H0CN, H0N
+from gwproto.data_classes.house_0_names import H0N, H0CN
 
 
 class ChannelStubDb(ChannelStub):
@@ -120,6 +120,8 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
 class StubConfig:
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
     terminal_asset_alias: Optional[str] = None
+    zone_list: Tuple[str, ...] = field(default_factory=tuple)
+    total_store_tanks: int = 3
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
     power_meter_cac_alias: str = "Dummy Power Meter Cac"
@@ -135,6 +137,8 @@ class LayoutIDMap:
     nodes_by_name: dict[str, str]
     channels_by_name: dict[str, str]
     gnodes: dict[str, dict]
+    zone_list: List[str]
+    total_store_tanks: int
 
     def __init__(self, d: Optional[dict] = None):
         self.cacs_by_alias = {}
@@ -142,12 +146,19 @@ class LayoutIDMap:
         self.nodes_by_name = {}
         self.channels_by_name = {}
         self.gnodes = {}
+        self.zone_list = []
+        self.total_store_tanks = 3
+        self.strategy = "House0"
         if not d:
             return
         for k, v in d.items():
                 if isinstance(v, dict) and "GNodeId" in v:
                     self.gnodes[k] = v
-                if k == "ShNodes":
+                if k == "ZoneList":
+                    self.zone_list = v
+                elif k == "TotalStoreTanks":
+                    self.total_store_tanks = v
+                elif k == "ShNodes":
                         for node in v:
                             try:
                                 self.add_node(
@@ -532,6 +543,16 @@ class LayoutDb:
                 "GNodeStatusValue": "Active",
                 "PrimaryGNodeRoleAlias": "TerminalAsset"
               }
+        if self.loaded.zone_list:
+            self.misc.update(self.loaded.zone_list)
+        else:
+            self.misc["ZoneList"] = cfg.zone_list
+
+        if self.loaded.total_store_tanks:
+            self.misc["TotalStoreTanks"] = self.loaded.total_store_tanks
+        else:
+            self.misc["TotalStoreTanks"] =  self.loaded.total_store_tanks
+        self.misc["Strategy"] = "House0"
 
         self.add_nodes(
             [

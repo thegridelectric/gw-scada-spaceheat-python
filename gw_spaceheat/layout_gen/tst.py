@@ -27,6 +27,8 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         stub_config=StubConfig(
             atn_gnode_alias="d1.isone.ct.newhaven.orange1",
             scada_display_name="Little Orange House Main Scada",
+            zone_list=["main"],
+            total_store_tanks=3,
             add_stub_power_meter=False,
         )
     )

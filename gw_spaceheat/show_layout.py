@@ -19,7 +19,7 @@ from command_line_utils import get_nodes_run_by_scada
 from command_line_utils import get_requested_names
 from gwproactor.config import MQTTClient
 from gw.errors import DcError
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.enums import ActorClass
 
 
@@ -77,7 +77,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     return parser.parse_args(sys.argv[1:] if argv is None else argv)
 
 
-def print_component_dicts(layout: HardwareLayout):
+def print_component_dicts(layout: House0Layout):
     print("All Components:")
     print({
         component.gt.ComponentId: component.gt.DisplayName
@@ -139,7 +139,7 @@ def print_component_dicts(layout: HardwareLayout):
 
 
 def print_layout_members(
-    layout: HardwareLayout,
+    layout: House0Layout,
     errors: Optional[list[LoadError]] = None,
 ) -> None:
     if errors is None:
@@ -212,7 +212,7 @@ def print_layout_members(
         except Exception as e:
             errors.append(LoadError(tt_prop_name, {}, e))
 
-def print_layout_urls(layout: HardwareLayout) -> None:
+def print_layout_urls(layout: House0Layout) -> None:
     url_dicts = {
         component.gt.DisplayName: component.urls()
         for component in [
@@ -228,7 +228,7 @@ def print_layout_urls(layout: HardwareLayout) -> None:
                 print(f"    {k}: {str(v)}")
 
 def print_web_server_info(
-    layout: HardwareLayout,
+    layout: House0Layout,
     requested_aliases: Optional[set[str]],
     settings: ScadaSettings,
 ) -> None:
@@ -257,7 +257,7 @@ def print_web_server_info(
             for route in routes:
                 print(f"  {route}")
 
-def print_channels(layout: HardwareLayout, *, raise_errors: bool = False) -> None:
+def print_channels(layout: House0Layout, *, raise_errors: bool = False) -> None:
     print()
     try:
         table = Table(
@@ -286,7 +286,7 @@ def print_channels(layout: HardwareLayout, *, raise_errors: bool = False) -> Non
         if raise_errors:
             raise
 
-def print_layout_table(layout: HardwareLayout):
+def print_layout_table(layout: House0Layout):
     print()
     table = Table(
         title="Nodes, Components, Cacs, Actors",
@@ -335,7 +335,7 @@ def print_layout_table(layout: HardwareLayout):
         table.add_row(node.Name, component_txt, cac_txt, make_model_text, actor_text)
     print(table)
 
-def try_scada_load(requested_names: Optional[set[str]], layout: HardwareLayout, settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
+def try_scada_load(requested_names: Optional[set[str]], layout: House0Layout, settings: ScadaSettings, raise_errors: bool = False) -> Optional[Scada]:
     settings = settings.model_copy(deep=True)
     settings.paths.mkdirs()
     scada_node, actor_nodes = get_nodes_run_by_scada(requested_names, layout, Scada.DEFAULT_ACTORS_MODULE)
@@ -361,7 +361,7 @@ def try_scada_load(requested_names: Optional[set[str]], layout: HardwareLayout, 
     return scada
 
 def show_layout(
-        layout: HardwareLayout,
+        layout: House0Layout,
         requested_names: Optional[set[str]],
         settings: ScadaSettings,
         raise_errors: bool = False,
@@ -400,7 +400,7 @@ def main(argv: Optional[Sequence[str]] = None) -> list[LoadError]:
     requested_names = get_requested_names(args)
     print(f"Using layout file: <{settings.paths.hardware_layout}>, exists: {settings.paths.hardware_layout.exists()}")
     errors = []
-    layout = HardwareLayout.load(
+    layout = House0Layout.load(
         settings.paths.hardware_layout,
         included_node_names=requested_names,
         raise_errors=bool(args.raise_errors),

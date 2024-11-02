@@ -34,11 +34,11 @@ class HallCfg(BaseModel):
     NoFlowMs: int = 250
     PublishEmptyTicklistAfterS: int = HALL_PUBLISH_TICKLIST_AFTER_S
     PublishTicklistPeriodS: int = 10 
-    ExpAlpha: Optional[float] = None # 
+    ExpAlpha: Optional[float] = 0.2
     CutoffFrequency: Optional[float] = None
 
     def component_display_name(self) -> str:
-        return f"{self.ActorNodeName} ReedFlowModule"
+        return f"{self.ActorNodeName} HallFlowModule"
     
 class ReedCfg(BaseModel):
     Enabled: bool = True
@@ -57,7 +57,7 @@ class ReedCfg(BaseModel):
     NoFlowMs: int = 5000
     PublishAnyTicklistAfterS: int = 10
     PublishTicklistLength: int = 10 
-    ExpAlpha: Optional[float] = None # 
+    ExpAlpha: Optional[float] = 0.5
     CutoffFrequency: Optional[float] = None
 
     def component_display_name(self) -> str:
