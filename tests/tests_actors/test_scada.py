@@ -330,7 +330,7 @@ async def test_scada_report_content_dynamics(tmp_path, monkeypatch, request):
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs(parents=True)
-    layout = HardwareLayout.load(settings.paths.hardware_layout)
+    layout = House0Layout.load(settings.paths.hardware_layout)
     actors = Actors(
         settings,
         layout=layout,

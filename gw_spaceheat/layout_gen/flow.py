@@ -38,7 +38,7 @@ class HallCfg(BaseModel):
     CutoffFrequency: Optional[float] = None
 
     def component_display_name(self) -> str:
-        return f"{self.ActorNodeName} ReedFlowModule"
+        return f"{self.ActorNodeName} HallFlowModule"
     
 class ReedCfg(BaseModel):
     Enabled: bool = True

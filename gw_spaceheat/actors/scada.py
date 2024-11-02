@@ -137,6 +137,8 @@ class Scada(ScadaInterface, Proactor):
         hardware_layout: House0Layout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
+        if not isinstance(hardware_layout, House0Layout):
+            raise Exception("Make sure to pass Hosue0Layout object as hardware_layout!")
         self._layout: House0Layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
