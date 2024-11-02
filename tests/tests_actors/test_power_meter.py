@@ -3,7 +3,7 @@ import asyncio
 import logging
 import typing
 
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.house_0_layout import House0Layout
 from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
 from gwproactor_test import await_for
@@ -32,7 +32,7 @@ def test_power_meter_small():
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs()
-    layout = HardwareLayout.load(settings.paths.hardware_layout)
+    layout = House0Layout.load(settings.paths.hardware_layout)
     scada = Scada(H0N.primary_scada, settings, layout)
     # Raise exception if initiating node is anything except the unique power meter node
     with pytest.raises(Exception):

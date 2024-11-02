@@ -10,7 +10,7 @@ from gwproto.message import Message
 from gwproto.named_types import Report
 from gwproto.named_types import SnapshotSpaceheat
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 
 from actors.api_tank_module import MicroVolts
@@ -42,9 +42,11 @@ class Parentless(ScadaInterface, Proactor):
         self,
         name: str,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: House0Layout,
         actors_package_name: Optional[str] = None
     ):
+        if type(hardware_layout) is not House0Layout:
+            raise Exception(f"hardware_layout is of type {type(hardware_layout)}!!")
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self._links.add_mqtt_link(
             LinkSettings(
@@ -59,6 +61,7 @@ class Parentless(ScadaInterface, Proactor):
                 upstream=True,
             )
         )
+        self._layout: House0Layout = hardware_layout
         self._links.log_subscriptions("construction")
         self._data = Scada2Data()
         self.actors_package_name = actors_package_name
@@ -113,7 +116,7 @@ class Parentless(ScadaInterface, Proactor):
         return self._data  
  
     @property
-    def hardware_layout(self) -> HardwareLayout:
+    def hardware_layout(self) -> House0Layout:
         return self._layout
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):

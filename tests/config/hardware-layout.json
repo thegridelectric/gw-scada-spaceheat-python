@@ -1,4 +1,7 @@
 {
+  "Strategy": "House0",
+  "ZoneList": ["main"],
+  "TotalStoreTanks": 3,
   "DataChannels": [
     {
       "AboutNodeName": "hp-odu",

@@ -16,7 +16,7 @@ from gwproactor.config import LoggingSettings
 
 import actors
 from actors.config import ScadaSettings
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.house_0_layout import House0Layout
 from gwproactor import ActorInterface
 from gwproactor import Proactor
 from gwproactor import setup_logging
@@ -69,7 +69,7 @@ class Actors:
     def __init__(
             self,
             settings: ScadaSettings,
-            layout: HardwareLayout,
+            layout: House0Layout,
             **kwargs
     ):
         if uses_tls(settings):
@@ -114,7 +114,7 @@ class AsyncFragmentRunner:
 
     settings: ScadaSettings
     atn_settings: AtnSettings
-    layout: HardwareLayout
+    layout: House0Layout
     actors: Actors
     proactors: Dict[str, Proactor]
     fragments: List[ProtocolFragment]
@@ -159,7 +159,7 @@ class AsyncFragmentRunner:
         self.atn_settings = atn_settings
         self.tag = tag
         self.uid = str(uuid.uuid4())
-        self.layout = HardwareLayout.load(settings.paths.hardware_layout)
+        self.layout = House0Layout.load(settings.paths.hardware_layout)
         self.wait_at_least = wait_at_least
         self.do_nothing_time = do_nothing_time
         self.actors = Actors(

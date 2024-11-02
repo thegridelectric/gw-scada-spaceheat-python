@@ -13,7 +13,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import MQTTClientWrapper
 from gwproactor.message import MQTTSubackPayload
@@ -53,7 +53,7 @@ class ScadaRecorder(Scada):
     pending_subacks: list[Message]
     ack_timeout_seconds: float = 5.0
 
-    def __init__(self, name: str, settings: ScadaSettings, hardware_layout: HardwareLayout, actor_nodes: Optional[List[ShNode]] = None):
+    def __init__(self, name: str, settings: ScadaSettings, hardware_layout: House0Layout, actor_nodes: Optional[List[ShNode]] = None):
         self.suppress_report = False
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout, actor_nodes=actor_nodes)
         self.subacks_paused = False

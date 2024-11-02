@@ -15,8 +15,10 @@ from gwproactor.links.link_settings import LinkSettings
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
 from gwproto import MQTTTopic
+from gwproto.enums import ActorClass
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.messages import MyChannels, MyChannelsEvent
+from gwproto.data_classes.house_0_layout import House0Layout
+from gwproto.messages import LayoutLite, LayoutEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
@@ -36,7 +38,6 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -60,7 +61,7 @@ class GridworksMQTTCodec(MQTTCodec):
     exp_src: str
     exp_dst: str = H0N.primary_scada
 
-    def __init__(self, hardware_layout: HardwareLayout):
+    def __init__(self, hardware_layout: House0Layout):
         self.exp_src = hardware_layout.atn_g_node_alias
         super().__init__(ScadaMessageDecoder)
 
@@ -133,9 +134,10 @@ class Scada(ScadaInterface, Proactor):
         self,
         name: str,
         settings: ScadaSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: House0Layout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
+        self._layout: House0Layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         remote_actor_node_names = {node.name for node in self._layout.nodes.values() if
@@ -195,7 +197,7 @@ class Scada(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
-        self.send_my_channels()
+        self.send_layout_info()
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
@@ -232,7 +234,7 @@ class Scada(ScadaInterface, Proactor):
         return self._settings
 
     @property
-    def hardware_layout(self) -> HardwareLayout:
+    def hardware_layout(self) -> House0Layout:
         return self._layout
 
     @property
@@ -293,15 +295,23 @@ class Scada(ScadaInterface, Proactor):
                 finally:
                     break
 
-    def send_my_channels(self) -> None:
-        my_channels = MyChannels(
+    def send_layout_info(self) -> None:
+        tank_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
+        flow_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
+        layout = LayoutLite(
             FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
             FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
-            ChannelList=[ch.to_gt() for ch in self.data.my_channels],
+            Strategy=self._layout.strategy,
+            ZoneList=self._layout.zone_list,
+            TotalStoreTanks=self._layout.total_store_tanks,
+            TankModuleComponents=[node.component.gt for node in tank_nodes],
+            FlowModuleComponents=[node.component.gt for node in flow_nodes],
+            DataChannels=[ch.to_gt() for ch in self.data.my_channels],
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4())
         )
-        self.generate_event(MyChannelsEvent(MyChannels=my_channels))
+        self.event = LayoutEvent(Layout=layout)
+        self.generate_event(self.event)
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)

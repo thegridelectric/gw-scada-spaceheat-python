@@ -76,7 +76,7 @@ def add_tank2(
                     ComponentId=db.make_component_id(tank_cfg.component_display_name),
                     ComponentAttributeClassId=db.cac_id_by_alias(MakeModel.GRIDWORKS__TANKMODULE2),
                     DisplayName=tank_cfg.component_display_name(),
-                    HwUid=tank_cfg.SerialNumber,
+                    SerialNumber=tank_cfg.SerialNumber,
                     ConfigList=config_list,
                     PicoAHwUid=tank_cfg.PicoAHwUid,
                     PicoBHwUid=tank_cfg.PicoBHwUid,
