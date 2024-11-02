@@ -544,7 +544,7 @@ class LayoutDb:
                 "PrimaryGNodeRoleAlias": "TerminalAsset"
               }
         if self.loaded.zone_list:
-            self.misc.update(self.loaded.zone_list)
+            self.misc["ZoneList"] = self.loaded.zone_list
         else:
             self.misc["ZoneList"] = cfg.zone_list
 
