@@ -16,10 +16,10 @@ class Tank2Cfg(BaseModel):
     PicoAHwUid: Optional[str] = None
     PicoBHwUid: Optional[str] = None
     ActorNodeName: SpaceheatName = "buffer"
-    CapturePeriodS: int = 60
-    AsyncCaptureDeltaMicroVolts: int = 2000
+    CapturePeriodS: int = 300
+    AsyncCaptureDeltaMicroVolts: int = 4000
     Samples:int  = 1000
-    NumSampleAverages:int = 10
+    NumSampleAverages:int = 30
     Enabled: bool = True
     SendMicroVolts: bool = True
     TempCalc: TempCalcMethod = TempCalcMethod.SimpleBetaForPico

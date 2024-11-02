@@ -14,7 +14,6 @@ from gwproto.enums import GpmFromHzMethod, HzCalcMethod
 
 SAIER_CONSTANT_GALLONS_PER_TICK = 0.0009
 EKM_CONSTANT_GALLONS_PER_TICK = 0.0748
-HALL_PUBLISH_TICKLIST_AFTER_S = 60
 
 class HallCfg(BaseModel):
     Enabled: bool = True
@@ -32,7 +31,7 @@ class HallCfg(BaseModel):
     ConstantGallonsPerTick: float = SAIER_CONSTANT_GALLONS_PER_TICK
     SendHz: bool = True
     NoFlowMs: int = 250
-    PublishEmptyTicklistAfterS: int = HALL_PUBLISH_TICKLIST_AFTER_S
+    PublishEmptyTicklistAfterS: int = 10
     PublishTicklistPeriodS: int = 10 
     ExpAlpha: Optional[float] = 0.2
     CutoffFrequency: Optional[float] = None

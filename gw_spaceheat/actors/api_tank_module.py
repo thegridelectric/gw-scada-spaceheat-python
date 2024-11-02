@@ -171,7 +171,7 @@ class ApiTankModule(Actor):
                 Samples=self._component.gt.Samples,
                 NumSampleAverages=self._component.gt.NumSampleAverages,
                 AsyncCaptureDeltaMicroVolts=cfg.AsyncCaptureDelta,
-                CaptureOffsetS=round(60-time.time()%60,3)-1,
+                CaptureOffsetS=round(60-time.time()%60,3)-1.5,
             )
             if self.need_to_update_layout(params):
                 self.hw_uid_list.append(params.HwUid)
