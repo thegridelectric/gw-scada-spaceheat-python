@@ -448,7 +448,7 @@ class ApiFlowModule(Actor):
 
     def _process_ticklist_hall(self, data: TicklistHall) -> None:
         if self.hw_uid == 'pico_4e3332':
-            print('Receiving ticks from hall dist-flow in fir')
+            print(f'Receiving {len(data.RelativeMicrosecondList)} ticks from hall dist-flow in fir')
         if data.HwUid != self.hw_uid:
             print(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
