@@ -65,7 +65,6 @@ def add_tank2(
                         ChannelName=f"{tank_cfg.ActorNodeName}-depth{i}-micro-v",
                         CapturePeriodS=tank_cfg.CapturePeriodS,
                         AsyncCapture=True,
-                        AsyncCaptureDelta=tank_cfg.AsyncCaptureDeltaMicroVolts,
                         Exponent=6,
                         Unit=Unit.VoltsRms
                     )
@@ -86,7 +85,8 @@ def add_tank2(
                     NumSampleAverages=tank_cfg.NumSampleAverages,
                     TempCalcMethod=tank_cfg.TempCalc,
                     ThermistorBeta=tank_cfg.ThermistorBeta,
-                    PicoKOhms=tank_cfg.PicoKOhms
+                    PicoKOhms=tank_cfg.PicoKOhms,
+                    AsyncCaptureDeltaMicroHz=tank_cfg.AsyncCaptureDeltaMicroVolts,
                 ),
             ]
         )

@@ -156,12 +156,9 @@ class ApiTankModule(Actor):
             return
         
         if self.is_valid_pico_uid(params):
-            if params.PicoAB == 'a':
-                cfg = next((cfg for cfg in self._component.gt.ConfigList if 
-                        cfg.ChannelName == f'{self.name}-depth1-micro-v'), None)
-            else:
-                cfg = next((cfg for cfg in self._component.gt.ConfigList if 
-                        cfg.ChannelName == f'{self.name}-depth3-micro-v'), None)
+            cfg = next((cfg for cfg in self._component.gt.ConfigList if 
+                    cfg.ChannelName == f'{self.name}-depth1'), None)
+
             
             new_params = TankModuleParams(
                 HwUid=params.HwUid,
@@ -170,7 +167,7 @@ class ApiTankModule(Actor):
                 CapturePeriodS=cfg.CapturePeriodS,
                 Samples=self._component.gt.Samples,
                 NumSampleAverages=self._component.gt.NumSampleAverages,
-                AsyncCaptureDeltaMicroVolts=cfg.AsyncCaptureDelta,
+                AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroHz,
                 CaptureOffsetS=round(60-time.time()%60,3)-1.5,
             )
             if self.need_to_update_layout(params):
