@@ -314,6 +314,7 @@ class Scada(ScadaInterface, Proactor):
         )
         self.event = LayoutEvent(Layout=layout)
         self.generate_event(self.event)
+        print("Just tried to send layout event")
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
