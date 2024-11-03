@@ -159,7 +159,8 @@ class ApiTankModule(Actor):
             cfg = next((cfg for cfg in self._component.gt.ConfigList if 
                     cfg.ChannelName == f'{self.name}-depth1'), None)
 
-            
+            period = cfg.CapturePeriodS
+            offset = round(period - time.time()%period,3) - 2
             new_params = TankModuleParams(
                 HwUid=params.HwUid,
                 ActorNodeName=self.name,
@@ -167,8 +168,8 @@ class ApiTankModule(Actor):
                 CapturePeriodS=cfg.CapturePeriodS,
                 Samples=self._component.gt.Samples,
                 NumSampleAverages=self._component.gt.NumSampleAverages,
-                AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroHz,
-                CaptureOffsetS=round(60-time.time()%60,3)-1.5,
+                AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroVolts,
+                CaptureOffsetS=offset,
             )
             if self.need_to_update_layout(params):
                 self.hw_uid_list.append(params.HwUid)

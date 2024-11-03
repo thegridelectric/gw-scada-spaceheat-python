@@ -86,7 +86,7 @@ def add_tank2(
                     TempCalcMethod=tank_cfg.TempCalc,
                     ThermistorBeta=tank_cfg.ThermistorBeta,
                     PicoKOhms=tank_cfg.PicoKOhms,
-                    AsyncCaptureDeltaMicroHz=tank_cfg.AsyncCaptureDeltaMicroVolts,
+                    AsyncCaptureDeltaMicroVolts=tank_cfg.AsyncCaptureDeltaMicroVolts,
                 ),
             ]
         )
