@@ -25,7 +25,7 @@ class HallCfg(BaseModel):
     HzMethod: HzCalcMethod = HzCalcMethod.BasicExpWeightedAvg
     GpmMethod: GpmFromHzMethod = GpmFromHzMethod.Constant
     CapturePeriodS: int = 300
-    AsyncCaptureThresholdGpmTimes100: int = 5
+    AsyncCaptureThresholdGpmTimes100: int = 20
     SendHz: bool = True
     SendTickLists: bool = False
     ConstantGallonsPerTick: float = SAIER_CONSTANT_GALLONS_PER_TICK
