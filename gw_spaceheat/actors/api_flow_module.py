@@ -159,9 +159,9 @@ class ApiFlowModule(Actor):
             )
 
     def flatline_seconds(self) -> int:
-        if self._component.cac == MakeModel.GRIDWORKS__PICOFLOWHALL:
+        if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
             return self._component.gt.PublishEmptyTicklistAfterS * 2.5
-        if self._component.cac == MakeModel.GRIDWORKS__PICOFLOWREED:
+        if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
             return self._component.gt.PublishAnyTicklistAfterS * 2.5
 
     async def update_flow_sync_readings(self):
