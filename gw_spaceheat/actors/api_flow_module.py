@@ -78,6 +78,7 @@ class ApiFlowModule(Actor):
         self.hz_channel = self.layout.data_channels[f"{self.name}-hz"]
         self.capture_s = self._component.gt.ConfigList[0].CapturePeriodS
         self.latest_sync_send_s = time.time()
+        self.last_heard = time.time()
         self.validate_config_params()
         if self._component.gt.Enabled:
             if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
@@ -157,10 +158,27 @@ class ApiFlowModule(Actor):
                 )
             )
 
+    def flatline_seconds(self) -> int:
+        if self._component.cac == MakeModel.GRIDWORKS__PICOFLOWHALL:
+            return self._component.gt.PublishEmptyTicklistAfterS * 2.5
+        if self._component.cac == MakeModel.GRIDWORKS__PICOFLOWREED:
+            return self._component.gt.PublishAnyTicklistAfterS * 2.5
+
     async def update_flow_sync_readings(self):
         while not self._stop_requested:
+            if time.time() - self.last_heard > self.flatline_seconds():
+                self.lastest_gpm = None
+                self.latest_hz = None
+                self._send(
+                    Message(
+                    Payload=Problems(warning="Pico down!").problem_event(
+                    summary=self.name,
+                    )
+                )
+                
+            )
             try:
-                if time.time() > self.next_sync_s:
+                if time.time() > self.next_sync_s:    
                     self.publish_synced_readings()
                     self.latest_sync_send_s = int(time.time())
                 await asyncio.sleep(self.sync_reading_sleep())
@@ -400,6 +418,7 @@ class ApiFlowModule(Actor):
         if data.HwUid != self.hw_uid:
             print(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
+        self.last_heard = time.time()
         if len(data.RelativeMillisecondList) == 0:
             if self.latest_gpm is None:
                 self.latest_gpm = 0
@@ -446,11 +465,10 @@ class ApiFlowModule(Actor):
         
 
     def _process_ticklist_hall(self, data: TicklistHall) -> None:
-        if self.hw_uid == 'pico_4e3332':
-            print(f'Receiving {len(data.RelativeMicrosecondList)} ticks from hall dist-flow in fir')
         if data.HwUid != self.hw_uid:
             print(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
+        self.last_heard = time.time()
         if len(data.RelativeMicrosecondList) == 0:
             if self.latest_gpm is None:
                 self.latest_gpm = 0
