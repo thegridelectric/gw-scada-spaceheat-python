@@ -171,7 +171,7 @@ class ApiFlowModule(Actor):
                 self.latest_hz = None
                 self._send(
                     Message(
-                    Payload=Problems(warning="Pico down!").problem_event(
+                    Payload=Problems(warnings=["Pico down!"]).problem_event(
                     summary=self.name,
                     )
                 )
