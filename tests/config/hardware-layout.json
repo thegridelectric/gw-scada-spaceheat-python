@@ -302,6 +302,7 @@
       "TempCalcMethod": "SimpleBetaForPico",
       "ThermistorBeta": 3977,
       "PicoKOhms": 30,
+      "AsyncCaptureDeltaMicroVolts": 2000,
       "TypeName": "pico.tank.module.component.gt",
       "Version": "000"
     },
