@@ -167,7 +167,7 @@ class ApiFlowModule(Actor):
     async def update_flow_sync_readings(self):
         while not self._stop_requested:
             if time.time() - self.last_heard > self.flatline_seconds():
-                self.lastest_gpm = None
+                self.latest_gpm = None
                 self.latest_hz = None
                 self._send(
                     Message(
