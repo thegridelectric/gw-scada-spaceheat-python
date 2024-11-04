@@ -25,6 +25,7 @@ from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import ReportEvent
 from gwproto.messages import SyncedReadings
 from gwproto.messages import ChannelReadings
+from actors.api_flow_module import TicklistHall, TicklistReed
 from gwproto.messages import TicklistReedReport
 from gwproto.messages import TicklistHallReport
 from gwproto import MQTTCodec
@@ -385,10 +386,24 @@ class Scada(ScadaInterface, Proactor):
                 self.synced_readings_received(
                         from_node, message.Payload
                     )
+            case ChannelReadings():
+                    self.channel_readings_received(
+                        from_node, message.Payload
+                    )
+            case TicklistHall():
+                path_dbg |= 0x00000002
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case TicklistReed():
+                path_dbg |= 0x00000004
+                self.get_communicator(message.Header.Dst).process_message(message)
             case MicroVolts():
                 path_dbg |= 0x00000008
                 self.get_communicator(message.Header.Dst).process_message(message)
-
+            case TicklistHallReport():
+                    self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+            case TicklistReedReport():
+                    print(f"Publishing {message.Payload.TypeName}")
+                    self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
 
             case _:
                 raise ValueError(
@@ -426,21 +441,10 @@ class Scada(ScadaInterface, Proactor):
         payload = codec.decode(topic=mqtt_msg.topic, payload=mqtt_msg.payload).Payload
         if from_node:
             match payload:
-                case ChannelReadings():
-                    self.channel_readings_received(
-                        from_node, payload
-                    )
                 case SyncedReadings():
                     self.synced_readings_received(
                         from_node, payload
                     )
-                case TicklistHallReport():
-                    self._links.publish_upstream(payload, QOS.AtMostOnce)
-            
-                case TicklistReedReport():
-                    print(f"Publishing {payload.TypeName}")
-                    self._links.publish_upstream(payload, QOS.AtMostOnce)
-
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:

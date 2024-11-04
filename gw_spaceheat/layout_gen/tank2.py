@@ -96,7 +96,7 @@ def add_tank2(
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(tank_cfg.ActorNodeName),
                     Name=tank_cfg.ActorNodeName,
-                    ActorHierarchyName=f"{H0N.secondary_scada}.{tank_cfg.ActorNodeName}",
+                    ActorHierarchyName=f"{H0N.primary_scada}.{tank_cfg.ActorNodeName}",
                     ActorClass=ActorClass.ApiTankModule,
                     DisplayName=f"{tank_cfg.ActorNodeName.capitalize()} Tank",
                     ComponentId=db.component_id_by_alias(tank_cfg.component_display_name())

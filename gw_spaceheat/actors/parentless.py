@@ -4,11 +4,11 @@ import asyncio
 import threading
 from typing import Any, Optional
 from typing import List
-
+from gwproto.message import Header
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
-from gwproto.named_types import Report
-from gwproto.named_types import SnapshotSpaceheat
+from gwproto.named_types import Report, SyncedReadings
+from gwproto.named_types import SnapshotSpaceheat, PowerWatts
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
@@ -126,17 +126,28 @@ class Parentless(ScadaInterface, Proactor):
     def _derived_process_message(self, message: Message):
         self._logger.path("++Parentless._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
-        #from_node = self._layout.node(message.Header.Src, None)
+        from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case MicroVolts():
+            case PowerWatts():
                 path_dbg |= 0x00000001
-                self.get_communicator(message.Header.Dst).process_message(message)
-            case TicklistHall():
-                path_dbg |= 0x00000002
-                self.get_communicator(message.Header.Dst).process_message(message)
-            case TicklistReed():
-                path_dbg |= 0x00000004
-                self.get_communicator(message.Header.Dst).process_message(message)
+                if from_node is self._layout.power_meter_node:
+                    path_dbg |= 0x00000002
+                    self.power_watts_received(message.Payload)
+                else:
+                    raise Exception(
+                        f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
+                    )
+            case SyncedReadings():
+                path_dbg |= 0x00000008
+                new_msg = Message(
+                    Header=Header(
+                        Src=message.Header.Src, 
+                        Dst=H0N.primary_scada,
+                        MessageType=message.Payload.TypeName,
+                        ),
+                    Payload=message.Payload
+                )
+                self._links.publish_message(Parentless.LOCAL_MQTT, new_msg, QOS.AtMostOnce)
             case _:
                 raise ValueError(
                     f"There is no handler for mqtt message payload type [{type(message.Payload)}]"

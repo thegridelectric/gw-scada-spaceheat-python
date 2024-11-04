@@ -109,7 +109,7 @@ def add_tsnap_multipurpose(
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(H0N.analog_temp),
                 Name=H0N.analog_temp,
-                ActorHierarchyName=f"{H0N.primary_scada}.{H0N.analog_temp}",
+                ActorHierarchyName=f"{H0N.secondary_scada}.{H0N.analog_temp}",
                 ActorClass=ActorClass.MultipurposeSensor,
                 DisplayName=' '.join(part.upper() for part in H0N.analog_temp.split('-')),
                 ComponentId=db.component_id_by_alias(tsnap.component_alias())

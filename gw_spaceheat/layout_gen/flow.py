@@ -169,7 +169,7 @@ def add_flow(
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(flow_cfg.ActorNodeName),
                     Name=flow_cfg.ActorNodeName,
-                    ActorHierarchyName=f"{H0N.secondary_scada}.{flow_cfg.ActorNodeName}",
+                    ActorHierarchyName=f"{H0N.primary_scada}.{flow_cfg.ActorNodeName}",
                     ActorClass=ActorClass.ApiFlowModule,
                     DisplayName=f"{flow_cfg.ActorNodeName.replace('-', ' ').title()}",
                     ComponentId=db.component_id_by_alias(flow_cfg.component_display_name())
