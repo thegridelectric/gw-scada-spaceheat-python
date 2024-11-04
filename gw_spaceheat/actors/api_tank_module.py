@@ -6,13 +6,18 @@ from functools import cached_property
 from typing import List
 from typing import Literal
 from typing import Optional
+
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import Actor
+from gwproactor import QOS
 from gwproactor import Problems
 from gwproactor import ServicesInterface
 from gwproto import Message
+from gwproto.data_classes.house_0_names import H0N
+from gwproto.message import Header
 from gwproto.enums import TempCalcMethod
+from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from gwproto.named_types import TankModuleParams
 from gwproto.named_types import SyncedReadings
@@ -90,6 +95,22 @@ class ApiTankModule(Actor):
     @cached_property
     def params_path(self) -> str:
         return f"{self.name}/tank-module-params"
+    
+    def _send_to(self, dst: ShNode, payload):
+        if dst.name in [self.services._communicators] + [self.services.name]:
+            self._send(
+                Message(
+                    header=Header(Src=self.name,
+                                  Dst=dst.name,
+                                  MessageType=payload.TypeName,
+                            ),
+                    Payload=payload
+                )
+            )
+        else:
+            # Otherwise send via local mqtt
+            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
+            return self.services._links.publish_message(self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce)
 
     async def _get_text(self, request: Request) -> Optional[str]:
         try:
@@ -206,6 +227,11 @@ class ApiTankModule(Actor):
         return (data.HwUid in self.hw_uid_list)
 
 
+    @property
+    def primary_scada(self) -> ShNode:
+        return self.services.hardware_layout.nodes[H0N.primary_scada]
+        
+
     def _process_microvolts(self, data: MicroVolts) -> None:
         if data.HwUid not in self.hw_uid_list:
             print(f"Ignoring data from pico {data.HwUid} - not recognized!")
@@ -244,7 +270,7 @@ class ApiTankModule(Actor):
                             ValueList=value_list,
                             ScadaReadTimeUnixMs=int(time.time() * 1000))
         self.msg = msg
-        self.services._publish_to_local(self._node, msg)
+        self._send_to(self.primary_scada, msg)
         if self.report_on_data:
             combined = list(zip(data.AboutNodeNameList, data.MicroVoltsList))
             combined.sort(key=lambda x: x[0])

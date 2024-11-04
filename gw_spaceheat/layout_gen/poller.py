@@ -141,7 +141,7 @@ def add_thermostat(
             SpaceheatNodeGt(
                 ShNodeId=db.make_node_id(stat_node_name),
                 Name=stat_node_name,
-                ActorHierarchyName=f"{H0N.primary_scada}.{stat_node_name}",
+                ActorHierarchyName=f"{H0N.secondary_scada}.{stat_node_name}",
                 ActorClass=stat_cfg.actor_class,
                 DisplayName=stat_display_name,
                 ComponentId=db.component_id_by_alias(stat_component_display_name)
