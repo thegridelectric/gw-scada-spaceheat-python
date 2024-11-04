@@ -169,14 +169,14 @@ class ApiFlowModule(Actor):
             if time.time() - self.last_heard > self.flatline_seconds():
                 self.latest_gpm = None
                 self.latest_hz = None
-                self._send(
-                    Message(
-                    Payload=Problems(warnings=["Pico down!"]).problem_event(
-                    summary=self.name,
-                    )
-                )
-                
-            )
+                print("Want to send a problem event")
+                # self._send(
+                #     Message(
+                #     Payload=Problems(warnings=["Pico down!"]).problem_event(
+                #     summary=self.name,
+                #         )
+                #     )       
+                # )
             try:
                 if time.time() > self.next_sync_s:    
                     self.publish_synced_readings()
