@@ -104,7 +104,7 @@ class ScadaData:
             return True
         # nyquist
         nyquist = 2.1 # https://en.wikipedia.org/wiki/Nyquist_frequency
-        if time.time() - (self.latest_channel_unix_ms / 1000) > self.capture_seconds(ch) * nyquist:
+        if time.time() - (self.latest_channel_unix_ms[ch] / 1000) > self.capture_seconds(ch) * nyquist:
             return True
         return False
 
