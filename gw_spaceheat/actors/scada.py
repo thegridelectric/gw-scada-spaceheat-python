@@ -44,7 +44,7 @@ from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
 from gwproactor.links import Transition
-from gwproactor.message import MQTTReceiptPayload, MQTTMessageModel
+from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
