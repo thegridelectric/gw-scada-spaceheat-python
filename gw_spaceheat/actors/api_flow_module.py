@@ -294,11 +294,14 @@ class ApiFlowModule(Actor):
             self._component.gt.HwUid == params.HwUid):
             if self._component.gt.HwUid is None:
                 self.hw_uid = params.HwUid
-                # TODO: update params from layout
-                # print(f"Layout update: {self.name} Pico HWUID {params.HwUid}")
-                # TODO: send message to self so that writing to hardware layout isn't 
-                # happening in IO loop
-            return Response(text=params.model_dump_json())
+            new_params = FlowHallParams(
+                HwUid=params.HwUid,
+                ActorNodeName=self.name,
+                FlowNodeName=params.FlowNodeName,
+                PublishTicklistPeriodS=self._component.gt.PublishTicklistPeriodS,
+                PublishEmptyTicklistAfterS=self._component.gt.PublishEmptyTicklistAfterS,
+            )
+            return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
             print(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
@@ -331,7 +334,7 @@ class ApiFlowModule(Actor):
                 HwUid=params.HwUid,
                 ActorNodeName=self.name,
                 FlowNodeName=params.FlowNodeName,
-                PublishTicklistLength=params.PublishTicklistLength,
+                PublishTicklistLength=self._component.gt.PublishTicklistLength,
                 PublishAnyTicklistAfterS=self._component.gt.PublishAnyTicklistAfterS,
                 DeadbandMilliseconds=params.DeadbandMilliseconds,
             )
