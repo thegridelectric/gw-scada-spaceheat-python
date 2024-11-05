@@ -8,8 +8,9 @@ from gw.errors import DcError
 import numpy as np
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
-from gwproactor import Actor, Problems, ServicesInterface
+from gwproactor import Actor, ServicesInterface, Problems
 from gwproto import Message
+from gwproto.messages import ProblemEvent
 from gwproto.message import Header
 from gwproto.data_classes.components import PicoFlowModuleComponent
 from gwproto.data_classes.house_0_names import H0N
@@ -23,6 +24,7 @@ from result import Ok, Result
 from scipy.interpolate import interp1d
 from scipy.signal import butter, filtfilt
 
+FLATLINE_REPORT_S = 60
 
 class FlowHallParams(BaseModel):
     HwUid: str
@@ -47,6 +49,9 @@ class FlowReedParams(BaseModel):
 class ApiFlowModule(Actor):
     _stop_requested: bool
     _component: PicoFlowModuleComponent
+    last_heard: float
+    latest_gpm: float
+    latest_hz: float
     def __init__(
         self,
         name: str,
@@ -79,6 +84,7 @@ class ApiFlowModule(Actor):
         self.capture_s = self._component.gt.ConfigList[0].CapturePeriodS
         self.latest_sync_send_s = time.time()
         self.last_heard = time.time()
+        self.last_error_report = time.time()
         self.validate_config_params()
         if self._component.gt.Enabled:
             if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
@@ -163,20 +169,23 @@ class ApiFlowModule(Actor):
             return self._component.gt.PublishEmptyTicklistAfterS * 2.5
         if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
             return self._component.gt.PublishAnyTicklistAfterS * 2.5
-
-    async def update_flow_sync_readings(self):
+    
+    async def main(self):
         while not self._stop_requested:
-            if time.time() - self.last_heard > self.flatline_seconds():
+            # check if flatlined, if so send a complaint every minute
+            if (time.time() - self.last_heard > self.flatline_seconds()) and \
+               (time.time() -self.last_error_report > FLATLINE_REPORT_S):
                 self.latest_gpm = None
                 self.latest_hz = None
-                print("Want to send a problem event")
-                # self._send(
-                #     Message(
-                #     Payload=Problems(warnings=["Pico down!"]).problem_event(
-                #     summary=self.name,
-                #         )
-                #     )       
-                # )
+                self._send(
+                    Message(
+                        Src=self.name,
+                        Dst=H0N.primary_scada,
+                        Payload=Problems(warnings=["Pico down"]).problem_event(summary=self.name)
+                    )
+                )
+                self.last_error_report = time.time()
+            # publish readings synchronously every capture_s
             try:
                 if time.time() > self.next_sync_s:    
                     self.publish_synced_readings()
@@ -236,7 +245,7 @@ class ApiFlowModule(Actor):
         except Exception as e:
             self.services.send_threadsafe(
                 Message(
-                    Payload=Problems(errors=[e]).problem_event(
+                    Payload=ProblemEvent(errors=[e]).problem_event(
                         summary=(
                             f"ERROR awaiting post ext <{self.name}>: {type(e)} <{e}>"
                         ),
@@ -512,7 +521,7 @@ class ApiFlowModule(Actor):
 
     def start(self) -> None:
         self.services.add_task(
-            asyncio.create_task(self.update_flow_sync_readings(), name="update_flow_sync_readings")
+            asyncio.create_task(self.main(), name="update_flow_sync_readings")
         )
 
     def stop(self) -> None:
