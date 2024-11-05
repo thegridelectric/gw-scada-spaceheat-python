@@ -95,11 +95,23 @@ class ScadaData:
             Id=str(uuid.uuid4())
         )
 
+    def capture_seconds(self, ch) -> int: 
+        # todo: replace with actual capture_seconds for that channel
+        return 300
+
+    def flatlined(self, ch: DataChannel) -> bool:
+        if self.latest_channel_unix_ms is None:
+            return True
+        # nyquist
+        nyquist = 2.1 # https://en.wikipedia.org/wiki/Nyquist_frequency
+        if time.time() - (self.latest_channel_unix_ms / 1000) > self.capture_seconds(ch) * nyquist:
+            return True
+        return False
 
     def make_snapshot(self) -> SnapshotSpaceheat:
         latest_reading_list = []
         for ch in self.my_channels:
-            if self.latest_channel_values[ch] is not None:
+            if not self.flatlined(ch):
                 latest_reading_list.append(
                     SingleReading(
                         ChannelName=ch.Name,
