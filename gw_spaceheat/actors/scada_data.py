@@ -100,7 +100,7 @@ class ScadaData:
         return 300
 
     def flatlined(self, ch: DataChannel) -> bool:
-        if self.latest_channel_unix_ms is None:
+        if self.latest_channel_unix_ms[ch] is None:
             return True
         # nyquist
         nyquist = 2.1 # https://en.wikipedia.org/wiki/Nyquist_frequency
