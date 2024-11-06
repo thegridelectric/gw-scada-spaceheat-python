@@ -453,7 +453,7 @@ class Scada(ScadaInterface, Proactor):
             case SyncedReadings():
                 path_dbg |= 0x00000002
                 self.synced_readings_received(
-                    self._layout.node(message.Header.Src),
+                    self._layout.node(decoded.Header.Src),
                     decoded.Payload
                 )
             case _:
