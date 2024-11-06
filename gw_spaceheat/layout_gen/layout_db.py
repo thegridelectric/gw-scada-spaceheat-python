@@ -571,6 +571,7 @@ class LayoutDb:
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone),
                     Name=H0N.home_alone,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.home_alone}",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
                 )

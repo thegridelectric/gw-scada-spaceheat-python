@@ -18,11 +18,13 @@ from gwproto import MQTTTopic
 from gwproto.enums import ActorClass
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
+from gwproto.messages import FsmAtomicReport, FsmEvent, FsmFullReport
 from gwproto.messages import LayoutLite, LayoutEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import ReportEvent
+from gwproto.messages import SingleReading
 from gwproto.messages import SyncedReadings
 from gwproto.messages import ChannelReadings
 from actors.api_flow_module import TicklistHall, TicklistReed
@@ -138,6 +140,7 @@ class Scada(ScadaInterface, Proactor):
         hardware_layout: House0Layout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
+        print(f"actor_nodes are {actor_nodes}")
         if not isinstance(hardware_layout, House0Layout):
             raise Exception("Make sure to pass Hosue0Layout object as hardware_layout!")
         self._layout: House0Layout = hardware_layout
@@ -381,30 +384,43 @@ class Scada(ScadaInterface, Proactor):
                     raise Exception(
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
-            case SyncedReadings():
-                path_dbg |= 0x00000004
-                self.synced_readings_received(
-                        from_node, message.Payload
-                    )
             case ChannelReadings():
                     self.channel_readings_received(
                         from_node, message.Payload
                     )
-            case TicklistHall():
-                path_dbg |= 0x00000002
-                self.get_communicator(message.Header.Dst).process_message(message)
-            case TicklistReed():
+            case FsmAtomicReport():
                 path_dbg |= 0x00000004
                 self.get_communicator(message.Header.Dst).process_message(message)
+            case FsmEvent():
+                path_dbg |= 0x00000008
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case FsmFullReport():
+                path_dbg |= 0x0000010
+                if message.Header.Dst == self.name:
+                    self.fsm_full_report_received(message.Payload)
+                else:
+                    self.get_communicator(message.Header.Dst).process_message(message)
             case MicroVolts():
+                path_dbg |= 0x00000020
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case SingleReading():
+                path_dbg |= 0x00000040
+                self.single_reading_received(message.Payload)
+            case SyncedReadings():
+                path_dbg |= 0x00000080
+                self.synced_readings_received(
+                        from_node, message.Payload
+                    )
+            case TicklistHall():
                 path_dbg |= 0x00000008
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistHallReport():
-                    self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+                self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+            case TicklistReed():
+                path_dbg |= 0x00000010
+                self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistReedReport():
-                    print(f"Publishing {message.Payload.TypeName}")
-                    self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
-
+                self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case _:
                 raise ValueError(
                     f"There is no handler for mqtt message payload type [{type(message.Payload)}]"
@@ -496,6 +512,15 @@ class Scada(ScadaInterface, Proactor):
         self._links.publish_upstream(payload, QOS.AtMostOnce)
         self._data.latest_total_power_w = payload.Watts
     
+    def fsm_full_report_received(self, payload: FsmFullReport) -> None:
+        self._data.recent_fsm_reports.append(payload)
+
+    def single_reading_received(self, payload: SingleReading) -> None:
+        ch = self._layout.data_channels[payload.ChannelName]
+        self._data.recent_channel_values[ch].append(payload.Value)
+        self._data.recent_channel_unix_ms[ch].append(payload.ScadaReadTimeUnixMs)
+        self._data.latest_channel_values[ch] = payload.Value
+        self._data.latest_channel_unix_ms[ch] = payload.ScadaReadTimeUnixMs
 
     def synced_readings_received(
         self, from_node: ShNode, payload: SyncedReadings

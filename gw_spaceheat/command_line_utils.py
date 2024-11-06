@@ -112,7 +112,7 @@ def get_nodes_run_by_scada(
     actor_nodes: List[ShNode] = []
     scada_node: Optional[ShNode] = None
     for node in requested_nodes:
-        if node.ActorClass not in [ActorClass.Atn, ActorClass.HomeAlone] and node.has_actor:
+        if node.ActorClass not in [ActorClass.Atn] and node.has_actor:
             if node.actor_class == scada_actor_class:
                 if scada_node is not None:
                     raise ValueError(

@@ -1,6 +1,8 @@
 import json
 import time
 import asyncio
+from typing import Sequence
+from gwproactor import MonitoredName
 from gwproactor.message import InternalShutdownMessage
 from functools import cached_property
 from typing import List, Literal, Optional
@@ -21,6 +23,7 @@ from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from gwproactor import QOS
 from result import Ok, Result
+from gwproactor.message import PatInternalWatchdogMessage
 from scipy.interpolate import interp1d
 from scipy.signal import butter, filtfilt
 
@@ -142,10 +145,10 @@ class ApiFlowModule(Actor):
         return self.last_sync_s + self.capture_s
 
     def sync_reading_sleep(self) -> int:
-        if self.capture_s <= 3:
+        if self.capture_s <= self.flatline_seconds():
             return 1
-        if (time.time() - self.last_sync_s) < 2:
-            return self.capture_s - 2.2
+        if (time.time() - self.last_sync_s) > self.flatline_seconds():
+            return self.flatline_seconds()
         else:
             return 1
 
@@ -170,8 +173,15 @@ class ApiFlowModule(Actor):
         if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWREED:
             return self._component.gt.PublishAnyTicklistAfterS * 2.5
     
+    # This registers ApiFlowModule with the watchdog.
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
+
     async def main(self):
+        # This loop happens either every flatline_seconds or every second
         while not self._stop_requested:
+            self._send(PatInternalWatchdogMessage(src=self.name))
             # check if flatlined, if so send a complaint every minute
             if (time.time() - self.last_heard > self.flatline_seconds()) and \
                (time.time() -self.last_error_report > FLATLINE_REPORT_S):
