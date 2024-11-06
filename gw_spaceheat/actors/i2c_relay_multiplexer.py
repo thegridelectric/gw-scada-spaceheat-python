@@ -123,9 +123,12 @@ class I2cRelayMultiplexer(Actor):
                         i2c_bus=self.i2c_bus, address=address
                     )
                 except Exception as e:
-                    raise Exception(
-                        f"Failed to get board at {address} for board {i}: {e}"
-                    ) from e
+                    if board_idx == 1:
+                        raise Exception(
+                            f"Failed to get board at {address} for board {i}: {e}"
+                        ) from e
+                    else:
+                        print("No board 2!!")
                 time.sleep(0.2)
                 print(f"initializing board at {hex(address)}")
                 for j in range(1, 17):
