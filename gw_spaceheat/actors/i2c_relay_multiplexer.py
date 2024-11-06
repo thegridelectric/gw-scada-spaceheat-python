@@ -129,6 +129,7 @@ class I2cRelayMultiplexer(Actor):
                         ) from e
                     else:
                         print("No board 2!!")
+                        continue
                 time.sleep(0.2)
                 print(f"initializing board at {hex(address)}")
                 for j in range(1, 17):
