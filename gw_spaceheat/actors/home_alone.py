@@ -97,9 +97,7 @@ class HomeAlone(Actor):
     ) -> Result[bool, BaseException]:
         # This should be a relay reporting back on a dispatch
         for a in payload.AtomicList:
-            ft = datetime.fromtimestamp(a.UnixTimeMs / 1000).strftime("%H:%M:%S.%f")[
-                :-3
-            ]
+            ft = datetime.fromtimestamp(a.UnixTimeMs / 1000).strftime("%H:%M:%S.%f")[:-3]
             if a.ReportType == FsmReportType.Action:
                 print(
                     f"[{ft}] ACTION \t{a.FromHandle} \t \t [Fsm {a.AboutFsm}]: \t \t \t{a.Action}"
@@ -129,8 +127,9 @@ class HomeAlone(Actor):
             SendTimeUnixMs=int(time.time() * 1000),
             TriggerId=trigger_id,
         )
-        print(f"Sending {cmd} to {self.vdc_relay.name}")
         self._send_to(self.vdc_relay, event)
+        ft = datetime.fromtimestamp(event.SendTimeUnixMs / 1000).strftime("%H:%M:%S.%f")[:-3]
+        print(f"[{ft}] Sending {cmd} to {self.vdc_relay.name}")
 
     async def _monitor(self):
         while not self._stop_requested:
