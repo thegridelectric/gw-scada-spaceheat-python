@@ -101,6 +101,7 @@ class HomeAlone(Actor):
         start_time = payload.AtomicList[0].UnixTimeMs / 1000
         end_time = payload.AtomicList[-1].UnixTimeMs / 1000
         self.services.logger.error(f"Took {round(end_time - start_time, 3)} seconds")
+        #TODO: update relay state
         # for a in payload.AtomicList:
         #     ft = datetime.fromtimestamp(a.UnixTimeMs / 1000).strftime("%H:%M:%S.%f")[:-3]
         #     if a.ReportType == FsmReportType.Action:
@@ -154,8 +155,10 @@ class HomeAlone(Actor):
     def per_minute_job(self, now: float) -> None:
         if self.vdc_relay_state == RelayClosedOrOpen.RelayOpen:
             cmd = ChangeRelayState.CloseRelay
+            self.vdc_relay_state = RelayClosedOrOpen.RelayClosed
         else:
             cmd = ChangeRelayState.OpenRelay
+            self.vdc_relay_state = RelayClosedOrOpen.RelayOpen
         self.services.logger.error(f"Running per minute job: running {cmd}")
         self.change_vdc(cmd)
         
