@@ -28,7 +28,7 @@ class _LoopTimes:
     last_day_s: int = 0
 
     def minute_passed(self, now) -> bool:
-        return now >= self.last_minute_s + 10
+        return now >= self.last_minute_s + 60
 
     def hour_passed(self, now) -> bool:
         return now >= self.last_hour_s + 3600
@@ -47,7 +47,7 @@ class _LoopTimes:
 
 
 class HomeAlone(Actor):
-    LOOP_SLEEP_SECONDS: float = 10
+    LOOP_SLEEP_SECONDS: float = 60
     _monitor_task: Optional[asyncio.Task] = None
     _stop_requested: bool = False
     vdc_relay_state: RelayClosedOrOpen
@@ -101,6 +101,7 @@ class HomeAlone(Actor):
         start_time = payload.AtomicList[0].UnixTimeMs / 1000
         end_time = payload.AtomicList[-1].UnixTimeMs / 1000
         self.services.logger.error(f"######################## Took {round(end_time - start_time, 3)} seconds ########")
+        self.fsm_report = payload
         #TODO: update relay state
         # for a in payload.AtomicList:
         #     ft = datetime.fromtimestamp(a.UnixTimeMs / 1000).strftime("%H:%M:%S.%f")[:-3]
