@@ -153,11 +153,11 @@ class HomeAlone(Actor):
 
     def per_minute_job(self, now: float) -> None:
         if self.vdc_relay_state == RelayClosedOrOpen.RelayOpen:
-            target_state = RelayClosedOrOpen.RelayClosed
+            cmd = ChangeRelayState.CloseRelay
         else:
-            target_state = RelayClosedOrOpen.RelayOpen
-        self.services.logger.error(f"Running per minute job: targetting {target_state}")
-        self.change_vdc(target_state)
+            cmd = ChangeRelayState.OpenRelay
+        self.services.logger.error(f"Running per minute job: running {cmd}")
+        self.change_vdc(cmd)
         
     def per_hour_job(self) -> None:
         ...
