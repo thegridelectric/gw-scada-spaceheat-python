@@ -190,12 +190,15 @@ six==1.16.0
     # via
     #   pymodbus
     #   python-dateutil
+    #   transitions
 smbus2==0.4.1
     # via -r gw_spaceheat/requirements/base.in
 textual==0.33.0
     # via trogon
 tomli==2.0.1
     # via pep517
+transitions==0.9.2
+    # via -r gw_spaceheat/requirements/base.in
 trogon==0.5.0
     # via
     #   -r gw_spaceheat/requirements/base.in
