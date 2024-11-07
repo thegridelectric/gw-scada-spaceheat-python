@@ -28,7 +28,7 @@ class _LoopTimes:
     last_day_s: int = 0
 
     def minute_passed(self, now) -> bool:
-        return now >= self.last_minute_s + 60
+        return now >= self.last_minute_s + 10
 
     def hour_passed(self, now) -> bool:
         return now >= self.last_hour_s + 3600
@@ -47,7 +47,7 @@ class _LoopTimes:
 
 
 class HomeAlone(Actor):
-    LOOP_SLEEP_SECONDS: float = 60
+    LOOP_SLEEP_SECONDS: float = 10
     _monitor_task: Optional[asyncio.Task] = None
     _stop_requested: bool = False
     vdc_relay_state: RelayClosedOrOpen
@@ -98,16 +98,19 @@ class HomeAlone(Actor):
         self, payload: FsmFullReport
     ) -> Result[bool, BaseException]:
         # This should be a relay reporting back on a dispatch
-        for a in payload.AtomicList:
-            ft = datetime.fromtimestamp(a.UnixTimeMs / 1000).strftime("%H:%M:%S.%f")[:-3]
-            if a.ReportType == FsmReportType.Action:
-                self.services.logger.error(
-                    f"[{ft}] ACTION \t{a.FromHandle} \t \t [Fsm {a.AboutFsm}]: \t \t \t{a.Action}"
-                )
-            else:
-                self.services.logger.error(
-                    f"[{ft}] EVENT  \t{a.FromHandle} \t \t [Fsm {a.AboutFsm}] {a.Event}: \tfrom {a.FromState} to {a.ToState}"
-                )
+        start_time = payload.AtomicList[0].UnixTimeMs / 1000
+        end_time = payload.AtomicList[-1].UnixTimeMs / 1000
+        self.services.logger.error(f"Took {round(end_time - start_time, 3)} seconds")
+        # for a in payload.AtomicList:
+        #     ft = datetime.fromtimestamp(a.UnixTimeMs / 1000).strftime("%H:%M:%S.%f")[:-3]
+        #     if a.ReportType == FsmReportType.Action:
+        #         self.services.logger.error(
+        #             f"[{ft}] ACTION \t{a.FromHandle} \t \t [Fsm {a.AboutFsm}]: \t \t \t{a.Action}"
+        #         )
+        #     else:
+        #         self.services.logger.error(
+        #             f"[{ft}] EVENT  \t{a.FromHandle} \t \t [Fsm {a.AboutFsm}] {a.Event}: \tfrom {a.FromState} to {a.ToState}"
+        #         )
         self._send_to(self.primary_scada, payload)
 
     def is_boss_of(self, relay: ShNode) -> bool:
@@ -130,8 +133,7 @@ class HomeAlone(Actor):
             TriggerId=trigger_id,
         )
         self._send_to(self.vdc_relay, event)
-        ft = datetime.fromtimestamp(event.SendTimeUnixMs / 1000).strftime("%H:%M:%S.%f")[:-3]
-        self.services.logger.error(f"[{ft}] Sending {cmd} to {self.vdc_relay.name}")
+        self.services.logger.error(f"Sending {cmd} to {self.vdc_relay.name}")
 
     async def _monitor(self):
         while not self._stop_requested:
@@ -150,9 +152,13 @@ class HomeAlone(Actor):
             await asyncio.sleep(self.LOOP_SLEEP_SECONDS)
 
     def per_minute_job(self, now: float) -> None:
-        print("Running per minute job")
-        ...
-
+        if self.vdc_relay_state == RelayClosedOrOpen.RelayOpen:
+            target_state = RelayClosedOrOpen.RelayClosed
+        else:
+            target_state = RelayClosedOrOpen.RelayOpen
+        self.services.logger.error(f"Running per minute job: targetting {target_state}")
+        self.change_vdc(target_state)
+        
     def per_hour_job(self) -> None:
         ...
 
