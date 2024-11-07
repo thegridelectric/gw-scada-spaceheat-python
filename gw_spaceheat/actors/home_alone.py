@@ -100,7 +100,7 @@ class HomeAlone(Actor):
         # This should be a relay reporting back on a dispatch
         start_time = payload.AtomicList[0].UnixTimeMs / 1000
         end_time = payload.AtomicList[-1].UnixTimeMs / 1000
-        self.services.logger.error(f"Took {round(end_time - start_time, 3)} seconds")
+        self.services.logger.error(f"######################## Took {round(end_time - start_time, 3)} seconds ########")
         #TODO: update relay state
         # for a in payload.AtomicList:
         #     ft = datetime.fromtimestamp(a.UnixTimeMs / 1000).strftime("%H:%M:%S.%f")[:-3]
