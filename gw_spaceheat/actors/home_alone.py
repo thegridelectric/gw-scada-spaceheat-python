@@ -1,5 +1,7 @@
 import asyncio
-import dataclasses
+from datetime import datetime
+from abc import ABC, abstractmethod
+import pytz
 import time
 import uuid
 from dataclasses import dataclass
@@ -99,11 +101,11 @@ class HomeAlone(Actor):
         for a in payload.AtomicList:
             ft = datetime.fromtimestamp(a.UnixTimeMs / 1000).strftime("%H:%M:%S.%f")[:-3]
             if a.ReportType == FsmReportType.Action:
-                print(
+                self.services.logger.error(
                     f"[{ft}] ACTION \t{a.FromHandle} \t \t [Fsm {a.AboutFsm}]: \t \t \t{a.Action}"
                 )
             else:
-                print(
+                self.services.logger.error(
                     f"[{ft}] EVENT  \t{a.FromHandle} \t \t [Fsm {a.AboutFsm}] {a.Event}: \tfrom {a.FromState} to {a.ToState}"
                 )
         self._send_to(self.primary_scada, payload)
@@ -129,7 +131,7 @@ class HomeAlone(Actor):
         )
         self._send_to(self.vdc_relay, event)
         ft = datetime.fromtimestamp(event.SendTimeUnixMs / 1000).strftime("%H:%M:%S.%f")[:-3]
-        print(f"[{ft}] Sending {cmd} to {self.vdc_relay.name}")
+        self.services.logger.error(f"[{ft}] Sending {cmd} to {self.vdc_relay.name}")
 
     async def _monitor(self):
         while not self._stop_requested:
@@ -179,3 +181,32 @@ class HomeAlone(Actor):
             return self.services._links.publish_message(
                 self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
             )
+
+# class NsmBase(ABC):
+#     ONPEAK_START_1_HR = 7
+#     ONPEAK_STOP_1_HR = 12
+#     ONPEAK_START_2_HR = 16
+#     ONPEAK_STOP_2_HR = 20
+#     todays_seconds: int
+#     prev_seconds: int
+
+#     def __init__(self):
+#         self.todays_seconds: int = 0
+#         self.prev_seconds: int = 0
+#         self.krida_relay_pin = None
+
+#         self.check_relay_consistency()
+#         self.update_time()
+#         self.update_time()
+
+
+# def is_weekend(tz: str = 'America/New_York') -> bool:
+#     # Get the current date and time in the specified time zone
+#     timezone = pytz.timezone(tz)
+#     now = datetime.now(timezone)
+#     # Check if it's Saturday (5) or Sunday (6)
+#     if now.weekday() in [5, 6]:
+#         return True
+#     else:
+#         return False
+
