@@ -103,10 +103,13 @@ class Relay(Actor):
                 )
             )
         else:
-            # Otherwise send via local mqtt
+            if dst.name == H0N.admin:
+                link_name = self.services.ADMIN_MQTT
+            else:
+                link_name = self.services.LOCAL_MQTT
             message = Message(Src=self.name, Dst=dst.name, Payload=payload)
             return self.services._links.publish_message(
-                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
+                link_name, message, qos=QOS.AtMostOnce
             )
 
     def _process_event_message(
