@@ -310,6 +310,7 @@ class ApiFlowModule(Actor):
             return Response()
     
     async def _handle_reed_params_post(self, request: Request) -> Response:
+        self.services.logger.error("Got to _handle_reed_params_post")
         text = await self._get_text(request)
         self.params_text = text
         try:
