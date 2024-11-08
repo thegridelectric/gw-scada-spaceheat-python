@@ -444,6 +444,7 @@ class ApiFlowModule(Actor):
         # now we can assume we have at least one tick
         self.update_timestamps_for_reed(data)
         if self._component.gt.SendTickLists:
+                self.services.logger.error(f"{self.name} sending ticklists")
                 self._send_to_scada(TicklistReedReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     FlowNodeName=self._component.gt.FlowNodeName,
@@ -498,6 +499,7 @@ class ApiFlowModule(Actor):
                 self.publish_zero_flow()
         else:
             if self._component.gt.SendTickLists:
+                self.services.logger.error(f"{self.name} sending ticklists")
                 self._send_to_scada(TicklistHallReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     FlowNodeName=self._component.gt.FlowNodeName,
