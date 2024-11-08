@@ -19,6 +19,7 @@ from gwproto.enums import ActorClass
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmAtomicReport, FsmEvent, FsmFullReport
+from gwproto.messages import EventBase
 from gwproto.messages import LayoutLite, LayoutEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
@@ -27,6 +28,10 @@ from gwproto.messages import ReportEvent
 from gwproto.messages import SingleReading
 from gwproto.messages import SyncedReadings
 from gwproto.messages import ChannelReadings
+
+from admin.messages import AdminCommandReadRelays
+from admin.messages import AdminCommandSetRelay
+from admin.messages import RelayStates
 from actors.api_flow_module import TicklistHall, TicklistReed
 from gwproto.messages import TicklistReedReport
 from gwproto.messages import TicklistHallReport
@@ -34,6 +39,7 @@ from gwproto import MQTTCodec
 from result import Ok
 from result import Result
 
+from actors.config import ADMIN_NAME
 from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
 
@@ -45,7 +51,7 @@ from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
 from gwproactor.links import Transition
-from gwproactor.message import MQTTReceiptPayload, MQTTMessageModel
+from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
@@ -54,7 +60,8 @@ ScadaMessageDecoder = create_message_model(
     [
         "gwproto.messages",
         "gwproactor.message",
-        "actors.message"
+        "actors.message",
+        "admin.messages",
     ]
 )
 
@@ -111,6 +118,22 @@ class LocalMQTTCodec(MQTTCodec):
                 f"  got: {src} -> {dst}"
             )
 
+class AdminCodec(MQTTCodec):
+    scada_gnode: str
+
+    def __init__(self, scada_gnode: str):
+        self.scada_gnode = scada_gnode
+
+        super().__init__(ScadaMessageDecoder)
+
+    def validate_source_and_destination(self, src: str, dst: str) -> None:
+        if dst != self.scada_gnode or src != ADMIN_NAME:
+            raise ValueError(
+                "ERROR validating src and/or dst\n"
+                f"  exp: one of {ADMIN_NAME} -> {self.scada_gnode}\n"
+                f"  got: {src} -> {dst}"
+            )
+
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
     PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
@@ -125,6 +148,7 @@ class Scada(ScadaInterface, Proactor):
     DEFAULT_ACTORS_MODULE = "actors"
     GRIDWORKS_MQTT = "gridworks"
     LOCAL_MQTT = "local"
+    ADMIN_MQTT = "admin"
 
     _data: ScadaData
     _last_report_second: int
@@ -183,6 +207,17 @@ class Scada(ScadaInterface, Proactor):
                     message_type="#",
                 ),
                 qos=QOS.AtMostOnce,
+            )
+        if self.settings.admin.enabled:
+            self._links.add_mqtt_link(
+                LinkSettings(
+                    client_name=self.ADMIN_MQTT,
+                    gnode_name=self.settings.admin.name,
+                    spaceheat_name=self.settings.admin.name,
+                    subscription_name=self.publication_name,
+                    mqtt=self.settings.admin,
+                    codec=AdminCodec(self.publication_name),
+                ),
             )
 
         self._links.log_subscriptions("construction")
@@ -316,8 +351,7 @@ class Scada(ScadaInterface, Proactor):
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4())
         )
-        self.event = LayoutEvent(Layout=layout)
-        self.generate_event(self.event)
+        self.generate_event(LayoutEvent(Layout=layout))
         print("Just tried to send layout event")
 
     def send_report(self):
@@ -385,82 +419,128 @@ class Scada(ScadaInterface, Proactor):
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
             case ChannelReadings():
-                    self.channel_readings_received(
-                        from_node, message.Payload
-                    )
-            case FsmAtomicReport():
                 path_dbg |= 0x00000004
-                self.get_communicator(message.Header.Dst).process_message(message)
-            case FsmEvent():
+                self.channel_readings_received(
+                    from_node, message.Payload
+                )
+            case FsmAtomicReport():
                 path_dbg |= 0x00000008
                 self.get_communicator(message.Header.Dst).process_message(message)
+            case FsmEvent():
+                path_dbg |= 0x00000010
+                self.get_communicator(message.Header.Dst).process_message(message)
             case FsmFullReport():
-                path_dbg |= 0x0000010
+                path_dbg |= 0x0000020
                 if message.Header.Dst == self.name:
+                    path_dbg |= 0x0000040
                     self.fsm_full_report_received(message.Payload)
                 else:
+                    path_dbg |= 0x0000080
                     self.get_communicator(message.Header.Dst).process_message(message)
             case MicroVolts():
-                path_dbg |= 0x00000020
+                path_dbg |= 0x0000100
                 self.get_communicator(message.Header.Dst).process_message(message)
             case SingleReading():
-                path_dbg |= 0x00000040
+                path_dbg |= 0x0000200
                 self.single_reading_received(message.Payload)
             case SyncedReadings():
-                path_dbg |= 0x00000080
+                path_dbg |= 0x0000400
                 self.synced_readings_received(
                         from_node, message.Payload
                     )
             case TicklistHall():
-                path_dbg |= 0x00000008
+                path_dbg |= 0x0000800
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistHallReport():
+                path_dbg |= 0x0001000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case TicklistReed():
-                path_dbg |= 0x00000010
+                path_dbg |= 0x00002000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistReedReport():
+                path_dbg |= 0x00004000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case _:
                 raise ValueError(
-                    f"There is no handler for mqtt message payload type [{type(message.Payload)}]"
+                    f"There is no handler for message payload type [{type(message.Payload)}]"
                 )
         self._logger.path("--Scada._derived_process_message  path:0x%08X", path_dbg)
 
     def _derived_process_mqtt_message(
-        self, message: Message[MQTTReceiptPayload], decoded: Any
-    ):
+        self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
+    ) -> None:
         self._logger.path("++Scada._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if message.Payload.client_name == self.LOCAL_MQTT:
-                # raise ValueError(
-                #     f"There are no messages expected to be received from [{message.Payload.client_name}] mqtt broker. "
-                #     f"Received\n\t topic: [{message.Payload.message.topic}]"
-                # )
-            self._process_local_mqtt_message(message.Payload.message)
+            path_dbg |= 0x00000001
+            self._process_downstream_mqtt_message(message, decoded)
         elif message.Payload.client_name == self.GRIDWORKS_MQTT:
-            match decoded.Payload:
-                case GtShCliAtnCmd():
-                    path_dbg |= 0x00000002
-                    self._gt_sh_cli_atn_cmd_received(decoded.Payload)
-                case _:
-                    raise ValueError(
-                        f"There is no handler for mqtt message payload type [{type(decoded.Payload)}]\n"
-                        f"Received\n\t topic: [{message.Payload.message.topic}]"
-                    )
-            self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
+            path_dbg |= 0x00000002
+            self._process_upstream_mqtt_message(message, decoded)
+        elif message.Payload.client_name == self.ADMIN_MQTT:
+            path_dbg |= 0x00000004
+            self._process_admin_mqtt_message(message, decoded)
+        else:
+            raise ValueError("ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name)
+        self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-    def _process_local_mqtt_message(self, mqtt_msg: MQTTMessageModel) -> None:
-        from_node_name = mqtt_msg.topic.split('/')[1]
-        from_node = self._layout.node(from_node_name)
-        codec = self._links._mqtt_codecs['local']
-        payload = codec.decode(topic=mqtt_msg.topic, payload=mqtt_msg.payload).Payload
-        if from_node:
-            match payload:
-                case SyncedReadings():
-                    self.synced_readings_received(
-                        from_node, payload
+    def _process_upstream_mqtt_message(
+        self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
+    ) -> None:
+        self._logger.path("++_process_upstream_mqtt_message %s", message.Payload.message.topic)
+        path_dbg = 0
+        match decoded.Payload:
+            case GtShCliAtnCmd():
+                path_dbg |= 0x00000001
+                self._gt_sh_cli_atn_cmd_received(decoded.Payload)
+            case _:
+                # Intentionally ignore this for forward compatibility
+                path_dbg |= 0x00000002
+        self._logger.path("--_process_upstream_mqtt_message  path:0x%08X", path_dbg)
+
+    def _process_downstream_mqtt_message(
+            self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
+    ) -> None:
+        self._logger.path("++_process_downstream_mqtt_message %s", message.Payload.message.topic)
+        path_dbg = 0
+        match decoded.Payload:
+            case EventBase():
+                path_dbg |= 0x00000001
+                self.generate_event(decoded.Payload)
+            case SyncedReadings():
+                path_dbg |= 0x00000002
+                self.synced_readings_received(
+                    self._layout.node(decoded.Header.Src),
+                    decoded.Payload
+                )
+            case _:
+                # Intentionally ignore this for forward compatibility
+                path_dbg |= 0x00000004
+        self._logger.path("--_process_downstream_mqtt_message  path:0x%08X", path_dbg)
+
+    def _process_admin_mqtt_message(
+            self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
+    ) -> None:
+        self._logger.path("++_process_admin_mqtt_message %s", message.Payload.message.topic)
+        path_dbg = 0
+        if self.settings.admin.enabled:
+            path_dbg |= 0x00000001
+            match decoded.Payload:
+                case AdminCommandSetRelay():
+                    path_dbg |= 0x00000002
+                case AdminCommandReadRelays():
+                    path_dbg |= 0x00000004
+                    self._links.publish_message(
+                        self.ADMIN_MQTT,
+                        Message(
+                            Src=self.publication_name,
+                            Payload=RelayStates()
+                        ),
                     )
+                case _:
+                    # Intentionally ignore this for forward compatibility
+                    path_dbg |= 0x00000004
+        self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
