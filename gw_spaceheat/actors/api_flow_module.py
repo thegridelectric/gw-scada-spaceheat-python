@@ -447,7 +447,7 @@ class ApiFlowModule(Actor):
                 self.services.logger.error(f"{self.name} sending ticklists")
                 self._send_to_scada(TicklistReedReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
-                    FlowNodeName=self._component.gt.FlowNodeName,
+                    ChannelName=self._component.gt.FlowNodeName,
                     ScadaReceivedUnixMs=int(time.time() * 1000),
                     Ticklist=data
                 ))
@@ -502,7 +502,7 @@ class ApiFlowModule(Actor):
                 self.services.logger.error(f"{self.name} sending ticklists")
                 self._send_to_scada(TicklistHallReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
-                    FlowNodeName=self._component.gt.FlowNodeName,
+                    ChannelName=self._component.gt.FlowNodeName,
                     ScadaReceivedUnixMs=int(time.time() * 1000),
                     Ticklist=data
                 ))
