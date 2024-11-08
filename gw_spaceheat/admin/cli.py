@@ -1,5 +1,6 @@
 from enum import StrEnum
 
+import dotenv
 import rich
 import typer
 
@@ -26,10 +27,14 @@ def _set_relay(
     target: str,
     relay_name: str,
     closed: RelayState,
+    env: str = ".env",
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
-    settings = AdminClientSettings(target_gnode=target)
+    settings = AdminClientSettings(
+        target_gnode=target,
+        _env_file=dotenv.find_dotenv(env)
+    )
     if not json:
         rich.print(settings)
     admin = MQTTAdmin(
