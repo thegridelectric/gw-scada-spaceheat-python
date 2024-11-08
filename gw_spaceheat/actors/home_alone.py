@@ -14,7 +14,7 @@ from gwproto import Message
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (ChangeRelayState, FsmEventType, FsmReportType,
-                           RelayClosedOrOpen, StoreFlowDirection,
+                           RelayClosedOrOpen, StoreFlowDirection,ChangeStoreFlowDirection,
                            TelemetryName)
 from gwproto.message import Header
 from gwproto.named_types import FsmAtomicReport, FsmEvent, FsmFullReport
@@ -50,16 +50,16 @@ class HomeAlone(Actor):
     LOOP_SLEEP_SECONDS: float = 60
     _monitor_task: Optional[asyncio.Task] = None
     _stop_requested: bool = False
-    vdc_relay_state: RelayClosedOrOpen
-    vdc_relay: ShNode
+    charge_discharge_relay_state: StoreFlowDirection
+    charge_discharge_relay: ShNode
     reports_by_trigger: Dict[str, List[FsmAtomicReport]]
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self.layout = self._services.hardware_layout
         self._loop_times = _LoopTimes()
-        self.vdc_relay_state = RelayClosedOrOpen.RelayClosed
-        self.vdc_relay = self.layout.node(H0N.vdc_relay)
+        self.charge_discharge_relay_state = StoreFlowDirection.ValvedtoDischargeStore
+        self.charge_discharge_relay = self.layout.node(H0N.store_charge_discharge_relay)
         self.reports_by_trigger: Dict[str, List[FsmAtomicReport]] = {}
 
     @property
@@ -115,27 +115,22 @@ class HomeAlone(Actor):
         #         )
         self._send_to(self.primary_scada, payload)
 
-    def is_boss_of(self, relay: ShNode) -> bool:
-        immediate_boss = ".".join(relay.Handle.split(".")[:-1])
-        if immediate_boss != self.node.handle:
-            return False
-        return True
-
-    def change_vdc(self, cmd: ChangeRelayState):
-        if not self.is_boss_of(self.vdc_relay):
-            raise Exception("Should not try to change vdc when not its boss")
+    def change_charge_discharge(self, cmd: ChangeStoreFlowDirection):
+        if not self.is_boss_of(self.charge_discharge_relay):
+            self.services.logger.error(f"{self.name} Should not try to change  {self.charge_discharge_relay.handle} when not its boss")
+            return
         trigger_id = str(uuid.uuid4())
         self.reports_by_trigger[trigger_id] = []
         event = FsmEvent(
             FromHandle=self.node.handle,
-            ToHandle=self.vdc_relay.handle,
-            EventType=FsmEventType.ChangeRelayState,
-            EventName=cmd,
+            ToHandle=self.charge_discharge_relay.handle,
+            EventType=FsmEventType.ChangeStoreFlowDirection,
+            EventName=cmd.value,
             SendTimeUnixMs=int(time.time() * 1000),
             TriggerId=trigger_id,
         )
-        self._send_to(self.vdc_relay, event)
-        self.services.logger.error(f"Sending {cmd} to {self.vdc_relay.name}")
+        self._send_to(self.charge_discharge_relay, event)
+        self.services.logger.error(f"Sending {cmd} to {self.charge_discharge_relay.name}")
 
     async def _monitor(self):
         while not self._stop_requested:
@@ -154,14 +149,14 @@ class HomeAlone(Actor):
             await asyncio.sleep(self.LOOP_SLEEP_SECONDS)
 
     def per_minute_job(self, now: float) -> None:
-        if self.vdc_relay_state == RelayClosedOrOpen.RelayOpen:
-            cmd = ChangeRelayState.CloseRelay
-            self.vdc_relay_state = RelayClosedOrOpen.RelayClosed
+        if self.charge_discharge_relay_state == StoreFlowDirection.ValvedtoDischargeStore:
+            cmd = ChangeStoreFlowDirection.Charge
+            self.charge_discharge_relay_state = StoreFlowDirection.ValvedtoChargeStore
         else:
-            cmd = ChangeRelayState.OpenRelay
-            self.vdc_relay_state = RelayClosedOrOpen.RelayOpen
+            cmd = ChangeStoreFlowDirection.Discharge
+            self.charge_discharge_relay_state = StoreFlowDirection.ValvedtoDischargeStore
         self.services.logger.error(f"Running per minute job: running {cmd}")
-        self.change_vdc(cmd)
+        self.change_charge_discharge(cmd)
         
     def per_hour_job(self) -> None:
         ...

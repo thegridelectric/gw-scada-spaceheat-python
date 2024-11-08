@@ -174,13 +174,6 @@ def add_flow(
                     DisplayName=f"{flow_cfg.ActorNodeName.replace('-', ' ').title()}",
                     ComponentId=db.component_id_by_alias(flow_cfg.component_display_name())
                 ),
-                SpaceheatNodeGt(
-                    ShNodeId=db.make_node_id(H0N.pico_cycler),
-                    Name=H0N.pico_cycler,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.pico_cycler}",
-                    ActorClass=ActorClass.PicoCycler,
-                    DisplayName="Pico Cycler - responsible for power cycling the 5VDC bus"
-                )
             ] 
         )
 

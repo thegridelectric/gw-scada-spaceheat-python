@@ -44,7 +44,7 @@ class PicoCycler(Actor):
     RelayOpen_S: float = 5
     _fsm_task: Optional[asyncio.Task] = None
     _stop_requested: bool = False
-    picos: Dict[str, ShNode]
+    pico_actors: Dict[str, ShNode]
     pico_states: Dict[str, SinglePicoState]
     pico_relay: ShNode
     reports_by_trigger: Dict[str, List[FsmAtomicReport]]
@@ -71,14 +71,20 @@ class PicoCycler(Actor):
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self.layout = self._services.hardware_layout
-        self.picos = {
+        self.pico_actors = {
             node.name: node
             for node in self.layout.nodes.values()
             if node.ActorClass in [ActorClass.ApiFlowModule, ActorClass.ApiTankModule]
         }
-        self.pico_states = {name: SinglePicoState.Alive for name in self.picos.keys()}
+        self.picos = []
+        for node in self.pico_actors.values():
+            if node.ActorClass == ActorClass.ApiFlowModule:
+                self.picos.append(node.component.gt.HwUid)
+            if node.ActorClass == ActorClass.ApiTankModule:
+                self.picos += [node.component.gt.PicoAHwUid, node.component.gt.PicoBHwUid]
+        self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
         self.pico_relay = self.layout.node(H0N.vdc_relay)
-        self.primary_scada = self.layout.node[H0N.primary_scada]
+        self.primary_scada = self.layout.node(H0N.primary_scada)
         self.reports_by_trigger = {}
         self.machine = Machine(
             model=self,
@@ -93,10 +99,12 @@ class PicoCycler(Actor):
             state == SinglePicoState.Flatlined for state in self.pico_states.values()
         )
 
-    def process_pico_missing(self, pico: str, payload: PicoMissing) -> None:
-        if pico not in self.picos:
+    def process_pico_missing(self, actor_name: str, payload: PicoMissing) -> None:
+        print(f"GOT actor_name {actor_name}, payload {payload}")
+        self.payload = payload
+        if actor_name not in self.pico_actors:
             return
-        self.pico_states[pico] = SinglePicoState.Flatlined
+        self.pico_states[actor_name] = SinglePicoState.Flatlined
         if self.state == PicoCyclerState.PicosLive:
             # Machine triggered state change from PicosLivec -> RelayOpening
             self.trigger(PicoCyclerEvent.PicoMissing.value)
@@ -128,7 +136,7 @@ class PicoCycler(Actor):
             ]
 
     def process_channel_readings(self, pico: str, payload: ChannelReadings) -> None:
-        if pico not in self.picos:
+        if pico not in self.pico_actors:
             self.services.logger.error(
                 f"{self.name} received channel readings from {pico}, not one of its pico relays"
             )
@@ -136,7 +144,7 @@ class PicoCycler(Actor):
         self.is_alive(pico)
 
     def process_synced_readings(self, pico: str, payload: ChannelReadings) -> None:
-        if pico not in self.picos:
+        if pico not in self.pico_actors:
             self.services.logger.error(
                 f"{self.name} received channel readings from {pico}, not one of its pico actors"
             )
@@ -204,7 +212,7 @@ class PicoCycler(Actor):
             self.confirm_closed()
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
-        src = self.layout.node(message.Header.Src, None)
+        src = message.Header.Src
         if isinstance(message.Payload, ChannelReadings):
             self.process_channel_readings(src, message.Payload)
             return Ok(True)
@@ -228,7 +236,7 @@ class PicoCycler(Actor):
             self.reports_by_trigger[trigger_id].append(
                 FsmAtomicReport(
                     FromHandle=self.node.handle,
-                    AbouttFsm="PicoCycler",
+                    AboutFsm="PicoCycler",
                     ReportType=FsmReportType.Event,
                     EventType=FsmEventType.PicoCyclerEvent,
                     Event=PicoCyclerEvent.ConfirmOpened.value,
@@ -251,7 +259,7 @@ class PicoCycler(Actor):
             self.reports_by_trigger[trigger_id].append(
                 FsmAtomicReport(
                     FromHandle=self.node.handle,
-                    AbouttFsm="PicoCycler",
+                    AboutFsm="PicoCycler",
                     ReportType=FsmReportType.Event,
                     EventType=FsmEventType.PicoCyclerEvent,
                     Event=PicoCyclerEvent.ConfirmClosed,
@@ -264,6 +272,7 @@ class PicoCycler(Actor):
 
     async def _wait_and_close_relay(self) -> None:
         # Wait for RelayOpen_S seconds before closing the relay
+        self.services.logger.error(f"[{self.name}] Keeping VDC Relay 1 open for {self.RelayOpen_S} seconds")
         await asyncio.sleep(self.RelayOpen_S)
         self.start_closing()
 
@@ -297,6 +306,19 @@ class PicoCycler(Actor):
                     TriggerId=trigger_id,
                 )
             )
+    
+    def start(self) -> None:
+        ...
+
+    def stop(self) -> None:
+        """
+        IOLoop will take care of shutting down webserver interaction.
+        Here we stop periodic reporting task.
+        """
+
+    async def join(self) -> None:
+        """IOLoop will take care of shutting down the associated task."""
+        ...
 
     def _send_to(self, dst: ShNode, payload) -> None:
         if dst.name in set(self.services._communicators.keys()) | {self.services.name}:

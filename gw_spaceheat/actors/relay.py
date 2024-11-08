@@ -61,11 +61,6 @@ class Relay(Actor):
         self.reports_by_trigger = {}
         self.boss_by_trigger = {}
         self.initialize_fsm_states()
-        self.initialize_handle()
-
-    def initialize_handle(self) -> None:
-        if self.name == H0N.vdc_relay and H0N.pico_cycler in self.layout.nodes:
-            self.node.Handle = f"{H0N.pico_cycler}.{H0N.vdc_relay}"
 
     def initialize_fsm_states(self):
         if self.name in {H0N.vdc_relay, H0N.tstat_common_relay}:

@@ -188,9 +188,14 @@ class ApiFlowModule(Actor):
                (time.time() - self.last_error_report > FLATLINE_REPORT_S):
                 self.latest_gpm = None
                 self.latest_hz = None
-                self._send_to(self.pico_cycler, PicoMissing(ActorName=self.name))
+                self._send_to(self.pico_cycler, 
+                        PicoMissing(
+                            ActorName=self.name,
+                            PicoHwUid=self.hw_uid,
+                        )
+                    )
                 self._send_to(self.primary_scada,
-                        Problems(warnings=["Pico down"]).problem_event(summary=self.name)
+                        Problems(warnings=[f"{self.hw_uid} down"]).problem_event(summary=self.name)
                     )
                 self.last_error_report = time.time()
             # publish readings synchronously every capture_s
@@ -668,8 +673,8 @@ class ApiFlowModule(Actor):
 
     @property
     def primary_scada(self) -> ShNode:
-        return self.layout.node[H0N.primary_scada]
+        return self.layout.nodes[H0N.primary_scada]
     
     @property
     def pico_cycler(self) -> ShNode:
-        return self.layout.node[H0N.pico_cycler]
+        return self.layout.nodes[H0N.pico_cycler]

@@ -306,16 +306,16 @@ class ApiTankModule(Actor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
             # check if flatlined, if so send a complaint every minute
-            missing = []
-            if self.a_missing():
-                missing.append(self.pico_a_uid)
-            if self.b_missing():
-                missing.append(self.pico_b_uid)
-            if len(missing) > 0 and \
-               (time.time() - self.last_error_report > FLATLINE_REPORT_S):
-                self._send_to(self.pico_cycler, PicoMissing(ActorName=self.name))
-                self._send_to(self.primary_scada, Problems(warnings=["Pico down"]).problem_event(summary=self.name))
-                self.last_error_report = time.time()
+            if self.last_error_report > FLATLINE_REPORT_S:
+                if self.a_missing():
+                    self._send_to(self.pico_cycler, PicoMissing(ActorName=self.name, PicoHwUid=self.pico_a_uid))
+                    self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_a_uid} down"]).problem_event(summary=self.name))
+                    self.last_error_report = time.time()
+                if self.b_missing():
+                    self._send_to(self.pico_cycler, PicoMissing(ActorName=self.name, PicoHwUid=self.pico_b_uid))
+                    self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_b_uid} down"]).problem_event(summary=self.name))
+                    self.last_error_report = time.time()
+                    
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
             """
