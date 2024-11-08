@@ -10,6 +10,12 @@ DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 class PersisterSettings(BaseModel):
     max_bytes: int = DEFAULT_MAX_EVENT_BYTES
 
+ADMIN_NAME = "admin"
+
+class AdminLinkSettings(MQTTClient):
+    enabled: bool = False
+    name: str = ADMIN_NAME
+
 class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""
     local_mqtt: MQTTClient = MQTTClient()
@@ -17,8 +23,9 @@ class ScadaSettings(ProactorSettings):
     seconds_per_report: int = 300
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
+    admin: AdminLinkSettings = AdminLinkSettings()
 
-    model_config = SettingsConfigDict(env_prefix="SCADA_", extra="allow")
+    model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 
     @model_validator(mode="before")
     @classmethod

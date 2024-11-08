@@ -26,6 +26,10 @@ from gwproto.messages import GtShCliAtnCmd
 from gwproto.messages import ReportEvent
 from gwproto.messages import SyncedReadings
 from gwproto.messages import ChannelReadings
+
+from admin.messages import AdminCommandReadRelays
+from admin.messages import AdminCommandSetRelay
+from admin.messages import RelayStates
 from actors.api_flow_module import TicklistHall, TicklistReed
 from gwproto.messages import TicklistReedReport
 from gwproto.messages import TicklistHallReport
@@ -33,6 +37,7 @@ from gwproto import MQTTCodec
 from result import Ok
 from result import Result
 
+from actors.config import ADMIN_NAME
 from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
 
@@ -53,7 +58,8 @@ ScadaMessageDecoder = create_message_model(
     [
         "gwproto.messages",
         "gwproactor.message",
-        "actors.message"
+        "actors.message",
+        "admin.messages",
     ]
 )
 
@@ -110,6 +116,22 @@ class LocalMQTTCodec(MQTTCodec):
                 f"  got: {src} -> {dst}"
             )
 
+class AdminCodec(MQTTCodec):
+    scada_gnode: str
+
+    def __init__(self, scada_gnode: str):
+        self.scada_gnode = scada_gnode
+
+        super().__init__(ScadaMessageDecoder)
+
+    def validate_source_and_destination(self, src: str, dst: str) -> None:
+        if dst != self.scada_gnode or src != ADMIN_NAME:
+            raise ValueError(
+                "ERROR validating src and/or dst\n"
+                f"  exp: one of {ADMIN_NAME} -> {self.scada_gnode}\n"
+                f"  got: {src} -> {dst}"
+            )
+
 class ScadaCmdDiagnostic(enum.Enum):
     SUCCESS = "Success"
     PAYLOAD_NOT_IMPLEMENTED = "PayloadNotImplemented"
@@ -124,6 +146,7 @@ class Scada(ScadaInterface, Proactor):
     DEFAULT_ACTORS_MODULE = "actors"
     GRIDWORKS_MQTT = "gridworks"
     LOCAL_MQTT = "local"
+    ADMIN_MQTT = "admin"
 
     _data: ScadaData
     _last_report_second: int
@@ -181,6 +204,17 @@ class Scada(ScadaInterface, Proactor):
                     message_type="#",
                 ),
                 qos=QOS.AtMostOnce,
+            )
+        if self.settings.admin.enabled:
+            self._links.add_mqtt_link(
+                LinkSettings(
+                    client_name=self.ADMIN_MQTT,
+                    gnode_name=self.settings.admin.name,
+                    spaceheat_name=self.settings.admin.name,
+                    subscription_name=self.publication_name,
+                    mqtt=self.settings.admin,
+                    codec=AdminCodec(self.publication_name),
+                ),
             )
 
         self._links.log_subscriptions("construction")
@@ -423,6 +457,9 @@ class Scada(ScadaInterface, Proactor):
         elif message.Payload.client_name == self.GRIDWORKS_MQTT:
             path_dbg |= 0x00000002
             self._process_upstream_mqtt_message(message, decoded)
+        elif message.Payload.client_name == self.ADMIN_MQTT:
+            path_dbg |= 0x00000004
+            self._process_admin_mqtt_message(message, decoded)
         else:
             raise ValueError("ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name)
         self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
@@ -460,6 +497,30 @@ class Scada(ScadaInterface, Proactor):
                 # Intentionally ignore this for forward compatibility
                 path_dbg |= 0x00000004
         self._logger.path("--_process_downstream_mqtt_message  path:0x%08X", path_dbg)
+
+    def _process_admin_mqtt_message(
+            self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
+    ) -> None:
+        self._logger.path("++_process_admin_mqtt_message %s", message.Payload.message.topic)
+        path_dbg = 0
+        if self.settings.admin.enabled:
+            path_dbg |= 0x00000001
+            match decoded.Payload:
+                case AdminCommandSetRelay():
+                    path_dbg |= 0x00000002
+                case AdminCommandReadRelays():
+                    path_dbg |= 0x00000004
+                    self._links.publish_message(
+                        self.ADMIN_MQTT,
+                        Message(
+                            Src=self.publication_name,
+                            Payload=RelayStates()
+                        ),
+                    )
+                case _:
+                    # Intentionally ignore this for forward compatibility
+                    path_dbg |= 0x00000004
+        self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
 
     def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
         if payload.SendSnapshot is not True:
