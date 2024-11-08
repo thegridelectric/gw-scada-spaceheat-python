@@ -499,7 +499,6 @@ class ApiFlowModule(Actor):
                 self.publish_zero_flow()
         else:
             if self._component.gt.SendTickLists:
-                self.services.logger.error(f"{self.name} sending ticklists")
                 self._send_to_scada(TicklistHallReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     ChannelName=self._component.gt.FlowNodeName,

@@ -400,7 +400,6 @@ class Scada(ScadaInterface, Proactor):
                 path_dbg |= 0x00000008
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistHallReport():
-                    self.logger.error(f"Publishing {message.Payload.TypeName}")
                     self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case TicklistReedReport():
                     self.logger.error(f"Publishing {message.Payload.TypeName}")
