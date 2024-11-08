@@ -81,7 +81,7 @@ def config(
     target: str = "",
     env_file: str = ".env",
 ) -> None:
-    settings = get_settings(settings_type=DummyAdminSettings, env_file=env_file)
+    settings = get_settings(settings_type=AdminClientSettings, env_file=env_file)
     settings.target_gnode = target
     print_settings(settings=settings, env_file=env_file)
 
