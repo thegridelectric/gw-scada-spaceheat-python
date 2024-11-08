@@ -83,6 +83,16 @@ def parse_args(
         action="store_true",
         help="Whether to run Parentless ('scada 2') instead of Scada."
     )
+    parser.add_argument(
+        "--aiohttp-logging",
+        action="store_true",
+        help="Whether to enable aiohttp logging"
+    )
+    parser.add_argument(
+        "--paho-logging",
+        action="store_true",
+        help="Whether to enable paho mqtt logging. Requires --verbose to be useful."
+    )
     return parser.parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
 
 def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
@@ -140,7 +150,8 @@ def missing_tls_paths(paths: TLSPaths) -> list[tuple[str, Optional[Path]]]:
 
 def check_tls_paths_present(model: BaseModel | BaseSettings, raise_error: bool = True) -> str:
     missing_str = ""
-    for k, v in model.model_fields.items():
+    for k in model.model_fields:
+        v = getattr(model, k)
         if isinstance(v, MQTTClient):
             if v.tls.use_tls:
                 missing_paths = missing_tls_paths(v.tls.paths)
@@ -213,6 +224,8 @@ def get_scada(
                 settings=settings,
                 hardware_layout=layout,
             )
+        if args.paho_logging:
+            scada.links.enable_mqtt_loggers(scada.logger.message_summary_logger)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
             scada.run_in_thread()
