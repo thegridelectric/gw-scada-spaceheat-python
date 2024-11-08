@@ -287,6 +287,7 @@ class ApiFlowModule(Actor):
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
             raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
                             "but got FlowHallParams!")
+        self.services.logger.error(f"Got {params.TypeName}  for {params.HwUid} ({params.ActorNodeName})")
         print(f"\nGot params for {params.HwUid}:\n{params}")
         # temporary hack prior to installerapp - in case a pico gets installed
         # and the hardware layout does not have its id yet
@@ -321,6 +322,7 @@ class ApiFlowModule(Actor):
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
             raise Exception(f"{self.name} has {self._component.cac.MakeModel}"
                             "but got FlowReedParams!")
+        self.services.logger.error(f"Got {params.TypeName}  for {params.HwUid} ({params.ActorNodeName})")
         print(f"\nGot params for {params.HwUid}:\n{params}")
         if (self._component.gt.HwUid is None or 
             self._component.gt.HwUid == params.HwUid):
