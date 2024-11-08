@@ -83,6 +83,16 @@ def parse_args(
         action="store_true",
         help="Whether to run Parentless ('scada 2') instead of Scada."
     )
+    parser.add_argument(
+        "--aiohttp-logging",
+        action="store_true",
+        help="Whether to enable aiohttp logging"
+    )
+    parser.add_argument(
+        "--paho-logging",
+        action="store_true",
+        help="Whether to enable paho mqtt logging. Requires --verbose to be useful."
+    )
     return parser.parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
 
 def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
@@ -213,6 +223,8 @@ def get_scada(
                 settings=settings,
                 hardware_layout=layout,
             )
+        if args.paho_logging:
+            scada.links.enable_mqtt_loggers(scada.logger.message_summary_logger)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
             scada.run_in_thread()

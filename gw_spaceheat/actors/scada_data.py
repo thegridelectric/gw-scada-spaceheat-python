@@ -32,6 +32,7 @@ class ScadaData:
         self.latest_total_power_w: Optional[int] = None
         self.latest_total_power_w: Optional[int] = None
         self.reports_to_store: Dict[str:Report] = {}
+        self.seconds_by_channel: Dict[str:int] = {}
 
         self.settings = settings
         self.hardware_layout = hardware_layout
@@ -97,9 +98,14 @@ class ScadaData:
             Id=str(uuid.uuid4())
         )
 
-    def capture_seconds(self, ch) -> int: 
-        # todo: replace with actual capture_seconds for that channel
-        return 300
+    def capture_seconds(self, ch: DataChannel) -> int: 
+        if ch.Name not in self.seconds_by_channel:
+            self.seconds_by_channel == {}
+            components = [c.gt for c in self.hardware_layout.components.values()]
+            for c in components:
+                for config in c.ConfigList:
+                    self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS 
+        return self.seconds_by_channel[ch.Name]
 
     def flatlined(self, ch: DataChannel) -> bool:
         if self.latest_channel_unix_ms[ch] is None:
