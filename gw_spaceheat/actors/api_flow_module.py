@@ -14,10 +14,11 @@ from gwproactor import Actor, ServicesInterface, Problems
 from gwproto import Message
 from gwproto.messages import ProblemEvent
 from gwproto.message import Header
+from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.components import PicoFlowModuleComponent
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.enums import MakeModel, HzCalcMethod, GpmFromHzMethod, TelemetryName
-from gwproto.named_types import  ChannelReadings, SyncedReadings
+from gwproto.named_types import  ChannelReadings, SyncedReadings, PicoMissing
 from gwproto.named_types import TicklistHall, TicklistReed, TicklistHallReport, TicklistReedReport
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
@@ -159,7 +160,7 @@ class ApiFlowModule(Actor):
             if self._component.gt.SendHz:
                 channel_names.append(self.hz_channel.Name)
                 values.append(int(1e6 * self.latest_hz))
-            self._send_to_scada(
+            self._send_to(self.primary_scada,
                 SyncedReadings(
                     ChannelNameList=channel_names,
                     ValueList=values,
@@ -184,16 +185,13 @@ class ApiFlowModule(Actor):
             self._send(PatInternalWatchdogMessage(src=self.name))
             # check if flatlined, if so send a complaint every minute
             if (time.time() - self.last_heard > self.flatline_seconds()) and \
-               (time.time() -self.last_error_report > FLATLINE_REPORT_S):
+               (time.time() - self.last_error_report > FLATLINE_REPORT_S):
                 self.latest_gpm = None
                 self.latest_hz = None
-                self._send(
-                    Message(
-                        Src=self.name,
-                        Dst=H0N.primary_scada,
-                        Payload=Problems(warnings=["Pico down"]).problem_event(summary=self.name)
+                self._send_to(self.pico_cycler, PicoMissing(ActorName=self.name))
+                self._send_to(self.primary_scada,
+                        Problems(warnings=["Pico down"]).problem_event(summary=self.name)
                     )
-                )
                 self.last_error_report = time.time()
             # publish readings synchronously every capture_s
             try:
@@ -232,23 +230,6 @@ class ApiFlowModule(Actor):
     def reed_params_path(self) -> str:
         return f"{self.name}/flow-reed-params"
     
-    def _send_to_scada(self, payload, qos: QOS = QOS.AtMostOnce): 
-        if self.layout.parent_hierarchy_name(self.node.actor_hierarchy_name) == H0N.primary_scada:
-            # If spawned by scada, use native proactor queue
-            self._send(
-                Message(
-                    header=Header(Src=self.name,
-                                  Dst=H0N.primary_scada,
-                                  MessageType=payload.TypeName,
-                            ),
-                    Payload=payload
-                )
-            )
-        else:
-            # Otherwise send via local mqtt
-            message = Message(Src=self.name, Payload=payload)
-            return self.services._links.publish_message(self.services.LOCAL_MQTT, message, qos=qos)
-
     async def _get_text(self, request: Request) -> Optional[str]:
         try:
             return await request.text()
@@ -427,13 +408,13 @@ class ApiFlowModule(Actor):
             channel_names.append(self.hz_channel.Name)
             values.append(0)
 
-        self._send_to_scada(
-            SyncedReadings(
+        msg = SyncedReadings(
                 ChannelNameList=channel_names,
                 ValueList=values,
                 ScadaReadTimeUnixMs=zero_flow_ms,
             )
-        )
+        self._send_to(self.primary_scada, msg)
+        self._send_to(self.pico_cycler, msg)
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         self.ticklist = data
@@ -454,11 +435,12 @@ class ApiFlowModule(Actor):
         # now we can assume we have at least one tick
         self.update_timestamps_for_reed(data)
         if self._component.gt.SendTickLists:
-                self._send_to_scada(TicklistReedReport(
-                    TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
-                    FlowNodeName=self._component.gt.FlowNodeName,
-                    ScadaReceivedUnixMs=int(time.time() * 1000),
-                    Ticklist=data
+                self._send_to(self.primary_scada, 
+                    TicklistReedReport(
+                        TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
+                        FlowNodeName=self._component.gt.FlowNodeName,
+                        ScadaReceivedUnixMs=int(time.time() * 1000),
+                        Ticklist=data
                 ))
         if len(data.RelativeMillisecondList) == 1:
             final_tick_ns = self.nano_timestamps[-1]
@@ -480,10 +462,11 @@ class ApiFlowModule(Actor):
         if len(micro_hz_readings.ValueList) > 0:
             gpm_readings = self.get_gpm_readings(micro_hz_readings)
             self.gpm_readings = gpm_readings
-            self._send_to_scada(gpm_readings)
+            self._send_to(self.primary_scada, gpm_readings)
+            self._send_to(self.pico_cycler, gpm_readings)
             self.latest_sync_send_s = time.time()
             if self._component.gt.SendHz:
-                self._send_to_scada(micro_hz_readings)
+                self._send_to(self.primary_scada, micro_hz_readings)
         
 
     def _process_ticklist_hall(self, data: TicklistHall) -> None:
@@ -508,7 +491,7 @@ class ApiFlowModule(Actor):
                 self.publish_zero_flow()
         else:
             if self._component.gt.SendTickLists:
-                self._send_to_scada(TicklistHallReport(
+                self._send_to(self.primary_scada, TicklistHallReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     FlowNodeName=self._component.gt.FlowNodeName,
                     ScadaReceivedUnixMs=int(time.time() * 1000),
@@ -520,9 +503,9 @@ class ApiFlowModule(Actor):
                 hz_readings = self.get_micro_hz_readings()
                 if len(hz_readings.ValueList) > 0:
                     gpm_readings = self.get_gpm_readings(hz_readings)
-                    self._send_to_scada(gpm_readings)
+                    self._send_to(self.primary_scada, gpm_readings)
                     if self._component.gt.SendHz:
-                        self._send_to_scada(hz_readings)
+                        self._send_to(self.primary_scada, hz_readings)
         
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
@@ -534,7 +517,7 @@ class ApiFlowModule(Actor):
 
     def start(self) -> None:
         self.services.add_task(
-            asyncio.create_task(self.main(), name="update_flow_sync_readings")
+            asyncio.create_task(self.main(), name="ApiFlowModule keepalive")
         )
 
     def stop(self) -> None:
@@ -663,4 +646,30 @@ class ApiFlowModule(Actor):
             ValueList=micro_hz_list,
             ScadaReadTimeUnixMsList=unix_ms_times,
         )
+    
+    def _send_to(self, dst: ShNode, payload) -> None:
+        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
+            self._send(
+                Message(
+                    header=Header(
+                        Src=self.name,
+                        Dst=dst.name,
+                        MessageType=payload.TypeName,
+                    ),
+                    Payload=payload,
+                )
+            )
+        else:
+            # Otherwise send via local mqtt
+            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
+            return self.services._links.publish_message(
+                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
+            )
 
+    @property
+    def primary_scada(self) -> ShNode:
+        return self.layout.node[H0N.primary_scada]
+    
+    @property
+    def pico_cycler(self) -> ShNode:
+        return self.layout.node[H0N.pico_cycler]

@@ -10,6 +10,7 @@ from actors.hubitat_poller import HubitatPoller
 from actors.hubitat_tank_module import HubitatTankModule
 from actors.multipurpose_sensor import MultipurposeSensor
 from actors.parentless import Parentless
+from actors.pico_cycler import PicoCycler
 from actors.power_meter import PowerMeter
 from actors.relay import Relay
 from actors.scada import Scada
@@ -26,6 +27,7 @@ __all__ = [
     "I2cRelayMultiplexer",
     "MultipurposeSensor",
     "Parentless",
+    "PicoCycler",
     "PowerMeter",
     "Relay",
     "Scada",

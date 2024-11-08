@@ -1,12 +1,15 @@
 import json
+import asyncio
 import math
 import time
-from datetime import datetime
+
 from functools import cached_property
 from typing import List
 from typing import Literal
 from typing import Optional
 
+from typing import Sequence
+from gwproactor import MonitoredName
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gwproactor import Actor
@@ -21,7 +24,9 @@ from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from gwproto.named_types import TankModuleParams
 from gwproto.named_types import SyncedReadings
+from gwproto.named_types import PicoMissing
 from gwproto.data_classes.components import PicoTankModuleComponent
+from gwproactor.message import PatInternalWatchdogMessage
 from pydantic import BaseModel
 from gw.errors import DcError
 from result import Ok
@@ -31,6 +36,7 @@ R_FIXED_KOHMS = 5.65 # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
 THERMISTOR_R0_KOHMS = 10 # The R0 of the NTC thermistor - an industry standard
 
+FLATLINE_REPORT_S = 60
 
 class MicroVolts(BaseModel):
     HwUid: str
@@ -42,9 +48,8 @@ class MicroVolts(BaseModel):
 
 
 class ApiTankModule(Actor):
-
+    _stop_requested: bool
     _component: PicoTankModuleComponent
-    hw_uid_list: List[str]
     def __init__(
         self,
         name: str,
@@ -62,6 +67,8 @@ class ApiTankModule(Actor):
                 f"  Node: {self.name}\n"
                 f"  Component id: {component.gt.ComponentId}"
             )
+        self._stop_requested: bool = False
+        self.layout = self.services.hardware_layout
         self._component = component
         if self._component.gt.Enabled:
             self._services.add_web_route(
@@ -76,18 +83,14 @@ class ApiTankModule(Actor):
                 path="/" + self.params_path,
                 handler=self._handle_params_post,
             )
-        self.hw_uid_list = []
-        self.initailize_hw_uid_list()
         self.report_on_data = False
+        self.pico_a_uid = self._component.gt.PicoAHwUid
+        self.pico_b_uid = self._component.gt.PicoBHwUid
+        # use the following for generate pico offline reports for triggering the pico cycler
+        self.last_heard_a = time.time()
+        self.last_heard_b = time.time()
+        self.last_error_report = time.time()
 
-
-    def initailize_hw_uid_list(self):
-        if self._component.gt.PicoAHwUid:
-            self.hw_uid_list.append(self._component.gt.PicoAHwUid)
-        if self._component.gt.PicoBHwUid:
-            self.hw_uid_list.append(self._component.gt.PicoBHwUid)
-
-        
     @cached_property
     def microvolts_path(self) -> str:
         return f"{self.name}/microvolts"
@@ -95,22 +98,6 @@ class ApiTankModule(Actor):
     @cached_property
     def params_path(self) -> str:
         return f"{self.name}/tank-module-params"
-    
-    def _send_to(self, dst: ShNode, payload):
-        if dst.name in [self.services._communicators] + [self.services.name]:
-            self._send(
-                Message(
-                    header=Header(Src=self.name,
-                                  Dst=dst.name,
-                                  MessageType=payload.TypeName,
-                            ),
-                    Payload=payload
-                )
-            )
-        else:
-            # Otherwise send via local mqtt
-            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services._links.publish_message(self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce)
 
     async def _get_text(self, request: Request) -> Optional[str]:
         try:
@@ -193,7 +180,10 @@ class ApiTankModule(Actor):
                 CaptureOffsetS=offset,
             )
             if self.need_to_update_layout(params):
-                self.hw_uid_list.append(params.HwUid)
+                if params.PicoAB == "a":
+                    self.pico_a_uid = params.HwUid
+                else:
+                    self.pico_b_uid = params.HwUid
                 print(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} ")
                 print(f'and add Pico{params.PicoAB.capitalize()}HwUid = "{params.HwUid}')
                 # TODO: send message to self so that writing to hardware layout isn't 
@@ -221,20 +211,15 @@ class ApiTankModule(Actor):
                 )
             except Exception as e: # noqa
                 self._report_post_error(e, text)
-        return Response()  
-     
-    def recognized_hw_uid(self, data: MicroVolts) -> bool:
-        return (data.HwUid in self.hw_uid_list)
-
-
-    @property
-    def primary_scada(self) -> ShNode:
-        return self.services.hardware_layout.nodes[H0N.primary_scada]
-        
+        return Response()       
 
     def _process_microvolts(self, data: MicroVolts) -> None:
-        if data.HwUid not in self.hw_uid_list:
-            print(f"Ignoring data from pico {data.HwUid} - not recognized!")
+        if data.HwUid == self.pico_a_uid:
+            self.last_heard_a = time.time()
+        elif data.HwUid == self.pico_b_uid:
+            self.last_heard_b = time .time()
+        else:
+            self.services.logger.error(f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!")
             return
         self.latest_readings = data
         channel_name_list = []
@@ -269,7 +254,7 @@ class ApiTankModule(Actor):
         msg = SyncedReadings(ChannelNameList=channel_name_list,
                             ValueList=value_list,
                             ScadaReadTimeUnixMs=int(time.time() * 1000))
-        self.msg = msg
+        self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
         if self.report_on_data:
             combined = list(zip(data.AboutNodeNameList, data.MicroVoltsList))
@@ -291,12 +276,46 @@ class ApiTankModule(Actor):
 
     def start(self) -> None:
         """IOLoop will take care of start."""
+        self.services.add_task(
+            asyncio.create_task(self.main(), name="ApiTankModule keepalive")
+        )
 
     def stop(self) -> None:
         """IOLoop will take care of stop."""
+        self._stop_requested = True
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
+    
+    def flatline_seconds(self) -> int:
+        cfg = next(cfg for cfg in self._component.gt.ConfigList if 
+                    cfg.ChannelName == f'{self.name}-depth1')
+        return cfg.CapturePeriodS * 2.1
+    
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.flatline_seconds() * 2.1)]
+    
+    def a_missing(self) -> bool:
+        return (time.time() - self.last_heard_a > self.flatline_seconds())
+    
+    def b_missing(self) -> bool:
+        return (time.time() - self.last_heard_b > self.flatline_seconds())
+
+    async def main(self):
+        while not self._stop_requested:
+            self._send(PatInternalWatchdogMessage(src=self.name))
+            # check if flatlined, if so send a complaint every minute
+            missing = []
+            if self.a_missing():
+                missing.append(self.pico_a_uid)
+            if self.b_missing():
+                missing.append(self.pico_b_uid)
+            if len(missing) > 0 and \
+               (time.time() - self.last_error_report > FLATLINE_REPORT_S):
+                self._send_to(self.pico_cycler, PicoMissing(ActorName=self.name))
+                self._send_to(self.primary_scada, Problems(warnings=["Pico down"]).problem_event(summary=self.name))
+                self.last_error_report = time.time()
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
             """
@@ -331,4 +350,32 @@ class ApiTankModule(Actor):
         if r_therm <= 0:
             raise ValueError("Disconnected thermistor!")
         return r_therm
+    
+    def _send_to(self, dst: ShNode, payload) -> None:
+        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
+            self._send(
+                Message(
+                    header=Header(
+                        Src=self.name,
+                        Dst=dst.name,
+                        MessageType=payload.TypeName,
+                    ),
+                    Payload=payload,
+                )
+            )
+        else:
+            # Otherwise send via local mqtt
+            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
+            return self.services._links.publish_message(
+                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
+            )
+
+    @property
+    def pico_cycler(self) -> ShNode:
+        return self.layout.node[H0N.pico_cycler]
+
+    @property
+    def primary_scada(self) -> ShNode:
+        return self.layout.nodes[H0N.primary_scada]
+
 

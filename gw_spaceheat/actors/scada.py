@@ -23,6 +23,7 @@ from gwproto.messages import LayoutLite, LayoutEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
+from gwproto.messages import PicoMissing
 from gwproto.messages import ReportEvent
 from gwproto.messages import SingleReading
 from gwproto.messages import SyncedReadings
@@ -385,9 +386,12 @@ class Scada(ScadaInterface, Proactor):
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
             case ChannelReadings():
-                    self.channel_readings_received(
-                        from_node, message.Payload
-                    )
+                if from_node == self.name:
+                    path_dbg |= 0x00000004
+                    self.channel_readings_received(from_node, message.Payload)
+                else:
+                    path_dbg |= 0x00000008
+                    self.get_communicator(message.Header.Dst).process_message(message)
             case FsmAtomicReport():
                 path_dbg |= 0x00000004
                 self.get_communicator(message.Header.Dst).process_message(message)
@@ -401,6 +405,9 @@ class Scada(ScadaInterface, Proactor):
                 else:
                     self.get_communicator(message.Header.Dst).process_message(message)
             case MicroVolts():
+                path_dbg |= 0x00000020
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case PicoMissing():
                 path_dbg |= 0x00000020
                 self.get_communicator(message.Header.Dst).process_message(message)
             case SingleReading():

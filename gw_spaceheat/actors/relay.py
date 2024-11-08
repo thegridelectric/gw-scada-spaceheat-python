@@ -60,8 +60,12 @@ class Relay(Actor):
         self.de_energizing_event = self.relay_actor_config.DeEnergizingEvent
         self.reports_by_trigger = {}
         self.boss_by_trigger = {}
-
         self.initialize_fsm_states()
+        self.initialize_handle()
+
+    def initialize_handle(self) -> None:
+        if self.name == H0N.vdc_relay and H0N.pico_cycler in self.layout.nodes:
+            self.node.Handle = f"{H0N.pico_cycler}.{H0N.vdc_relay}"
 
     def initialize_fsm_states(self):
         if self.name in {H0N.vdc_relay, H0N.tstat_common_relay}:
@@ -196,7 +200,7 @@ class Relay(Actor):
             raise Exception("Unknown trigger!!")
         self.reports_by_trigger[message.TriggerId].append(message)
         boss = self.boss_by_trigger[message.TriggerId]
-        print(f"Sending report to {boss.name}")
+        # print(f"Sending report to {boss.name}")
         self._send_to(
             boss,
             FsmFullReport(

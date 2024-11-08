@@ -250,7 +250,6 @@ class I2cRelayMultiplexer(Actor):
                 TriggerId=dispatch.TriggerId,
             ),
         )
-        print(f"{relay.name} ({idx}): sent {dispatch.EventName}")
         return Ok()
 
     def _process_event_message(self, message: FsmEvent) -> Result[bool, BaseException]:
