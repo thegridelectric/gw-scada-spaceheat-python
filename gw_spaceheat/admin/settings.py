@@ -14,7 +14,11 @@ class AdminClientSettings(ProactorSettings):
     target_gnode: str = ""
     paths: Paths = Field({}, validate_default=True)
     link: MQTTClient = MQTTClient()
-    model_config = SettingsConfigDict(env_prefix="GWADMIN_", env_nested_delimiter="__")
+    model_config = SettingsConfigDict(
+        env_prefix="GWADMIN_",
+        env_nested_delimiter="__",
+        extra="ignore",
+    )
 
     @model_validator(mode="before")
     @classmethod
