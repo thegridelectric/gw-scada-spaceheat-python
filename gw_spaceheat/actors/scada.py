@@ -24,7 +24,7 @@ from gwproto.messages import LayoutLite, LayoutEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import GtShCliAtnCmd
-from gwproto.messages import PicoMissing
+from gwproto.messages import MachineStates, PicoMissing
 from gwproto.messages import ReportEvent
 from gwproto.messages import SingleReading
 from gwproto.messages import SyncedReadings
@@ -427,49 +427,52 @@ class Scada(ScadaInterface, Proactor):
                     path_dbg |= 0x00000008
                     self.get_communicator(message.Header.Dst).process_message(message)
             case FsmAtomicReport():
-                path_dbg |= 0x00000004
+                path_dbg |= 0x00000010
                 self.channel_readings_received(
                     from_node, message.Payload
                 )
             case FsmAtomicReport():
-                path_dbg |= 0x00000008
-                self.get_communicator(message.Header.Dst).process_message(message)
-            case FsmEvent():
-                path_dbg |= 0x00000010
-                self.get_communicator(message.Header.Dst).process_message(message)
-            case FsmFullReport():
-                path_dbg |= 0x0000020
-                if message.Header.Dst == self.name:
-                    path_dbg |= 0x0000040
-                    self.fsm_full_report_received(message.Payload)
-                else:
-                    path_dbg |= 0x0000080
-                    self.get_communicator(message.Header.Dst).process_message(message)
-            case MicroVolts():
-                path_dbg |= 0x0000100
-                self.get_communicator(message.Header.Dst).process_message(message)
-            case PicoMissing():
                 path_dbg |= 0x00000020
                 self.get_communicator(message.Header.Dst).process_message(message)
+            case FsmEvent():
+                path_dbg |= 0x00000040
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case FsmFullReport():
+                path_dbg |= 0x00000080
+                if message.Header.Dst == self.name:
+                    path_dbg |= 0x00000100
+                    self.fsm_full_report_received(message.Payload)
+                else:
+                    path_dbg |= 0x00000200
+                    self.get_communicator(message.Header.Dst).process_message(message)
+            case MachineStates():
+                path_dbg |= 0x00000400
+                self.machine_states_received(message.Payload)
+            case MicroVolts():
+                path_dbg |= 0x00000800
+                self.get_communicator(message.Header.Dst).process_message(message)
+            case PicoMissing():
+                path_dbg |= 0x00001000
+                self.get_communicator(message.Header.Dst).process_message(message)
             case SingleReading():
-                path_dbg |= 0x0000200
+                path_dbg |= 0x00002000
                 self.single_reading_received(message.Payload)
             case SyncedReadings():
-                path_dbg |= 0x0000400
+                path_dbg |= 0x00004000
                 self.synced_readings_received(
                         from_node, message.Payload
                     )
             case TicklistHall():
-                path_dbg |= 0x0000800
+                path_dbg |= 0x00008000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistHallReport():
-                path_dbg |= 0x0001000
+                path_dbg |= 0x00010000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case TicklistReed():
-                path_dbg |= 0x00002000
+                path_dbg |= 0x00020000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistReedReport():
-                path_dbg |= 0x00004000
+                path_dbg |= 0x00040000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case _:
                 raise ValueError(
@@ -603,6 +606,20 @@ class Scada(ScadaInterface, Proactor):
         self._links.publish_upstream(payload, QOS.AtMostOnce)
         self._data.latest_total_power_w = payload.Watts
     
+    def machine_states_received(self, payload: MachineStates) -> None:
+        if payload.MachineHandle in self._data.recent_machine_state:
+            prev_state: MachineStates = self._data.recent_machine_state[payload.MachineHandle][-1]
+            if payload.StateEnum != prev_state.StateEnum:
+                raise Exception(f"{payload.MachineHandle} has conflicting state machines!"
+                                f"{payload.StateEnum} and {prev_state.StateEnum}")
+            
+            self._data.recent_machine_state[payload.MachineHandle] =  MachineStates(
+                MachineHandle=payload.MachineHandle,
+                StateEnum=payload.StateEnum,
+                UnixMsList=prev_state.UnixMsList + payload.UnixMsList,
+                StateList=prev_state.StateList + payload.StateList,
+            )
+            
     def fsm_full_report_received(self, payload: FsmFullReport) -> None:
         self._data.recent_fsm_reports.append(payload)
 

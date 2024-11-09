@@ -421,7 +421,12 @@ class ApiFlowModule(Actor):
                 ScadaReadTimeUnixMs=zero_flow_ms,
             )
         self._send_to(self.primary_scada, msg)
-        self._send_to(self.pico_cycler, msg)
+        self._send_to(self.pico_cycler, 
+                      ChannelReadings(
+                          ChannelName=self.gpm_channel.Name,
+                          ValueList=[0],
+                          ScadaReadTimeUnixMsList=[zero_flow_ms]
+                      ))
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         self.ticklist = data
