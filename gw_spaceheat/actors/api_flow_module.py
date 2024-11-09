@@ -429,6 +429,8 @@ class ApiFlowModule(Actor):
         )
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
+        print('processing')
+        # self.services.logger.error('processing')
         self.ticklist = data
         if data.HwUid != self.hw_uid:
             print(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
