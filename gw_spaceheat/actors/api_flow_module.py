@@ -436,6 +436,13 @@ class ApiFlowModule(Actor):
             print(f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
         self.last_heard = time.time()
+        if data.HwUid=="pico_607636" and len(data.RelativeMillisecondList) == 0:
+            if self.latest_gpm is None:
+                self.latest_gpm = 0
+                self.latest_hz = 0
+                self.publish_zero_flow()
+            # TODO publish 0 gpm after 30 seconds of no ticklists
+            return
         if len(data.RelativeMillisecondList) == 0:
             if self.latest_gpm is None:
                 self.latest_gpm = 0
