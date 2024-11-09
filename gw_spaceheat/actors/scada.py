@@ -607,13 +607,13 @@ class Scada(ScadaInterface, Proactor):
         self._data.latest_total_power_w = payload.Watts
     
     def machine_states_received(self, payload: MachineStates) -> None:
-        if payload.MachineHandle in self._data.recent_machine_state:
-            prev_state: MachineStates = self._data.recent_machine_state[payload.MachineHandle][-1]
+        if payload.MachineHandle in self._data.recent_machine_states:
+            prev_state: MachineStates = self._data.recent_machine_states[payload.MachineHandle][-1]
             if payload.StateEnum != prev_state.StateEnum:
                 raise Exception(f"{payload.MachineHandle} has conflicting state machines!"
                                 f"{payload.StateEnum} and {prev_state.StateEnum}")
             
-            self._data.recent_machine_state[payload.MachineHandle] =  MachineStates(
+            self._data.recent_machine_states[payload.MachineHandle] =  MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
                 UnixMsList=prev_state.UnixMsList + payload.UnixMsList,

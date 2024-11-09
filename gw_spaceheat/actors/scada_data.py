@@ -17,11 +17,11 @@ from gwproto.messages import SnapshotSpaceheat
 from actors.config import ScadaSettings
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.data_channel import DataChannel
-from gwproto.named_types import MachineStates
+
 class ScadaData:
     latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]
-    recent_machine_state: Dict[str, MachineStates]
+    recent_machine_states: Dict[str, MachineStates]
     latest_channel_unix_ms: Dict[DataChannel, int]
     latest_channel_values: Dict[DataChannel, int]
     recent_channel_values: Dict[DataChannel, List]
@@ -39,7 +39,7 @@ class ScadaData:
         self.settings = settings
         self.hardware_layout = hardware_layout
         self.my_channels = self.get_my_channels()
-        self.recent_machine_state = {}
+        self.recent_machine_states = {}
         self.latest_channel_values: Dict[DataChannel, int] = {  # noqa
             ch: None for ch in self.my_channels
         }
@@ -66,7 +66,7 @@ class ScadaData:
             ch: [] for ch in self.my_channels
         }
         self.recent_fsm_reports = []
-        self.recent_machine_state = {}
+        self.recent_machine_states = {}
 
     def make_channel_readings(
         self, ch: DataChannel
@@ -97,7 +97,7 @@ class ScadaData:
             SlotStartUnixS=slot_start_seconds,
             SlotDurationS=self.settings.seconds_per_report,
             ChannelReadingList=channel_reading_list,
-            StateList=list(self.recent_machine_state.values()),
+            StateList=list(self.recent_machine_states.values()),
             FsmReportList=self.recent_fsm_reports,
             MessageCreatedMs=int(time.time() * 1000),
             Id=str(uuid.uuid4())
