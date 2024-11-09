@@ -4,17 +4,18 @@ import asyncio
 import threading
 from typing import Any, Optional
 from typing import List
+
+from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
+from gwproactor.persister import TimedRollingFilePersister
 from gwproto.message import Header
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
 from gwproto.named_types import Report, SyncedReadings
-from gwproto.named_types import SnapshotSpaceheat, PowerWatts
+from gwproto.named_types import SnapshotSpaceheat
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 
-from actors.api_tank_module import MicroVolts
-from actors.api_flow_module import TicklistHall, TicklistReed
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
 from gwproactor import QOS
@@ -80,8 +81,17 @@ class Parentless(ScadaInterface, Proactor):
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
-        print("hi!")
-    
+
+    @classmethod
+    def make_event_persister(cls, settings: ScadaSettings) -> TimedRollingFilePersister:
+        return TimedRollingFilePersister(
+            settings.paths.event_dir,
+            max_bytes=settings.persister.max_bytes,
+            pat_watchdog_args=SystemDWatchdogCommandBuilder.pat_args(
+                str(settings.paths.name)
+            ),
+        )
+
     def get_actor_nodes(self) -> List[ShNode]:
         actors_package = importlib.import_module(self.actors_package_name)
         actor_nodes = []
@@ -126,19 +136,9 @@ class Parentless(ScadaInterface, Proactor):
     def _derived_process_message(self, message: Message):
         self._logger.path("++Parentless._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
-        from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case PowerWatts():
-                path_dbg |= 0x00000001
-                if from_node is self._layout.power_meter_node:
-                    path_dbg |= 0x00000002
-                    self.power_watts_received(message.Payload)
-                else:
-                    raise Exception(
-                        f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
-                    )
             case SyncedReadings():
-                path_dbg |= 0x00000008
+                path_dbg |= 0x00000001
                 new_msg = Message(
                     Header=Header(
                         Src=message.Header.Src, 
@@ -150,7 +150,7 @@ class Parentless(ScadaInterface, Proactor):
                 self._links.publish_message(Parentless.LOCAL_MQTT, new_msg, QOS.AtMostOnce)
             case _:
                 raise ValueError(
-                    f"There is no handler for mqtt message payload type [{type(message.Payload)}]"
+                    f"There is no handler for message payload type [{type(message.Payload)}]"
                 )
         self._logger.path("--Parentless._derived_process_message  path:0x%08X", path_dbg)
 
@@ -159,24 +159,16 @@ class Parentless(ScadaInterface, Proactor):
     ):
         self._logger.path("++Parentless._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
-        mqtt_msg = message.Payload.message
-        from_node_name = mqtt_msg.topic.split('/')[1]
-        from_node = self._layout.node(from_node_name)
-        codec = self._links._mqtt_codecs['local']
-        payload = codec.decode(topic=mqtt_msg.topic, payload=mqtt_msg.payload).Payload
-        if from_node:
-            match payload:
-                case Report():
-                    path_dbg |= 0x00000001
-                    self.report_received(payload)
-                case SnapshotSpaceheat():
-                    path_dbg |= 0x00000002
-                    self.snapshot_received(payload)
-                case _:
-                    raise ValueError(
-                        f"There is no handler for mqtt message payload type [{type(decoded.Payload)}]\n"
-                        f"Received\n\t topic: [{message.Payload.message.topic}]"
-                    )
+        match decoded.Payload:
+            case Report():
+                path_dbg |= 0x00000001
+                self.report_received(decoded.Payload)
+            case SnapshotSpaceheat():
+                path_dbg |= 0x00000002
+                self.snapshot_received(decoded.Payload)
+            case _:
+                # Intentionally ignored for forward compatibility
+                path_dbg |= 0x00000004
         self._logger.path("--Parentless._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def snapshot_received(self, payload: SnapshotSpaceheat)-> None:
