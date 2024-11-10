@@ -683,6 +683,11 @@ class ApiFlowModule(Actor):
         if self.hw_uid=='pico_607636':
             print(smoothed_frequencies)
             print('')
+            return ChannelReadings(
+                ChannelName=self.hz_channel.Name,
+                ValueList=[int(x*1e6) for x in smoothed_frequencies],
+                ScadaReadTimeUnixMsList=[int(x/1e6) for x in sampled_timestamps],
+            )
         
         return ChannelReadings(
             ChannelName=self.hz_channel.Name,
