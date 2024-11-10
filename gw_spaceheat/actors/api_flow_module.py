@@ -474,11 +474,18 @@ class ApiFlowModule(Actor):
             self.latest_tick_ns = final_tick_ns
             self.latest_report_ns = final_tick_ns
             self.latest_hz = 0
-            micro_hz_readings = ChannelReadings(
-                ChannelName=self.hz_channel.Name,
-                ValueList=[int(final_nonzero_hz * 1e6), 0],
-                ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6), int(final_tick_ns/1e6) + 10]
-            )
+            if data.HwUid=="pico_607636":
+                    micro_hz_readings = ChannelReadings(
+                        ChannelName=self.hz_channel.Name,
+                        ValueList=[int(final_nonzero_hz * 1e6)],
+                        ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6)]
+                    )  
+            else:
+                micro_hz_readings = ChannelReadings(
+                        ChannelName=self.hz_channel.Name,
+                        ValueList=[int(final_nonzero_hz * 1e6), 0],
+                        ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6), int(final_tick_ns/1e6) + 10]
+                    )
         else:
             micro_hz_readings = self.get_micro_hz_readings()
             
