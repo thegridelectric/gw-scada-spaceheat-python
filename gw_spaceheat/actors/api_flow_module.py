@@ -430,6 +430,7 @@ class ApiFlowModule(Actor):
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         print('processing')
+        print(f"Length of ticklist: {len(data.RelativeMillisecondList)}")
         # self.services.logger.error('processing')
         self.ticklist = data
         if data.HwUid != self.hw_uid:
@@ -437,6 +438,7 @@ class ApiFlowModule(Actor):
             return
         self.last_heard = time.time()
         if data.HwUid=="pico_607636" and len(data.RelativeMillisecondList) == 0:
+            print("Empty ticklist for primary in beech")
             if self.latest_gpm is None:
                 self.latest_gpm = 0
                 self.latest_hz = 0
