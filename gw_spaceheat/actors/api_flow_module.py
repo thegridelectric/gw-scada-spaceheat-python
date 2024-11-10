@@ -588,14 +588,13 @@ class ApiFlowModule(Actor):
         # Sort timestamps and compute frequencies
         self.nano_timestamps = sorted(self.nano_timestamps)
         frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
-        if self.hw_uid=='pico_607636':
-            print(frequencies)
         # Remove outliers
-        min_hz, max_hz = 0, 500 # TODO: make these parameters? Or enforce on the Pico (if not already done)
-        self.nano_timestamps = [self.nano_timestamps[i] 
-                                for i in range(len(frequencies)) 
-                                if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
-        frequencies = [x for x in frequencies  if (x<max_hz and x>=min_hz)]
+        if self.hw_uid!='pico_607636':
+            min_hz, max_hz = 0, 500 # TODO: make these parameters? Or enforce on the Pico (if not already done)
+            self.nano_timestamps = [self.nano_timestamps[i] 
+                                    for i in range(len(frequencies)) 
+                                    if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
+            frequencies = [x for x in frequencies  if (x<max_hz and x>=min_hz)]
         # Add 0 flow when there is more than no_flow_ms between two points
         new_timestamps = []
         new_frequencies = []
@@ -616,7 +615,6 @@ class ApiFlowModule(Actor):
         if self.hw_uid=='pico_607636':
             print(self.nano_timestamps)
             print([x for x in frequencies])
-            new_timestamps = self.nano_timestamps[0]
         del new_timestamps, new_frequencies
         # First reading
         if self.latest_hz is None:
