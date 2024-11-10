@@ -14,14 +14,13 @@ from gwproto.enums import (AquastatControl, ChangeAquastatControl,
                            ChangeHeatcallSource, ChangeHeatPumpControl,
                            ChangePrimaryPumpControl, ChangeRelayPin,
                            ChangeRelayState, ChangeStoreFlowRelay,
-                           FsmEventType, FsmName, FsmReportType,
+                           FsmName, FsmReportType, 
                            HeatcallSource, HeatPumpControl, MakeModel,
                            PrimaryPumpControl, RelayClosedOrOpen,
                            RelayWiringConfig, StoreFlowRelay)
 from gwproto.message import Header
 from gwproto.named_types import (FsmAtomicReport, FsmEvent, FsmFullReport,
                                  MachineStates)
-from gwproto.type_helpers import EVENT_ENUM_BY_NAME
 from result import Err, Ok, Result
 from transitions import Machine
 
@@ -61,12 +60,13 @@ class Relay(Actor):
             )
 
         self.relay_idx = self.relay_actor_config.RelayIdx
-        self.my_state_enum = None
         self.de_energizing_event = self.relay_actor_config.DeEnergizingEvent
         self.primary_scada = self.layout.node(H0N.primary_scada)
         self.relay_multiplexer = self.layout.node(H0N.relay_multiplexer)
         self.reports_by_trigger = {}
         self.boss_by_trigger = {}
+        self.my_event_enum =ChangeRelayState.enum_name()
+        self.my_state_enum = RelayClosedOrOpen.enum_name()
         self.initialize_fsm()
 
     @property
@@ -118,8 +118,8 @@ class Relay(Actor):
             print(f"Handle is {self.node.Handle}; ignoring {message}")
             return
 
-        if EVENT_ENUM_BY_NAME[message.EventType] != self.my_event:
-            print(f"Not a {self.my_event} event type. Ignoring: {message}")
+        if message.EventType != self.my_event_enum.enum_name():
+            print(f"Not a {self.my_event_enum} event type. Ignoring: {message}")
 
         orig_state = self.state
         self.trigger(message.EventName)
@@ -155,7 +155,7 @@ class Relay(Actor):
             pin_change_event = FsmEvent(
                 FromHandle=self.node.handle,
                 ToHandle=self.relay_multiplexer.handle,
-                EventType=FsmEventType.ChangeRelayPin,
+                EventType=ChangeRelayPin.enum_name(),
                 EventName=relay_pin_event,
                 TriggerId=message.TriggerId,
                 SendTimeUnixMs=now_ms,
@@ -172,10 +172,10 @@ class Relay(Actor):
             )
             self.reports_by_trigger[message.TriggerId].append(
                 FsmAtomicReport(
-                    FromHandle=self.node.handle,
-                    AboutFsm=FsmName.RelayPinState,
+                    MachineHandle=self.node.handle,
+                    StateEnum="relay.pin",
                     ReportType=FsmReportType.Event,
-                    EventType=FsmEventType.ChangeRelayPin,
+                    EventType=ChangeRelayPin.enum_name(),
                     Event=relay_pin_event,
                     FromState=old_pin_state,
                     ToState=new_pin_state,
@@ -264,14 +264,14 @@ class Relay(Actor):
                     raise Exception(
                         f"Expect CloseRelay as de-energizing event for {self.name}; got {self.de_energizing_event}"
                     )
-                self.de_energized_state == RelayClosedOrOpen.RelayClosed
+                self.de_energized_state = RelayClosedOrOpen.RelayClosed
                 self.energized_state = RelayClosedOrOpen.RelayOpen
             else:
                 if self.de_energizing_event != ChangeRelayState.OpenRelay:
                     raise Exception(
                         f"Expect OpenRelay as de-energizing event for {self.name}; got {self.de_energizing_event}"
                     )
-                self.de_energized_state == RelayClosedOrOpen.RelayOpen
+                self.de_energized_state = RelayClosedOrOpen.RelayOpen
                 self.energized_state = RelayClosedOrOpen.RelayClosed
 
         elif self.name == H0N.store_charge_discharge_relay:

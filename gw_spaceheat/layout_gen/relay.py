@@ -1,5 +1,5 @@
 from typing import List
-from gwproto.enums import ActorClass, MakeModel, Unit, RelayWiringConfig, TelemetryName, FsmEventType, ChangeRelayState, ChangeAquastatControl, ChangeHeatcallSource, ChangeHeatPumpControl, ChangePrimaryPumpControl, ChangeStoreFlowDirection
+from gwproto.enums import ActorClass, MakeModel, Unit, RelayWiringConfig, TelemetryName, ChangeRelayState, ChangeAquastatControl, ChangeHeatcallSource, ChangeHeatPumpControl, ChangePrimaryPumpControl, ChangeStoreFlowRelay
 from gwproto.named_types import I2cMultichannelDtRelayComponentGt
 from pydantic import BaseModel
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
@@ -38,7 +38,7 @@ def add_relays(
                     PollPeriodMs=cfg.PollPeriodMs,
                     CapturePeriodS=cfg.CapturePeriodS,
                     WiringConfig=RelayWiringConfig.NormallyClosed,
-                    EventType=FsmEventType.ChangeRelayState,
+                    EventType=ChangeRelayState.enum_name(),
                     DeEnergizingEvent=ChangeRelayState.CloseRelay,
                     AsyncCapture=True,
                     Exponent=0,
@@ -51,7 +51,7 @@ def add_relays(
                     PollPeriodMs=cfg.PollPeriodMs,
                     CapturePeriodS=cfg.CapturePeriodS,
                     WiringConfig=RelayWiringConfig.NormallyClosed,
-                    EventType=FsmEventType.ChangeRelayState,
+                    EventType=ChangeRelayState.enum_name(),
                     DeEnergizingEvent=ChangeRelayState.CloseRelay,
                     AsyncCapture=True,
                     Exponent=0,
@@ -64,14 +64,13 @@ def add_relays(
                     PollPeriodMs=cfg.PollPeriodMs,
                     CapturePeriodS=cfg.CapturePeriodS,
                     WiringConfig=RelayWiringConfig.NormallyOpen,
-                    EventType=FsmEventType.ChangeStoreFlowDirection,
-                    DeEnergizingEvent=ChangeStoreFlowDirection.Discharge,
+                    EventType=ChangeStoreFlowRelay.enum_name(),
+                    DeEnergizingEvent=ChangeStoreFlowRelay.DischargeStore,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless
                 ),
         ]
-
         db.add_components(
             [
                 I2cMultichannelDtRelayComponentGt(
