@@ -443,6 +443,7 @@ class ApiFlowModule(Actor):
                 self.latest_gpm = 0
                 self.latest_hz = 0
                 self.publish_zero_flow()
+            # if self.latest_report_ns
             # TODO publish 0 gpm after 30 seconds of no ticklists
             return
         if len(data.RelativeMillisecondList) == 0:
@@ -568,6 +569,8 @@ class ApiFlowModule(Actor):
         hz_list = [x / 1e6 for x in micro_hz_readings.ValueList]
         gpms = [x * 60 * gallons_per_tick for x in hz_list]
         self.latest_gpm = gpms[-1]
+        if self.hw_uid=='pico_607636':
+            print([int(x * 100) for x in gpms])
         return ChannelReadings(
             ChannelName=self.gpm_channel.Name,
             ValueList = [int(x * 100) for x in gpms],
