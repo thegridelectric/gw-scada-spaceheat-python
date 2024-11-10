@@ -595,6 +595,9 @@ class ApiFlowModule(Actor):
         new_timestamps = []
         new_frequencies = []
         no_flow_ms = self._component.gt.NoFlowMs
+        if self.hw_uid=='pico_607636':
+            print(no_flow_ms)
+            no_flow_ms = 1000*60
         for i in range(len(self.nano_timestamps) - 1):
             new_timestamps.append(self.nano_timestamps[i]) 
             new_frequencies.append(frequencies[i])  
