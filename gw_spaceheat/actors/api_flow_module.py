@@ -578,8 +578,11 @@ class ApiFlowModule(Actor):
         if len(self.nano_timestamps) < 2:
             raise ValueError(f"Should only call get_hz_readings with at least 2 timestamps!")
         first_reading = False
+        if self.latest_tick_ns is not None and self.hw_uid=='pico_607636':
+            self.nano_timestamps = [self.latest_tick_ns] + self.nano_timestamps
         # Sort timestamps and compute frequencies
         self.nano_timestamps = sorted(self.nano_timestamps)
+        print(self.nano_timestamps)
         frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
         # Remove outliers
         min_hz, max_hz = 0, 500 # TODO: make these parameters? Or enforce on the Pico (if not already done)
