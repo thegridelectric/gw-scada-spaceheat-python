@@ -611,6 +611,7 @@ class ApiFlowModule(Actor):
         new_frequencies.append(frequencies[-1])
         timestamps = list(new_timestamps)
         frequencies = list(new_frequencies)
+        print(frequencies)
         del new_timestamps, new_frequencies
         # First reading
         if self.latest_hz is None:
@@ -676,6 +677,8 @@ class ApiFlowModule(Actor):
         self.latest_hz = smoothed_frequencies[-1]
         self.latest_tick_ns = sampled_timestamps[-1]
         self.latest_report_ns = sampled_timestamps[-1]
+
+        print(smoothed_frequencies)
         
         return ChannelReadings(
             ChannelName=self.hz_channel.Name,
