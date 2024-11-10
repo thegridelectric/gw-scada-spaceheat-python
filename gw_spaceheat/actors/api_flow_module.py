@@ -584,6 +584,7 @@ class ApiFlowModule(Actor):
         self.nano_timestamps = sorted(self.nano_timestamps)
         print(self.nano_timestamps)
         frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
+        print(frequencies)
         # Remove outliers
         min_hz, max_hz = 0, 500 # TODO: make these parameters? Or enforce on the Pico (if not already done)
         self.nano_timestamps = [self.nano_timestamps[i] 
