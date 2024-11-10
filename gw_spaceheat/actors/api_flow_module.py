@@ -582,9 +582,7 @@ class ApiFlowModule(Actor):
             self.nano_timestamps = [self.latest_tick_ns] + self.nano_timestamps
         # Sort timestamps and compute frequencies
         self.nano_timestamps = sorted(self.nano_timestamps)
-        print(self.nano_timestamps)
         frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
-        print(frequencies)
         # Remove outliers
         min_hz, max_hz = 0, 500 # TODO: make these parameters? Or enforce on the Pico (if not already done)
         self.nano_timestamps = [self.nano_timestamps[i] 
@@ -611,7 +609,8 @@ class ApiFlowModule(Actor):
         new_frequencies.append(frequencies[-1])
         timestamps = list(new_timestamps)
         frequencies = list(new_frequencies)
-        print([round(x) for x in frequencies])
+        if self.hw_uid=='pico_607636':
+            print([round(x) for x in frequencies])
         del new_timestamps, new_frequencies
         # First reading
         if self.latest_hz is None:
@@ -678,7 +677,9 @@ class ApiFlowModule(Actor):
         self.latest_tick_ns = sampled_timestamps[-1]
         self.latest_report_ns = sampled_timestamps[-1]
 
-        print([round(x) for x in smoothed_frequencies])
+        if self.hw_uid=='pico_607636':
+            print([round(x) for x in smoothed_frequencies])
+            print('')
         
         return ChannelReadings(
             ChannelName=self.hz_channel.Name,
