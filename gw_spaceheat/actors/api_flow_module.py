@@ -615,6 +615,7 @@ class ApiFlowModule(Actor):
         frequencies = list(new_frequencies)
         if self.hw_uid=='pico_607636':
             print([x for x in frequencies])
+            new_timestamps = self.nano_timestamps[0]
         del new_timestamps, new_frequencies
         # First reading
         if self.latest_hz is None:
