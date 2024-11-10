@@ -430,7 +430,7 @@ class ApiFlowModule(Actor):
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         print('processing')
-        print(f"Length of ticklist: {len(data.RelativeMillisecondList)}")
+        print(f"Length of ticklist for {data.HwUid}: {len(data.RelativeMillisecondList)}")
         # self.services.logger.error('processing')
         self.ticklist = data
         if data.HwUid != self.hw_uid:
