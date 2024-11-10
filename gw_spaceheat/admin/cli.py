@@ -1,5 +1,6 @@
 from enum import StrEnum
 
+import dotenv
 import rich
 import typer
 
@@ -26,10 +27,14 @@ def _set_relay(
     target: str,
     relay_name: str,
     closed: RelayState,
+    env: str = ".env",
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
-    settings = AdminClientSettings(target_gnode=target)
+    settings = AdminClientSettings(
+        target_gnode=target,
+        _env_file=dotenv.find_dotenv(env)
+    )
     if not json:
         rich.print(settings)
     admin = MQTTAdmin(
@@ -47,6 +52,7 @@ def set_relay(
     target: str,
     relay_name: str,
     closed: RelayState,
+    env_file: str = ".env",
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
@@ -54,6 +60,7 @@ def set_relay(
         target=target,
         relay_name=relay_name,
         closed=closed,
+        env=env_file,
         user=user,
         json=json,
     )
@@ -64,6 +71,7 @@ def run(
     target: str = "dummy_scada1",
     relay_name: str = "relay0",
     closed: RelayState = RelayState.closed,
+    env_file: str = ".env",
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
@@ -71,6 +79,7 @@ def run(
         target=target,
         relay_name=relay_name,
         closed=closed,
+        env=env_file,
         user=user,
         json=json,
     )
@@ -81,7 +90,7 @@ def config(
     target: str = "",
     env_file: str = ".env",
 ) -> None:
-    settings = get_settings(settings_type=DummyAdminSettings, env_file=env_file)
+    settings = get_settings(settings_type=AdminClientSettings, env_file=env_file)
     settings.target_gnode = target
     print_settings(settings=settings, env_file=env_file)
 
