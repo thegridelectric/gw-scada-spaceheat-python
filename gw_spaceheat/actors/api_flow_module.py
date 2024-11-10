@@ -686,7 +686,7 @@ class ApiFlowModule(Actor):
         self.latest_report_ns = sampled_timestamps[-1]
 
         if self.hw_uid=='pico_607636':
-            print(smoothed_frequencies)
+            print(zip(sampled_timestamps,smoothed_frequencies))
             print('')
             return ChannelReadings(
                 ChannelName=self.hz_channel.Name,
