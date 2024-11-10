@@ -443,7 +443,10 @@ class ApiFlowModule(Actor):
                 self.latest_gpm = 0
                 self.latest_hz = 0
                 self.publish_zero_flow()
-            # if self.latest_report_ns
+            if time.time()*1e9 - self.latest_report_ns > self._component.gt.NoFlowMs * 1000:
+                self.publish_zero_flow()
+                self.latest_gpm = 0
+                self.latest_hz = 0
             # TODO publish 0 gpm after 30 seconds of no ticklists
             return
         if len(data.RelativeMillisecondList) == 0:
