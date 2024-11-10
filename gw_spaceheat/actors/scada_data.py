@@ -90,7 +90,7 @@ class ScadaData:
             SlotStartUnixS=slot_start_seconds,
             SlotDurationS=self.settings.seconds_per_report,
             ChannelReadingList=channel_reading_list,
-            FsmActionList=[],
+            StateList=[],
             FsmReportList=[],
             MessageCreatedMs=int(time.time() * 1000),
             Id=str(uuid.uuid4())
