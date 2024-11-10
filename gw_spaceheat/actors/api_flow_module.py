@@ -470,6 +470,8 @@ class ApiFlowModule(Actor):
             final_tick_ns = self.nano_timestamps[-1]
             if self.latest_tick_ns is not None:
                 final_nonzero_hz = 1e9/(final_tick_ns - self.latest_tick_ns)
+                print(f"Final tick ns: {final_tick_ns}, latest tick ns {self.latest_tick_ns}")
+                print(f"Frequency: {final_nonzero_hz}")
             else:
                 final_nonzero_hz = 0
             self.latest_tick_ns = final_tick_ns
