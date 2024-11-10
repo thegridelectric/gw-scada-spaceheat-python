@@ -614,6 +614,7 @@ class ApiFlowModule(Actor):
         timestamps = list(new_timestamps)
         frequencies = list(new_frequencies)
         if self.hw_uid=='pico_607636':
+            print(self.nano_timestamps)
             print([x for x in frequencies])
             new_timestamps = self.nano_timestamps[0]
         del new_timestamps, new_frequencies
