@@ -615,8 +615,12 @@ class ApiFlowModule(Actor):
         if self.latest_hz is None:
             self.latest_hz = frequencies[0]
             first_reading = True
+        # No processing
+        if self.hw_uid=='pico_607636':
+            sampled_timestamps = timestamps
+            smoothed_frequencies = frequencies
         # Exponential weighted average
-        if self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
+        if self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg and self.hw_uid!='pico_607636':
             alpha = self._component.gt.ExpAlpha
             smoothed_frequencies = []
             latest = self.latest_hz
@@ -625,7 +629,7 @@ class ApiFlowModule(Actor):
                 smoothed_frequencies.append(latest)
             sampled_timestamps = timestamps
         # Butterworth filter
-        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
+        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth and self.hw_uid!='pico_607636':
             if len(frequencies) > 20: #TODO: make this a parameter? Issue a warning if too short?
                 # Add the last recorded frequency before the filtering (avoids overfitting the first point)
                 timestamps = [timestamps[0]-0.01*1e9] + list(timestamps)
@@ -677,7 +681,7 @@ class ApiFlowModule(Actor):
         self.latest_report_ns = sampled_timestamps[-1]
 
         if self.hw_uid=='pico_607636':
-            print([x for x in smoothed_frequencies])
+            print(smoothed_frequencies)
             print('')
         
         return ChannelReadings(
