@@ -251,12 +251,12 @@ class HomeAlone(Actor):
             if self.get_datachannel(x) in self.services._data.latest_channel_values
             }
         if self.latest_temperatures.keys() != self.temperature_channel_names:
-            # raise ValueError('Some temperatures are missing!')
+            raise ValueError('Some temperatures are missing!')
             # TODO: remove temporary solution
-            self.latest_temperatures = {
-                x: 150
-                for x in self.temperature_channel_names
-                }
+            # self.latest_temperatures = {
+            #     x: 65000
+            #     for x in self.temperature_channel_names
+            #     }
             
 
     def get_datachannel(self, name):
@@ -352,7 +352,7 @@ class HomeAlone(Actor):
     def is_storage_ready(self):
         total_usable_kwh = 0
         for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
-            layer_temp_f = (self.latest_temperatures[layer]*9/5+32)/1000
+            layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
             if layer_temp_f > self.swt_coldest_hour:
                 layer_energy_kwh = 360/4*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
                 total_usable_kwh += layer_energy_kwh
