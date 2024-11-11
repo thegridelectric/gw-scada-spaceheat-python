@@ -572,6 +572,7 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.home_alone),
                     Name=H0N.home_alone,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.home_alone}",
+                    Handle="auto.h",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
                 )

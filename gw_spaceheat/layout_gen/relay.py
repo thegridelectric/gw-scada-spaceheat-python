@@ -150,7 +150,7 @@ def add_relays(
                     ShNodeId=db.make_node_id(H0N.pico_cycler),
                     Name=H0N.pico_cycler,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.pico_cycler}",
-                    Handle=f"{H0N.home_alone}.{H0N.pico_cycler}",
+                    Handle=f"auto.{H0N.pico_cycler}",
                     ActorClass=ActorClass.PicoCycler,
                     DisplayName="Pico Cycler - responsible for power cycling the 5VDC bus"
                 ),
@@ -158,7 +158,7 @@ def add_relays(
                     ShNodeId=db.make_node_id(H0N.vdc_relay),
                     Name=H0N.vdc_relay,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.vdc_relay}",
-                    Handle=f"{H0N.home_alone}.{H0N.pico_cycler}.{H0N.vdc_relay}",
+                    Handle=f"auto.{H0N.pico_cycler}.{H0N.vdc_relay}",
                     ActorClass=ActorClass.Relay,
                     DisplayName="5VDC Relay",
                     ComponentId=db.component_id_by_alias(component_display_name)
@@ -167,7 +167,7 @@ def add_relays(
                     ShNodeId=db.make_node_id(H0N.tstat_common_relay),
                     Name=H0N.tstat_common_relay,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.tstat_common_relay}",
-                    Handle=f"{H0N.home_alone}.{H0N.tstat_common_relay}",
+                    Handle=f"auto.{H0N.home_alone}.{H0N.tstat_common_relay}",
                     ActorClass=ActorClass.Relay,
                     DisplayName="TStat Common Relay",
                     ComponentId=db.component_id_by_alias(component_display_name)
@@ -176,7 +176,7 @@ def add_relays(
                     ShNodeId=db.make_node_id(H0N.store_charge_discharge_relay),
                     Name=H0N.store_charge_discharge_relay,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.store_charge_discharge_relay}",
-                    Handle=f"{H0N.home_alone}.{H0N.store_charge_discharge_relay}",
+                    Handle=f"auto.{H0N.home_alone}.{H0N.store_charge_discharge_relay}",
                     ActorClass=ActorClass.Relay,
                     DisplayName="Store Charge/Discharge Relay",
                     ComponentId=db.component_id_by_alias(component_display_name)
@@ -185,7 +185,7 @@ def add_relays(
                     ShNodeId=db.make_node_id(H0N.hp_failsafe_relay),
                     Name=H0N.hp_failsafe_relay,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_failsafe_relay}",
-                    Handle=f"{H0N.home_alone}.{H0N.hp_failsafe_relay}",
+                    Handle=f"auto.{H0N.home_alone}.{H0N.hp_failsafe_relay}",
                     ActorClass=ActorClass.Relay,
                     DisplayName="Hp Failsafe Relay",
                     ComponentId=db.component_id_by_alias(component_display_name)
@@ -194,7 +194,7 @@ def add_relays(
                     ShNodeId=db.make_node_id(H0N.hp_scada_ops_relay),
                     Name=H0N.hp_scada_ops_relay,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_scada_ops_relay}",
-                    Handle=f"{H0N.home_alone}.{H0N.hp_scada_ops_relay}",
+                    Handle=f"auto.{H0N.home_alone}.{H0N.hp_scada_ops_relay}",
                     ActorClass=ActorClass.Relay,
                     DisplayName="Hp Scada Ops Relay",
                     ComponentId=db.component_id_by_alias(component_display_name)
@@ -203,7 +203,7 @@ def add_relays(
                     ShNodeId=db.make_node_id(H0N.aquastat_ctrl_relay),
                     Name=H0N.aquastat_ctrl_relay,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.aquastat_ctrl_relay}",
-                    Handle=f"{H0N.home_alone}.{H0N.aquastat_ctrl_relay}",
+                    Handle=f"auto.{H0N.home_alone}.{H0N.aquastat_ctrl_relay}",
                     ActorClass=ActorClass.Relay,
                     DisplayName="Aquastat Ctrl Relay",
                     ComponentId=db.component_id_by_alias(component_display_name)
@@ -212,7 +212,7 @@ def add_relays(
                     ShNodeId=db.make_node_id(H0N.store_pump_failsafe),
                     Name=H0N.store_pump_failsafe,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.store_pump_failsafe}",
-                    Handle=f"{H0N.home_alone}.{H0N.store_pump_failsafe}",
+                    Handle=f"auto.{H0N.home_alone}.{H0N.store_pump_failsafe}",
                     ActorClass=ActorClass.Relay,
                     DisplayName="Store Pump Failsafe",
                     ComponentId=db.component_id_by_alias(component_display_name)
