@@ -353,6 +353,8 @@ class ApiTankModule(Actor):
         return r_therm
     
     def _send_to(self, dst: ShNode, payload) -> None:
+        if dst is None:
+            return
         if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
             self._send(
                 Message(
@@ -372,8 +374,11 @@ class ApiTankModule(Actor):
             )
 
     @property
-    def pico_cycler(self) -> ShNode:
-        return self.layout.node[H0N.pico_cycler]
+    def pico_cycler(self) -> Optional[ShNode]:
+        if H0N.pico_cycler in self.layout.nodes:
+            return self.layout.nodes[H0N.pico_cycler]
+        return None
+
 
     @property
     def primary_scada(self) -> ShNode:

@@ -660,6 +660,8 @@ class ApiFlowModule(Actor):
         )
     
     def _send_to(self, dst: ShNode, payload) -> None:
+        if dst is None:
+            return
         if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
             self._send(
                 Message(
@@ -683,5 +685,7 @@ class ApiFlowModule(Actor):
         return self.layout.nodes[H0N.primary_scada]
     
     @property
-    def pico_cycler(self) -> ShNode:
-        return self.layout.nodes[H0N.pico_cycler]
+    def pico_cycler(self) -> Optional[ShNode]:
+        if H0N.pico_cycler in self.layout.nodes:
+            return self.layout.nodes[H0N.pico_cycler]
+        return None
