@@ -428,51 +428,46 @@ class Scada(ScadaInterface, Proactor):
                     self.get_communicator(message.Header.Dst).process_message(message)
             case FsmAtomicReport():
                 path_dbg |= 0x00000010
-                self.channel_readings_received(
-                    from_node, message.Payload
-                )
-            case FsmAtomicReport():
-                path_dbg |= 0x00000020
                 self.get_communicator(message.Header.Dst).process_message(message)
             case FsmEvent():
-                path_dbg |= 0x00000040
+                path_dbg |= 0x00000020
                 self.get_communicator(message.Header.Dst).process_message(message)
             case FsmFullReport():
-                path_dbg |= 0x00000080
+                path_dbg |= 0x00000040
                 if message.Header.Dst == self.name:
-                    path_dbg |= 0x00000100
+                    path_dbg |= 0x00000080
                     self.fsm_full_report_received(message.Payload)
                 else:
-                    path_dbg |= 0x00000200
+                    path_dbg |= 0x00000100
                     self.get_communicator(message.Header.Dst).process_message(message)
             case MachineStates():
-                path_dbg |= 0x00000400
+                path_dbg |= 0x00000200
                 self.machine_states_received(message.Payload)
             case MicroVolts():
-                path_dbg |= 0x00000800
+                path_dbg |= 0x00000400
                 self.get_communicator(message.Header.Dst).process_message(message)
             case PicoMissing():
-                path_dbg |= 0x00001000
+                path_dbg |= 0x00000800
                 self.get_communicator(message.Header.Dst).process_message(message)
             case SingleReading():
-                path_dbg |= 0x00002000
+                path_dbg |= 0x00001000
                 self.single_reading_received(message.Payload)
             case SyncedReadings():
-                path_dbg |= 0x00004000
+                path_dbg |= 0x00002000
                 self.synced_readings_received(
                         from_node, message.Payload
                     )
             case TicklistHall():
-                path_dbg |= 0x00008000
+                path_dbg |= 0x00004000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistHallReport():
-                path_dbg |= 0x00010000
+                path_dbg |= 0x00008000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case TicklistReed():
-                path_dbg |= 0x00020000
+                path_dbg |= 0x00010000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistReedReport():
-                path_dbg |= 0x00040000
+                path_dbg |= 0x00020000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case _:
                 raise ValueError(
@@ -607,21 +602,23 @@ class Scada(ScadaInterface, Proactor):
         self._data.latest_total_power_w = payload.Watts
     
     def machine_states_received(self, payload: MachineStates) -> None:
-        if payload.MachineHandle in self._data.recent_machine_state:
-            prev_state: MachineStates = self._data.recent_machine_state[payload.MachineHandle][-1]
-            if payload.StateEnum != prev_state.StateEnum:
+        if payload.MachineHandle in self._data.recent_machine_states:
+            prev: MachineStates = self._data.recent_machine_states[payload.MachineHandle]
+            if payload.StateEnum != prev.StateEnum:
                 raise Exception(f"{payload.MachineHandle} has conflicting state machines!"
-                                f"{payload.StateEnum} and {prev_state.StateEnum}")
+                                f"{payload.StateEnum} and {prev.StateEnum}")
             
-            self._data.recent_machine_state[payload.MachineHandle] =  MachineStates(
+            self._data.recent_machine_states[payload.MachineHandle] =  MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
-                UnixMsList=prev_state.UnixMsList + payload.UnixMsList,
-                StateList=prev_state.StateList + payload.StateList,
+                UnixMsList=prev.UnixMsList + payload.UnixMsList,
+                StateList=prev.StateList + payload.StateList,
             )
+        else:
+            self._data.recent_machine_states[payload.MachineHandle] = payload
             
     def fsm_full_report_received(self, payload: FsmFullReport) -> None:
-        self._data.recent_fsm_reports.append(payload)
+        self._data.recent_fsm_reports[payload.TriggerId] = payload
 
     def single_reading_received(self, payload: SingleReading) -> None:
         ch = self._layout.data_channels[payload.ChannelName]

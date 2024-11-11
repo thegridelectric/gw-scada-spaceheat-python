@@ -17,12 +17,12 @@ from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
-                           FsmEventType, FsmName, FsmReportType, MakeModel,
+                           FsmReportType, MakeModel,
                            RelayEnergizationState, RelayWiringConfig,
                            TelemetryName)
 from gwproto.message import Header
-from gwproto.named_types import (FsmAtomicReport, FsmEvent, SingleReading,
-                                 SyncedReadings)
+from gwproto.named_types import (FsmEvent, SingleReading,
+                                 SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
 
@@ -203,7 +203,7 @@ class I2cRelayMultiplexer(Actor):
         return self.layout.data_channels[relay_config.ChannelName]
 
     def _dispatch_relay_pin(self, dispatch: FsmEvent) -> Result[bool, BaseException]:
-        if dispatch.EventType != FsmEventType.ChangeRelayPin:
+        if dispatch.EventType != ChangeRelayPin.enum_name():
             return
         relay = self.layout.node_by_handle(dispatch.FromHandle)
         if relay is None:
@@ -241,8 +241,8 @@ class I2cRelayMultiplexer(Actor):
         self._send_to(
             relay,
             FsmAtomicReport(
-                FromHandle=self.node.handle,
-                AboutFsm=FsmName.RelayPinState,
+                MachineHandle=self.node.handle,
+                StateEnum="relay.pin",
                 ReportType=FsmReportType.Action,
                 ActionType=FsmActionType.RelayPinSet,
                 Action=self.relay_state[idx].value,
@@ -256,7 +256,7 @@ class I2cRelayMultiplexer(Actor):
         if message.ToHandle != self.node.handle:
             print(f"Not a message for {self.node.Handle}: {message}")
             return
-        if message.EventType != FsmEventType.ChangeRelayPin:
+        if message.EventType != ChangeRelayPin.enum_name():
             print(f"Not a ChangeRelayPin event type. Ignoring: {message}")
             return
         if message.EventName not in ChangeRelayPin.values():

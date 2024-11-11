@@ -13,9 +13,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (ChangeRelayState, FsmEventType, FsmReportType,
-                           RelayClosedOrOpen, StoreFlowDirection,ChangeStoreFlowDirection,
-                           TelemetryName)
+from gwproto.enums import StoreFlowRelay, ChangeStoreFlowRelay
 from gwproto.message import Header
 from gwproto.named_types import FsmAtomicReport, FsmEvent, FsmFullReport
 from result import Err, Ok, Result
@@ -50,7 +48,7 @@ class HomeAlone(Actor):
     LOOP_SLEEP_SECONDS: float = 60
     _monitor_task: Optional[asyncio.Task] = None
     _stop_requested: bool = False
-    charge_discharge_relay_state: StoreFlowDirection
+    charge_discharge_relay_state: StoreFlowRelay
     charge_discharge_relay: ShNode
     reports_by_trigger: Dict[str, List[FsmAtomicReport]]
 
@@ -58,7 +56,7 @@ class HomeAlone(Actor):
         super().__init__(name, services)
         self.layout = self._services.hardware_layout
         self._loop_times = _LoopTimes()
-        self.charge_discharge_relay_state = StoreFlowDirection.ValvedtoDischargeStore
+        self.charge_discharge_relay_state = StoreFlowRelay.DischargingStore
         self.charge_discharge_relay = self.layout.node(H0N.store_charge_discharge_relay)
         self.reports_by_trigger: Dict[str, List[FsmAtomicReport]] = {}
 
@@ -115,7 +113,7 @@ class HomeAlone(Actor):
         #         )
         self._send_to(self.primary_scada, payload)
 
-    def change_charge_discharge(self, cmd: ChangeStoreFlowDirection):
+    def change_charge_discharge(self, cmd: ChangeStoreFlowRelay):
         if not self.is_boss_of(self.charge_discharge_relay):
             self.services.logger.error(f"{self.name} Should not try to change  {self.charge_discharge_relay.handle} when not its boss")
             return
@@ -124,7 +122,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.charge_discharge_relay.handle,
-            EventType=FsmEventType.ChangeStoreFlowDirection,
+            EventType=ChangeStoreFlowRelay.enum_name(),
             EventName=cmd.value,
             SendTimeUnixMs=int(time.time() * 1000),
             TriggerId=trigger_id,
@@ -135,7 +133,7 @@ class HomeAlone(Actor):
     async def _monitor(self):
         while not self._stop_requested:
             now = time.time()
-            print("patting watchdog")
+            # self.services.logger.warning("patting homealone watchdog")
             self._send(PatInternalWatchdogMessage(src=self.name))
             if self._loop_times.minute_passed(now):
                 self.per_minute_job(now)
@@ -149,14 +147,15 @@ class HomeAlone(Actor):
             await asyncio.sleep(self.LOOP_SLEEP_SECONDS)
 
     def per_minute_job(self, now: float) -> None:
-        if self.charge_discharge_relay_state == StoreFlowDirection.ValvedtoDischargeStore:
-            cmd = ChangeStoreFlowDirection.Charge
-            self.charge_discharge_relay_state = StoreFlowDirection.ValvedtoChargeStore
-        else:
-            cmd = ChangeStoreFlowDirection.Discharge
-            self.charge_discharge_relay_state = StoreFlowDirection.ValvedtoDischargeStore
-        self.services.logger.error(f"Running per minute job: running {cmd}")
-        self.change_charge_discharge(cmd)
+        ...
+        # if self.charge_discharge_relay_state == StoreFlowRelay.DischargingStore:
+        #     cmd = ChangeStoreFlowRelay.ChargeStore
+        #     self.charge_discharge_relay_state = StoreFlowRelay.ChargingStore
+        # else:
+        #     cmd = ChangeStoreFlowRelay.DischargeStore
+        #     self.charge_discharge_relay_state = StoreFlowRelay.DischargingStore
+        # self.services.logger.error(f"Running per minute job: running {cmd}")
+        # self.change_charge_discharge(cmd)
         
     def per_hour_job(self) -> None:
         ...
