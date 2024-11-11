@@ -10,7 +10,7 @@ from result import Err, Ok, Result
 from transitions import Machine
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.enums import (ActorClass, ChangeRelayState, FsmEventType,
+from gwproto.enums import (ActorClass, ChangeRelayState,
                            FsmReportType, PicoCyclerState)
 from gwproto.named_types import (ChannelReadings, FsmAtomicReport, FsmEvent,
                                  FsmFullReport)
@@ -152,7 +152,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_onoff_relay.handle,
-            EventType=FsmEventType.ChangeRelayState,
+            EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
@@ -165,7 +165,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_onoff_relay.handle,
-            EventType=FsmEventType.ChangeRelayState,
+            EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
@@ -178,7 +178,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_pump_onoff_relay.handle,
-            EventType=FsmEventType.ChangeRelayState,
+            EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
@@ -191,7 +191,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_pump_onoff_relay.handle,
-            EventType=FsmEventType.ChangeRelayState,
+            EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
@@ -204,7 +204,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=FsmEventType.ChangeRelayState,
+            EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
@@ -217,7 +217,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=FsmEventType.ChangeRelayState,
+            EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
@@ -298,7 +298,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_failsafe_relay.handle,
-            EventType=FsmEventType.ChangeRelayState,
+            EventType=ChangeRelayState.enum_name,
             EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
