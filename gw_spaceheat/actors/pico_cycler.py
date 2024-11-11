@@ -459,6 +459,32 @@ class PicoCycler(Actor):
         Responsible for sending synchronous state reports and occasional
         zombie notifications
         """
+        await asyncio.sleep(1)
+        self._send_to(self.pico_relay,
+                      FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.pico_relay.handle,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.OpenRelay,
+            SendTimeUnixMs=int(time.time() * 1000),
+                )
+        )
+        self.services.logger.error(
+            f"{self.node.handle}. Initialization: sending OpenRelay to {self.pico_relay.name}"
+        )
+        await asyncio.sleep(5)
+        self._send_to(self.pico_relay,
+                      FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.pico_relay.handle,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.CloseRelay,
+            SendTimeUnixMs=int(time.time() * 1000),
+                )
+        )
+        self.services.logger.error(
+            f"{self.node.handle}. Initialization: sending OpenRelay to {self.pico_relay.name}"
+        )
         while not self._stop_requested:
             self.services.logger.error("patting picocycler watchdog")
             self._send(PatInternalWatchdogMessage(src=self.name))
