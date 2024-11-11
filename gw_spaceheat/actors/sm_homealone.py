@@ -67,7 +67,6 @@ class HomeAlone(Actor):
             'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 'tank2-depth4', 
             'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4',
             ]
-        asyncio.sleep(60)
         self.get_latest_temperatures()
         self.hp_onoff_relay = self.hardware_layout.node(H0N.hp_scada_ops_relay)
         self.hp_failsafe_relay = self.hardware_layout.node(H0N.hp_failsafe_relay)
@@ -246,6 +245,7 @@ class HomeAlone(Actor):
 
 
     def get_latest_temperatures(self):
+        asyncio.sleep(50)
         self.latest_temperatures = {
             x: self.services._data.latest_channel_values[self.get_datachannel(x)] 
             for x in self.temperature_channel_names
