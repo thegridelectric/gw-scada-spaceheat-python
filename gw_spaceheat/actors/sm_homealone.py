@@ -1,7 +1,7 @@
 import asyncio
 from enum import auto
-from time import time
 import uuid
+import time
 from gw.enums import GwStrEnum
 from gwproactor import QOS, Actor, ServicesInterface, Problems
 from gwproactor.message import PatInternalWatchdogMessage
@@ -36,6 +36,10 @@ class HomeAloneEvent(GwStrEnum):
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
     TemperaturesAvailable = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        "home.alone.event"
 
 
 class HomeAlone(Actor):
@@ -138,7 +142,7 @@ class HomeAlone(Actor):
 
             self.get_latest_temperatures()
 
-            if (self.state==HomeAloneState.WaitingForTemperaturesOffPeak 
+            if (self.state==HomeAloneState.WaitingForTemperaturesOnPeak 
                 or self.state==HomeAloneState.WaitingForTemperaturesOffPeak):
                 if self.temperatures_available:
                     if self.is_onpeak():
@@ -327,6 +331,11 @@ class HomeAlone(Actor):
         else:
             self.temperatures_available = False
             print('Some temperatures are missing')
+            # self.latest_temperatures = {
+            #     x: 63000
+            #     for x in self.temperature_channel_names
+            # }
+            # self.temperatures_available = True
             
 
     def get_datachannel(self, name):
@@ -340,7 +349,7 @@ class HomeAlone(Actor):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_failsafe_relay.handle,
-            EventType=ChangeRelayState.enum_name,
+            EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
