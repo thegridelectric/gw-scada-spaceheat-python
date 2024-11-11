@@ -11,11 +11,18 @@ from gwproto.message import Header
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.enums import ActorClass, ChangeRelayState
-from gwproto.named_types import (ChannelReadings, FsmAtomicReport, FsmEvent,
-                                 MachineStates)
+from gwproto.enums import ChangeRelayState
+from gwproto.named_types import FsmEvent, MachineStates
 import pendulum
+
+
+class HomeAloneState(GwStrEnum):
+    WaitingForTemperaturesOnPeak = auto()
+    WaitingForTemperaturesOffPeak = auto()
+    HpOnStoreOff = auto()
+    HpOnStoreCharge = auto()
+    HpOffStoreOff = auto()
+    HpOffStoreDischarge = auto()
 
 
 class HomeAloneEvent(GwStrEnum):
@@ -28,14 +35,14 @@ class HomeAloneEvent(GwStrEnum):
     OnPeakBufferEmpty = auto()
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
+    TemperaturesAvailable = auto()
 
-    @classmethod
-    def enum_name(cls) -> str:
-        "home.alone.event"
 
 class HomeAlone(Actor):
     
     states = [
+        "WaitingForTemperaturesOnPeak",
+        "WaitingForTemperaturesOffPeak",
         "HpOnStoreOff",
         "HpOnStoreCharge",
         "HpOffStoreOff",
@@ -43,6 +50,20 @@ class HomeAlone(Actor):
     ]
 
     transitions = [
+        # Waiting for temperatures onpeak
+        {"trigger": "OffPeakStart", "source": "WaitingForTemperaturesOnPeak", "dest": "WaitingForTemperaturesOffPeak"},
+        {"trigger": "OnPeakBufferEmpty", "source": "WaitingForTemperaturesOnPeak", "dest": "HpOffStoreDischarge"},
+        {"trigger": "OnPeakBufferFull", "source": "WaitingForTemperaturesOnPeak", "dest": "HpOffStoreOff"},
+        {"trigger": "OffPeakBufferEmpty", "source": "WaitingForTemperaturesOnPeak", "dest": "HpOnStoreOff"},
+        {"trigger": "OffPeakBufferFullStorageReady", "source": "WaitingForTemperaturesOnPeak", "dest": "HpOffStoreOff"},
+        {"trigger": "OffPeakBufferFullStorageNotReady", "source": "WaitingForTemperaturesOnPeak", "dest": "HpOnStoreCharge"},
+        # Waiting for temperatures offpeak
+        {"trigger": "OnPeakStart", "source": "WaitingForTemperaturesOffPeak", "dest": "WaitingForTemperaturesOnPeak"},
+        {"trigger": "OnPeakBufferEmpty", "source": "WaitingForTemperaturesOffPeak", "dest": "HpOffStoreDischarge"},
+        {"trigger": "OnPeakBufferFull", "source": "WaitingForTemperaturesOffPeak", "dest": "HpOffStoreOff"},
+        {"trigger": "OffPeakBufferEmpty", "source": "WaitingForTemperaturesOffPeak", "dest": "HpOnStoreOff"},
+        {"trigger": "OffPeakBufferFullStorageReady", "source": "WaitingForTemperaturesOffPeak", "dest": "HpOffStoreOff"},
+        {"trigger": "OffPeakBufferFullStorageNotReady", "source": "WaitingForTemperaturesOffPeak", "dest": "HpOnStoreCharge"},
         # Starting at: HP on, Store off ============= HP -> buffer
         {"trigger": "OffPeakBufferFullStorageNotReady", "source": "HpOnStoreOff", "dest": "HpOnStoreCharge"},
         {"trigger": "OffPeakBufferFullStorageReady", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
@@ -63,7 +84,6 @@ class HomeAlone(Actor):
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
-        self.initialized = False
         self.hardware_layout = self._services.hardware_layout
         self.datachannels = list(self.hardware_layout.data_channels.values())
         self.temperature_channel_names = [
@@ -72,21 +92,29 @@ class HomeAlone(Actor):
             'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 'tank2-depth4', 
             'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4',
             ]
-        self.get_latest_temperatures()
+        self.temperatures_available = False
         self.hp_onoff_relay = self.hardware_layout.node(H0N.hp_scada_ops_relay)
         self.hp_failsafe_relay = self.hardware_layout.node(H0N.hp_failsafe_relay)
         self.store_pump_onoff_relay = self.hardware_layout.node(H0N.store_pump_failsafe)
         self.store_charge_discharge_relay = self.hardware_layout.node(H0N.store_charge_discharge_relay)
+        self.initialize_relays()
+        self.machine = Machine(
+            model=self,
+            states=HomeAlone.states,
+            transitions=HomeAlone.transitions,
+            initial=HomeAloneState.WaitingForTemperaturesOnPeak.value,
+            send_event=True,
+        )
         # House parameters
         self.average_power_coldest_hour_kW = 5 # TODO
         self.swt_coldest_hour = 140 # TODO
         self.temp_drop_function = [20,0] #TODO
 
+
     def trigger_event(self, event: HomeAloneEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
         self.trigger(event)
-
         self._send_to(
             self.services._layout.nodes[H0N.primary_scada],
             MachineStates(
@@ -99,22 +127,41 @@ class HomeAlone(Actor):
         self.services.logger.error(
             f"[{self.name}] {event.value}: {orig_state} -> {self.state}"
         )
+
+
     async def main(self):
         
         while not self._stop_requested:
-
-            if not self.initialized:
-                await asyncio.sleep(2)
-                self.initialize()  
-            
-            await asyncio.sleep(60)
     
-            self.get_latest_temperatures()
-
             previous_state = self.state
             print(f"\nNow in {previous_state}")
 
-            if self.state=="HpOnStoreOff":
+            self.get_latest_temperatures()
+
+            if (self.state==HomeAloneState.WaitingForTemperaturesOffPeak 
+                or self.state==HomeAloneState.WaitingForTemperaturesOffPeak):
+                if self.temperatures_available:
+                    if self.is_onpeak():
+                        if self.is_buffer_empty():
+                            self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
+                        else:
+                            self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
+                    else:
+                        if self.is_buffer_empty():
+                            self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
+                        else:
+                            if self.is_storage_ready():
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                            else:
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
+                elif self.state==HomeAloneState.WaitingForTemperaturesOffPeak:
+                    if self.is_onpeak():
+                        self.trigger_event(HomeAloneEvent.OnPeakStart.value)
+                else:
+                    if not self.is_onpeak():
+                        self.trigger_event(HomeAloneEvent.OffPeakStart.value)
+
+            elif self.state==HomeAloneState.HpOnStoreOff.value:
                 if self.is_onpeak():
                     self.trigger_event(HomeAloneEvent.OnPeakStart.value)
                 elif self.is_buffer_full():
@@ -123,7 +170,7 @@ class HomeAlone(Actor):
                     else:
                         self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                 
-            elif self.state=="HpOnStoreCharge":
+            elif self.state==HomeAloneState.HpOnStoreCharge.value:
                 if self.is_onpeak():
                     self.trigger_event(HomeAloneEvent.OnPeakStart.value)
                 elif self.is_buffer_empty():
@@ -131,7 +178,7 @@ class HomeAlone(Actor):
                 elif self.is_storage_ready():
                     self.trigger_event(HomeAloneEvent.OffPeakStorageReady.value)
                 
-            elif self.state=="HpOffStoreOff":
+            elif self.state==HomeAloneState.HpOffStoreOff.value:
                 if self.is_onpeak():
                     if self.is_buffer_empty():
                         self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
@@ -141,30 +188,34 @@ class HomeAlone(Actor):
                     elif self.is_storage_ready():
                         self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
 
-            elif self.state=="HpOffStoreDischarge":
+            elif self.state==HomeAloneState.HpOffStoreDischarge.value:
                 if not self.is_onpeak():
                     self.trigger_event(HomeAloneEvent.OffPeakStart.value)
                 elif self.is_buffer_full():
                     self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
-            if self.state != previous_state:
-                self.switch_relays(previous_state)
+            if self.state != previous_state:                    
+                self.update_relays(previous_state)
+
+            await asyncio.sleep(60)
 
 
-    def switch_relays(self, previous_state):
+    def update_relays(self, previous_state):
         print(f"Moving to {self.state}:")
-        if "HpOff" in previous_state and "HpOn" in self.state:
+        if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
+            self._turn_off_HP()
+        if "HpOn" not in previous_state and "HpOn" in self.state:
             self._turn_on_HP()
-        if "HpOn" in previous_state and "HpOff" in self.state:
+        if "HpOff" not in previous_state and "HpOff" in self.state:
             self._turn_off_HP()
         if "StoreOff" not in previous_state and "StoreOff" in self.state:
             self._turn_off_store()
         if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
-            if "StoreOff" in previous_state:
+            if "StoreCharge" not in previous_state and "StoreDischarge" not in previous_state:
                 self._turn_on_store()
             self._charge_store()
         if "StoreDischarge" not in previous_state and "StoreDischarge" in self.state:
-            if "StoreOff" in previous_state:
+            if "StoreCharge" not in previous_state and "StoreDischarge" not in previous_state:
                 self._turn_on_store()
             self._discharge_store()
 
@@ -266,20 +317,16 @@ class HomeAlone(Actor):
 
 
     def get_latest_temperatures(self):
-        asyncio.sleep(50)
         self.latest_temperatures = {
             x: self.services._data.latest_channel_values[self.get_datachannel(x)] 
             for x in self.temperature_channel_names
             if self.get_datachannel(x) in self.services._data.latest_channel_values
             }
-        if self.latest_temperatures.keys() != self.temperature_channel_names:
-
-            raise ValueError('Some temperatures are missing!')
-            # TODO: remove temporary solution
-            # self.latest_temperatures = {
-            #     x: 65000
-            #     for x in self.temperature_channel_names
-            #     }
+        if self.latest_temperatures.keys() == self.temperature_channel_names:
+            self.temperatures_available = True
+        else:
+            self.temperatures_available = False
+            print('Some temperatures are missing')
             
 
     def get_datachannel(self, name):
@@ -287,37 +334,9 @@ class HomeAlone(Actor):
             if name in dc.Name:
                 return dc
         return None
-
-
-    def initialize(self) -> None:
-        print("\nInitializing...")
-        if self.is_onpeak():
-            if self.is_buffer_empty():
-                initial_state = "HpOffStoreDischarge"
-            else:
-                initial_state = "HpOffStoreOff"
-        else:
-            if self.is_buffer_empty():
-                initial_state = "HpOnStoreOff"
-            else:
-                if self.is_storage_ready():
-                    initial_state = "HpOffStoreOff"
-                else:
-                    initial_state = "HpOnStoreCharge"
-        self.machine = Machine(
-            model=self,
-            states=HomeAlone.states,
-            transitions=HomeAlone.transitions,
-            initial=initial_state,
-            send_event=True,
-        )
-        print(f"=> Initialize to {self.state}")
-        self.initialize_relays()
-        self.initialized = True
-
+    
 
     def initialize_relays(self):
-
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_failsafe_relay.handle,
@@ -328,17 +347,6 @@ class HomeAlone(Actor):
             )
         self._send_to(self.hp_failsafe_relay, event)
         self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.hp_failsafe_relay.name}")
-
-        if "HpOn" in self.state:
-            self._turn_on_HP()
-        if "HpOff" in self.state:
-            self._turn_off_HP()
-        if "StoreOff" in self.state:
-            self._turn_off_store()
-        if "StoreCharge" in self.state:
-            self._charge_store()
-        if "StoreOff" in self.state:
-            self._discharge_store()
 
 
     def is_onpeak(self):
@@ -395,6 +403,7 @@ class HomeAlone(Actor):
     def temp_drop(self, T):
         intercept, coeff = self.temp_drop_function
         return intercept + coeff*T
+    
 
     def _send_to(self, dst: ShNode, payload) -> None:
         if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
@@ -414,6 +423,7 @@ class HomeAlone(Actor):
             return self.services._links.publish_message(
                 self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
             )
+
 
 # if __name__ == '__main__':
 #     from actors import HomeAlone; from command_line_utils import get_scada; s=get_scada(); s.run_in_thread(); h: HomeAlone = s.get_communicator('h')
