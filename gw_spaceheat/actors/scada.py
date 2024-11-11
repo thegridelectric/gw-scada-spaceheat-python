@@ -618,7 +618,7 @@ class Scada(ScadaInterface, Proactor):
             self._data.recent_machine_states[payload.MachineHandle] = payload
             
     def fsm_full_report_received(self, payload: FsmFullReport) -> None:
-        self._data.recent_fsm_reports.append(payload)
+        self._data.recent_fsm_reports[payload.TriggerId] = payload
 
     def single_reading_received(self, payload: SingleReading) -> None:
         ch = self._layout.data_channels[payload.ChannelName]

@@ -133,7 +133,7 @@ class HomeAlone(Actor):
     async def _monitor(self):
         while not self._stop_requested:
             now = time.time()
-            print("patting watchdog")
+            # self.services.logger.warning("patting homealone watchdog")
             self._send(PatInternalWatchdogMessage(src=self.name))
             if self._loop_times.minute_passed(now):
                 self.per_minute_job(now)
@@ -147,14 +147,15 @@ class HomeAlone(Actor):
             await asyncio.sleep(self.LOOP_SLEEP_SECONDS)
 
     def per_minute_job(self, now: float) -> None:
-        if self.charge_discharge_relay_state == StoreFlowRelay.DischargingStore:
-            cmd = ChangeStoreFlowRelay.ChargeStore
-            self.charge_discharge_relay_state = StoreFlowRelay.ChargingStore
-        else:
-            cmd = ChangeStoreFlowRelay.DischargeStore
-            self.charge_discharge_relay_state = StoreFlowRelay.DischargingStore
-        self.services.logger.error(f"Running per minute job: running {cmd}")
-        self.change_charge_discharge(cmd)
+        ...
+        # if self.charge_discharge_relay_state == StoreFlowRelay.DischargingStore:
+        #     cmd = ChangeStoreFlowRelay.ChargeStore
+        #     self.charge_discharge_relay_state = StoreFlowRelay.ChargingStore
+        # else:
+        #     cmd = ChangeStoreFlowRelay.DischargeStore
+        #     self.charge_discharge_relay_state = StoreFlowRelay.DischargingStore
+        # self.services.logger.error(f"Running per minute job: running {cmd}")
+        # self.change_charge_discharge(cmd)
         
     def per_hour_job(self) -> None:
         ...

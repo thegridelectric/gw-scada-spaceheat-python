@@ -5,22 +5,33 @@ from typing import Dict, List, cast
 from gw.enums import GwStrEnum
 from gwproactor import QOS, Actor, ServicesInterface
 from gwproactor.message import Message
-from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import \
-    I2cMultichannelDtRelayComponent
+from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
+    I2cMultichannelDtRelayComponent,
+)
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import (AquastatControl, ChangeAquastatControl,
-                           ChangeHeatcallSource, ChangeHeatPumpControl,
-                           ChangePrimaryPumpControl, ChangeRelayPin,
-                           ChangeRelayState, ChangeStoreFlowRelay,
-                           FsmName, FsmReportType, 
-                           HeatcallSource, HeatPumpControl, MakeModel,
-                           PrimaryPumpControl, RelayClosedOrOpen,
-                           RelayWiringConfig, StoreFlowRelay)
+from gwproto.enums import (
+    AquastatControl,
+    ChangeAquastatControl,
+    ChangeHeatcallSource,
+    ChangeHeatPumpControl,
+    ChangePrimaryPumpControl,
+    ChangeRelayPin,
+    ChangeRelayState,
+    ChangeStoreFlowRelay,
+    FsmName,
+    FsmReportType,
+    HeatcallSource,
+    HeatPumpControl,
+    MakeModel,
+    PrimaryPumpControl,
+    RelayClosedOrOpen,
+    RelayWiringConfig,
+    StoreFlowRelay,
+)
 from gwproto.message import Header
-from gwproto.named_types import (FsmAtomicReport, FsmEvent, FsmFullReport,
-                                 MachineStates)
+from gwproto.named_types import FsmAtomicReport, FsmEvent, FsmFullReport, MachineStates
 from result import Err, Ok, Result
 from transitions import Machine
 
@@ -65,7 +76,7 @@ class Relay(Actor):
         self.relay_multiplexer = self.layout.node(H0N.relay_multiplexer)
         self.reports_by_trigger = {}
         self.boss_by_trigger = {}
-        self.my_event_enum =ChangeRelayState.enum_name()
+        self.my_event_enum = ChangeRelayState.enum_name()
         self.my_state_enum = RelayClosedOrOpen.enum_name()
         self.initialize_fsm()
 
@@ -150,7 +161,7 @@ class Relay(Actor):
             self.reports_by_trigger[message.TriggerId] = [report]
             self.boss_by_trigger[message.TriggerId] = from_node
             now_ms = int(time.time() * 1000)
-            print(f"sending {relay_pin_event} to multiplexer")
+            # self.services.logger.warning(f"sending {relay_pin_event} to multiplexer")
             #  To actually create an action, send to relay multiplexer
             pin_change_event = FsmEvent(
                 FromHandle=self.node.handle,
