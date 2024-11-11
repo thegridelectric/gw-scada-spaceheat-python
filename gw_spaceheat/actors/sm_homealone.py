@@ -7,13 +7,14 @@ from gwproactor import QOS, Actor, ServicesInterface, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from result import Err, Ok, Result
+from gwproto.message import Header
 from transitions import Machine
+from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.enums import (ActorClass, ChangeRelayState,
-                           FsmReportType, PicoCyclerState)
+from gwproto.enums import ActorClass, ChangeRelayState
 from gwproto.named_types import (ChannelReadings, FsmAtomicReport, FsmEvent,
-                                 FsmFullReport)
+                                 MachineStates)
 import pendulum
 
 
@@ -27,6 +28,10 @@ class HomeAloneEvent(GwStrEnum):
     OnPeakBufferEmpty = auto()
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        "home.alone.event"
 
 class HomeAlone(Actor):
     
@@ -77,7 +82,23 @@ class HomeAlone(Actor):
         self.swt_coldest_hour = 140 # TODO
         self.temp_drop_function = [20,0] #TODO
 
+    def trigger_event(self, event: HomeAloneEvent) -> None:
+        now_ms = int(time.time() * 1000)
+        orig_state = self.state
+        self.trigger(event)
 
+        self._send_to(
+            self.services._layout.nodes[H0N.primary_scada],
+            MachineStates(
+                MachineHandle=self.node.handle,
+                StateEnum=HomeAloneEvent.enum_name(),
+                StateList=[self.state],
+                UnixMsList=[now_ms],
+            ),
+        )
+        self.services.logger.error(
+            f"[{self.name}] {event.value}: {orig_state} -> {self.state}"
+        )
     async def main(self):
         
         while not self._stop_requested:
@@ -95,36 +116,36 @@ class HomeAlone(Actor):
 
             if self.state=="HpOnStoreOff":
                 if self.is_onpeak():
-                    self.trigger(HomeAloneEvent.OnPeakStart.value)
+                    self.trigger_event(HomeAloneEvent.OnPeakStart.value)
                 elif self.is_buffer_full():
                     if self.is_storage_ready():
-                        self.trigger(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
+                        self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                     else:
-                        self.trigger(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
+                        self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                 
             elif self.state=="HpOnStoreCharge":
                 if self.is_onpeak():
-                    self.trigger(HomeAloneEvent.OnPeakStart.value)
+                    self.trigger_event(HomeAloneEvent.OnPeakStart.value)
                 elif self.is_buffer_empty():
-                    self.trigger(HomeAloneEvent.OffPeakBufferEmpty.value)
+                    self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                 elif self.is_storage_ready():
-                    self.trigger(HomeAloneEvent.OffPeakStorageReady.value)
+                    self.trigger_event(HomeAloneEvent.OffPeakStorageReady.value)
                 
             elif self.state=="HpOffStoreOff":
                 if self.is_onpeak():
                     if self.is_buffer_empty():
-                        self.trigger(HomeAloneEvent.OnPeakBufferEmpty.value)
+                        self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                 else:
                     if self.is_buffer_empty():
-                        self.trigger(HomeAloneEvent.OffPeakBufferEmpty.value)
+                        self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                     elif self.is_storage_ready():
-                        self.trigger(HomeAloneEvent.OffPeakStorageNotReady.value)
+                        self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
 
             elif self.state=="HpOffStoreDischarge":
                 if not self.is_onpeak():
-                    self.trigger(HomeAloneEvent.OffPeakStart.value)
+                    self.trigger_event(HomeAloneEvent.OffPeakStart.value)
                 elif self.is_buffer_full():
-                    self.trigger(HomeAloneEvent.OnPeakBufferFull.value)
+                    self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
             if self.state != previous_state:
                 self.switch_relays(previous_state)
@@ -375,6 +396,24 @@ class HomeAlone(Actor):
         intercept, coeff = self.temp_drop_function
         return intercept + coeff*T
 
+    def _send_to(self, dst: ShNode, payload) -> None:
+        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
+            self._send(
+                Message(
+                    header=Header(
+                        Src=self.name,
+                        Dst=dst.name,
+                        MessageType=payload.TypeName,
+                    ),
+                    Payload=payload,
+                )
+            )
+        else:
+            # Otherwise send via local mqtt
+            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
+            return self.services._links.publish_message(
+                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
+            )
 
 # if __name__ == '__main__':
 #     from actors import HomeAlone; from command_line_utils import get_scada; s=get_scada(); s.run_in_thread(); h: HomeAlone = s.get_communicator('h')
