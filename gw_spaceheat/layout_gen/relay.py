@@ -70,6 +70,46 @@ def add_relays(
                     Exponent=0,
                     Unit=Unit.Unitless
                 ),
+                RelayActorConfig(
+                    ChannelName=H0CN.hp_failsafe_relay_state,
+                    RelayIdx=House0RelayIdx.hp_failsafe,
+                    ActorName=H0N.hp_failsafe_relay,
+                    PollPeriodMs=cfg.PollPeriodMs,
+                    CapturePeriodS=cfg.CapturePeriodS,
+                    WiringConfig=RelayWiringConfig.DoubleThrow,
+                    EventType=ChangeHeatPumpControl.enum_name(),
+                    DeEnergizingEvent=ChangeHeatPumpControl.SwitchToTankAquastat,
+                    AsyncCapture=True,
+                    Exponent=0,
+                    Unit=Unit.Unitless
+                ),
+                RelayActorConfig(
+                    ChannelName=H0CN.hp_scada_ops_relay_state,
+                    RelayIdx=House0RelayIdx.hp_scada_ops,
+                    ActorName=H0N.hp_scada_ops_relay,
+                    PollPeriodMs=cfg.PollPeriodMs,
+                    CapturePeriodS=cfg.CapturePeriodS,
+                    WiringConfig=RelayWiringConfig.NormallyClosed,
+                    EventType=ChangeRelayState.enum_name(),
+                    DeEnergizingEvent=ChangeRelayState.CloseRelay,
+                    AsyncCapture=True,
+                    Exponent=0,
+                    Unit=Unit.Unitless
+                ),
+                RelayActorConfig(
+                    ChannelName=H0CN.store_pump_failsafe_relay_state,
+                    RelayIdx=House0RelayIdx.store_pump_failsafe,
+                    ActorName=H0N.store_pump_failsafe,
+                    PollPeriodMs=cfg.PollPeriodMs,
+                    CapturePeriodS=cfg.CapturePeriodS,
+                    WiringConfig=RelayWiringConfig.NormallyOpen,
+                    EventType=ChangeRelayState.enum_name(),
+                    DeEnergizingEvent=ChangeRelayState.OpenRelay,
+                    AsyncCapture=True,
+                    Exponent=0,
+                    Unit=Unit.Unitless
+                ),
+
         ]
         db.add_components(
             [
@@ -93,14 +133,14 @@ def add_relays(
                     DisplayName="I2c Relay Multiplexer",
                     ComponentId=db.component_id_by_alias(component_display_name)
                 ),
-                SpaceheatNodeGt(
-                    ShNodeId=db.make_node_id(H0N.pico_cycler),
-                    Name=H0N.pico_cycler,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.pico_cycler}",
-                    Handle=f"{H0N.home_alone}.{H0N.pico_cycler}",
-                    ActorClass=ActorClass.PicoCycler,
-                    DisplayName="Pico Cycler - responsible for power cycling the 5VDC bus"
-                ),
+                # SpaceheatNodeGt(
+                #     ShNodeId=db.make_node_id(H0N.pico_cycler),
+                #     Name=H0N.pico_cycler,
+                #     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.pico_cycler}",
+                #     Handle=f"{H0N.home_alone}.{H0N.pico_cycler}",
+                #     ActorClass=ActorClass.PicoCycler,
+                #     DisplayName="Pico Cycler - responsible for power cycling the 5VDC bus"
+                # ),
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(H0N.vdc_relay),
                     Name=H0N.vdc_relay,
@@ -125,7 +165,34 @@ def add_relays(
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.store_charge_discharge_relay}",
                     Handle=f"{H0N.home_alone}.{H0N.store_charge_discharge_relay}",
                     ActorClass=ActorClass.Relay,
-                    DisplayName="TStat Common Relay",
+                    DisplayName="Store Charge/Discharge Relay",
+                    ComponentId=db.component_id_by_alias(component_display_name)
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(H0N.hp_failsafe_relay),
+                    Name=H0N.hp_failsafe_relay,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_failsafe_relay}",
+                    Handle=f"{H0N.home_alone}.{H0N.hp_failsafe_relay}",
+                    ActorClass=ActorClass.Relay,
+                    DisplayName="Hp Failsafe Relay",
+                    ComponentId=db.component_id_by_alias(component_display_name)
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(H0N.hp_scada_ops_relay),
+                    Name=H0N.hp_scada_ops_relay,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_scada_ops_relay}",
+                    Handle=f"{H0N.home_alone}.{H0N.hp_scada_ops_relay}",
+                    ActorClass=ActorClass.Relay,
+                    DisplayName="Hp Scada Ops Relay",
+                    ComponentId=db.component_id_by_alias(component_display_name)
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(H0N.store_pump_failsafe),
+                    Name=H0N.store_pump_failsafe,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.store_pump_failsafe}",
+                    Handle=f"{H0N.home_alone}.{H0N.store_pump_failsafe}",
+                    ActorClass=ActorClass.Relay,
+                    DisplayName="Store Pump Failsafe",
                     ComponentId=db.component_id_by_alias(component_display_name)
                 ),
             ]
@@ -159,6 +226,33 @@ def add_relays(
                 TelemetryName=TelemetryName.RelayState,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id=db.make_channel_id(H0CN.charge_discharge_relay_state)
+            ),
+            DataChannelGt(
+                Name=H0CN.hp_failsafe_relay_state,
+                DisplayName="Hp Failsafe Relay State",
+                AboutNodeName=H0N.hp_failsafe_relay,
+                CapturedByNodeName=H0N.relay_multiplexer,
+                TelemetryName=TelemetryName.RelayState,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(H0CN.hp_failsafe_relay_state)
+            ),
+            DataChannelGt(
+                Name=H0CN.hp_scada_ops_relay_state,
+                DisplayName="Hp Scada Ops Relay State",
+                AboutNodeName=H0N.hp_scada_ops_relay,
+                CapturedByNodeName=H0N.relay_multiplexer,
+                TelemetryName=TelemetryName.RelayState,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(H0CN.hp_scada_ops_relay_state)
+            ),
+            DataChannelGt(
+                Name=H0CN.store_pump_failsafe_relay_state,
+                DisplayName="Store Pump Failsafe Relay State",
+                AboutNodeName=H0N.store_pump_failsafe,
+                CapturedByNodeName=H0N.relay_multiplexer,
+                TelemetryName=TelemetryName.RelayState,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(H0CN.store_pump_failsafe_relay_state)
             )
         ]
     )
