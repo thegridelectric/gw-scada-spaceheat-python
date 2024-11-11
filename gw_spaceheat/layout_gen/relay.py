@@ -97,6 +97,19 @@ def add_relays(
                     Unit=Unit.Unitless
                 ),
                 RelayActorConfig(
+                    ChannelName=H0CN.aquastat_ctrl_relay_state,
+                    RelayIdx=House0RelayIdx.aquastat_ctrl,
+                    ActorName=H0N.aquastat_ctrl_relay,
+                    PollPeriodMs=cfg.PollPeriodMs,
+                    CapturePeriodS=cfg.CapturePeriodS,
+                    WiringConfig=RelayWiringConfig.DoubleThrow,
+                    EventType=ChangeAquastatControl.enum_name(),
+                    DeEnergizingEvent=ChangeAquastatControl.SwitchToBoiler,
+                    AsyncCapture=True,
+                    Exponent=0,
+                    Unit=Unit.Unitless
+                ),
+                RelayActorConfig(
                     ChannelName=H0CN.store_pump_failsafe_relay_state,
                     RelayIdx=House0RelayIdx.store_pump_failsafe,
                     ActorName=H0N.store_pump_failsafe,
@@ -187,6 +200,15 @@ def add_relays(
                     ComponentId=db.component_id_by_alias(component_display_name)
                 ),
                 SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(H0N.aquastat_ctrl_relay),
+                    Name=H0N.aquastat_ctrl_relay,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.aquastat_ctrl_relay}",
+                    Handle=f"{H0N.home_alone}.{H0N.aquastat_ctrl_relay}",
+                    ActorClass=ActorClass.Relay,
+                    DisplayName="Aquastat Ctrl Relay",
+                    ComponentId=db.component_id_by_alias(component_display_name)
+                ),
+                SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(H0N.store_pump_failsafe),
                     Name=H0N.store_pump_failsafe,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.store_pump_failsafe}",
@@ -244,6 +266,15 @@ def add_relays(
                 TelemetryName=TelemetryName.RelayState,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id=db.make_channel_id(H0CN.hp_scada_ops_relay_state)
+            ),
+            DataChannelGt(
+                Name=H0CN.aquastat_ctrl_relay_state,
+                DisplayName="Aquastat Control Relay State",
+                AboutNodeName=H0N.aquastat_ctrl_relay,
+                CapturedByNodeName=H0N.relay_multiplexer,
+                TelemetryName=TelemetryName.RelayState,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(H0CN.aquastat_ctrl_relay_state)
             ),
             DataChannelGt(
                 Name=H0CN.store_pump_failsafe_relay_state,
