@@ -356,11 +356,16 @@ class HomeAlone(Actor):
             if layer_temp_f > self.swt_coldest_hour:
                 layer_energy_kwh = 360/4*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
                 total_usable_kwh += layer_energy_kwh
-        if total_usable_kwh >= self.average_power_coldest_hour_kW:
-            print("Storage ready")
+        time_now = pendulum.now(tz="America/New_York")
+        if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6,7]:
+            required_storage = 7.5*self.average_power_coldest_hour_kW
+        else:
+            required_storage = 4*self.average_power_coldest_hour_kW
+        if total_usable_kwh >= required_storage:
+            print(f"Storage ready (usable {round(total_usable_kwh,1)} >= required {round(required_storage,1)})")
             return True
         else:
-            print("Storage not ready")
+            print(f"Storage not ready (usable {round(total_usable_kwh,1)} < required {round(required_storage,1)})")
             return False
         
     
