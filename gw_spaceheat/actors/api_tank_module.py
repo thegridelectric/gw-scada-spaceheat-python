@@ -328,6 +328,7 @@ class ApiTankModule(Actor):
                     )
                     # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_b_uid} down"]).problem_event(summary=self.name))
                     self.last_error_report = time.time()
+            await asyncio.sleep(self.flatline_seconds())
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
         """
