@@ -200,12 +200,13 @@ class HomeAlone(Actor):
 
             if self.state != previous_state:                    
                 self.update_relays(previous_state)
-
+            print("Start sleep")
             await asyncio.sleep(60)
+            print("End sleep")
 
 
     def update_relays(self, previous_state):
-        print(f"Moving to {self.state}:")
+        print(f"Moving to {self.state}")
         if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
             self._turn_off_HP()
         if "HpOn" not in previous_state and "HpOn" in self.state:
@@ -235,6 +236,7 @@ class HomeAlone(Actor):
             )
         self._send_to(self.hp_onoff_relay, event)
         self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.hp_onoff_relay.name}")
+        print(f"{self.node.handle} sending CloseRelay to {self.hp_onoff_relay.name}")
 
 
     def _turn_off_HP(self):
@@ -248,6 +250,7 @@ class HomeAlone(Actor):
             )
         self._send_to(self.hp_onoff_relay, event)
         self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.hp_onoff_relay.name}")
+        print(f"{self.node.handle} sending OpenRelay to {self.hp_onoff_relay.name}")
 
 
     def _turn_on_store(self):
@@ -261,6 +264,7 @@ class HomeAlone(Actor):
             )
         self._send_to(self.store_pump_onoff_relay, event)
         self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.store_pump_onoff_relay.name}")
+        print(f"{self.node.handle} sending OpenRelay to {self.store_pump_onoff_relay.name}")
     
 
     def _turn_off_store(self):
@@ -274,6 +278,7 @@ class HomeAlone(Actor):
             )
         self._send_to(self.store_pump_onoff_relay, event)
         self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.store_pump_onoff_relay.name}")
+        print(f"{self.node.handle} sending CloseRelay to {self.store_pump_onoff_relay.name}")
 
 
     def _charge_store(self):
@@ -287,6 +292,7 @@ class HomeAlone(Actor):
             )
         self._send_to(self.store_charge_discharge_relay, event)
         self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.store_charge_discharge_relay.name}")
+        print(f"{self.node.handle} sending CloseRelay to {self.store_charge_discharge_relay.name}")
 
 
     def _discharge_store(self):
@@ -300,6 +306,7 @@ class HomeAlone(Actor):
             )
         self._send_to(self.store_charge_discharge_relay, event)
         self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.store_charge_discharge_relay.name}")
+        print(f"{self.node.handle} sending OpenRelay to {self.store_charge_discharge_relay.name}")
 
 
     def start(self) -> None:
