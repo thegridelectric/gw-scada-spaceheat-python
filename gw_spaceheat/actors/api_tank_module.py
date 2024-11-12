@@ -250,7 +250,7 @@ class ApiTankModule(Actor):
                                 summary=("Volts to temp problem"),
                             )
                         )
-                    )f
+                    )
             else:
                 raise Exception(f"No code for {self._component.gt.TempCalcMethod}!")
         msg = SyncedReadings(
