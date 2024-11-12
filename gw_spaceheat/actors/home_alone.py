@@ -119,6 +119,7 @@ class HomeAlone(Actor):
         self.temp_drop_function = [20,0] #TODO
         # In simulation vs in a real house
         self.simulation = True
+        self.main_loop_sleep_seconds = 60
 
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
@@ -140,8 +141,10 @@ class HomeAlone(Actor):
 
 
     async def main(self):
+
         await asyncio.sleep(2)
         self.initialize_relays()
+
         while not self._stop_requested:
     
             previous_state = self.state
@@ -212,7 +215,7 @@ class HomeAlone(Actor):
                 self.update_relays(previous_state)
             print('Done.')
 
-            await asyncio.sleep(10)
+            await asyncio.sleep(self.main_loop_sleep_seconds)
 
 
     def update_relays(self, previous_state):
