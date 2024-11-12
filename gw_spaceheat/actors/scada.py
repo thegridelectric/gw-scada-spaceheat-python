@@ -417,7 +417,11 @@ class Scada(ScadaInterface, Proactor):
             case ChannelReadings():
                 if from_node == self.name:
                     path_dbg |= 0x00000004
-                    self.channel_readings_received(from_node, message.Payload)
+                    try:
+                        self.channel_readings_received(from_node, message.Payload)
+                    except Exception as e:
+                        self.logger.error(f"problem with {message}, from_node {from_node}: \n{e}")
+                        return
                 else:
                     path_dbg |= 0x00000008
                     self.get_communicator(message.Header.Dst).process_message(message)
