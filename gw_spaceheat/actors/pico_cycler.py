@@ -403,7 +403,7 @@ class PicoCycler(Actor):
     def trigger_event(self, event: PicoCyclerEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
-        # self.trigger(event)
+        self.trigger(event)
         # Add to fsm reports of linked state changes
         self.fsm_reports.append(
             FsmAtomicReport(
