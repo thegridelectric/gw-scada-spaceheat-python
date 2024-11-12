@@ -494,9 +494,11 @@ class PicoCycler(Actor):
             sleep_s = max(
                 1.2, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
             )
+            print(f"Sleeping for {sleep_s}")
             await asyncio.sleep(sleep_s)
             # report the state
             if sleep_s != 2:
+                print("Sending a state")
                 self._send_to(
                     self.primary_scada,
                     MachineStates(
@@ -512,7 +514,7 @@ class PicoCycler(Actor):
             # back when wifi is back
             if time.time() - self.last_zombie_shake > self.SHAKE_ZOMBIE_HR * 3600:
                 self.shake_zombies()
-
+                print("shaking zombies")
             # report the varios zombie picos as problem events
             zombie_update_period = self.ZOMBIE_UPDATE_HR * 3600
             last = self.last_zombie_problem_report_s
