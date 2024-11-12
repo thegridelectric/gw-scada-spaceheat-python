@@ -28,7 +28,7 @@ from gwproto.named_types import (
     MachineStates,
 )
 from result import Ok, Result
-from transitions import Machine
+#from transitions import Machine
 
 
 class SinglePicoState(GwStrEnum):
