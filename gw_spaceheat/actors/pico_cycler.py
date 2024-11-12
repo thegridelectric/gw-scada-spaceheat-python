@@ -435,9 +435,10 @@ class PicoCycler(Actor):
             )
 
     def start(self) -> None:
-        self.services.add_task(
-            asyncio.create_task(self.main(), name="ApiFlowModule keepalive")
-        )
+        ...
+        # self.services.add_task(
+        #     asyncio.create_task(self.main(), name="ApiFlowModule keepalive")
+        # )
 
     def stop(self) -> None:
         """
