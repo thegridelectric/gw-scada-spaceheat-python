@@ -144,6 +144,8 @@ class HomeAlone(Actor):
 
         await asyncio.sleep(2)
         self.initialize_relays()
+        if self.is_onpeak():
+            self._turn_off_HP()
 
         while not self._stop_requested:
     
@@ -160,7 +162,10 @@ class HomeAlone(Actor):
                     print('Temperatures available')
                     if self.is_onpeak():
                         if self.is_buffer_empty():
-                            self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
+                            if self.is_storage_colder_than_buffer():
+                                self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
+                            else:
+                                self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                         else:
                             self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
                     else:
@@ -198,7 +203,8 @@ class HomeAlone(Actor):
             elif self.state==HomeAloneState.HpOffStoreOff.value:
                 if self.is_onpeak():
                     if self.is_buffer_empty():
-                        self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
+                        if not self.is_storage_colder_than_buffer():
+                            self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                 else:
                     if self.is_buffer_empty():
                         self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
@@ -208,7 +214,7 @@ class HomeAlone(Actor):
             elif self.state==HomeAloneState.HpOffStoreDischarge.value:
                 if not self.is_onpeak():
                     self.trigger_event(HomeAloneEvent.OffPeakStart.value)
-                elif self.is_buffer_full():
+                elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
                     self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
             if self.state != previous_state:                    
@@ -437,6 +443,14 @@ class HomeAlone(Actor):
             return True
         else:
             print(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh")
+            return False
+        
+    def is_storage_colder_than_buffer(self) -> bool:
+        if self.latest_temperatures['buffer-depth1'] > self.latest_temperatures['tank1-depth1']:
+            print(f"Storage top colder than buffer top")
+            return True
+        else:
+            print(f"Storage top warmer than buffer top")
             return False
     
     def temp_drop(self, T):
