@@ -271,12 +271,12 @@ class HomeAlone(Actor):
             FromHandle=self.node.handle,
             ToHandle=self.store_pump_onoff_relay.handle,
             EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
+            EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_pump_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        self.services.logger.error(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
     
 
     def _turn_off_store(self):
@@ -284,12 +284,12 @@ class HomeAlone(Actor):
             FromHandle=self.node.handle,
             ToHandle=self.store_pump_onoff_relay.handle,
             EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
+            EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_pump_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        self.services.logger.error(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
 
 
     def _charge_store(self):
