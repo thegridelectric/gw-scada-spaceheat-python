@@ -85,7 +85,6 @@ class I2cRelayMultiplexer(Actor):
         # dict of current energization state
         self.relay_state: Dict[int, RelayEnergizationState] = {}
         self._stop_requested = False
-        self.initialize_board()
 
     @property
     def primary_scada(self) -> ShNode:
@@ -307,6 +306,7 @@ class I2cRelayMultiplexer(Actor):
             self._send_to(self.primary_scada, readings)
 
     def start(self) -> None:
+        self.initialize_board()
         self.services.add_task(
             asyncio.create_task(
                 self.maintain_relay_states(), name="maintain_relay_states"
