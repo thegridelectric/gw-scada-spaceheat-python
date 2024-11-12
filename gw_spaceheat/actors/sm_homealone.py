@@ -114,7 +114,7 @@ class HomeAlone(Actor):
         self.swt_coldest_hour = 140 # TODO
         self.temp_drop_function = [20,0] #TODO
         # In simulation vs in a real house
-        self.simulation = False
+        self.simulation = True
 
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
