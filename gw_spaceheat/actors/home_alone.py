@@ -203,7 +203,8 @@ class HomeAlone(Actor):
             elif self.state==HomeAloneState.HpOffStoreOff.value:
                 if self.is_onpeak():
                     if self.is_buffer_empty():
-                        self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
+                        if not self.is_storage_colder_than_buffer():
+                            self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                 else:
                     if self.is_buffer_empty():
                         self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
