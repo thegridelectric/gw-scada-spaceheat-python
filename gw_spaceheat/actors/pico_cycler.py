@@ -298,7 +298,7 @@ class PicoCycler(Actor):
             self.confirm_closed()
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
-        print(f"++pico_cycler  {message.message_type()}", flush=True)
+        # print(f"++pico_cycler  {message.message_type()}", flush=True)
         path_dbg = 0
         src_node = self.layout.node(message.Header.Src)
         if src_node is not None:
@@ -315,7 +315,7 @@ class PicoCycler(Actor):
                     self.process_fsm_full_report(message.Payload)
                 case _:
                     path_dbg |= 0x00000010
-        print(f"--pico_cycler  path:0x{path_dbg:08X}", flush=True)
+        # print(f"--pico_cycler  path:0x{path_dbg:08X}", flush=True)
         return Ok(True)
 
     def confirm_opened(self):
