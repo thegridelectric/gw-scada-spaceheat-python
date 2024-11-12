@@ -103,13 +103,14 @@ class PicoCycler(Actor):
         self.fsm_reports = []
         self.last_zombie_problem_report_s = time.time() - 24 * 3600
         self.last_zombie_shake = time.time()
-        self.machine = Machine(
-            model=self,
-            states=PicoCycler.states,
-            transitions=PicoCycler.transitions,
-            initial="PicosLive",
-            send_event=True,
-        )
+        self.state = "PicosLive"
+        # self.machine = Machine(
+        #     model=self,
+        #     states=PicoCycler.states,
+        #     transitions=PicoCycler.transitions,
+        #     initial="PicosLive",
+        #     send_event=True,
+        # )
 
     @property
     def flatlined_picos(self) -> List[str]:
@@ -386,7 +387,7 @@ class PicoCycler(Actor):
     def trigger_event(self, event: PicoCyclerEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
-        self.trigger(event)
+        # self.trigger(event)
         # Add to fsm reports of linked state changes
         self.fsm_reports.append(
             FsmAtomicReport(
