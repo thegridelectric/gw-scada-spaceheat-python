@@ -129,7 +129,7 @@ class HomeAlone(Actor):
         #     ),
         # )
         self.services.logger.error(
-            f"[{self.name}] {event.value}: {orig_state} -> {self.state}"
+            f"[{self.name}] {event}: {orig_state} -> {self.state}"
         )
 
 
