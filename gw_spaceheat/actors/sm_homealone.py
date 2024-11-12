@@ -113,6 +113,8 @@ class HomeAlone(Actor):
         self.average_power_coldest_hour_kW = 5 # TODO
         self.swt_coldest_hour = 140 # TODO
         self.temp_drop_function = [20,0] #TODO
+        # In simulation vs in a real house
+        self.simulation = False
 
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
@@ -318,12 +320,20 @@ class HomeAlone(Actor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         ...
 
+
     def change_all_temps(self, temp_c) -> None:
-        for channel_name in self.temperature_channel_names:
-            self.change_temp(channel_name, temp_c)
-    
+        if self.simulation:
+            for channel_name in self.temperature_channel_names:
+                self.change_temp(channel_name, temp_c)
+        else:
+            print("This function is only available in simulation")
+
+
     def change_temp(self, channel_name, temp_c) -> None:
-        self.services._data.latest_channel_values[self.get_datachannel(channel_name)] = temp_c * 1000
+        if self.simulation:
+            self.services._data.latest_channel_values[self.get_datachannel(channel_name)] = temp_c * 1000
+        else:
+            print("This function is only available in simulation")
 
 
     def get_latest_temperatures(self):
@@ -331,17 +341,13 @@ class HomeAlone(Actor):
             x: self.services._data.latest_channel_values[self.get_datachannel(x)] 
             for x in self.temperature_channel_names
             if self.get_datachannel(x) in self.services._data.latest_channel_values
+            and self.services._data.latest_channel_values[self.get_datachannel(x)] is not None
             }
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
         else:
             self.temperatures_available = False
             print('Some temperatures are missing')
-            # self.latest_temperatures = {
-            #     x: 63000
-            #     for x in self.temperature_channel_names
-            # }
-            # self.temperatures_available = True
             
 
     def get_datachannel(self, name):
