@@ -44,7 +44,7 @@ class HomeAloneEvent(GwStrEnum):
         "home.alone.event"
     
 
-class HomeAlone(Actor):
+class RealHomeAlone(Actor):
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
@@ -52,7 +52,7 @@ class HomeAlone(Actor):
 
     def start(self) -> None:
         self.services.add_task(
-            asyncio.create_task(self.home_alone_main(), name="HomeAlone keepalive")
+            asyncio.create_task(self.main(), name="HomeAlone keepalive")
         )
     
     def stop(self) -> None:
@@ -64,7 +64,7 @@ class HomeAlone(Actor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         return Ok()
     
-    async def home_alone_main(self):
+    async def main(self):
         while not self._stop_requested:
             print(f"[{self.name}] In main loop. Sleeping for 5")
             await asyncio.sleep(5)

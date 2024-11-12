@@ -3,7 +3,7 @@ easier."""
 from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
 from actors.i2c_relay_multiplexer import I2cRelayMultiplexer
-from actors.home_alone import HomeAlone
+from actors.home_alone import RealHomeAlone
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
@@ -19,7 +19,7 @@ from actors.scada_interface import ScadaInterface
 __all__ = [
     "ApiFlowModule",
     "ApiTankModule",
-    "HomeAlone",
+    "RealHomeAlone",
     "HoneywellThermostat",
     "Hubitat",
     "HubitatPoller",
