@@ -403,19 +403,19 @@ class HomeAlone(Actor):
             return False
 
     def is_buffer_empty(self) -> bool:
-        if self.latest_temperatures['buffer-depth2'] < self.swt_coldest_hour:
-            print("Buffer empty")
+        if self.latest_temperatures['buffer-depth2']/1000*9/5+32 < self.swt_coldest_hour:
+            print(f"Buffer empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
             return True
         else:
-            print("Buffer not empty")
+            print(f"Buffer not empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
             return False
     
     def is_buffer_full(self) -> bool:
-        if self.latest_temperatures['buffer-depth4'] > self.swt_coldest_hour:
-            print("Buffer full")
+        if self.latest_temperatures['buffer-depth4']/1000*9/5+32 > self.swt_coldest_hour:
+            print(f"Buffer full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
             return True
         else:
-            print("Buffer not full")
+            print(f"Buffer not full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
             return False
 
     def is_storage_ready(self) -> bool:
