@@ -106,8 +106,9 @@ class PicoCycler(Actor):
                 self.picos.append(node.component.gt.HwUid)
             if node.ActorClass == ActorClass.ApiTankModule:
                 self.actor_by_pico[node.component.gt.PicoAHwUid] = node
-                self.picos.append(node.component.gt.HwUid)
-                self.actor_by_pico[node.component.gt.PicoAHwUid] = node
+                self.picos.append(node.component.gt.PicoAHwUid)
+                self.actor_by_pico[node.component.gt.PicoBHwUid] = node
+                self.picos.append(node.component.gt.PicoBHwUid)
         self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
         self.primary_scada = self.layout.node(H0N.primary_scada)
         # This counts consecutive failed reboots per pico

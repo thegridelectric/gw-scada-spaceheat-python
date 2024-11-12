@@ -627,10 +627,10 @@ class Scada(ScadaInterface, Proactor):
 
     def single_reading_received(self, payload: SingleReading) -> None:
         ch = self._layout.data_channels[payload.ChannelName]
-        self._data.recent_channel_values[ch].append(payload.Value)
-        self._data.recent_channel_unix_ms[ch].append(payload.ScadaReadTimeUnixMs)
-        self._data.latest_channel_values[ch] = payload.Value
-        self._data.latest_channel_unix_ms[ch] = payload.ScadaReadTimeUnixMs
+        self._data.recent_channel_values[ch.Name].append(payload.Value)
+        self._data.recent_channel_unix_ms[ch.Name].append(payload.ScadaReadTimeUnixMs)
+        self._data.latest_channel_values[ch.Name] = payload.Value
+        self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
 
     def synced_readings_received(
         self, from_node: ShNode, payload: SyncedReadings
@@ -648,14 +648,14 @@ class Scada(ScadaInterface, Proactor):
                     f"Name {channel_name} in payload.SyncedReadings not a recognized Data Channel!"
                 )
             ch = self._layout.data_channels[channel_name]
-            self._data.recent_channel_values[ch].append(
+            self._data.recent_channel_values[ch.Name].append(
                 payload.ValueList[idx]
             )
             self._data.recent_channel_unix_ms[
-                ch
+                ch.Name
             ].append(payload.ScadaReadTimeUnixMs)
-            self._data.latest_channel_values[ch] = payload.ValueList[idx]
-            self._data.latest_channel_unix_ms[ch] = payload.ScadaReadTimeUnixMs
+            self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
+            self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
         self._logger.path(
             "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
         )
@@ -676,12 +676,12 @@ class Scada(ScadaInterface, Proactor):
             raise ValueError(
                 f"{payload.ChannelName} shoudl be read by {ch.captured_by_node}, not {from_node}!"
             )
-        self._data.recent_channel_values[ch] += payload.ValueList
+        self._data.recent_channel_values[ch.Name] += payload.ValueList
         
-        self._data.recent_channel_unix_ms[ch] += payload.ScadaReadTimeUnixMsList
+        self._data.recent_channel_unix_ms[ch.Name] += payload.ScadaReadTimeUnixMsList
         if len(payload.ValueList) > 0:
-            self._data.latest_channel_values[ch] = payload.ValueList[-1]
-            self._data.latest_channel_unix_ms[ch] = payload.ScadaReadTimeUnixMsList[-1]
+            self._data.latest_channel_values[ch.Name] = payload.ValueList[-1]
+            self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMsList[-1]
         
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():

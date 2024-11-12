@@ -22,10 +22,10 @@ class ScadaData:
     latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]
     recent_machine_states: Dict[str, MachineStates]
-    latest_channel_unix_ms: Dict[DataChannel, int]
-    latest_channel_values: Dict[DataChannel, int]
-    recent_channel_values: Dict[DataChannel, List]
-    recent_channel_unix_ms: Dict[DataChannel, List]
+    latest_channel_unix_ms: Dict[str, int]
+    latest_channel_values: Dict[str, int]
+    recent_channel_values: Dict[str, List]
+    recent_channel_unix_ms: Dict[str, List]
     recent_fsm_reports: Dict[str, FsmFullReport]
     settings: ScadaSettings
     hardware_layout: HardwareLayout
@@ -40,17 +40,17 @@ class ScadaData:
         self.hardware_layout = hardware_layout
         self.my_channels = self.get_my_channels()
         self.recent_machine_states = {}
-        self.latest_channel_values: Dict[DataChannel, int] = {  # noqa
-            ch: None for ch in self.my_channels
+        self.latest_channel_values: Dict[str, int] = {  # noqa
+            ch.Name: None for ch in self.my_channels
         }
         self.latest_channel_unix_ms: Dict[DataChannel, int] = {  # noqa
-            ch: None for ch in self.my_channels
+            ch.Name: None for ch in self.my_channels
         }
         self.recent_channel_values: Dict[DataChannel, List] = {
-            ch: [] for ch in self.my_channels
+            ch.Name: [] for ch in self.my_channels
         }
         self.recent_channel_unix_ms: Dict[DataChannel, List] = {
-            ch: [] for ch in self.my_channels
+            ch.Name: [] for ch in self.my_channels
         }
         self.recent_fsm_reports = {}
         self.flush_latest_readings()
@@ -59,20 +59,20 @@ class ScadaData:
         return list(self.hardware_layout.data_channels.values())
 
     def flush_latest_readings(self):
-        self.recent_channel_values = {ch: [] for ch in self.my_channels}
-        self.recent_channel_unix_ms = {ch: [] for ch in self.my_channels}
+        self.recent_channel_values = {ch.Name: [] for ch in self.my_channels}
+        self.recent_channel_unix_ms = {ch.Name: [] for ch in self.my_channels}
         self.recent_fsm_reports = {}
         self.recent_machine_states = {}
 
     def make_channel_readings(self, ch: DataChannel) -> Optional[ChannelReadings]:
         if ch in self.my_channels:
-            if len(self.recent_channel_values[ch]) == 0:
+            if len(self.recent_channel_values[ch.Name]) == 0:
                 return None
             return ChannelReadings(
                 ChannelName=ch.Name,
                 ChannelId=ch.Id,
-                ValueList=self.recent_channel_values[ch],
-                ScadaReadTimeUnixMsList=self.recent_channel_unix_ms[ch],
+                ValueList=self.recent_channel_values[ch.Name],
+                ScadaReadTimeUnixMsList=self.recent_channel_unix_ms[ch.Name],
             )
         else:
             return None
@@ -107,12 +107,12 @@ class ScadaData:
         return self.seconds_by_channel[ch.Name]
 
     def flatlined(self, ch: DataChannel) -> bool:
-        if self.latest_channel_unix_ms[ch] is None:
+        if self.latest_channel_unix_ms[ch.Name] is None:
             return True
         # nyquist
         nyquist = 2.1  # https://en.wikipedia.org/wiki/Nyquist_frequency
         if (
-            time.time() - (self.latest_channel_unix_ms[ch] / 1000)
+            time.time() - (self.latest_channel_unix_ms[ch.Name] / 1000)
             > self.capture_seconds(ch) * nyquist
         ):
             return True
@@ -125,8 +125,8 @@ class ScadaData:
                 latest_reading_list.append(
                     SingleReading(
                         ChannelName=ch.Name,
-                        Value=self.latest_channel_values[ch],
-                        ScadaReadTimeUnixMs=self.latest_channel_unix_ms[ch],
+                        Value=self.latest_channel_values[ch.Name],
+                        ScadaReadTimeUnixMs=self.latest_channel_unix_ms[ch.Name],
                     )
                 )
         return SnapshotSpaceheat(

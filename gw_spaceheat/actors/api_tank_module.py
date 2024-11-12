@@ -233,7 +233,7 @@ class ApiTankModule(Actor):
             if self._component.gt.SendMicroVolts:
                 value_list.append(data.MicroVoltsList[i])
                 channel_name_list.append(f"{data.AboutNodeNameList[i]}-micro-v")
-                # print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
+                #print(f"Updated {channel_name_list[-1]}: {round(volts,3)} V")
             if self._component.gt.TempCalcMethod == TempCalcMethod.SimpleBetaForPico:
                 try:
                     value_list.append(int(self.simple_beta_for_pico(volts) * 1000))
