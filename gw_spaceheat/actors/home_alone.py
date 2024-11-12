@@ -1,12 +1,13 @@
 import asyncio
+from typing import Sequence
 from enum import auto
 import uuid
 import time
 from gw.enums import GwStrEnum
-from gwproactor import QOS, Actor, ServicesInterface, Problems
+from gwproactor import QOS, Actor, ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from result import Err, Ok, Result
+from result import  Result
 from gwproto.message import Header
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
@@ -139,6 +140,9 @@ class HomeAlone(Actor):
             f"[{self.name}] {event}: {orig_state} -> {self.state}"
         )
 
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.main_loop_sleep_seconds * 2.1)]
 
     async def main(self):
 
@@ -148,7 +152,8 @@ class HomeAlone(Actor):
             self._turn_off_HP()
 
         while not self._stop_requested:
-    
+            self.services.logger.error("PATTING HOME ALONE WATCHDOG")
+            self._send(PatInternalWatchdogMessage(src=self.name))
             previous_state = self.state
             print("\n"+"-"*50)
             print(f"HomeAlone state: {previous_state}")

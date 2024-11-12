@@ -512,7 +512,7 @@ class PicoCycler(Actor):
             f"{self.node.handle}. Initialization: sending CloseRelay to {self.pico_relay.name}"
         )
         while not self._stop_requested:
-            self.services.logger.error("################# PATTING PICO WATCHDOG")
+            # self.services.logger.error("################# PATTING PICO WATCHDOG")
             self._send(PatInternalWatchdogMessage(src=self.name))
             sleep_s = max(
                 1.2, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
