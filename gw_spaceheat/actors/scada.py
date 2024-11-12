@@ -40,7 +40,6 @@ from gwproto import MQTTCodec
 from result import Ok
 from result import Result
 
-from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
 
 from actors.api_tank_module import MicroVolts
@@ -154,7 +153,6 @@ class Scada(ScadaInterface, Proactor):
     _last_report_second: int
     _last_sync_snap_s: int
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
-    _home_alone: HomeAlone
     _channels_reported: bool
 
     def __init__(
@@ -221,8 +219,6 @@ class Scada(ScadaInterface, Proactor):
             )
 
         self._links.log_subscriptions("construction")
-        # self._home_alone = HomeAlone(H0N.home_alone, self)
-        # self.add_communicator(self._home_alone)
         now = int(time.time())
         self._channels_reported = False
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))

@@ -4,7 +4,6 @@ import uuid
 from enum import auto
 from typing import Dict, List, Optional, Sequence
 
-import pendulum
 from gw.enums import GwStrEnum
 from gwproactor import QOS, Actor, MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
@@ -19,7 +18,7 @@ from gwproto.enums import (
     PicoCyclerState,
 )
 from gwproto.message import Header
-from gwproto.messages import PicoMissing
+from gwproto.messages import PicoMissing # noqa
 from gwproto.named_types import (
     ChannelReadings,
     FsmAtomicReport,
@@ -30,6 +29,20 @@ from gwproto.named_types import (
 from result import Ok, Result
 from transitions import Machine
 
+class PicoWarning(ValueError):
+    pico_name: str
+
+    def __init__(self, *, msg: str = "", pico_name:str):
+        self.pico_name = pico_name
+        super().__init__(msg)
+
+    def __str__(self):
+        return f"PicoWarning: {self.pico_name}  <{super().__str__()}>"
+
+class ZombiePicoWarning(PicoWarning):
+
+    def __str__(self):
+        return f"ZombiePicoWarning: {self.pico_name}  <{super().__str__()}>"
 
 class SinglePicoState(GwStrEnum):
     Alive = auto()
@@ -103,6 +116,7 @@ class PicoCycler(Actor):
         self.fsm_reports = []
         self.last_zombie_problem_report_s = time.time() - 24 * 3600
         self.last_zombie_shake = time.time()
+        self.state = "PicosLive"
         self.machine = Machine(
             model=self,
             states=PicoCycler.states,
@@ -153,7 +167,9 @@ class PicoCycler(Actor):
         actor = self.actor_by_pico[pico]
         self._send_to(
             self.primary_scada,
-            Problems(warnings=[f"{pico} zombie"]).problem_event(summary=actor.name),
+            Problems(warnings=[
+                ZombiePicoWarning(pico_name=pico)
+            ]).problem_event(summary=actor.name),
         )
 
     def process_pico_missing(self, actor: ShNode, payload: PicoMissing) -> None:
@@ -173,18 +189,14 @@ class PicoCycler(Actor):
                 )
                 return
             self.pico_states[pico] = SinglePicoState.Flatlined
-            self.pico_missing(comment=f"{actor.name}'s {pico} missing")
+            self.pico_missing()
 
-    def pico_missing(self, comment: Optional[str] = None) -> None:
+    def pico_missing(self) -> None:
         """
         Called directly when rebooting picos does not bring back all the
         picos, or indirectly when state is PicosLive and we receive a
         PicoMissing message from an actor
         """
-        if comment is None:
-            if self.state != PicoCyclerState.PicosRebooting:
-                raise Exception(f"Expect state to be PicosRebooting, got {self.state}")
-            comment = f"Picos still missing after reboot: {self.flatlined_picos}"
         self.trigger_event(PicoCyclerEvent.PicoMissing)
 
         # increment reboot attempts for all flatlined picos
@@ -221,6 +233,7 @@ class PicoCycler(Actor):
                 f", not {actor.ActorClass}"
             )
 
+        pico: str | None = None
         if actor.ActorClass == ActorClass.ApiFlowModule:
             if payload.ChannelName != actor.name:
                 raise Exception(
@@ -244,6 +257,8 @@ class PicoCycler(Actor):
                 )
             if pico not in self.picos:
                 raise Exception(f"[{self.name}] {pico} should be in self.picos!")
+        if pico is None:
+            raise ValueError("PICO IS NONE")
         self.is_alive(pico)
 
     def is_alive(self, pico: str) -> None:
@@ -283,21 +298,25 @@ class PicoCycler(Actor):
             self.confirm_closed()
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
+        print(f"++pico_cycler  {message.message_type()}", flush=True)
+        path_dbg = 0
         src_node = self.layout.node(message.Header.Src)
-        if src_node is None:
-            self.services.logger.warning(
-                f"Ignoring message from {message.Header.Src} - not a known ShNode"
-            )
-            return
-        if isinstance(message.Payload, ChannelReadings):
-            self.process_channel_readings(src_node, message.Payload)
-            return Ok(True)
-        elif isinstance(message.Payload, PicoMissing):
-            self.process_pico_missing(src_node, message.Payload)
-            return Ok(True)
-        elif isinstance(message.Payload, FsmFullReport):
-            self.process_fsm_full_report(message.Payload)
-            return Ok(True)
+        if src_node is not None:
+            path_dbg |= 0x00000001
+            match message.Payload:
+                case ChannelReadings():
+                    path_dbg |= 0x00000002
+                    self.process_channel_readings(src_node, message.Payload)
+                case PicoMissing():
+                    path_dbg |= 0x00000004
+                    self.process_pico_missing(src_node, message.Payload)
+                case FsmFullReport():
+                    path_dbg |= 0x00000008
+                    self.process_fsm_full_report(message.Payload)
+                case _:
+                    path_dbg |= 0x00000010
+        print(f"--pico_cycler  path:0x{path_dbg:08X}", flush=True)
+        return Ok(True)
 
     def confirm_opened(self):
         if self.state == PicoCyclerState.RelayOpening.value:
@@ -331,9 +350,7 @@ class PicoCycler(Actor):
         if self.all_zombies:
             self.reboot_dud()
         elif len(self.flatlined_picos) > 0:
-            self.pico_missing(
-                comment=f"Still {self.flatlined_picos} flatlined picos in reboot"
-            )
+            self.pico_missing()
         else:
             self.confirm_rebooted()
 
@@ -393,7 +410,7 @@ class PicoCycler(Actor):
                 MachineHandle=self.node.handle,
                 StateEnum=PicoCyclerState.enum_name(),
                 ReportType=FsmReportType.Event,
-                EventType=PicoCyclerEvent.enum_name(),
+                EventEnum=PicoCyclerEvent.enum_name(),
                 Event=event,
                 FromState=orig_state,
                 ToState=self.state,
@@ -416,7 +433,10 @@ class PicoCycler(Actor):
         )
 
     def _send_to(self, dst: ShNode, payload) -> None:
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
+        if (
+                dst.name == self.services.name or
+                self.services.get_communicator(dst.name) is not None
+        ):
             self._send(
                 Message(
                     header=Header(
@@ -430,14 +450,17 @@ class PicoCycler(Actor):
         else:
             # Otherwise send via local mqtt
             message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services._links.publish_message(
-                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
+            return self.services.publish_message( # noqa
+                self.services.LOCAL_MQTT, # noqa
+                message,
+                qos=QOS.AtMostOnce,
             )
 
     def start(self) -> None:
-        self.services.add_task(
-            asyncio.create_task(self.main(), name="ApiFlowModule keepalive")
-        )
+        ...
+        # self.services.add_task(
+        #     asyncio.create_task(self.main(), name="ApiFlowModule keepalive")
+        # )
 
     def stop(self) -> None:
         """
@@ -494,9 +517,11 @@ class PicoCycler(Actor):
             sleep_s = max(
                 1.2, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
             )
+            print(f"Sleeping for {sleep_s}")
             await asyncio.sleep(sleep_s)
             # report the state
             if sleep_s != 2:
+                print("Sending a state")
                 self._send_to(
                     self.primary_scada,
                     MachineStates(
@@ -512,7 +537,7 @@ class PicoCycler(Actor):
             # back when wifi is back
             if time.time() - self.last_zombie_shake > self.SHAKE_ZOMBIE_HR * 3600:
                 self.shake_zombies()
-
+                print("shaking zombies")
             # report the varios zombie picos as problem events
             zombie_update_period = self.ZOMBIE_UPDATE_HR * 3600
             last = self.last_zombie_problem_report_s
@@ -525,6 +550,9 @@ class PicoCycler(Actor):
             if time.time() > next_zombie_problem:
                 self._send_to(
                     self.primary_scada,
-                    Problems(warnings=zombies).problem_event(summary="pico-zombies"),
+                    Problems(warnings=[
+                        ZombiePicoWarning(pico_name=zombie_name) for
+                        zombie_name in zombies
+                    ]).problem_event(summary="pico-zombies"),
                 )
                 self.last_zombie_problem_report_s = time.time()
