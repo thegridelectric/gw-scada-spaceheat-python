@@ -346,14 +346,9 @@ class HomeAlone(Actor):
 
     def change_temp(self, channel_name, temp_c) -> None:
         if self.simulation:
-<<<<<<< HEAD
-            self.latest_temperatures[self.get_datachannel(channel_name)] = temp_c * 1000
-=======
-            self.services._data.latest_channel_values[channel_name] = temp_c * 1000
->>>>>>> 5c4973a1831445bf46f2b46aad10bb78b7aee725
+            self.latest_temperatures[channel_name] = temp_c * 1000
         else:
             print("This function is only available in simulation")
-
 
     def get_latest_temperatures(self):
         self.latest_temperatures = {

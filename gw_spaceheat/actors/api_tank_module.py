@@ -225,7 +225,6 @@ class ApiTankModule(Actor):
                 f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!"
             )
             return
-        self.latest_readings = data
         channel_name_list = []
         value_list = []
         for i in range(len(data.AboutNodeNameList)):
@@ -269,7 +268,7 @@ class ApiTankModule(Actor):
                 mv = data.MicroVoltsList[i]
                 try:
                     temp_f = self.simple_beta_for_pico(mv / 1e6, fahrenheit=True)
-                    print(f"{data.AboutNodeNameList[i]}: {round(temp_f, 2)} F")
+                    self.services.logger.error(f"{data.AboutNodeNameList[i]}: {round(temp_f, 2)} F")
                 except Exception:
                     print(f"{data.AboutNodeNameList[i]}: OPEN")
 
