@@ -40,7 +40,6 @@ from gwproto import MQTTCodec
 from result import Ok
 from result import Result
 
-from actors.config import ADMIN_NAME
 from actors.home_alone import HomeAlone
 from gwproactor import ActorInterface
 
@@ -128,10 +127,10 @@ class AdminCodec(MQTTCodec):
         super().__init__(ScadaMessageDecoder)
 
     def validate_source_and_destination(self, src: str, dst: str) -> None:
-        if dst != self.scada_gnode or src != ADMIN_NAME:
+        if dst != self.scada_gnode or src != H0N.admin:
             raise ValueError(
                 "ERROR validating src and/or dst\n"
-                f"  exp: one of {ADMIN_NAME} -> {self.scada_gnode}\n"
+                f"  exp: one of {H0N.admin} -> {self.scada_gnode}\n"
                 f"  got: {src} -> {dst}"
             )
 

@@ -575,6 +575,13 @@ class LayoutDb:
                     Handle="auto.h",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.admin),
+                    Name=H0N.admin,
+                    Handle=H0N.admin,
+                    ActorClass=ActorClass.NoActor,
+                    DisplayName="Local Admin",
                 )
             ]
         )

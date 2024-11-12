@@ -25,8 +25,7 @@ class RelayState(StrEnum):
 def _set_relay(
     *,
     target: str,
-    relay_name: str,
-    closed: RelayState,
+    open_relay: bool,
     env: str = ".env",
     user: str = "HeatpumpWizard",
     json: bool = False,
@@ -39,8 +38,7 @@ def _set_relay(
         rich.print(settings)
     admin = MQTTAdmin(
         settings=settings,
-        relay_name=relay_name,
-        closed=closed == RelayState.closed,
+        open_relay=open_relay,
         user=user,
         json=json,
     )
@@ -50,15 +48,13 @@ def _set_relay(
 @app.command()
 def set_relay(
     target: str,
-    relay_name: str,
-    closed: RelayState,
+    open_relay: bool,
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
     _set_relay(
         target=target,
-        relay_name=relay_name,
-        closed=closed,
+        open_relay=open_relay,
         user=user,
         json=json,
     )
@@ -66,16 +62,14 @@ def set_relay(
 
 @app.command()
 def run(
-    target: str = "dummy_scada1",
-    relay_name: str = "relay0",
-    closed: RelayState = RelayState.closed,
+    target: str = "d1.isone.me.versant.keene.orange.scada",
+    open_relay: bool = True,
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
     _set_relay(
         target=target,
-        relay_name=relay_name,
-        closed=closed,
+        open_relay=open_relay,
         user=user,
         json=json,
     )
