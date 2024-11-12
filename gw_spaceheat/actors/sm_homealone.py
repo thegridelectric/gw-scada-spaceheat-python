@@ -145,6 +145,7 @@ class HomeAlone(Actor):
             if (self.state==HomeAloneState.WaitingForTemperaturesOnPeak 
                 or self.state==HomeAloneState.WaitingForTemperaturesOffPeak):
                 if self.temperatures_available:
+                    print('Temperatures available')
                     if self.is_onpeak():
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
@@ -200,12 +201,10 @@ class HomeAlone(Actor):
 
             if self.state != previous_state:                    
                 self.update_relays(previous_state)
-
-            await asyncio.sleep(60)
+            await asyncio.sleep(10)
 
 
     def update_relays(self, previous_state):
-        print(f"Moving to {self.state}:")
         if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
             self._turn_off_HP()
         if "HpOn" not in previous_state and "HpOn" in self.state:
@@ -319,6 +318,13 @@ class HomeAlone(Actor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         ...
 
+    def change_all_temps(self, temp_c) -> None:
+        for channel_name in self.temperature_channel_names:
+            self.change_temp(channel_name, temp_c)
+    
+    def change_temp(self, channel_name, temp_c) -> None:
+        self.services._data.latest_channel_values[self.get_datachannel(channel_name)] = temp_c * 1000
+
 
     def get_latest_temperatures(self):
         self.latest_temperatures = {
@@ -326,7 +332,7 @@ class HomeAlone(Actor):
             for x in self.temperature_channel_names
             if self.get_datachannel(x) in self.services._data.latest_channel_values
             }
-        if self.latest_temperatures.keys() == self.temperature_channel_names:
+        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
         else:
             self.temperatures_available = False
@@ -364,7 +370,7 @@ class HomeAlone(Actor):
         peak_hours = [8,9,10,11] + [16,17,18,19]
         if ((time_now.hour in peak_hours or time_in_2min.hour in peak_hours) 
             and time_now.day_of_week < 5):
-            print("On-peak (or soon to be on-peak)")
+            print("On-peak")
             return True
         else:
             print("Not on-peak")
@@ -402,10 +408,10 @@ class HomeAlone(Actor):
         else:
             required_storage = 4*self.average_power_coldest_hour_kW
         if total_usable_kwh >= required_storage:
-            print(f"Storage ready (usable {round(total_usable_kwh,1)} >= required {round(required_storage,1)})")
+            print(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh")
             return True
         else:
-            print(f"Storage not ready (usable {round(total_usable_kwh,1)} < required {round(required_storage,1)})")
+            print(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh")
             return False
         
     
