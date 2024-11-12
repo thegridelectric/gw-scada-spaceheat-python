@@ -460,12 +460,14 @@ class PicoCycler(Actor):
         zombie notifications
         """
         await asyncio.sleep(1)
+        trigger_id = str(uuid.uuid4())
         self._send_to(self.pico_relay,
                       FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.pico_relay.handle,
             EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.OpenRelay,
+            TriggerId=trigger_id,
             SendTimeUnixMs=int(time.time() * 1000),
                 )
         )
@@ -479,6 +481,7 @@ class PicoCycler(Actor):
             ToHandle=self.pico_relay.handle,
             EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.CloseRelay,
+            TriggerId=trigger_id,
             SendTimeUnixMs=int(time.time() * 1000),
                 )
         )
