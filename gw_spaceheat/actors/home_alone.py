@@ -44,7 +44,7 @@ class HomeAloneEvent(GwStrEnum):
         "home.alone.event"
     
 
-class HomeAlone(Actor):
+class PicoCycler(Actor):
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
