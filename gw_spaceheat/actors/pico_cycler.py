@@ -458,10 +458,9 @@ class PicoCycler(Actor):
             )
 
     def start(self) -> None:
-        ...
-        # self.services.add_task(
-        #     asyncio.create_task(self.main(), name="ApiFlowModule keepalive")
-        # )
+        self.services.add_task(
+            asyncio.create_task(self.main(), name="ApiFlowModule keepalive")
+        )
 
     def stop(self) -> None:
         """
@@ -513,12 +512,12 @@ class PicoCycler(Actor):
             f"{self.node.handle}. Initialization: sending CloseRelay to {self.pico_relay.name}"
         )
         while not self._stop_requested:
-            self.services.logger.error("patting picocycler watchdog")
+            self.services.logger.error("################# PATTING PICO WATCHDOG")
             self._send(PatInternalWatchdogMessage(src=self.name))
             sleep_s = max(
                 1.2, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
             )
-            print(f"Sleeping for {sleep_s}")
+            print(f"[{self.name}] Sleeping for {sleep_s}")
             await asyncio.sleep(sleep_s)
             # report the state
             if sleep_s != 2:
