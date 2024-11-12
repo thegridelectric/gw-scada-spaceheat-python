@@ -429,7 +429,6 @@ class ApiFlowModule(Actor):
         )
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
-        print('processing')
         print(f"Length of ticklist for {data.HwUid}: {len(data.RelativeMillisecondList)}")
         # self.services.logger.error('processing')
         self.ticklist = data
@@ -443,13 +442,11 @@ class ApiFlowModule(Actor):
                 self.latest_gpm = 0
                 self.latest_hz = 0
                 self.publish_zero_flow()
-            try:
+            if self.latest_report_ns: 
                 if time.time()*1e9 - self.latest_report_ns > self._component.gt.NoFlowMs * 1000:
-                    self.publish_zero_flow()
-                    self.latest_gpm = 0
-                    self.latest_hz = 0
-            except TypeError as e:
-                print(f"{self.name} with self._component.gt.NoFlowMs {self._component.gt.NoFlowMs } ")
+                        self.publish_zero_flow()
+                        self.latest_gpm = 0
+                        self.latest_hz = 0
             # TODO publish 0 gpm after 30 seconds of no ticklists
             return
         if len(data.RelativeMillisecondList) == 0:
