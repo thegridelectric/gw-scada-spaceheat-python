@@ -415,20 +415,22 @@ class Scada(ScadaInterface, Proactor):
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
             case ChannelReadings():
-                if from_node == self.name:
+                if message.Header.Dst == self.name:
                     path_dbg |= 0x00000004
                     try:
                         self.channel_readings_received(from_node, message.Payload)
                     except Exception as e:
-                        self.logger.error(f"problem with {message}, from_node {from_node}: \n{e}")
+                        self.logger.error(f"problem with channel_readings_received: \n {e}")
                         return
                 else:
                     path_dbg |= 0x00000008
                     try:
                         self.get_communicator(message.Header.Dst).process_message(message)
                     except Exception as e:
-                        self.logger.error(f"problem with {message}, from_node {from_node}: \n{e}")
-                        return
+                        self.logger.error(f"problem with {message}: \n{e}")
+                        print(f"message.Header.Dst is {message.Header.Dst}")
+                        print(f"self._communicators.keys() are {self._communicators.keys()}")
+                
             case FsmAtomicReport():
                 path_dbg |= 0x00000010
                 self.get_communicator(message.Header.Dst).process_message(message)
