@@ -176,19 +176,16 @@ class PicoCycler(Actor):
     def process_pico_missing(self, actor: ShNode, payload: PicoMissing) -> None:
         # ignore messages from other actors unless currently live
         if self.state == PicoCyclerState.PicosLive:
-            print(f"In process pico missing from {actor.name}")
+            pico = payload.PicoHwUid
+            if pico in self.zombie_picos:
+                note = f"Zombie {actor.name} pico {pico} reporting missing"
+            else:
+                note = f"{actor.name} pico {pico} reporting missing"
+            self.services.logger.error(note)
             if actor not in self.pico_actors:
                 return
 
             self.trigger_id = str(uuid.uuid4())
-            pico = payload.PicoHwUid
-            if pico in self.zombie_picos:
-                self.services.logger.error(
-                    f"{self.name}. Missing {actor} {pico} but "
-                    f"ignoring since it has been rebooted {self.reboots[pico]}"
-                    " times without coming back"
-                )
-                return
             self.pico_states[pico] = SinglePicoState.Flatlined
             self.pico_missing()
 
@@ -521,7 +518,6 @@ class PicoCycler(Actor):
             await asyncio.sleep(sleep_s)
             # report the state
             if sleep_s != 2:
-                print("Sending a state")
                 self._send_to(
                     self.primary_scada,
                     MachineStates(

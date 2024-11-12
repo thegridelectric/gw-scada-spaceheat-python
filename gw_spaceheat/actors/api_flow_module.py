@@ -208,12 +208,6 @@ class ApiFlowModule(Actor):
                         PicoHwUid=self.hw_uid,
                     ),
                 )
-                self._send_to(
-                    self.primary_scada,
-                    Problems(warnings=[f"{self.hw_uid} down"]).problem_event(
-                        summary=self.name
-                    ),
-                )
                 self.last_error_report = time.time()
             # publish readings synchronously every capture_s
             try:
