@@ -11,7 +11,7 @@ from gwproto.message import Header
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.enums import ChangeRelayState
+from gwproto.enums import ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, ChangeStoreFlowRelay
 from gwproto.named_types import FsmEvent, MachineStates
 import pendulum
 
@@ -23,6 +23,10 @@ class HomeAloneState(GwStrEnum):
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "home.alone.state"
 
 
 class HomeAloneEvent(GwStrEnum):
@@ -39,7 +43,7 @@ class HomeAloneEvent(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        "home.alone.event"
+        return "home.alone.event"
 
 
 class HomeAlone(Actor):
@@ -97,11 +101,11 @@ class HomeAlone(Actor):
             'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4',
             ]
         self.temperatures_available = False
-        self.hp_onoff_relay = self.hardware_layout.node(H0N.hp_scada_ops_relay)
-        self.hp_failsafe_relay = self.hardware_layout.node(H0N.hp_failsafe_relay)
-        self.store_pump_onoff_relay = self.hardware_layout.node(H0N.store_pump_failsafe)
-        self.store_charge_discharge_relay = self.hardware_layout.node(H0N.store_charge_discharge_relay)
-        self.initialize_relays()
+        self.hp_onoff_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
+        self.hp_failsafe_relay: ShNode = self.hardware_layout.node(H0N.hp_failsafe_relay)
+        self.aquastat_ctrl_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
+        self.store_pump_onoff_relay: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
+        self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
         self.machine = Machine(
             model=self,
             states=HomeAlone.states,
@@ -121,22 +125,23 @@ class HomeAlone(Actor):
         now_ms = int(time.time() * 1000)
         orig_state = self.state
         self.trigger(event)
-        # self._send_to(
-        #     self.services._layout.nodes[H0N.primary_scada],
-        #     MachineStates(
-        #         MachineHandle=self.node.handle,
-        #         StateEnum=HomeAloneEvent.enum_name(),
-        #         StateList=[self.state],
-        #         UnixMsList=[now_ms],
-        #     ),
-        # )
+        self._send_to(
+            self.services._layout.nodes[H0N.primary_scada],
+            MachineStates(
+                MachineHandle=self.node.handle,
+                StateEnum=HomeAloneState.enum_name(),
+                StateList=[self.state],
+                UnixMsList=[now_ms],
+            ),
+        )
         self.services.logger.error(
             f"[{self.name}] {event}: {orig_state} -> {self.state}"
         )
 
 
     async def main(self):
-        
+        await asyncio.sleep(2)
+        self.initialize_relays()
         while not self._stop_requested:
     
             previous_state = self.state
@@ -239,7 +244,7 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.hp_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.hp_onoff_relay.name}")
+        self.services.logger.error(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
 
 
     def _turn_off_HP(self):
@@ -252,7 +257,7 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.hp_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.hp_onoff_relay.name}")
+        self.services.logger.error(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
 
 
     def _turn_on_store(self):
@@ -265,7 +270,7 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_pump_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.store_pump_onoff_relay.name}")
+        self.services.logger.error(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
     
 
     def _turn_off_store(self):
@@ -278,33 +283,33 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_pump_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.store_pump_onoff_relay.name}")
+        self.services.logger.error(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
 
 
     def _charge_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
+            EventType=ChangeStoreFlowRelay.enum_name(),
+            EventName=ChangeStoreFlowRelay.ChargeStore,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_charge_discharge_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.store_charge_discharge_relay.name}")
+        self.services.logger.error(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
 
 
     def _discharge_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
+            EventType=ChangeStoreFlowRelay.enum_name(),
+            EventName=ChangeStoreFlowRelay.DischargeStore,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_charge_discharge_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.store_charge_discharge_relay.name}")
+        self.services.logger.error(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
 
 
     def start(self) -> None:
@@ -353,28 +358,36 @@ class HomeAlone(Actor):
             self.temperatures_available = False
             print('Some temperatures are missing')
             
-
     def get_datachannel(self, name):
         for dc in self.datachannels:
             if name in dc.Name:
                 return dc
         return None
     
-
     def initialize_relays(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_failsafe_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
+            EventType=ChangeHeatPumpControl.enum_name(),
+            EventName=ChangeHeatPumpControl.SwitchToScada,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.hp_failsafe_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.hp_failsafe_relay.name}")
+        self.services.logger.error(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
 
+        event = FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.aquastat_ctrl_relay.handle,
+            EventType=ChangeAquastatControl.enum_name(),
+            EventName=ChangeAquastatControl.SwitchToScada,
+            SendTimeUnixMs=int(time.time()*1000),
+            TriggerId=str(uuid.uuid4()),
+            )
+        self._send_to(self.aquastat_ctrl_relay, event)
+        self.services.logger.error(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
-    def is_onpeak(self):
+    def is_onpeak(self) -> bool:
         time_now = pendulum.now(tz="America/New_York")
         time_in_2min = pendulum.now(tz="America/New_York").add(minutes=2)
         peak_hours = [8,9,10,11] + [16,17,18,19]
@@ -386,26 +399,23 @@ class HomeAlone(Actor):
             print("Not on-peak")
             return False
 
-
-    def is_buffer_empty(self):
+    def is_buffer_empty(self) -> bool:
         if self.latest_temperatures['buffer-depth2'] < self.swt_coldest_hour:
             print("Buffer empty")
             return True
         else:
             print("Buffer not empty")
             return False
-        
     
-    def is_buffer_full(self):
+    def is_buffer_full(self) -> bool:
         if self.latest_temperatures['buffer-depth4'] > self.swt_coldest_hour:
             print("Buffer full")
             return True
         else:
             print("Buffer not full")
             return False
-        
 
-    def is_storage_ready(self):
+    def is_storage_ready(self) -> bool:
         total_usable_kwh = 0
         for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
             layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
@@ -423,15 +433,16 @@ class HomeAlone(Actor):
         else:
             print(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh")
             return False
-        
     
     def temp_drop(self, T):
         intercept, coeff = self.temp_drop_function
         return intercept + coeff*T
     
-
     def _send_to(self, dst: ShNode, payload) -> None:
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
+        if (
+                dst.name == self.services.name or
+                self.services.get_communicator(dst.name) is not None
+        ):
             self._send(
                 Message(
                     header=Header(
@@ -445,8 +456,10 @@ class HomeAlone(Actor):
         else:
             # Otherwise send via local mqtt
             message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services._links.publish_message(
-                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
+            return self.services.publish_message( # noqa
+                self.services.LOCAL_MQTT, # noqa
+                message,
+                qos=QOS.AtMostOnce,
             )
 
 

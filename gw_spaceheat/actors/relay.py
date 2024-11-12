@@ -261,8 +261,18 @@ class Relay(Actor):
                     "dest": RelayClosedOrOpen.RelayClosed,
                 },
                 {
+                    "trigger": ChangeRelayState.CloseRelay,
+                    "source": RelayClosedOrOpen.RelayClosed,
+                    "dest": RelayClosedOrOpen.RelayClosed,
+                },
+                {
                     "trigger": ChangeRelayState.OpenRelay,
                     "source": RelayClosedOrOpen.RelayClosed,
+                    "dest": RelayClosedOrOpen.RelayOpen,
+                },
+                {
+                    "trigger": ChangeRelayState.OpenRelay,
+                    "source": RelayClosedOrOpen.RelayOpen,
                     "dest": RelayClosedOrOpen.RelayOpen,
                 },
             ]
@@ -295,8 +305,18 @@ class Relay(Actor):
                     "dest": StoreFlowRelay.ChargingStore,
                 },
                 {
+                    "trigger": ChangeStoreFlowRelay.ChargeStore,
+                    "source": StoreFlowRelay.ChargingStore,
+                    "dest": StoreFlowRelay.ChargingStore,
+                },
+                {
                     "trigger": ChangeStoreFlowRelay.DischargeStore,
                     "source": StoreFlowRelay.ChargingStore,
+                    "dest": StoreFlowRelay.DischargingStore,
+                },
+                {
+                    "trigger": ChangeStoreFlowRelay.DischargeStore,
+                    "source": StoreFlowRelay.DischargingStore,
                     "dest": StoreFlowRelay.DischargingStore,
                 },
             ]
@@ -317,8 +337,18 @@ class Relay(Actor):
                     "dest": HeatPumpControl.Scada,
                 },
                 {
+                    "trigger": ChangeHeatPumpControl.SwitchToScada,
+                    "source": HeatPumpControl.Scada,
+                    "dest": HeatPumpControl.Scada,
+                },
+                {
                     "trigger": ChangeHeatPumpControl.SwitchToTankAquastat,
                     "source": HeatPumpControl.Scada,
+                    "dest": HeatPumpControl.BufferTankAquastat,
+                },
+                {
+                    "trigger": ChangeHeatPumpControl.SwitchToTankAquastat,
+                    "source": HeatPumpControl.BufferTankAquastat,
                     "dest": HeatPumpControl.BufferTankAquastat,
                 },
             ]
@@ -339,8 +369,18 @@ class Relay(Actor):
                     "dest": AquastatControl.Scada,
                 },
                 {
+                    "trigger": ChangeAquastatControl.SwitchToScada,
+                    "source": AquastatControl.Scada,
+                    "dest": AquastatControl.Scada,
+                },
+                {
                     "trigger": ChangeAquastatControl.SwitchToBoiler,
                     "source": AquastatControl.Scada,
+                    "dest": AquastatControl.Boiler,
+                },
+                {
+                    "trigger": ChangeAquastatControl.SwitchToBoiler,
+                    "source": AquastatControl.Boiler,
                     "dest": AquastatControl.Boiler,
                 },
             ]
@@ -361,8 +401,18 @@ class Relay(Actor):
                     "dest": PrimaryPumpControl.Scada,
                 },
                 {
+                    "trigger": ChangePrimaryPumpControl.SwitchToScada,
+                    "source": PrimaryPumpControl.Scada,
+                    "dest": PrimaryPumpControl.Scada,
+                },
+                {
                     "trigger": ChangePrimaryPumpControl.SwitchToHeatPump,
                     "source": PrimaryPumpControl.Scada,
+                    "dest": PrimaryPumpControl.HeatPump,
+                },
+                {
+                    "trigger": ChangePrimaryPumpControl.SwitchToHeatPump,
+                    "source": PrimaryPumpControl.HeatPump,
                     "dest": PrimaryPumpControl.HeatPump,
                 },
             ]
