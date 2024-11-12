@@ -119,15 +119,15 @@ class HomeAlone(Actor):
         now_ms = int(time.time() * 1000)
         orig_state = self.state
         self.trigger(event)
-        self._send_to(
-            self.services._layout.nodes[H0N.primary_scada],
-            MachineStates(
-                MachineHandle=self.node.handle,
-                StateEnum=HomeAloneEvent.enum_name(),
-                StateList=[self.state],
-                UnixMsList=[now_ms],
-            ),
-        )
+        # self._send_to(
+        #     self.services._layout.nodes[H0N.primary_scada],
+        #     MachineStates(
+        #         MachineHandle=self.node.handle,
+        #         StateEnum=HomeAloneEvent.enum_name(),
+        #         StateList=[self.state],
+        #         UnixMsList=[now_ms],
+        #     ),
+        # )
         self.services.logger.error(
             f"[{self.name}] {event.value}: {orig_state} -> {self.state}"
         )
