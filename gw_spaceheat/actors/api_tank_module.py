@@ -260,6 +260,7 @@ class ApiTankModule(Actor):
         )
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
+        self.services.logger.print("sending temperatures to scada")
         if self.report_on_data:
             combined = list(zip(data.AboutNodeNameList, data.MicroVoltsList))
             combined.sort(key=lambda x: x[0])

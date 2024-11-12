@@ -424,7 +424,11 @@ class Scada(ScadaInterface, Proactor):
                         return
                 else:
                     path_dbg |= 0x00000008
-                    self.get_communicator(message.Header.Dst).process_message(message)
+                    try:
+                        self.get_communicator(message.Header.Dst).process_message(message)
+                    except Exception as e:
+                        self.logger.error(f"problem with {message}, from_node {from_node}: \n{e}")
+                        return
             case FsmAtomicReport():
                 path_dbg |= 0x00000010
                 self.get_communicator(message.Header.Dst).process_message(message)
