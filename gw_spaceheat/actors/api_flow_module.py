@@ -96,6 +96,9 @@ class ApiFlowModule(Actor):
         self.latest_sync_send_s = time.time()
         self.last_heard = time.time()
         self.last_error_report = time.time()
+        self.slow_turner: bool = False
+        if self._component.gt.ConstantGallonsPerTick > 0.5:
+            self.slow_turner = True
         self.validate_config_params()
         if self._component.gt.Enabled:
             if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
@@ -613,6 +616,8 @@ class ApiFlowModule(Actor):
         hz_list = [x / 1e6 for x in micro_hz_readings.ValueList]
         gpms = [x * 60 * gallons_per_tick for x in hz_list]
         self.latest_gpm = gpms[-1]
+        if self.slow_turner:
+            print([int(x * 100) for x in gpms])
         return ChannelReadings(
             ChannelName=self.gpm_channel.Name,
             ValueList=[int(x * 100) for x in gpms],
@@ -627,21 +632,14 @@ class ApiFlowModule(Actor):
         first_reading = False
         # Sort timestamps and compute frequencies
         self.nano_timestamps = sorted(self.nano_timestamps)
-        frequencies = [
-            1 / (t2 - t1) * 1e9
-            for t1, t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])
-        ]
+        frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
         # Remove outliers
-        min_hz, max_hz = (
-            0,
-            500,
-        )  # TODO: make these parameters? Or enforce on the Pico (if not already done)
-        self.nano_timestamps = [
-            self.nano_timestamps[i]
-            for i in range(len(frequencies))
-            if (frequencies[i] < max_hz and frequencies[i] >= min_hz)
-        ]
-        frequencies = [x for x in frequencies if (x < max_hz and x >= min_hz)]
+        if not self.slow_turner:
+            min_hz, max_hz = 0, 500 # TODO: make these parameters? Or enforce on the Pico (if not already done)
+            self.nano_timestamps = [self.nano_timestamps[i] 
+                                    for i in range(len(frequencies)) 
+                                    if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
+            frequencies = [x for x in frequencies  if (x<max_hz and x>=min_hz)]
         # Add 0 flow when there is more than no_flow_ms between two points
         new_timestamps = []
         new_frequencies = []
@@ -666,8 +664,13 @@ class ApiFlowModule(Actor):
         if self.latest_hz is None:
             self.latest_hz = frequencies[0]
             first_reading = True
+        
+        # at a gallon per tick, don't do any processing
+        if self.slow_turner:
+            sampled_timestamps = timestamps
+            smoothed_frequencies = frequencies
         # Exponential weighted average
-        if self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
+        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
             alpha = self._component.gt.ExpAlpha
             smoothed_frequencies = []
             latest = self.latest_hz
