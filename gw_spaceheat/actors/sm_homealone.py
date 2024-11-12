@@ -140,7 +140,9 @@ class HomeAlone(Actor):
         while not self._stop_requested:
     
             previous_state = self.state
-            print(f"\nNow in {previous_state}")
+            print("\n"+"-"*50)
+            print(f"HomeAlone state: {previous_state}")
+            print("-"*50)
 
             self.get_latest_temperatures()
 
@@ -203,6 +205,8 @@ class HomeAlone(Actor):
 
             if self.state != previous_state:                    
                 self.update_relays(previous_state)
+            print('Done.')
+
             await asyncio.sleep(10)
 
 
