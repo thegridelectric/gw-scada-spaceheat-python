@@ -42,7 +42,7 @@ class HomeAloneEvent(GwStrEnum):
         "home.alone.event"
 
 
-class HomeAlone(Actor):
+class SmHomeAlone(Actor):
     
     states = [
         "WaitingForTemperaturesOnPeak",
