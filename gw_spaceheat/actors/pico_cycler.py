@@ -75,42 +75,42 @@ class PicoCycler(Actor):
         {"trigger": "ShakeZombies", "source": "AllZombies", "dest": "RelayOpening"},
     ]
 
-    def __init__(self, name: str, services: ServicesInterface):
-        super().__init__(name, services)
-        self.layout = self._services.hardware_layout
-        self.pico_relay = self.layout.node(H0N.vdc_relay)
-        self.pico_actors = [
-            node
-            for node in self.layout.nodes.values()
-            if node.ActorClass in [ActorClass.ApiFlowModule, ActorClass.ApiTankModule]
-        ]
-        self._stop_requested = False
-        self.actor_by_pico = {}
-        self.picos = []
-        for node in self.pico_actors:
-            if node.ActorClass == ActorClass.ApiFlowModule:
-                self.actor_by_pico[node.component.gt.HwUid] = node
-                self.picos.append(node.component.gt.HwUid)
-            if node.ActorClass == ActorClass.ApiTankModule:
-                self.actor_by_pico[node.component.gt.PicoAHwUid] = node
-                self.picos.append(node.component.gt.HwUid)
-                self.actor_by_pico[node.component.gt.PicoAHwUid] = node
-        self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
-        self.primary_scada = self.layout.node(H0N.primary_scada)
-        # This counts consecutive failed reboots per pico
-        self.reboots = {pico: 0 for pico in self.picos}
-        self.trigger_id = None
-        self.fsm_reports = []
-        self.last_zombie_problem_report_s = time.time() - 24 * 3600
-        self.last_zombie_shake = time.time()
-        self.state = "PicosLive"
-        # self.machine = Machine(
-        #     model=self,
-        #     states=PicoCycler.states,
-        #     transitions=PicoCycler.transitions,
-        #     initial="PicosLive",
-        #     send_event=True,
-        # )
+    # def __init__(self, name: str, services: ServicesInterface):
+    #     super().__init__(name, services)
+    #     self.layout = self._services.hardware_layout
+    #     self.pico_relay = self.layout.node(H0N.vdc_relay)
+    #     self.pico_actors = [
+    #         node
+    #         for node in self.layout.nodes.values()
+    #         if node.ActorClass in [ActorClass.ApiFlowModule, ActorClass.ApiTankModule]
+    #     ]
+    #     self._stop_requested = False
+    #     self.actor_by_pico = {}
+    #     self.picos = []
+    #     for node in self.pico_actors:
+    #         if node.ActorClass == ActorClass.ApiFlowModule:
+    #             self.actor_by_pico[node.component.gt.HwUid] = node
+    #             self.picos.append(node.component.gt.HwUid)
+    #         if node.ActorClass == ActorClass.ApiTankModule:
+    #             self.actor_by_pico[node.component.gt.PicoAHwUid] = node
+    #             self.picos.append(node.component.gt.HwUid)
+    #             self.actor_by_pico[node.component.gt.PicoAHwUid] = node
+    #     self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
+    #     self.primary_scada = self.layout.node(H0N.primary_scada)
+    #     # This counts consecutive failed reboots per pico
+    #     self.reboots = {pico: 0 for pico in self.picos}
+    #     self.trigger_id = None
+    #     self.fsm_reports = []
+    #     self.last_zombie_problem_report_s = time.time() - 24 * 3600
+    #     self.last_zombie_shake = time.time()
+    #     self.state = "PicosLive"
+    #     self.machine = Machine(
+    #         model=self,
+    #         states=PicoCycler.states,
+    #         transitions=PicoCycler.transitions,
+    #         initial="PicosLive",
+    #         send_event=True,
+    #     )
 
     @property
     def flatlined_picos(self) -> List[str]:
