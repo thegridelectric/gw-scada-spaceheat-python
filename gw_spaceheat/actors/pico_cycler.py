@@ -486,7 +486,7 @@ class PicoCycler(Actor):
                 )
         )
         self.services.logger.error(
-            f"{self.node.handle}. Initialization: sending OpenRelay to {self.pico_relay.name}"
+            f"{self.node.handle}. Initialization: sending CloseRelay to {self.pico_relay.name}"
         )
         while not self._stop_requested:
             self.services.logger.error("patting picocycler watchdog")
