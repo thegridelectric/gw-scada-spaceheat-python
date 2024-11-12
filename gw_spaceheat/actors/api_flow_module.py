@@ -500,7 +500,7 @@ class ApiFlowModule(Actor):
                 self.primary_scada,
                 TicklistReedReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
-                    FlowNodeName=self._component.gt.FlowNodeName,
+                    ChannelName=self.name,
                     ScadaReceivedUnixMs=int(time.time() * 1000),
                     Ticklist=data,
                 ),

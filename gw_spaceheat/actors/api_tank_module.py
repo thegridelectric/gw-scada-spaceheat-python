@@ -73,7 +73,7 @@ class ApiTankModule(Actor):
                 path="/" + self.params_path,
                 handler=self._handle_params_post,
             )
-        self.report_on_data = True
+        self.report_on_data = False
         self.pico_a_uid = self._component.gt.PicoAHwUid
         self.pico_b_uid = self._component.gt.PicoBHwUid
         # use the following for generate pico offline reports for triggering the pico cycler
