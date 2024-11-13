@@ -189,15 +189,15 @@ class PicoCycler(Actor):
                 return
             self.log(f"{actor.name} pico {pico} reporting missing")
 
-            # this pico is now flatlined if it was not before            
+            # this pico is now flatlined if it was not before
             self.pico_states[pico] = SinglePicoState.Flatlined
 
             # this kicks off an fsm report sequence, which requires a comment
             self.trigger_id = str(uuid.uuid4())
             if payload.PicoHwUid in self.ab_by_pico:
-                comment=f"triggered by {payload.ActorName}{self.ab_by_pico[payload.PicoHwUid]} {payload.PicoHwUid}" 
+                comment=f"triggered by {payload.ActorName}{self.ab_by_pico[payload.PicoHwUid]} {payload.PicoHwUid}"
             else:
-                comment=f"triggered by {payload.ActorName}{self.ab_by_pico[payload.PicoHwUid]} {payload.PicoHwUid}" 
+                comment=f"triggered by {payload.ActorName} {payload.PicoHwUid}"
             self.fsm_comment = comment
             self.pico_missing()
 
