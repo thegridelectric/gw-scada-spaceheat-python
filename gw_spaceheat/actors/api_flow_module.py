@@ -302,8 +302,8 @@ class ApiFlowModule(Actor):
         # temporary hack prior to installerapp - in case a pico gets installed
         # and the hardware layout does not have its id yet
         if self._component.gt.HwUid is None or self._component.gt.HwUid == params.HwUid:
-            self.log(f"UPDATE LAYOUT!!: Pico HWUID {params.HwUid}")
             if self._component.gt.HwUid is None:
+                self.log(f"UPDATE LAYOUT!!: Pico HWUID {params.HwUid}")
                 self.hw_uid = params.HwUid
             new_params = FlowHallParams(
                 HwUid=params.HwUid,
