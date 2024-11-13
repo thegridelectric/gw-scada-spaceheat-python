@@ -9,6 +9,7 @@ from gwproactor import QOS, Actor, MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.house_0_names import H0N
+from gwproto.data_classes.components import PicoTankModuleComponent
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
     ActorClass,
@@ -99,6 +100,7 @@ class PicoCycler(Actor):
         ]
         self._stop_requested = False
         self.actor_by_pico = {}
+        self.ab_by_pico = {}
         self.picos = []
         for node in self.pico_actors:
             if node.ActorClass == ActorClass.ApiFlowModule:
@@ -106,14 +108,17 @@ class PicoCycler(Actor):
                 self.picos.append(node.component.gt.HwUid)
             if node.ActorClass == ActorClass.ApiTankModule:
                 self.actor_by_pico[node.component.gt.PicoAHwUid] = node
+                self.ab_by_pico[node.component.gt.PicoAHwUid] = 'a'
                 self.picos.append(node.component.gt.PicoAHwUid)
                 self.actor_by_pico[node.component.gt.PicoBHwUid] = node
+                self.ab_by_pico[node.component.gt.PicoBHwUid] = 'b'
                 self.picos.append(node.component.gt.PicoBHwUid)
         self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
         self.primary_scada = self.layout.node(H0N.primary_scada)
         # This counts consecutive failed reboots per pico
         self.reboots = {pico: 0 for pico in self.picos}
         self.trigger_id = None
+        self.fsm_comment = None
         self.fsm_reports = []
         self.last_zombie_problem_report_s = time.time() - 24 * 3600
         self.last_zombie_shake = time.time()
@@ -127,11 +132,11 @@ class PicoCycler(Actor):
         )
 
     @property
-    def flatlined_picos(self) -> List[str]:
+    def flatlined(self) -> List[str]:
         """
         Non-zombie picos that have not been sending messages recently
         """
-        non_zombies = [pico for pico in self.picos if pico not in self.zombie_picos]
+        non_zombies = [pico for pico in self.picos if pico not in self.zombies]
         flatlined = []
         for pico in non_zombies:
             if self.pico_states[pico] == SinglePicoState.Flatlined:
@@ -139,7 +144,7 @@ class PicoCycler(Actor):
         return flatlined
 
     @property
-    def zombie_picos(self) -> List[str]:
+    def zombies(self) -> List[str]:
         """
         Picos that we are supposed to be tracking that have been
         gone for too many consecutive reboots (REBOOT ATTEMPTS)
@@ -152,7 +157,7 @@ class PicoCycler(Actor):
 
     @property
     def all_zombies(self) -> bool:
-        if len(self.zombie_picos) == len(self.picos):
+        if len(self.zombies) == len(self.picos):
             return True
         return False
 
@@ -179,15 +184,25 @@ class PicoCycler(Actor):
             pico = payload.PicoHwUid
             if actor not in self.pico_actors:
                 return
-            if pico in self.zombie_picos:
-                self.log(f"Zombie {actor.name} pico {pico} reporting missing.")
+            if pico in self.zombies:
+                self.log(f"Zombie {actor.name} {pico} reporting missing.")
                 return
             self.log(f"{actor.name} pico {pico} reporting missing")
-            self.trigger_id = str(uuid.uuid4())
-            self.pico_states[pico] = SinglePicoState.Flatlined
-            self.pico_missing(comment=f"triggered by {payload.ActorName} {payload.PicoHwUid}")
 
-    def pico_missing(self, comment: str) -> None:
+            # this pico is now flatlined if it was not before            
+            self.pico_states[pico] = SinglePicoState.Flatlined
+
+            # this kicks off an fsm report sequence, which requires a comment
+            self.trigger_id = str(uuid.uuid4())
+            if payload.PicoHwUid in self.ab_by_pico:
+                comment=f"triggered by {payload.ActorName}{self.ab_by_pico[payload.PicoHwUid]} {payload.PicoHwUid}" 
+            else:
+                comment=f"triggered by {payload.ActorName}{self.ab_by_pico[payload.PicoHwUid]} {payload.PicoHwUid}" 
+            self.fsm_comment = comment
+            self.pico_missing()
+
+
+    def pico_missing(self) -> None:
         """
         Called directly when rebooting picos does not bring back all the
         picos, or indirectly when state is PicosLive and we receive a
@@ -211,12 +226,9 @@ class PicoCycler(Actor):
             EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time() * 1000),
             TriggerId=self.trigger_id,
-            Comment=comment,
         )
         self._send_to(self.pico_relay, event)
-        self.services.logger.error(
-            f"{self.node.handle} sending OpenRelay to {self.pico_relay.name}"
-        )
+        self.log(f"OpenRelay to {self.pico_relay.name}")
 
     def process_channel_readings(self, actor: ShNode, payload: ChannelReadings) -> None:
         if actor not in self.pico_actors:
@@ -264,7 +276,7 @@ class PicoCycler(Actor):
             self.reboots[pico] = 0
             if all(
                 self.pico_states[pico] == SinglePicoState.Alive
-                for pico in self.zombie_picos
+                for pico in self.zombies
             ):
                 self.confirm_rebooted()
 
@@ -346,8 +358,8 @@ class PicoCycler(Actor):
         await asyncio.sleep(self.PICO_REBOOT_S)
         if self.all_zombies:
             self.reboot_dud()
-        elif len(self.flatlined_picos) > 0:
-            self.pico_missing(f"Missing {', '.join(self.flatlined_picos)}")
+        elif len(self.flatlined) > 0:
+            self.pico_missing()
         else:
             self.confirm_rebooted()
 
@@ -388,6 +400,7 @@ class PicoCycler(Actor):
                 FromName=self.name,
                 TriggerId=self.trigger_id,
                 AtomicList=self.fsm_reports,
+                Comment=self.fsm_comment,
             ),
         )
         self.services.logger.error(
@@ -396,6 +409,7 @@ class PicoCycler(Actor):
         )
         self.fsm_reports = []
         self.trigger_id = None
+        self.fsm_comment = None
 
     def trigger_event(self, event: PicoCyclerEvent) -> None:
         now_ms = int(time.time() * 1000)
@@ -480,7 +494,8 @@ class PicoCycler(Actor):
         """
         await asyncio.sleep(3)
         self.trigger_id = str(uuid.uuid4())
-        self.pico_missing(comment="triggering pico missing at initialization")
+        self.fsm_comment = "triggering pico missing at initialization"
+        self.pico_missing()
 
         while not self._stop_requested:
             # self.services.logger.error("################# PATTING PICO WATCHDOG")
@@ -515,7 +530,7 @@ class PicoCycler(Actor):
                 last + zombie_update_period - (last % zombie_update_period)
             )
             zombies = []
-            for pico in self.zombie_picos:
+            for pico in self.zombies:
                 zombies.append(f" {pico} [{self.actor_by_pico[pico]}]")
             if time.time() > next_zombie_problem:
                 self._send_to(

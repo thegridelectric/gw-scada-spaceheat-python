@@ -298,10 +298,11 @@ class ApiFlowModule(Actor):
                 f"{self.name} has {self._component.cac.MakeModel}"
                 "but got FlowHallParams!"
             )
-        self.log(f"Got params for {params.ActorNodeName}: {params.HwUid}:\n{params}")
+        self.log(f"{params.HwUid} PARAMS")
         # temporary hack prior to installerapp - in case a pico gets installed
         # and the hardware layout does not have its id yet
         if self._component.gt.HwUid is None or self._component.gt.HwUid == params.HwUid:
+            self.log(f"UPDATE LAYOUT!!: Pico HWUID {params.HwUid}")
             if self._component.gt.HwUid is None:
                 self.hw_uid = params.HwUid
             new_params = FlowHallParams(
@@ -333,7 +334,7 @@ class ApiFlowModule(Actor):
                 f"{self.name} has {self._component.cac.MakeModel}"
                 "but got FlowReedParams!"
             )
-        self.log(f"Got params for {params.ActorNodeName}: {params.HwUid}:\n{params}")
+        self.log(f"{params.HwUid} PARAMS")
         if self._component.gt.HwUid is None or self._component.gt.HwUid == params.HwUid:
             if self._component.gt.HwUid is None:
                 self.hw_uid = params.HwUid

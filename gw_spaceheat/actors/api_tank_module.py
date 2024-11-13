@@ -186,10 +186,7 @@ class ApiTankModule(Actor):
                 )
                 # TODO: send message to self so that writing to hardware layout isn't
                 # happening in IO loop
-            self.services.logger.error(
-                f"Got {params.TypeName} for {params.HwUid} ({params.ActorNodeName})"
-            )
-            self.log(f"Got TankModuleParams for {params.PicoAB}, {params.HwUid} ")
+            self.log(f"{self.name}-{params.PicoAB}, {params.HwUid} ")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
