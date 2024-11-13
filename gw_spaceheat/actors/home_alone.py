@@ -16,6 +16,16 @@ from gwproto.enums import ChangeRelayState, ChangeHeatPumpControl, ChangeAquasta
 from gwproto.named_types import FsmEvent, MachineStates
 import pendulum
 
+# TODO
+# If in Aquastat we can determine temperatures by closing ISO valve
+# and running water through dist system
+# During the last hour before onpeak, just charge the buffer all the time
+# stop discharging when store cold pipe is warming up / or when storage colder than the buffer
+# were only turn on store pump when dist pump is getting cold
+# TODO: if storage is cold you should charge buffer before onpeak starts
+# TODO: async checking if dist pump on to 
+# TODO: stop discharging store if bottom of store gets warm
+# TODO: try on beech (before implementing): try running the heat call a little longer to heat and mix the bottom of the buffer
 
 class HomeAloneState(GwStrEnum):
     WaitingForTemperaturesOnPeak = auto()
@@ -28,6 +38,16 @@ class HomeAloneState(GwStrEnum):
     @classmethod
     def enum_name(cls) -> str:
         return "home.alone.state"
+    
+
+class HomeAlonePicoState(GwStrEnum):
+    OnlyBufferPicos = auto()
+    NoBufferPicos = auto()
+    AllPicos = auto()
+    
+    @classmethod
+    def enum_name(cls) -> str:
+        return "home.alone.pico.state"
 
 
 class HomeAloneEvent(GwStrEnum):
@@ -90,6 +110,23 @@ class HomeAlone(Actor):
         {"trigger": "OffPeakStart", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
     ]
 
+    # TODO: not all storage available
+
+    pico_states = [
+        "OnlyBufferPicos",
+        "NoBufferPicos",
+        "AllPicos",
+    ]
+
+    pico_transitions = [
+        {"trigger": "AllPicosAvailable", "source": "OnlyBufferPicos", "dest": "AllPicos"},
+        {"trigger": "AllPicosAvailable", "source": "NoBufferPicos", "dest": "AllPicos"},
+        {"trigger": "BufferPicoMissing", "source": "AllPicos", "dest": "NoBufferPicos"},
+        {"trigger": "BufferPicoMissing", "source": "OnlyBufferPicos", "dest": "NoBufferPicos"},
+        {"trigger": "BufferPicosAvailable", "source": "NoBufferPicos", "dest": "OnlyBufferPicos"},
+        {"trigger": "StorePicoMissing", "source": "AllPicos", "dest": "OnlyBufferPicos"},
+    ]
+
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
@@ -112,6 +149,14 @@ class HomeAlone(Actor):
             states=HomeAlone.states,
             transitions=HomeAlone.transitions,
             initial=HomeAloneState.WaitingForTemperaturesOnPeak.value,
+            send_event=True,
+        )
+        # TODO: change to self.pico_machine.state
+        self.pico_machine = Machine(
+            model=self,
+            states=HomeAlone.pico_states,
+            transitions=HomeAlone.pico_transitions,
+            initial="AllPicos",
             send_event=True,
         )
         # House parameters
@@ -367,7 +412,37 @@ class HomeAlone(Actor):
             self.temperatures_available = True
         else:
             self.temperatures_available = False
-            print('Some temperatures are missing')
+
+        if self.pico_machine.state != HomeAlonePicoState.AllPicos:
+            if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
+                self.pico_machine.trigger('AllPicosAvailable')
+        buffer_missing, storage_missing = False, False
+        if len([x for x in list(self.latest_temperatures.keys()) if 'buffer' in x]) != 4:
+            print('Buffer temperatures are missing')
+            buffer_missing = True
+        if len([x for x in list(self.latest_temperatures.keys()) if 'tank' in x]) != 12:
+            print('Storage temperatures are missing')
+            storage_missing = True
+        
+        previous_pico_state = self.pico_machine.state
+        if self.pico_machine.state == HomeAlonePicoState.AllPicos:
+            if buffer_missing:
+                self.pico_machine.trigger("BufferPicoMissing")
+            elif storage_missing:
+                self.pico_machine.trigger("StorePicoMissing")
+        elif self.pico_machine.state == HomeAlonePicoState.OnlyBufferPicos:
+            if buffer_missing:
+                self.pico_machine.trigger("BufferPicoMissing")
+            elif not storage_missing:
+                self.pico_machine.trigger("AllPicosAvailable")
+        elif self.pico_machine.state == HomeAlonePicoState.NoBufferPicos:                
+            if not buffer_missing:
+                if storage_missing:
+                    self.pico_machine.trigger("BufferPicosAvailable")
+                else:
+                    self.pico_machine.trigger("AllPicosAvailable")
+        if self.pico_machine.state != previous_pico_state:
+            print(f"Switched from {previous_pico_state} to {self.pico_machine.state}")
             
     def get_datachannel(self, name):
         for dc in self.datachannels:
@@ -411,22 +486,38 @@ class HomeAlone(Actor):
             return False
 
     def is_buffer_empty(self) -> bool:
-        if self.latest_temperatures['buffer-depth2']/1000*9/5+32 < self.swt_coldest_hour:
-            print(f"Buffer empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
-            return True
+        if self.pico_machine.state != HomeAlonePicoState.NoBufferPicos:
+            if self.latest_temperatures['buffer-depth2']/1000*9/5+32 < self.swt_coldest_hour:
+                print(f"Buffer empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
+                return True
+            else:
+                print(f"Buffer not empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
+                return False
         else:
-            print(f"Buffer not empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
-            return False
-    
+            buffer_hot_pipe, buffer_cold_pipe = self._get_buffer_hot_and_cold_pipes()
+            # TODO create a condition based on these two to determine if buffer empty
+
     def is_buffer_full(self) -> bool:
-        if self.latest_temperatures['buffer-depth4']/1000*9/5+32 > self.swt_coldest_hour:
-            print(f"Buffer full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
-            return True
+        if self.pico_machine.state != HomeAlonePicoState.NoBufferPicos:
+            if self.latest_temperatures['buffer-depth4']/1000*9/5+32 > self.swt_coldest_hour:
+                print(f"Buffer full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
+                return True
+            else:
+                print(f"Buffer not full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
+                return False
         else:
-            print(f"Buffer not full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
-            return False
+            buffer_hot_pipe, buffer_cold_pipe = self._get_buffer_hot_and_cold_pipes()
+            # TODO create a condition based on these two to determine if buffer full
+ 
+    async def _get_buffer_hot_and_cold_pipes(self) -> None:
+        # TODO: close iso valve, run distribution pump for a while
+        asyncio.sleep(10*60)
+        return 0, 0
 
     def is_storage_ready(self) -> bool:
+        if len([x for x in list(self.latest_temperatures.keys()) if 'tank' in x]) != 12:
+            # TODO add some processing to self.latest_temperatures to have some temperatures for the storage
+            ...
         total_usable_kwh = 0
         for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
             layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
@@ -446,12 +537,17 @@ class HomeAlone(Actor):
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
-        if self.latest_temperatures['buffer-depth1'] > self.latest_temperatures['tank1-depth1']:
-            print(f"Storage top colder than buffer top")
-            return True
-        else:
-            print(f"Storage top warmer than buffer top")
-            return False
+        if self.pico_machine.state == HomeAlonePicoState.AllPicos:
+            if self.latest_temperatures['buffer-depth1'] > self.latest_temperatures['tank1-depth1']:
+                print("Storage top colder than buffer top")
+                return True
+            else:
+                print("Storage top warmer than buffer top")
+                return False
+        elif self.pico_machine.state == HomeAlonePicoState.NoBufferPicos:
+            buffer_hot_pipe, buffer_cold_pipe = self._get_buffer_hot_and_cold_pipes
+            # TODO: logic based on these two to determine when to stop discharging the store
+
     
     def temp_drop(self, T):
         intercept, coeff = self.temp_drop_function
