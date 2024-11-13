@@ -73,7 +73,7 @@ class ApiTankModule(Actor):
                 path="/" + self.params_path,
                 handler=self._handle_params_post,
             )
-        self.report_on_data = False
+        self.log_data = False
         self.pico_a_uid = self._component.gt.PicoAHwUid
         self.pico_b_uid = self._component.gt.PicoBHwUid
         # use the following for generate pico offline reports for triggering the pico cycler
@@ -181,21 +181,19 @@ class ApiTankModule(Actor):
                     self.pico_a_uid = params.HwUid
                 else:
                     self.pico_b_uid = params.HwUid
-                print(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} ")
-                print(
-                    f'and add Pico{params.PicoAB.capitalize()}HwUid = "{params.HwUid}'
+                self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} "
+                    f"and add Pico{params.PicoAB.capitalize()}HwUid = '{params.HwUid}'"
                 )
                 # TODO: send message to self so that writing to hardware layout isn't
                 # happening in IO loop
             self.services.logger.error(
                 f"Got {params.TypeName} for {params.HwUid} ({params.ActorNodeName})"
             )
-            print(f"Got {params}")
-            print(f"Returning {new_params}")
+            self.log(f"Got TankModuleParams for {params.PicoAB}, {params.HwUid} ")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
-            print(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+            self.log(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
             # TODO: send problem report?
             return Response()
 
@@ -260,7 +258,7 @@ class ApiTankModule(Actor):
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
         # self.services.logger.error("sending temperatures to scada")
-        if self.report_on_data:
+        if self.log_data:
             combined = list(zip(data.AboutNodeNameList, data.MicroVoltsList))
             combined.sort(key=lambda x: x[0])
             data.AboutNodeNameList, data.MicroVoltsList = zip(*combined)
@@ -268,9 +266,10 @@ class ApiTankModule(Actor):
                 mv = data.MicroVoltsList[i]
                 try:
                     temp_f = self.simple_beta_for_pico(mv / 1e6, fahrenheit=True)
-                    self.services.logger.error(f"{data.AboutNodeNameList[i]}: {round(temp_f, 2)} F")
+                    self.log(f"{data.AboutNodeNameList[i]}: {round(temp_f, 2)} F")
                 except Exception:
-                    print(f"{data.AboutNodeNameList[i]}: OPEN")
+                    #TODO - raise problem??
+                    self.log(f"{data.AboutNodeNameList[i]}: OPEN")
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
@@ -397,3 +396,7 @@ class ApiTankModule(Actor):
     @property
     def primary_scada(self) -> ShNode:
         return self.layout.nodes[H0N.primary_scada]
+    
+    def log(self, note: str) -> None:
+        log_str = f"[{self.name}] {note}"
+        self.services.logger.error(log_str)

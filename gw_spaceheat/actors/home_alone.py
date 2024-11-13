@@ -241,9 +241,9 @@ class HomeAlone(Actor):
         if "StoreDischarge" not in self.state:
             self._turn_off_store()
         if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
-            self._charge_store()
+            self._valved_to_charge_store()
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
-            self._discharge_store()
+            self._valved_to_discharge_store()
         
 
     def _turn_on_HP(self):
@@ -298,7 +298,7 @@ class HomeAlone(Actor):
         self.services.logger.error(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
 
 
-    def _charge_store(self):
+    def _valved_to_charge_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
@@ -311,7 +311,7 @@ class HomeAlone(Actor):
         self.services.logger.error(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
 
 
-    def _discharge_store(self):
+    def _valved_to_discharge_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,

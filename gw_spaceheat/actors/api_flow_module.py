@@ -298,10 +298,7 @@ class ApiFlowModule(Actor):
                 f"{self.name} has {self._component.cac.MakeModel}"
                 "but got FlowHallParams!"
             )
-        self.services.logger.error(
-            f"Got {params.TypeName}  for {params.HwUid} ({params.ActorNodeName})"
-        )
-        print(f"\nGot params for {params.HwUid}:\n{params}")
+        self.log(f"Got params for {params.ActorNodeName}: {params.HwUid}:\n{params}")
         # temporary hack prior to installerapp - in case a pico gets installed
         # and the hardware layout does not have its id yet
         if self._component.gt.HwUid is None or self._component.gt.HwUid == params.HwUid:
@@ -317,7 +314,7 @@ class ApiFlowModule(Actor):
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
-            print(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+            self.log(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
             # TODO: send problem report?
             return Response()
 
@@ -336,15 +333,12 @@ class ApiFlowModule(Actor):
                 f"{self.name} has {self._component.cac.MakeModel}"
                 "but got FlowReedParams!"
             )
-        self.services.logger.error(
-            f"Got {params.TypeName}  for {params.HwUid} ({params.ActorNodeName})"
-        )
-        print(f"\nGot params for {params.HwUid}:\n{params}")
+        self.log(f"Got params for {params.ActorNodeName}: {params.HwUid}:\n{params}")
         if self._component.gt.HwUid is None or self._component.gt.HwUid == params.HwUid:
             if self._component.gt.HwUid is None:
                 self.hw_uid = params.HwUid
                 # TODO: update params from layout
-                print(f"Layout update: {self.name} Pico HWUID {params.HwUid}")
+                self.log(f"UPDATE LAYOUT!!: Pico HWUID {params.HwUid}")
                 # TODO: send message to self so that writing to hardware layout isn't
                 # happening in IO loop
             new_params = FlowReedParams(
@@ -355,11 +349,10 @@ class ApiFlowModule(Actor):
                 PublishAnyTicklistAfterS=self._component.gt.PublishAnyTicklistAfterS,
                 DeadbandMilliseconds=params.DeadbandMilliseconds,
             )
-            print(f"returning {new_params}")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
-            print(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
+            self.log(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
             # TODO: send problem report?
             return Response()
 
@@ -472,7 +465,7 @@ class ApiFlowModule(Actor):
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
         self.ticklist = data
         if data.HwUid != self.hw_uid:
-            print(
+            self.log(
                 f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!"
             )
             return
@@ -533,9 +526,7 @@ class ApiFlowModule(Actor):
 
     def _process_ticklist_hall(self, data: TicklistHall) -> None:
         if data.HwUid != self.hw_uid:
-            print(
-                f"{self.name}: Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!"
-            )
+            self.log(f"Ignoring data from pico {data.HwUid} - expect {self.hw_uid}!")
             return
         self.last_heard = time.time()
         if len(data.RelativeMicrosecondList) == 0:
@@ -616,6 +607,7 @@ class ApiFlowModule(Actor):
         hz_list = [x / 1e6 for x in micro_hz_readings.ValueList]
         gpms = [x * 60 * gallons_per_tick for x in hz_list]
         self.latest_gpm = gpms[-1]
+        self.log("gpms x 100 for slow turner:")
         if self.slow_turner:
             print([int(x * 100) for x in gpms])
         return ChannelReadings(
@@ -627,7 +619,7 @@ class ApiFlowModule(Actor):
     def get_micro_hz_readings(self) -> ChannelReadings:
         if len(self.nano_timestamps) < 2:
             raise ValueError(
-                f"Should only call get_hz_readings with at least 2 timestamps!"
+                "Should only call get_hz_readings with at least 2 timestamps!"
             )
         first_reading = False
         # Sort timestamps and compute frequencies
@@ -714,7 +706,7 @@ class ApiFlowModule(Actor):
                     x for x in sampled_timestamps if x >= timestamps[1]
                 ]
             else:
-                print(
+                self.log(
                     f"Warning: ticklist was too short ({len(frequencies)} instead of 20), so no filtering applied."
                 )
                 sampled_timestamps = timestamps
@@ -772,6 +764,10 @@ class ApiFlowModule(Actor):
             return self.services._links.publish_message(
                 self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
             )
+    
+    def log(self, note: str) -> None:
+        log_str = f"[{self.name}] {note}"
+        self.services.logger.error(log_str)
 
     @property
     def primary_scada(self) -> ShNode:
