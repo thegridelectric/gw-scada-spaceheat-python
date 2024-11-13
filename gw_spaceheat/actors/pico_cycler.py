@@ -177,19 +177,17 @@ class PicoCycler(Actor):
         # ignore messages from other actors unless currently live
         if self.state == PicoCyclerState.PicosLive:
             pico = payload.PicoHwUid
-            if pico in self.zombie_picos:
-                note = f"Zombie {actor.name} pico {pico} reporting missing"
-            else:
-                note = f"{actor.name} pico {pico} reporting missing"
-            self.services.logger.error(note)
             if actor not in self.pico_actors:
                 return
-
+            if pico in self.zombie_picos:
+                self.log(f"Zombie {actor.name} pico {pico} reporting missing.")
+                return
+            self.log(f"{actor.name} pico {pico} reporting missing")
             self.trigger_id = str(uuid.uuid4())
             self.pico_states[pico] = SinglePicoState.Flatlined
-            self.pico_missing()
+            self.pico_missing(comment=f"triggered by {payload.ActorName} {payload.PicoHwUid}")
 
-    def pico_missing(self) -> None:
+    def pico_missing(self, comment: str) -> None:
         """
         Called directly when rebooting picos does not bring back all the
         picos, or indirectly when state is PicosLive and we receive a
@@ -213,6 +211,7 @@ class PicoCycler(Actor):
             EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time() * 1000),
             TriggerId=self.trigger_id,
+            Comment=comment,
         )
         self._send_to(self.pico_relay, event)
         self.services.logger.error(
@@ -348,7 +347,7 @@ class PicoCycler(Actor):
         if self.all_zombies:
             self.reboot_dud()
         elif len(self.flatlined_picos) > 0:
-            self.pico_missing()
+            self.pico_missing(f"Missing {', '.join(self.flatlined_picos)}")
         else:
             self.confirm_rebooted()
 
@@ -481,7 +480,7 @@ class PicoCycler(Actor):
         """
         await asyncio.sleep(3)
         self.trigger_id = str(uuid.uuid4())
-        self.pico_missing()
+        self.pico_missing(comment="triggering pico missing at initialization")
 
         while not self._stop_requested:
             # self.services.logger.error("################# PATTING PICO WATCHDOG")
@@ -508,7 +507,7 @@ class PicoCycler(Actor):
             # back when wifi is back
             if time.time() - self.last_zombie_shake > self.SHAKE_ZOMBIE_HR * 3600:
                 self.shake_zombies()
-                print("shaking zombies")
+                self.services.logger.error("shaking zombies")
             # report the varios zombie picos as problem events
             zombie_update_period = self.ZOMBIE_UPDATE_HR * 3600
             last = self.last_zombie_problem_report_s
@@ -527,3 +526,9 @@ class PicoCycler(Actor):
                     ]).problem_event(summary="pico-zombies"),
                 )
                 self.last_zombie_problem_report_s = time.time()
+    
+
+    def log(self, note: str) -> None:
+        log_str = f"[{self.name}] {note}"
+        self.services.logger.error(log_str)
+
