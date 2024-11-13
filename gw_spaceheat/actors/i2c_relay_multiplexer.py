@@ -323,6 +323,10 @@ class I2cRelayMultiplexer(Actor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
 
+    def log(self, note: str) -> None:
+        log_str = f"[{self.name}] {note}"
+        self.services.logger.error(log_str)
+
 
 def krida_to_gw(krida_board: int, krida_idx: int) -> int:
     if krida_idx < 9:
@@ -347,3 +351,6 @@ def gw_to_pin(gw_idx: int) -> int:
     else:
         krida_idx = i
     return krida_idx - 1
+
+
+

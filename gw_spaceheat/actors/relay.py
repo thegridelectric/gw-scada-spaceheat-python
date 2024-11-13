@@ -1,10 +1,11 @@
 """Implements Relay Actors"""
+import asyncio
 import time
-from typing import Dict, List, cast
+from typing import Dict, List, cast, Sequence, Optional
 
 from gw.enums import GwStrEnum
-from gwproactor import QOS, Actor, ServicesInterface
-from gwproactor.message import Message
+from gwproactor import QOS, Actor, ServicesInterface, MonitoredName
+from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
@@ -37,6 +38,7 @@ from transitions import Machine
 
 
 class Relay(Actor):
+    STATE_REPORT_S = 60
     node: ShNode
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
@@ -79,6 +81,7 @@ class Relay(Actor):
         self.my_event_enum = ChangeRelayState.enum_name()
         self.my_state_enum = RelayClosedOrOpen.enum_name()
         self.initialize_fsm()
+        self._stop_requested = False
 
     @property
     def fsm_name(self) -> str:
@@ -172,15 +175,7 @@ class Relay(Actor):
                 SendTimeUnixMs=now_ms,
             )
             self._send_to(self.relay_multiplexer, pin_change_event)
-            self._send_to(
-                self.primary_scada,
-                MachineStates(
-                    MachineHandle=self.node.handle,
-                    StateEnum=self.my_state_enum.enum_name(),
-                    StateList=[self.state],
-                    UnixMsList=[now_ms],
-                ),
-            )
+            self.send_state(now_ms)
             self.reports_by_trigger[message.TriggerId].append(
                 FsmAtomicReport(
                     MachineHandle=self.node.handle,
@@ -230,19 +225,53 @@ class Relay(Actor):
             )
         )
 
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.STATE_REPORT_S * 2.1)]
+
     def start(self) -> None:
-        ...
+        self.services.add_task(
+            asyncio.create_task(self.main(), name="relay state reporter")
+        )
+
+    async def main(self) -> None:
+        await asyncio.sleep(2)
+        self.send_state()
+
+        while not self._stop_requested:
+            hiccup = 1.2
+            sleep_s = max(
+                hiccup, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
+            )
+            await asyncio.sleep(sleep_s)
+            if sleep_s != hiccup:
+                self.send_state()
+                self._send(PatInternalWatchdogMessage(src=self.name))
 
     def stop(self) -> None:
         """
         IOLoop will take care of shutting down webserver interaction.
         Here we stop periodic reporting task.
         """
-        ...
+        self._stop_requested = True
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
         ...
+
+    def send_state(self, now_ms: Optional[int] = None) -> None:
+        if now_ms is None:
+            now_ms = int(time.time() * 1000)
+        self.services.logger.error(f"State: {self.state}")
+        self._send_to(
+            self.primary_scada,
+            MachineStates(
+                MachineHandle=self.node.handle,
+                StateEnum=self.my_state_enum.enum_name(),
+                StateList=[self.state],
+                UnixMsList=[now_ms],
+            ),
+        )
 
     def initialize_fsm(self):
         if self.name in {

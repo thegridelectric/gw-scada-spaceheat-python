@@ -469,7 +469,7 @@ class PicoCycler(Actor):
 
     def start(self) -> None:
         self.services.add_task(
-            asyncio.create_task(self.main(), name="ApiFlowModule keepalive")
+            asyncio.create_task(self.main(), name="picocycler keepalive")
         )
 
     def stop(self) -> None:
@@ -499,14 +499,15 @@ class PicoCycler(Actor):
 
         while not self._stop_requested:
             # self.services.logger.error("################# PATTING PICO WATCHDOG")
-            self._send(PatInternalWatchdogMessage(src=self.name))
+            hiccup = 1.2
             sleep_s = max(
-                1.2, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
+                hiccup, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
             )
             print(f"[{self.name}] Sleeping for {sleep_s}")
             await asyncio.sleep(sleep_s)
             # report the state
-            if sleep_s != 2:
+            if sleep_s != hiccup:
+                self._send(PatInternalWatchdogMessage(src=self.name))
                 self._send_to(
                     self.primary_scada,
                     MachineStates(
