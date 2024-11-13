@@ -401,7 +401,7 @@ class HomeAlone(Actor):
     def is_onpeak(self) -> bool:
         time_now = pendulum.now(tz="America/New_York")
         time_in_2min = pendulum.now(tz="America/New_York").add(minutes=2)
-        peak_hours = [8,9,10,11] + [16,17,18,19]
+        peak_hours = [7,8,9,10,11] + [16,17,18,19]
         if ((time_now.hour in peak_hours or time_in_2min.hour in peak_hours) 
             and time_now.day_of_week < 5):
             print("On-peak")
