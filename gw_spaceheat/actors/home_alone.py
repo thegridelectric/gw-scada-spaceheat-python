@@ -236,20 +236,15 @@ class HomeAlone(Actor):
             self._turn_on_HP()
         if "HpOff" not in previous_state and "HpOff" in self.state:
             self._turn_off_HP()
-        if "StoreOff" not in previous_state and "StoreOff" in self.state:
+        if "StoreDischarge" in self.state:
+            self._turn_on_store()
+        if "StoreDischarge" not in self.state:
             self._turn_off_store()
         if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
-            if "StoreDischarge" not in previous_state:
-                self._turn_on_store()
             self._charge_store()
-        if "StoreDischarge" not in previous_state and "StoreDischarge" in self.state:
-            if "StoreCharge" not in previous_state:
-                self._turn_on_store()
-            else:
-                self._discharge_store()
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
             self._discharge_store()
-
+        
 
     def _turn_on_HP(self):
         event = FsmEvent(
