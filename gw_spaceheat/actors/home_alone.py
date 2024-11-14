@@ -160,7 +160,7 @@ class HomeAlone(Actor):
                             Event=event,
                             FromState=orig_state,
                             ToState=self.state,
-                            UnixTImeMs=now_ms,
+                            UnixTimeMs=now_ms,
                             TriggerId=trigger_id,
                         )
                     ]
