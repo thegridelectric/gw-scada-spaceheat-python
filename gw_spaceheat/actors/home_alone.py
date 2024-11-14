@@ -150,7 +150,7 @@ class HomeAlone(Actor):
         self._send_to(self.services._layout.nodes[H0N.primary_scada],
                 FsmFullReport(
                     FromName=self.name,
-                    Trigger_id=trigger_id,
+                    TriggerId=trigger_id,
                     AtomicList=[
                         FsmAtomicReport(
                             MachineHandle=self.node.handle,
