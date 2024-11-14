@@ -12,8 +12,9 @@ from gwproto.message import Header
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.enums import ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, ChangeStoreFlowRelay
-from gwproto.named_types import FsmEvent, MachineStates
+from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
+                           ChangeStoreFlowRelay, FsmReportType)
+from gwproto.named_types import FsmEvent, MachineStates, FsmAtomicReport, FsmFullReport
 import pendulum
 
 
@@ -128,6 +129,9 @@ class HomeAlone(Actor):
         now_ms = int(time.time() * 1000)
         orig_state = self.state
         self.trigger(event)
+        self.services.logger.error(
+            f"[{self.name}] {event}: {orig_state} -> {self.state}"
+        )
         self._send_to(
             self.services._layout.nodes[H0N.primary_scada],
             MachineStates(
@@ -137,9 +141,28 @@ class HomeAlone(Actor):
                 UnixMsList=[now_ms],
             ),
         )
-        self.services.logger.error(
-            f"[{self.name}] {event}: {orig_state} -> {self.state}"
-        )
+
+        # Could update this to receive back reports from the relays and
+        # add them to the report.
+        trigger_id = str(uuid.uuid4())
+        self._send_to(self.services._layout.nodes[H0N.primary_scada],
+                FsmFullReport(
+                    FromName=self.name,
+                    Trigger_id=trigger_id,
+                    AtomicList=[
+                        FsmAtomicReport(
+                            MachineHandle=self.node.handle,
+                            StateEnum=HomeAloneState.enum_name(),
+                            ReportType=FsmReportType.Event,
+                            EventEnum=HomeAloneEvent.enum_name(),
+                            Event=event,
+                            FromState=orig_state,
+                            ToState=self.state,
+                            UnixTImeMs=now_ms,
+                            TriggerId=trigger_id,
+                        )
+                    ]
+                ))
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
