@@ -320,7 +320,7 @@ class ApiFlowModule(Actor):
             return Response()
 
     async def _handle_reed_params_post(self, request: Request) -> Response:
-        self.services.logger.error("Got to _handle_reed_params_post")
+        # self.services.logger.error("Got to _handle_reed_params_post")
         text = await self._get_text(request)
         self.params_text = text
         try:
@@ -465,7 +465,7 @@ class ApiFlowModule(Actor):
         )
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
-        print(f"Length of ticklist for {data.HwUid}: {len(data.RelativeMillisecondList)}")
+        # print(f"Length of ticklist for {data.HwUid}: {len(data.RelativeMillisecondList)}")
         # self.services.logger.error('processing')
         self.ticklist = data
         if data.HwUid != self.hw_uid:
@@ -474,8 +474,8 @@ class ApiFlowModule(Actor):
             )
             return
         self.last_heard = time.time()
-        if data.HwUid=="pico_607636" and len(data.RelativeMillisecondList) == 0:
-            print("Empty ticklist for primary in beech")
+        if self.slow_turner and len(data.RelativeMillisecondList) == 0:
+            # print("Empty ticklist for primary in beech")
             if self.latest_gpm is None:
                 self.latest_gpm = 0
                 self.latest_hz = 0
@@ -674,9 +674,9 @@ class ApiFlowModule(Actor):
         new_frequencies.append(frequencies[-1])
         timestamps = list(new_timestamps)
         frequencies = list(new_frequencies)
-        if self.hw_uid=='pico_607636':
-            print(self.nano_timestamps)
-            print([x for x in frequencies])
+        # if self.hw_uid=='pico_607636':
+        #     print(self.nano_timestamps)
+        #     print([x for x in frequencies])
         del new_timestamps, new_frequencies
         # First reading
         if self.latest_hz is None:

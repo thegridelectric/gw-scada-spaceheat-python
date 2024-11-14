@@ -262,7 +262,7 @@ class Relay(Actor):
     def send_state(self, now_ms: Optional[int] = None) -> None:
         if now_ms is None:
             now_ms = int(time.time() * 1000)
-        self.services.logger.error(f"State: {self.state}")
+        self.services.logger.error(f"[{self.name}] {self.state}")
         self._send_to(
             self.primary_scada,
             MachineStates(
