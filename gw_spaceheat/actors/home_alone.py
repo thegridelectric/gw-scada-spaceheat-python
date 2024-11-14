@@ -107,6 +107,7 @@ class HomeAlone(Actor):
         self.aquastat_ctrl_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
         self.store_pump_onoff_relay: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
         self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
+        self.time_storage_declared_ready = None
         self.machine = Machine(
             model=self,
             states=HomeAlone.states,
@@ -158,6 +159,9 @@ class HomeAlone(Actor):
             print("\n"+"-"*50)
             print(f"HomeAlone state: {previous_state}")
             print("-"*50)
+
+            if self.is_onpeak():
+                self.time_storage_declared_ready = None
 
             self.get_latest_temperatures()
 
@@ -213,8 +217,13 @@ class HomeAlone(Actor):
                 else:
                     if self.is_buffer_empty():
                         self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
-                    elif self.is_storage_ready():
-                        self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
+                    elif not self.is_storage_ready():
+                        if self.time_storage_declared_ready is not None:
+                            if time.time() - self.time_storage_declared_ready > 60*60:
+                                self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
+                                self.time_storage_declared_ready = None
+                        else:
+                            self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
 
             elif self.state==HomeAloneState.HpOffStoreDischarge.value:
                 if not self.is_onpeak():
@@ -440,6 +449,7 @@ class HomeAlone(Actor):
             required_storage = 4*self.average_power_coldest_hour_kW
         if total_usable_kwh >= required_storage:
             print(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh")
+            self.time_storage_declared_ready = time.time()
             return True
         else:
             print(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh")
