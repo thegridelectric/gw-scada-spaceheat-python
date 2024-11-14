@@ -108,11 +108,15 @@ scipy==1.14.1
 shellingham==1.5.4
     # via typer
 six==1.16.0
-    # via python-dateutil
+    # via
+    #   python-dateutil
+    #   transitions
 smbus2==0.4.2
     # via -r gw_spaceheat/requirements/base.in
 textual==0.79.1
     # via trogon
+transitions==0.9.2
+    # via -r gw_spaceheat/requirements/base.in
 trogon==0.5.0
     # via -r gw_spaceheat/requirements/base.in
 typer==0.12.5

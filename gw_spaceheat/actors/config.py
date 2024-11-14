@@ -1,6 +1,6 @@
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import model_validator, BaseModel
-
+from gwproto.data_classes.house_0_names import H0N
 from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
@@ -10,11 +10,10 @@ DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 class PersisterSettings(BaseModel):
     max_bytes: int = DEFAULT_MAX_EVENT_BYTES
 
-ADMIN_NAME = "admin"
 
 class AdminLinkSettings(MQTTClient):
     enabled: bool = False
-    name: str = ADMIN_NAME
+    name: str = H0N.admin
 
 class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""

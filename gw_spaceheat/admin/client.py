@@ -1,4 +1,6 @@
 import platform
+import time
+import uuid
 import ssl
 import sys
 import uuid
@@ -8,7 +10,9 @@ from typing import Any
 import rich
 from gwproactor.config import MQTTClient
 from gwproto import Message, MQTTTopic
-from gwproto.messages import Ack
+from gwproto.enums import ChangeRelayState
+from gwproto.data_classes.house_0_names import H0N
+from gwproto.messages import Ack, FsmEvent
 from paho.mqtt.client import Client as PahoMQTTClient
 from paho.mqtt.client import MQTTMessage
 
@@ -17,7 +21,6 @@ from admin.messages import AdminCommandSetRelay
 from admin.messages import AdminInfo
 from admin.messages import RelayInfo
 from admin.messages import RelayStates
-from actors.config import ADMIN_NAME
 from admin.settings import AdminClientSettings
 
 
@@ -33,8 +36,7 @@ class AppState(StrEnum):
 class MQTTAdmin:
     client: PahoMQTTClient
     settings: AdminClientSettings
-    relay_name: str
-    closed: bool
+    open_relay: bool
     user: str
     json: bool
     command_message_id: str
@@ -44,14 +46,12 @@ class MQTTAdmin:
         self,
         *,
         settings: AdminClientSettings,
-        relay_name: str,
-        closed: bool,
+        open_relay: bool,
         user: str,
         json: bool,
     ) -> None:
         self.settings = settings
-        self.relay_name = relay_name
-        self.closed = closed
+        self.open_relay = open_relay
         self.user = user
         self.json = json
         self.command_message_id = ""
@@ -95,7 +95,7 @@ class MQTTAdmin:
         topic = MQTTTopic.encode(
             envelope_type=Message.type_name(),
             src=self.settings.target_gnode,
-            dst=ADMIN_NAME,
+            dst=H0N.admin,
             message_type="#",
         )
         self.state = AppState.awaiting_suback
@@ -107,23 +107,24 @@ class MQTTAdmin:
         self, _: Any, _userdata: Any, _mid: int, _granted_qos: list[int]
     ) -> None:
         self.state = AppState.awaiting_command_ack
-        message = Message[AdminCommandSetRelay](
-            Src=ADMIN_NAME,
+        event_name = ChangeRelayState.CloseRelay
+        if self.open_relay:
+            event_name = ChangeRelayState.OpenRelay
+        event = FsmEvent(
+            FromHandle=H0N.admin,
+            ToHandle=f"{H0N.admin}.{H0N.vdc_relay}",
+            EventType=ChangeRelayState.enum_name(),
+            EventName=event_name,
+            SendTimeUnixMs=int(time.time() * 1000),
+            TriggerId=str(uuid.uuid4())
+        ) 
+        message = Message(
+            Src=H0N.admin,
             Dst=self.settings.target_gnode,
-            MessageId=str(uuid.uuid4()),
-            AckRequired=True,
-            Payload=AdminCommandSetRelay(
-                CommandInfo=AdminInfo(
-                    User=self.user,
-                    SrcMachine=platform.node(),
-                ),
-                RelayInfo=RelayInfo(
-                    RelayName=self.relay_name,
-                    Closed=self.closed,
-                ),
-            ),
+            MessageId=event.TriggerId,
+            Payload=FsmEvent,
         )
-        self.command_message_id = message.Payload.MessageId
+        self.command_message_id = FsmEvent.TriggerId
         topic = message.mqtt_topic()
         if not self.json:
             rich.print("Subscribed. Sending:")
@@ -157,7 +158,7 @@ class MQTTAdmin:
             if ack_message.Payload.AckMessageID == self.command_message_id:
                 self.state = AppState.awaiting_report
                 message = Message[AdminCommandReadRelays](
-                    Src=ADMIN_NAME,
+                    Src=H0N.admin,
                     Dst=self.settings.target_gnode,
                     MessageId=str(uuid.uuid4()),
                     AckRequired=True,

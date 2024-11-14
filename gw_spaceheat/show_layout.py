@@ -252,7 +252,7 @@ def print_web_server_info(
            )
         for k, v in web_configs.items():
             print(f"Server <{k}>: WebServerGt({v})")
-            routes = web_routes[k]
+            routes = web_routes.get(k, [])
             print(f"Routes: {len(routes)}")
             for route in routes:
                 print(f"  {route}")

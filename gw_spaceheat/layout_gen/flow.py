@@ -173,7 +173,7 @@ def add_flow(
                     ActorClass=ActorClass.ApiFlowModule,
                     DisplayName=f"{flow_cfg.ActorNodeName.replace('-', ' ').title()}",
                     ComponentId=db.component_id_by_alias(flow_cfg.component_display_name())
-                )
+                ),
             ] 
         )
 

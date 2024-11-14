@@ -3,26 +3,30 @@ not necessarily re-use. """
 
 import time
 import uuid
-from typing import Dict
-from typing import List
-from typing import Optional
-
-from gwproto.messages import ChannelReadings
-from gwproto.messages import Report
-from gwproto.messages import SingleReading
-from gwproto.messages import SnapshotSpaceheat
+from typing import Dict, List, Optional
 
 from actors.config import ScadaSettings
-from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.data_channel import DataChannel
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.messages import (
+    ChannelReadings,
+    FsmFullReport,
+    MachineStates,
+    Report,
+    SingleReading,
+    SnapshotSpaceheat,
+)
+
 
 class ScadaData:
     latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]
-    latest_channel_unix_ms: Dict[DataChannel, int]
-    latest_channel_values: Dict[DataChannel, int]
-    recent_channel_values: Dict[DataChannel, List]
-    recent_channel_unix_ms: Dict[DataChannel, List]
+    recent_machine_states: Dict[str, MachineStates] # key is machine handle
+    latest_channel_unix_ms: Dict[str, int]
+    latest_channel_values: Dict[str, int]
+    recent_channel_values: Dict[str, List]
+    recent_channel_unix_ms: Dict[str, List]
+    recent_fsm_reports: Dict[str, FsmFullReport]
     settings: ScadaSettings
     hardware_layout: HardwareLayout
 
@@ -35,44 +39,40 @@ class ScadaData:
         self.settings = settings
         self.hardware_layout = hardware_layout
         self.my_channels = self.get_my_channels()
-
-        self.latest_channel_values: Dict[DataChannel, int] = {  # noqa
-            ch: None for ch in self.my_channels
+        self.recent_machine_states = {}
+        self.latest_channel_values: Dict[str, int] = {  # noqa
+            ch.Name: None for ch in self.my_channels
         }
         self.latest_channel_unix_ms: Dict[DataChannel, int] = {  # noqa
-            ch: None for ch in self.my_channels
+            ch.Name: None for ch in self.my_channels
         }
         self.recent_channel_values: Dict[DataChannel, List] = {
-            ch: [] for ch in self.my_channels
+            ch.Name: [] for ch in self.my_channels
         }
-        self.recent_channel_unix_ms: Dict[
-            DataChannel, List
-        ] = {ch: [] for ch in self.my_channels}
-
+        self.recent_channel_unix_ms: Dict[DataChannel, List] = {
+            ch.Name: [] for ch in self.my_channels
+        }
+        self.recent_fsm_reports = {}
         self.flush_latest_readings()
-    
+
     def get_my_channels(self) -> List[DataChannel]:
         return list(self.hardware_layout.data_channels.values())
 
     def flush_latest_readings(self):
-        self.recent_channel_values = {
-            ch: [] for ch in self.my_channels
-        }
-        self.recent_channel_unix_ms = {
-            ch: [] for ch in self.my_channels
-        }
+        self.recent_channel_values = {ch.Name: [] for ch in self.my_channels}
+        self.recent_channel_unix_ms = {ch.Name: [] for ch in self.my_channels}
+        self.recent_fsm_reports = {}
+        self.recent_machine_states = {}
 
-    def make_channel_readings(
-        self, ch: DataChannel
-    ) -> Optional[ChannelReadings]:
+    def make_channel_readings(self, ch: DataChannel) -> Optional[ChannelReadings]:
         if ch in self.my_channels:
-            if len(self.recent_channel_values[ch]) == 0:
+            if len(self.recent_channel_values[ch.Name]) == 0:
                 return None
             return ChannelReadings(
                 ChannelName=ch.Name,
                 ChannelId=ch.Id,
-                ValueList=self.recent_channel_values[ch],
-                ScadaReadTimeUnixMsList=self.recent_channel_unix_ms[ch],
+                ValueList=self.recent_channel_values[ch.Name],
+                ScadaReadTimeUnixMsList=self.recent_channel_unix_ms[ch.Name],
             )
         else:
             return None
@@ -81,8 +81,9 @@ class ScadaData:
         channel_reading_list = []
         for ch in self.my_channels:
             channel_readings = self.make_channel_readings(ch)
-            if  channel_readings:
+            if channel_readings:
                 channel_reading_list.append(channel_readings)
+
         return Report(
             FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
             FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
@@ -90,44 +91,60 @@ class ScadaData:
             SlotStartUnixS=slot_start_seconds,
             SlotDurationS=self.settings.seconds_per_report,
             ChannelReadingList=channel_reading_list,
-            StateList=[],
-            FsmReportList=[],
+            StateList=list(self.recent_machine_states.values()),
+            FsmReportList=list(self.recent_fsm_reports.values()),
             MessageCreatedMs=int(time.time() * 1000),
-            Id=str(uuid.uuid4())
+            Id=str(uuid.uuid4()),
         )
 
-    def capture_seconds(self, ch: DataChannel) -> int: 
+    def capture_seconds(self, ch: DataChannel) -> int:
         if ch.Name not in self.seconds_by_channel:
             self.seconds_by_channel == {}
             components = [c.gt for c in self.hardware_layout.components.values()]
             for c in components:
                 for config in c.ConfigList:
-                    self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS 
+                    self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
         return self.seconds_by_channel[ch.Name]
 
     def flatlined(self, ch: DataChannel) -> bool:
-        if self.latest_channel_unix_ms[ch] is None:
+        if self.latest_channel_unix_ms[ch.Name] is None:
             return True
         # nyquist
-        nyquist = 2.1 # https://en.wikipedia.org/wiki/Nyquist_frequency
-        if time.time() - (self.latest_channel_unix_ms[ch] / 1000) > self.capture_seconds(ch) * nyquist:
+        nyquist = 2.1  # https://en.wikipedia.org/wiki/Nyquist_frequency
+        if (
+            time.time() - (self.latest_channel_unix_ms[ch.Name] / 1000)
+            > self.capture_seconds(ch) * nyquist
+        ):
             return True
         return False
 
     def make_snapshot(self) -> SnapshotSpaceheat:
         latest_reading_list = []
+        latest_state_list= []
         for ch in self.my_channels:
             if not self.flatlined(ch):
                 latest_reading_list.append(
                     SingleReading(
                         ChannelName=ch.Name,
-                        Value=self.latest_channel_values[ch],
-                        ScadaReadTimeUnixMs=self.latest_channel_unix_ms[ch]
+                        Value=self.latest_channel_values[ch.Name],
+                        ScadaReadTimeUnixMs=self.latest_channel_unix_ms[ch.Name],
                     )
                 )
+        
+        for handle in self.recent_machine_states:
+            states = self.recent_machine_states[handle]
+            latest_state_list.append(MachineStates(
+                    MachineHandle=states.MachineHandle,
+                    StateEnum=states.StateEnum,
+                    StateList=[states.StateList[-1]],
+                    UnixMsList=[states.UnixMsList[-1]]
+                )
+            )
+
         return SnapshotSpaceheat(
             FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
             FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
             SnapshotTimeUnixMs=int(time.time() * 1000),
             LatestReadingList=latest_reading_list,
+            LatestStateList=latest_state_list,
         )
