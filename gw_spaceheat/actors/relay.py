@@ -38,7 +38,7 @@ from transitions import Machine
 
 
 class Relay(Actor):
-    STATE_REPORT_S = 60
+    STATE_REPORT_S = 300
     node: ShNode
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig

@@ -166,9 +166,10 @@ class HomeAlone(Actor):
                     ]
                 ))
 
-    # @property
-    # def monitored_names(self) -> Sequence[MonitoredName]:
-    #     return [MonitoredName(self.name, self.main_loop_sleep_seconds * 2.1)]
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, 300)]
+        #return [MonitoredName(self.name, self.main_loop_sleep_seconds * 2.1)]
 
     async def main(self):
 
@@ -186,8 +187,8 @@ class HomeAlone(Actor):
         self.services.logger.error(f"Successfully loaded dotenv. Got self.swt_coldest_hour {self.swt_coldest_hour}")
 
         while not self._stop_requested:
-            self.services.logger.error("WOULD BE PATTING HOME ALONE WATCHDOG")
-            #self._send(PatInternalWatchdogMessage(src=self.name))
+            self.services.logger.error("PATTING HOME ALONE WATCHDOG")
+            self._send(PatInternalWatchdogMessage(src=self.name))
             previous_state = self.state
             print("\n"+"-"*50)
             print(f"HomeAlone state: {previous_state}")
