@@ -203,7 +203,7 @@ class HomeAlone(Actor):
                     else:
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
-                        else:
+                        elif self.is_buffer_full():
                             if self.is_storage_ready():
                                 self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
                             else:
@@ -400,6 +400,22 @@ class HomeAlone(Actor):
         else:
             self.temperatures_available = False
             print('Some temperatures are missing')
+
+            all_buffer = [x for x in self.temperature_channel_names if 'buffer' in x]
+            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer' in x]
+            if all_buffer == available_buffer:
+                print("But all the buffer temperatures are available")
+                # Fill in the storage temperatures
+                all_tanks = [x for x in self.temperature_channel_names if 'tank' in x]
+                available_tanks = [x for x in list(self.latest_temperatures.keys()) if 'tank' in x]
+                if 'tank3-depth4' in available_tanks:
+                    print("Have top and bottom temperatures")
+                    have_extremes = True
+                for temp in [x for x in all_tanks if x not in available_tanks]:
+                    self.latest_temperatures[temp] = self.latest_temperatures['tank3-depth4'] if have_extremes else 0
+                # Delcare to have all temperatures
+                self.temperatures_available = True
+
             
     def get_datachannel(self, name):
         for dc in self.datachannels:
