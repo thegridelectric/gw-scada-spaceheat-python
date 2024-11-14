@@ -320,6 +320,7 @@ class ApiFlowModule(Actor):
             return Response()
 
     async def _handle_reed_params_post(self, request: Request) -> Response:
+        self.services.logger.error("Got to _handle_reed_params_post")
         text = await self._get_text(request)
         self.params_text = text
         try:
@@ -464,6 +465,8 @@ class ApiFlowModule(Actor):
         )
 
     def _process_ticklist_reed(self, data: TicklistReed) -> None:
+        print(f"Length of ticklist for {data.HwUid}: {len(data.RelativeMillisecondList)}")
+        # self.services.logger.error('processing')
         self.ticklist = data
         if data.HwUid != self.hw_uid:
             self.log(
@@ -471,6 +474,19 @@ class ApiFlowModule(Actor):
             )
             return
         self.last_heard = time.time()
+        if data.HwUid=="pico_607636" and len(data.RelativeMillisecondList) == 0:
+            print("Empty ticklist for primary in beech")
+            if self.latest_gpm is None:
+                self.latest_gpm = 0
+                self.latest_hz = 0
+                self.publish_zero_flow()
+            if self.latest_report_ns: 
+                if time.time()*1e9 - self.latest_report_ns > self._component.gt.NoFlowMs * 1000:
+                        self.publish_zero_flow()
+                        self.latest_gpm = 0
+                        self.latest_hz = 0
+            # TODO publish 0 gpm after 30 seconds of no ticklists
+            return
         if len(data.RelativeMillisecondList) == 0:
             if self.latest_gpm is None:
                 self.latest_gpm = 0
@@ -505,14 +521,18 @@ class ApiFlowModule(Actor):
             self.latest_tick_ns = final_tick_ns
             self.latest_report_ns = final_tick_ns
             self.latest_hz = 0
-            micro_hz_readings = ChannelReadings(
-                ChannelName=self.hz_channel.Name,
-                ValueList=[int(final_nonzero_hz * 1e6), 0],
-                ScadaReadTimeUnixMsList=[
-                    int(final_tick_ns / 1e6),
-                    int(final_tick_ns / 1e6) + 10,
-                ],
-            )
+            if self.slow_turner:
+                    micro_hz_readings = ChannelReadings(
+                        ChannelName=self.hz_channel.Name,
+                        ValueList=[int(final_nonzero_hz * 1e6)],
+                        ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6)]
+                    )  
+            else:
+                micro_hz_readings = ChannelReadings(
+                        ChannelName=self.hz_channel.Name,
+                        ValueList=[int(final_nonzero_hz * 1e6), 0],
+                        ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6), int(final_tick_ns/1e6) + 10]
+                    )
         else:
             micro_hz_readings = self.get_micro_hz_readings()
 
@@ -623,6 +643,8 @@ class ApiFlowModule(Actor):
                 "Should only call get_hz_readings with at least 2 timestamps!"
             )
         first_reading = False
+        # if self.latest_tick_ns is not None and self.hw_uid=='pico_607636':
+        #     self.nano_timestamps = [self.latest_tick_ns] + self.nano_timestamps
         # Sort timestamps and compute frequencies
         self.nano_timestamps = sorted(self.nano_timestamps)
         frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
@@ -652,6 +674,9 @@ class ApiFlowModule(Actor):
         new_frequencies.append(frequencies[-1])
         timestamps = list(new_timestamps)
         frequencies = list(new_frequencies)
+        if self.hw_uid=='pico_607636':
+            print(self.nano_timestamps)
+            print([x for x in frequencies])
         del new_timestamps, new_frequencies
         # First reading
         if self.latest_hz is None:
@@ -739,6 +764,16 @@ class ApiFlowModule(Actor):
         self.latest_tick_ns = sampled_timestamps[-1]
         self.latest_report_ns = sampled_timestamps[-1]
 
+        if self.slow_turner:
+            #print(sampled_timestamps)
+            #print(smoothed_frequencies)
+            #print('')
+            return ChannelReadings(
+                ChannelName=self.hz_channel.Name,
+                ValueList=[int(x*1e6) for x in smoothed_frequencies],
+                ScadaReadTimeUnixMsList=[int(x/1e6) for x in sampled_timestamps],
+            )
+        
         return ChannelReadings(
             ChannelName=self.hz_channel.Name,
             ValueList=micro_hz_list,
