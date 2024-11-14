@@ -179,10 +179,10 @@ class HomeAlone(Actor):
 
         # Read the parameters from the .env file
         dotenv.load_dotenv()
-        self.swt_coldest_hour = os.getenv('SWT_COLDEST_HOUR_F')
-        self.average_power_coldest_hour_kW = os.getenv('AVERAGE_POWER_COLDEST_HOUR_KW')
-        self.buffer_empty = os.getenv('BUFFER_DEPTH2_EMPTY_F')
-        self.buffer_full = os.getenv('BUFFER_DEPTH4_FULL_F')
+        self.swt_coldest_hour = int(os.getenv('SWT_COLDEST_HOUR_F',120))
+        self.average_power_coldest_hour_kW = int(os.getenv('AVERAGE_POWER_COLDEST_HOUR_KW',6))
+        self.buffer_empty = int(os.getenv('BUFFER_DEPTH2_EMPTY_F',100))
+        self.buffer_full = int(os.getenv('BUFFER_DEPTH4_FULL_F',120))
 
         while not self._stop_requested:
             self.services.logger.error("PATTING HOME ALONE WATCHDOG")
