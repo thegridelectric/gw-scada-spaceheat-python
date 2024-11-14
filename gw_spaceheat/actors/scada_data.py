@@ -21,7 +21,7 @@ from gwproto.messages import (
 class ScadaData:
     latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]
-    recent_machine_states: Dict[str, MachineStates]
+    recent_machine_states: Dict[str, MachineStates] # key is machine handle
     latest_channel_unix_ms: Dict[str, int]
     latest_channel_values: Dict[str, int]
     recent_channel_values: Dict[str, List]
@@ -120,6 +120,7 @@ class ScadaData:
 
     def make_snapshot(self) -> SnapshotSpaceheat:
         latest_reading_list = []
+        latest_state_list= []
         for ch in self.my_channels:
             if not self.flatlined(ch):
                 latest_reading_list.append(
@@ -129,9 +130,21 @@ class ScadaData:
                         ScadaReadTimeUnixMs=self.latest_channel_unix_ms[ch.Name],
                     )
                 )
+        
+        for handle in self.recent_machine_states:
+            states = self.recent_machine_states[handle]
+            latest_state_list.append(MachineStates(
+                    MachineHandle=states.MachineHandle,
+                    StateEnum=states.StateEnum,
+                    StateList=[states.StateList[-1]],
+                    UnixMsList=[states.UnixMsList[-1]]
+                )
+            )
+
         return SnapshotSpaceheat(
             FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
             FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
             SnapshotTimeUnixMs=int(time.time() * 1000),
             LatestReadingList=latest_reading_list,
+            LatestStateList=latest_state_list,
         )
