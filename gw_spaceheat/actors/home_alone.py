@@ -3,6 +3,8 @@ from typing import Sequence
 from enum import auto
 import uuid
 import time
+import dotenv
+import os
 from gw.enums import GwStrEnum
 from gwproactor import QOS, Actor, ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -174,6 +176,13 @@ class HomeAlone(Actor):
         self.initialize_relays()
         if self.is_onpeak():
             self._turn_off_HP()
+
+        # Read the parameters from the .env file
+        dotenv.load_dotenv()
+        self.swt_coldest_hour = os.getenv('SWT_COLDEST_HOUR_F')
+        self.average_power_coldest_hour_kW = os.getenv('AVERAGE_POWER_COLDEST_HOUR_KW')
+        self.buffer_empty = os.getenv('BUFFER_DEPTH2_EMPTY_F')
+        self.buffer_full = os.getenv('BUFFER_DEPTH4_FULL_F')
 
         while not self._stop_requested:
             self.services.logger.error("PATTING HOME ALONE WATCHDOG")
@@ -459,7 +468,7 @@ class HomeAlone(Actor):
             return False
 
     def is_buffer_empty(self) -> bool:
-        if self.latest_temperatures['buffer-depth2']/1000*9/5+32 < self.swt_coldest_hour - 20:
+        if self.latest_temperatures['buffer-depth2']/1000*9/5+32 < self.buffer_full_empty: #self.swt_coldest_hour - 20:
             print(f"Buffer empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
             return True
         else:
@@ -467,7 +476,7 @@ class HomeAlone(Actor):
             return False
     
     def is_buffer_full(self) -> bool:
-        if self.latest_temperatures['buffer-depth4']/1000*9/5+32 > self.swt_coldest_hour:
+        if self.latest_temperatures['buffer-depth4']/1000*9/5+32 > self.buffer_full_empty: #self.swt_coldest_hour:
             print(f"Buffer full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
             return True
         else:
