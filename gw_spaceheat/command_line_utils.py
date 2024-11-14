@@ -122,7 +122,7 @@ def get_nodes_run_by_scada(
     actor_nodes: List[ShNode] = []
     scada_node: Optional[ShNode] = None
     for node in requested_nodes:
-        if node.ActorClass not in [ActorClass.Atn, ActorClass.HomeAlone] and node.has_actor:
+        if node.ActorClass not in [ActorClass.Atn] and node.has_actor:
             if node.actor_class == scada_actor_class:
                 if scada_node is not None:
                     raise ValueError(
@@ -150,7 +150,8 @@ def missing_tls_paths(paths: TLSPaths) -> list[tuple[str, Optional[Path]]]:
 
 def check_tls_paths_present(model: BaseModel | BaseSettings, raise_error: bool = True) -> str:
     missing_str = ""
-    for k, v in model.model_fields.items():
+    for k in model.model_fields:
+        v = getattr(model, k)
         if isinstance(v, MQTTClient):
             if v.tls.use_tls:
                 missing_paths = missing_tls_paths(v.tls.paths)

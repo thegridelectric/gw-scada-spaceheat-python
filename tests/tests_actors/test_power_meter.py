@@ -147,19 +147,19 @@ async def test_power_meter_periodic_update(tmp_path, monkeypatch, request):
             for ch in expected_channels:
                 # TODO: Test-public access for this
                 await await_for(
-                    lambda: len(scada._data.recent_channel_values[ch]) > 0,
+                    lambda: len(scada._data.recent_channel_values[ch.Name]) > 0,
                     5,
                     f"wait for PowerMeter first periodic report, [{ch.Name}]"
                 )
 
             # Verify periodic delivery.
             received_ch_counts = [
-                len(scada._data.recent_channel_values[ch]) for ch in expected_channels
+                len(scada._data.recent_channel_values[ch.Name]) for ch in expected_channels
             ]
             scada._logger.info(received_ch_counts)
             for received_count, tt in zip(received_ch_counts, expected_channels):
                 await await_for(
-                    lambda: len(scada._data.recent_channel_values[ch]) > received_count,
+                    lambda: len(scada._data.recent_channel_values[ch.Name]) > received_count,
                     5,
                     f"wait for PowerMeter periodic update [{tt.Name}]"
                 )

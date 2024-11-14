@@ -31,18 +31,18 @@ def test_scada_small():
     layout = House0Layout.load(settings.paths.hardware_layout)
     scada = Scada(H0N.primary_scada, settings=settings, hardware_layout=layout)
     assert layout.power_meter_node == layout.node(H0N.primary_power_meter)
-
+    channel_names = [ch.Name for ch in scada._data.my_channels]
     assert (
         list(scada._data.latest_channel_values.keys())
-        == scada._data.my_channels
+        == channel_names
     )
     assert (
         list(scada._data.recent_channel_values.keys())
-        == scada._data.my_channels
+        == channel_names
     )
     assert (
         list(scada._data.recent_channel_unix_ms.keys())
-        == scada._data.my_channels
+        == channel_names
     )
 
     ###########################################
@@ -51,8 +51,8 @@ def test_scada_small():
 
     ch = scada._layout.data_channels[H0CN.store_pump_pwr]
 
-    scada._data.recent_channel_values[ch] = [43]
-    scada._data.recent_channel_unix_ms[ch] = [
+    scada._data.recent_channel_values[ch.Name] = [43]
+    scada._data.recent_channel_unix_ms[ch.Name] = [
         int(time.time() * 1000)
     ]
     

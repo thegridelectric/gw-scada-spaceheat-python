@@ -1,20 +1,18 @@
 import asyncio
-from typing import Sequence
 from enum import auto
 import uuid
 import time
 from gw.enums import GwStrEnum
-from gwproactor import QOS, Actor, ServicesInterface,  MonitoredName
+from gwproactor import QOS, Actor, ServicesInterface, Problems
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from result import  Result
+from result import Err, Ok, Result
 from gwproto.message import Header
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
-                           ChangeStoreFlowRelay, FsmReportType)
-from gwproto.named_types import FsmEvent, MachineStates, FsmAtomicReport, FsmFullReport
+from gwproto.enums import ChangeRelayState
+from gwproto.named_types import FsmEvent, MachineStates
 import pendulum
 
 
@@ -25,10 +23,6 @@ class HomeAloneState(GwStrEnum):
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "home.alone.state"
 
 
 class HomeAloneEvent(GwStrEnum):
@@ -45,10 +39,10 @@ class HomeAloneEvent(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "home.alone.event"
+        "home.alone.event"
 
 
-class HomeAlone(Actor):
+class SmHomeAlone(Actor):
     
     states = [
         "WaitingForTemperaturesOnPeak",
@@ -103,12 +97,11 @@ class HomeAlone(Actor):
             'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4',
             ]
         self.temperatures_available = False
-        self.hp_onoff_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
-        self.hp_failsafe_relay: ShNode = self.hardware_layout.node(H0N.hp_failsafe_relay)
-        self.aquastat_ctrl_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
-        self.store_pump_onoff_relay: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
-        self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
-        self.time_storage_declared_ready = None
+        self.hp_onoff_relay = self.hardware_layout.node(H0N.hp_scada_ops_relay)
+        self.hp_failsafe_relay = self.hardware_layout.node(H0N.hp_failsafe_relay)
+        self.store_pump_onoff_relay = self.hardware_layout.node(H0N.store_pump_failsafe)
+        self.store_charge_discharge_relay = self.hardware_layout.node(H0N.store_charge_discharge_relay)
+        self.initialize_relays()
         self.machine = Machine(
             model=self,
             states=HomeAlone.states,
@@ -118,73 +111,38 @@ class HomeAlone(Actor):
         )
         # House parameters
         self.average_power_coldest_hour_kW = 5 # TODO
-        self.swt_coldest_hour = 120 # TODO
+        self.swt_coldest_hour = 140 # TODO
         self.temp_drop_function = [20,0] #TODO
         # In simulation vs in a real house
         self.simulation = True
-        self.main_loop_sleep_seconds = 60
 
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
         self.trigger(event)
+        # self._send_to(
+        #     self.services._layout.nodes[H0N.primary_scada],
+        #     MachineStates(
+        #         MachineHandle=self.node.handle,
+        #         StateEnum=HomeAloneEvent.enum_name(),
+        #         StateList=[self.state],
+        #         UnixMsList=[now_ms],
+        #     ),
+        # )
         self.services.logger.error(
             f"[{self.name}] {event}: {orig_state} -> {self.state}"
         )
-        self._send_to(
-            self.services._layout.nodes[H0N.primary_scada],
-            MachineStates(
-                MachineHandle=self.node.handle,
-                StateEnum=HomeAloneState.enum_name(),
-                StateList=[self.state],
-                UnixMsList=[now_ms],
-            ),
-        )
 
-        # Could update this to receive back reports from the relays and
-        # add them to the report.
-        trigger_id = str(uuid.uuid4())
-        self._send_to(self.services._layout.nodes[H0N.primary_scada],
-                FsmFullReport(
-                    FromName=self.name,
-                    Trigger_id=trigger_id,
-                    AtomicList=[
-                        FsmAtomicReport(
-                            MachineHandle=self.node.handle,
-                            StateEnum=HomeAloneState.enum_name(),
-                            ReportType=FsmReportType.Event,
-                            EventEnum=HomeAloneEvent.enum_name(),
-                            Event=event,
-                            FromState=orig_state,
-                            ToState=self.state,
-                            UnixTImeMs=now_ms,
-                            TriggerId=trigger_id,
-                        )
-                    ]
-                ))
-
-    @property
-    def monitored_names(self) -> Sequence[MonitoredName]:
-        return [MonitoredName(self.name, self.main_loop_sleep_seconds * 2.1)]
 
     async def main(self):
-
-        await asyncio.sleep(2)
-        self.initialize_relays()
-        if self.is_onpeak():
-            self._turn_off_HP()
-
+        
         while not self._stop_requested:
-            self.services.logger.error("PATTING HOME ALONE WATCHDOG")
-            self._send(PatInternalWatchdogMessage(src=self.name))
+    
             previous_state = self.state
             print("\n"+"-"*50)
             print(f"HomeAlone state: {previous_state}")
             print("-"*50)
-
-            if self.is_onpeak():
-                self.time_storage_declared_ready = None
 
             self.get_latest_temperatures()
 
@@ -194,10 +152,7 @@ class HomeAlone(Actor):
                     print('Temperatures available')
                     if self.is_onpeak():
                         if self.is_buffer_empty():
-                            if self.is_storage_colder_than_buffer():
-                                self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
-                            else:
-                                self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
+                            self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                         else:
                             self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
                     else:
@@ -235,30 +190,24 @@ class HomeAlone(Actor):
             elif self.state==HomeAloneState.HpOffStoreOff.value:
                 if self.is_onpeak():
                     if self.is_buffer_empty():
-                        if not self.is_storage_colder_than_buffer():
-                            self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
+                        self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                 else:
                     if self.is_buffer_empty():
                         self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
-                    elif not self.is_storage_ready():
-                        if self.time_storage_declared_ready is not None:
-                            if time.time() - self.time_storage_declared_ready > 60*60:
-                                self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
-                                self.time_storage_declared_ready = None
-                        else:
-                            self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
+                    elif self.is_storage_ready():
+                        self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
 
             elif self.state==HomeAloneState.HpOffStoreDischarge.value:
                 if not self.is_onpeak():
                     self.trigger_event(HomeAloneEvent.OffPeakStart.value)
-                elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
+                elif self.is_buffer_full():
                     self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
             if self.state != previous_state:                    
                 self.update_relays(previous_state)
             print('Done.')
 
-            await asyncio.sleep(self.main_loop_sleep_seconds)
+            await asyncio.sleep(10)
 
 
     def update_relays(self, previous_state):
@@ -268,15 +217,20 @@ class HomeAlone(Actor):
             self._turn_on_HP()
         if "HpOff" not in previous_state and "HpOff" in self.state:
             self._turn_off_HP()
-        if "StoreDischarge" in self.state:
-            self._turn_on_store()
-        if "StoreDischarge" not in self.state:
+        if "StoreOff" not in previous_state and "StoreOff" in self.state:
             self._turn_off_store()
         if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
-            self._valved_to_charge_store()
+            if "StoreDischarge" not in previous_state:
+                self._turn_on_store()
+            self._charge_store()
+        if "StoreDischarge" not in previous_state and "StoreDischarge" in self.state:
+            if "StoreCharge" not in previous_state:
+                self._turn_on_store()
+            else:
+                self._discharge_store()
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
-            self._valved_to_discharge_store()
-        
+            self._discharge_store()
+
 
     def _turn_on_HP(self):
         event = FsmEvent(
@@ -288,7 +242,7 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.hp_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
+        self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.hp_onoff_relay.name}")
 
 
     def _turn_off_HP(self):
@@ -301,23 +255,10 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.hp_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+        self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.hp_onoff_relay.name}")
 
 
     def _turn_on_store(self):
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_pump_onoff_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_pump_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-    
-
-    def _turn_off_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_pump_onoff_relay.handle,
@@ -327,33 +268,46 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_pump_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.store_pump_onoff_relay.name}")
+    
+
+    def _turn_off_store(self):
+        event = FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.store_pump_onoff_relay.handle,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.CloseRelay,
+            SendTimeUnixMs=int(time.time()*1000),
+            TriggerId=str(uuid.uuid4()),
+            )
+        self._send_to(self.store_pump_onoff_relay, event)
+        self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.store_pump_onoff_relay.name}")
 
 
-    def _valved_to_charge_store(self):
+    def _charge_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeStoreFlowRelay.enum_name(),
-            EventName=ChangeStoreFlowRelay.ChargeStore,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_charge_discharge_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.store_charge_discharge_relay.name}")
 
 
-    def _valved_to_discharge_store(self):
+    def _discharge_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeStoreFlowRelay.enum_name(),
-            EventName=ChangeStoreFlowRelay.DischargeStore,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_charge_discharge_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        self.services.logger.error(f"{self.node.handle} sending OpenRelay to {self.store_charge_discharge_relay.name}")
 
 
     def start(self) -> None:
@@ -384,16 +338,17 @@ class HomeAlone(Actor):
 
     def change_temp(self, channel_name, temp_c) -> None:
         if self.simulation:
-            self.latest_temperatures[channel_name] = temp_c * 1000
+            self.services._data.latest_channel_values[self.get_datachannel(channel_name)] = temp_c * 1000
         else:
             print("This function is only available in simulation")
 
+
     def get_latest_temperatures(self):
         self.latest_temperatures = {
-            x: self.services._data.latest_channel_values[x] 
+            x: self.services._data.latest_channel_values[self.get_datachannel(x)] 
             for x in self.temperature_channel_names
-            if x in self.services._data.latest_channel_values
-            and self.services._data.latest_channel_values[x] is not None
+            if self.get_datachannel(x) in self.services._data.latest_channel_values
+            and self.services._data.latest_channel_values[self.get_datachannel(x)] is not None
             }
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
@@ -401,39 +356,31 @@ class HomeAlone(Actor):
             self.temperatures_available = False
             print('Some temperatures are missing')
             
+
     def get_datachannel(self, name):
         for dc in self.datachannels:
             if name in dc.Name:
                 return dc
         return None
     
+
     def initialize_relays(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_failsafe_relay.handle,
-            EventType=ChangeHeatPumpControl.enum_name(),
-            EventName=ChangeHeatPumpControl.SwitchToScada,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.hp_failsafe_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
+        self.services.logger.error(f"{self.node.handle} sending CloseRelay to {self.hp_failsafe_relay.name}")
 
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.aquastat_ctrl_relay.handle,
-            EventType=ChangeAquastatControl.enum_name(),
-            EventName=ChangeAquastatControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.aquastat_ctrl_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
-    def is_onpeak(self) -> bool:
+    def is_onpeak(self):
         time_now = pendulum.now(tz="America/New_York")
         time_in_2min = pendulum.now(tz="America/New_York").add(minutes=2)
-        peak_hours = [7,8,9,10,11] + [16,17,18,19]
+        peak_hours = [8,9,10,11] + [16,17,18,19]
         if ((time_now.hour in peak_hours or time_in_2min.hour in peak_hours) 
             and time_now.day_of_week < 5):
             print("On-peak")
@@ -442,59 +389,52 @@ class HomeAlone(Actor):
             print("Not on-peak")
             return False
 
-    def is_buffer_empty(self) -> bool:
-        if self.latest_temperatures['buffer-depth2']/1000*9/5+32 < self.swt_coldest_hour - 20:
-            print(f"Buffer empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
-            return True
-        else:
-            print(f"Buffer not empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
-            return False
-    
-    def is_buffer_full(self) -> bool:
-        if self.latest_temperatures['buffer-depth4']/1000*9/5+32 > self.swt_coldest_hour:
-            print(f"Buffer full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
-            return True
-        else:
-            print(f"Buffer not full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
-            return False
 
-    def is_storage_ready(self) -> bool:
+    def is_buffer_empty(self):
+        if self.latest_temperatures['buffer-depth2'] < self.swt_coldest_hour:
+            print("Buffer empty")
+            return True
+        else:
+            print("Buffer not empty")
+            return False
+        
+    
+    def is_buffer_full(self):
+        if self.latest_temperatures['buffer-depth4'] > self.swt_coldest_hour:
+            print("Buffer full")
+            return True
+        else:
+            print("Buffer not full")
+            return False
+        
+
+    def is_storage_ready(self):
         total_usable_kwh = 0
         for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
             layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
-            if layer_temp_f >= self.swt_coldest_hour:
-                layer_energy_kwh = 360/12*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
+            if layer_temp_f > self.swt_coldest_hour:
+                layer_energy_kwh = 360/4*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
                 total_usable_kwh += layer_energy_kwh
         time_now = pendulum.now(tz="America/New_York")
-        if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
+        if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6,7]:
             required_storage = 7.5*self.average_power_coldest_hour_kW
         else:
             required_storage = 4*self.average_power_coldest_hour_kW
         if total_usable_kwh >= required_storage:
             print(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh")
-            self.time_storage_declared_ready = time.time()
             return True
         else:
             print(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh")
             return False
         
-    def is_storage_colder_than_buffer(self) -> bool:
-        if self.latest_temperatures['buffer-depth1'] > self.latest_temperatures['tank1-depth1']:
-            print(f"Storage top colder than buffer top")
-            return True
-        else:
-            print(f"Storage top warmer than buffer top")
-            return False
     
     def temp_drop(self, T):
         intercept, coeff = self.temp_drop_function
         return intercept + coeff*T
     
+
     def _send_to(self, dst: ShNode, payload) -> None:
-        if (
-                dst.name == self.services.name or
-                self.services.get_communicator(dst.name) is not None
-        ):
+        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
             self._send(
                 Message(
                     header=Header(
@@ -508,10 +448,8 @@ class HomeAlone(Actor):
         else:
             # Otherwise send via local mqtt
             message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services.publish_message( # noqa
-                self.services.LOCAL_MQTT, # noqa
-                message,
-                qos=QOS.AtMostOnce,
+            return self.services._links.publish_message(
+                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
             )
 
 
