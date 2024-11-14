@@ -166,9 +166,9 @@ class HomeAlone(Actor):
                     ]
                 ))
 
-    @property
-    def monitored_names(self) -> Sequence[MonitoredName]:
-        return [MonitoredName(self.name, self.main_loop_sleep_seconds * 2.1)]
+    # @property
+    # def monitored_names(self) -> Sequence[MonitoredName]:
+    #     return [MonitoredName(self.name, self.main_loop_sleep_seconds * 2.1)]
 
     async def main(self):
 
@@ -183,6 +183,7 @@ class HomeAlone(Actor):
         self.average_power_coldest_hour_kW = int(os.getenv('AVERAGE_POWER_COLDEST_HOUR_KW',6))
         self.buffer_empty = int(os.getenv('BUFFER_DEPTH2_EMPTY_F',100))
         self.buffer_full = int(os.getenv('BUFFER_DEPTH4_FULL_F',120))
+        self.services.logger.error(f"Successfully loaded dotenv. Got self.swt_coldest_hour {self.swt_coldest_hour}")
 
         while not self._stop_requested:
             self.services.logger.error("PATTING HOME ALONE WATCHDOG")
