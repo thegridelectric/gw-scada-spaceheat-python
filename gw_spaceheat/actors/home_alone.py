@@ -104,6 +104,8 @@ class HomeAlone(Actor):
             'tank1-depth1', 'tank1-depth2', 'tank1-depth3', 'tank1-depth4', 
             'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 'tank2-depth4', 
             'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4',
+            'hp-ewt', 'hp-lwt', 'dist-swt', 'dist-rwt', 
+            'buffer-cold-pipe', 'buffer-hot-pipe', 'store-cold-pipe', 'store-hot-pipe',
             ]
         self.temperatures_available = False
         self.hp_onoff_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
@@ -409,7 +411,6 @@ class HomeAlone(Actor):
         else:
             self.temperatures_available = False
             print('Some temperatures are missing')
-
             all_buffer = [x for x in self.temperature_channel_names if 'buffer' in x]
             available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer' in x]
             if all_buffer == available_buffer:
@@ -418,12 +419,10 @@ class HomeAlone(Actor):
                 all_tanks = [x for x in self.temperature_channel_names if 'tank' in x]
                 available_tanks = [x for x in list(self.latest_temperatures.keys()) if 'tank' in x]
                 if 'tank3-depth4' in available_tanks:
-                    print("Have top and bottom temperatures")
-                    have_extremes = True
-                for temp in [x for x in all_tanks if x not in available_tanks]:
-                    self.latest_temperatures[temp] = self.latest_temperatures['tank3-depth4'] if have_extremes else 0
-                # Delcare to have all temperatures
-                self.temperatures_available = True
+                    print("Storage bottom temperature available")
+                    for temp in [x for x in all_tanks if x not in available_tanks]:
+                        self.latest_temperatures[temp] = self.latest_temperatures['tank3-depth4']
+                    self.temperatures_available = True
 
 
     def get_datachannel(self, name):
@@ -468,38 +467,47 @@ class HomeAlone(Actor):
             return False
 
     def is_buffer_empty(self) -> bool:
-        try:
-            x = self.latest_temperatures['buffer-depth2']/1000*9/5+32 + self.buffer_empty
-        except Exception as e:
-            self.log("TROUBLE IN is_buffer_empty")
-        if self.latest_temperatures['buffer-depth2']/1000*9/5+32 < self.buffer_empty: #self.swt_coldest_hour - 20:
-            print(f"Buffer empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
-            return True
+        if 'buffer-depth1' in self.latest_temperatures:
+            buffer_empty_temp = 'buffer-depth1'
+        elif 'dist-swt' in self.latest_temperatures:
+            buffer_empty_temp = 'dist-swt'
         else:
-            print(f"Buffer not empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
-            return False
-    
-    def is_buffer_full(self) -> bool:
-        try:
-            x = self.latest_temperatures['buffer-depth4']/1000*9/5+32 + self.buffer_full
-        except Exception as e:
-            self.log("TROUBLE IN is_buffer_full")
-        if self.latest_temperatures['buffer-depth4']/1000*9/5+32 > self.buffer_full: #self.swt_coldest_hour:
-            print(f"Buffer full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
-            return True
-        else:
-            print(f"Buffer not full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
+            # TODO send an alert
+            print("ALERT we can't know if the buffer is empty")
             return False
 
-    def is_storage_ready(self) -> bool:
-        try:
-            answer = self.real_is_storage_ready()
-        except Exception as e:
-            self.log("HOMEALONE DYING IN is_storage_ready")
-            raise Exception(e)
-        return answer
+        if self.latest_temperatures[buffer_empty_temp]/1000*9/5+32 < self.buffer_empty:
+            print(f"Buffer empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)}F)")
+            return True
+        else:
+            print(f"Buffer not empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)}F)")
+            return False            
+    
+    def is_buffer_full(self) -> bool:
+        if 'buffer-depth4' in self.latest_temperatures:
+            buffer_full_temp = 'buffer-depth4'
+        else:
+            if 'buffer-cold-pipe' in self.latest_temperatures:
+                buffer_full_temp = 'buffer-cold-pipe'
+            elif "StoreDischarge" in self.state and 'store-cold-pipe' in self.latest_temperatures:
+                buffer_full_temp = 'store-cold-pipe'
+            elif 'hp-ewt' in self.latest_temperatures:
+                buffer_full_temp = 'hp-ewt'
+            else:
+                # TODO send an alert
+                print("ALERT we can't know if the buffer is empty")
+                return False
         
-    def real_is_storage_ready(self) -> bool:
+        if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > self.buffer_full:
+            print(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
+            return True
+        else:
+            print(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
+            return False
+        
+        
+
+    def is_storage_ready(self) -> bool:
         total_usable_kwh = 0
         for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
             layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
@@ -522,11 +530,31 @@ class HomeAlone(Actor):
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
-        try:
-            x = self.latest_temperatures['buffer-depth1'] + self.latest_temperatures['tank1-depth1']
-        except Exception as e:
-            self.log("HOMEALONE DYING IN is_storage_colder_than_buffer")
-        if self.latest_temperatures['buffer-depth1'] > self.latest_temperatures['tank1-depth1']:
+        if 'buffer-depth1' in self.latest_temperatures:
+            buffer_top = 'buffer-depth1'
+        elif 'buffer-depth2' in self.latest_temperatures:
+            buffer_top = 'buffer-depth2'
+        elif 'buffer-depth3' in self.latest_temperatures:
+            buffer_top = 'buffer-depth3'
+        elif 'buffer-depth4' in self.latest_temperatures:
+            buffer_top = 'buffer-depth4'
+        elif 'buffer-cold-pipe' in self.latest_temperatures:
+            buffer_top = 'buffer-cold-pipe'
+        else:
+            # TODO send an alert
+            print("ALERT we can't know if the top of the buffer is warmer than the storage")
+            return False
+        if 'tank1-depth1' in self.latest_temperatures:
+            tank_top = 'tank1-depth1'
+        elif 'store-hot-pipe' in self.latest_temperatures:
+            tank_top = 'store-hot-pipe'
+        elif 'buffer-hot-pipe' in self.latest_temperatures:
+            tank_top = 'buffer-hot-pipe'
+        else:
+            # TODO send an alert
+            print("ALERT we can't know if the top of the storage is warmer than the buffer")
+            return False
+        if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top]:
             print("Storage top colder than buffer top")
             return True
         else:
