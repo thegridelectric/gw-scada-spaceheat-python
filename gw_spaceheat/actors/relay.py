@@ -4,6 +4,7 @@ import time
 from typing import Dict, List, cast, Sequence, Optional
 
 from gw.enums import GwStrEnum
+from gwproto.data_classes.data_channel import DataChannel
 from gwproactor import QOS, Actor, ServicesInterface, MonitoredName
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
@@ -38,7 +39,7 @@ from transitions import Machine
 
 
 class Relay(Actor):
-    STATE_REPORT_S = 60
+    STATE_REPORT_S = 300
     node: ShNode
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
@@ -83,16 +84,18 @@ class Relay(Actor):
         self.initialize_fsm()
         self._stop_requested = False
 
-    @property
-    def fsm_name(self) -> str:
-        if self.name == H0N.vdc_relay:
-            return FsmName.RelayState
-        elif self.name == H0N.tstat_common_relay:
-            return FsmName.RelayState
-        elif self.name == H0N.store_charge_discharge_relay:
-            return FsmName.StoreFlowDirection
-        else:
-            raise Exception("Need to add!")
+    def my_channel(self) -> DataChannel:
+        relay_config = next(
+            (
+                config
+                for config in self.component.gt.ConfigList
+                if config.ActorName == self.name
+            ),
+            None,
+        )
+        if relay_config is None:
+            raise Exception(f"relay {self.name} does not have a state channel!")
+        return self.layout.data_channels[relay_config.ChannelName]
 
     def _send_to(self, dst: ShNode, payload) -> None:
         if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
@@ -262,7 +265,7 @@ class Relay(Actor):
     def send_state(self, now_ms: Optional[int] = None) -> None:
         if now_ms is None:
             now_ms = int(time.time() * 1000)
-        self.services.logger.error(f"State: {self.state}")
+        self.services.logger.error(f"[{self.my_channel().Name}] {self.state}")
         self._send_to(
             self.primary_scada,
             MachineStates(
