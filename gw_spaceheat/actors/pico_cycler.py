@@ -87,6 +87,7 @@ class PicoCycler(Actor):
         {"trigger": "PicoMissing", "source": "PicosRebooting", "dest": "RelayOpening"},
         {"trigger": "RebootDud", "source": "PicosRebooting", "dest": "AllZombies"},
         {"trigger": "ShakeZombies", "source": "AllZombies", "dest": "RelayOpening"},
+        {"trigger": "ShakeZombies", "source": "PicosLive", "dest": "RelayOpening"},
     ]
 
     def __init__(self, name: str, services: ServicesInterface):
