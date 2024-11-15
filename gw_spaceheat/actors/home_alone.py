@@ -214,7 +214,7 @@ class HomeAlone(Actor):
                     else:
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
-                        elif self.is_buffer_full():
+                        else:
                             if self.is_storage_ready():
                                 self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
                             else:
@@ -502,8 +502,11 @@ class HomeAlone(Actor):
         for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
             layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
             if layer_temp_f >= self.swt_coldest_hour:
-                layer_energy_kwh = 360/12*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
-                total_usable_kwh += layer_energy_kwh
+                if 'tank3-depth4' in self.latest_temperatures:
+                    while layer_temp_f > min(self.latest_temperatures['tank3-depth4'], self.swt_coldest_hour):
+                        layer_energy_kwh = 360/12*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
+                        total_usable_kwh += layer_energy_kwh
+                        layer_temp_f += -self.temp_drop(layer_temp_f)*5/9
         time_now = pendulum.now(tz="America/New_York")
         if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
             required_storage = 7.5*self.average_power_coldest_hour_kw
