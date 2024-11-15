@@ -515,7 +515,7 @@ class ApiFlowModule(Actor):
         if len(data.RelativeMillisecondList) == 1:
             final_tick_ns = self.nano_timestamps[-1]
             if self.latest_tick_ns is not None:
-                final_nonzero_hz = int(1e9 / (final_tick_ns - self.latest_tick_ns))
+                final_nonzero_hz = 1e9 / (final_tick_ns - self.latest_tick_ns)
             else:
                 final_nonzero_hz = 0
             self.latest_tick_ns = final_tick_ns
@@ -688,7 +688,7 @@ class ApiFlowModule(Actor):
             sampled_timestamps = timestamps
             smoothed_frequencies = frequencies
         # Exponential weighted average
-        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
+        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg and not self.slow_turner:
             alpha = self._component.gt.ExpAlpha
             smoothed_frequencies = []
             latest = self.latest_hz
@@ -697,7 +697,7 @@ class ApiFlowModule(Actor):
                 smoothed_frequencies.append(latest)
             sampled_timestamps = timestamps
         # Butterworth filter
-        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
+        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth and not self.slow_turner:
             if (
                 len(frequencies) > 20
             ):  # TODO: make this a parameter? Issue a warning if too short?
