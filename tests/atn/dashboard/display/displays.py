@@ -61,9 +61,17 @@ class Displays:
                 style=Style(bold=True, color="hot_pink")
             ),
             "   ",
-            Text(str(report_dt.strftime('%Y-%m-%d %H:%M:%S')), style="cyan1"),
+            Text(
+                str(report_dt.strftime('%Y-%m-%d %H:%M:%S')),
+                # cyan is hard to read on a light themed terminal
+                # style="cyan1"
+            ),
             "   (",
-            Text(update_source, style="orange1"),
+            Text(
+                update_source,
+                # orange1 is hard to read on a light themed terminal
+                # style="orange1"
+            ),
             ")",
         )
         return self

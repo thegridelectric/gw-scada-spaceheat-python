@@ -23,7 +23,8 @@ from gwproto.messages import EventBase
 from gwproto.messages import LayoutLite, LayoutEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
-from gwproto.messages import GtShCliAtnCmd
+from gwproto.messages import SendSnap
+from gwproto.messages import ScadaParams
 from gwproto.messages import MachineStates, PicoMissing
 from gwproto.messages import ReportEvent
 from gwproto.messages import SingleReading
@@ -504,12 +505,22 @@ class Scada(ScadaInterface, Proactor):
         self._logger.path("++_process_upstream_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         match decoded.Payload:
-            case GtShCliAtnCmd():
+            case SendSnap():
                 path_dbg |= 0x00000001
-                self._gt_sh_cli_atn_cmd_received(decoded.Payload)
+                self._send_snap_received(decoded.Payload)
+            case ScadaParams():
+                path_dbg |= 0x00000002
+                if decoded.Payload.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
+                    return
+                if decoded.Payload.ToName == H0N.home_alone:
+                    try:
+                        self.get_communicator(H0N.home_alone).process_message(message)
+                    except Exception:
+                        self.logger.error("Problem getting communicator for home alone and"
+                                        "Processing a ScadaParams message")
             case _:
                 # Intentionally ignore this for forward compatibility
-                path_dbg |= 0x00000002
+                path_dbg |= 0x00000004
         self._logger.path("--_process_upstream_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_downstream_mqtt_message(
@@ -556,8 +567,18 @@ class Scada(ScadaInterface, Proactor):
                     path_dbg |= 0x00000004
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
 
-    def _gt_sh_cli_atn_cmd_received(self, payload: GtShCliAtnCmd):
-        if payload.SendSnapshot is not True:
+    def _scada_params_received(self, message: ScadaParams) -> None:
+        if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
+            return
+        if message.ToName == H0N.home_alone:
+            try:
+                self.get_communicator(H0N.home_alone).process_message(message)
+            except Exception:
+                self.logger.error("Problem getting communicator for home alone and"
+                                  "Processing a ScadaParams message")
+
+    def _send_snap_received(self, payload: SendSnap):
+        if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
             return
         self._links.publish_upstream(self._data.make_snapshot())
 

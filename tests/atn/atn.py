@@ -1,6 +1,8 @@
 """Scada implementation"""
 import asyncio
 import threading
+import time
+import uuid
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any
@@ -13,7 +15,8 @@ import pytz
 
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.named_types import GtShCliAtnCmd
+from gwproto.named_types import ScadaParams
+from gwproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
 import rich
 from pydantic import BaseModel
@@ -169,7 +172,7 @@ class Atn(ActorInterface, Proactor):
         )
         path_dbg = 0
         match message.Payload:
-            case GtShCliAtnCmd():
+            case SendSnap():
                 path_dbg |= 0x00000001
                 self._publish_to_scada(message.Payload)
             case DBGPayload():
@@ -193,23 +196,26 @@ class Atn(ActorInterface, Proactor):
             case PowerWatts():
                 path_dbg |= 0x00000001
                 self._process_pwr(decoded.Payload)
-            case SnapshotSpaceheat():
-                path_dbg |= 0x00000002
-                self._process_snapshot(decoded.Payload)
             case Report():
+                path_dbg |= 0x00000002
+                self._process_report(decoded.Payload)
+            case ScadaParams():
                 path_dbg |= 0x00000004
-                self.process_report(decoded.Payload)
-            case EventBase():
+                self._process_scada_params(decoded.Payload)
+            case SnapshotSpaceheat():
                 path_dbg |= 0x00000008
+                self._process_snapshot(decoded.Payload)
+            case EventBase():
+                path_dbg |= 0x00000010
                 self._process_event(decoded.Payload)
                 if decoded.Payload.TypeName == ReportEvent.model_fields["TypeName"].default:
-                    path_dbg |= 0x00000010
-                    self.process_report(decoded.Payload.Report)
-                elif decoded.Payload.TypeName == SnapshotSpaceheat.model_fields["TypeName"].default:
                     path_dbg |= 0x00000020
+                    self._process_report(decoded.Payload.Report)
+                elif decoded.Payload.TypeName == SnapshotSpaceheat.model_fields["TypeName"].default:
+                    path_dbg |= 0x00000040
                     self._process_snapshot(decoded.Payload)
             case _:
-                path_dbg |= 0x00000040
+                path_dbg |= 0x00000080
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_pwr(self, pwr: PowerWatts) -> None:
@@ -219,7 +225,7 @@ class Atn(ActorInterface, Proactor):
             rich.print("Received PowerWatts")
             rich.print(pwr)
 
-    def snaphot_str(self, snapshot: SnapshotSpaceheat) -> str:
+    def snapshot_str(self, snapshot: SnapshotSpaceheat) -> str:
         s = "\n\nSnapshot received:\n"
         for single_reading in snapshot.LatestReadingList:
             channel = self.layout.data_channels[single_reading.ChannelName]
@@ -241,14 +247,17 @@ class Atn(ActorInterface, Proactor):
             s += f"  {channel.AboutNodeName}: {extra}\n"
         return s
 
+    def _process_scada_params(self, params: ScadaParams) -> None:
+        print(f"Received Scada Params: {params}")
+
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
         if self.settings.dashboard.print_gui:
             self.dashboard.process_snapshot(snapshot)
         if self.settings.dashboard.print_snap:
-            self._logger.warning(self.snaphot_str(snapshot))
+            self._logger.warning(self.snapshot_str(snapshot))
 
-    def process_report(self, report: Report) -> None:
+    def _process_report(self, report: Report) -> None:
         self.data.latest_report = report
         if self.settings.save_events:
             report_file = self.report_output_dir / f"Report.{report.SlotStartUnixS}.json"
@@ -272,13 +281,76 @@ class Atn(ActorInterface, Proactor):
             Message(
                 Src=self.name,
                 Dst=self.name,
-                Payload=GtShCliAtnCmd(
+                Payload=SendSnap(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromGNodeId=self.layout.atn_g_node_id,
-                    SendSnapshot=True,
                 ),
             )
         )
+    
+    def set_swt_coldest(self, swt_coldest_hour: int = 120) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaParams(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.home_alone,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=str(uuid.uuid4()),
+                    SwtColdestHr=swt_coldest_hour,
+                ),
+            )
+        )
+    
+    def set_avg_coldest(self, average_power_coldest_hour_kw: float = 4) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaParams(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.home_alone,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=str(uuid.uuid4()),
+                    AveragePowerColdestHourKw=average_power_coldest_hour_kw,
+                ),
+            )
+        )
+    
+    def set_buffer_empty(self, buffer_empty: int = 110) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaParams(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.home_alone,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=str(uuid.uuid4()),
+                    BufferEmpty=buffer_empty,
+                ),
+            )
+        )
+    
+    def set_buffer_full(self, buffer_full: int = 125) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaParams(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.home_alone,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=str(uuid.uuid4()),
+                    BufferFull=buffer_full,
+                ),
+            )
+        )
+
 
     def dbg(
         self,

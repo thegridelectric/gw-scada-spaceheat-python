@@ -58,7 +58,7 @@ the relay.
 
 ### Atn requests status
 
-    Atn     ->  GtShCliAtnCmd               ->  Scada
+    Atn     ->  SendSnap              ->  Scada
     Scada   ->  SnapshotSpaceheat           ->  Atn
 
 This a maintenance command for humans to immediately see `SnapshotSpaceheat` from the Scada instead of 
