@@ -30,6 +30,7 @@ def _set_relay(
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
+    # noinspection PyArgumentList
     settings = AdminClientSettings(
         target_gnode=target,
         _env_file=dotenv.find_dotenv(env)
@@ -49,12 +50,14 @@ def _set_relay(
 def set_relay(
     target: str,
     open_relay: bool,
+    env_file: str = ".env",
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
     _set_relay(
         target=target,
         open_relay=open_relay,
+        env=env_file,
         user=user,
         json=json,
     )
@@ -64,12 +67,14 @@ def set_relay(
 def run(
     target: str = "d1.isone.me.versant.keene.orange.scada",
     open_relay: bool = True,
+    env_file: str = ".env",
     user: str = "HeatpumpWizard",
     json: bool = False,
 ) -> None:
     _set_relay(
         target=target,
         open_relay=open_relay,
+        env=env_file,
         user=user,
         json=json,
     )
