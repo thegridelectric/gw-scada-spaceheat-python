@@ -210,7 +210,7 @@ class PicoCycler(Actor):
         PicoMissing message from an actor
         """
         self.trigger_event(PicoCyclerEvent.PicoMissing)
-
+        self.log(f"TRIGGERING PICO REBOOT! {self.fsm_comment}")
         # increment reboot attempts for all flatlined picos
         for pico in self.pico_states:
             if self.pico_states[pico] == SinglePicoState.Flatlined:
@@ -360,6 +360,7 @@ class PicoCycler(Actor):
         if self.all_zombies:
             self.reboot_dud()
         elif len(self.flatlined) > 0:
+            self.fsm_comment = f"Flatlined picos: {self.flatlined}"
             self.pico_missing()
         else:
             self.confirm_rebooted()
@@ -369,6 +370,7 @@ class PicoCycler(Actor):
         self.send_fsm_report()
 
     def shake_zombies(self) -> None:
+        self.log(f"Shaking these zombies: {self.zombies}")
         self.trigger_id = str(uuid.uuid4())
         self.trigger_event(PicoCyclerEvent.ShakeZombies)
         self.last_zombie_shake = time.time()

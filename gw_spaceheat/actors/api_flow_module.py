@@ -628,9 +628,9 @@ class ApiFlowModule(Actor):
         hz_list = [x / 1e6 for x in micro_hz_readings.ValueList]
         gpms = [x * 60 * gallons_per_tick for x in hz_list]
         self.latest_gpm = gpms[-1]
-        self.log("gpms x 100 for slow turner:")
-        if self.slow_turner:
-            print([int(x * 100) for x in gpms])
+        # self.log("gpms x 100 for slow turner:")
+        # if self.slow_turner:
+        #     print([int(x * 100) for x in gpms])
         return ChannelReadings(
             ChannelName=self.gpm_channel.Name,
             ValueList=[int(x * 100) for x in gpms],
