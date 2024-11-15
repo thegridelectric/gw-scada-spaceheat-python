@@ -411,8 +411,8 @@ class HomeAlone(Actor):
         else:
             self.temperatures_available = False
             print('Some temperatures are missing')
-            all_buffer = [x for x in self.temperature_channel_names if 'buffer' in x]
-            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer' in x]
+            all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
+            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
                 print("But all the buffer temperatures are available")
                 # Fill in the storage temperatures
