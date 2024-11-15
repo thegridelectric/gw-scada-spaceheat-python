@@ -27,7 +27,7 @@ class ScadaSettings(ProactorSettings):
     average_power_coldest_hour_kw: float = 4
     buffer_empty: int = 110
     buffer_full: int = 125
-
+    timezone_str: str = "America/New_York"
 
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 

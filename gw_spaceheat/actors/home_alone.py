@@ -3,7 +3,8 @@ from typing import Sequence
 from enum import auto
 import uuid
 import time
-import os
+from datetime import datetime, timedelta
+import pytz
 from gw.enums import GwStrEnum
 from gwproactor import QOS, Actor, ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -16,7 +17,6 @@ from gwproto.data_classes.house_0_names import H0N
 from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
                            ChangeStoreFlowRelay, FsmReportType)
 from gwproto.named_types import FsmEvent, MachineStates, FsmAtomicReport, FsmFullReport
-import pendulum
 from actors.config import ScadaSettings
 
 
@@ -130,6 +130,7 @@ class HomeAlone(Actor):
         self.average_power_coldest_hour_kw = self.settings.average_power_coldest_hour_kw
         self.buffer_empty = self.settings.buffer_empty
         self.buffer_full = self.settings.buffer_full
+        self.timezone = pytz.timezone(self.settings.timezone_str)
         self.log(f"self.swt_coldest_hour: {self.swt_coldest_hour}")
         self.log(f"self.average_power_coldest_hour_kw : {self.average_power_coldest_hour_kw }")
         self.log(f"self.buffer_empty: {self.buffer_empty}")
@@ -454,11 +455,11 @@ class HomeAlone(Actor):
         self.services.logger.error(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
     def is_onpeak(self) -> bool:
-        time_now = pendulum.now(tz="America/New_York")
-        time_in_2min = pendulum.now(tz="America/New_York").add(minutes=2)
+        time_now = datetime.now(self.timezone)
+        time_in_2min = time_now + timedelta(minutes=2)
         peak_hours = [7,8,9,10,11] + [16,17,18,19]
         if ((time_now.hour in peak_hours or time_in_2min.hour in peak_hours) 
-            and time_now.day_of_week < 5):
+            and time_now.weekday() < 5):
             self.log("On-peak")
             return True
         else:
@@ -504,7 +505,7 @@ class HomeAlone(Actor):
             if layer_temp_f >= self.swt_coldest_hour:
                 layer_energy_kwh = 360/12*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
                 total_usable_kwh += layer_energy_kwh
-        time_now = pendulum.now(tz="America/New_York")
+        time_now = datetime.now(self.timezone)
         if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
             required_storage = 7.5*self.average_power_coldest_hour_kw
         else:
