@@ -370,6 +370,8 @@ class PicoCycler(Actor):
         self.send_fsm_report()
 
     def shake_zombies(self) -> None:
+        if self.state not in {PicoCyclerState.PicosLive.value, PicoCyclerState.AllZombies.value}:
+            return
         self.log(f"Shaking these zombies: {self.zombies}")
         self.trigger_id = str(uuid.uuid4())
         self.trigger_event(PicoCyclerEvent.ShakeZombies)
