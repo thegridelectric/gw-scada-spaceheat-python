@@ -24,9 +24,9 @@ class ScadaSettings(ProactorSettings):
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings()
     swt_coldest_hour: int = 120
-    average_power_coldest_hour_kw: float = 6
-    buffer_empty: int = 100
-    buffer_full: int = 120
+    average_power_coldest_hour_kw: float = 4
+    buffer_empty: int = 110
+    buffer_full: int = 125
 
 
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
