@@ -189,6 +189,7 @@ class HomeAlone(Actor):
 
         while not self._stop_requested:
             self.services.logger.error("PATTING HOME ALONE WATCHDOG")
+            self.services.logger.error(f"State: {self.state}")
             self._send(PatInternalWatchdogMessage(src=self.name))
             previous_state = self.state
             print("\n"+"-"*50)
