@@ -81,7 +81,6 @@ class I2cRelayMultiplexer(Actor):
         self.krida_relay_pin: Dict[int, Any] = {}
         relay_node_names = [config.ActorName for config in self.component.gt.ConfigList]
         self.my_relays = [self.layout.nodes[name] for name in relay_node_names]
-        self.channel_by_relay: Dict[ShNode, DataChannel] = {}
         # dict of current energization state
         self.relay_state: Dict[int, RelayEnergizationState] = {}
         self._stop_requested = False

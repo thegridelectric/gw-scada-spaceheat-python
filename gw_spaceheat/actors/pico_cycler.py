@@ -185,7 +185,7 @@ class PicoCycler(Actor):
             if actor not in self.pico_actors:
                 return
             if pico in self.zombies:
-                self.log(f"Zombie {actor.name} {pico} reporting missing.")
+                # self.log(f"Zombie {actor.name} {pico} reporting missing.")
                 return
             self.log(f"{actor.name} pico {pico} reporting missing")
 

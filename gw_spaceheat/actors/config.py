@@ -23,6 +23,11 @@ class ScadaSettings(ProactorSettings):
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings()
+    swt_coldest_hour: int = 120
+    average_power_coldest_hour_kw: int = 6
+    buffer_empty: int = 100
+    buffer_full: int = 120
+
 
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 

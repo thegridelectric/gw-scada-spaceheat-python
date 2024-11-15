@@ -3,7 +3,6 @@ from typing import Sequence
 from enum import auto
 import uuid
 import time
-import dotenv
 import os
 from gw.enums import GwStrEnum
 from gwproactor import QOS, Actor, ServicesInterface,  MonitoredName
@@ -18,6 +17,7 @@ from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquast
                            ChangeStoreFlowRelay, FsmReportType)
 from gwproto.named_types import FsmEvent, MachineStates, FsmAtomicReport, FsmFullReport
 import pendulum
+from actors.config import ScadaSettings
 
 
 class HomeAloneState(GwStrEnum):
@@ -95,6 +95,7 @@ class HomeAlone(Actor):
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
+        self.settings: ScadaSettings = self.services.settings
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
         self.datachannels = list(self.hardware_layout.data_channels.values())
@@ -119,13 +120,20 @@ class HomeAlone(Actor):
             send_event=True,
         )
         # House parameters
-        self.average_power_coldest_hour_kW = 5 # TODO
-        self.swt_coldest_hour = 120 # TODO
         self.temp_drop_function = [20,0] #TODO
         # In simulation vs in a real house
         self.simulation = True
         self.main_loop_sleep_seconds = 60
 
+        # Read House parameters from the .env file
+        self.swt_coldest_hour = self.settings.swt_coldest_hour
+        self.average_power_coldest_hour_kw = self.settings.average_power_coldest_hour_kw
+        self.buffer_empty = self.settings.buffer_empty
+        self.buffer_full = self.settings.buffer_full
+        self.log(f"self.swt_coldest_hour: {self.swt_coldest_hour}")
+        self.log(f"self.average_power_coldest_hour_kw : {self.average_power_coldest_hour_kw }")
+        self.log(f"self.buffer_empty: {self.buffer_empty}")
+        self.log(f"self.buffer_full: {self.buffer_full}")
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
         now_ms = int(time.time() * 1000)
@@ -177,14 +185,6 @@ class HomeAlone(Actor):
         self.initialize_relays()
         if self.is_onpeak():
             self._turn_off_HP()
-
-        # Read the parameters from the .env file
-        dotenv.load_dotenv()
-        self.swt_coldest_hour = int(os.getenv('SWT_COLDEST_HOUR_F',120))
-        self.average_power_coldest_hour_kW = int(os.getenv('AVERAGE_POWER_COLDEST_HOUR_KW',6))
-        self.buffer_empty = int(os.getenv('BUFFER_DEPTH2_EMPTY_F',100))
-        self.buffer_full = int(os.getenv('BUFFER_DEPTH4_FULL_F',120))
-        self.services.logger.error(f"Successfully loaded dotenv. Got self.swt_coldest_hour {self.swt_coldest_hour}")
 
         while not self._stop_requested:
             self.services.logger.error("PATTING HOME ALONE WATCHDOG")
@@ -271,7 +271,6 @@ class HomeAlone(Actor):
 
             await asyncio.sleep(self.main_loop_sleep_seconds)
 
-
     def update_relays(self, previous_state):
         if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
             self._turn_off_HP()
@@ -288,7 +287,6 @@ class HomeAlone(Actor):
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
             self._valved_to_discharge_store()
         
-
     def _turn_on_HP(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
@@ -300,7 +298,6 @@ class HomeAlone(Actor):
             )
         self._send_to(self.hp_onoff_relay, event)
         self.services.logger.error(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
-
 
     def _turn_off_HP(self):
         event = FsmEvent(
@@ -314,7 +311,6 @@ class HomeAlone(Actor):
         self._send_to(self.hp_onoff_relay, event)
         self.services.logger.error(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
 
-
     def _turn_on_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
@@ -326,7 +322,7 @@ class HomeAlone(Actor):
             )
         self._send_to(self.store_pump_onoff_relay, event)
         self.services.logger.error(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-    
+
 
     def _turn_off_store(self):
         event = FsmEvent(
@@ -427,7 +423,7 @@ class HomeAlone(Actor):
                 # Delcare to have all temperatures
                 self.temperatures_available = True
 
-            
+
     def get_datachannel(self, name):
         for dc in self.datachannels:
             if name in dc.Name:
@@ -463,13 +459,17 @@ class HomeAlone(Actor):
         peak_hours = [7,8,9,10,11] + [16,17,18,19]
         if ((time_now.hour in peak_hours or time_in_2min.hour in peak_hours) 
             and time_now.day_of_week < 5):
-            print("On-peak")
+            self.log("On-peak")
             return True
         else:
-            print("Not on-peak")
+            self.log("Not on-peak")
             return False
 
     def is_buffer_empty(self) -> bool:
+        try:
+            x = self.latest_temperatures['buffer-depth2']/1000*9/5+32 + self.buffer_empty
+        except Exception as e:
+            self.log("TROUBLE IN is_buffer_empty")
         if self.latest_temperatures['buffer-depth2']/1000*9/5+32 < self.buffer_empty: #self.swt_coldest_hour - 20:
             print(f"Buffer empty (layer 2: {round(self.latest_temperatures['buffer-depth2']/1000*9/5+32,1)}F)")
             return True
@@ -478,6 +478,10 @@ class HomeAlone(Actor):
             return False
     
     def is_buffer_full(self) -> bool:
+        try:
+            x = self.latest_temperatures['buffer-depth4']/1000*9/5+32 + self.buffer_full
+        except Exception as e:
+            self.log("TROUBLE IN is_buffer_full")
         if self.latest_temperatures['buffer-depth4']/1000*9/5+32 > self.buffer_full: #self.swt_coldest_hour:
             print(f"Buffer full (layer 4: {round(self.latest_temperatures['buffer-depth4']/1000*9/5+32,1)}F)")
             return True
@@ -486,6 +490,14 @@ class HomeAlone(Actor):
             return False
 
     def is_storage_ready(self) -> bool:
+        try:
+            answer = self.real_is_storage_ready()
+        except Exception as e:
+            self.log("HOMEALONE DYING IN is_storage_ready")
+            raise Exception(e)
+        return answer
+        
+    def real_is_storage_ready(self) -> bool:
         total_usable_kwh = 0
         for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
             layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
@@ -494,9 +506,9 @@ class HomeAlone(Actor):
                 total_usable_kwh += layer_energy_kwh
         time_now = pendulum.now(tz="America/New_York")
         if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
-            required_storage = 7.5*self.average_power_coldest_hour_kW
+            required_storage = 7.5*self.average_power_coldest_hour_kw
         else:
-            required_storage = 4*self.average_power_coldest_hour_kW
+            required_storage = 4*self.average_power_coldest_hour_kw
         if total_usable_kwh >= required_storage:
             print(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh")
             self.time_storage_declared_ready = time.time()
@@ -506,11 +518,15 @@ class HomeAlone(Actor):
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
+        try:
+            x = self.latest_temperatures['buffer-depth1'] + self.latest_temperatures['tank1-depth1']
+        except Exception as e:
+            self.log("HOMEALONE DYING IN is_storage_colder_than_buffer")
         if self.latest_temperatures['buffer-depth1'] > self.latest_temperatures['tank1-depth1']:
-            print(f"Storage top colder than buffer top")
+            print("Storage top colder than buffer top")
             return True
         else:
-            print(f"Storage top warmer than buffer top")
+            print("Storage top warmer than buffer top")
             return False
     
     def temp_drop(self, T):
@@ -541,6 +557,9 @@ class HomeAlone(Actor):
                 qos=QOS.AtMostOnce,
             )
 
+    def log(self, note: str) -> None:
+        log_str = f"[{self.name}] {note}"
+        self.services.logger.error(log_str)
 
 # if __name__ == '__main__':
 #     from actors import HomeAlone; from command_line_utils import get_scada; s=get_scada(); s.run_in_thread(); h: HomeAlone = s.get_communicator('h')
