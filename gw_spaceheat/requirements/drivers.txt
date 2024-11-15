@@ -86,8 +86,6 @@ paho-mqtt==1.6.1
     # via
     #   -r /Users/jessica/Coding/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
     #   gridworks-proactor
-pendulum==2.1.2
-    # via -r /Users/jessica/Coding/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
 platformdirs==4.3.2
     # via textual
 pydantic==2.8.2
@@ -117,8 +115,6 @@ pyserial==3.5
     #   -r /Users/jessica/Coding/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
     #   pyftdi
     #   pymodbus
-python-dateutil==2.8.2
-    # via pendulum
 python-dotenv==1.0.0
     # via
     #   -r /Users/jessica/Coding/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
@@ -129,8 +125,6 @@ pytz==2024.1
     # via
     #   -r /Users/jessica/Coding/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
     #   gridworks-protocol
-pytzdata==2020.1
-    # via pendulum
 pyusb==1.2.1
     # via pyftdi
 result==0.9.0
@@ -149,7 +143,6 @@ shellingham==1.5.4
 six==1.16.0
     # via
     #   pymodbus
-    #   python-dateutil
     #   transitions
 smbus2==0.4.1
     # via -r /Users/jessica/Coding/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in

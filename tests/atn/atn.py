@@ -7,8 +7,10 @@ from typing import Any
 from typing import cast
 from typing import Optional
 from typing import List
+from datetime import datetime
+import pytz
 
-import pendulum
+
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.named_types import GtShCliAtnCmd
@@ -256,7 +258,8 @@ class Atn(ActorInterface, Proactor):
 
     def _process_event(self, event: EventBase) -> None:
         if self.settings.save_events:
-            event_dt = pendulum.from_timestamp(event.TimeCreatedMs / 1000)
+            timezone = pytz.timezone("America/New_York")
+            event_dt = datetime.fromtimestamp(event.TimeCreatedMs / 1000, tz=timezone)
             event_file = (
                 self.settings.paths.event_dir
                 / f"{event_dt.isoformat()}.{event.TypeName}.uid[{event.MessageId}].json"
