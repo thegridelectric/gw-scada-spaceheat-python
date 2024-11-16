@@ -399,6 +399,21 @@ class HomeAlone(Actor):
         else:
             print("This function is only available in simulation")
 
+    def fill_missing_store_temps(self):
+        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
+        for layer in all_store_layers:
+            if layer not in self.latest_temperatures:
+                self.latest_temperatures[layer] = None
+        if 'store-cold-pipe' in self.latest_temperatures:
+            value_below = self.latest_temperatures['store-cold-pipe']
+        else:
+            value_below = 0
+        for layer in sorted(all_store_layers, reverse=True):
+            if self.latest_temperatures[layer] is None:
+                self.latest_temperatures[layer] = value_below
+            value_below = self.latest_temperatures[layer]  
+        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
+
     def get_latest_temperatures(self):
         self.latest_temperatures = {
             x: self.services._data.latest_channel_values[x] 
@@ -415,15 +430,9 @@ class HomeAlone(Actor):
             available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
                 print("But all the buffer temperatures are available")
-                # Fill in the storage temperatures
-                all_tanks = [x for x in self.temperature_channel_names if 'tank' in x]
-                available_tanks = [x for x in list(self.latest_temperatures.keys()) if 'tank' in x]
-                if 'tank3-depth4' in available_tanks:
-                    print("Storage bottom temperature available")
-                    for temp in [x for x in all_tanks if x not in available_tanks]:
-                        self.latest_temperatures[temp] = self.latest_temperatures['tank3-depth4']
-                    self.temperatures_available = True
-
+                self.fill_missing_store_temps()
+                print("Successfully filled in the missing storage temperatures.")
+                self.temperatures_available = True
 
     def get_datachannel(self, name):
         for dc in self.datachannels:
@@ -504,29 +513,30 @@ class HomeAlone(Actor):
         else:
             print(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
             return False
-        
-        
 
     def is_storage_ready(self) -> bool:
+        latest_temperatures = self.latest_temperatures.copy()
+        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
+        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
+        
         total_usable_kwh = 0
-        for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
-            layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
-            if layer_temp_f >= self.swt_coldest_hour:
-                while layer_temp_f >= self.swt_coldest_hour:
-                    layer_energy_kwh = 360/12*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
-                    total_usable_kwh += layer_energy_kwh
-                    layer_temp_f += -self.temp_drop(layer_temp_f)*5/9
+        while True:
+            if simulated_layers[0] < self.swt_coldest_hour - 10:
+                break
+            total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]
+        
         time_now = datetime.now(self.timezone)
         if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
             required_storage = 7.5*self.average_power_coldest_hour_kw
         else:
             required_storage = 4*self.average_power_coldest_hour_kw
         if total_usable_kwh >= required_storage:
-            print(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh")
+            self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
             self.time_storage_declared_ready = time.time()
             return True
         else:
-            print(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh")
+            self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh)")
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
@@ -544,7 +554,7 @@ class HomeAlone(Actor):
             # TODO send an alert
             print("ALERT we can't know if the top of the buffer is warmer than the storage")
             return False
-        if 'tank1-depth1' in self.latest_temperatures:
+        if 'tank1-depth1' in self.latest_temperatures: # TODO: this will always be true since we are filling temperatures
             tank_top = 'tank1-depth1'
         elif 'store-hot-pipe' in self.latest_temperatures:
             tank_top = 'store-hot-pipe'
@@ -561,9 +571,21 @@ class HomeAlone(Actor):
             print("Storage top warmer than buffer top")
             return False
     
-    def temp_drop(self, T):
-        intercept, coeff = self.temp_drop_function
-        return intercept + coeff*T
+    def to_celcius(self, t):
+        return round((t-32)*5/9)
+
+    def to_fahrenheit(self, t):
+        return round(t*9/5+32)
+    
+    def rwt(self, swt):
+        if swt < self.swt_coldest_hour - 10:
+            return swt
+        elif swt < self.swt_coldest_hour:
+            temp_drop_required_swt = (self.swt_coldest_hour-70)*0.2
+            return swt - temp_drop_required_swt/10 * (swt-(self.swt_coldest_hour-10))
+        else:
+            temp_drop = (swt-70)*0.2
+            return swt - temp_drop    
     
     def _send_to(self, dst: ShNode, payload) -> None:
         if (
