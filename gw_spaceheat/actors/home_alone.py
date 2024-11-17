@@ -3,6 +3,7 @@ from typing import Any, Sequence
 from enum import auto
 import uuid
 import time
+import dotenv
 from datetime import datetime, timedelta
 import pytz
 from gw.enums import GwStrEnum
@@ -97,6 +98,7 @@ class HomeAlone(Actor):
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self.settings: ScadaSettings = self.services.settings
+        self.dotenv_filepath = dotenv.find_dotenv()
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
         self.datachannels = list(self.hardware_layout.data_channels.values())
@@ -261,6 +263,8 @@ class HomeAlone(Actor):
                             if time.time() - self.time_storage_declared_ready > 10*60*60:
                                 self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
                                 self.time_storage_declared_ready = None
+                            else:
+                                self.log("The storage was already declared ready during this off-peak period")
                         else:
                             self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
 
@@ -387,14 +391,57 @@ class HomeAlone(Actor):
             case ScadaParams():
                 self._process_scada_params(message.Payload)
         return Ok(True)
+    
+    def update_env_variable(self, variable, new_value):
+        if not self.dotenv_filepath:
+            self.log("Couldn't find a .env file!")
+            return
+        with open(self.dotenv_filepath, 'r') as file:
+            lines = file.readlines()
+        with open(self.dotenv_filepath, 'w') as file:
+            for line in lines:
+                if line.startswith(f"{variable}="):
+                    file.write(f"{variable}={new_value}\n")
+                else:
+                    file.write(line)
 
     def _process_scada_params(self, message: ScadaParams) -> None:
         self.log("Got ScadaParams - check h.latest")
         self.latest = message
+        if hasattr(message, "SwtColdestHr"):
+            old = self.swt_coldest_hour
+            self.swt_coldest_hour = message.SwtColdestHr
+            self.update_env_variable('SCADA_SWT_COLDEST_HOUR', self.swt_coldest_hour)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldSwtColdestHr=old,
+                NewSwtColdestHr=self.swt_coldest_hour
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "AveragePowerColdestHourKw"):
+            old = self.average_power_coldest_hour_kw
+            self.average_power_coldest_hour_kw = message.AveragePowerColdestHourKw
+            self.update_env_variable('SCADA_AVERAGE_POWER_COLDEST_HOUR_KW', self.average_power_coldest_hour_kw)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.average_power_coldest_hour_kw
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
         if hasattr(message, "BufferEmpty"):
             old = self.buffer_empty
             self.buffer_empty = message.BufferEmpty
-            # TODO: save to .env
+            self.update_env_variable('SCADA_BUFFER_EMPTY', self.buffer_empty)
             response = ScadaParams(
                 FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
                 FromName=self.name,
@@ -403,6 +450,21 @@ class HomeAlone(Actor):
                 MessageId=message.MessageId,
                 OldBufferEmpty=old,
                 NewBufferEmpty=self.buffer_empty
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "BufferFull"):
+            old = self.buffer_full
+            self.buffer_full = message.BufferFull
+            self.update_env_variable('SCADA_BUFFER_FULL', self.buffer_full)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldBufferFull=old,
+                NewBufferFull=self.buffer_full
             )
             self.log(f"Sending back {response}")
             self.send_to_atn(response)
@@ -526,7 +588,7 @@ class HomeAlone(Actor):
                 buffer_full_temp = 'hp-ewt'
             else:
                 # TODO send an alert
-                print("ALERT we can't know if the buffer is empty")
+                print("ALERT we can't know if the buffer is full")
                 return False
         
         if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > self.buffer_full:
