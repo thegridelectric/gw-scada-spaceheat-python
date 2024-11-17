@@ -172,8 +172,11 @@ class Atn(ActorInterface, Proactor):
         )
         path_dbg = 0
         match message.Payload:
-            case SendSnap():
+            case ScadaParams():
                 path_dbg |= 0x00000001
+                self._publish_to_scada(message.Payload)
+            case SendSnap():
+                path_dbg |= 0x00000002
                 self._publish_to_scada(message.Payload)
             case DBGPayload():
                 path_dbg |= 0x00000004
