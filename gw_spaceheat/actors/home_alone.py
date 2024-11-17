@@ -515,16 +515,20 @@ class HomeAlone(Actor):
             return False
 
     def is_storage_ready(self) -> bool:
+        print('trying to figure if storage is ready')
         latest_temperatures = self.latest_temperatures.copy()
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
         simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
+        print(f'simulated layers: {simulated_layers}')
         
+        print('Starting the while loop...')
         total_usable_kwh = 0
         while True:
             if simulated_layers[0] < self.swt_coldest_hour - 10:
                 break
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]
+        print('Done.')
         
         time_now = datetime.now(self.timezone)
         if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
