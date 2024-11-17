@@ -244,7 +244,7 @@ class HomeAlone(Actor):
                     self.trigger_event(HomeAloneEvent.OnPeakStart.value)
                 elif self.is_buffer_empty():
                     self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
-                elif self.is_storage_ready():
+                elif self.is_storage_ready(charging=True):
                     self.trigger_event(HomeAloneEvent.OffPeakStorageReady.value)
                 
             elif self.state==HomeAloneState.HpOffStoreOff.value:
@@ -514,16 +514,16 @@ class HomeAlone(Actor):
             print(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
             return False
 
-    def is_storage_ready(self) -> bool:
+    def is_storage_ready(self, charging=False) -> bool:
         latest_temperatures = self.latest_temperatures.copy()
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
+        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]
         total_usable_kwh = 0
         while True:
-            if self.rwt(simulated_layers[0]) == simulated_layers[0]:
+            if self.rwt(simulated_layers[0],charging) == simulated_layers[0]:
                 break
-            total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]        
+            total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0],charging))*5/9
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0],charging)]        
         time_now = datetime.now(self.timezone)
         if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
             required_storage = 7.5*self.average_power_coldest_hour_kw
@@ -575,10 +575,12 @@ class HomeAlone(Actor):
     def to_fahrenheit(self, t):
         return round(t*9/5+32)
     
-    def rwt(self, swt):
+    def rwt(self, swt, charging):
         if swt < self.swt_coldest_hour - 10:
             return swt
-        elif swt < self.swt_coldest_hour:
+        elif swt < self.swt_coldest_hour and charging:
+            return swt
+        elif swt < self.swt_coldest_hour and not charging:
             temp_drop_required_swt = (self.swt_coldest_hour-70)*0.2
             return swt - temp_drop_required_swt/10 * (swt-(self.swt_coldest_hour-10))
         else:
