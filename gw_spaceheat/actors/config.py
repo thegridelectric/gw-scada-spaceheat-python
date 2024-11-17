@@ -23,6 +23,7 @@ class ScadaSettings(ProactorSettings):
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings()
+    is_simulated: bool = False
     swt_coldest_hour: int = 120
     average_power_coldest_hour_kw: float = 4
     buffer_empty: int = 110

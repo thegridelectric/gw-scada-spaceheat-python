@@ -16,15 +16,12 @@ from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
     AquastatControl,
     ChangeAquastatControl,
-    ChangeHeatcallSource,
     ChangeHeatPumpControl,
     ChangePrimaryPumpControl,
     ChangeRelayPin,
     ChangeRelayState,
     ChangeStoreFlowRelay,
-    FsmName,
     FsmReportType,
-    HeatcallSource,
     HeatPumpControl,
     MakeModel,
     PrimaryPumpControl,
@@ -73,7 +70,6 @@ class Relay(Actor):
                 f"{self.component.gt.ConfigList}"
             )
 
-        self.relay_idx = self.relay_actor_config.RelayIdx
         self.de_energizing_event = self.relay_actor_config.DeEnergizingEvent
         self.primary_scada = self.layout.node(H0N.primary_scada)
         self.relay_multiplexer = self.layout.node(H0N.relay_multiplexer)

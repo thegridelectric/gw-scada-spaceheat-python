@@ -25,6 +25,7 @@ from gwproto.named_types import (FsmEvent, SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
+from actors.config import ScadaSettings
 
 
 class ChangeKridaPin(Enum):
@@ -52,7 +53,6 @@ class I2cRelayMultiplexer(Actor):
     event_enum: GwStrEnum
     layout: House0Layout
     _stop_requested: bool
-    is_simulated: bool
     i2c_bus: Optional[Any]  # board.I2C()
     krida_board: Dict[int, Any]
     relay_state: Dict[int, Any]
@@ -65,6 +65,8 @@ class I2cRelayMultiplexer(Actor):
     ):
         self.layout = cast(House0Layout, services.hardware_layout)
         super().__init__(name, services)
+        self.settings: ScadaSettings = self.services.settings
+        self.is_simulated = self.settings.is_simulated
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)
         if self.component.cac.MakeModel != MakeModel.KRIDA__DOUBLEEMR16I2CV3:
             raise Exception(
@@ -90,13 +92,6 @@ class I2cRelayMultiplexer(Actor):
         return self.layout.nodes[H0N.primary_scada]
 
     def initialize_board(self) -> None:
-        for module_name in ["adafruit_pcf8575", "board"]:
-            found = importlib.util.find_spec(module_name)
-            if found is None:
-                self.is_simulated = True
-                break
-            self.is_simulated = False
-
         if self.is_simulated:
             for relay in self.my_relays:
                 idx = self.get_idx(relay)
@@ -267,7 +262,7 @@ class I2cRelayMultiplexer(Actor):
             return self._process_event_message(message.Payload)
         return Err(
             ValueError(
-                f"Error. Relay {self.name} receieved unexpected message: {message.Header}"
+                f"Error. Relay Multiplexer{self.name} receieved unexpected message: {message.Header}"
             )
         )
 

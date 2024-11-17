@@ -569,20 +569,19 @@ class LayoutDb:
                     DisplayName="Secondary Scada"
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.home_alone),
-                    Name=H0N.home_alone,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.home_alone}",
-                    Handle="auto.h",
-                    ActorClass=ActorClass.HomeAlone,
-                    DisplayName="HomeAlone",
-                ),
-                SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.admin),
                     Name=H0N.admin,
                     Handle=H0N.admin,
                     ActorClass=ActorClass.NoActor,
                     DisplayName="Local Admin",
-                )
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.auto),
+                    Name=H0N.auto,
+                    Handle=H0N.auto,
+                    ActorClass=ActorClass.NoActor,
+                    DisplayName="Auto - FSM for dispatch contract",
+                ),
             ]
         )
     

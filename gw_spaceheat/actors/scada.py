@@ -9,6 +9,7 @@ from typing import Any
 from typing import List
 from typing import Optional
 
+from enum import auto
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproactor.links.link_settings import LinkSettings
@@ -24,25 +25,25 @@ from gwproto.messages import LayoutLite, LayoutEvent
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import SendSnap
-from gwproto.messages import ScadaParams
-from gwproto.messages import MachineStates, PicoMissing
+
+from gwproto.named_types import (AnalogDispatch, ChannelReadings, MachineStates, 
+                                 PicoMissing, ScadaParams, SingleReading, SyncedReadings,
+                                TicklistReedReport, TicklistHallReport)
+
 from gwproto.messages import ReportEvent
-from gwproto.messages import SingleReading
-from gwproto.messages import SyncedReadings
-from gwproto.messages import ChannelReadings
+
 
 from admin.messages import AdminCommandReadRelays
 from admin.messages import AdminCommandSetRelay
 from admin.messages import RelayStates
+
 from actors.api_flow_module import TicklistHall, TicklistReed
-from gwproto.messages import TicklistReedReport
-from gwproto.messages import TicklistHallReport
 from gwproto import MQTTCodec
 from result import Ok
 from result import Result
 
 from gwproactor import ActorInterface
-
+from gw.enums import GwStrEnum
 from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
@@ -54,6 +55,8 @@ from gwproactor.links import Transition
 from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
+from transitions import Machine
+
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder",
@@ -143,6 +146,41 @@ class ScadaCmdDiagnostic(enum.Enum):
     IGNORING_HOMEALONE_DISPATCH = "IgnoringHomealoneDispatch"
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
+
+class TopState(GwStrEnum):
+    Admin = auto()
+    Auto = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "top.state"
+
+class TopEvent(GwStrEnum):
+    ChangeToAuto = auto()
+    ChangeToAdmin = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "top.event"
+
+class MainAutoState(GwStrEnum):
+    Atn = auto()
+    HomeAlone = auto()
+    Dormant = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "main.auto.state"
+
+class MainAutoEvent(GwStrEnum):
+    AtnLinkDead = auto()
+    GoDormant = auto()
+    WakeUp = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "top.event"
+
 class Scada(ScadaInterface, Proactor):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
@@ -156,6 +194,19 @@ class Scada(ScadaInterface, Proactor):
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
     _channels_reported: bool
 
+    top_states = ["Auto", "Admin"]
+    top_transitions = [
+        {"trigger": "ChangeToAuto", "source": "Admin", "dest": "Auto"},
+        {"trigger": "ChangeToAdmin", "source": "Auto", "dest": "Admin"}
+    ]
+
+    main_auto_states = ["Atn", "HomeAlone", "Dormant"]
+    main_auto_transitions = [
+        {"trigger": "AtnLinkDead", "source": "Atn", "dest": "HomeAlone"},
+        {"trigger": "GoDormant", "source": "Atn", "dest": "Dormant"},
+        {"trigger": "GoDormant", "source": "HomeAlone", "dest": "Dormant"},
+        {"trigger": "WakeUp", "source": "Dormant", "dest": "HomeAlone"}
+    ]
     def __init__(
         self,
         name: str,
@@ -166,6 +217,7 @@ class Scada(ScadaInterface, Proactor):
         print(f"actor_nodes are {actor_nodes}")
         if not isinstance(hardware_layout, House0Layout):
             raise Exception("Make sure to pass Hosue0Layout object as hardware_layout!")
+        self.is_simulated = False
         self._layout: House0Layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
@@ -235,6 +287,23 @@ class Scada(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
+        self.top_machine = Machine(
+            model=self,
+            states=Scada.top_states,
+            transitions=Scada.top_transitions,
+            initial=TopState.Auto,
+            send_event=False,
+            model_attribute="top_state",
+        )
+        self.auto_machine = Machine(
+            model=self,
+            states=Scada.main_auto_states,
+            transitions=Scada.main_auto_transitions,
+            initial=MainAutoState.HomeAlone,
+            send_event=False,
+            model_attribute="auto_state",
+        )
+
         self.send_layout_info()
 
     def init(self) -> None:
@@ -285,6 +354,9 @@ class Scada(ScadaInterface, Proactor):
         )
         self._tasks.append(
             asyncio.create_task(self.update_snap(), name="update_snap")
+        )
+        self._tasks.append(
+            asyncio.create_task(self.state_tracker(), name="scada top_state_tracker")
         )
 
     async def update_report(self):
@@ -415,6 +487,12 @@ class Scada(ScadaInterface, Proactor):
                     raise Exception(
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
                     )
+            case AnalogDispatch():
+                path_dbg |= 0x10000000
+                try:
+                    self.get_communicator(message.Header.Dst).process_message(message)
+                except Exception as e:
+                    self.logger.error(f"Problem with  {message.Header}: {e}")
             case ChannelReadings():
                 if message.Header.Dst == self.name:
                     path_dbg |= 0x00000004
@@ -505,11 +583,14 @@ class Scada(ScadaInterface, Proactor):
         self._logger.path("++_process_upstream_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         match decoded.Payload:
-            case SendSnap():
+            case AnalogDispatch():
                 path_dbg |= 0x00000001
+                self._analog_dispatch_received(decoded.Payload)
+            case SendSnap():
+                path_dbg |= 0x00000002
                 self._send_snap_received(decoded.Payload)
             case ScadaParams():
-                path_dbg |= 0x00000002
+                path_dbg |= 0x00000004
                 if decoded.Payload.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
                     return
                 if decoded.Payload.ToName == H0N.home_alone:
@@ -567,6 +648,13 @@ class Scada(ScadaInterface, Proactor):
                     path_dbg |= 0x00000004
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
 
+    def _analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
+        self.logger.error(f"Got Analog Dispatch in SCADA! ")
+        if dispatch.FromGNodeAlias != self._layout.atn_g_node_alias:
+            self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
+            return
+        #TODO: if MainAutoState is not atn, ignore
+        
     def _scada_params_received(self, message: ScadaParams) -> None:
         if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
             return
@@ -717,3 +805,45 @@ class Scada(ScadaInterface, Proactor):
         thread = threading.Thread(target=_run_forever, daemon=daemon)
         thread.start()
         return thread
+
+    #####################################################################
+    # State Machine related
+    #####################################################################
+    
+    @property
+    def auto_node(self) -> ShNode:
+        if H0N.auto not in self._layout.nodes:
+            raise Exception(f"Missing {H0N.auto} Node")
+        return self._layout.node(H0N.auto)
+    
+    async def state_tracker(self) -> None:
+        loop_s = self.settings.seconds_per_report
+        while True:
+            hiccup = 1.2
+            sleep_s = max(
+                hiccup, loop_s - (time.time() % loop_s) - 1.5
+            )
+            await asyncio.sleep(sleep_s)
+            # report the state
+            if sleep_s != hiccup:
+                self.machine_states_received(
+                    MachineStates(
+                        MachineHandle=self.node.handle,
+                        StateEnum=TopState.enum_name(),
+                        StateList=[self.top_state],
+                        UnixMsList=[int(time.time() * 1000)],
+                    ),
+                )
+
+                self.machine_states_received(
+                    MachineStates(
+                        MachineHandle=self.auto_node.handle,
+                        StateEnum=MainAutoState.enum_name(),
+                        StateList=[self.auto_state],
+                        UnixMsList=[int(time.time() * 1000)],
+                    ),
+                )
+                self.logger.warning(f"Top state: {self.top_state}")
+                self.logger.warning(f"Auto state: {self.auto_state}")
+
+            
