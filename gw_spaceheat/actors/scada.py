@@ -514,10 +514,10 @@ class Scada(ScadaInterface, Proactor):
                     return
                 if decoded.Payload.ToName == H0N.home_alone:
                     try:
-                        self.get_communicator(H0N.home_alone).process_message(message)
-                    except Exception:
-                        self.logger.error("Problem getting communicator for home alone and"
-                                        "Processing a ScadaParams message")
+                        self.get_communicator(H0N.home_alone).process_message(decoded)
+                    except Exception as e:
+                        self.logger.error("Problem getting communicator for home alone and "
+                                        f"Processing a ScadaParams message: {e}")
             case _:
                 # Intentionally ignore this for forward compatibility
                 path_dbg |= 0x00000004

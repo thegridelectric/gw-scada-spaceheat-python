@@ -1,5 +1,5 @@
 import asyncio
-from typing import Sequence
+from typing import Any, Sequence
 from enum import auto
 import uuid
 import time
@@ -9,14 +9,15 @@ from gw.enums import GwStrEnum
 from gwproactor import QOS, Actor, ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from result import  Result
+from result import Ok, Result
 from gwproto.message import Header
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
                            ChangeStoreFlowRelay, FsmReportType)
-from gwproto.named_types import FsmEvent, MachineStates, FsmAtomicReport, FsmFullReport
+from gwproto.named_types import (FsmEvent, MachineStates, FsmAtomicReport,
+                                 FsmFullReport, ScadaParams)
 from actors.config import ScadaSettings
 
 
@@ -382,8 +383,29 @@ class HomeAlone(Actor):
 
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
-        ...
+        match message.Payload:
+            case ScadaParams():
+                self._process_scada_params(message.Payload)
+        return Ok(True)
 
+    def _process_scada_params(self, message: ScadaParams) -> None:
+        self.log("Got ScadaParams - check h.latest")
+        self.latest = message
+        if hasattr(message, "BufferEmpty"):
+            old = self.buffer_empty
+            self.buffer_empty = message.BufferEmpty
+            # TODO: save to .env
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldBufferEmpty=old,
+                NewBufferEmpty=self.buffer_empty
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
 
     def change_all_temps(self, temp_c) -> None:
         if self.simulation:
@@ -613,5 +635,7 @@ class HomeAlone(Actor):
         log_str = f"[{self.name}] {note}"
         self.services.logger.error(log_str)
 
+    def send_to_atn(self, payload: Any) -> None:
+        self._services._links.publish_upstream(payload)
 # if __name__ == '__main__':
 #     from actors import HomeAlone; from command_line_utils import get_scada; s=get_scada(); s.run_in_thread(); h: HomeAlone = s.get_communicator('h')
