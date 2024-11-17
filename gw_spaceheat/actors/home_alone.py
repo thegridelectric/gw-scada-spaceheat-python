@@ -15,7 +15,7 @@ from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
-                           ChangeStoreFlowRelay, FsmReportType)
+                           ChangeStoreFlowRelay, FsmReportType, MainAutoState)
 from gwproto.named_types import (FsmEvent, MachineStates, FsmAtomicReport,
                                  FsmFullReport, ScadaParams)
 from actors.config import ScadaSettings
@@ -192,87 +192,90 @@ class HomeAlone(Actor):
 
         while not self._stop_requested:
             self.services.logger.error("PATTING HOME ALONE WATCHDOG")
-            self.services.logger.error(f"State: {self.state}")
-            self._send(PatInternalWatchdogMessage(src=self.name))
-            previous_state = self.state
-            print("\n"+"-"*50)
-            print(f"HomeAlone state: {previous_state}")
-            print("-"*50)
+            if self.services.auto_state != MainAutoState.HomeAlone:
+                self.log("State: DORMANT")
+            else:
+                self.services.logger.error(f"State: {self.state}")
+                self._send(PatInternalWatchdogMessage(src=self.name))
+                previous_state = self.state
+                print("\n"+"-"*50)
+                print(f"HomeAlone state: {previous_state}")
+                print("-"*50)
 
-            if self.is_onpeak():
-                self.time_storage_declared_ready = None
+                if self.is_onpeak():
+                    self.time_storage_declared_ready = None
 
-            self.get_latest_temperatures()
+                self.get_latest_temperatures()
 
-            if (self.state==HomeAloneState.WaitingForTemperaturesOnPeak 
-                or self.state==HomeAloneState.WaitingForTemperaturesOffPeak):
-                if self.temperatures_available:
-                    print('Temperatures available')
+                if (self.state==HomeAloneState.WaitingForTemperaturesOnPeak 
+                    or self.state==HomeAloneState.WaitingForTemperaturesOffPeak):
+                    if self.temperatures_available:
+                        print('Temperatures available')
+                        if self.is_onpeak():
+                            if self.is_buffer_empty():
+                                if self.is_storage_colder_than_buffer():
+                                    self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
+                                else:
+                                    self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
+                            else:
+                                self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
+                        else:
+                            if self.is_buffer_empty():
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
+                            else:
+                                if self.is_storage_ready():
+                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                                else:
+                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
+                    elif self.state==HomeAloneState.WaitingForTemperaturesOffPeak:
+                        if self.is_onpeak():
+                            self.trigger_event(HomeAloneEvent.OnPeakStart.value)
+                    else:
+                        if not self.is_onpeak():
+                            self.trigger_event(HomeAloneEvent.OffPeakStart.value)
+
+                elif self.state==HomeAloneState.HpOnStoreOff.value:
+                    if self.is_onpeak():
+                        self.trigger_event(HomeAloneEvent.OnPeakStart.value)
+                    elif self.is_buffer_full():
+                        if self.is_storage_ready():
+                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
+                        else:
+                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
+                    
+                elif self.state==HomeAloneState.HpOnStoreCharge.value:
+                    if self.is_onpeak():
+                        self.trigger_event(HomeAloneEvent.OnPeakStart.value)
+                    elif self.is_buffer_empty():
+                        self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
+                    elif self.is_storage_ready():
+                        self.trigger_event(HomeAloneEvent.OffPeakStorageReady.value)
+                    
+                elif self.state==HomeAloneState.HpOffStoreOff.value:
                     if self.is_onpeak():
                         if self.is_buffer_empty():
-                            if self.is_storage_colder_than_buffer():
-                                self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
-                            else:
+                            if not self.is_storage_colder_than_buffer():
                                 self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
-                        else:
-                            self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
                     else:
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
-                        else:
-                            if self.is_storage_ready():
-                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                        elif not self.is_storage_ready():
+                            if self.time_storage_declared_ready is not None:
+                                if time.time() - self.time_storage_declared_ready > 60*60:
+                                    self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
+                                    self.time_storage_declared_ready = None
                             else:
-                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
-                elif self.state==HomeAloneState.WaitingForTemperaturesOffPeak:
-                    if self.is_onpeak():
-                        self.trigger_event(HomeAloneEvent.OnPeakStart.value)
-                else:
+                                self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
+
+                elif self.state==HomeAloneState.HpOffStoreDischarge.value:
                     if not self.is_onpeak():
                         self.trigger_event(HomeAloneEvent.OffPeakStart.value)
+                    elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
+                        self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
-            elif self.state==HomeAloneState.HpOnStoreOff.value:
-                if self.is_onpeak():
-                    self.trigger_event(HomeAloneEvent.OnPeakStart.value)
-                elif self.is_buffer_full():
-                    if self.is_storage_ready():
-                        self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
-                    else:
-                        self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
-                
-            elif self.state==HomeAloneState.HpOnStoreCharge.value:
-                if self.is_onpeak():
-                    self.trigger_event(HomeAloneEvent.OnPeakStart.value)
-                elif self.is_buffer_empty():
-                    self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
-                elif self.is_storage_ready():
-                    self.trigger_event(HomeAloneEvent.OffPeakStorageReady.value)
-                
-            elif self.state==HomeAloneState.HpOffStoreOff.value:
-                if self.is_onpeak():
-                    if self.is_buffer_empty():
-                        if not self.is_storage_colder_than_buffer():
-                            self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
-                else:
-                    if self.is_buffer_empty():
-                        self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
-                    elif not self.is_storage_ready():
-                        if self.time_storage_declared_ready is not None:
-                            if time.time() - self.time_storage_declared_ready > 60*60:
-                                self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
-                                self.time_storage_declared_ready = None
-                        else:
-                            self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
-
-            elif self.state==HomeAloneState.HpOffStoreDischarge.value:
-                if not self.is_onpeak():
-                    self.trigger_event(HomeAloneEvent.OffPeakStart.value)
-                elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
-                    self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
-
-            if self.state != previous_state:                    
-                self.update_relays(previous_state)
-            print('Done.')
+                if self.state != previous_state:                    
+                    self.update_relays(previous_state)
+                print('Done.')
 
             await asyncio.sleep(self.main_loop_sleep_seconds)
 

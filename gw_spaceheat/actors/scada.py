@@ -16,7 +16,7 @@ from gwproactor.links.link_settings import LinkSettings
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
 from gwproto import MQTTTopic
-from gwproto.enums import ActorClass
+from gwproto.enums import ActorClass, MainAutoState, MainAutoEvent
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmAtomicReport, FsmEvent, FsmFullReport
@@ -26,7 +26,7 @@ from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import SendSnap
 
-from gwproto.named_types import (AnalogDispatch, ChannelReadings, MachineStates, 
+from gwproto.named_types import (AdminWakesUp, AnalogDispatch, ChannelReadings, MachineStates, 
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
                                 TicklistReedReport, TicklistHallReport)
 
@@ -148,34 +148,20 @@ class ScadaCmdDiagnostic(enum.Enum):
 
 
 class TopState(GwStrEnum):
-    Admin = auto()
     Auto = auto()
+    Admin = auto()
+    ChangingToAdmin = auto()
+    ChangingToAuto = auto()
 
     @classmethod
     def enum_name(cls) -> str:
         return "top.state"
 
 class TopEvent(GwStrEnum):
+    AdminWakesUp = auto()
+    AutoWakesUp = auto()
     ChangeToAuto = auto()
     ChangeToAdmin = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "top.event"
-
-class MainAutoState(GwStrEnum):
-    Atn = auto()
-    HomeAlone = auto()
-    Dormant = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "main.auto.state"
-
-class MainAutoEvent(GwStrEnum):
-    AtnLinkDead = auto()
-    GoDormant = auto()
-    WakeUp = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -194,10 +180,12 @@ class Scada(ScadaInterface, Proactor):
     _scada_atn_fast_dispatch_contract_is_alive_stub: bool
     _channels_reported: bool
 
-    top_states = ["Auto", "Admin"]
+    top_states = ["Auto", "Admin", "ChangingToAdmin", "ChangingToAuto"]
     top_transitions = [
-        {"trigger": "ChangeToAuto", "source": "Admin", "dest": "Auto"},
-        {"trigger": "ChangeToAdmin", "source": "Auto", "dest": "Admin"}
+        {"trigger": "AdminWakesUp", "source": "Auto", "dest": "ChangeingToAdmin"},
+        {"trigger": "ChangeToAdmin", "source": "ChangingToAdmin", "dest": "Admin"},
+        {"trigger": "AutoWakesUp", "source": "Admin", "dest": "ChangingToAuto"},
+        {"trigger": "ChangeToAitp", "source": "ChangingToAuto", "dest": "Admin"},
     ]
 
     main_auto_states = ["Atn", "HomeAlone", "Dormant"]
@@ -632,10 +620,13 @@ class Scada(ScadaInterface, Proactor):
         if self.settings.admin.enabled:
             path_dbg |= 0x00000001
             match decoded.Payload:
-                case AdminCommandSetRelay():
+                case AdminWakesUp():
                     path_dbg |= 0x00000002
-                case AdminCommandReadRelays():
+                    self.admin_wakes_up_received(decoded.Payload)
+                case AdminCommandSetRelay():
                     path_dbg |= 0x00000004
+                case AdminCommandReadRelays():
+                    path_dbg |= 0x00000008
                     self._links.publish_message(
                         self.ADMIN_MQTT,
                         Message(
@@ -816,6 +807,39 @@ class Scada(ScadaInterface, Proactor):
             raise Exception(f"Missing {H0N.auto} Node")
         return self._layout.node(H0N.auto)
     
+    def admin_wakes_up_received(self, wakeup: AdminWakesUp) -> None:
+        if wakeup.FromName != H0N.admin:
+            raise Exception(f"Expect admin wakes up from {H0N.admin}, got {wakeup.FromName}")
+        if self.top_state != TopState.Auto:
+            self.logger.error(f"Ignoring admin wakeup, in state {self.top_state}")
+            return
+
+        # AdminWakesUp: Auto -> ChangingToAdmin
+        self.trigger(TopEvent.AdminWakesUp)
+
+        #TODO: turn this into a recursion where reports hand over THEIR reports to their boss
+        # and then as a final step go dormant.
+
+        # hack for now:
+        # 1. auto FSM (and all sub-fsms, e.g. HomeAlone) goes dormant
+        if self.auto_state != MainAutoState.Dormant:
+            self.trigger(MainAutoEvent.GoDormant)
+
+        # 2. Make admin the direct boss of all relays and dfrs
+        relay_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.Relay] 
+        dfr_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ZeroTenOutputer] 
+
+
+        for node in relay_nodes + dfr_nodes:
+            node.Handle = f"{H0N.admin}.{node.Name}"
+        
+        self.logger.warning(f"All relays and dfrs now have admin as boss")
+        time.sleep(0.5)
+
+        # AdminWakesUp: ChangingToAdmin -> Admin
+        self.trigger(TopEvent.ChangeToAdmin)
+
+
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
         while True:
