@@ -32,6 +32,7 @@ from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
 from gwproto.messages import Report
 from gwproto.messages import SnapshotSpaceheat
+from gwproto.named_types import AnalogDispatch
 
 from gwproactor import ActorInterface
 from gwproactor import QOS
@@ -354,6 +355,24 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
+    def set_dist_010(self, val: int = 30) -> None:
+        # WARNING: THIS IS NOT GETTING THROUGH TO THE SCADA 
+        # This is not even hitting _process_mqtt_message ... how could that be?
+        self.send_threadsafe(
+             Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=AnalogDispatch(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.dist_010v,
+                    AboutName=H0N.dist_010v,
+                    Value=val,
+                    MessageId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                ) 
+            )
+        )
 
     def dbg(
         self,

@@ -572,6 +572,7 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         match decoded.Payload:
             case AnalogDispatch():
+                print("GOT TO SCADA _process_upstream_mqtt_message AnalogDispatch")
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
             case SendSnap():
@@ -640,10 +641,12 @@ class Scada(ScadaInterface, Proactor):
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
 
     def _analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
-        self.logger.error(f"Got Analog Dispatch in SCADA! ")
+        self.logger.error("Got Analog Dispatch in SCADA!")
         if dispatch.FromGNodeAlias != self._layout.atn_g_node_alias:
             self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
             return
+        self.logger.warning("HACK: passing this on. Will replace w remote admin")
+        self.get_communicator(dispatch.ToName).process_message(dispatch)
         #TODO: if MainAutoState is not atn, ignore
         
     def _scada_params_received(self, message: ScadaParams) -> None:
