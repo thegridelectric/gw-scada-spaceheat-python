@@ -487,8 +487,8 @@ class HomeAlone(Actor):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
         for layer in all_store_layers:
             if (layer not in self.latest_temperatures 
-                or self.latest_temperatures[layer] < 70
-                or self.latest_temperatures[layer] > 200):
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
                 self.latest_temperatures[layer] = None
         if 'store-cold-pipe' in self.latest_temperatures:
             value_below = self.latest_temperatures['store-cold-pipe']
