@@ -56,7 +56,8 @@ def test_scada_settings_defaults(clean_scada_env):
         average_power_coldest_hour_kw=4,
         buffer_empty=110,
         buffer_full=125,
-        timezone_str="America/New_York"
+        timezone_str="America/New_York",
+        is_simulated=False
     )
     assert settings.model_dump() == exp
     assert settings.local_mqtt == exp_local_mqtt
