@@ -486,7 +486,9 @@ class HomeAlone(Actor):
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
         for layer in all_store_layers:
-            if layer not in self.latest_temperatures:
+            if (layer not in self.latest_temperatures 
+                or self.latest_temperatures[layer] < 70
+                or self.latest_temperatures[layer] > 200):
                 self.latest_temperatures[layer] = None
         if 'store-cold-pipe' in self.latest_temperatures:
             value_below = self.latest_temperatures['store-cold-pipe']
@@ -605,7 +607,9 @@ class HomeAlone(Actor):
         total_usable_kwh = 0
         while True:
             if self.rwt(simulated_layers[0]) == simulated_layers[0]:
-                break
+                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
+                if self.rwt(simulated_layers[0]) == simulated_layers[0]:
+                    break
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]        
         time_now = datetime.now(self.timezone)
@@ -654,10 +658,10 @@ class HomeAlone(Actor):
             return False
     
     def to_celcius(self, t):
-        return round((t-32)*5/9)
+        return (t-32)*5/9
 
     def to_fahrenheit(self, t):
-        return round(t*9/5+32)
+        return t*9/5+32
     
     def rwt(self, swt):
         if swt < self.swt_coldest_hour - 10:
