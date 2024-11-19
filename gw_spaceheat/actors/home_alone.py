@@ -673,7 +673,7 @@ class HomeAlone(Actor):
             or (time_now.weekday()<5 and time_now.hour<=6)):
             print('preparing for morning onpeak + afternoon onpeak')
             return morning_kWh + afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh)
-        elif (time_now.weekday()<5 and time_now.hour>=7 and time_now.hour<12):
+        elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
             print('preparing for afternoon onpeak')
             return afternoon_kWh
         else:
@@ -687,9 +687,9 @@ class HomeAlone(Actor):
         simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
         total_usable_kwh = 0
         while True:
-            if self.rwt(simulated_layers[0],time_now) == simulated_layers[0]:
+            if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if self.rwt(simulated_layers[0],time_now) == simulated_layers[0]:
+                if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
                     break
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0],time_now))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0],time_now)]        
