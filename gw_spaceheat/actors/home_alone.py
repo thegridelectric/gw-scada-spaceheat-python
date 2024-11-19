@@ -747,7 +747,6 @@ class HomeAlone(Actor):
                 [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
                 if t.hour in [7,8,9,10,11,16,17,18,19]]
                 )
-            print(f'Warmest SWT required in morning and afternoon onpeaks is {required_swt}')
         # Midday: Want to be ready for afternoon peak only
         else:
             required_swt = max(
@@ -762,8 +761,8 @@ class HomeAlone(Actor):
             delta_t_rswt = self.house_delta_t * (required_swt-65)/(self.house_swt-65)
             delta_t = delta_t_rswt/10 * (swt-(required_swt-10))
         else:
-            delta_t = self.house_delta_t * (swt-65)/(self.house_swt-65)
-        print(f'The corresponding delta_t is {delta_t}')
+            delta_t = round(self.house_delta_t * (swt-65)/(self.house_swt-65),1)
+        print(f"SWT={swt}, RWT={swt-delta_t}")
         return swt - delta_t 
     
     def _send_to(self, dst: ShNode, payload) -> None:
