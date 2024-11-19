@@ -125,7 +125,6 @@ class HomeAlone(Actor):
             initial=HomeAloneState.WaitingForTemperaturesOnPeak.value,
             send_event=True,
         )
-        self.get_weather()
         # In simulation vs in a real house
         self.simulation = True
         self.main_loop_sleep_seconds = 60
@@ -153,6 +152,7 @@ class HomeAlone(Actor):
         self.log(f"self.hp_max_kw_th: {self.hp_max_kw_th}")
         self.log(f"self.buffer_empty: {self.buffer_empty}")
         self.log(f"self.buffer_full: {self.buffer_full}")
+        self.get_weather()
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
         now_ms = int(time.time() * 1000)
