@@ -695,6 +695,7 @@ class HomeAlone(Actor):
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0],time_now))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0],time_now)]        
         required_storage = self.get_required_storage(time_now)
+        total_usable_kwh = 5
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
             self.time_storage_declared_ready = time.time()
