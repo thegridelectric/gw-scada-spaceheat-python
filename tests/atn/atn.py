@@ -359,8 +359,6 @@ class Atn(ActorInterface, Proactor):
         )
 
     def set_dist_010(self, val: int = 30) -> None:
-        # WARNING: THIS IS NOT GETTING THROUGH TO THE SCADA 
-        # This is not even hitting _process_mqtt_message ... how could that be?
         self.send_threadsafe(
              Message(
                 Src=self.name,
@@ -370,6 +368,40 @@ class Atn(ActorInterface, Proactor):
                     FromName=H0N.atn,
                     ToName=H0N.dist_010v,
                     AboutName=H0N.dist_010v,
+                    Value=val,
+                    MessageId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                ) 
+            )
+        )
+
+    def set_primary_010(self, val: int = 50) -> None:
+        self.send_threadsafe(
+             Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=AnalogDispatch(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.primary_010v,
+                    AboutName=H0N.primary_010v,
+                    Value=val,
+                    MessageId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                ) 
+            )
+        )
+
+    def set_store_010(self, val: int = 30) -> None:
+        self.send_threadsafe(
+             Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=AnalogDispatch(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.store_010v,
+                    AboutName=H0N.store_010v,
                     Value=val,
                     MessageId=str(uuid.uuid4()),
                     UnixTimeMs=int(time.time() * 1000),
