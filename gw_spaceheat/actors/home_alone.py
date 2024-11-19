@@ -2,6 +2,7 @@ import asyncio
 from typing import Any, Sequence
 from enum import auto
 import uuid
+import requests
 import time
 import dotenv
 from datetime import datetime, timedelta
@@ -124,20 +125,32 @@ class HomeAlone(Actor):
             initial=HomeAloneState.WaitingForTemperaturesOnPeak.value,
             send_event=True,
         )
-        # House parameters
-        self.temp_drop_function = [20,0] #TODO
+        self.get_weather()
         # In simulation vs in a real house
         self.simulation = True
         self.main_loop_sleep_seconds = 60
-
         # Read House parameters from the .env file
-        self.swt_coldest_hour = self.settings.swt_coldest_hour
-        self.average_power_coldest_hour_kw = self.settings.average_power_coldest_hour_kw
+        self.latitude = self.settings.latitude
+        self.longitude = self.settings.longitude
+        self.alpha = self.settings.alpha
+        self.beta = self.settings.beta
+        self.gamma = self.settings.gamma
+        self.house_rswt = self.settings.house_rswt
+        self.house_power = self.settings.house_power
+        self.house_swt = self.settings.house_swt
+        self.house_delta_t = self.settings.house_delta_t
+        self.hp_max_kw_th = self.settings.hp_max_kw_th
         self.buffer_empty = self.settings.buffer_empty
         self.buffer_full = self.settings.buffer_full
         self.timezone = pytz.timezone(self.settings.timezone_str)
-        self.log(f"self.swt_coldest_hour: {self.swt_coldest_hour}")
-        self.log(f"self.average_power_coldest_hour_kw : {self.average_power_coldest_hour_kw }")
+        self.log(f"self.alpha: {self.alpha}")
+        self.log(f"self.beta: {self.beta}")
+        self.log(f"self.gamma: {self.gamma}")
+        self.log(f"self.house_rswt: {self.house_rswt}")
+        self.log(f"self.house_power: {self.house_power}")
+        self.log(f"self.house_swt: {self.house_swt}")
+        self.log(f"self.house_delta_t: {self.buffer_empty}")
+        self.log(f"self.hp_max_kw_th: {self.hp_max_kw_th}")
         self.log(f"self.buffer_empty: {self.buffer_empty}")
         self.log(f"self.buffer_full: {self.buffer_full}")
 
@@ -203,6 +216,9 @@ class HomeAlone(Actor):
 
             if self.is_onpeak():
                 self.time_storage_declared_ready = None
+
+            if datetime.now(self.timezone)>self.weather['time'][0]:
+                self.get_weather()
 
             self.get_latest_temperatures()
 
@@ -408,36 +424,36 @@ class HomeAlone(Actor):
     def _process_scada_params(self, message: ScadaParams) -> None:
         self.log("Got ScadaParams - check h.latest")
         self.latest = message
-        if hasattr(message, "SwtColdestHr"):
-            old = self.swt_coldest_hour
-            self.swt_coldest_hour = message.SwtColdestHr
-            self.update_env_variable('SCADA_SWT_COLDEST_HOUR', self.swt_coldest_hour)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldSwtColdestHr=old,
-                NewSwtColdestHr=self.swt_coldest_hour
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "AveragePowerColdestHourKw"):
-            old = self.average_power_coldest_hour_kw
-            self.average_power_coldest_hour_kw = message.AveragePowerColdestHourKw
-            self.update_env_variable('SCADA_AVERAGE_POWER_COLDEST_HOUR_KW', self.average_power_coldest_hour_kw)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.average_power_coldest_hour_kw
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
+        # if hasattr(message, "SwtColdestHr"):
+        #     old = self.swt_coldest_hour
+        #     self.swt_coldest_hour = message.SwtColdestHr
+        #     self.update_env_variable('SCADA_SWT_COLDEST_HOUR', self.swt_coldest_hour)
+        #     response = ScadaParams(
+        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+        #         FromName=self.name,
+        #         ToName=message.FromName,
+        #         UnixTimeMs=int(time.time() * 1000),
+        #         MessageId=message.MessageId,
+        #         OldSwtColdestHr=old,
+        #         NewSwtColdestHr=self.swt_coldest_hour
+        #     )
+        #     self.log(f"Sending back {response}")
+        #     self.send_to_atn(response)
+        # if hasattr(message, "AveragePowerColdestHourKw"):
+        #     old = self.average_power_coldest_hour_kw
+        #     self.average_power_coldest_hour_kw = message.AveragePowerColdestHourKw
+        #     self.update_env_variable('SCADA_AVERAGE_POWER_COLDEST_HOUR_KW', self.average_power_coldest_hour_kw)
+        #     response = ScadaParams(
+        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+        #         FromName=self.name,
+        #         ToName=message.FromName,
+        #         UnixTimeMs=int(time.time() * 1000),
+        #         MessageId=message.MessageId,
+        #         OldAveragePowerColdestHourKw=old,
+        #         NewAveragePowerColdestHourKw=self.average_power_coldest_hour_kw
+        #     )
+        #     self.log(f"Sending back {response}")
+        #     self.send_to_atn(response)
         if hasattr(message, "BufferEmpty"):
             old = self.buffer_empty
             self.buffer_empty = message.BufferEmpty
@@ -487,7 +503,7 @@ class HomeAlone(Actor):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
         for layer in all_store_layers:
             if (layer not in self.latest_temperatures 
-            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 60 # TODO: improve conditions
             or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
                 self.latest_temperatures[layer] = None
         if 'store-cold-pipe' in self.latest_temperatures:
@@ -553,8 +569,8 @@ class HomeAlone(Actor):
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
         peak_hours = [7,8,9,10,11] + [16,17,18,19]
-        if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours):
-            # and time_now.weekday() < 5): #TODO: put this back when done testing!
+        if ((time_now.hour in peak_hours or time_in_2min.hour in peak_hours)
+            and time_now.weekday() < 5):
             self.log("On-peak")
             return True
         else:
@@ -568,7 +584,7 @@ class HomeAlone(Actor):
             buffer_empty_temp = 'dist-swt'
         else:
             # TODO send an alert
-            print("ALERT we can't know if the buffer is empty")
+            self.log("[ALERT] We can't know if the buffer is empty!")
             return False
 
         if self.latest_temperatures[buffer_empty_temp]/1000*9/5+32 < self.buffer_empty:
@@ -590,7 +606,7 @@ class HomeAlone(Actor):
                 buffer_full_temp = 'hp-ewt'
             else:
                 # TODO send an alert
-                print("ALERT we can't know if the buffer is full")
+                self.log("[ALERT] We can't know if the buffer is full!")
                 return False
         
         if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > self.buffer_full:
@@ -599,6 +615,66 @@ class HomeAlone(Actor):
         else:
             print(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
             return False
+        
+    def get_weather(self, length=24):
+        url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
+        response = requests.get(url)
+        if response.status_code != 200:
+            self.log(f"Error fetching weather data: {response.status_code}")
+            return None
+        data = response.json()
+        forecast_hourly_url = data['properties']['forecastHourly']
+        forecast_response = requests.get(forecast_hourly_url)
+        if forecast_response.status_code != 200:
+            self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
+            return None
+        forecast_data = forecast_response.json()
+        forecasts = {}
+        periods = forecast_data['properties']['periods']
+        for period in periods:
+            if ('temperature' in period and 'startTime' in period 
+                and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
+                forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
+        cropped_forecast = dict(list(forecasts.items())[:length])
+        self.weather = {
+            'time': list(cropped_forecast.keys()),
+            'oat': list(cropped_forecast.values()),
+            'ws': [0]*len(cropped_forecast)
+            }
+        self.weather['avg_power'] = [
+            self.alpha + self.beta*oat + self.gamma*ws 
+            for oat, ws in zip(self.weather['oat'], self.weather['ws'])
+            ]
+        self.weather['required_swt'] = [
+            65 + (self.house_rswt - 65) * (self.alpha + self.beta*oat + self.gamma*ws) / self.house_power
+            for oat, ws in zip(self.weather['oat'], self.weather['ws'])
+        ]
+        self.log(f'Got {length}-hour weather forecast starting at {self.weather['time'][0]}')
+        print(self.weather)
+       
+    def get_required_storage(self, time_now):
+        morning_kWh = sum(
+            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+             if 7<=t.hour<=11]
+            )
+        midday_kWh = sum(
+            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+             if 12<=t.hour<=15]
+            )
+        afternoon_kWh = sum(
+            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+             if 16<=t.hour<=19]
+            )
+        if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
+            or (time_now.weekday()<5 and time_now.hour<=6)):
+            print('preparing for morning onpeak + afternoon onpeak')
+            return morning_kWh + afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh)
+        elif (time_now.weekday()<5 and time_now.hour>=7 and time_now.hour<12):
+            print('preparing for afternoon onpeak')
+            return afternoon_kWh
+        else:
+            print('No onpeak period coming up soon')
+            return 0
 
     def is_storage_ready(self) -> bool:
         latest_temperatures = self.latest_temperatures.copy()
@@ -613,10 +689,7 @@ class HomeAlone(Actor):
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]        
         time_now = datetime.now(self.timezone)
-        if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
-            required_storage = 7.5*self.average_power_coldest_hour_kw
-        else:
-            required_storage = 4*self.average_power_coldest_hour_kw
+        required_storage = self.get_required_storage(time_now)
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
             self.time_storage_declared_ready = time.time()
@@ -638,7 +711,7 @@ class HomeAlone(Actor):
             buffer_top = 'buffer-cold-pipe'
         else:
             # TODO send an alert
-            print("ALERT we can't know if the top of the buffer is warmer than the storage")
+            self.log("[ALERT] We can't know if the top of the buffer is warmer than the top of the storage!")
             return False
         if 'tank1-depth1' in self.latest_temperatures: # TODO: this will always be true since we are filling temperatures
             tank_top = 'tank1-depth1'
@@ -648,7 +721,7 @@ class HomeAlone(Actor):
             tank_top = 'buffer-hot-pipe'
         else:
             # TODO send an alert
-            print("ALERT we can't know if the top of the storage is warmer than the buffer")
+            self.log("[ALERT] We can't know if the top of the storage is warmer than the top of the buffer!")
             return False
         if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top]:
             print("Storage top colder than buffer top")
@@ -663,15 +736,31 @@ class HomeAlone(Actor):
     def to_fahrenheit(self, t):
         return t*9/5+32
     
-    def rwt(self, swt):
-        if swt < self.swt_coldest_hour - 10:
-            return swt
-        elif swt < self.swt_coldest_hour:
-            temp_drop_required_swt = (self.swt_coldest_hour-70)*0.2
-            return swt - temp_drop_required_swt/10 * (swt-(self.swt_coldest_hour-10))
+    def rwt(self, swt, timenow):
+        # Overnight: Want to be ready for both morning and afternoon onpeak
+        if timenow.hour > 19 or timenow.hour < 7:
+            required_swt = max(
+                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                if t.hour in [7,8,9,10,11,16,17,18,19]]
+                )
+            print(f'Warmest SWT required in morning and afternoon onpeaks is {required_swt}')
+        # Midday: Want to be ready for afternoon peak only
         else:
-            temp_drop = (swt-70)*0.2
-            return swt - temp_drop    
+            required_swt = max(
+                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                if t.hour in [16,17,18,19]]
+                )
+            print(f'Warmest SWT required in afternoon onpeak is {required_swt}')
+        # Compute the Delta T and output the corresponding RWT
+        if swt < required_swt - 10:
+            delta_t = 0
+        elif swt < required_swt:
+            delta_t_rswt = self.house_delta_t * (required_swt-65)/(self.house_swt-65)
+            delta_t = delta_t_rswt/10 * (swt-(required_swt-10))
+        else:
+            delta_t = self.house_delta_t * (swt-65)/(self.house_swt-65)
+        print(f'The corresponding delta_t is {delta_t}')
+        return swt - delta_t 
     
     def _send_to(self, dst: ShNode, payload) -> None:
         if (
