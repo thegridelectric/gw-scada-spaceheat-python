@@ -762,8 +762,8 @@ class HomeAlone(Actor):
             delta_t = delta_t_rswt/10 * (swt-(required_swt-10))
         else:
             delta_t = round(self.house_delta_t * (swt-65)/(self.house_swt-65),1)
-        print(f"SWT={swt}, RWT={swt-delta_t}")
-        return swt - delta_t 
+        print(f"SWT={swt}, RWT={round(swt - delta_t,2)}")
+        return round(swt - delta_t,2)
     
     def _send_to(self, dst: ShNode, payload) -> None:
         if (
