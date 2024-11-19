@@ -23,7 +23,8 @@ class ZeroTenOutputer(Actor):
         self.dfr_multiplexer = self.layout.node(H0N.zero_ten_out_multiplexer)
 
     def _process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
-        if dispatch.FromName not in self.layout.nodes:
+        # TODO: add atomic t node to layout as ShNode
+        if dispatch.FromName not in list(self.layout.nodes.keys()) + ['a']:
             self.log(f"Ignoring dispatch from {dispatch.FromName} - not in layout!!")
             return
         if dispatch.ToName != self.name:
@@ -50,9 +51,9 @@ class ZeroTenOutputer(Actor):
         )
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
-        if isinstance(message.Payload, AnalogDispatch):
+        if isinstance(message, AnalogDispatch):
             return self._process_analog_dispatch(
-                from_name=message.Header.Src, message=message.Payload
+               message
             )
         return Err(
             ValueError(f"{self.name} receieved unexpected message: {message.Header}")

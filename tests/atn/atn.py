@@ -173,17 +173,20 @@ class Atn(ActorInterface, Proactor):
         )
         path_dbg = 0
         match message.Payload:
-            case ScadaParams():
+            case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._publish_to_scada(message.Payload)
-            case SendSnap():
+            case ScadaParams():
                 path_dbg |= 0x00000002
                 self._publish_to_scada(message.Payload)
-            case DBGPayload():
+            case SendSnap():
                 path_dbg |= 0x00000004
                 self._publish_to_scada(message.Payload)
-            case _:
+            case DBGPayload():
                 path_dbg |= 0x00000008
+                self._publish_to_scada(message.Payload)
+            case _:
+                path_dbg |= 0x00000010
 
         self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
 
