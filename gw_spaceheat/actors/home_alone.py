@@ -3,6 +3,7 @@ from typing import Any, Sequence
 from enum import auto
 import uuid
 import time
+import dotenv
 from datetime import datetime, timedelta
 import pytz
 from gw.enums import GwStrEnum
@@ -97,6 +98,7 @@ class HomeAlone(Actor):
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self.settings: ScadaSettings = self.services.settings
+        self.dotenv_filepath = dotenv.find_dotenv()
         self._stop_requested: bool = False
         self.hardware_layout = self._services.hardware_layout
         self.datachannels = list(self.hardware_layout.data_channels.values())
@@ -258,9 +260,11 @@ class HomeAlone(Actor):
                         self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                     elif not self.is_storage_ready():
                         if self.time_storage_declared_ready is not None:
-                            if time.time() - self.time_storage_declared_ready > 60*60:
+                            if time.time() - self.time_storage_declared_ready > 10*60*60:
                                 self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
                                 self.time_storage_declared_ready = None
+                            else:
+                                self.log("The storage was already declared ready during this off-peak period")
                         else:
                             self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
 
@@ -387,14 +391,57 @@ class HomeAlone(Actor):
             case ScadaParams():
                 self._process_scada_params(message.Payload)
         return Ok(True)
+    
+    def update_env_variable(self, variable, new_value):
+        if not self.dotenv_filepath:
+            self.log("Couldn't find a .env file!")
+            return
+        with open(self.dotenv_filepath, 'r') as file:
+            lines = file.readlines()
+        with open(self.dotenv_filepath, 'w') as file:
+            for line in lines:
+                if line.startswith(f"{variable}="):
+                    file.write(f"{variable}={new_value}\n")
+                else:
+                    file.write(line)
 
     def _process_scada_params(self, message: ScadaParams) -> None:
         self.log("Got ScadaParams - check h.latest")
         self.latest = message
+        if hasattr(message, "SwtColdestHr"):
+            old = self.swt_coldest_hour
+            self.swt_coldest_hour = message.SwtColdestHr
+            self.update_env_variable('SCADA_SWT_COLDEST_HOUR', self.swt_coldest_hour)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldSwtColdestHr=old,
+                NewSwtColdestHr=self.swt_coldest_hour
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "AveragePowerColdestHourKw"):
+            old = self.average_power_coldest_hour_kw
+            self.average_power_coldest_hour_kw = message.AveragePowerColdestHourKw
+            self.update_env_variable('SCADA_AVERAGE_POWER_COLDEST_HOUR_KW', self.average_power_coldest_hour_kw)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.average_power_coldest_hour_kw
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
         if hasattr(message, "BufferEmpty"):
             old = self.buffer_empty
             self.buffer_empty = message.BufferEmpty
-            # TODO: save to .env
+            self.update_env_variable('SCADA_BUFFER_EMPTY', self.buffer_empty)
             response = ScadaParams(
                 FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
                 FromName=self.name,
@@ -403,6 +450,21 @@ class HomeAlone(Actor):
                 MessageId=message.MessageId,
                 OldBufferEmpty=old,
                 NewBufferEmpty=self.buffer_empty
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "BufferFull"):
+            old = self.buffer_full
+            self.buffer_full = message.BufferFull
+            self.update_env_variable('SCADA_BUFFER_FULL', self.buffer_full)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldBufferFull=old,
+                NewBufferFull=self.buffer_full
             )
             self.log(f"Sending back {response}")
             self.send_to_atn(response)
@@ -421,6 +483,23 @@ class HomeAlone(Actor):
         else:
             print("This function is only available in simulation")
 
+    def fill_missing_store_temps(self):
+        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
+        for layer in all_store_layers:
+            if (layer not in self.latest_temperatures 
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
+                self.latest_temperatures[layer] = None
+        if 'store-cold-pipe' in self.latest_temperatures:
+            value_below = self.latest_temperatures['store-cold-pipe']
+        else:
+            value_below = 0
+        for layer in sorted(all_store_layers, reverse=True):
+            if self.latest_temperatures[layer] is None:
+                self.latest_temperatures[layer] = value_below
+            value_below = self.latest_temperatures[layer]  
+        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
+
     def get_latest_temperatures(self):
         self.latest_temperatures = {
             x: self.services._data.latest_channel_values[x] 
@@ -437,15 +516,9 @@ class HomeAlone(Actor):
             available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
                 print("But all the buffer temperatures are available")
-                # Fill in the storage temperatures
-                all_tanks = [x for x in self.temperature_channel_names if 'tank' in x]
-                available_tanks = [x for x in list(self.latest_temperatures.keys()) if 'tank' in x]
-                if 'tank3-depth4' in available_tanks:
-                    print("Storage bottom temperature available")
-                    for temp in [x for x in all_tanks if x not in available_tanks]:
-                        self.latest_temperatures[temp] = self.latest_temperatures['tank3-depth4']
-                    self.temperatures_available = True
-
+                self.fill_missing_store_temps()
+                print("Successfully filled in the missing storage temperatures.")
+                self.temperatures_available = True
 
     def get_datachannel(self, name):
         for dc in self.datachannels:
@@ -480,7 +553,7 @@ class HomeAlone(Actor):
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
         peak_hours = [7,8,9,10,11] + [16,17,18,19]
-        if ((time_now.hour in peak_hours or time_in_2min.hour in peak_hours) 
+        if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours
             and time_now.weekday() < 5):
             self.log("On-peak")
             return True
@@ -517,7 +590,7 @@ class HomeAlone(Actor):
                 buffer_full_temp = 'hp-ewt'
             else:
                 # TODO send an alert
-                print("ALERT we can't know if the buffer is empty")
+                print("ALERT we can't know if the buffer is full")
                 return False
         
         if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > self.buffer_full:
@@ -526,29 +599,30 @@ class HomeAlone(Actor):
         else:
             print(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
             return False
-        
-        
 
     def is_storage_ready(self) -> bool:
+        latest_temperatures = self.latest_temperatures.copy()
+        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
+        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
         total_usable_kwh = 0
-        for layer in [x for x in self.latest_temperatures.keys() if 'tank' in x]:
-            layer_temp_f = self.latest_temperatures[layer]/1000*9/5+32
-            if layer_temp_f >= self.swt_coldest_hour:
-                while layer_temp_f >= self.swt_coldest_hour:
-                    layer_energy_kwh = 360/12*3.78541 * 4.187/3600 * self.temp_drop(layer_temp_f)*5/9
-                    total_usable_kwh += layer_energy_kwh
-                    layer_temp_f += -self.temp_drop(layer_temp_f)*5/9
+        while True:
+            if self.rwt(simulated_layers[0]) == simulated_layers[0]:
+                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
+                if self.rwt(simulated_layers[0]) == simulated_layers[0]:
+                    break
+            total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]        
         time_now = datetime.now(self.timezone)
         if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
             required_storage = 7.5*self.average_power_coldest_hour_kw
         else:
             required_storage = 4*self.average_power_coldest_hour_kw
         if total_usable_kwh >= required_storage:
-            print(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh")
+            self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
             self.time_storage_declared_ready = time.time()
             return True
         else:
-            print(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh")
+            self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh)")
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
@@ -566,7 +640,7 @@ class HomeAlone(Actor):
             # TODO send an alert
             print("ALERT we can't know if the top of the buffer is warmer than the storage")
             return False
-        if 'tank1-depth1' in self.latest_temperatures:
+        if 'tank1-depth1' in self.latest_temperatures: # TODO: this will always be true since we are filling temperatures
             tank_top = 'tank1-depth1'
         elif 'store-hot-pipe' in self.latest_temperatures:
             tank_top = 'store-hot-pipe'
@@ -583,9 +657,21 @@ class HomeAlone(Actor):
             print("Storage top warmer than buffer top")
             return False
     
-    def temp_drop(self, T):
-        intercept, coeff = self.temp_drop_function
-        return intercept + coeff*T
+    def to_celcius(self, t):
+        return (t-32)*5/9
+
+    def to_fahrenheit(self, t):
+        return t*9/5+32
+    
+    def rwt(self, swt):
+        if swt < self.swt_coldest_hour - 10:
+            return swt
+        elif swt < self.swt_coldest_hour:
+            temp_drop_required_swt = (self.swt_coldest_hour-70)*0.2
+            return swt - temp_drop_required_swt/10 * (swt-(self.swt_coldest_hour-10))
+        else:
+            temp_drop = (swt-70)*0.2
+            return swt - temp_drop    
     
     def _send_to(self, dst: ShNode, payload) -> None:
         if (
