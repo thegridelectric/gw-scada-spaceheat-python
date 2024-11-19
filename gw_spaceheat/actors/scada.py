@@ -572,7 +572,6 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         match decoded.Payload:
             case AnalogDispatch():
-                print("GOT TO SCADA _process_upstream_mqtt_message AnalogDispatch")
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
             case SendSnap():

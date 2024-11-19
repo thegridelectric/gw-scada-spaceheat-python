@@ -37,7 +37,7 @@ class ZeroTenOutputer(Actor):
                 f"Igonring dispatch {dispatch} - range out of value. Should be 0-100"
             )
         self.log(f"Got AnalogDispatch from {dispatch.FromName}")
-        self.log(f"Sending {dispatch.Value} to dfr multiplexer")
+        # self.log(f"Sending {dispatch.Value} to dfr multiplexer")
         self._send_to(
             self.dfr_multiplexer,
             AnalogDispatch(
