@@ -649,7 +649,7 @@ class HomeAlone(Actor):
             65 + (self.house_rswt - 65) * (self.alpha + self.beta*oat + self.gamma*ws) / self.house_power
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
         ]
-        self.log(f'Got {length}-hour weather forecast starting at {self.weather['time'][0]}')
+        self.log(f"Got {length}-hour weather forecast starting at {self.weather['time'][0]}")
         print(self.weather)
        
     def get_required_storage(self, time_now):
