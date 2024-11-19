@@ -646,7 +646,8 @@ class HomeAlone(Actor):
             'ws': [0]*len(cropped_forecast)
             }
         self.weather['avg_power'] = [
-            self.alpha + self.beta*oat + self.gamma*ws 
+            # self.alpha + self.beta*oat + self.gamma*ws 
+            2 # TODO !!
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
             ]
         self.weather['required_swt'] = [
