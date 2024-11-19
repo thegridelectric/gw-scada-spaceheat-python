@@ -650,7 +650,7 @@ class HomeAlone(Actor):
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
             ]
         self.weather['required_swt'] = [
-            65 + (self.house_rswt - 65) * (self.alpha + self.beta*oat + self.gamma*ws) / self.house_power
+            90 + (self.house_rswt - 90) * (self.alpha + self.beta*oat + self.gamma*ws) / self.house_power
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
         ]
         self.log(f"Got {length}-hour weather forecast starting at {self.weather['time'][0]}")
@@ -758,10 +758,10 @@ class HomeAlone(Actor):
         if swt < required_swt - 10:
             delta_t = 0
         elif swt < required_swt:
-            delta_t_rswt = self.house_delta_t * (required_swt-65)/(self.house_swt-65)
+            delta_t_rswt = self.house_delta_t * (required_swt-90)/(self.house_swt-90)
             delta_t = delta_t_rswt/10 * (swt-(required_swt-10))
         else:
-            delta_t = self.house_delta_t * (swt-65)/(self.house_swt-65)
+            delta_t = self.house_delta_t * (swt-90)/(self.house_swt-90)
         print(f"SWT={swt}, RWT={round(swt - delta_t,2)}")
         return round(swt - delta_t,2)
     
