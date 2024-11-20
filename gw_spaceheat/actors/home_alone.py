@@ -4,6 +4,7 @@ from enum import auto
 import uuid
 import requests
 import time
+import numpy as np
 import dotenv
 from datetime import datetime, timedelta
 import pytz
@@ -152,6 +153,12 @@ class HomeAlone(Actor):
         self.log(f"self.hp_max_kw_th: {self.hp_max_kw_th}")
         self.log(f"self.buffer_empty: {self.buffer_empty}")
         self.log(f"self.buffer_full: {self.buffer_full}")
+        
+        x_rswt = np.array([55, 100, 150]) # TODO !!
+        y_hpower = np.array([0, 1.5, 5.5])
+        A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
+        self.rswt_quadratic_params = np.linalg.solve(A, y_hpower)
+
         self.get_weather()
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
@@ -631,6 +638,14 @@ class HomeAlone(Actor):
         else:
             print(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
             return False
+
+    def required_heating_power(self, oat, ws):
+        r = self.alpha + self.beta*oat + self.gamma*ws
+        return r if r>0 else 0
+
+    def required_swt(self,rhp):
+        a, b, c = self.rswt_quadratic_params # TODO!
+        return -b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5
         
     def get_weather(self, length=24):
         try:
@@ -659,21 +674,17 @@ class HomeAlone(Actor):
                 'ws': [0]*len(cropped_forecast)
                 }
         except:
-            self.log("[!!] Unable to get weather forecast from API. Using fictional weather for now.")
+            self.log("[!!] Unable to get weather forecast from API. Using fictional weather for now.") #TODO
             self.weather = {
                 'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
                 'oat': [40]*24,
                 'ws': [0]*24,
                 }
         self.weather['avg_power'] = [
-            # self.alpha + self.beta*oat + self.gamma*ws 
-            2 # TODO !!
+            self.required_heating_power(oat, ws) 
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
             ]
-        self.weather['required_swt'] = [
-            90 + (self.house_rswt - 90) * (self.alpha + self.beta*oat + self.gamma*ws) / self.house_power
-            for oat, ws in zip(self.weather['oat'], self.weather['ws'])
-        ]
+        self.weather['required_swt'] = [self.required_swt(x) for x in self.weather['avg_power']]
         self.log(f"Got {length}-hour weather forecast starting at {self.weather['time'][0]}")
         print(f"OAT = {self.weather['oat']}")
         print(f"Average Power = {self.weather['avg_power']}")
@@ -763,6 +774,13 @@ class HomeAlone(Actor):
 
     def to_fahrenheit(self, t):
         return t*9/5+32
+
+    def delta_T(self, swt):
+        DDDELTAT, DDPOWER = 20, 5.5 # TODO
+        a, b, c = self.rswt_quadratic_params
+        delivered_heat = a*swt**2 + b*swt + c
+        d = DDDELTAT/DDPOWER * delivered_heat # TODO
+        return d if d>0 else 0
     
     def rwt(self, swt, timenow):
         # Overnight: Want to be ready for both morning and afternoon onpeak
@@ -782,10 +800,9 @@ class HomeAlone(Actor):
         if swt < required_swt - 10:
             delta_t = 0
         elif swt < required_swt:
-            delta_t_rswt = self.house_delta_t * (required_swt-90)/(self.house_swt-90)
-            delta_t = delta_t_rswt/10 * (swt-(required_swt-10))
+            delta_t = self.delta_T(required_swt) * (swt-(required_swt-10))/10
         else:
-            delta_t = self.house_delta_t * (swt-90)/(self.house_swt-90)
+            delta_t = self.delta_T(swt)
         print(f"SWT={swt}, RWT={round(swt - delta_t,2)}")
         return round(swt - delta_t,2)
     
