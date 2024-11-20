@@ -641,11 +641,11 @@ class HomeAlone(Actor):
 
     def required_heating_power(self, oat, ws):
         r = self.alpha + self.beta*oat + self.gamma*ws
-        return r if r>0 else 0
+        return round(r,2) if r>0 else 0
 
     def required_swt(self,rhp):
         a, b, c = self.rswt_quadratic_params # TODO!
-        return -b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5
+        return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
         
     def get_weather(self, length=24):
         try:
