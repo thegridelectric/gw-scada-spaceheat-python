@@ -686,9 +686,9 @@ class HomeAlone(Actor):
             ]
         self.weather['required_swt'] = [self.required_swt(x) for x in self.weather['avg_power']]
         self.log(f"Got {length}-hour weather forecast starting at {self.weather['time'][0]}")
-        print(f"OAT = {self.weather['oat']}")
-        print(f"Average Power = {self.weather['avg_power']}")
-        print(f"RSWT = {self.weather['required_swt']}")
+        self.log(f"OAT = {self.weather['oat']}")
+        self.log(f"Average Power = {self.weather['avg_power']}")
+        self.log(f"RSWT = {self.weather['required_swt']}")
        
     def get_required_storage(self, time_now):
         morning_kWh = sum(
