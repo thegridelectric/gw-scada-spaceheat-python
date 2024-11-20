@@ -720,10 +720,15 @@ class HomeAlone(Actor):
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
         simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
         total_usable_kwh = 0
+        mixed_once = False
         while True:
             if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
-                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
+                if not mixed_once:
+                    mixed_once = True
+                    simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
+                    if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
+                        break
+                else:
                     break
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0],time_now))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0],time_now)]        
