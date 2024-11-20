@@ -569,6 +569,18 @@ class HomeAlone(Actor):
         self._send_to(self.aquastat_ctrl_relay, event)
         self.services.logger.error(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
+        # TODO: HP is initialized as off!
+        event = FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.hp_onoff_relay.handle,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.OpenRelay,
+            SendTimeUnixMs=int(time.time()*1000),
+            TriggerId=str(uuid.uuid4()),
+            )
+        self._send_to(self.hp_onoff_relay, event)
+        self.services.logger.error(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
@@ -621,30 +633,38 @@ class HomeAlone(Actor):
             return False
         
     def get_weather(self, length=24):
-        url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-        response = requests.get(url)
-        if response.status_code != 200:
-            self.log(f"Error fetching weather data: {response.status_code}")
-            return None
-        data = response.json()
-        forecast_hourly_url = data['properties']['forecastHourly']
-        forecast_response = requests.get(forecast_hourly_url)
-        if forecast_response.status_code != 200:
-            self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
-            return None
-        forecast_data = forecast_response.json()
-        forecasts = {}
-        periods = forecast_data['properties']['periods']
-        for period in periods:
-            if ('temperature' in period and 'startTime' in period 
-                and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
-                forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
-        cropped_forecast = dict(list(forecasts.items())[:length])
-        self.weather = {
-            'time': list(cropped_forecast.keys()),
-            'oat': list(cropped_forecast.values()),
-            'ws': [0]*len(cropped_forecast)
-            }
+        try:
+            url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
+            response = requests.get(url)
+            if response.status_code != 200:
+                self.log(f"Error fetching weather data: {response.status_code}")
+                return None
+            data = response.json()
+            forecast_hourly_url = data['properties']['forecastHourly']
+            forecast_response = requests.get(forecast_hourly_url)
+            if forecast_response.status_code != 200:
+                self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
+                return None
+            forecast_data = forecast_response.json()
+            forecasts = {}
+            periods = forecast_data['properties']['periods']
+            for period in periods:
+                if ('temperature' in period and 'startTime' in period 
+                    and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
+                    forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
+            cropped_forecast = dict(list(forecasts.items())[:length])
+            self.weather = {
+                'time': list(cropped_forecast.keys()),
+                'oat': list(cropped_forecast.values()),
+                'ws': [0]*len(cropped_forecast)
+                }
+        except:
+            self.log("[!!] Unable to get weather forecast from API. Using fictional weather for now.")
+            self.weather = {
+                'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
+                'oat': [40]*24,
+                'ws': [0]*24,
+                }
         self.weather['avg_power'] = [
             # self.alpha + self.beta*oat + self.gamma*ws 
             2 # TODO !!
@@ -655,7 +675,9 @@ class HomeAlone(Actor):
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
         ]
         self.log(f"Got {length}-hour weather forecast starting at {self.weather['time'][0]}")
-        print(self.weather)
+        print(f"OAT = {self.weather['oat']}")
+        print(f"Average Power = {self.weather['avg_power']}")
+        print(f"RSWT = {self.weather['required_swt']}")
        
     def get_required_storage(self, time_now):
         morning_kWh = sum(
@@ -695,7 +717,7 @@ class HomeAlone(Actor):
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0],time_now))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0],time_now)]        
         required_storage = self.get_required_storage(time_now)
-        total_usable_kwh = 5
+        # total_usable_kwh = 5 # TODO hardcoded!!!
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
             self.time_storage_declared_ready = time.time()
