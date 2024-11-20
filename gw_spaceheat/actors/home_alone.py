@@ -720,20 +720,14 @@ class HomeAlone(Actor):
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
         simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
         total_usable_kwh = 0
-        mixed_once = False
         while True:
             if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
-                if not mixed_once:
-                    mixed_once = True
-                    simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                    if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
-                        break
-                else:
+                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
+                if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
                     break
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0],time_now))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0],time_now)]        
         required_storage = self.get_required_storage(time_now)
-        # total_usable_kwh = 5 # TODO hardcoded!!!
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
             self.time_storage_declared_ready = time.time()
@@ -800,7 +794,6 @@ class HomeAlone(Actor):
                 [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
                 if t.hour in [16,17,18,19]]
                 )
-            print(f'Warmest SWT required in afternoon onpeak is {required_swt}')
         # Compute the Delta T and output the corresponding RWT
         if swt < required_swt - 10:
             delta_t = 0
@@ -808,7 +801,6 @@ class HomeAlone(Actor):
             delta_t = self.delta_T(required_swt) * (swt-(required_swt-10))/10
         else:
             delta_t = self.delta_T(swt)
-        print(f"SWT={swt}, RWT={round(swt - delta_t,2)}")
         return round(swt - delta_t,2)
     
     def _send_to(self, dst: ShNode, payload) -> None:
