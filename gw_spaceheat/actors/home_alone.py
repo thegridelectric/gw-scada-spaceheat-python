@@ -647,8 +647,8 @@ class HomeAlone(Actor):
                 'ws': [0]*len(cropped_forecast)
                 }
             self.log(f"Obtained a 24-hour weather forecast starting at {self.weather['time'][0]}")
-        except:
-            self.log("[!!] Unable to get weather forecast from API")
+        except Exception as e:
+            self.log(f"[!!] Unable to get weather forecast from API: {e}")
             if self.weather_long is None:
                 self.log("No weather forecasts available! Use coldest of the current month.") # TODO
                 self.weather = {
@@ -821,7 +821,7 @@ class HomeAlone(Actor):
     def log(self, note: str) -> None:
         log_str = f"[{self.name}] {note}"
         self.services.logger.error(log_str)
-        print(log_str)
+        # print(log_str)
 
     def alert(self, msg) -> None:
         alert_str = f"[ALERT] {msg}"
