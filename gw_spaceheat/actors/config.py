@@ -30,8 +30,6 @@ class ScadaSettings(ProactorSettings):
     beta: float = -0.1
     gamma: float = 0
     hp_max_kw_th: float = 14
-    buffer_empty: int = 110
-    buffer_full: int = 125
     no_power_rswt: float = 55
     intermediate_power: float = 1.5
     intermediate_rswt: float = 100

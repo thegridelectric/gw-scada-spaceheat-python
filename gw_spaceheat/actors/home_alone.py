@@ -136,8 +136,6 @@ class HomeAlone(Actor):
         self.beta = self.settings.beta
         self.gamma = self.settings.gamma
         self.hp_max_kw_th = self.settings.hp_max_kw_th
-        self.buffer_empty = self.settings.buffer_empty
-        self.buffer_full = self.settings.buffer_full
         self.no_power_rswt = self.settings.no_power_rswt
         self.intermediate_power = self.settings.intermediate_power
         self.intermediate_rswt = self.settings.intermediate_rswt
@@ -151,8 +149,6 @@ class HomeAlone(Actor):
         self.log(f"self.beta: {self.beta}")
         self.log(f"self.gamma: {self.gamma}")
         self.log(f"self.hp_max_kw_th: {self.hp_max_kw_th}")
-        self.log(f"self.buffer_empty: {self.buffer_empty}")
-        self.log(f"self.buffer_full: {self.buffer_full}")
         self.log(f"self.no_power_rswt: {self.no_power_rswt}")
         self.log(f"self.intermediate_power: {self.intermediate_power}")
         self.log(f"self.intermediate_rswt: {self.intermediate_rswt}")
@@ -457,36 +453,36 @@ class HomeAlone(Actor):
         #     )
         #     self.log(f"Sending back {response}")
         #     self.send_to_atn(response)
-        if hasattr(message, "BufferEmpty"):
-            old = self.buffer_empty
-            self.buffer_empty = message.BufferEmpty
-            self.update_env_variable('SCADA_BUFFER_EMPTY', self.buffer_empty)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldBufferEmpty=old,
-                NewBufferEmpty=self.buffer_empty
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "BufferFull"):
-            old = self.buffer_full
-            self.buffer_full = message.BufferFull
-            self.update_env_variable('SCADA_BUFFER_FULL', self.buffer_full)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldBufferFull=old,
-                NewBufferFull=self.buffer_full
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
+        # if hasattr(message, "BufferEmpty"):
+        #     old = self.buffer_empty
+        #     self.buffer_empty = message.BufferEmpty
+        #     self.update_env_variable('SCADA_BUFFER_EMPTY', self.buffer_empty)
+        #     response = ScadaParams(
+        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+        #         FromName=self.name,
+        #         ToName=message.FromName,
+        #         UnixTimeMs=int(time.time() * 1000),
+        #         MessageId=message.MessageId,
+        #         OldBufferEmpty=old,
+        #         NewBufferEmpty=self.buffer_empty
+        #     )
+        #     self.log(f"Sending back {response}")
+        #     self.send_to_atn(response)
+        # if hasattr(message, "BufferFull"):
+        #     old = self.buffer_full
+        #     self.buffer_full = message.BufferFull
+        #     self.update_env_variable('SCADA_BUFFER_FULL', self.buffer_full)
+        #     response = ScadaParams(
+        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+        #         FromName=self.name,
+        #         ToName=message.FromName,
+        #         UnixTimeMs=int(time.time() * 1000),
+        #         MessageId=message.MessageId,
+        #         OldBufferFull=old,
+        #         NewBufferFull=self.buffer_full
+        #     )
+        #     self.log(f"Sending back {response}")
+        #     self.send_to_atn(response)
 
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
@@ -583,11 +579,13 @@ class HomeAlone(Actor):
         else:
             self.alert("Impossible to know if the buffer is empty!")
             return False
-        if self.latest_temperatures[buffer_empty_temp]/1000*9/5+32 < self.buffer_empty: # TODO use to_fahrenheit()
-            self.log(f"Buffer empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} < {self.buffer_empty} F)")
+        max_rswt_next_3hours = max(self.weather['required_swt'][:3])
+        min_buffer = max_rswt_next_3hours - self.delta_T(max_rswt_next_3hours)
+        if self.latest_temperatures[buffer_empty_temp]/1000*9/5+32 < min_buffer: # TODO use to_fahrenheit()
+            self.log(f"Buffer empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} < {min_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} >= {self.buffer_empty} F)")
+            self.log(f"Buffer not empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} >= {min_buffer} F)")
             return False            
     
     def is_buffer_full(self) -> bool:
@@ -602,11 +600,12 @@ class HomeAlone(Actor):
         else:
             self.alert("Impossible to know if the buffer is full!")
             return False
-        if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > self.buffer_full: # TODO use to_fahrenheit()
-            self.log(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} > {self.buffer_full} F)")
+        max_buffer = max(self.weather['required_swt'][:3])
+        if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > max_buffer: # TODO use to_fahrenheit()
+            self.log(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} > {max_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} <= {self.buffer_full} F)")
+            self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} <= {max_buffer} F)")
             return False
 
     def required_heating_power(self, oat, ws):
