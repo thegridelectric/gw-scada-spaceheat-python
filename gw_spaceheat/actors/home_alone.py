@@ -3,6 +3,7 @@ from typing import Any, Sequence
 from enum import auto
 import uuid
 import time
+import numpy as np
 import dotenv
 from datetime import datetime, timedelta
 import pytz
@@ -100,8 +101,8 @@ class HomeAlone(Actor):
         self.settings: ScadaSettings = self.services.settings
         self.dotenv_filepath = dotenv.find_dotenv()
         self._stop_requested: bool = False
+        self.main_loop_sleep_seconds = 60
         self.hardware_layout = self._services.hardware_layout
-        self.datachannels = list(self.hardware_layout.data_channels.values())
         self.temperature_channel_names = [
             'buffer-depth1', 'buffer-depth2', 'buffer-depth3', 'buffer-depth4', 
             'tank1-depth1', 'tank1-depth2', 'tank1-depth3', 'tank1-depth4', 
@@ -111,43 +112,65 @@ class HomeAlone(Actor):
             'buffer-cold-pipe', 'buffer-hot-pipe', 'store-cold-pipe', 'store-hot-pipe',
             ]
         self.temperatures_available = False
-        self.hp_onoff_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
+        self.storage_declared_ready = False
+        # Relays
+        self.hp_scada_ops_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
         self.hp_failsafe_relay: ShNode = self.hardware_layout.node(H0N.hp_failsafe_relay)
         self.aquastat_ctrl_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
-        self.store_pump_onoff_relay: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
+        self.store_pump_failsafe: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
         self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
-        self.time_storage_declared_ready = None
         self.machine = Machine(
             model=self,
             states=HomeAlone.states,
             transitions=HomeAlone.transitions,
             initial=HomeAloneState.WaitingForTemperaturesOnPeak.value,
             send_event=True,
-        )
-        # House parameters
-        self.temp_drop_function = [20,0] #TODO
-        # In simulation vs in a real house
-        self.simulation = True
-        self.main_loop_sleep_seconds = 60
-
-        # Read House parameters from the .env file
-        self.swt_coldest_hour = self.settings.swt_coldest_hour
-        self.average_power_coldest_hour_kw = self.settings.average_power_coldest_hour_kw
-        self.buffer_empty = self.settings.buffer_empty
-        self.buffer_full = self.settings.buffer_full
+        )        
+        # House parameters in the .env file
+        self.is_simulated = self.settings.is_simulated
         self.timezone = pytz.timezone(self.settings.timezone_str)
-        self.log(f"self.swt_coldest_hour: {self.swt_coldest_hour}")
-        self.log(f"self.average_power_coldest_hour_kw : {self.average_power_coldest_hour_kw }")
-        self.log(f"self.buffer_empty: {self.buffer_empty}")
-        self.log(f"self.buffer_full: {self.buffer_full}")
+        self.latitude = self.settings.latitude
+        self.longitude = self.settings.longitude
+        self.alpha = self.settings.alpha
+        self.beta = self.settings.beta
+        self.gamma = self.settings.gamma
+        self.hp_max_kw_th = self.settings.hp_max_kw_th
+        self.no_power_rswt = self.settings.no_power_rswt
+        self.intermediate_power = self.settings.intermediate_power
+        self.intermediate_rswt = self.settings.intermediate_rswt
+        self.dd_power = self.settings.dd_power
+        self.dd_rswt = self.settings.dd_rswt
+        self.dd_delta_t = self.settings.dd_delta_t
+        self.log(f"self.timezone: {self.timezone}")
+        self.log(f"self.latitude: {self.latitude}")
+        self.log(f"self.longitude: {self.longitude}")
+        self.log(f"self.alpha: {self.alpha}")
+        self.log(f"self.beta: {self.beta}")
+        self.log(f"self.gamma: {self.gamma}")
+        self.log(f"self.hp_max_kw_th: {self.hp_max_kw_th}")
+        self.log(f"self.no_power_rswt: {self.no_power_rswt}")
+        self.log(f"self.intermediate_power: {self.intermediate_power}")
+        self.log(f"self.intermediate_rswt: {self.intermediate_rswt}")
+        self.log(f"self.dd_power: {self.dd_power}")
+        self.log(f"self.dd_rswt: {self.dd_rswt}")
+        self.log(f"self.dd_delta_t: {self.dd_delta_t}")
+        self.log(f"self.is_simulated: {self.is_simulated}")
+        # Find the quadratic function that finds heating power from RSWT
+        x_rswt = np.array([self.no_power_rswt, self.intermediate_rswt, self.dd_rswt])
+        y_hpower = np.array([0, self.intermediate_power, self.dd_power])
+        A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
+        self.rswt_quadratic_params = np.linalg.solve(A, y_hpower)
+        self.log(f"self.rswt_quadratic_params: {self.rswt_quadratic_params}")
+        # Get the weather forecast
+        self.weather = None
+        self.weather_long = None
+        self.get_weather()
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
         self.trigger(event)
-        self.services.logger.error(
-            f"[{self.name}] {event}: {orig_state} -> {self.state}"
-        )
+        self.log(f"{event}: {orig_state} -> {self.state}")
         self._send_to(
             self.services._layout.nodes[H0N.primary_scada],
             MachineStates(
@@ -189,31 +212,28 @@ class HomeAlone(Actor):
 
         await asyncio.sleep(2)
         self.initialize_relays()
-        if self.is_onpeak():
-            self._turn_off_HP()
 
         while not self._stop_requested:
-            #self.services.logger.error("PATTING HOME ALONE WATCHDOG")
+            #self.log("PATTING HOME ALONE WATCHDOG")
             self._send(PatInternalWatchdogMessage(src=self.name))
 
             if self.services.auto_state != MainAutoState.HomeAlone:
                 self.log("State: DORMANT")
             else:
-                self.services.logger.error(f"State: {self.state}")
+                self.log(f"State: {self.state}")
                 previous_state = self.state
-                print("\n"+"-"*50)
-                print(f"HomeAlone state: {previous_state}")
-                print("-"*50)
 
                 if self.is_onpeak():
                     self.time_storage_declared_ready = None
+
+                if datetime.now(self.timezone)>self.weather['time'][0]:
+                    self.get_weather()
 
                 self.get_latest_temperatures()
 
                 if (self.state==HomeAloneState.WaitingForTemperaturesOnPeak 
                     or self.state==HomeAloneState.WaitingForTemperaturesOffPeak):
                     if self.temperatures_available:
-                        print('Temperatures available')
                         if self.is_onpeak():
                             if self.is_buffer_empty():
                                 if self.is_storage_colder_than_buffer():
@@ -263,12 +283,8 @@ class HomeAlone(Actor):
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                         elif not self.is_storage_ready():
-                            if self.time_storage_declared_ready is not None:
-                                if time.time() - self.time_storage_declared_ready > 10*60*60:
-                                    self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
-                                    self.time_storage_declared_ready = None
-                                else:
-                                    self.log("The storage was already declared ready during this off-peak period")
+                            if self.storage_declared_ready:
+                                self.log("The storage was already declared ready during this off-peak period")
                             else:
                                 self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
 
@@ -280,7 +296,6 @@ class HomeAlone(Actor):
 
                 if self.state != previous_state:                    
                     self.update_relays(previous_state)
-                print('Done.')
 
             await asyncio.sleep(self.main_loop_sleep_seconds)
 
@@ -303,51 +318,51 @@ class HomeAlone(Actor):
     def _turn_on_HP(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
-            ToHandle=self.hp_onoff_relay.handle,
+            ToHandle=self.hp_scada_ops_relay.handle,
             EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
-        self._send_to(self.hp_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
+        self._send_to(self.hp_scada_ops_relay, event)
+        self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
 
     def _turn_off_HP(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
-            ToHandle=self.hp_onoff_relay.handle,
+            ToHandle=self.hp_scada_ops_relay.handle,
             EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
-        self._send_to(self.hp_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+        self._send_to(self.hp_scada_ops_relay, event)
+        self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
 
     def _turn_on_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
-            ToHandle=self.store_pump_onoff_relay.handle,
+            ToHandle=self.store_pump_failsafe.handle,
             EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.CloseRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
-        self._send_to(self.store_pump_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        self._send_to(self.store_pump_failsafe, event)
+        self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
 
 
     def _turn_off_store(self):
         event = FsmEvent(
             FromHandle=self.node.handle,
-            ToHandle=self.store_pump_onoff_relay.handle,
+            ToHandle=self.store_pump_failsafe.handle,
             EventType=ChangeRelayState.enum_name(),
             EventName=ChangeRelayState.OpenRelay,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
-        self._send_to(self.store_pump_onoff_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        self._send_to(self.store_pump_failsafe, event)
+        self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
 
 
     def _valved_to_charge_store(self):
@@ -360,8 +375,7 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_charge_discharge_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-
+        self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
 
     def _valved_to_discharge_store(self):
         event = FsmEvent(
@@ -373,22 +387,18 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.store_charge_discharge_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-
+        self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
 
     def start(self) -> None:
         self.services.add_task(
             asyncio.create_task(self.main(), name="HomeAlone keepalive")
         )
 
-
     def stop(self) -> None:
         self._stop_requested = True
         
-
     async def join(self):
         ...
-
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
@@ -412,77 +422,76 @@ class HomeAlone(Actor):
     def _process_scada_params(self, message: ScadaParams) -> None:
         self.log("Got ScadaParams - check h.latest")
         self.latest = message
-        if hasattr(message, "SwtColdestHr"):
-            old = self.swt_coldest_hour
-            self.swt_coldest_hour = message.SwtColdestHr
-            self.update_env_variable('SCADA_SWT_COLDEST_HOUR', self.swt_coldest_hour)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldSwtColdestHr=old,
-                NewSwtColdestHr=self.swt_coldest_hour
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "AveragePowerColdestHourKw"):
-            old = self.average_power_coldest_hour_kw
-            self.average_power_coldest_hour_kw = message.AveragePowerColdestHourKw
-            self.update_env_variable('SCADA_AVERAGE_POWER_COLDEST_HOUR_KW', self.average_power_coldest_hour_kw)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.average_power_coldest_hour_kw
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "BufferEmpty"):
-            old = self.buffer_empty
-            self.buffer_empty = message.BufferEmpty
-            self.update_env_variable('SCADA_BUFFER_EMPTY', self.buffer_empty)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldBufferEmpty=old,
-                NewBufferEmpty=self.buffer_empty
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "BufferFull"):
-            old = self.buffer_full
-            self.buffer_full = message.BufferFull
-            self.update_env_variable('SCADA_BUFFER_FULL', self.buffer_full)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldBufferFull=old,
-                NewBufferFull=self.buffer_full
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
+        # if hasattr(message, "SwtColdestHr"):
+        #     old = self.swt_coldest_hour
+        #     self.swt_coldest_hour = message.SwtColdestHr
+        #     self.update_env_variable('SCADA_SWT_COLDEST_HOUR', self.swt_coldest_hour)
+        #     response = ScadaParams(
+        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+        #         FromName=self.name,
+        #         ToName=message.FromName,
+        #         UnixTimeMs=int(time.time() * 1000),
+        #         MessageId=message.MessageId,
+        #         OldSwtColdestHr=old,
+        #         NewSwtColdestHr=self.swt_coldest_hour
+        #     )
+        #     self.log(f"Sending back {response}")
+        #     self.send_to_atn(response)
+        # if hasattr(message, "AveragePowerColdestHourKw"):
+        #     old = self.average_power_coldest_hour_kw
+        #     self.average_power_coldest_hour_kw = message.AveragePowerColdestHourKw
+        #     self.update_env_variable('SCADA_AVERAGE_POWER_COLDEST_HOUR_KW', self.average_power_coldest_hour_kw)
+        #     response = ScadaParams(
+        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+        #         FromName=self.name,
+        #         ToName=message.FromName,
+        #         UnixTimeMs=int(time.time() * 1000),
+        #         MessageId=message.MessageId,
+        #         OldAveragePowerColdestHourKw=old,
+        #         NewAveragePowerColdestHourKw=self.average_power_coldest_hour_kw
+        #     )
+        #     self.log(f"Sending back {response}")
+        #     self.send_to_atn(response)
+        # if hasattr(message, "BufferEmpty"):
+        #     old = self.buffer_empty
+        #     self.buffer_empty = message.BufferEmpty
+        #     self.update_env_variable('SCADA_BUFFER_EMPTY', self.buffer_empty)
+        #     response = ScadaParams(
+        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+        #         FromName=self.name,
+        #         ToName=message.FromName,
+        #         UnixTimeMs=int(time.time() * 1000),
+        #         MessageId=message.MessageId,
+        #         OldBufferEmpty=old,
+        #         NewBufferEmpty=self.buffer_empty
+        #     )
+        #     self.log(f"Sending back {response}")
+        #     self.send_to_atn(response)
+        # if hasattr(message, "BufferFull"):
+        #     old = self.buffer_full
+        #     self.buffer_full = message.BufferFull
+        #     self.update_env_variable('SCADA_BUFFER_FULL', self.buffer_full)
+        #     response = ScadaParams(
+        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+        #         FromName=self.name,
+        #         ToName=message.FromName,
+        #         UnixTimeMs=int(time.time() * 1000),
+        #         MessageId=message.MessageId,
+        #         OldBufferFull=old,
+        #         NewBufferFull=self.buffer_full
+        #     )
+        #     self.log(f"Sending back {response}")
+        #     self.send_to_atn(response)
 
     def change_all_temps(self, temp_c) -> None:
-        if self.simulation:
+        if self.is_simulated:
             for channel_name in self.temperature_channel_names:
                 self.change_temp(channel_name, temp_c)
         else:
             print("This function is only available in simulation")
 
-
     def change_temp(self, channel_name, temp_c) -> None:
-        if self.simulation:
+        if self.is_simulated:
             self.latest_temperatures[channel_name] = temp_c * 1000
         else:
             print("This function is only available in simulation")
@@ -513,6 +522,7 @@ class HomeAlone(Actor):
             }
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
+            print('Temperatures available')
         else:
             self.temperatures_available = False
             print('Some temperatures are missing')
@@ -523,14 +533,10 @@ class HomeAlone(Actor):
                 self.fill_missing_store_temps()
                 print("Successfully filled in the missing storage temperatures.")
                 self.temperatures_available = True
-
-    def get_datachannel(self, name):
-        for dc in self.datachannels:
-            if name in dc.Name:
-                return dc
-        return None
     
     def initialize_relays(self):
+        if self.is_onpeak:
+            self._turn_off_HP()
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_failsafe_relay.handle,
@@ -540,8 +546,7 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.hp_failsafe_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
-
+        self.log(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.aquastat_ctrl_relay.handle,
@@ -551,7 +556,7 @@ class HomeAlone(Actor):
             TriggerId=str(uuid.uuid4()),
             )
         self._send_to(self.aquastat_ctrl_relay, event)
-        self.services.logger.error(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
+        self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
@@ -566,43 +571,142 @@ class HomeAlone(Actor):
             return False
 
     def is_buffer_empty(self) -> bool:
-        if 'buffer-depth1' in self.latest_temperatures:
-            buffer_empty_temp = 'buffer-depth1'
+        if 'buffer-depth2' in self.latest_temperatures:
+            buffer_empty_temp = 'buffer-depth2'
         elif 'dist-swt' in self.latest_temperatures:
             buffer_empty_temp = 'dist-swt'
         else:
-            # TODO send an alert
-            print("ALERT we can't know if the buffer is empty")
+            self.alert("Impossible to know if the buffer is empty!")
             return False
-
-        if self.latest_temperatures[buffer_empty_temp]/1000*9/5+32 < self.buffer_empty:
-            print(f"Buffer empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)}F)")
+        max_rswt_next_3hours = max(self.weather['required_swt'][:3])
+        min_buffer = round(max_rswt_next_3hours - self.delta_T(max_rswt_next_3hours),1)
+        if self.latest_temperatures[buffer_empty_temp]/1000*9/5+32 < min_buffer: # TODO use to_fahrenheit()
+            self.log(f"Buffer empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} < {min_buffer} F)")
             return True
         else:
-            print(f"Buffer not empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)}F)")
+            self.log(f"Buffer not empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} >= {min_buffer} F)")
             return False            
     
     def is_buffer_full(self) -> bool:
         if 'buffer-depth4' in self.latest_temperatures:
             buffer_full_temp = 'buffer-depth4'
+        elif 'buffer-cold-pipe' in self.latest_temperatures:
+            buffer_full_temp = 'buffer-cold-pipe'
+        elif "StoreDischarge" in self.state and 'store-cold-pipe' in self.latest_temperatures:
+            buffer_full_temp = 'store-cold-pipe'
+        elif 'hp-ewt' in self.latest_temperatures:
+            buffer_full_temp = 'hp-ewt'
         else:
-            if 'buffer-cold-pipe' in self.latest_temperatures:
-                buffer_full_temp = 'buffer-cold-pipe'
-            elif "StoreDischarge" in self.state and 'store-cold-pipe' in self.latest_temperatures:
-                buffer_full_temp = 'store-cold-pipe'
-            elif 'hp-ewt' in self.latest_temperatures:
-                buffer_full_temp = 'hp-ewt'
-            else:
-                # TODO send an alert
-                print("ALERT we can't know if the buffer is full")
-                return False
-        
-        if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > self.buffer_full:
-            print(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
+            self.alert("Impossible to know if the buffer is full!")
+            return False
+        max_buffer = round(max(self.weather['required_swt'][:3]),1)
+        if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > max_buffer: # TODO use to_fahrenheit()
+            self.log(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} > {max_buffer} F)")
             return True
         else:
-            print(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)}F)")
+            self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} <= {max_buffer} F)")
             return False
+
+    def required_heating_power(self, oat, ws):
+        r = self.alpha + self.beta*oat + self.gamma*ws
+        return round(r,2) if r>0 else 0
+
+    def required_swt(self,rhp):
+        a, b, c = self.rswt_quadratic_params
+        return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
+        
+    def get_weather(self):
+        try:
+            url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
+            response = requests.get(url)
+            if response.status_code != 200:
+                self.log(f"Error fetching weather data: {response.status_code}")
+                return None
+            data = response.json()
+            forecast_hourly_url = data['properties']['forecastHourly']
+            forecast_response = requests.get(forecast_hourly_url)
+            if forecast_response.status_code != 200:
+                self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
+                return None
+            forecast_data = forecast_response.json()
+            forecasts = {}
+            periods = forecast_data['properties']['periods']
+            for period in periods:
+                if ('temperature' in period and 'startTime' in period 
+                    and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
+                    forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
+            cropped_forecast = dict(list(forecasts.items())[:24])
+            self.weather_long = {
+                'time': list(forecasts.keys()),
+                'oat': list(forecasts.values()),
+                'ws': [0]*len(forecasts)
+                }
+            self.weather = {
+                'time': list(cropped_forecast.keys()),
+                'oat': list(cropped_forecast.values()),
+                'ws': [0]*len(cropped_forecast)
+                }
+            self.log(f"Obtained a 24-hour weather forecast starting at {self.weather['time'][0]}")
+        except:
+            self.log("[!!] Unable to get weather forecast from API")
+            if self.weather_long is None:
+                self.log("No weather forecasts available! Use coldest of the current month.") # TODO
+                self.weather = {
+                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
+                    'oat': [30]*24,
+                    'ws': [0]*24,
+                    }
+            else: 
+                if self.weather_long['time'][-1] >= time.time()+timedelta(hours=24):
+                    self.log("Some weather forecast is available, but it is not the most recent")
+                    time_late = datetime.now(self.timezone) - self.weather_long['time'][0]
+                    hours_late = int(time_late.total_seconds()/3600)
+                    self.weather = dict(list(self.weather_long.items())[hours_late:hours_late+24])
+                # TODO: fill in missing weather if not 24 hours of forecast available
+                else:
+                    self.log("No weather forecasts available! Use coldest of the current month.") # TODO
+                    self.weather = {
+                        'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
+                        'oat': [30]*24,
+                        'ws': [0]*24,
+                        }
+            
+        self.weather['avg_power'] = [
+            self.required_heating_power(oat, ws) 
+            for oat, ws in zip(self.weather['oat'], self.weather['ws'])
+            ]
+        self.weather['required_swt'] = [
+            self.required_swt(x) 
+            for x in self.weather['avg_power']
+            ]
+        self.log(f"OAT = {self.weather['oat']}")
+        self.log(f"Average Power = {self.weather['avg_power']}")
+        self.log(f"RSWT = {self.weather['required_swt']}")
+       
+    def get_required_storage(self, time_now):
+        morning_kWh = sum(
+            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+             if 7<=t.hour<=11]
+            )
+        midday_kWh = sum(
+            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+             if 12<=t.hour<=15]
+            )
+        afternoon_kWh = sum(
+            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+             if 16<=t.hour<=19]
+            )
+        if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
+            or (time_now.weekday()<5 and time_now.hour<=6)):
+            self.log('Preparing for a morning onpeak + afternoon onpeak')
+            afternoon_missing_kWh = afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh)
+            return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
+        elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
+            self.log('Preparing for an afternoon onpeak')
+            return afternoon_kWh
+        else:
+            self.log('No onpeak period coming up soon')
+            return 0
 
     def is_storage_ready(self) -> bool:
         latest_temperatures = self.latest_temperatures.copy()
@@ -623,7 +727,7 @@ class HomeAlone(Actor):
             required_storage = 4*self.average_power_coldest_hour_kw
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
-            self.time_storage_declared_ready = time.time()
+            self.storage_declared_ready = time.time()
             return True
         else:
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh)")
@@ -641,21 +745,19 @@ class HomeAlone(Actor):
         elif 'buffer-cold-pipe' in self.latest_temperatures:
             buffer_top = 'buffer-cold-pipe'
         else:
-            # TODO send an alert
-            print("ALERT we can't know if the top of the buffer is warmer than the storage")
+            self.alert("It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if 'tank1-depth1' in self.latest_temperatures: # TODO: this will always be true since we are filling temperatures
+        if 'tank1-depth1' in self.latest_temperatures: # TODO: this will always be true since we are filling missing temperatures
             tank_top = 'tank1-depth1'
         elif 'store-hot-pipe' in self.latest_temperatures:
             tank_top = 'store-hot-pipe'
         elif 'buffer-hot-pipe' in self.latest_temperatures:
             tank_top = 'buffer-hot-pipe'
         else:
-            # TODO send an alert
-            print("ALERT we can't know if the top of the storage is warmer than the buffer")
+            self.alert("It is impossible to know if the top of the storage is warmer than the top of the buffer!")
             return False
         if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top]:
-            print("Storage top colder than buffer top")
+            self.log("Storage top colder than buffer top")
             return True
         else:
             print("Storage top warmer than buffer top")
@@ -666,16 +768,31 @@ class HomeAlone(Actor):
 
     def to_fahrenheit(self, t):
         return t*9/5+32
+
+    def delta_T(self, swt):
+        a, b, c = self.rswt_quadratic_params
+        delivered_heat_power = a*swt**2 + b*swt + c
+        d = self.dd_delta_t/self.dd_power * delivered_heat_power
+        return d if d>0 else 0
     
-    def rwt(self, swt):
-        if swt < self.swt_coldest_hour - 10:
-            return swt
-        elif swt < self.swt_coldest_hour:
-            temp_drop_required_swt = (self.swt_coldest_hour-70)*0.2
-            return swt - temp_drop_required_swt/10 * (swt-(self.swt_coldest_hour-10))
+    def rwt(self, swt, timenow):
+        if timenow.hour > 19 or timenow.hour < 7:
+            required_swt = max(
+                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                if t.hour in [7,8,9,10,11,16,17,18,19]]
+                )
         else:
-            temp_drop = (swt-70)*0.2
-            return swt - temp_drop    
+            required_swt = max(
+                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                if t.hour in [16,17,18,19]]
+                )
+        if swt < required_swt - 10:
+            delta_t = 0
+        elif swt < required_swt:
+            delta_t = self.delta_T(required_swt) * (swt-(required_swt-10))/10
+        else:
+            delta_t = self.delta_T(swt)
+        return round(swt - delta_t,2)
     
     def _send_to(self, dst: ShNode, payload) -> None:
         if (
@@ -704,6 +821,12 @@ class HomeAlone(Actor):
     def log(self, note: str) -> None:
         log_str = f"[{self.name}] {note}"
         self.services.logger.error(log_str)
+        print(log_str)
+
+    def alert(self, msg) -> None:
+        alert_str = f"[ALERT] {msg}"
+        self.log(alert_str)
+        # TODO: send Opsgenie alert
 
     def send_to_atn(self, payload: Any) -> None:
         self._services._links.publish_upstream(payload)
