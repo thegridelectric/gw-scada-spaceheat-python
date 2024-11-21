@@ -572,15 +572,15 @@ class HomeAlone(Actor):
             return False
 
     def is_buffer_empty(self) -> bool:
-        if 'buffer-depth1' in self.latest_temperatures:
-            buffer_empty_temp = 'buffer-depth1'
+        if 'buffer-depth2' in self.latest_temperatures:
+            buffer_empty_temp = 'buffer-depth2'
         elif 'dist-swt' in self.latest_temperatures:
             buffer_empty_temp = 'dist-swt'
         else:
             self.alert("Impossible to know if the buffer is empty!")
             return False
         max_rswt_next_3hours = max(self.weather['required_swt'][:3])
-        min_buffer = max_rswt_next_3hours - self.delta_T(max_rswt_next_3hours)
+        min_buffer = round(max_rswt_next_3hours - self.delta_T(max_rswt_next_3hours),1)
         if self.latest_temperatures[buffer_empty_temp]/1000*9/5+32 < min_buffer: # TODO use to_fahrenheit()
             self.log(f"Buffer empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} < {min_buffer} F)")
             return True
@@ -600,7 +600,7 @@ class HomeAlone(Actor):
         else:
             self.alert("Impossible to know if the buffer is full!")
             return False
-        max_buffer = max(self.weather['required_swt'][:3])
+        max_buffer = round(max(self.weather['required_swt'][:3]),1)
         if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > max_buffer: # TODO use to_fahrenheit()
             self.log(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} > {max_buffer} F)")
             return True
