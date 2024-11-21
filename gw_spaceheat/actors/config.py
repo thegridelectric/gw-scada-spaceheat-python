@@ -23,22 +23,22 @@ class ScadaSettings(ProactorSettings):
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings()
+    timezone_str: str = "America/New_York"
+    latitude: float = 45.6573 
+    longitude: float = -68.7098
     alpha: float = 5.5
     beta: float = -0.1
     gamma: float = 0
-    house_rswt: float = 120
-    house_power: float = 3.5
-    house_swt: float = 120
-    house_delta_t: float = 10
     hp_max_kw_th: float = 14
-    latitude: float = 45.6573 
-    longitude: float = -68.7098
-    is_simulated: bool = False
-    swt_coldest_hour: int = 120
-    average_power_coldest_hour_kw: float = 4
     buffer_empty: int = 110
     buffer_full: int = 125
-    timezone_str: str = "America/New_York"
+    no_power_rswt: float = 55
+    intermediate_power: float = 1.5
+    intermediate_rswt: float = 100
+    dd_power: float = 5.5
+    dd_rswt: float = 150
+    dd_delta_t: float = 20
+    is_simulated: bool = False
 
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 
