@@ -706,7 +706,8 @@ class HomeAlone(Actor):
         if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
             or (time_now.weekday()<5 and time_now.hour<=6)):
             print('preparing for morning onpeak + afternoon onpeak')
-            return morning_kWh + afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh)
+            afternoon_missing_kWh = afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh)
+            return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
         elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
             print('preparing for afternoon onpeak')
             return afternoon_kWh
