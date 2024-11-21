@@ -136,7 +136,7 @@ class HomeAlone(Actor):
         self.beta = self.settings.beta
         self.gamma = self.settings.gamma
         self.hp_max_kw_th = self.settings.hp_max_kw_th
-        self.no_power_rswt = self.settings.no_power_rswt
+        self.no_power_rswt = -self.alpha/self.beta
         self.intermediate_power = self.settings.intermediate_power
         self.intermediate_rswt = self.settings.intermediate_rswt
         self.dd_power = self.settings.dd_power
