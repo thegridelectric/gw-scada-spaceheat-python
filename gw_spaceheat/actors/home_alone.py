@@ -7,6 +7,7 @@ import numpy as np
 import dotenv
 from datetime import datetime, timedelta
 import pytz
+import requests
 from gw.enums import GwStrEnum
 from gwproactor import QOS, Actor, ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
