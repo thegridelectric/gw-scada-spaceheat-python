@@ -715,6 +715,7 @@ class HomeAlone(Actor):
         simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
         total_usable_kwh = 0
         while True:
+            print(simulated_layers)
             if self.rwt(simulated_layers[0]) == simulated_layers[0]:
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
                 if self.rwt(simulated_layers[0]) == simulated_layers[0]:
