@@ -716,12 +716,12 @@ class HomeAlone(Actor):
         simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
         total_usable_kwh = 0
         while True:
-            if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
+            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if round(self.rwt(simulated_layers[0],time_now)) == round(simulated_layers[0]):
+                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
-            total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0],time_now))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0],time_now)]          
+            total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
         required_storage = self.get_required_storage(time_now)
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
