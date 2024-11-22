@@ -776,7 +776,8 @@ class HomeAlone(Actor):
         d = self.dd_delta_t/self.dd_power * delivered_heat_power
         return d if d>0 else 0
     
-    def rwt(self, swt, timenow):
+    def rwt(self, swt):
+        timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 7:
             required_swt = max(
                 [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
