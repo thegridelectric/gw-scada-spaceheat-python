@@ -703,7 +703,8 @@ class HomeAlone(Actor):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
             afternoon_missing_kWh = afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh)
             return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
-        elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
+        # elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
+        elif (time_now.hour>=12 and time_now.hour<16):
             self.log('Preparing for an afternoon onpeak')
             return afternoon_kWh
         else:
