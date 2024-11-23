@@ -10,6 +10,7 @@ from typing import List
 from typing import Optional
 
 from enum import auto
+from gwproto.message import Header
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
 from gwproactor.links.link_settings import LinkSettings
@@ -182,10 +183,10 @@ class Scada(ScadaInterface, Proactor):
 
     top_states = ["Auto", "Admin", "ChangingToAdmin", "ChangingToAuto"]
     top_transitions = [
-        {"trigger": "AdminWakesUp", "source": "Auto", "dest": "ChangeingToAdmin"},
+        {"trigger": "AdminWakesUp", "source": "Auto", "dest": "ChangingToAdmin"},
         {"trigger": "ChangeToAdmin", "source": "ChangingToAdmin", "dest": "Admin"},
         {"trigger": "AutoWakesUp", "source": "Admin", "dest": "ChangingToAuto"},
-        {"trigger": "ChangeToAitp", "source": "ChangingToAuto", "dest": "Admin"},
+        {"trigger": "ChangeToAuto", "source": "ChangingToAuto", "dest": "Admin"},
     ]
 
     main_auto_states = ["Atn", "HomeAlone", "Dormant"]
@@ -623,7 +624,19 @@ class Scada(ScadaInterface, Proactor):
                 case AdminWakesUp():
                     path_dbg |= 0x00000002
                     self.admin_wakes_up_received(decoded.Payload)
-                case AdminCommandSetRelay():
+                case FsmEvent():
+                    # send into the _derived_process_message
+                    to_name = decoded.Payload.ToHandle.split('.')[-1]
+                    self.send(
+                        Message(
+                            header=Header(
+                                Src=H0N.admin,
+                                Dst=to_name,
+                                MessageType=decoded.Payload.TypeName,
+                            ),
+                            Payload=decoded.Payload
+                        )
+                    )
                     path_dbg |= 0x00000004
                 case AdminCommandReadRelays():
                     path_dbg |= 0x00000008
@@ -634,11 +647,17 @@ class Scada(ScadaInterface, Proactor):
                             Payload=RelayStates()
                         ),
                     )
+                
                 case _:
                     # Intentionally ignore this for forward compatibility
                     path_dbg |= 0x00000004
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
 
+    def _fsm_event_from_admin(self, fsm_event: FsmEvent) -> None:
+        to_node = self._layout.node_from_handle(fsm_event.ToHandle)
+        if to_node:
+            self.get_communicator(to_node.name).process_message(fsm_event)
+    
     def _analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
         self.logger.error("Got Analog Dispatch in SCADA!")
         if dispatch.FromGNodeAlias != self._layout.atn_g_node_alias:
@@ -784,7 +803,18 @@ class Scada(ScadaInterface, Proactor):
         if len(payload.ValueList) > 0:
             self._data.latest_channel_values[ch.Name] = payload.ValueList[-1]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMsList[-1]
-        
+
+    def _send_to(self, dst: ShNode, payload: Any) -> None:
+        message = Message(Src=self.name, Dst=dst.name,Payload=payload)
+        if dst.name in set(self._communicators.keys()) | {self.name}:
+            self.send(message)
+        elif dst.Name == H0N.admin:
+            self._links.publish_message(self.ADMIN_MQTT, message)
+        elif dst.Name == H0N.atn:
+            self._links.publish_upstream(payload)
+        else:
+            self._links.publish_message(self.LOCAL_MQTT, message)
+          
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():
             try:
@@ -817,7 +847,7 @@ class Scada(ScadaInterface, Proactor):
             return
 
         # AdminWakesUp: Auto -> ChangingToAdmin
-        self.trigger(TopEvent.AdminWakesUp)
+        self.AdminWakesUp()
 
         #TODO: turn this into a recursion where reports hand over THEIR reports to their boss
         # and then as a final step go dormant.
@@ -825,22 +855,28 @@ class Scada(ScadaInterface, Proactor):
         # hack for now:
         # 1. auto FSM (and all sub-fsms, e.g. HomeAlone) goes dormant
         if self.auto_state != MainAutoState.Dormant:
-            self.trigger(MainAutoEvent.GoDormant)
+            self.GoDormant()
 
         # 2. Make admin the direct boss of all relays and dfrs
         relay_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.Relay] 
         dfr_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ZeroTenOutputer] 
 
-
         for node in relay_nodes + dfr_nodes:
             node.Handle = f"{H0N.admin}.{node.Name}"
         
-        self.logger.warning(f"All relays and dfrs now have admin as boss")
+        self.logger.warning("All relays and dfrs now have admin as boss")
         time.sleep(0.5)
 
         # AdminWakesUp: ChangingToAdmin -> Admin
         self.trigger(TopEvent.ChangeToAdmin)
-
+        message = Message(
+            Src=self.name, 
+            Dst=H0N.admin, 
+            Payload=AdminWakesUp(FromName=self.name, ToName=H0N.admin)
+        )
+        return self.services._links.publish_message(
+                self.services.ADMIN_MQTT, message, qos=QOS.AtMostOnce
+            )
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report

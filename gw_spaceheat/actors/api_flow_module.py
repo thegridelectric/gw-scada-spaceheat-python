@@ -779,32 +779,7 @@ class ApiFlowModule(Actor):
             ValueList=micro_hz_list,
             ScadaReadTimeUnixMsList=unix_ms_times,
         )
-
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if dst is None:
-            return
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
-            self._send(
-                Message(
-                    header=Header(
-                        Src=self.name,
-                        Dst=dst.name,
-                        MessageType=payload.TypeName,
-                    ),
-                    Payload=payload,
-                )
-            )
-        else:
-            # Otherwise send via local mqtt
-            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services._links.publish_message(
-                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
-            )
     
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)
-
     @property
     def primary_scada(self) -> ShNode:
         return self.layout.nodes[H0N.primary_scada]

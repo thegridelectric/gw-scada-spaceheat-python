@@ -94,34 +94,26 @@ class Relay(Actor):
         return self.layout.data_channels[relay_config.ChannelName]
 
     def _send_to(self, dst: ShNode, payload) -> None:
+        if dst is None:
+            return
+        message = Message(Src=self.name, Dst=dst.name, Payload=payload)
         if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
-            self._send(
-                Message(
-                    header=Header(
-                        Src=self.name,
-                        Dst=dst.name,
-                        MessageType=payload.TypeName,
-                    ),
-                    Payload=payload,
-                )
-            )
+            self.services.send(message)
+        elif dst.Name == H0N.admin:
+            self.services._links.publish_message(self.services.ADMIN_MQTT, message)
+        elif dst.Name == H0N.atn:
+            self.services._links.publish_upstream(payload)
         else:
-            if dst.name == H0N.admin:
-                link_name = self.services.ADMIN_MQTT
-            else:
-                link_name = self.services.LOCAL_MQTT
-            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services._links.publish_message(
-                link_name, message, qos=QOS.AtMostOnce
-            )
+            self.services._links.publish_message(self.services.LOCAL_MQTT, message)
 
     def _process_event_message(
         self, from_name: str, message: FsmEvent
     ) -> Result[bool, BaseException]:
-        self.message = message
         from_node = self.layout.node(from_name)
+        if from_node is None:
+            return
         if message.FromHandle != from_node.handle:
-            print(
+            self.log(
                 f"from_node {from_node.name} has handle {from_node.handle}, not {message.FromHandle}!"
             )
             return
@@ -459,3 +451,8 @@ class Relay(Actor):
             initial=self.de_energized_state,
             send_event=True,
         )
+
+    def log(self, note: str) -> None:
+        log_str = f"[{self.name}] {note}"
+        self.services.logger.error(log_str)
+

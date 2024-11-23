@@ -14,13 +14,13 @@ from paho.mqtt.client import Client as PahoMQTTClient
 from paho.mqtt.client import MQTTMessage
 
 from admin.base_client import AppState
-from admin.base_client import BaseAdminClient
+from admin.base_client import BaseAdmin
 from admin.messages import AdminCommandReadRelays
 from admin.messages import AdminInfo
 from admin.messages import RelayStates
 from admin.settings import AdminClientSettings
 
-class SetAdminClient(BaseAdminClient):
+class SetAdminClient(BaseAdmin):
     client: PahoMQTTClient
     settings: AdminClientSettings
     open_relay: bool
@@ -45,7 +45,7 @@ class SetAdminClient(BaseAdminClient):
     def on_subscribe(
         self, _: Any, _userdata: Any, _mid: int, _granted_qos: list[int]
     ) -> None:
-        self.state = AppState.awaiting_command_ack
+        self.comm_state = AppState.awaiting_command_ack
         event_name = ChangeRelayState.CloseRelay
         if self.open_relay:
             event_name = ChangeRelayState.OpenRelay
@@ -73,15 +73,15 @@ class SetAdminClient(BaseAdminClient):
 
     def on_message(self, _: Any, _userdata: Any, message: MQTTMessage) -> None:
         if not self.json:
-            rich.print(f"Received <{message.topic}>  in state <{self.state}>")
+            rich.print(f"Received <{message.topic}>  in state <{self.comm_state}>")
         msg_type = message.topic.split("/")[-1].replace("-", ".")
         if (
-            self.state == AppState.awaiting_command_ack
+            self.comm_state == AppState.awaiting_command_ack
             and msg_type == Ack.model_fields["TypeName"].default
         ):
             ack_message = Message[Ack].model_validate_json(message.payload)
             if ack_message.Payload.AckMessageID == self.command_message_id:
-                self.state = AppState.awaiting_report
+                self.comm_state = AppState.awaiting_report
                 message = Message[AdminCommandReadRelays](
                     Src=H0N.admin,
                     Dst=self.settings.target_gnode,
@@ -110,11 +110,11 @@ class SetAdminClient(BaseAdminClient):
                         f"{ack_message.Payload.AckMessageID}. Expected: "
                         f"{self.command_message_id}. Exiting."
                     )
-                self.state = AppState.stopped
+                self.comm_state = AppState.stopped
                 self.client.loop_stop()
                 sys.exit(3)
         elif (
-            self.state == AppState.awaiting_report
+            self.comm_state == AppState.awaiting_report
             and msg_type == RelayStates.model_fields["TypeName"].default
         ):
             report_message = Message[RelayStates].model_validate_json(message.payload)
@@ -122,6 +122,6 @@ class SetAdminClient(BaseAdminClient):
                 print(report_message.Payload.model_dump_json(indent=2))  # noqa
             else:
                 rich.print(report_message.Payload)
-            self.state = AppState.stopped
+            self.comm_state = AppState.stopped
             self.client.loop_stop()
             sys.exit(0)
