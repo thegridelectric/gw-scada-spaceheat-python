@@ -563,8 +563,8 @@ class HomeAlone(Actor):
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
         peak_hours = [7,8,9,10,11] + [16,17,18,19]
-        if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours
-            and time_now.weekday() < 5):
+        if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours):
+            # and time_now.weekday() < 5):
             self.log("On-peak")
             return True
         else:
@@ -697,8 +697,9 @@ class HomeAlone(Actor):
             [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
              if 16<=t.hour<=19]
             )
-        if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
-            or (time_now.weekday()<5 and time_now.hour<=6)):
+        # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
+        #     or (time_now.weekday()<5 and time_now.hour<=6)):
+        if (time_now.hour>=20 or time_now.hour<=6):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
             afternoon_missing_kWh = afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh)
             return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
