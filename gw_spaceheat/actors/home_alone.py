@@ -284,7 +284,8 @@ class HomeAlone(Actor):
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                         elif not self.is_storage_ready():
-                            if self.storage_declared_ready:
+                            usable, required = self.is_storage_ready(return_missing=True)
+                            if usable > 0.9*required and self.storage_declared_ready:
                                 self.log("The storage was already declared ready during this off-peak period")
                             else:
                                 self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
@@ -711,7 +712,7 @@ class HomeAlone(Actor):
             self.log('No onpeak period coming up soon')
             return 0
 
-    def is_storage_ready(self) -> bool:
+    def is_storage_ready(self, return_missing=False) -> bool:
         time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
@@ -730,6 +731,8 @@ class HomeAlone(Actor):
             self.storage_declared_ready = time.time()
             return True
         else:
+            if return_missing:
+                return total_usable_kwh, required_storage
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh)")
             return False
         
