@@ -416,7 +416,10 @@ class HomeAlone(Actor):
             lines = file.readlines()
         with open(self.dotenv_filepath, 'w') as file:
             for line in lines:
-                if line.startswith(f"{variable}="):
+                if (line.startswith(f"{variable}=") 
+                    or line.startswith(f"{variable}= ")
+                    or line.startswith(f"{variable} =")
+                    or line.startswith(f"{variable} = ")):
                     file.write(f"{variable}={new_value}\n")
                 else:
                     file.write(line)
