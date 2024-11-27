@@ -5,7 +5,7 @@ from typing import Dict, List, cast, Sequence, Optional
 
 from gw.enums import GwStrEnum
 from gwproto.data_classes.data_channel import DataChannel
-from gwproactor import QOS, Actor, ServicesInterface, MonitoredName
+from gwproactor import Actor, ServicesInterface, MonitoredName
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
@@ -29,7 +29,7 @@ from gwproto.enums import (
     RelayWiringConfig,
     StoreFlowRelay,
 )
-from gwproto.message import Header
+
 from gwproto.named_types import FsmAtomicReport, FsmEvent, FsmFullReport, MachineStates
 from result import Err, Ok, Result
 from transitions import Machine
@@ -93,35 +93,14 @@ class Relay(Actor):
             raise Exception(f"relay {self.name} does not have a state channel!")
         return self.layout.data_channels[relay_config.ChannelName]
 
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
-            self._send(
-                Message(
-                    header=Header(
-                        Src=self.name,
-                        Dst=dst.name,
-                        MessageType=payload.TypeName,
-                    ),
-                    Payload=payload,
-                )
-            )
-        else:
-            if dst.name == H0N.admin:
-                link_name = self.services.ADMIN_MQTT
-            else:
-                link_name = self.services.LOCAL_MQTT
-            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services._links.publish_message(
-                link_name, message, qos=QOS.AtMostOnce
-            )
-
     def _process_event_message(
         self, from_name: str, message: FsmEvent
     ) -> Result[bool, BaseException]:
-        self.message = message
         from_node = self.layout.node(from_name)
+        if from_node is None:
+            return
         if message.FromHandle != from_node.handle:
-            print(
+            self.log(
                 f"from_node {from_node.name} has handle {from_node.handle}, not {message.FromHandle}!"
             )
             return

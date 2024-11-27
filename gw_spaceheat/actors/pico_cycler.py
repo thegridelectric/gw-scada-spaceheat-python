@@ -448,30 +448,6 @@ class PicoCycler(Actor):
             f"[{self.name}] {event.value}: {orig_state} -> {self.state}"
         )
 
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if (
-                dst.name == self.services.name or
-                self.services.get_communicator(dst.name) is not None
-        ):
-            self._send(
-                Message(
-                    header=Header(
-                        Src=self.name,
-                        Dst=dst.name,
-                        MessageType=payload.TypeName,
-                    ),
-                    Payload=payload,
-                )
-            )
-        else:
-            # Otherwise send via local mqtt
-            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services.publish_message( # noqa
-                self.services.LOCAL_MQTT, # noqa
-                message,
-                qos=QOS.AtMostOnce,
-            )
-
     def start(self) -> None:
         self.services.add_task(
             asyncio.create_task(self.main(), name="picocycler keepalive")
@@ -548,8 +524,3 @@ class PicoCycler(Actor):
                 )
                 self.last_zombie_problem_report_s = time.time()
     
-
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)
-

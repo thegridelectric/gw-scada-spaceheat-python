@@ -363,27 +363,6 @@ class ApiTankModule(Actor):
             raise ValueError("Disconnected thermistor!")
         return r_therm
 
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if dst is None:
-            return
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
-            self._send(
-                Message(
-                    header=Header(
-                        Src=self.name,
-                        Dst=dst.name,
-                        MessageType=payload.TypeName,
-                    ),
-                    Payload=payload,
-                )
-            )
-        else:
-            # Otherwise send via local mqtt
-            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services._links.publish_message(
-                self.services.LOCAL_MQTT, message, qos=QOS.AtMostOnce
-            )
-
     @property
     def pico_cycler(self) -> Optional[ShNode]:
         if H0N.pico_cycler in self.layout.nodes:
@@ -393,7 +372,3 @@ class ApiTankModule(Actor):
     @property
     def primary_scada(self) -> ShNode:
         return self.layout.nodes[H0N.primary_scada]
-    
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)

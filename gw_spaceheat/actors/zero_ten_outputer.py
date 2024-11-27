@@ -2,12 +2,10 @@
 import time
 from typing import cast
 
-from gwproactor import QOS, Actor, ServicesInterface
+from gwproactor import Actor, ServicesInterface
 from gwproactor.message import Message
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.message import Header
 from gwproto.named_types import AnalogDispatch
 from result import Err, Result
 
@@ -20,32 +18,33 @@ class ZeroTenOutputer(Actor):
     ):
         self.layout = cast(House0Layout, services.hardware_layout)
         super().__init__(name, services)
+        self.node
         self.dfr_multiplexer = self.layout.node(H0N.zero_ten_out_multiplexer)
 
     def _process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
-        # TODO: add atomic t node to layout as ShNode
-        if dispatch.FromName not in list(self.layout.nodes.keys()) + ['a']:
-            self.log(f"Ignoring dispatch from {dispatch.FromName} - not in layout!!")
+        from_node = self.layout.node_by_handle(dispatch.FromHandle)
+        if not from_node:
+            self.log(f"Ignoring dispatch from  handle {dispatch.FromHandle} - not in layout!!")
             return
-        if dispatch.ToName != self.name:
+        if dispatch.ToHandle != self.node.handle:
             self.log(f"Ignoring dispatch {dispatch} - ToName is not {self.name}!")
             return
-        if dispatch.ToName != dispatch.AboutName:
-            self.log(f"Ignoring dispatch {dispatch} -- ToName should equal AboutName")
+        if dispatch.AboutName != self.node.name:
+            self.log(f"Ignoring dispatch {dispatch} -- expect AboutName to be about me")
         if dispatch.Value not in range(101):
             self.log(
                 f"Igonring dispatch {dispatch} - range out of value. Should be 0-100"
             )
-        self.log(f"Got AnalogDispatch from {dispatch.FromName}")
+        self.log(f"Got AnalogDispatch from {from_node.name}")
         # self.log(f"Sending {dispatch.Value} to dfr multiplexer")
         self._send_to(
             self.dfr_multiplexer,
             AnalogDispatch(
-                FromName=self.name,
-                ToName=self.dfr_multiplexer.name,
+                FromHandle=self.node.handle,
+                ToHandle=self.dfr_multiplexer.handle,
                 AboutName=self.name,
                 Value=dispatch.Value,
-                MessageId=dispatch.MessageId,
+                TriggerId=dispatch.TriggerId,
                 UnixTimeMs=int(time.time() * 1000),
             ),
         )
@@ -72,31 +71,3 @@ class ZeroTenOutputer(Actor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
         ...
-
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if (
-            dst.name == self.services.name
-            or self.services.get_communicator(dst.name) is not None
-        ):
-            self._send(
-                Message(
-                    header=Header(
-                        Src=self.name,
-                        Dst=dst.name,
-                        MessageType=payload.TypeName,
-                    ),
-                    Payload=payload,
-                )
-            )
-        else:
-            # Otherwise send via local mqtt
-            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services.publish_message(  # noqa
-                self.services.LOCAL_MQTT,  # noqa
-                message,
-                qos=QOS.AtMostOnce,
-            )
-
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)

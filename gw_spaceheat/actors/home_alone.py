@@ -860,40 +860,12 @@ class HomeAlone(Actor):
         else:
             delta_t = self.delta_T(swt)
         return round(swt - delta_t,2)
-    
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if (
-                dst.name == self.services.name or
-                self.services.get_communicator(dst.name) is not None
-        ):
-            self._send(
-                Message(
-                    header=Header(
-                        Src=self.name,
-                        Dst=dst.name,
-                        MessageType=payload.TypeName,
-                    ),
-                    Payload=payload,
-                )
-            )
-        else:
-            # Otherwise send via local mqtt
-            message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-            return self.services.publish_message( # noqa
-                self.services.LOCAL_MQTT, # noqa
-                message,
-                qos=QOS.AtMostOnce,
-            )
-
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)
-        # print(log_str)
 
     def alert(self, msg) -> None:
         alert_str = f"[ALERT] {msg}"
         self.log(alert_str)
-        # TODO: send Opsgenie alert
+        # TODO: send Opsgenie alert by creating new named type
+        # that goes up to S3
 
     def send_to_atn(self, payload: Any) -> None:
         self._services._links.publish_upstream(payload)
