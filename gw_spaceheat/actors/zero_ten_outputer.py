@@ -28,11 +28,11 @@ class ZeroTenOutputer(Actor):
         if dispatch.FromName not in list(self.layout.nodes.keys()) + ['a']:
             self.log(f"Ignoring dispatch from {dispatch.FromName} - not in layout!!")
             return
-        if dispatch.ToName != self.name:
+        if dispatch.ToHandle != self.node.handle:
             self.log(f"Ignoring dispatch {dispatch} - ToName is not {self.name}!")
             return
-        if dispatch.ToName != dispatch.AboutName:
-            self.log(f"Ignoring dispatch {dispatch} -- ToName should equal AboutName")
+        if dispatch.AboutName != self.node.name:
+            self.log(f"Ignoring dispatch {dispatch} -- expect AboutName to be about me")
         if dispatch.Value not in range(101):
             self.log(
                 f"Igonring dispatch {dispatch} - range out of value. Should be 0-100"
@@ -42,11 +42,11 @@ class ZeroTenOutputer(Actor):
         self._send_to(
             self.dfr_multiplexer,
             AnalogDispatch(
-                FromName=self.name,
-                ToName=self.dfr_multiplexer.name,
+                FromHandle=self.node.handle,
+                ToHandle=self.dfr_multiplexer.handle,
                 AboutName=self.name,
                 Value=dispatch.Value,
-                MessageId=dispatch.MessageId,
+                TriggerId=dispatch.TriggerId,
                 UnixTimeMs=int(time.time() * 1000),
             ),
         )
@@ -73,20 +73,3 @@ class ZeroTenOutputer(Actor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
         ...
-
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if dst is None:
-            return
-        message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
-            self.services.send(message)
-        elif dst.Name == H0N.admin:
-            self.services._links.publish_message(self.services.ADMIN_MQTT, message)
-        elif dst.Name == H0N.atn:
-            self.services._links.publish_upstream(payload)
-        else:
-            self.services._links.publish_message(self.services.LOCAL_MQTT, message)
-
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)

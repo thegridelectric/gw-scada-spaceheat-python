@@ -185,22 +185,22 @@ class I2cDfrMultiplexer(Actor):
         )
 
     def _process_analog_dispatch(self, dispatch: AnalogDispatch) -> Result[bool, BaseException]:
-        if dispatch.FromName not in self.layout.nodes:
-            self.log(f"Ignoring dispatch from {dispatch.FromName} - not in layout!!")
+        if not self.layout.node_by_handle(dispatch.FromHandle):
+            self.log(f"Ignoring dispatch from  handle {dispatch.FromHandle} - not in layout!!")
             return
             #raise Exception(f"{dispatch.FromName} not in layout!!")
-        if dispatch.ToName != self.name:
-            self.log(f"Ignoring dispatch {dispatch} - ToName is not {self.name}!")
+        if dispatch.ToHandle != self.node.handle:
+            self.log(f"Ignoring dispatch {dispatch} - ToHandle is not {self.node.handle}!")
             return
-        dfr = self.layout.nodes[dispatch.FromName]
+        dfr = self.layout.node_by_handle(dispatch.FromHandle)
         if dfr not in self.my_dfrs:
             self.log(f"Ignoring dispatch {dispatch} - not from one of my dfrs! {self.my_dfrs}")
             return
         if dispatch.Value not in range(101):
             self.log(f"Igonring dispatch {dispatch} - range out of value. Should be 0-100")
             return
-        if dispatch.AboutName != dispatch.FromName:
-            raise Exception("dispatch from dfr node: AboutNode = FromNode")
+        if dispatch.AboutName != dfr.name:
+            raise Exception("dispatch from dfr node: AboutHandle should match FromNode")
         
         self.set_level(dfr, dispatch.Value)
         return Ok()
@@ -251,20 +251,3 @@ class I2cDfrMultiplexer(Actor):
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
-
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if dst is None:
-            return
-        message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
-            self.services.send(message)
-        elif dst.Name == H0N.admin:
-            self.services._links.publish_message(self.services.ADMIN_MQTT, message)
-        elif dst.Name == H0N.atn:
-            self.services._links.publish_upstream(payload)
-        else:
-            self.services._links.publish_message(self.services.LOCAL_MQTT, message)
-
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)

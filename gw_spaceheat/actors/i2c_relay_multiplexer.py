@@ -143,19 +143,6 @@ class I2cRelayMultiplexer(Actor):
                         self.get_idx(relay)
                     ] = RelayEnergizationState.DeEnergized
 
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if dst is None:
-            return
-        message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
-            self.services.send(message)
-        elif dst.Name == H0N.admin:
-            self.services._links.publish_message(self.services.ADMIN_MQTT, message)
-        elif dst.Name == H0N.atn:
-            self.services._links.publish_upstream(payload)
-        else:
-            self.services._links.publish_message(self.services.LOCAL_MQTT, message)
-
     def get_idx(self, relay: ShNode) -> Optional[int]:
         if not relay.actor_class == ActorClass.Relay:
             return None
@@ -307,11 +294,6 @@ class I2cRelayMultiplexer(Actor):
 
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
-
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)
-
 
 def krida_to_gw(krida_board: int, krida_idx: int) -> int:
     if krida_idx < 9:

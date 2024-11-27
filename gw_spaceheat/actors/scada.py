@@ -31,6 +31,8 @@ from gwproto.named_types import (AdminWakesUp, AnalogDispatch, ChannelReadings, 
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
                                 TicklistReedReport, TicklistHallReport)
 
+from gwproto.named_types import GoDormant, DormantAck
+
 from gwproto.messages import ReportEvent
 
 
@@ -178,7 +180,7 @@ class Scada(ScadaInterface, Proactor):
     _data: ScadaData
     _last_report_second: int
     _last_sync_snap_s: int
-    _scada_atn_fast_dispatch_contract_is_alive_stub: bool
+    _dispatch_live_hack: bool
     _channels_reported: bool
 
     top_states = ["Auto", "Admin", "ChangingToAdmin", "ChangingToAuto"]
@@ -192,6 +194,7 @@ class Scada(ScadaInterface, Proactor):
     main_auto_states = ["Atn", "HomeAlone", "Dormant"]
     main_auto_transitions = [
         {"trigger": "AtnLinkDead", "source": "Atn", "dest": "HomeAlone"},
+        {"trigger": "AtnLinkAlive", "source": "HomeAlone", "dest": "Atn"},
         {"trigger": "GoDormant", "source": "Atn", "dest": "Dormant"},
         {"trigger": "GoDormant", "source": "HomeAlone", "dest": "Dormant"},
         {"trigger": "WakeUp", "source": "Dormant", "dest": "HomeAlone"}
@@ -265,7 +268,7 @@ class Scada(ScadaInterface, Proactor):
         self._channels_reported = False
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_sync_snap_s = int(now)
-        self._scada_atn_fast_dispatch_contract_is_alive_stub = False
+        self._dispatch_live_hack = False
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -332,6 +335,16 @@ class Scada(ScadaInterface, Proactor):
     @property
     def hardware_layout(self) -> House0Layout:
         return self._layout
+    
+    @property
+    def layout(self) -> House0Layout:
+        return self._layout
+    
+    @property
+    def auto_node(self) -> ShNode:
+        if H0N.auto not in self._layout.nodes:
+            raise Exception(f"Missing {H0N.auto} Node")
+        return self._layout.node(H0N.auto)
 
     @property
     def data(self) -> ScadaData:
@@ -451,11 +464,11 @@ class Scada(ScadaInterface, Proactor):
         #TODO: add sending on change.
 
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
-        self._scada_atn_fast_dispatch_contract_is_alive_stub = False
+        self._dispatch_live_hack = False
         return Ok()
 
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
-        self._scada_atn_fast_dispatch_contract_is_alive_stub = True
+        self._dispatch_live_hack = True
         return Ok()
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
@@ -664,7 +677,9 @@ class Scada(ScadaInterface, Proactor):
             self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
             return
         self.logger.warning("HACK: passing this on. Will replace w remote admin")
-        self.get_communicator(dispatch.ToName).process_message(dispatch)
+        to_node = self.layout.node_by_handle(dispatch.ToHandle)
+        if to_node:
+            self.get_communicator(to_node.name).process_message(dispatch)
         #TODO: if MainAutoState is not atn, ignore
         
     def _scada_params_received(self, message: ScadaParams) -> None:
@@ -681,35 +696,6 @@ class Scada(ScadaInterface, Proactor):
         if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
             return
         self._links.publish_upstream(self._data.make_snapshot())
-
-    @property
-    def scada_atn_fast_dispatch_contract_is_alive(self):
-        """
-        TO IMPLEMENT:
-
-         False if:
-           - no contract exists
-           - interactive polling between atn and scada is down
-           - scada sent dispatch command with more than 6 seconds before response
-             as measured by power meter (requires a lot of clarification)
-           - average time for response to dispatch commands in last 50 dispatches
-             exceeds 3 seconds
-           - Scada has not sent in daily attestion that power metering is
-             working and accurate
-           - Scada requests local control and Atn has agreed
-           - Atn requests that Scada take local control and Scada has agreed
-           - Scada has not sent in an attestion that metering is good in the
-             previous 24 hours
-
-           Otherwise true
-
-           Note that typically, the contract will not be alive because of house to
-           cloud comms failure. But not always. There will be significant and important
-           times (like when testing home alone perforamance) where we will want to send
-           status messages etc up to the cloud even when the dispatch contract is not
-           alive.
-        """
-        return self._scada_atn_fast_dispatch_contract_is_alive_stub
 
     def power_watts_received(self, payload: PowerWatts):
         """The highest priority of the SCADA, from the perspective of the electric grid,
@@ -833,12 +819,11 @@ class Scada(ScadaInterface, Proactor):
     # State Machine related
     #####################################################################
     
-    @property
-    def auto_node(self) -> ShNode:
-        if H0N.auto not in self._layout.nodes:
-            raise Exception(f"Missing {H0N.auto} Node")
-        return self._layout.node(H0N.auto)
-    
+    def dormant_received(self, ack: DormantAck) -> None:
+        if ack.ToName == H0N.auto:
+            direct_report = self.layout.node(ack.FromName)
+            
+
     def admin_wakes_up_received(self, wakeup: AdminWakesUp) -> None:
         if wakeup.FromName != H0N.admin:
             raise Exception(f"Expect admin wakes up from {H0N.admin}, got {wakeup.FromName}")
@@ -848,6 +833,9 @@ class Scada(ScadaInterface, Proactor):
 
         # AdminWakesUp: Auto -> ChangingToAdmin
         self.AdminWakesUp()
+
+        for node in self.layout.direct_reports(self.auto_node):
+            self._send_to(node, GoDormant(FromName=H0N.auto, ToName=node.name))
 
         #TODO: turn this into a recursion where reports hand over THEIR reports to their boss
         # and then as a final step go dormant.
@@ -881,9 +869,9 @@ class Scada(ScadaInterface, Proactor):
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
         while True:
-            hiccup = 1.2
+            hiccup = 1.5
             sleep_s = max(
-                hiccup, loop_s - (time.time() % loop_s) - 1.5
+                hiccup, loop_s - (time.time() % loop_s) - 1.2
             )
             await asyncio.sleep(sleep_s)
             # report the state
@@ -908,4 +896,43 @@ class Scada(ScadaInterface, Proactor):
                 self.logger.warning(f"Top state: {self.top_state}")
                 self.logger.warning(f"Auto state: {self.auto_state}")
 
+    @property
+    def slow_dispatch_live(self):
+        """
+        ORIGINAL VISION (aka WHAT I WOULD HAVE GIVEN MY EYE TEETH
+        FOR BACK AT VCHARGE)
+
+         False if:
+           - interactive polling between atn and scada is down [TESTING]
+           - Scada sends notification that it is switching to home alone, and
+           received an application-level (as opposed to say broker-level) ack
+           - Atn requests that Scada take local control and Scada has agreed
+           - scada sends "turn on" and power is not at 80% of max within 5 minutes
+             and/or total charge for the market slot is not within 10% of projected
+           - Fast more like:
+                - scada sent dispatch command with more than 6 seconds; and
+             before response as measured by power meter (requires a lot of clarification)
+                -average time for response to dispatch commands in last 50 dispatches
+             exceeds 3 seconds
+           - Scada has not sent in daily attestion that power metering is
+             working and accurate
+           - no contract exists [i.e. ]
+
+
+           Otherwise True
+
+           Note that typically, the contract will not be alive because of house to
+           cloud comms failure. But not always. There will be significant and important
+           times (like when testing home alone perforamance) where we will want to send
+           status messages etc up to the cloud even when the dispatch contract is not
+           alive.
+        """
+        if self.auto_state == "Atn":
+            if not self._dispatch_live_hack:
+                raise Exception("WTF. _dispatch_live_hack False but auto_state is Atn ")
+            return True
+        else:
+            if self._dispatch_live_hack:
+                raise Exception(f"WTF. _dispatch_live_hack True but auto_state is {self._auto_state}")
+            return False
             

@@ -5,7 +5,7 @@ from typing import Dict, List, cast, Sequence, Optional
 
 from gw.enums import GwStrEnum
 from gwproto.data_classes.data_channel import DataChannel
-from gwproactor import QOS, Actor, ServicesInterface, MonitoredName
+from gwproactor import Actor, ServicesInterface, MonitoredName
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
@@ -29,7 +29,7 @@ from gwproto.enums import (
     RelayWiringConfig,
     StoreFlowRelay,
 )
-from gwproto.message import Header
+
 from gwproto.named_types import FsmAtomicReport, FsmEvent, FsmFullReport, MachineStates
 from result import Err, Ok, Result
 from transitions import Machine
@@ -92,19 +92,6 @@ class Relay(Actor):
         if relay_config is None:
             raise Exception(f"relay {self.name} does not have a state channel!")
         return self.layout.data_channels[relay_config.ChannelName]
-
-    def _send_to(self, dst: ShNode, payload) -> None:
-        if dst is None:
-            return
-        message = Message(Src=self.name, Dst=dst.name, Payload=payload)
-        if dst.name in set(self.services._communicators.keys()) | {self.services.name}:
-            self.services.send(message)
-        elif dst.Name == H0N.admin:
-            self.services._links.publish_message(self.services.ADMIN_MQTT, message)
-        elif dst.Name == H0N.atn:
-            self.services._links.publish_upstream(payload)
-        else:
-            self.services._links.publish_message(self.services.LOCAL_MQTT, message)
 
     def _process_event_message(
         self, from_name: str, message: FsmEvent
@@ -451,8 +438,3 @@ class Relay(Actor):
             initial=self.de_energized_state,
             send_event=True,
         )
-
-    def log(self, note: str) -> None:
-        log_str = f"[{self.name}] {note}"
-        self.services.logger.error(log_str)
-
