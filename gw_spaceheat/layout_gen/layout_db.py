@@ -582,6 +582,12 @@ class LayoutDb:
                     ActorClass=ActorClass.NoActor,
                     DisplayName="Auto - FSM for dispatch contract",
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.atn),
+                    Name=H0N.atn,
+                    ActorClass=ActorClass.NoActor,
+                    DisplayName="Atn",
+                ),
             ]
         )
     
