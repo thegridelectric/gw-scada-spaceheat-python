@@ -284,7 +284,8 @@ class HomeAlone(Actor):
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                         elif not self.is_storage_ready():
-                            if self.storage_declared_ready:
+                            usable, required = self.is_storage_ready(return_missing=True)
+                            if usable > 0.9*required and self.storage_declared_ready:
                                 self.log("The storage was already declared ready during this off-peak period")
                             else:
                                 self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
@@ -415,7 +416,10 @@ class HomeAlone(Actor):
             lines = file.readlines()
         with open(self.dotenv_filepath, 'w') as file:
             for line in lines:
-                if line.startswith(f"{variable}="):
+                if (line.startswith(f"{variable}=") 
+                    or line.startswith(f"{variable}= ")
+                    or line.startswith(f"{variable} =")
+                    or line.startswith(f"{variable} = ")):
                     file.write(f"{variable}={new_value}\n")
                 else:
                     file.write(line)
@@ -423,66 +427,126 @@ class HomeAlone(Actor):
     def _process_scada_params(self, message: ScadaParams) -> None:
         self.log("Got ScadaParams - check h.latest")
         self.latest = message
-        # if hasattr(message, "SwtColdestHr"):
-        #     old = self.swt_coldest_hour
-        #     self.swt_coldest_hour = message.SwtColdestHr
-        #     self.update_env_variable('SCADA_SWT_COLDEST_HOUR', self.swt_coldest_hour)
-        #     response = ScadaParams(
-        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-        #         FromName=self.name,
-        #         ToName=message.FromName,
-        #         UnixTimeMs=int(time.time() * 1000),
-        #         MessageId=message.MessageId,
-        #         OldSwtColdestHr=old,
-        #         NewSwtColdestHr=self.swt_coldest_hour
-        #     )
-        #     self.log(f"Sending back {response}")
-        #     self.send_to_atn(response)
-        # if hasattr(message, "AveragePowerColdestHourKw"):
-        #     old = self.average_power_coldest_hour_kw
-        #     self.average_power_coldest_hour_kw = message.AveragePowerColdestHourKw
-        #     self.update_env_variable('SCADA_AVERAGE_POWER_COLDEST_HOUR_KW', self.average_power_coldest_hour_kw)
-        #     response = ScadaParams(
-        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-        #         FromName=self.name,
-        #         ToName=message.FromName,
-        #         UnixTimeMs=int(time.time() * 1000),
-        #         MessageId=message.MessageId,
-        #         OldAveragePowerColdestHourKw=old,
-        #         NewAveragePowerColdestHourKw=self.average_power_coldest_hour_kw
-        #     )
-        #     self.log(f"Sending back {response}")
-        #     self.send_to_atn(response)
-        # if hasattr(message, "BufferEmpty"):
-        #     old = self.buffer_empty
-        #     self.buffer_empty = message.BufferEmpty
-        #     self.update_env_variable('SCADA_BUFFER_EMPTY', self.buffer_empty)
-        #     response = ScadaParams(
-        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-        #         FromName=self.name,
-        #         ToName=message.FromName,
-        #         UnixTimeMs=int(time.time() * 1000),
-        #         MessageId=message.MessageId,
-        #         OldBufferEmpty=old,
-        #         NewBufferEmpty=self.buffer_empty
-        #     )
-        #     self.log(f"Sending back {response}")
-        #     self.send_to_atn(response)
-        # if hasattr(message, "BufferFull"):
-        #     old = self.buffer_full
-        #     self.buffer_full = message.BufferFull
-        #     self.update_env_variable('SCADA_BUFFER_FULL', self.buffer_full)
-        #     response = ScadaParams(
-        #         FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-        #         FromName=self.name,
-        #         ToName=message.FromName,
-        #         UnixTimeMs=int(time.time() * 1000),
-        #         MessageId=message.MessageId,
-        #         OldBufferFull=old,
-        #         NewBufferFull=self.buffer_full
-        #     )
-        #     self.log(f"Sending back {response}")
-        #     self.send_to_atn(response)
+        if hasattr(message, "Alpha"):
+            old = self.alpha
+            self.alpha = message.Alpha
+            self.update_env_variable('SCADA_ALPHA', self.alpha)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldSwtColdestHr=old,
+                NewSwtColdestHr=self.alpha
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "Beta"):
+            old = self.beta
+            self.beta = message.Beta
+            self.update_env_variable('SCADA_BETA', self.beta)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.beta
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "Gamma"):
+            old = self.gamma
+            self.gamma = message.Gamma
+            self.update_env_variable('SCADA_GAMMA', self.gamma)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.gamma
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "IntermediatePowerKw"):
+            old = self.intermediate_power
+            self.intermediate_power = message.IntermediatePowerKw
+            self.update_env_variable('SCADA_INTERMEDIATE_POWER', self.intermediate_power)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.intermediate_power
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "IntermediateRswt"):
+            old = self.intermediate_rswt
+            self.intermediate_rswt = message.IntermediateRswt
+            self.update_env_variable('SCADA_INTERMEDIATE_RSWT', self.intermediate_rswt)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.intermediate_rswt
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "DdPowerKw"):
+            old = self.dd_power
+            self.dd_power = message.DdPowerKw
+            self.update_env_variable('SCADA_DD_POWER', self.dd_power)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.dd_power
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "DdRswt"):
+            old = self.dd_rswt
+            self.dd_rswt = message.DdRswt
+            self.update_env_variable('SCADA_DD_RSWT', self.dd_rswt)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.dd_rswt
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
+        if hasattr(message, "DdDeltaT"):
+            old = self.dd_delta_t
+            self.dd_delta_t = message.DdDeltaT
+            self.update_env_variable('SCADA_DD_DELTA_T', self.dd_delta_t)
+            response = ScadaParams(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromName=self.name,
+                ToName=message.FromName,
+                UnixTimeMs=int(time.time() * 1000),
+                MessageId=message.MessageId,
+                OldAveragePowerColdestHourKw=old,
+                NewAveragePowerColdestHourKw=self.dd_delta_t
+            )
+            self.log(f"Sending back {response}")
+            self.send_to_atn(response)
 
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
@@ -563,8 +627,8 @@ class HomeAlone(Actor):
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
         peak_hours = [7,8,9,10,11] + [16,17,18,19]
-        if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours
-            and time_now.weekday() < 5):
+        if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours):
+            # and time_now.weekday() < 5):
             self.log("On-peak")
             return True
         else:
@@ -697,40 +761,41 @@ class HomeAlone(Actor):
             [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
              if 16<=t.hour<=19]
             )
-        if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
-            or (time_now.weekday()<5 and time_now.hour<=6)):
+        # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
+        #     or (time_now.weekday()<5 and time_now.hour<=6)):
+        if (time_now.hour>=20 or time_now.hour<=6):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
-            afternoon_missing_kWh = afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh)
+            afternoon_missing_kWh = afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh) # TODO make the kW_th a function of COP and kW_el
             return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
-        elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
+        # elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
+        elif (time_now.hour>=12 and time_now.hour<16):
             self.log('Preparing for an afternoon onpeak')
             return afternoon_kWh
         else:
             self.log('No onpeak period coming up soon')
             return 0
 
-    def is_storage_ready(self) -> bool:
+    def is_storage_ready(self, return_missing=False) -> bool:
+        time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
         simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
         total_usable_kwh = 0
         while True:
-            if self.rwt(simulated_layers[0]) == simulated_layers[0]:
+            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                 simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if self.rwt(simulated_layers[0]) == simulated_layers[0]:
+                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
                     break
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]        
-        time_now = datetime.now(self.timezone)
-        if time_now.hour in [20,21,22,23,0,1,2,3,4,5,6]:
-            required_storage = 7.5*self.average_power_coldest_hour_kw
-        else:
-            required_storage = 4*self.average_power_coldest_hour_kw
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
+        required_storage = self.get_required_storage(time_now)
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
             self.storage_declared_ready = time.time()
             return True
         else:
+            if return_missing:
+                return total_usable_kwh, required_storage
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh)")
             return False
         
@@ -776,7 +841,8 @@ class HomeAlone(Actor):
         d = self.dd_delta_t/self.dd_power * delivered_heat_power
         return d if d>0 else 0
     
-    def rwt(self, swt, timenow):
+    def rwt(self, swt):
+        timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 7:
             required_swt = max(
                 [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])

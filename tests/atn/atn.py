@@ -293,8 +293,8 @@ class Atn(ActorInterface, Proactor):
                 ),
             )
         )
-    
-    def set_swt_coldest(self, swt_coldest_hour: int = 120) -> None:
+
+    def set_alpha(self, alpha: float) -> None:
         self.send_threadsafe(
             Message(
                 Src=self.name,
@@ -305,12 +305,28 @@ class Atn(ActorInterface, Proactor):
                     ToName=H0N.home_alone,
                     UnixTimeMs=int(time.time() * 1000),
                     MessageId=str(uuid.uuid4()),
-                    SwtColdestHr=swt_coldest_hour,
+                    Alpha=alpha,
+                ),
+            )
+        )
+
+    def set_beta(self, beta: float) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaParams(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.home_alone,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=str(uuid.uuid4()),
+                    Beta=beta,
                 ),
             )
         )
     
-    def set_avg_coldest(self, average_power_coldest_hour_kw: float = 4) -> None:
+    def set_gamma(self, gamma: float) -> None:
         self.send_threadsafe(
             Message(
                 Src=self.name,
@@ -321,12 +337,12 @@ class Atn(ActorInterface, Proactor):
                     ToName=H0N.home_alone,
                     UnixTimeMs=int(time.time() * 1000),
                     MessageId=str(uuid.uuid4()),
-                    AveragePowerColdestHourKw=average_power_coldest_hour_kw,
+                    Gamma=gamma,
                 ),
             )
         )
-    
-    def set_buffer_empty(self, buffer_empty: int = 110) -> None:
+
+    def set_intermediate_power(self, intermediate_power: float) -> None:
         self.send_threadsafe(
             Message(
                 Src=self.name,
@@ -337,12 +353,12 @@ class Atn(ActorInterface, Proactor):
                     ToName=H0N.home_alone,
                     UnixTimeMs=int(time.time() * 1000),
                     MessageId=str(uuid.uuid4()),
-                    BufferEmpty=buffer_empty,
+                    IntermediatePowerKw=intermediate_power,
                 ),
             )
         )
-    
-    def set_buffer_full(self, buffer_full: int = 125) -> None:
+
+    def set_intermediate_rswt(self, intermediate_rswt: float) -> None:
         self.send_threadsafe(
             Message(
                 Src=self.name,
@@ -353,7 +369,55 @@ class Atn(ActorInterface, Proactor):
                     ToName=H0N.home_alone,
                     UnixTimeMs=int(time.time() * 1000),
                     MessageId=str(uuid.uuid4()),
-                    BufferFull=buffer_full,
+                    IntermediateRswt=intermediate_rswt,
+                ),
+            )
+        )
+
+    def set_dd_power(self, dd_power: float) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaParams(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.home_alone,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=str(uuid.uuid4()),
+                    DdPowerKw=dd_power,
+                ),
+            )
+        )
+
+    def set_dd_rswt(self, dd_rswt: float) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaParams(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.home_alone,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=str(uuid.uuid4()),
+                    DdRswt=dd_rswt,
+                ),
+            )
+        )
+
+    def set_dd_delta_t(self, dd_delta_t: float) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=ScadaParams(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromName=H0N.atn,
+                    ToName=H0N.home_alone,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=str(uuid.uuid4()),
+                    DdDeltaT=dd_delta_t,
                 ),
             )
         )

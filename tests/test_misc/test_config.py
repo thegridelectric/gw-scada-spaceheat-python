@@ -31,6 +31,18 @@ def test_scada_settings_defaults(clean_scada_env):
         )
     )
     exp = dict(
+        alpha= 5.5,
+        beta=-0.1,
+        gamma=0.0,
+        hp_max_kw_th=14,
+        latitude=45.6573,
+        longitude=-68.7098,
+        intermediate_power=1.5,
+        intermediate_rswt=100,
+        dd_power=5.5,
+        dd_rswt=150,
+        dd_delta_t=20,
+
         local_mqtt=exp_local_mqtt.model_dump(),
         gridworks_mqtt=MQTTClient(
             tls=TLSInfo().update_tls_paths(
@@ -52,10 +64,6 @@ def test_scada_settings_defaults(clean_scada_env):
                 "admin"
             )
         ).model_dump(),
-        swt_coldest_hour=120,
-        average_power_coldest_hour_kw=4,
-        buffer_empty=110,
-        buffer_full=125,
         timezone_str="America/New_York",
         is_simulated=False
     )
