@@ -2,12 +2,10 @@
 import time
 from typing import cast
 
-from gwproactor import QOS, Actor, ServicesInterface
+from gwproactor import Actor, ServicesInterface
 from gwproactor.message import Message
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.message import Header
 from gwproto.named_types import AnalogDispatch
 from result import Err, Result
 
@@ -24,9 +22,9 @@ class ZeroTenOutputer(Actor):
         self.dfr_multiplexer = self.layout.node(H0N.zero_ten_out_multiplexer)
 
     def _process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
-        # TODO: add atomic t node to layout as ShNode
-        if dispatch.FromName not in list(self.layout.nodes.keys()) + ['a']:
-            self.log(f"Ignoring dispatch from {dispatch.FromName} - not in layout!!")
+        from_node = self.layout.node_by_handle(dispatch.FromHandle)
+        if not from_node:
+            self.log(f"Ignoring dispatch from  handle {dispatch.FromHandle} - not in layout!!")
             return
         if dispatch.ToHandle != self.node.handle:
             self.log(f"Ignoring dispatch {dispatch} - ToName is not {self.name}!")
@@ -37,7 +35,7 @@ class ZeroTenOutputer(Actor):
             self.log(
                 f"Igonring dispatch {dispatch} - range out of value. Should be 0-100"
             )
-        self.log(f"Got AnalogDispatch from {dispatch.FromName}")
+        self.log(f"Got AnalogDispatch from {from_node.name}")
         # self.log(f"Sending {dispatch.Value} to dfr multiplexer")
         self._send_to(
             self.dfr_multiplexer,

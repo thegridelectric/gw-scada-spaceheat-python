@@ -359,17 +359,18 @@ class Atn(ActorInterface, Proactor):
         )
 
     def set_dist_010(self, val: int = 30) -> None:
+        # TODO: remove lie about this being from auto
         self.send_threadsafe(
              Message(
                 Src=self.name,
                 Dst=self.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.dist_010v,
-                    AboutName=H0N.dist_010v,
+                    FromHandle="auto",
+                    ToHandle="auto.dist-010v",
+                    AboutName="dist-010v",
                     Value=val,
-                    MessageId=str(uuid.uuid4()),
+                    TriggerId=str(uuid.uuid4()),
                     UnixTimeMs=int(time.time() * 1000),
                 ) 
             )
@@ -382,11 +383,11 @@ class Atn(ActorInterface, Proactor):
                 Dst=self.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.primary_010v,
-                    AboutName=H0N.primary_010v,
+                    FromHandle="auto",
+                    ToHandle="auto.primary-010v",
+                    AboutName="primary-010v",
                     Value=val,
-                    MessageId=str(uuid.uuid4()),
+                    TriggerId=str(uuid.uuid4()),
                     UnixTimeMs=int(time.time() * 1000),
                 ) 
             )
@@ -399,13 +400,13 @@ class Atn(ActorInterface, Proactor):
                 Dst=self.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.store_010v,
-                    AboutName=H0N.store_010v,
+                    FromHandle="auto",
+                    ToHandle="auto.store-010v",
+                    AboutName="store-010v",
                     Value=val,
-                    MessageId=str(uuid.uuid4()),
+                    TriggerId=str(uuid.uuid4()),
                     UnixTimeMs=int(time.time() * 1000),
-                ) 
+                )
             )
         )
 
