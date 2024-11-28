@@ -578,6 +578,23 @@ class HomeAlone(Actor):
             value_below = self.latest_temperatures[layer]  
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
+    def fill_missing_buffer_temps(self):
+        all_buffer_layers = sorted([x for x in self.temperature_channel_names if 'buffer' in x])
+        for layer in all_buffer_layers:
+            if (layer not in self.latest_temperatures 
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
+                self.latest_temperatures[layer] = None
+        if 'buffer-cold-pipe' in self.latest_temperatures:
+            value_below = self.latest_temperatures['buffer-cold-pipe']
+        else:
+            value_below = 0
+        for layer in sorted(all_buffer_layers, reverse=True):
+            if self.latest_temperatures[layer] is None:
+                self.latest_temperatures[layer] = value_below
+            value_below = self.latest_temperatures[layer]  
+        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
+
     def get_latest_temperatures(self):
         temp = {
             x: self.services._data.latest_channel_values[x] 
@@ -595,10 +612,13 @@ class HomeAlone(Actor):
             all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
             available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
-                print("But all the buffer temperatures are available")
-                self.fill_missing_store_temps()
-                print("Successfully filled in the missing storage temperatures.")
-                self.temperatures_available = True
+                print("All the buffer temperatures are available")
+            else:
+                self.fill_missing_buffer_temps()
+                print("Successfully filled in the missing buffer temperatures.")
+            self.fill_missing_store_temps()
+            print("Successfully filled in the missing storage temperatures.")
+            self.temperatures_available = True
     
     def initialize_relays(self):
         if self.is_onpeak:
