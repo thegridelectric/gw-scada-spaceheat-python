@@ -585,9 +585,11 @@ class HomeAlone(Actor):
             or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
             or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
                 self.latest_temperatures[layer] = None
+        value_below = None
         if 'buffer-cold-pipe' in self.latest_temperatures:
-            value_below = self.latest_temperatures['buffer-cold-pipe']
-        else:
+            if self.latest_temperatures['buffer-cold-pipe'] is not None:
+                value_below = self.latest_temperatures['buffer-cold-pipe']
+        if value_below is None:
             value_below = 0
         for layer in sorted(all_buffer_layers, reverse=True):
             if self.latest_temperatures[layer] is None:
