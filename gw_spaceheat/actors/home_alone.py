@@ -103,7 +103,6 @@ class HomeAlone(Actor):
         self.dotenv_filepath = dotenv.find_dotenv()
         self._stop_requested: bool = False
         self.main_loop_sleep_seconds = 60
-        self.time_init = time.time()
         self.hardware_layout = self._services.hardware_layout
         self.temperature_channel_names = [
             'buffer-depth1', 'buffer-depth2', 'buffer-depth3', 'buffer-depth4', 
