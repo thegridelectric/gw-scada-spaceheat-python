@@ -9,17 +9,16 @@ from datetime import datetime, timedelta
 import pytz
 import requests
 from gw.enums import GwStrEnum
-from gwproactor import QOS, Actor, ServicesInterface,  MonitoredName
+from gwproactor import Actor, ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from result import Ok, Result
-from gwproto.message import Header
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
                            ChangeStoreFlowRelay, FsmReportType, MainAutoState)
-from gwproto.named_types import (FsmEvent, MachineStates, FsmAtomicReport,
+from gwproto.named_types import (FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
                                  FsmFullReport, ScadaParams)
 from actors.config import ScadaSettings
 
@@ -132,16 +131,27 @@ class HomeAlone(Actor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
-        self.alpha = self.settings.alpha
-        self.beta = self.settings.beta
-        self.gamma = self.settings.gamma
-        self.hp_max_kw_th = self.settings.hp_max_kw_th
+        self.params = Ha1Params(
+            AlphaTimes10=int(self.settings.alpha * 10),
+            BetaTimes100=int(self.settings.beta * 100),
+            GammaEx6=int(self.settings.gamma * 1e6),
+            IntermediatePowerKw=self.settings.intermediate_power,
+            IntermediateRswtF=self.settings.intermediate_rswt,
+            DdPowerKw=self.settings.dd_power,
+            DdRswtF=self.settings.dd_rswt,
+            DdDeltaTF=self.settings.dd_delta_t,
+            HpMaxKwTh=self.settings.hp_max_kw_th,
+        )
+        self.alpha = self.params.AlphaTimes10 / 10
+        self.beta = self.params.BetaTimes100 / 100
+        self.gamma = self.params.GammaEx6 / 1e6
+        self.hp_max_kw_th = self.params.HpMaxKwTh
         self.no_power_rswt = -self.alpha/self.beta
-        self.intermediate_power = self.settings.intermediate_power
-        self.intermediate_rswt = self.settings.intermediate_rswt
-        self.dd_power = self.settings.dd_power
-        self.dd_rswt = self.settings.dd_rswt
-        self.dd_delta_t = self.settings.dd_delta_t
+        self.intermediate_power = self.params.IntermediatePowerKw
+        self.intermediate_rswt = self.params.IntermediateRswtF
+        self.dd_power = self.params.DdPowerKw
+        self.dd_rswt = self.params.DdRswtF
+        self.dd_delta_t = self.params.DdDeltaTF
         self.log(f"self.timezone: {self.timezone}")
         self.log(f"self.latitude: {self.latitude}")
         self.log(f"self.longitude: {self.longitude}")
