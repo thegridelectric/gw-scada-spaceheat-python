@@ -615,12 +615,12 @@ class HomeAlone(Actor):
             available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
                 print("All the buffer temperatures are available")
-            else:
-                self.fill_missing_buffer_temps()
-                print("Successfully filled in the missing buffer temperatures.")
-            self.fill_missing_store_temps()
-            print("Successfully filled in the missing storage temperatures.")
-            self.temperatures_available = True
+                self.fill_missing_store_temps()
+                print("Successfully filled in the missing storage temperatures.")
+                self.temperatures_available = True
+            # else:
+            #     self.fill_missing_buffer_temps()
+            #     print("Successfully filled in the missing buffer temperatures.")
     
     def initialize_relays(self):
         if self.is_onpeak:
