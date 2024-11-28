@@ -136,12 +136,13 @@ class HomeAlone(Actor):
             BetaTimes100=int(self.settings.beta * 100),
             GammaEx6=int(self.settings.gamma * 1e6),
             IntermediatePowerKw=self.settings.intermediate_power,
-            IntermediateRswtF=self.settings.intermediate_rswt,
+            IntermediateRswtF=int(self.settings.intermediate_rswt),
             DdPowerKw=self.settings.dd_power,
-            DdRswtF=self.settings.dd_rswt,
-            DdDeltaTF=self.settings.dd_delta_t,
+            DdRswtF=int(self.settings.dd_rswt),
+            DdDeltaTF=int(self.settings.dd_delta_t),
             HpMaxKwTh=self.settings.hp_max_kw_th,
         )
+        self.log(f"Params are {self.params}")
         self.alpha = self.params.AlphaTimes10 / 10
         self.beta = self.params.BetaTimes100 / 100
         self.gamma = self.params.GammaEx6 / 1e6
