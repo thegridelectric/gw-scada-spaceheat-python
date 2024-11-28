@@ -579,12 +579,13 @@ class HomeAlone(Actor):
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
     def get_latest_temperatures(self):
-        self.latest_temperatures = {
+        temp = {
             x: self.services._data.latest_channel_values[x] 
             for x in self.temperature_channel_names
             if x in self.services._data.latest_channel_values
             and self.services._data.latest_channel_values[x] is not None
             }
+        self.latest_temperatures = temp.copy()
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
             print('Temperatures available')
