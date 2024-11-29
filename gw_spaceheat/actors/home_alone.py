@@ -743,7 +743,7 @@ class HomeAlone(Actor):
                     current_month = datetime.now().month
                     self.weather = {
                         'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                        'oat': self.coldest_oat_by_month[current_month]*24,
+                        'oat': [self.coldest_oat_by_month[current_month]]*24,
                         'ws': [0]*24,
                         }
             except Exception as e:
@@ -751,7 +751,7 @@ class HomeAlone(Actor):
                 current_month = datetime.now().month
                 self.weather = {
                     'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                    'oat': self.coldest_oat_by_month[current_month]*24,
+                    'oat': [self.coldest_oat_by_month[current_month]]*24,
                     'ws': [0]*24,
                     }
 
