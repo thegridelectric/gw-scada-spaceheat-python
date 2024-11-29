@@ -721,7 +721,7 @@ class HomeAlone(Actor):
                 }
             self.log(f"Obtained a {len(forecasts)}-hour weather forecast starting at {self.weather['time'][0]}")
             weather_long = {
-                'time': list(forecasts.keys()),
+                'time': [x.timestamp() for x in list(forecasts.keys())],
                 'oat': list(forecasts.values()),
                 'ws': [0]*len(forecasts)
                 }
@@ -733,6 +733,7 @@ class HomeAlone(Actor):
             try:
                 with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
                     weather_long = json.load(f)
+                    weather_long['time'] = [datetime.fromtimestamp(x) for x in weather_long['time']]
                 if weather_long['time'][-1] >= time.time()+timedelta(hours=24):
                     self.log("A valid weather forecast is available locally.")
                     time_late = datetime.now(self.timezone) - weather_long['time'][0]
