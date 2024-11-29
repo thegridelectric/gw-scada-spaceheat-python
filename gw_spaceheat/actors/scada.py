@@ -22,11 +22,10 @@ from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmAtomicReport, FsmEvent, FsmFullReport
 from gwproto.messages import EventBase
-from gwproto.messages import LayoutLite, LayoutEvent
+from gwproto.messages import LayoutLite
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import SendSnap
-from gwproactor.links.link_state import StateName
 
 from gwproto.named_types import (AdminWakesUp, AnalogDispatch, ChannelReadings, MachineStates, 
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
@@ -423,11 +422,13 @@ class Scada(ScadaInterface, Proactor):
             FlowModuleComponents=[node.component.gt for node in flow_nodes],
             ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
             DataChannels=[ch.to_gt() for ch in self.data.my_channels],
+            Ha1Params=self.data.ha1_params,
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4())
         )
-        self.generate_event(LayoutEvent(Layout=layout))
-        print("Just tried to send layout event")
+        self._links.publish_upstream(layout)
+        #self.generate_event(LayoutEvent(Layout=layout))
+        self.logger.error("Just sent layout")
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
@@ -466,14 +467,6 @@ class Scada(ScadaInterface, Proactor):
             self._last_sync_snap_s = int(time.time())
             return True
         #TODO: add sending on change.
-
-    def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
-        self._dispatch_live_hack = False
-        return Ok()
-
-    def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
-        self._dispatch_live_hack = True
-        return Ok()
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
         message = Message(Src=from_node.Name, Payload=payload)
@@ -811,6 +804,25 @@ class Scada(ScadaInterface, Proactor):
     #####################################################################
     # State Machine related
     #####################################################################
+
+
+    def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
+        if transition.link_name == self.upstream_client:
+            self._dispatch_live_hack = False
+            self.logger.error("link to atn down.")
+            self.logger.error("Current link state:  self._links._states._links['gridworks'].curr_state"
+                              f" {self._links._states._links['gridworks'].curr_state}")
+        return Ok()
+
+    def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
+        if transition.link_name == self.upstream_client:
+            self._dispatch_live_hack = True
+            self.logger.error("Current link state:  self._links._states._links['gridworks'].curr_state"
+                              f" {self._links._states._links['gridworks'].curr_state}")
+            
+            self.send_layout_info()
+
+        return Ok()
 
     def _analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
         self.logger.error("Got Analog Dispatch in SCADA!")
