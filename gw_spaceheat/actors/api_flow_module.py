@@ -781,10 +781,6 @@ class ApiFlowModule(Actor):
         )
     
     @property
-    def primary_scada(self) -> ShNode:
-        return self.layout.nodes[H0N.primary_scada]
-
-    @property
     def pico_cycler(self) -> Optional[ShNode]:
         if H0N.pico_cycler in self.layout.nodes:
             return self.layout.nodes[H0N.pico_cycler]

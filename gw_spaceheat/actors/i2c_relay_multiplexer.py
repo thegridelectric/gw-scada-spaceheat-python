@@ -87,10 +87,6 @@ class I2cRelayMultiplexer(Actor):
         self.relay_state: Dict[int, RelayEnergizationState] = {}
         self._stop_requested = False
 
-    @property
-    def primary_scada(self) -> ShNode:
-        return self.layout.nodes[H0N.primary_scada]
-
     def initialize_board(self) -> None:
         if self.is_simulated:
             for relay in self.my_relays:

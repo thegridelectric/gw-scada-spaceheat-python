@@ -113,7 +113,6 @@ class PicoCycler(Actor):
                 self.ab_by_pico[node.component.gt.PicoBHwUid] = 'b'
                 self.picos.append(node.component.gt.PicoBHwUid)
         self.pico_states = {pico: SinglePicoState.Alive for pico in self.picos}
-        self.primary_scada = self.layout.node(H0N.primary_scada)
         # This counts consecutive failed reboots per pico
         self.reboots = {pico: 0 for pico in self.picos}
         self.trigger_id = None

@@ -368,7 +368,3 @@ class ApiTankModule(Actor):
         if H0N.pico_cycler in self.layout.nodes:
             return self.layout.nodes[H0N.pico_cycler]
         return None
-
-    @property
-    def primary_scada(self) -> ShNode:
-        return self.layout.nodes[H0N.primary_scada]

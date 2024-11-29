@@ -71,7 +71,6 @@ class Relay(Actor):
             )
 
         self.de_energizing_event = self.relay_actor_config.DeEnergizingEvent
-        self.primary_scada = self.layout.node(H0N.primary_scada)
         self.relay_multiplexer = self.layout.node(H0N.relay_multiplexer)
         self.reports_by_trigger = {}
         self.boss_by_trigger = {}
