@@ -694,78 +694,78 @@ class HomeAlone(Actor):
         return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
         
     def get_weather(self):
-        try:
-            url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-            response = requests.get(url)
-            if response.status_code != 200:
-                self.log(f"Error fetching weather data: {response.status_code}")
-                return None
-            data = response.json()
-            forecast_hourly_url = data['properties']['forecastHourly']
-            forecast_response = requests.get(forecast_hourly_url)
-            if forecast_response.status_code != 200:
-                self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
-                return None
-            forecast_data = forecast_response.json()
-            forecasts = {}
-            periods = forecast_data['properties']['periods']
-            for period in periods:
-                if ('temperature' in period and 'startTime' in period 
-                    and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
-                    forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
-            cropped_forecast = dict(list(forecasts.items())[:24])
-            self.weather = {
-                'time': list(cropped_forecast.keys()),
-                'oat': list(cropped_forecast.values()),
-                'ws': [0]*len(cropped_forecast)
-                }
-            self.log(f"Obtained a {len(forecasts)}-hour weather forecast starting at {self.weather['time'][0]}")
-            weather_long = {
-                'time': [x.timestamp() for x in list(forecasts.keys())],
-                'oat': list(forecasts.values()),
-                'ws': [0]*len(forecasts)
-                }
-            with open('/home/pi/.config/gridworks/scada/weather.json', 'w') as f:
-                json.dump(weather_long, f, indent=4)
+        # try:
+        url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
+        response = requests.get(url)
+        if response.status_code != 200:
+            self.log(f"Error fetching weather data: {response.status_code}")
+            return None
+        data = response.json()
+        forecast_hourly_url = data['properties']['forecastHourly']
+        forecast_response = requests.get(forecast_hourly_url)
+        if forecast_response.status_code != 200:
+            self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
+            return None
+        forecast_data = forecast_response.json()
+        forecasts = {}
+        periods = forecast_data['properties']['periods']
+        for period in periods:
+            if ('temperature' in period and 'startTime' in period 
+                and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
+                forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
+        cropped_forecast = dict(list(forecasts.items())[:24])
+        self.weather = {
+            'time': list(cropped_forecast.keys()),
+            'oat': list(cropped_forecast.values()),
+            'ws': [0]*len(cropped_forecast)
+            }
+        self.log(f"Obtained a {len(forecasts)}-hour weather forecast starting at {self.weather['time'][0]}")
+        weather_long = {
+            'time': [x.timestamp() for x in list(forecasts.keys())],
+            'oat': list(forecasts.values()),
+            'ws': [0]*len(forecasts)
+            }
+        with open('/home/pi/.config/gridworks/scada/weather.json', 'w') as f:
+            json.dump(weather_long, f, indent=4)
 
-            # TEST
-            with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
-                weather_long = json.load(f)
-                weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
-            if weather_long['time'][-1] >= time.time()+timedelta(hours=24):
-                self.log("A valid weather forecast is available locally.")
-                time_late = datetime.now(self.timezone) - weather_long['time'][0]
-                hours_late = int(time_late.total_seconds()/3600)
-                self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
-            # TEST
+        # TEST
+        with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
+            weather_long = json.load(f)
+            weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
+        if weather_long['time'][-1] >= time.time()+timedelta(hours=24):
+            self.log("A valid weather forecast is available locally.")
+            time_late = datetime.now(self.timezone) - weather_long['time'][0]
+            hours_late = int(time_late.total_seconds()/3600)
+            self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
+        # TEST
         
-        except Exception as e:
-            self.log(f"[!!] Unable to get weather forecast from API: {e}")
-            try:
-                with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
-                    weather_long = json.load(f)
-                    weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
-                if weather_long['time'][-1] >= time.time()+timedelta(hours=24):
-                    self.log("A valid weather forecast is available locally.")
-                    time_late = datetime.now(self.timezone) - weather_long['time'][0]
-                    hours_late = int(time_late.total_seconds()/3600)
-                    self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
-                else:
-                    self.log("No valid weather forecasts available locally. Using coldest of the current month.")
-                    current_month = datetime.now().month-1
-                    self.weather = {
-                        'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                        'oat': [self.coldest_oat_by_month[current_month]]*24,
-                        'ws': [0]*24,
-                        }
-            except Exception as e:
-                self.log("No valid weather forecasts available locally. Using coldest of the current month.")
-                current_month = datetime.now().month-1
-                self.weather = {
-                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                    'oat': [self.coldest_oat_by_month[current_month]]*24,
-                    'ws': [0]*24,
-                    }
+        # except Exception as e:
+        #     self.log(f"[!!] Unable to get weather forecast from API: {e}")
+        #     try:
+        #         with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
+        #             weather_long = json.load(f)
+        #             weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
+        #         if weather_long['time'][-1] >= time.time()+timedelta(hours=24):
+        #             self.log("A valid weather forecast is available locally.")
+        #             time_late = datetime.now(self.timezone) - weather_long['time'][0]
+        #             hours_late = int(time_late.total_seconds()/3600)
+        #             self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
+        #         else:
+        #             self.log("No valid weather forecasts available locally. Using coldest of the current month.")
+        #             current_month = datetime.now().month-1
+        #             self.weather = {
+        #                 'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
+        #                 'oat': [self.coldest_oat_by_month[current_month]]*24,
+        #                 'ws': [0]*24,
+        #                 }
+        #     except Exception as e:
+        #         self.log("No valid weather forecasts available locally. Using coldest of the current month.")
+        #         current_month = datetime.now().month-1
+        #         self.weather = {
+        #             'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
+        #             'oat': [self.coldest_oat_by_month[current_month]]*24,
+        #             'ws': [0]*24,
+        #             }
 
         self.weather['avg_power'] = [
             self.required_heating_power(oat, ws) 
