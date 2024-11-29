@@ -725,9 +725,19 @@ class HomeAlone(Actor):
                 'oat': list(forecasts.values()),
                 'ws': [0]*len(forecasts)
                 }
-            print(weather_long)
             with open('/home/pi/.config/gridworks/scada/weather.json', 'w') as f:
                 json.dump(weather_long, f, indent=4)
+
+            # TEST
+            with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
+                weather_long = json.load(f)
+                weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
+            if weather_long['time'][-1] >= time.time()+timedelta(hours=24):
+                self.log("A valid weather forecast is available locally.")
+                time_late = datetime.now(self.timezone) - weather_long['time'][0]
+                hours_late = int(time_late.total_seconds()/3600)
+                self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
+            # TEST
         
         except Exception as e:
             self.log(f"[!!] Unable to get weather forecast from API: {e}")
