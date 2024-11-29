@@ -746,7 +746,7 @@ class HomeAlone(Actor):
                         'oat': self.coldest_oat_by_month[current_month]*24,
                         'ws': [0]*24,
                         }
-            except:
+            except Exception as e:
                 self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                 current_month = datetime.now().month
                 self.weather = {
