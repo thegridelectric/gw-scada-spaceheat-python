@@ -3,6 +3,7 @@ from typing import Any, Sequence
 from enum import auto
 import uuid
 import time
+import json
 import numpy as np
 import dotenv
 from datetime import datetime, timedelta
@@ -164,7 +165,7 @@ class HomeAlone(Actor):
         self.log(f"self.rswt_quadratic_params: {self.rswt_quadratic_params}")
         # Get the weather forecast
         self.weather = None
-        self.weather_long = None
+        self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.get_weather()
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
@@ -702,41 +703,47 @@ class HomeAlone(Actor):
                     and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
                     forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
             cropped_forecast = dict(list(forecasts.items())[:24])
-            self.weather_long = {
-                'time': list(forecasts.keys()),
-                'oat': list(forecasts.values()),
-                'ws': [0]*len(forecasts)
-                }
             self.weather = {
                 'time': list(cropped_forecast.keys()),
                 'oat': list(cropped_forecast.values()),
                 'ws': [0]*len(cropped_forecast)
                 }
-            self.log(f"Obtained a 24-hour weather forecast starting at {self.weather['time'][0]}")
+            self.log(f"Obtained a {len(forecasts)}-hour weather forecast starting at {self.weather['time'][0]}")
+            weather_long = {
+                'time': list(forecasts.keys()),
+                'oat': list(forecasts.values()),
+                'ws': [0]*len(forecasts)
+                }
+            with open('weather.json', 'w') as f:
+                json.dump(weather_long, f, indent=4)
+        
         except Exception as e:
             self.log(f"[!!] Unable to get weather forecast from API: {e}")
-            if self.weather_long is None:
-                self.log("No weather forecasts available! Use coldest of the current month.") # TODO
-                self.weather = {
-                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                    'oat': [30]*24,
-                    'ws': [0]*24,
-                    }
-            else: 
-                if self.weather_long['time'][-1] >= time.time()+timedelta(hours=24):
-                    self.log("Some weather forecast is available, but it is not the most recent")
-                    time_late = datetime.now(self.timezone) - self.weather_long['time'][0]
+            try:
+                with open('weather_long.json', 'r') as f:
+                    weather_long = json.load(f)
+                if weather_long['time'][-1] >= time.time()+timedelta(hours=24):
+                    self.log("A valid weather forecast is available locally.")
+                    time_late = datetime.now(self.timezone) - weather_long['time'][0]
                     hours_late = int(time_late.total_seconds()/3600)
-                    self.weather = dict(list(self.weather_long.items())[hours_late:hours_late+24])
-                # TODO: fill in missing weather if not 24 hours of forecast available
+                    self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
                 else:
-                    self.log("No weather forecasts available! Use coldest of the current month.") # TODO
+                    self.log("No valid weather forecasts available locally. Using coldest of the current month.")
+                    current_month = datetime.datetime.now().month
                     self.weather = {
                         'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                        'oat': [30]*24,
+                        'oat': self.coldest_oat_by_month[current_month]*24,
                         'ws': [0]*24,
                         }
-            
+            except:
+                self.log("No valid weather forecasts available locally. Using coldest of the current month.")
+                current_month = datetime.datetime.now().month
+                self.weather = {
+                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
+                    'oat': self.coldest_oat_by_month[current_month]*24,
+                    'ws': [0]*24,
+                    }
+
         self.weather['avg_power'] = [
             self.required_heating_power(oat, ws) 
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
