@@ -713,6 +713,7 @@ class HomeAlone(Actor):
                 if ('temperature' in period and 'startTime' in period 
                     and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
                     forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
+            forecasts = dict(list(forecasts.items())[:96])
             cropped_forecast = dict(list(forecasts.items())[:24])
             self.weather = {
                 'time': list(cropped_forecast.keys()),
@@ -729,7 +730,7 @@ class HomeAlone(Actor):
                 json.dump(weather_long, f, indent=4)
         
         except Exception as e:
-            self.log(f"[!!] Unable to get weather forecast from API: {e}")
+            self.log(f"[!] Unable to get weather forecast from API: {e}")
             try:
                 with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
                     weather_long = json.load(f)
