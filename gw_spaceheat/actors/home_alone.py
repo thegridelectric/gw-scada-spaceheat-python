@@ -727,23 +727,6 @@ class HomeAlone(Actor):
                 }
             with open('/home/pi/.config/gridworks/scada/weather.json', 'w') as f:
                 json.dump(weather_long, f, indent=4)
-
-            # TEST
-            with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
-                weather_long = json.load(f)
-                weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
-            if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=24):
-                self.log("A valid weather forecast is available locally.")
-                time_late = weather_long['time'][0] - datetime.now(self.timezone)
-                self.log(f"Time late is {time_late}")
-                hours_late = int(time_late.total_seconds()/3600)
-                self.log(f"Weather is {len(self.weather['time'])}")
-                self.weather = weather_long
-                for key in self.weather:
-                    self.weather[key] = self.weather[key][hours_late:hours_late+24]
-                self.log(f"Weather is {len(self.weather['time'])}")
-                self.log(f"Hours late is {hours_late}")
-            # TEST
         
         except Exception as e:
             self.log(f"[!!] Unable to get weather forecast from API: {e}")
@@ -753,9 +736,11 @@ class HomeAlone(Actor):
                     weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
                 if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=24):
                     self.log("A valid weather forecast is available locally.")
-                    time_late = datetime.now(self.timezone) - weather_long['time'][0]
+                    time_late = weather_long['time'][0] - datetime.now(self.timezone)
                     hours_late = int(time_late.total_seconds()/3600)
-                    self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
+                    self.weather = weather_long
+                    for key in self.weather:
+                        self.weather[key] = self.weather[key][hours_late:hours_late+24]
                 else:
                     self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                     current_month = datetime.now().month-1
