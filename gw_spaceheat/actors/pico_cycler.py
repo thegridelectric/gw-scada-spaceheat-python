@@ -374,7 +374,19 @@ class PicoCycler(Actor):
             return
         self.log(f"Shaking these zombies: {self.zombies}")
         self.trigger_id = str(uuid.uuid4())
+        # ShakeZombies: AllZombies/PicosLive -> RelayOpening
         self.trigger_event(PicoCyclerEvent.ShakeZombies)
+        # Send action on to pico relay
+        event = FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.pico_relay.handle,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.OpenRelay,
+            SendTimeUnixMs=int(time.time() * 1000),
+            TriggerId=self.trigger_id,
+        )
+        self._send_to(self.pico_relay, event)
+        self.log(f"OpenRelay to {self.pico_relay.name}")
 
     def start_closing(self) -> None:
         # Transition to RelayClosing and send CloseRelayCmd
