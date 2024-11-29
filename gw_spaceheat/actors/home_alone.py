@@ -738,9 +738,11 @@ class HomeAlone(Actor):
                 self.log(f"Time late is {time_late}")
                 hours_late = int(time_late.total_seconds()/3600)
                 self.log(f"Weather is {len(self.weather['time'])}")
-                self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
-            self.log(f"Hours late is {hours_late}")
-            self.log(f"Weather is {len(self.weather['time'])}")
+                self.weather = weather_long
+                for key in self.weather:
+                    self.weather[key] = self.weather[key][hours_late:hours_late+24]
+                self.log(f"Weather is {len(self.weather['time'])}")
+                self.log(f"Hours late is {hours_late}")
             # TEST
         
         except Exception as e:
