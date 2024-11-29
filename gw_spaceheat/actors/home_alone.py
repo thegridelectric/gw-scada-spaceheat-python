@@ -725,13 +725,13 @@ class HomeAlone(Actor):
                 'oat': list(forecasts.values()),
                 'ws': [0]*len(forecasts)
                 }
-            with open('weather.json', 'w') as f:
+            with open('/home/pi/.config/gridworks/scada/weather.json', 'w') as f:
                 json.dump(weather_long, f, indent=4)
         
         except Exception as e:
             self.log(f"[!!] Unable to get weather forecast from API: {e}")
             try:
-                with open('weather_long.json', 'r') as f:
+                with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
                     weather_long = json.load(f)
                 if weather_long['time'][-1] >= time.time()+timedelta(hours=24):
                     self.log("A valid weather forecast is available locally.")
@@ -815,7 +815,7 @@ class HomeAlone(Actor):
         else:
             if return_missing:
                 return total_usable_kwh, required_storage
-            self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)}) kWh)")
+            self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
