@@ -721,11 +721,11 @@ class HomeAlone(Actor):
                 }
             self.log(f"Obtained a {len(forecasts)}-hour weather forecast starting at {self.weather['time'][0]}")
             weather_long = {
-                'time': [x for x in list(forecasts.keys())], #.timestamp()
+                'time': [x.timestamp() for x in list(forecasts.keys())],
                 'oat': list(forecasts.values()),
                 'ws': [0]*len(forecasts)
                 }
-            # print(weather_long)
+            print(weather_long)
             with open('/home/pi/.config/gridworks/scada/weather.json', 'w') as f:
                 json.dump(weather_long, f, indent=4)
         
