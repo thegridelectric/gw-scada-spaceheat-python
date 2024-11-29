@@ -740,7 +740,7 @@ class HomeAlone(Actor):
                     self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
                 else:
                     self.log("No valid weather forecasts available locally. Using coldest of the current month.")
-                    current_month = datetime.now().month
+                    current_month = datetime.now().month-1
                     self.weather = {
                         'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
                         'oat': [self.coldest_oat_by_month[current_month]]*24,
@@ -748,7 +748,7 @@ class HomeAlone(Actor):
                         }
             except Exception as e:
                 self.log("No valid weather forecasts available locally. Using coldest of the current month.")
-                current_month = datetime.now().month
+                current_month = datetime.now().month-1
                 self.weather = {
                     'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
                     'oat': [self.coldest_oat_by_month[current_month]]*24,
