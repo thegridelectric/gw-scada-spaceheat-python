@@ -153,7 +153,6 @@ class Relay(Actor):
                 SendTimeUnixMs=now_ms,
             )
             self._send_to(self.relay_multiplexer, pin_change_event)
-            self.send_state(now_ms)
             self.reports_by_trigger[message.TriggerId].append(
                 FsmAtomicReport(
                     MachineHandle=self.node.handle,
@@ -174,6 +173,9 @@ class Relay(Actor):
     ) -> Result[bool, BaseException]:
         if message.TriggerId not in self.reports_by_trigger:
             raise Exception("Unknown trigger!!")
+        # i2c multiplexer has gotten our message and acted on it
+        # so we report
+        self.send_state()
         self.reports_by_trigger[message.TriggerId].append(message)
         boss = self.boss_by_trigger[message.TriggerId]
         # print(f"Sending report to {boss.name}")

@@ -5,11 +5,10 @@ from enum import auto
 from typing import Dict, List, Optional, Sequence
 
 from gw.enums import GwStrEnum
-from gwproactor import QOS, Actor, MonitoredName, Problems, ServicesInterface
+from gwproactor import Actor, MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.components import PicoTankModuleComponent
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
     ActorClass,
@@ -18,7 +17,6 @@ from gwproto.enums import (
     PicoCyclerEvent,
     PicoCyclerState,
 )
-from gwproto.message import Header
 from gwproto.messages import PicoMissing # noqa
 from gwproto.named_types import (
     ChannelReadings,
@@ -370,12 +368,25 @@ class PicoCycler(Actor):
         self.send_fsm_report()
 
     def shake_zombies(self) -> None:
+        self.last_zombie_shake = time.time()
         if self.state not in {PicoCyclerState.PicosLive.value, PicoCyclerState.AllZombies.value}:
+            self.log(f"State is {self.state} so not shaking zombies")
             return
         self.log(f"Shaking these zombies: {self.zombies}")
         self.trigger_id = str(uuid.uuid4())
+        # ShakeZombies: AllZombies/PicosLive -> RelayOpening
         self.trigger_event(PicoCyclerEvent.ShakeZombies)
-        self.last_zombie_shake = time.time()
+        # Send action on to pico relay
+        event = FsmEvent(
+            FromHandle=self.node.handle,
+            ToHandle=self.pico_relay.handle,
+            EventType=ChangeRelayState.enum_name(),
+            EventName=ChangeRelayState.OpenRelay,
+            SendTimeUnixMs=int(time.time() * 1000),
+            TriggerId=self.trigger_id,
+        )
+        self._send_to(self.pico_relay, event)
+        self.log(f"OpenRelay to {self.pico_relay.name}")
 
     def start_closing(self) -> None:
         # Transition to RelayClosing and send CloseRelayCmd
@@ -479,8 +490,9 @@ class PicoCycler(Actor):
         self.pico_missing()
 
         while not self._stop_requested:
+            self.log(f"State is {self.state}")
             # self.services.logger.error("################# PATTING PICO WATCHDOG")
-            hiccup = 1.2
+            hiccup = 2.2
             sleep_s = max(
                 hiccup, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
             )
@@ -504,7 +516,6 @@ class PicoCycler(Actor):
             # back when wifi is back
             if time.time() - self.last_zombie_shake > self.SHAKE_ZOMBIE_HR * 3600:
                 self.shake_zombies()
-                self.services.logger.error("shaking zombies")
             # report the varios zombie picos as problem events
             zombie_update_period = self.ZOMBIE_UPDATE_HR * 3600
             last = self.last_zombie_problem_report_s
@@ -515,6 +526,7 @@ class PicoCycler(Actor):
             for pico in self.zombies:
                 zombies.append(f" {pico} [{self.actor_by_pico[pico]}]")
             if time.time() > next_zombie_problem:
+                self.log(f"Sending problem event for zombies {zombies}")
                 self._send_to(
                     self.primary_scada,
                     Problems(warnings=[

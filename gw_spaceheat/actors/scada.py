@@ -269,6 +269,7 @@ class Scada(ScadaInterface, Proactor):
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_sync_snap_s = int(now)
         self._dispatch_live_hack = False
+        self.pending_dispatch: Optional[AnalogDispatch] = None
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -297,6 +298,7 @@ class Scada(ScadaInterface, Proactor):
         )
 
         self.send_layout_info()
+
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
@@ -418,6 +420,7 @@ class Scada(ScadaInterface, Proactor):
             TotalStoreTanks=self._layout.total_store_tanks,
             TankModuleComponents=[node.component.gt for node in tank_nodes],
             FlowModuleComponents=[node.component.gt for node in flow_nodes],
+            ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
             DataChannels=[ch.to_gt() for ch in self.data.my_channels],
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4())
@@ -670,17 +673,6 @@ class Scada(ScadaInterface, Proactor):
         to_node = self._layout.node_from_handle(fsm_event.ToHandle)
         if to_node:
             self.get_communicator(to_node.name).process_message(fsm_event)
-    
-    def _analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
-        self.logger.error("Got Analog Dispatch in SCADA!")
-        if dispatch.FromGNodeAlias != self._layout.atn_g_node_alias:
-            self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
-            return
-        self.logger.warning("HACK: passing this on. Will replace w remote admin")
-        to_node = self.layout.node_by_handle(dispatch.ToHandle)
-        if to_node:
-            self.get_communicator(to_node.name).process_message(dispatch)
-        #TODO: if MainAutoState is not atn, ignore
         
     def _scada_params_received(self, message: ScadaParams) -> None:
         if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
@@ -818,6 +810,24 @@ class Scada(ScadaInterface, Proactor):
     #####################################################################
     # State Machine related
     #####################################################################
+
+    def _analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
+        self.logger.error("Got Analog Dispatch in SCADA!")
+        if dispatch.FromGNodeAlias != self._layout.atn_g_node_alias:
+            self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
+            return
+        if self.top_state == TopState.Admin:
+            to_node = self.layout.node_by_handle(dispatch.ToHandle)
+            if to_node:
+                self.get_communicator(to_node.name).process_message(dispatch)
+        elif self.top_state == TopState.Auto:
+            self.pending_dispatch = dispatch
+            # AdminWakesUp: Auto -> ChangingToAdmin
+            self.AdminWakesUp()
+
+            for node in self.layout.direct_reports(self.auto_node):
+                self._send_to(node, GoDormant(FromName=H0N.auto, ToName=node.name))
+        #TODO: if MainAutoState is not atn, ignore
     
     def dormant_received(self, ack: DormantAck) -> None:
         if ack.ToName == H0N.auto:
