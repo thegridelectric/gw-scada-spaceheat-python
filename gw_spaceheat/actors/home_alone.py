@@ -735,12 +735,12 @@ class HomeAlone(Actor):
             if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=24):
                 self.log("A valid weather forecast is available locally.")
                 time_late = datetime.now(self.timezone) - weather_long['time'][0]
-                self.log(time_late)
+                self.log(f"Time late is {time_late}")
                 hours_late = int(time_late.total_seconds()/3600)
-                self.log(len(self.weather))
+                self.log(f"Weather is {len(self.weather)}")
                 self.weather = dict(list(weather_long.items())[hours_late:hours_late+24])
-            self.log(hours_late)
-            self.log(len(self.weather))
+            self.log(f"Hours late is {hours_late}")
+            self.log(f"Weather is {len(self.weather)}")
             # TEST
         
         except Exception as e:
