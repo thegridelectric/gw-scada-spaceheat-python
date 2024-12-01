@@ -24,7 +24,6 @@ from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmA
 from actors.config import ScadaSettings
 
 
-
 class HomeAloneState(GwStrEnum):
     WaitingForTemperaturesOnPeak = auto()
     WaitingForTemperaturesOffPeak = auto()
@@ -56,7 +55,7 @@ class HomeAloneEvent(GwStrEnum):
 
 
 class HomeAlone(Actor):
-    
+    MAIN_LOOP_SLEEP_SECONDS = 60
     states = [
         "WaitingForTemperaturesOnPeak",
         "WaitingForTemperaturesOffPeak",
@@ -99,22 +98,18 @@ class HomeAlone(Actor):
     ]
 
     def __init__(self, name: str, services: ServicesInterface):
-        H0CN.buffer.depth1
         super().__init__(name, services)
         self.settings: ScadaSettings = self.services.settings
         self.cn: H0CN = self.layout.channel_names
         
         self._stop_requested: bool = False
-        self.main_loop_sleep_seconds = 60
         self.hardware_layout = self._services.hardware_layout
         self.temperature_channel_names = [
             H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4,
+            H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
+            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
             *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
-]
-        # self.temperature_channel_names = [
-        #     H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
-        # for i in self.cn.tank: 
-        #     self.temperature_channel_names += [self.cn.tank[i].depth1, self.cn.tank[i].depth2, self.cn.tank[i].depth3, self.cn.tank[i].depth4]
+        ]
 
         self.temperatures_available = False
         self.storage_declared_ready = False
@@ -130,14 +125,13 @@ class HomeAlone(Actor):
             transitions=HomeAlone.transitions,
             initial=HomeAloneState.WaitingForTemperaturesOnPeak.value,
             send_event=True,
-        )        
+        )     
+        self.state: HomeAloneState = HomeAloneState.WaitingForTemperaturesOnPeak  
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
-        
-        self.params: Ha1Params = self._services.data.ha1_params
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
@@ -155,6 +149,14 @@ class HomeAlone(Actor):
         self.get_weather()
     
     @property
+    def data(self) -> ScadaData:
+        return self._services.data
+    
+    @property
+    def params(self) -> Ha1Params:
+        return self.data.ha1_params
+
+    @property
     def rswt_quadratic_params(self) -> np.ndarray:
         """Property to get quadratic parameters for calculating heating power 
         from required source water temp, recalculating if necessary
@@ -171,7 +173,7 @@ class HomeAlone(Actor):
             self._cached_params = self.params
             self.log(f"Calculating rswt_quadratic_params: {self._rswt_quadratic_params}")
         
-        if not self._rswt_quadratic_params:
+        if self._rswt_quadratic_params is None:
             raise Exception("_rswt_quadratic_params should have been set here!!")
         return self._rswt_quadratic_params
 
@@ -221,8 +223,7 @@ class HomeAlone(Actor):
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
-        return [MonitoredName(self.name, 300)]
-        #return [MonitoredName(self.name, self.main_loop_sleep_seconds * 2.1)]
+        return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
     async def main(self):
 
@@ -314,7 +315,7 @@ class HomeAlone(Actor):
                 if self.state != previous_state:                    
                     self.update_relays(previous_state)
 
-            await asyncio.sleep(self.main_loop_sleep_seconds)
+            await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def update_relays(self, previous_state) -> None:
         if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
@@ -470,10 +471,10 @@ class HomeAlone(Actor):
 
     def get_latest_temperatures(self):
         temp = {
-            x: self.services._data.latest_channel_values[x] 
+            x: self.data.latest_channel_values[x] 
             for x in self.temperature_channel_names
-            if x in self.services._data.latest_channel_values
-            and self.services._data.latest_channel_values[x] is not None
+            if x in self.data.latest_channel_values
+            and self.data.latest_channel_values[x] is not None
             }
         self.latest_temperatures = temp.copy()
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
@@ -528,19 +529,19 @@ class HomeAlone(Actor):
 
     def is_buffer_empty(self) -> bool:
         if H0CN.buffer.depth2 in self.latest_temperatures:
-            buffer_empty_temp = H0CN.buffer.depth2
+            buffer_empty_ch = H0CN.buffer.depth2
         elif H0CN.dist_swt in self.latest_temperatures:
-            buffer_empty_temp = H0CN.dist_swt
+            buffer_empty_ch = H0CN.dist_swt
         else:
             self.alert(alias="buffer_empty_fail", msg="Impossible to know if the buffer is empty!")
             return False
         max_rswt_next_3hours = max(self.weather['required_swt'][:3])
         min_buffer = round(max_rswt_next_3hours - self.delta_T(max_rswt_next_3hours),1)
-        if self.latest_temperatures[buffer_empty_temp]/1000*9/5+32 < min_buffer: # TODO use to_fahrenheit()
-            self.log(f"Buffer empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} < {min_buffer} F)")
+        if self.latest_temperatures[buffer_empty_ch]/1000*9/5+32 < min_buffer: # TODO use to_fahrenheit()
+            self.log(f"Buffer empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch]/1000*9/5+32,1)} < {min_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not empty ({buffer_empty_temp}: {round(self.latest_temperatures[buffer_empty_temp]/1000*9/5+32,1)} >= {min_buffer} F)")
+            self.log(f"Buffer not empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch]/1000*9/5+32,1)} >= {min_buffer} F)")
             return False            
     
     def is_buffer_full(self) -> bool:
@@ -577,6 +578,8 @@ class HomeAlone(Actor):
         return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
         
     def get_weather(self) -> None:
+        config_dir = self.settings.paths.config_dir
+        weather_file = config_dir / "weather.json"
         try:
             url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
             response = requests.get(url)
@@ -609,13 +612,13 @@ class HomeAlone(Actor):
                 'oat': list(forecasts.values()),
                 'ws': [0]*len(forecasts)
                 }
-            with open('/home/pi/.config/gridworks/scada/weather.json', 'w') as f:
+            with open(weather_file, 'w') as f:
                 json.dump(weather_long, f, indent=4)
         
         except Exception as e:
             self.log(f"[!] Unable to get weather forecast from API: {e}")
             try:
-                with open('/home/pi/.config/gridworks/scada/weather.json', 'r') as f:
+                with open(weather_file, 'r') as f:
                     weather_long = json.load(f)
                     weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
                 if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=24):
@@ -771,7 +774,7 @@ class HomeAlone(Actor):
 
     def alert(self, alias: str, msg: str) -> None:
         alert_str = f"[ALERT] {msg}"
-        self.send_to_atn(payload=Alert(
+        self._services._links.publish_upstream(payload=Alert(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             AboutNode=self.node,
             OpsGenieAlias=alias,
@@ -779,6 +782,3 @@ class HomeAlone(Actor):
             Summary=msg
         ))
         self.log(alert_str)
-
-    def send_to_atn(self, payload: Any) -> None:
-        self._services._links.publish_upstream(payload)

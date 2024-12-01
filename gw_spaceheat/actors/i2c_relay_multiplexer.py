@@ -270,7 +270,6 @@ class I2cRelayMultiplexer(Actor):
                 ValueList=values,
                 ScadaReadTimeUnixMs=int(time.time() * 1000),
             )
-            print(f"sending these readings to primary scada: {readings}")
             self._send_to(self.primary_scada, readings)
 
     def start(self) -> None:

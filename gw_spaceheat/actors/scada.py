@@ -505,9 +505,6 @@ class Scada(ScadaInterface, Proactor):
                         self.get_communicator(message.Header.Dst).process_message(message)
                     except Exception as e:
                         self.logger.error(f"problem with {message}: \n{e}")
-                        print(f"message.Header.Dst is {message.Header.Dst}")
-                        print(f"self._communicators.keys() are {self._communicators.keys()}")
-                
             case FsmAtomicReport():
                 path_dbg |= 0x00000010
                 self.get_communicator(message.Header.Dst).process_message(message)
@@ -535,21 +532,28 @@ class Scada(ScadaInterface, Proactor):
                 path_dbg |= 0x00001000
                 self.single_reading_received(message.Payload)
             case SyncedReadings():
-                path_dbg |= 0x00002000
-                self.synced_readings_received(
-                        from_node, message.Payload
-                    )
+                if message.Header.Dst == self.name:
+                    path_dbg |= 0x00002000
+                    self.synced_readings_received(
+                            from_node, message.Payload
+                        )
+                else:
+                    path_dbg |=  0x00004000
+                    try:
+                        self.get_communicator(message.Header.Dst).process_message(message)
+                    except Exception as e:
+                        self.logger.error(f"problem with {message}: \n{e}")
             case TicklistHall():
-                path_dbg |= 0x00004000
+                path_dbg |= 0x00008000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistHallReport():
-                path_dbg |= 0x00008000
+                path_dbg |= 0x00010000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case TicklistReed():
-                path_dbg |= 0x00010000
+                path_dbg |= 0x00020000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistReedReport():
-                path_dbg |= 0x00020000
+                path_dbg |= 0x00040000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case _:
                 raise ValueError(
@@ -592,17 +596,10 @@ class Scada(ScadaInterface, Proactor):
                 self._send_snap_received(decoded.Payload)
             case ScadaParams():
                 path_dbg |= 0x00000008
-                if decoded.Payload.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
-                    return
-                if decoded.Payload.ToName == H0N.home_alone:
-                    try:
-                        self.get_communicator(H0N.home_alone).process_message(decoded)
-                    except Exception as e:
-                        self.logger.error("Problem getting communicator for home alone and "
-                                        f"Processing a ScadaParams message: {e}")
+                self._scada_params_received(decoded.Payload)
             case _:
                 # Intentionally ignore this for forward compatibility
-                path_dbg |= 0x00000004
+                path_dbg |= 0x00000010
         self._logger.path("--_process_upstream_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_downstream_mqtt_message(
@@ -669,17 +666,6 @@ class Scada(ScadaInterface, Proactor):
         to_node = self._layout.node_from_handle(fsm_event.ToHandle)
         if to_node:
             self.get_communicator(to_node.name).process_message(fsm_event)
-        
-    def _scada_params_received(self, message: ScadaParams) -> None:
-        if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
-            return
-        if message.ToName == H0N.home_alone:
-            try:
-                self.get_communicator(H0N.home_alone).process_message(message)
-            except Exception:
-                self.logger.error("Problem getting communicator for home alone and"
-                                  "Processing a ScadaParams message")
-
     
     def update_env_variable(self, variable, new_value) -> None:
         """
@@ -692,16 +678,22 @@ class Scada(ScadaInterface, Proactor):
         with open(dotenv_filepath, 'r') as file:
             lines = file.readlines()
         with open(dotenv_filepath, 'w') as file:
+            line_exists = False
             for line in lines:
                 if (line.startswith(f"{variable}=") 
                     or line.startswith(f"{variable}= ")
                     or line.startswith(f"{variable} =")
                     or line.startswith(f"{variable} = ")):
                     file.write(f"{variable}={new_value}\n")
+                    line_exists = True      
                 else:
                     file.write(line)
+            if not line_exists:
+                file.write(f"\n{variable}={new_value}") 
 
-    def process_scada_params(self, message: ScadaParams) -> None:
+    def _scada_params_received(self, message: ScadaParams) -> None:
+        if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
+            return
         new = message.NewParams
         if new:
             old = self.data.ha1_params
@@ -876,16 +868,15 @@ class Scada(ScadaInterface, Proactor):
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         if transition.link_name == self.upstream_client:
             self._dispatch_live_hack = False
-            self.logger.error("link to atn down.")
-            self.logger.error("Current link state:  self._links._states._links['gridworks'].curr_state"
-                              f" {self._links._states._links['gridworks'].curr_state}")
+            self.logger.error("Link state: "
+                              f" {self._links._states._links['gridworks'].curr_state.name.value}")
         return Ok()
 
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
         if transition.link_name == self.upstream_client:
             self._dispatch_live_hack = True
-            self.logger.error("Current link state:  self._links._states._links['gridworks'].curr_state"
-                              f" {self._links._states._links['gridworks'].curr_state}")
+            self.logger.error("Link state: "
+                              f" {self._links._states._links['gridworks'].curr_state.name.value}")
             
             self.send_layout_info()
 

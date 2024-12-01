@@ -24,6 +24,7 @@ from gwproto.named_types import (
     FsmEvent,
     FsmFullReport,
     MachineStates,
+    SyncedReadings,
 )
 from result import Ok, Result
 from transitions import Machine
@@ -178,18 +179,19 @@ class PicoCycler(Actor):
 
     def process_pico_missing(self, actor: ShNode, payload: PicoMissing) -> None:
         # ignore messages from other actors unless currently live
-        if self.state == PicoCyclerState.PicosLive:
-            pico = payload.PicoHwUid
-            if actor not in self.pico_actors:
-                return
-            if pico in self.zombies:
-                # self.log(f"Zombie {actor.name} {pico} reporting missing.")
-                return
-            self.log(f"{actor.name} pico {pico} reporting missing")
-
+        pico = payload.PicoHwUid
+        if actor not in self.pico_actors:
+            return
+        if pico in self.zombies:
+            # self.log(f"Zombie {actor.name} {pico} reporting missing.")
+            return
+        if self.pico_states[pico] == SinglePicoState.Alive:
             # this pico is now flatlined if it was not before
             self.pico_states[pico] = SinglePicoState.Flatlined
-
+            self.log(f"{actor.name} {pico} flatlined")
+        
+        # move out of PicosLive if pico cycler in that state
+        if self.state == PicoCyclerState.PicosLive:
             # this kicks off an fsm report sequence, which requires a comment
             self.trigger_id = str(uuid.uuid4())
             if payload.PicoHwUid in self.ab_by_pico:
@@ -227,6 +229,38 @@ class PicoCycler(Actor):
         )
         self._send_to(self.pico_relay, event)
         self.log(f"OpenRelay to {self.pico_relay.name}")
+    
+    def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
+        if actor not in self.pico_actors:
+            self.services.logger.error(
+                f"{self.name} received channel readings from {actor.name}, not one of its pico relays"
+            )
+            return
+        pico: str | None = None
+        if actor.ActorClass == ActorClass.ApiFlowModule:
+            pico = actor.component.gt.HwUid
+            if pico not in self.picos:
+                raise Exception(f"[{self.name}] {pico} should be in self.picos!")
+        elif actor.ActorClass == ActorClass.ApiTankModule:
+            if f"{actor.name}-depth1" in payload.ChannelNameList or \
+                f"{actor.name}-depth2" in payload.ChannelNameList:
+                pico = actor.component.gt.PicoAHwUid
+            elif  f"{actor.name}-depth3" in payload.ChannelNameList or \
+                f"{actor.name}-depth4" in payload.ChannelNameList:
+                pico = actor.component.gt.PicoBHwUid
+            else:
+                raise Exception(
+                    f"Do not get {actor.name}-depthi in ChannelNameList: {payload}"
+                )
+            if pico not in self.picos:
+                raise Exception(f"[{self.name}] {pico} should be in self.picos!")
+        else:
+            raise Exception("PicoCycler only expects synced readings from APiFlowModule or APiTankModle"
+                            f", not {actor.ActorClass}"
+            )
+        if pico is None:
+            raise ValueError("PICO IS NONE")
+        self.is_alive(pico)
 
     def process_channel_readings(self, actor: ShNode, payload: ChannelReadings) -> None:
         if actor not in self.pico_actors:
@@ -234,12 +268,6 @@ class PicoCycler(Actor):
                 f"{self.name} received channel readings from {actor.name}, not one of its pico relays"
             )
             return
-        if actor.ActorClass not in [ActorClass.ApiFlowModule, ActorClass.ApiTankModule]:
-            raise Exception(
-                "Only expect channel readings from ApiFlowModule or ApiTankModule"
-                f", not {actor.ActorClass}"
-            )
-
         pico: str | None = None
         if actor.ActorClass == ActorClass.ApiFlowModule:
             if payload.ChannelName != actor.name:
@@ -249,25 +277,14 @@ class PicoCycler(Actor):
             pico = actor.component.gt.HwUid
             if pico not in self.picos:
                 raise Exception(f"[{self.name}] {pico} should be in self.picos!")
-        elif actor.ActorClass == ActorClass.ApiTankModule:
-            if payload.ChannelName in {f"{actor.name}-depth1", f"{actor.name}-depth2"}:
-                pico = actor.component.gt.PicoAHwUid
-            elif payload.ChannelName in {
-                f"{actor.name}-depth3",
-                f"{actor.name}-depth4",
-            }:
-                pico = actor.component.gt.PicoBHwUid
-            else:
-                raise Exception(
-                    f"Do not expect {payload.ChannelName} from TankModule {actor.name}!"
-                )
-            if pico not in self.picos:
-                raise Exception(f"[{self.name}] {pico} should be in self.picos!")
+        else:
+            raise ValueError("Only expect ChannelReadings from ApiFlowModules")
         if pico is None:
             raise ValueError("PICO IS NONE")
         self.is_alive(pico)
 
     def is_alive(self, pico: str) -> None:
+        self.log(f" [{self.actor_by_pico[pico].name}] is alive")
         if pico in self.zombies:
             self.log(f"{pico} [{self.actor_by_pico[pico].name}] in zombies, got to is_alive")
         if self.pico_states[pico] == SinglePicoState.Flatlined:
@@ -315,14 +332,17 @@ class PicoCycler(Actor):
                 case ChannelReadings():
                     path_dbg |= 0x00000002
                     self.process_channel_readings(src_node, message.Payload)
-                case PicoMissing():
-                    path_dbg |= 0x00000004
-                    self.process_pico_missing(src_node, message.Payload)
                 case FsmFullReport():
-                    path_dbg |= 0x00000008
+                    path_dbg |= 0x00000004
                     self.process_fsm_full_report(message.Payload)
-                case _:
+                case PicoMissing():
+                    path_dbg |= 0x00000008
+                    self.process_pico_missing(src_node, message.Payload)
+                case SyncedReadings():
                     path_dbg |= 0x00000010
+                    self.process_synced_readings(src_node, message.Payload)
+                case _:
+                    path_dbg |= 0x00000020
         # print(f"--pico_cycler  path:0x{path_dbg:08X}", flush=True)
         return Ok(True)
 
@@ -528,7 +548,7 @@ class PicoCycler(Actor):
             zombies = []
             for pico in self.zombies:
                 zombies.append(f" {pico} [{self.actor_by_pico[pico].name}]")
-            if time.time() > next_zombie_problem:
+            if time.time() > next_zombie_problem and len(zombies) > 0:
                 self.log(f"Sending problem event for zombies {zombies}")
                 self._send_to(
                     self.primary_scada,
