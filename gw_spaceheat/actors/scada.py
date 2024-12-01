@@ -8,7 +8,7 @@ import time
 from typing import Any
 from typing import List
 from typing import Optional
-
+import dotenv
 from enum import auto
 from gwproto.message import Header
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
@@ -680,6 +680,61 @@ class Scada(ScadaInterface, Proactor):
                 self.logger.error("Problem getting communicator for home alone and"
                                   "Processing a ScadaParams message")
 
+    
+    def update_env_variable(self, variable, new_value) -> None:
+        """
+        Updates .env with new Scada Params
+        """
+        dotenv_filepath = dotenv.find_dotenv()
+        if not dotenv_filepath:
+            self("Couldn't find a .env file!")
+            return
+        with open(dotenv_filepath, 'r') as file:
+            lines = file.readlines()
+        with open(dotenv_filepath, 'w') as file:
+            for line in lines:
+                if (line.startswith(f"{variable}=") 
+                    or line.startswith(f"{variable}= ")
+                    or line.startswith(f"{variable} =")
+                    or line.startswith(f"{variable} = ")):
+                    file.write(f"{variable}={new_value}\n")
+                else:
+                    file.write(line)
+
+    def process_scada_params(self, message: ScadaParams) -> None:
+        new = message.NewParams
+        if new:
+            old = self.data.ha1_params
+            self.data.ha1_params = new
+            if new.AlphaTimes10 != old.AlphaTimes10:          
+                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10)
+            if new.BetaTimes100 != old.BetaTimes100:
+                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100)
+            if new.GammaEx6 != old.GammaEx6:
+                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6)
+            if new.IntermediatePowerKw != old.IntermediatePowerKw:
+                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw)
+            if new.IntermediateRswtF != old.IntermediateRswtF:
+                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF)
+            if new.DdPowerKw != old.DdPowerKw:
+                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw)
+            if new.DdRswtF != old.DdRswtF:
+                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF)
+            if new.DdDeltaTF != old.DdDeltaTF:
+                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF)
+
+            response = ScadaParams(
+                    FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                    FromName=self.name,
+                    ToName=message.FromName,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=message.MessageId,
+                    NewParams=self.data.ha1_params,
+                    OldParams=old,
+                )
+            self.logger.error(f"Sending back {response}")
+            self._links.publish_upstream(response)
+    
     def _send_layout_received(self, payload: SendLayout) -> None:
         print(f"Got SendLayout! {payload}")
         self.payload = payload

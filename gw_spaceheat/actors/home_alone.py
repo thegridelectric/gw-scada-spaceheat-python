@@ -1,10 +1,9 @@
 import asyncio
-from typing import Any, Sequence
+from typing import Any, Optional, Sequence
 from enum import auto
 import uuid
 import time
 import numpy as np
-import dotenv
 from datetime import datetime, timedelta
 import pytz
 import requests
@@ -20,8 +19,9 @@ from gwproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
                            ChangeStoreFlowRelay, FsmReportType, MainAutoState)
 from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
-                                 FsmFullReport, ScadaParams)
+                                 FsmFullReport, GoDormant, WakeUp)
 from actors.config import ScadaSettings
+
 
 
 class HomeAloneState(GwStrEnum):
@@ -102,7 +102,7 @@ class HomeAlone(Actor):
         super().__init__(name, services)
         self.settings: ScadaSettings = self.services.settings
         self.cn: H0CN = self.layout.channel_names
-        self.dotenv_filepath = dotenv.find_dotenv()
+        
         self._stop_requested: bool = False
         self.main_loop_sleep_seconds = 60
         self.hardware_layout = self._services.hardware_layout
@@ -137,41 +137,49 @@ class HomeAlone(Actor):
         self.longitude = self.settings.longitude
         self.data: ScadaData = self._services.data
         self.params: Ha1Params = self.data.ha1_params
-        self.log(f"Params are {self.params}")
-        alpha = self.params.AlphaTimes10 / 10
-        self.beta = self.params.BetaTimes100 / 100
-        self.gamma = self.params.GammaEx6 / 1e6
-        self.hp_max_kw_th = self.params.HpMaxKwTh
-        self.no_power_rswt = -alpha/self.beta
-        self.intermediate_power = self.params.IntermediatePowerKw
-        self.intermediate_rswt = self.params.IntermediateRswtF
-        self.dd_power = self.params.DdPowerKw
-        self.dd_rswt = self.params.DdRswtF
-        self.dd_delta_t = self.params.DdDeltaTF
+
+        # used by the rswt quad params calculator
+        self._cached_params: Optional[Ha1Params] = None 
+        self._rswt_quadratic_params: Optional[np.ndarray] = None 
+    
         self.log(f"self.timezone: {self.timezone}")
         self.log(f"self.latitude: {self.latitude}")
         self.log(f"self.longitude: {self.longitude}")
-        self.log(f"alpha: {alpha}")
-        self.log(f"self.beta: {self.beta}")
-        self.log(f"self.gamma: {self.gamma}")
-        self.log(f"self.hp_max_kw_th: {self.hp_max_kw_th}")
-        self.log(f"self.no_power_rswt: {self.no_power_rswt}")
-        self.log(f"self.intermediate_power: {self.intermediate_power}")
-        self.log(f"self.intermediate_rswt: {self.intermediate_rswt}")
-        self.log(f"self.dd_power: {self.dd_power}")
-        self.log(f"self.dd_rswt: {self.dd_rswt}")
-        self.log(f"self.dd_delta_t: {self.dd_delta_t}")
+        self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        # Find the quadratic function that finds heating power from RSWT
-        x_rswt = np.array([self.no_power_rswt, self.intermediate_rswt, self.dd_rswt])
-        y_hpower = np.array([0, self.intermediate_power, self.dd_power])
-        A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
-        self.rswt_quadratic_params = np.linalg.solve(A, y_hpower)
-        self.log(f"self.rswt_quadratic_params: {self.rswt_quadratic_params}")
+        
         # Get the weather forecast
         self.weather = None
         self.weather_long = None
         self.get_weather()
+    
+    @property
+    def rswt_quadratic_params(self) -> np.ndarray:
+        """Property to get quadratic parameters for calculating heating power 
+        from required source water temp, recalculating if necessary
+        """
+        if self.params != self._cached_params:
+            intermediate_rswt = self.params.IntermediateRswtF
+            dd_rswt = self.params.DdRswtF
+            intermediate_power = self.params.IntermediatePowerKw
+            dd_power = self.params.DdPowerKw
+            x_rswt = np.array([self.no_power_rswt, intermediate_rswt, dd_rswt])
+            y_hpower = np.array([0, intermediate_power, dd_power])
+            A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
+            self._rswt_quadratic_params = np.linalg.solve(A, y_hpower)
+            self._cached_params = self.params
+            self.log(f"Calculating rswt_quadratic_params: {self._rswt_quadratic_params}")
+        
+        if not self._rswt_quadratic_params:
+            raise Exception("_rswt_quadratic_params should have been set here!!")
+        return self._rswt_quadratic_params
+
+
+    @property
+    def no_power_rswt(self) -> float:
+        alpha = self.params.AlphaTimes10 / 10
+        beta = self.params.BetaTimes100 / 100
+        return -alpha/beta
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
         now_ms = int(time.time() * 1000)
@@ -307,7 +315,7 @@ class HomeAlone(Actor):
 
             await asyncio.sleep(self.main_loop_sleep_seconds)
 
-    def update_relays(self, previous_state):
+    def update_relays(self, previous_state) -> None:
         if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
             self._turn_off_HP()
         if "HpOn" not in previous_state and "HpOn" in self.state:
@@ -323,7 +331,7 @@ class HomeAlone(Actor):
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
             self._valved_to_discharge_store()
         
-    def _turn_on_HP(self):
+    def _turn_on_HP(self) -> None:
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_scada_ops_relay.handle,
@@ -335,7 +343,7 @@ class HomeAlone(Actor):
         self._send_to(self.hp_scada_ops_relay, event)
         self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
 
-    def _turn_off_HP(self):
+    def _turn_off_HP(self) -> None:
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_scada_ops_relay.handle,
@@ -348,7 +356,7 @@ class HomeAlone(Actor):
         self._send_to(self.hp_scada_ops_relay, event)
         self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
 
-    def _turn_on_store(self):
+    def _turn_on_store(self) -> None:
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_pump_failsafe.handle,
@@ -361,7 +369,7 @@ class HomeAlone(Actor):
         self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
 
 
-    def _turn_off_store(self):
+    def _turn_off_store(self) -> None:
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_pump_failsafe.handle,
@@ -374,7 +382,7 @@ class HomeAlone(Actor):
         self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
 
 
-    def _valved_to_charge_store(self):
+    def _valved_to_charge_store(self) -> None:
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
@@ -386,7 +394,7 @@ class HomeAlone(Actor):
         self._send_to(self.store_charge_discharge_relay, event)
         self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
 
-    def _valved_to_discharge_store(self):
+    def _valved_to_discharge_store(self) -> None:
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.store_charge_discharge_relay.handle,
@@ -411,61 +419,23 @@ class HomeAlone(Actor):
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
-            case ScadaParams():
-                self._process_scada_params(message.Payload)
+            case GoDormant():
+                self._go_dormant_received(message.Payload)
+            case WakeUp():
+                self._wake_up_received(message.Payload)
         return Ok(True)
     
-    def update_env_variable(self, variable, new_value):
-        if not self.dotenv_filepath:
-            self.log("Couldn't find a .env file!")
-            return
-        with open(self.dotenv_filepath, 'r') as file:
-            lines = file.readlines()
-        with open(self.dotenv_filepath, 'w') as file:
-            for line in lines:
-                if (line.startswith(f"{variable}=") 
-                    or line.startswith(f"{variable}= ")
-                    or line.startswith(f"{variable} =")
-                    or line.startswith(f"{variable} = ")):
-                    file.write(f"{variable}={new_value}\n")
-                else:
-                    file.write(line)
-
-    def _process_scada_params(self, message: ScadaParams) -> None:
-        self.log("Got ScadaParams - check h.latest")
-        self.latest = message
-        new = message.NewParams
-        if new:
-            old = self.params
-            self.params = new
-            if new.AlphaTimes10 != self.params.AlphaTimes10:          
-                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10)
-            if new.BetaTimes100 != self.params.BetaTimes100:
-                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100)
-            if new.GammaEx6 != self.params.GammaEx6:
-                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6)
-            if new.IntermediatePowerKw != self.params.IntermediatePowerKw:
-                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw)
-            if new.IntermediateRswtF != self.params.IntermediateRswtF:
-                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF)
-            if new.DdPowerKw != self.params.DdPowerKw:
-                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw)
-            if new.DdRswtF != self.params.DdRswtF:
-                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF)
-            if new.DdDeltaTF != self.params.DdDeltaTF:
-                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF)
-
-            response = ScadaParams(
-                    FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                    FromName=self.name,
-                    ToName=message.FromName,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=message.MessageId,
-                    NewParams=self.params,
-                    OldParams=old,
-                )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
+    def _go_dormant_received(self) -> None:
+        """
+        Relays no longer belong to home alone until wake up received
+        """
+        ...
+    
+    def _wake_up_received(self) -> None:
+        """
+        Home alone is again in charge of things.
+        """
+        ...
 
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
@@ -592,9 +562,11 @@ class HomeAlone(Actor):
             self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} <= {max_buffer} F)")
             return False
 
-    def required_heating_power(self, oat, ws):
+    def required_heating_power(self, oat: float, ws):
         alpha = self.params.AlphaTimes10 / 10
-        r = alpha + self.beta*oat + self.gamma*ws
+        beta = self.params.BetaTimes100 / 100
+        gamma = self.params.GammaEx6 / 1e6
+        r = alpha + beta*oat + gamma*ws
         return round(r,2) if r>0 else 0
 
     def required_swt(self,rhp):
@@ -669,7 +641,7 @@ class HomeAlone(Actor):
         self.log(f"Average Power = {self.weather['avg_power']}")
         self.log(f"RSWT = {self.weather['required_swt']}")
        
-    def get_required_storage(self, time_now):
+    def get_required_storage(self, time_now: datetime) -> float:
         morning_kWh = sum(
             [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
              if 7<=t.hour<=11]
@@ -686,7 +658,7 @@ class HomeAlone(Actor):
         #     or (time_now.weekday()<5 and time_now.hour<=6)):
         if (time_now.hour>=20 or time_now.hour<=6):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
-            afternoon_missing_kWh = afternoon_kWh - (4*self.hp_max_kw_th - midday_kWh) # TODO make the kW_th a function of COP and kW_el
+            afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwTh - midday_kWh) # TODO make the kW_th a function of COP and kW_el
             return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
         # elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
         elif (time_now.hour>=12 and time_now.hour<16):
@@ -750,19 +722,21 @@ class HomeAlone(Actor):
             print("Storage top warmer than buffer top")
             return False
     
-    def to_celcius(self, t):
+    def to_celcius(self, t: float) -> float:
         return (t-32)*5/9
 
-    def to_fahrenheit(self, t):
+    def to_fahrenheit(self, t:float) -> float:
         return t*9/5+32
 
-    def delta_T(self, swt):
+    def delta_T(self, swt: float) -> float:
         a, b, c = self.rswt_quadratic_params
         delivered_heat_power = a*swt**2 + b*swt + c
-        d = self.dd_delta_t/self.dd_power * delivered_heat_power
+        dd_delta_t = self.params.DdDeltaTF
+        dd_power = self.params.DdPowerKw
+        d = dd_delta_t/dd_power * delivered_heat_power
         return d if d>0 else 0
     
-    def rwt(self, swt):
+    def rwt(self, swt: float) -> float:
         timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 7:
             required_swt = max(
@@ -791,10 +765,6 @@ class HomeAlone(Actor):
             Summary=msg
         ))
         self.log(alert_str)
-        # TODO: send Opsgenie alert by creating new named type
-        # that goes up to S3
 
     def send_to_atn(self, payload: Any) -> None:
         self._services._links.publish_upstream(payload)
-# if __name__ == '__main__':
-#     from actors import HomeAlone; from command_line_utils import get_scada; s=get_scada(); s.run_in_thread(); h: HomeAlone = s.get_communicator('h')

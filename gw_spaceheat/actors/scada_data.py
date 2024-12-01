@@ -3,6 +3,7 @@ not necessarily re-use. """
 
 import time
 import uuid
+import dotenv
 from typing import Dict, List, Optional
 
 from actors.config import ScadaSettings
@@ -14,6 +15,7 @@ from gwproto.messages import (
     Ha1Params,
     MachineStates,
     Report,
+    ScadaParams,
     SingleReading,
     SnapshotSpaceheat,
 )
