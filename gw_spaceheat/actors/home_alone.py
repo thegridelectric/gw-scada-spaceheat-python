@@ -136,8 +136,8 @@ class HomeAlone(Actor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
-        self.data: ScadaData = self._services.data
-        self.params: Ha1Params = self.data.ha1_params
+        
+        self.params: Ha1Params = self._services.data.ha1_params
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
@@ -563,18 +563,20 @@ class HomeAlone(Actor):
             self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} <= {max_buffer} F)")
             return False
 
-    def required_heating_power(self, oat: float, ws):
+    def required_heating_power(self, oat: float, wind_speed_mph: float) -> float:
+        ws = wind_speed_mph
         alpha = self.params.AlphaTimes10 / 10
         beta = self.params.BetaTimes100 / 100
         gamma = self.params.GammaEx6 / 1e6
         r = alpha + beta*oat + gamma*ws
         return round(r,2) if r>0 else 0
 
-    def required_swt(self,rhp):
+    def required_swt(self, required_kw_thermal: float) -> float:
+        rhp = required_kw_thermal
         a, b, c = self.rswt_quadratic_params
         return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
         
-    def get_weather(self):
+    def get_weather(self) -> None:
         try:
             url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
             response = requests.get(url)
@@ -772,6 +774,7 @@ class HomeAlone(Actor):
         self.send_to_atn(payload=Alert(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             AboutNode=self.node,
+            OpsGenieAlias=alias,
             UnixS=int(time.time()),
             Summary=msg
         ))
