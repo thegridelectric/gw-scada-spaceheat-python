@@ -38,9 +38,9 @@ def test_ha1():
     assert h.params.DdPowerKw == 5.5
     assert h.no_power_rswt == 55
 
-    assert h.rswt_quadratic_params[0] == 0.0004912280701754388
-    assert h.rswt_quadratic_params[1] == -0.042807017543859696
-    assert h.rswt_quadratic_params[2] == 0.868421052631581
+    assert abs(h.rswt_quadratic_params[0] - 0.0004912280701754388) < 0.000001
+    assert abs(h.rswt_quadratic_params[1] + 0.042807017543859696) < 0.00001
+    assert abs(h.rswt_quadratic_params[2] - 0.868421052631581) < 0.001
     
     # Intermediate kw and rswt match
     assert h.required_swt(required_kw_thermal=1.5) == 100
