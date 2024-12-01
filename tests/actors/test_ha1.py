@@ -65,10 +65,10 @@ def test_ha1():
 
     # wrote the new parameter to .env
     dotenv_filepath = dotenv.find_dotenv()
-    with open(dotenv_filepath, 'r') as file:
-        lines = file.readlines()
-    print(lines)
-    assert "SCADA_DD_POWER=10\n" in lines
+    if dotenv_filepath:
+        with open(dotenv_filepath, 'r') as file:
+            lines = file.readlines()
+        assert "SCADA_DD_POWER=10\n" in lines
 
     # this changes required_swt etc
     assert h.required_swt(required_kw_thermal=5.5) == 128.7

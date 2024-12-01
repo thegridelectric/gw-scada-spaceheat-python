@@ -669,11 +669,12 @@ class Scada(ScadaInterface, Proactor):
     
     def update_env_variable(self, variable, new_value) -> None:
         """
-        Updates .env with new Scada Params
+        Updates .env with new Scada Params. 
+        TODO: move this somewhere else, like a local sqlite db
         """
         dotenv_filepath = dotenv.find_dotenv()
         if not dotenv_filepath:
-            self("Couldn't find a .env file!")
+            self.logger.error("Couldn't find a .env file - perhaps because in CI?")
             return
         with open(dotenv_filepath, 'r') as file:
             lines = file.readlines()
