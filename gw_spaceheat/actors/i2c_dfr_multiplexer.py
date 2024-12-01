@@ -83,10 +83,6 @@ class I2cDfrMultiplexer(Actor):
         self.check_channels()
         self._stop_requested = False
 
-    @property
-    def primary_scada(self) -> ShNode:
-        return self.layout.nodes[H0N.primary_scada]
-
     def initialize_board(self) -> None:
         self.log("INITILIZING I2C DFR MULTIPLEXER")
         if self.is_simulated:

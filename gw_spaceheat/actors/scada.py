@@ -8,7 +8,7 @@ import time
 from typing import Any
 from typing import List
 from typing import Optional
-
+import dotenv
 from enum import auto
 from gwproto.message import Header
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
@@ -22,10 +22,10 @@ from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmAtomicReport, FsmEvent, FsmFullReport
 from gwproto.messages import EventBase
-from gwproto.messages import LayoutLite, LayoutEvent
+from gwproto.messages import LayoutLite
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
-from gwproto.messages import SendSnap
+from gwproto.messages import SendSnap, SendLayout
 
 from gwproto.named_types import (AdminWakesUp, AnalogDispatch, ChannelReadings, MachineStates, 
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
@@ -297,7 +297,6 @@ class Scada(ScadaInterface, Proactor):
             model_attribute="auto_state",
         )
 
-        self.send_layout_info()
 
 
     def init(self) -> None:
@@ -422,11 +421,13 @@ class Scada(ScadaInterface, Proactor):
             FlowModuleComponents=[node.component.gt for node in flow_nodes],
             ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
             DataChannels=[ch.to_gt() for ch in self.data.my_channels],
+            Ha1Params=self.data.ha1_params,
             MessageCreatedMs=int(time.time() * 1000),
             MessageId=str(uuid.uuid4())
         )
-        self.generate_event(LayoutEvent(Layout=layout))
-        print("Just tried to send layout event")
+        self._links.publish_upstream(layout)
+        #self.generate_event(LayoutEvent(Layout=layout))
+        self.logger.error("Just sent layout")
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
@@ -466,14 +467,6 @@ class Scada(ScadaInterface, Proactor):
             return True
         #TODO: add sending on change.
 
-    def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
-        self._dispatch_live_hack = False
-        return Ok()
-
-    def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
-        self._dispatch_live_hack = True
-        return Ok()
-
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
         message = Message(Src=from_node.Name, Payload=payload)
         return self._links.publish_message(Scada.LOCAL_MQTT, message, qos=qos)
@@ -512,9 +505,6 @@ class Scada(ScadaInterface, Proactor):
                         self.get_communicator(message.Header.Dst).process_message(message)
                     except Exception as e:
                         self.logger.error(f"problem with {message}: \n{e}")
-                        print(f"message.Header.Dst is {message.Header.Dst}")
-                        print(f"self._communicators.keys() are {self._communicators.keys()}")
-                
             case FsmAtomicReport():
                 path_dbg |= 0x00000010
                 self.get_communicator(message.Header.Dst).process_message(message)
@@ -542,21 +532,28 @@ class Scada(ScadaInterface, Proactor):
                 path_dbg |= 0x00001000
                 self.single_reading_received(message.Payload)
             case SyncedReadings():
-                path_dbg |= 0x00002000
-                self.synced_readings_received(
-                        from_node, message.Payload
-                    )
+                if message.Header.Dst == self.name:
+                    path_dbg |= 0x00002000
+                    self.synced_readings_received(
+                            from_node, message.Payload
+                        )
+                else:
+                    path_dbg |=  0x00004000
+                    try:
+                        self.get_communicator(message.Header.Dst).process_message(message)
+                    except Exception as e:
+                        self.logger.error(f"problem with {message}: \n{e}")
             case TicklistHall():
-                path_dbg |= 0x00004000
+                path_dbg |= 0x00008000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistHallReport():
-                path_dbg |= 0x00008000
+                path_dbg |= 0x00010000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case TicklistReed():
-                path_dbg |= 0x00010000
+                path_dbg |= 0x00020000
                 self.get_communicator(message.Header.Dst).process_message(message)
             case TicklistReedReport():
-                path_dbg |= 0x00020000
+                path_dbg |= 0x00040000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case _:
                 raise ValueError(
@@ -591,22 +588,18 @@ class Scada(ScadaInterface, Proactor):
             case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
-            case SendSnap():
+            case SendLayout():
                 path_dbg |= 0x00000002
+                self._send_layout_received(decoded.Payload)
+            case SendSnap():
+                path_dbg |= 0x00000004
                 self._send_snap_received(decoded.Payload)
             case ScadaParams():
-                path_dbg |= 0x00000004
-                if decoded.Payload.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
-                    return
-                if decoded.Payload.ToName == H0N.home_alone:
-                    try:
-                        self.get_communicator(H0N.home_alone).process_message(decoded)
-                    except Exception as e:
-                        self.logger.error("Problem getting communicator for home alone and "
-                                        f"Processing a ScadaParams message: {e}")
+                path_dbg |= 0x00000008
+                self._scada_params_received(decoded.Payload)
             case _:
                 # Intentionally ignore this for forward compatibility
-                path_dbg |= 0x00000004
+                path_dbg |= 0x00000010
         self._logger.path("--_process_upstream_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_downstream_mqtt_message(
@@ -673,16 +666,77 @@ class Scada(ScadaInterface, Proactor):
         to_node = self._layout.node_from_handle(fsm_event.ToHandle)
         if to_node:
             self.get_communicator(to_node.name).process_message(fsm_event)
-        
+    
+    def update_env_variable(self, variable, new_value) -> None:
+        """
+        Updates .env with new Scada Params. 
+        TODO: move this somewhere else, like a local sqlite db
+        """
+        dotenv_filepath = dotenv.find_dotenv()
+        if not dotenv_filepath:
+            self.logger.error("Couldn't find a .env file - perhaps because in CI?")
+            return
+        with open(dotenv_filepath, 'r') as file:
+            lines = file.readlines()
+        with open(dotenv_filepath, 'w') as file:
+            line_exists = False
+            for line in lines:
+                if (line.startswith(f"{variable}=") 
+                    or line.startswith(f"{variable}= ")
+                    or line.startswith(f"{variable} =")
+                    or line.startswith(f"{variable} = ")):
+                    file.write(f"{variable}={new_value}\n")
+                    line_exists = True      
+                else:
+                    file.write(line)
+            if not line_exists:
+                file.write(f"\n{variable}={new_value}") 
+
     def _scada_params_received(self, message: ScadaParams) -> None:
         if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
             return
-        if message.ToName == H0N.home_alone:
-            try:
-                self.get_communicator(H0N.home_alone).process_message(message)
-            except Exception:
-                self.logger.error("Problem getting communicator for home alone and"
-                                  "Processing a ScadaParams message")
+        new = message.NewParams
+        if new:
+            old = self.data.ha1_params
+            self.data.ha1_params = new
+            if new.AlphaTimes10 != old.AlphaTimes10:          
+                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10)
+            if new.BetaTimes100 != old.BetaTimes100:
+                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100)
+            if new.GammaEx6 != old.GammaEx6:
+                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6)
+            if new.IntermediatePowerKw != old.IntermediatePowerKw:
+                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw)
+            if new.IntermediateRswtF != old.IntermediateRswtF:
+                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF)
+            if new.DdPowerKw != old.DdPowerKw:
+                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw)
+            if new.DdRswtF != old.DdRswtF:
+                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF)
+            if new.DdDeltaTF != old.DdDeltaTF:
+                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF)
+
+            response = ScadaParams(
+                    FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                    FromName=self.name,
+                    ToName=message.FromName,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=message.MessageId,
+                    NewParams=self.data.ha1_params,
+                    OldParams=old,
+                )
+            self.logger.error(f"Sending back {response}")
+            self._links.publish_upstream(response)
+    
+    def _send_layout_received(self, payload: SendLayout) -> None:
+        print(f"Got SendLayout! {payload}")
+        self.payload = payload
+        if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
+            print(f"Not the correct gnode: {payload.FromGNodeAlias}")
+            return
+        if payload.FromName == H0N.atn:
+            print("Sending layout info")
+            self.send_layout_info()
 
     def _send_snap_received(self, payload: SendSnap):
         if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
@@ -810,6 +864,24 @@ class Scada(ScadaInterface, Proactor):
     #####################################################################
     # State Machine related
     #####################################################################
+
+
+    def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
+        if transition.link_name == self.upstream_client:
+            self._dispatch_live_hack = False
+            self.logger.error("Link state: "
+                              f" {self._links._states._links['gridworks'].curr_state.name.value}")
+        return Ok()
+
+    def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
+        if transition.link_name == self.upstream_client:
+            self._dispatch_live_hack = True
+            self.logger.error("Link state: "
+                              f" {self._links._states._links['gridworks'].curr_state.name.value}")
+            
+            self.send_layout_info()
+
+        return Ok()
 
     def _analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
         self.logger.error("Got Analog Dispatch in SCADA!")

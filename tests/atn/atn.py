@@ -15,7 +15,7 @@ import pytz
 
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.data_classes.house_0_names import H0N
-from gwproto.named_types import ScadaParams
+from gwproto.named_types import Ha1Params, ScadaParams, LayoutLite
 from gwproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
 import rich
@@ -27,12 +27,12 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
-from gwproto.messages import ReportEvent
+from gwproto.messages import ReportEvent, LayoutEvent
 from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
 from gwproto.messages import Report
 from gwproto.messages import SnapshotSpaceheat
-from gwproto.named_types import AnalogDispatch
+from gwproto.named_types import AnalogDispatch, Ha1Params, SendLayout
 
 from gwproactor import ActorInterface
 from gwproactor import QOS
@@ -92,6 +92,7 @@ class Atn(ActorInterface, Proactor):
     data: AtnData
     event_loop_thread: Optional[threading.Thread] = None
     dashboard: Optional[Dashboard]
+    ha1_params: Optional[Ha1Params]
 
     def __init__(
         self,
@@ -112,6 +113,7 @@ class Atn(ActorInterface, Proactor):
                 downstream=True,
             )
         )
+        self.ha1_params = None
         self.latest_report: Optional[Report] = None
         self.report_output_dir = self.settings.paths.data_dir / "report"
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
@@ -179,14 +181,17 @@ class Atn(ActorInterface, Proactor):
             case ScadaParams():
                 path_dbg |= 0x00000002
                 self._publish_to_scada(message.Payload)
-            case SendSnap():
+            case SendLayout():
                 path_dbg |= 0x00000004
                 self._publish_to_scada(message.Payload)
-            case DBGPayload():
+            case SendSnap():
                 path_dbg |= 0x00000008
                 self._publish_to_scada(message.Payload)
-            case _:
+            case DBGPayload():
                 path_dbg |= 0x00000010
+                self._publish_to_scada(message.Payload)
+            case _:
+                path_dbg |= 0x00000020
 
         self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
 
@@ -200,29 +205,34 @@ class Atn(ActorInterface, Proactor):
             )
         self.stats.add_message(decoded)
         match decoded.Payload:
-            case PowerWatts():
+            case LayoutLite():
                 path_dbg |= 0x00000001
+                self._process_layout_lite(decoded.Payload)
+            case PowerWatts():
+                path_dbg |= 0x00000002
                 self._process_pwr(decoded.Payload)
             case Report():
-                path_dbg |= 0x00000002
+                path_dbg |= 0x00000004
                 self._process_report(decoded.Payload)
             case ScadaParams():
-                path_dbg |= 0x00000004
+                path_dbg |= 0x00000008
                 self._process_scada_params(decoded.Payload)
             case SnapshotSpaceheat():
-                path_dbg |= 0x00000008
+                path_dbg |= 0x00000010
                 self._process_snapshot(decoded.Payload)
             case EventBase():
-                path_dbg |= 0x00000010
+                path_dbg |= 0x00000020
                 self._process_event(decoded.Payload)
                 if decoded.Payload.TypeName == ReportEvent.model_fields["TypeName"].default:
-                    path_dbg |= 0x00000020
+                    path_dbg |= 0x00000040
                     self._process_report(decoded.Payload.Report)
                 elif decoded.Payload.TypeName == SnapshotSpaceheat.model_fields["TypeName"].default:
-                    path_dbg |= 0x00000040
+                    path_dbg |= 0x00000080
                     self._process_snapshot(decoded.Payload)
+                elif decoded.Payload.TypeName == LayoutEvent.model_fields["TypeName"].default:
+                    self.logger.error("Got a LayoutEvent type")
             case _:
-                path_dbg |= 0x00000080
+                path_dbg |= 0x00000100
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_pwr(self, pwr: PowerWatts) -> None:
@@ -255,8 +265,11 @@ class Atn(ActorInterface, Proactor):
         return s
 
     def _process_scada_params(self, params: ScadaParams) -> None:
-        print(f"Received Scada Params: {params}")
-
+        if params.NewParams:
+            print(f"Old: {self.ha1_params}")
+            print(f"New: {params.NewParams}")
+            self.ha1_params = params.NewParams
+        
     def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
         if self.settings.dashboard.print_gui:
@@ -264,13 +277,16 @@ class Atn(ActorInterface, Proactor):
         if self.settings.dashboard.print_snap:
             self._logger.warning(self.snapshot_str(snapshot))
 
+    def _process_layout_lite(self, layout: LayoutLite) -> None:
+        self.ha1_params = layout.Ha1Params
+        self.logger.error(f"Just got layout: {self.ha1_params}")
+
     def _process_report(self, report: Report) -> None:
         self.data.latest_report = report
         if self.settings.save_events:
             report_file = self.report_output_dir / f"Report.{report.SlotStartUnixS}.json"
             with report_file.open("w") as f:
                 f.write(str(report))
-
 
     def _process_event(self, event: EventBase) -> None:
         if self.settings.save_events:
@@ -294,7 +310,7 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
-    def set_alpha(self, alpha: float) -> None:
+    def send_new_params(self, new: Ha1Params) -> None:
         self.send_threadsafe(
             Message(
                 Src=self.name,
@@ -305,122 +321,105 @@ class Atn(ActorInterface, Proactor):
                     ToName=H0N.home_alone,
                     UnixTimeMs=int(time.time() * 1000),
                     MessageId=str(uuid.uuid4()),
-                    Alpha=alpha,
+                    NewParams=new
                 ),
             )
         )
+
+    def send_layout(self) -> None:
+        self.send_threadsafe(
+                        Message(
+                        Src=self.name,
+                        Dst=self.name,
+                        Payload=SendLayout(
+                            FromGNodeAlias=self.layout.atn_g_node_alias,
+                            FromName=H0N.atn,
+                            ToName=H0N.primary_scada,
+                        ),
+                    )
+        )
+        self.logger.error("Requesting layout")
+
+    def set_alpha(self, alpha: float) -> None:
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate({**self.ha1_params.model_dump(), "AlphaTimes10": int(alpha * 10)})
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set alpha! {e}")
 
     def set_beta(self, beta: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.home_alone,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    Beta=beta,
-                ),
-            )
-        )
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate({**self.ha1_params.model_dump(), "BetaTimes100": int(beta * 100)})
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set beta! {e}")
     
     def set_gamma(self, gamma: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.home_alone,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    Gamma=gamma,
-                ),
-            )
-        )
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate({**self.ha1_params.model_dump(), "GammaEx6": int(gamma * 1e6)})
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set gamma! {e}")
 
     def set_intermediate_power(self, intermediate_power: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.home_alone,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    IntermediatePowerKw=intermediate_power,
-                ),
-            )
-        )
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate({**self.ha1_params.model_dump(), "IntermediatePowerKw": intermediate_power})
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set intermediate power! {e}")
 
     def set_intermediate_rswt(self, intermediate_rswt: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.home_alone,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    IntermediateRswt=intermediate_rswt,
-                ),
-            )
-        )
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate({**self.ha1_params.model_dump(), "IntermediateRswtF": int(intermediate_rswt)})
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set intermediate rswt! {e}")
+
 
     def set_dd_power(self, dd_power: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.home_alone,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    DdPowerKw=dd_power,
-                ),
-            )
-        )
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate({**self.ha1_params.model_dump(), "DdPowerKw": dd_power})
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set DdPowerKw! {e}")
 
     def set_dd_rswt(self, dd_rswt: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.home_alone,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    DdRswt=dd_rswt,
-                ),
-            )
-        )
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate({**self.ha1_params.model_dump(), "DdRswtF": dd_rswt})
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set DdRswt! {e}")
 
     def set_dd_delta_t(self, dd_delta_t: float) -> None:
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.name,
-                Payload=ScadaParams(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    FromName=H0N.atn,
-                    ToName=H0N.home_alone,
-                    UnixTimeMs=int(time.time() * 1000),
-                    MessageId=str(uuid.uuid4()),
-                    DdDeltaT=dd_delta_t,
-                ),
-            )
-        )
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate({**self.ha1_params.model_dump(), "DdDeltaTF": dd_delta_t})
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set DdDeltaTF! {e}")
 
     def set_dist_010(self, val: int = 30) -> None:
         # TODO: remove lie about this being from auto
