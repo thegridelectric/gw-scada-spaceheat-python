@@ -242,11 +242,12 @@ class PicoCycler(Actor):
             if pico not in self.picos:
                 raise Exception(f"[{self.name}] {pico} should be in self.picos!")
         elif actor.ActorClass == ActorClass.ApiTankModule:
-            if f"{actor.name}-depth1" in payload.ChannelNameList or \
-                f"{actor.name}-depth2" in payload.ChannelNameList:
+            channel_names = payload.ChannelNameList
+            if any(reading.startswith(f"{actor.name}-depth1") for reading in channel_names) or \
+               any(reading.startswith(f"{actor.name}-depth2") for reading in channel_names):
                 pico = actor.component.gt.PicoAHwUid
-            elif  f"{actor.name}-depth3" in payload.ChannelNameList or \
-                f"{actor.name}-depth4" in payload.ChannelNameList:
+            elif any(reading.startswith(f"{actor.name}-depth3") for reading in channel_names) or \
+               any(reading.startswith(f"{actor.name}-depth4") for reading in channel_names):
                 pico = actor.component.gt.PicoBHwUid
             else:
                 raise Exception(
@@ -284,7 +285,7 @@ class PicoCycler(Actor):
         self.is_alive(pico)
 
     def is_alive(self, pico: str) -> None:
-        self.log(f" [{self.actor_by_pico[pico].name}] is alive")
+        #self.log(f" [{self.actor_by_pico[pico].name}] is alive")
         if pico in self.zombies:
             self.log(f"{pico} [{self.actor_by_pico[pico].name}] in zombies, got to is_alive")
         if self.pico_states[pico] == SinglePicoState.Flatlined:
