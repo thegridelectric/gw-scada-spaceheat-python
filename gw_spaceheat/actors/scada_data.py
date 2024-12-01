@@ -11,6 +11,7 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.messages import (
     ChannelReadings,
     FsmFullReport,
+    Ha1Params,
     MachineStates,
     Report,
     SingleReading,
@@ -28,7 +29,8 @@ class ScadaData:
     recent_channel_unix_ms: Dict[str, List]
     recent_fsm_reports: Dict[str, FsmFullReport]
     settings: ScadaSettings
-    hardware_layout: HardwareLayout
+    layout: HardwareLayout
+    ha1_params: Ha1Params
 
     def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self.latest_total_power_w: Optional[int] = None
@@ -37,7 +39,19 @@ class ScadaData:
         self.seconds_by_channel: Dict[str:int] = {}
 
         self.settings = settings
-        self.hardware_layout = hardware_layout
+        self.layout = hardware_layout
+        # TODO: move into layout when better UI for it
+        self.ha1_params = Ha1Params(
+            AlphaTimes10=int(self.settings.alpha * 10),
+            BetaTimes100=int(self.settings.beta * 100),
+            GammaEx6=int(self.settings.gamma * 1e6),
+            IntermediatePowerKw=self.settings.intermediate_power,
+            IntermediateRswtF=int(self.settings.intermediate_rswt),
+            DdPowerKw=self.settings.dd_power,
+            DdRswtF=int(self.settings.dd_rswt),
+            DdDeltaTF=int(self.settings.dd_delta_t),
+            HpMaxKwTh=self.settings.hp_max_kw_th,
+        )
         self.my_channels = self.get_my_channels()
         self.recent_machine_states = {}
         self.latest_channel_values: Dict[str, int] = {  # noqa
@@ -56,7 +70,7 @@ class ScadaData:
         self.flush_latest_readings()
 
     def get_my_channels(self) -> List[DataChannel]:
-        return list(self.hardware_layout.data_channels.values())
+        return list(self.layout.data_channels.values())
 
     def flush_latest_readings(self):
         self.recent_channel_values = {ch.Name: [] for ch in self.my_channels}
@@ -85,9 +99,9 @@ class ScadaData:
                 channel_reading_list.append(channel_readings)
 
         return Report(
-            FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-            FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
-            AboutGNodeAlias=self.hardware_layout.terminal_asset_g_node_alias,
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            FromGNodeInstanceId=self.layout.scada_g_node_id,
+            AboutGNodeAlias=self.layout.terminal_asset_g_node_alias,
             SlotStartUnixS=slot_start_seconds,
             SlotDurationS=self.settings.seconds_per_report,
             ChannelReadingList=channel_reading_list,
@@ -100,7 +114,7 @@ class ScadaData:
     def capture_seconds(self, ch: DataChannel) -> int:
         if ch.Name not in self.seconds_by_channel:
             self.seconds_by_channel == {}
-            components = [c.gt for c in self.hardware_layout.components.values()]
+            components = [c.gt for c in self.layout.components.values()]
             for c in components:
                 for config in c.ConfigList:
                     self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
@@ -142,8 +156,8 @@ class ScadaData:
             )
 
         return SnapshotSpaceheat(
-            FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-            FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            FromGNodeInstanceId=self.layout.scada_g_node_id,
             SnapshotTimeUnixMs=int(time.time() * 1000),
             LatestReadingList=latest_reading_list,
             LatestStateList=latest_state_list,

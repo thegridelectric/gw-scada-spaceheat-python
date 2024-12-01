@@ -12,13 +12,14 @@ from gw.enums import GwStrEnum
 from gwproactor import Actor, ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
+from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.house_0_names import H0N
+from gwproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
                            ChangeStoreFlowRelay, FsmReportType, MainAutoState)
-from gwproto.named_types import (FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
+from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
                                  FsmFullReport, ScadaParams)
 from actors.config import ScadaSettings
 
@@ -97,20 +98,23 @@ class HomeAlone(Actor):
     ]
 
     def __init__(self, name: str, services: ServicesInterface):
+        H0CN.buffer.depth1
         super().__init__(name, services)
         self.settings: ScadaSettings = self.services.settings
+        self.cn: H0CN = self.layout.channel_names
         self.dotenv_filepath = dotenv.find_dotenv()
         self._stop_requested: bool = False
         self.main_loop_sleep_seconds = 60
         self.hardware_layout = self._services.hardware_layout
         self.temperature_channel_names = [
-            'buffer-depth1', 'buffer-depth2', 'buffer-depth3', 'buffer-depth4', 
-            'tank1-depth1', 'tank1-depth2', 'tank1-depth3', 'tank1-depth4', 
-            'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 'tank2-depth4', 
-            'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4',
-            'hp-ewt', 'hp-lwt', 'dist-swt', 'dist-rwt', 
-            'buffer-cold-pipe', 'buffer-hot-pipe', 'store-cold-pipe', 'store-hot-pipe',
-            ]
+            H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4,
+            *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
+]
+        # self.temperature_channel_names = [
+        #     H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4]
+        # for i in self.cn.tank: 
+        #     self.temperature_channel_names += [self.cn.tank[i].depth1, self.cn.tank[i].depth2, self.cn.tank[i].depth3, self.cn.tank[i].depth4]
+
         self.temperatures_available = False
         self.storage_declared_ready = False
         # Relays
@@ -131,23 +135,14 @@ class HomeAlone(Actor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
-        self.params = Ha1Params(
-            AlphaTimes10=int(self.settings.alpha * 10),
-            BetaTimes100=int(self.settings.beta * 100),
-            GammaEx6=int(self.settings.gamma * 1e6),
-            IntermediatePowerKw=self.settings.intermediate_power,
-            IntermediateRswtF=int(self.settings.intermediate_rswt),
-            DdPowerKw=self.settings.dd_power,
-            DdRswtF=int(self.settings.dd_rswt),
-            DdDeltaTF=int(self.settings.dd_delta_t),
-            HpMaxKwTh=self.settings.hp_max_kw_th,
-        )
+        self.data: ScadaData = self._services.data
+        self.params: Ha1Params = self.data.ha1_params
         self.log(f"Params are {self.params}")
-        self.alpha = self.params.AlphaTimes10 / 10
+        alpha = self.params.AlphaTimes10 / 10
         self.beta = self.params.BetaTimes100 / 100
         self.gamma = self.params.GammaEx6 / 1e6
         self.hp_max_kw_th = self.params.HpMaxKwTh
-        self.no_power_rswt = -self.alpha/self.beta
+        self.no_power_rswt = -alpha/self.beta
         self.intermediate_power = self.params.IntermediatePowerKw
         self.intermediate_rswt = self.params.IntermediateRswtF
         self.dd_power = self.params.DdPowerKw
@@ -156,7 +151,7 @@ class HomeAlone(Actor):
         self.log(f"self.timezone: {self.timezone}")
         self.log(f"self.latitude: {self.latitude}")
         self.log(f"self.longitude: {self.longitude}")
-        self.log(f"self.alpha: {self.alpha}")
+        self.log(f"alpha: {alpha}")
         self.log(f"self.beta: {self.beta}")
         self.log(f"self.gamma: {self.gamma}")
         self.log(f"self.hp_max_kw_th: {self.hp_max_kw_th}")
@@ -184,7 +179,7 @@ class HomeAlone(Actor):
         self.trigger(event)
         self.log(f"{event}: {orig_state} -> {self.state}")
         self._send_to(
-            self.services._layout.nodes[H0N.primary_scada],
+            self.primary_scada,
             MachineStates(
                 MachineHandle=self.node.handle,
                 StateEnum=HomeAloneState.enum_name(),
@@ -196,7 +191,7 @@ class HomeAlone(Actor):
         # Could update this to receive back reports from the relays and
         # add them to the report.
         trigger_id = str(uuid.uuid4())
-        self._send_to(self.services._layout.nodes[H0N.primary_scada],
+        self._send_to(self.primary_scada,
                 FsmFullReport(
                     FromName=self.name,
                     TriggerId=trigger_id,
@@ -349,6 +344,7 @@ class HomeAlone(Actor):
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
+        
         self._send_to(self.hp_scada_ops_relay, event)
         self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
 
@@ -438,124 +434,36 @@ class HomeAlone(Actor):
     def _process_scada_params(self, message: ScadaParams) -> None:
         self.log("Got ScadaParams - check h.latest")
         self.latest = message
-        if hasattr(message, "Alpha"):
-            old = self.alpha
-            self.alpha = message.Alpha
-            self.update_env_variable('SCADA_ALPHA', self.alpha)
+        new = message.NewParams
+        if new:
+            old = self.params
+            self.params = new
+            if new.AlphaTimes10 != self.params.AlphaTimes10:          
+                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10)
+            if new.BetaTimes100 != self.params.BetaTimes100:
+                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100)
+            if new.GammaEx6 != self.params.GammaEx6:
+                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6)
+            if new.IntermediatePowerKw != self.params.IntermediatePowerKw:
+                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw)
+            if new.IntermediateRswtF != self.params.IntermediateRswtF:
+                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF)
+            if new.DdPowerKw != self.params.DdPowerKw:
+                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw)
+            if new.DdRswtF != self.params.DdRswtF:
+                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF)
+            if new.DdDeltaTF != self.params.DdDeltaTF:
+                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF)
+
             response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldSwtColdestHr=old,
-                NewSwtColdestHr=self.alpha
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "Beta"):
-            old = self.beta
-            self.beta = message.Beta
-            self.update_env_variable('SCADA_BETA', self.beta)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.beta
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "Gamma"):
-            old = self.gamma
-            self.gamma = message.Gamma
-            self.update_env_variable('SCADA_GAMMA', self.gamma)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.gamma
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "IntermediatePowerKw"):
-            old = self.intermediate_power
-            self.intermediate_power = message.IntermediatePowerKw
-            self.update_env_variable('SCADA_INTERMEDIATE_POWER', self.intermediate_power)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.intermediate_power
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "IntermediateRswt"):
-            old = self.intermediate_rswt
-            self.intermediate_rswt = message.IntermediateRswt
-            self.update_env_variable('SCADA_INTERMEDIATE_RSWT', self.intermediate_rswt)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.intermediate_rswt
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "DdPowerKw"):
-            old = self.dd_power
-            self.dd_power = message.DdPowerKw
-            self.update_env_variable('SCADA_DD_POWER', self.dd_power)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.dd_power
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "DdRswt"):
-            old = self.dd_rswt
-            self.dd_rswt = message.DdRswt
-            self.update_env_variable('SCADA_DD_RSWT', self.dd_rswt)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.dd_rswt
-            )
-            self.log(f"Sending back {response}")
-            self.send_to_atn(response)
-        if hasattr(message, "DdDeltaT"):
-            old = self.dd_delta_t
-            self.dd_delta_t = message.DdDeltaT
-            self.update_env_variable('SCADA_DD_DELTA_T', self.dd_delta_t)
-            response = ScadaParams(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromName=self.name,
-                ToName=message.FromName,
-                UnixTimeMs=int(time.time() * 1000),
-                MessageId=message.MessageId,
-                OldAveragePowerColdestHourKw=old,
-                NewAveragePowerColdestHourKw=self.dd_delta_t
-            )
+                    FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                    FromName=self.name,
+                    ToName=message.FromName,
+                    UnixTimeMs=int(time.time() * 1000),
+                    MessageId=message.MessageId,
+                    NewParams=self.params,
+                    OldParams=old,
+                )
             self.log(f"Sending back {response}")
             self.send_to_atn(response)
 
@@ -579,8 +487,8 @@ class HomeAlone(Actor):
             or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
             or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
                 self.latest_temperatures[layer] = None
-        if 'store-cold-pipe' in self.latest_temperatures:
-            value_below = self.latest_temperatures['store-cold-pipe']
+        if H0CN.store_cold_pipe in self.latest_temperatures:
+            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
         else:
             value_below = 0
         for layer in sorted(all_store_layers, reverse=True):
@@ -648,12 +556,12 @@ class HomeAlone(Actor):
             return False
 
     def is_buffer_empty(self) -> bool:
-        if 'buffer-depth2' in self.latest_temperatures:
-            buffer_empty_temp = 'buffer-depth2'
-        elif 'dist-swt' in self.latest_temperatures:
-            buffer_empty_temp = 'dist-swt'
+        if H0CN.buffer.depth2 in self.latest_temperatures:
+            buffer_empty_temp = H0CN.buffer.depth2
+        elif H0CN.dist_swt in self.latest_temperatures:
+            buffer_empty_temp = H0CN.dist_swt
         else:
-            self.alert("Impossible to know if the buffer is empty!")
+            self.alert(alias="buffer_empty_fail", msg="Impossible to know if the buffer is empty!")
             return False
         max_rswt_next_3hours = max(self.weather['required_swt'][:3])
         min_buffer = round(max_rswt_next_3hours - self.delta_T(max_rswt_next_3hours),1)
@@ -665,16 +573,16 @@ class HomeAlone(Actor):
             return False            
     
     def is_buffer_full(self) -> bool:
-        if 'buffer-depth4' in self.latest_temperatures:
-            buffer_full_temp = 'buffer-depth4'
-        elif 'buffer-cold-pipe' in self.latest_temperatures:
-            buffer_full_temp = 'buffer-cold-pipe'
-        elif "StoreDischarge" in self.state and 'store-cold-pipe' in self.latest_temperatures:
-            buffer_full_temp = 'store-cold-pipe'
+        if H0CN.buffer.depth4 in self.latest_temperatures:
+            buffer_full_temp = H0CN.buffer.depth4
+        elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+            buffer_full_temp = H0CN.buffer_cold_pipe
+        elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:
+            buffer_full_temp = H0CN.store_cold_pipe
         elif 'hp-ewt' in self.latest_temperatures:
             buffer_full_temp = 'hp-ewt'
         else:
-            self.alert("Impossible to know if the buffer is full!")
+            self.alert(alias="buffer_full_fail", msg="Impossible to know if the buffer is full!")
             return False
         max_buffer = round(max(self.weather['required_swt'][:3]),1)
         if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > max_buffer: # TODO use to_fahrenheit()
@@ -685,7 +593,8 @@ class HomeAlone(Actor):
             return False
 
     def required_heating_power(self, oat, ws):
-        r = self.alpha + self.beta*oat + self.gamma*ws
+        alpha = self.params.AlphaTimes10 / 10
+        r = alpha + self.beta*oat + self.gamma*ws
         return round(r,2) if r>0 else 0
 
     def required_swt(self,rhp):
@@ -812,27 +721,27 @@ class HomeAlone(Actor):
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
-        if 'buffer-depth1' in self.latest_temperatures:
-            buffer_top = 'buffer-depth1'
-        elif 'buffer-depth2' in self.latest_temperatures:
-            buffer_top = 'buffer-depth2'
-        elif 'buffer-depth3' in self.latest_temperatures:
-            buffer_top = 'buffer-depth3'
-        elif 'buffer-depth4' in self.latest_temperatures:
-            buffer_top = 'buffer-depth4'
-        elif 'buffer-cold-pipe' in self.latest_temperatures:
-            buffer_top = 'buffer-cold-pipe'
+        if H0CN.buffer.depth1 in self.latest_temperatures:
+            buffer_top = H0CN.buffer.depth1
+        elif H0CN.buffer.depth2 in self.latest_temperatures:
+            buffer_top = H0CN.buffer.depth2
+        elif H0CN.buffer.depth3 in self.latest_temperatures:
+            buffer_top = H0CN.buffer.depth3
+        elif H0CN.buffer.depth4 in self.latest_temperatures:
+            buffer_top = H0CN.buffer.depth4
+        elif H0CN.buffer_cold_pipe in self.latest_temperatures:
+            buffer_top = H0CN.buffer_cold_pipe
         else:
-            self.alert("It is impossible to know if the top of the buffer is warmer than the top of the storage!")
+            self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if 'tank1-depth1' in self.latest_temperatures: # TODO: this will always be true since we are filling missing temperatures
-            tank_top = 'tank1-depth1'
-        elif 'store-hot-pipe' in self.latest_temperatures:
-            tank_top = 'store-hot-pipe'
-        elif 'buffer-hot-pipe' in self.latest_temperatures:
-            tank_top = 'buffer-hot-pipe'
+        if self.cn.tank[1].depth1 in self.latest_temperatures: # TODO: this will always be true since we are filling missing temperatures
+            tank_top = self.cn.tank[1].depth1
+        elif H0CN.store_hot_pipe in self.latest_temperatures:
+            tank_top = H0CN.store_hot_pipe
+        elif H0CN.buffer_hot_pipe in self.latest_temperatures:
+            tank_top = H0CN.buffer_hot_pipe
         else:
-            self.alert("It is impossible to know if the top of the storage is warmer than the top of the buffer!")
+            self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the storage is warmer than the top of the buffer!")
             return False
         if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top]:
             self.log("Storage top colder than buffer top")
@@ -873,8 +782,14 @@ class HomeAlone(Actor):
             delta_t = self.delta_T(swt)
         return round(swt - delta_t,2)
 
-    def alert(self, msg) -> None:
+    def alert(self, alias: str, msg: str) -> None:
         alert_str = f"[ALERT] {msg}"
+        self.send_to_atn(payload=Alert(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            AboutNode=self.node,
+            UnixS=int(time.time()),
+            Summary=msg
+        ))
         self.log(alert_str)
         # TODO: send Opsgenie alert by creating new named type
         # that goes up to S3

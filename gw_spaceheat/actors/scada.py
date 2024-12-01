@@ -25,7 +25,7 @@ from gwproto.messages import EventBase
 from gwproto.messages import LayoutLite
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
-from gwproto.messages import SendSnap
+from gwproto.messages import SendSnap, SendLayout
 
 from gwproto.named_types import (AdminWakesUp, AnalogDispatch, ChannelReadings, MachineStates, 
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
@@ -297,7 +297,6 @@ class Scada(ScadaInterface, Proactor):
             model_attribute="auto_state",
         )
 
-        self.send_layout_info()
 
 
     def init(self) -> None:
@@ -585,11 +584,14 @@ class Scada(ScadaInterface, Proactor):
             case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
-            case SendSnap():
+            case SendLayout():
                 path_dbg |= 0x00000002
+                self._send_layout_received(decoded.Payload)
+            case SendSnap():
+                path_dbg |= 0x00000004
                 self._send_snap_received(decoded.Payload)
             case ScadaParams():
-                path_dbg |= 0x00000004
+                path_dbg |= 0x00000008
                 if decoded.Payload.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
                     return
                 if decoded.Payload.ToName == H0N.home_alone:
@@ -677,6 +679,16 @@ class Scada(ScadaInterface, Proactor):
             except Exception:
                 self.logger.error("Problem getting communicator for home alone and"
                                   "Processing a ScadaParams message")
+
+    def _send_layout_received(self, payload: SendLayout) -> None:
+        print(f"Got SendLayout! {payload}")
+        self.payload = payload
+        if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
+            print(f"Not the correct gnode: {payload.FromGNodeAlias}")
+            return
+        if payload.FromName == H0N.atn:
+            print("Sending layout info")
+            self.send_layout_info()
 
     def _send_snap_received(self, payload: SendSnap):
         if payload.FromGNodeAlias != self._layout.atn_g_node_alias:

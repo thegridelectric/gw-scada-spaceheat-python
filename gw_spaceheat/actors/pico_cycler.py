@@ -249,7 +249,6 @@ class PicoCycler(Actor):
             pico = actor.component.gt.HwUid
             if pico not in self.picos:
                 raise Exception(f"[{self.name}] {pico} should be in self.picos!")
-            self.is_alive(pico)
         elif actor.ActorClass == ActorClass.ApiTankModule:
             if payload.ChannelName in {f"{actor.name}-depth1", f"{actor.name}-depth2"}:
                 pico = actor.component.gt.PicoAHwUid
@@ -269,6 +268,8 @@ class PicoCycler(Actor):
         self.is_alive(pico)
 
     def is_alive(self, pico: str) -> None:
+        if pico in self.zombies:
+            self.log(f"{pico} [{self.actor_by_pico[pico].name}] in zombies, got to is_alive")
         if self.pico_states[pico] == SinglePicoState.Flatlined:
             self.pico_states[pico] = SinglePicoState.Alive
             self.reboots[pico] = 0
@@ -371,6 +372,9 @@ class PicoCycler(Actor):
         if self.state not in {PicoCyclerState.PicosLive.value, PicoCyclerState.AllZombies.value}:
             self.log(f"State is {self.state} so not shaking zombies")
             return
+        zombies = []
+        for pico in self.zombies:
+                zombies.append(f" {pico} [{self.actor_by_pico[pico].name}], reboots: {self.reboots[pico]}")
         self.log(f"Shaking these zombies: {self.zombies}")
         self.trigger_id = str(uuid.uuid4())
         # ShakeZombies: AllZombies/PicosLive -> RelayOpening
@@ -523,7 +527,7 @@ class PicoCycler(Actor):
             )
             zombies = []
             for pico in self.zombies:
-                zombies.append(f" {pico} [{self.actor_by_pico[pico]}]")
+                zombies.append(f" {pico} [{self.actor_by_pico[pico].name}]")
             if time.time() > next_zombie_problem:
                 self.log(f"Sending problem event for zombies {zombies}")
                 self._send_to(
