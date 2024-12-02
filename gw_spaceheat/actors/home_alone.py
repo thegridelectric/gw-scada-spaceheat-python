@@ -241,7 +241,7 @@ class HomeAlone(Actor):
                 previous_state = self.state
 
                 if self.is_onpeak():
-                    self.time_storage_declared_ready = None
+                    self.storage_declared_ready = False
 
                 if datetime.now(self.timezone)>self.weather['time'][0]:
                     self.get_weather()
