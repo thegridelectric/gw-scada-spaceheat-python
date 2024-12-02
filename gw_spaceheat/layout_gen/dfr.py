@@ -14,7 +14,7 @@ component_display_name = "DFRobot 010V output X 2"
 
 DEFAULT_DIST_PUMP_010V = 30
 DEFAULT_PRIMARY_PUMP_010V = 50
-DEFAULT_STORE_PUMP_010V = 30
+DEFAULT_STORE_PUMP_010V = 50
 
 
 def add_dfrs(db: LayoutDb) -> None:
