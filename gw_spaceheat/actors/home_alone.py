@@ -656,6 +656,7 @@ class HomeAlone(Actor):
         self.log(f"OAT = {self.weather['oat']}")
         self.log(f"Average Power = {self.weather['avg_power']}")
         self.log(f"RSWT = {self.weather['required_swt']}")
+        self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.weather['required_swt']]}")
        
     def get_required_storage(self, time_now: datetime) -> float:
         morning_kWh = sum(
@@ -700,12 +701,16 @@ class HomeAlone(Actor):
         required_storage = self.get_required_storage(time_now)
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
+            self.log(f"Max required SWT during the next onpeak: {round(self.rwt(0, return_rswt_onpeak=True),2)} F")
+            # self.log(f"Max storage available (~ all layers are at 170F): {}")
             self.storage_declared_ready = time.time()
             return True
         else:
             if return_missing:
                 return total_usable_kwh, required_storage
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
+            self.log(f"Max required SWT during the next onpeak: {round(self.rwt(0, return_rswt_onpeak=True),2)} F")
+            # self.log(f"Max storage available (~ all layers are at 170F): {}")
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
@@ -752,7 +757,7 @@ class HomeAlone(Actor):
         d = dd_delta_t/dd_power * delivered_heat_power
         return d if d>0 else 0
     
-    def rwt(self, swt: float) -> float:
+    def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
         timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 7:
             required_swt = max(
@@ -764,6 +769,8 @@ class HomeAlone(Actor):
                 [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
                 if t.hour in [16,17,18,19]]
                 )
+        if return_rswt_onpeak:
+            return required_swt
         if swt < required_swt - 10:
             delta_t = 0
         elif swt < required_swt:
