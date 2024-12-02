@@ -699,15 +699,15 @@ class HomeAlone(Actor):
             total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
         required_storage = self.get_required_storage(time_now)
+        if return_missing:
+            return total_usable_kwh, required_storage
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
-            self.log(f"Max required SWT during the next onpeak: {round(self.rwt(0, return_rswt_onpeak=True),2)} F")
+            self.log(f"Maximum required SWT during the next onpeak: {round(self.rwt(0, return_rswt_onpeak=True),2)} F")
             # self.log(f"Max storage available (~ all layers are at 170F): {}")
-            self.storage_declared_ready = time.time()
+            self.storage_declared_ready = True
             return True
         else:
-            if return_missing:
-                return total_usable_kwh, required_storage
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
             self.log(f"Max required SWT during the next onpeak: {round(self.rwt(0, return_rswt_onpeak=True),2)} F")
             # self.log(f"Max storage available (~ all layers are at 170F): {}")
