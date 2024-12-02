@@ -456,6 +456,8 @@ class PicoCycler(Actor):
         orig_state = self.state
         self.trigger(event)
         # Add to fsm reports of linked state changes
+        if not self.trigger_id:
+            self.trigger_id = str(uuid.uuid4())
         self.fsm_reports.append(
             FsmAtomicReport(
                 MachineHandle=self.node.handle,
