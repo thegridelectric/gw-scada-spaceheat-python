@@ -7,17 +7,17 @@ from gwproto.named_types import (
     SpaceheatNodeGt,
 )
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
-
+from pydantic import BaseModel
 from layout_gen import LayoutDb
 
 component_display_name = "DFRobot 010V output X 2"
 
-DEFAULT_DIST_PUMP_010V = 30
-DEFAULT_PRIMARY_PUMP_010V = 50
-DEFAULT_STORE_PUMP_010V = 30
+class DfrConf(BaseModel):
+    DistPumpDefault: int = 30
+    PrimaryPumpDefault: int = 50
+    StorePumpDefault: int = 50
 
-
-def add_dfrs(db: LayoutDb) -> None:
+def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
     if not db.cac_id_by_alias(MakeModel.DFROBOT__DFR0971_TIMES2):
         db.add_cacs(
             [
@@ -40,7 +40,7 @@ def add_dfrs(db: LayoutDb) -> None:
                 Exponent=1,
                 Unit=Unit.VoltsRms,
                 OutputIdx=1,
-                InitialVoltsTimes100=DEFAULT_DIST_PUMP_010V,
+                InitialVoltsTimes100=dfr_config.DistPumpDefault,
             ),
             DfrConfig(
                 ChannelName=H0CN.primary_010v,
@@ -49,7 +49,7 @@ def add_dfrs(db: LayoutDb) -> None:
                 Exponent=1,
                 Unit=Unit.VoltsRms,
                 OutputIdx=1,
-                InitialVoltsTimes100=DEFAULT_PRIMARY_PUMP_010V,
+                InitialVoltsTimes100=dfr_config.PrimaryPumpDefault,
             ),
             DfrConfig(
                 ChannelName=H0CN.store_010v,
@@ -58,7 +58,7 @@ def add_dfrs(db: LayoutDb) -> None:
                 Exponent=1,
                 Unit=Unit.VoltsRms,
                 OutputIdx=1,
-                InitialVoltsTimes100=DEFAULT_STORE_PUMP_010V,
+                InitialVoltsTimes100=dfr_config.StorePumpDefault,
             ),
         ]
 
