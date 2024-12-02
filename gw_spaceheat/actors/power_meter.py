@@ -252,17 +252,19 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
     def report_sampled_telemetry_values(
         self, channel_report_list: List[DataChannel]
     ):
-        self._put_to_async_queue(
-            SyncedReadingsMessage(
-                src=self.name,
-                dst=self._telemetry_destination,
-                channel_name_list= [ch.Name for ch in channel_report_list],
-                value_list=[self.latest_telemetry_value[ch] for ch in channel_report_list],
-            )
-        )
-        for ch in channel_report_list:
-            self._last_sampled_s[ch] = int(time.time())
-            self.last_reported_telemetry_value[ch] = self.latest_telemetry_value[ch]
+        try:
+            msg = SyncedReadingsMessage(
+                    src=self.name,
+                    dst=self._telemetry_destination,
+                    channel_name_list= [ch.Name for ch in channel_report_list],
+                    value_list=[self.latest_telemetry_value[ch] for ch in channel_report_list],
+                )
+            self._put_to_async_queue(msg)
+            for ch in channel_report_list:
+                self._last_sampled_s[ch] = int(time.time())
+                self.last_reported_telemetry_value[ch] = self.latest_telemetry_value[ch]
+        except Exception as e:
+            self._report_problems(Problems(warnings=[e, [self.latest_telemetry_value[ch] for ch in channel_report_list]]), "synced reading generation failure")
 
     def value_exceeds_async_threshold(self, ch: DataChannel) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
