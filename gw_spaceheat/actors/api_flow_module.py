@@ -748,7 +748,7 @@ class ApiFlowModule(Actor):
             micro_hz_list = []
             unix_ms_times = []
         for i in range(1, len(smoothed_frequencies)):
-            if abs(smoothed_frequencies[i] - micro_hz_list[-1]) > threshold_hz:
+            if abs(smoothed_frequencies[i] - self.latest_hz) > threshold_hz:
                 micro_hz_list.append(int(smoothed_frequencies[i] * 1e6))
                 unix_ms_times.append(int(sampled_timestamps[i] / 1e6))
         self.latest_hz = smoothed_frequencies[-1]
