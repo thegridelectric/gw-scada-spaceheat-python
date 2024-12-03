@@ -672,7 +672,7 @@ class Scada(ScadaInterface, Proactor):
         Updates .env with new Scada Params. 
         TODO: move this somewhere else, like a local sqlite db
         """
-        dotenv_filepath = dotenv.find_dotenv()
+        dotenv_filepath = dotenv.find_dotenv(usecwd=True)
         if not dotenv_filepath:
             self.logger.error("Couldn't find a .env file - perhaps because in CI?")
             return
@@ -690,7 +690,7 @@ class Scada(ScadaInterface, Proactor):
                 else:
                     file.write(line)
             if not line_exists:
-                file.write(f"\n{variable}={new_value}") 
+                file.write(f"\n{variable}={new_value}\n")
 
     def _scada_params_received(self, message: ScadaParams) -> None:
         if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:

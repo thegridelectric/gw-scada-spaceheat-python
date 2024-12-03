@@ -2,6 +2,8 @@
 import uuid
 import time
 import dotenv
+from pathlib import Path
+
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
@@ -12,7 +14,16 @@ from actors.config import ScadaSettings
 from gwproto.named_types import ScadaParams
 from gwproto.data_classes.house_0_names import H0N
 
-def test_ha1():
+def test_ha1(monkeypatch, tmp_path):
+    # change to test directory and create an empty .env
+    # so that 'find_dotenv()' in _scada_params_received() does not
+    # modify any non-tests .envs in the file system.
+    monkeypatch.chdir(tmp_path)
+    dotenv_filepath = Path(".env")
+    dotenv_filepath.touch()
+    print(dotenv_filepath.absolute())
+    import os
+    print(os.getcwd())
     settings = ScadaSettings()
     if uses_tls(settings):
         copy_keys("scada", settings)
@@ -64,11 +75,9 @@ def test_ha1():
     assert h.params.DdPowerKw == 10
 
     # wrote the new parameter to .env
-    dotenv_filepath = dotenv.find_dotenv()
-    if dotenv_filepath:
-        with open(dotenv_filepath, 'r') as file:
-            lines = file.readlines()
-        assert "SCADA_DD_POWER=10\n" in lines
+    with open(dotenv_filepath, 'r') as file:
+        lines = file.readlines()
+    assert "SCADA_DD_POWER=10\n" in lines
 
     # this changes required_swt etc
     assert h.required_swt(required_kw_thermal=5.5) == 128.7
