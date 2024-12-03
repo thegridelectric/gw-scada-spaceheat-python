@@ -720,7 +720,8 @@ class HomeAlone(Actor):
             return True
         else:
             if H0N.store_cold_pipe in self.latest_temperatures:
-                if self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF:
+                if self.to_fahrenheit(self.latest_temperatures[H0N.store_cold_pipe]/1000) > self.params.MaxEwtF:
+                    self.log(f"Store cold pipe: {round(self.to_fahrenheit(self.latest_temperatures[H0N.store_cold_pipe]/1000),1)} F")
                     self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                     self.log("The storage will therefore be considered ready, as we cannot charge it further.")
                     self.full_storage_energy = total_usable_kwh
