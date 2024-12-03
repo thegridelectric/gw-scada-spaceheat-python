@@ -411,24 +411,25 @@ class Scada(ScadaInterface, Proactor):
     def send_layout_info(self) -> None:
         tank_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
         flow_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
-        layout = LayoutLite(
-            FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-            FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
-            Strategy=self._layout.strategy,
-            ZoneList=self._layout.zone_list,
-            TotalStoreTanks=self._layout.total_store_tanks,
-            TankModuleComponents=[node.component.gt for node in tank_nodes],
-            FlowModuleComponents=[node.component.gt for node in flow_nodes],
-            ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
-            DataChannels=[ch.to_gt() for ch in self.data.my_channels],
-            Ha1Params=self.data.ha1_params,
-            I2cRelayComponent=self.hardware_layout.node(H0N.relay_multiplexer).component.gt,
-            MessageCreatedMs=int(time.time() * 1000),
-            MessageId=str(uuid.uuid4())
-        )
-        self._links.publish_upstream(layout)
-        #self.generate_event(LayoutEvent(Layout=layout))
-        self.logger.error("Just sent layout")
+        if H0N.relay_multiplexer in self.layout.nodes.keys():
+            layout = LayoutLite(
+                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
+                FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
+                Strategy=self._layout.strategy,
+                ZoneList=self._layout.zone_list,
+                TotalStoreTanks=self._layout.total_store_tanks,
+                TankModuleComponents=[node.component.gt for node in tank_nodes],
+                FlowModuleComponents=[node.component.gt for node in flow_nodes],
+                ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
+                DataChannels=[ch.to_gt() for ch in self.data.my_channels],
+                Ha1Params=self.data.ha1_params,
+                I2cRelayComponent=self.hardware_layout.node(H0N.relay_multiplexer).component.gt,
+                MessageCreatedMs=int(time.time() * 1000),
+                MessageId=str(uuid.uuid4())
+            )
+            self._links.publish_upstream(layout)
+            #self.generate_event(LayoutEvent(Layout=layout))
+            self.logger.error("Just sent layout")
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
