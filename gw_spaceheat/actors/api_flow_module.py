@@ -29,8 +29,8 @@ from gwproto.named_types import (
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from result import Ok, Result
-from scipy.interpolate import interp1d
-from scipy.signal import butter, filtfilt
+from signal_processing import butter_lowpass, filtering
+
 
 FLATLINE_REPORT_S = 60
 
@@ -84,7 +84,9 @@ class ApiFlowModule(Actor):
         self.layout = self.services.hardware_layout
         self._component = component
         self.hw_uid = self._component.gt.HwUid
-        self.nano_timestamps: List[int] = []  # nanoseconds
+
+        # Flow processing
+        self.nano_timestamps: List[int] = []
         self.latest_tick_ns = None
         self.latest_report_ns = None
         self.latest_hz = None
@@ -99,6 +101,7 @@ class ApiFlowModule(Actor):
         self.slow_turner: bool = False
         if self._component.gt.ConstantGallonsPerTick > 0.5:
             self.slow_turner = True
+
         self.validate_config_params()
         if self._component.gt.Enabled:
             if self._component.cac.MakeModel == MakeModel.GRIDWORKS__PICOFLOWHALL:
@@ -482,10 +485,9 @@ class ApiFlowModule(Actor):
                 self.publish_zero_flow()
             if self.latest_report_ns: 
                 if time.time()*1e9 - self.latest_report_ns > self._component.gt.NoFlowMs * 1000:
-                        self.publish_zero_flow()
-                        self.latest_gpm = 0
-                        self.latest_hz = 0
-            # TODO publish 0 gpm after 30 seconds of no ticklists
+                    self.publish_zero_flow()
+                    self.latest_gpm = 0
+                    self.latest_hz = 0
             return
         if len(data.RelativeMillisecondList) == 0:
             if self.latest_gpm is None:
@@ -522,11 +524,11 @@ class ApiFlowModule(Actor):
             self.latest_report_ns = final_tick_ns
             self.latest_hz = 0
             if self.slow_turner:
-                    micro_hz_readings = ChannelReadings(
-                        ChannelName=self.hz_channel.Name,
-                        ValueList=[int(final_nonzero_hz * 1e6)],
-                        ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6)]
-                    )  
+                micro_hz_readings = ChannelReadings(
+                    ChannelName=self.hz_channel.Name,
+                    ValueList=[int(final_nonzero_hz * 1e6)],
+                    ScadaReadTimeUnixMsList=[int(final_tick_ns/1e6)]
+                )  
             else:
                 micro_hz_readings = ChannelReadings(
                         ChannelName=self.hz_channel.Name,
@@ -643,136 +645,116 @@ class ApiFlowModule(Actor):
                 "Should only call get_hz_readings with at least 2 timestamps!"
             )
         first_reading = False
-        # if self.latest_tick_ns is not None and self.hw_uid=='pico_607636':
-        #     self.nano_timestamps = [self.latest_tick_ns] + self.nano_timestamps
+
         # Sort timestamps and compute frequencies
         self.nano_timestamps = sorted(self.nano_timestamps)
+        timestamps = self.nano_timestamps
         frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
+        frequencies = frequencies + [frequencies[-1]]
+
+        # Sort values by time
+        if sorted(timestamps) != timestamps:
+            sorted_by_time = sorted(zip(timestamps, frequencies))
+            timestamps, frequencies = zip(*sorted_by_time)
+
         # Remove outliers
         if not self.slow_turner:
             min_hz, max_hz = 0, 500 # TODO: make these parameters? Or enforce on the Pico (if not already done)
-            self.nano_timestamps = [self.nano_timestamps[i] 
-                                    for i in range(len(frequencies)) 
-                                    if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
+            timestamps = [timestamps[i] for i in range(len(frequencies)) if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
             frequencies = [x for x in frequencies  if (x<max_hz and x>=min_hz)]
+
         # Add 0 flow when there is more than no_flow_ms between two points
         new_timestamps = []
         new_frequencies = []
-        no_flow_ms = self._component.gt.NoFlowMs
-        for i in range(len(self.nano_timestamps) - 1):
-            new_timestamps.append(self.nano_timestamps[i])
-            new_frequencies.append(frequencies[i])
-            if self.nano_timestamps[i + 1] - self.nano_timestamps[i] > no_flow_ms * 1e6:
-                add_step_ns = 0
-                while (
-                    self.nano_timestamps[i] + add_step_ns < self.nano_timestamps[i + 1]
-                ):
-                    add_step_ns += 10 * 1e6
-                    new_timestamps.append(self.nano_timestamps[i] + add_step_ns)
+        for i in range(len(timestamps) - 1):
+            new_timestamps.append(timestamps[i]) 
+            new_frequencies.append(frequencies[i])  
+            if timestamps[i+1] - timestamps[i] > self._component.gt.NoFlowMs * 1e6:
+                add_step_ns = 20*1e6
+                while timestamps[i] + add_step_ns < timestamps[i+1]:
+                    new_timestamps.append(timestamps[i] + add_step_ns)
                     new_frequencies.append(0.001)
-        new_timestamps.append(self.nano_timestamps[-1])
+                    add_step_ns += 20*1e6
+        new_timestamps.append(timestamps[-1])
         new_frequencies.append(frequencies[-1])
-        timestamps = list(new_timestamps)
-        frequencies = list(new_frequencies)
-        # if self.hw_uid=='pico_607636':
-        #     print(self.nano_timestamps)
-        #     print([x for x in frequencies])
-        del new_timestamps, new_frequencies
+        sorted_times_values = sorted(zip(new_timestamps, new_frequencies))
+        timestamps, frequencies = zip(*sorted_times_values)
+
         # First reading
         if self.latest_hz is None:
             self.latest_hz = frequencies[0]
             first_reading = True
-        
-        # at a gallon per tick, don't do any processing
+
+        # No processing for slow turners
         if self.slow_turner:
             sampled_timestamps = timestamps
             smoothed_frequencies = frequencies
+
         # Exponential weighted average
-        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg and not self.slow_turner:
+        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
             alpha = self._component.gt.ExpAlpha
-            smoothed_frequencies = []
-            latest = self.latest_hz
-            for t in range(len(frequencies)):
-                latest = (1 - alpha) * latest + alpha * frequencies[t]
-                smoothed_frequencies.append(latest)
-            sampled_timestamps = timestamps
+            smoothed_frequencies = [self.latest_hz]*len(frequencies)
+            for t in range(len(frequencies)-1):
+                smoothed_frequencies[t+1] = (1-alpha)*smoothed_frequencies[t] + alpha*frequencies[t+1]
+            sampled_timestamps = list(timestamps)
+
         # Butterworth filter
-        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth and not self.slow_turner:
-            if (
-                len(frequencies) > 20
-            ):  # TODO: make this a parameter? Issue a warning if too short?
+        elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicButterWorth:
+            if len(frequencies) > 20:
                 # Add the last recorded frequency before the filtering (avoids overfitting the first point)
-                timestamps = [timestamps[0] - 0.01 * 1e9] + list(timestamps)
+                timestamps = [timestamps[0]-0.01*1e9] + list(timestamps)
                 frequencies = [self.latest_hz] + list(frequencies)
                 # Re-sample time at sampling frequency f_s
                 f_s = 5 * max(frequencies)
-                sampled_timestamps = np.linspace(
-                    min(timestamps),
-                    max(timestamps),
-                    int((max(timestamps) - min(timestamps)) / 1e9 * f_s),
-                )
+                sampled_timestamps = np.linspace(min(timestamps), max(timestamps), int((max(timestamps)-min(timestamps))/1e9 * f_s))
                 # Re-sample frequency accordingly using a linear interpolaton
-                interpolation_function = interp1d(timestamps, frequencies)
-                sampled_frequencies = interpolation_function(sampled_timestamps)
-                # Butterworth low-pass filter on the re-sampled data
-                cutoff_frequency = self._component.gt.CutoffFrequency
-                b, a = butter(
-                    N=5, Wn=cutoff_frequency, fs=f_s, btype="low", analog=False
-                )
-                smoothed_frequencies = filtfilt(b, a, sampled_frequencies)
+                sampled_frequencies = np.interp(sampled_timestamps, timestamps, frequencies)
+                # Butterworth low-pass filter
+                b, a = butter_lowpass(N=5, Wn=self._component.gt.CutoffFrequency, fs=f_s)
+                smoothed_frequencies = filtering(b, a, sampled_frequencies)
                 # Remove points resulting from adding the first recorded frequency
+                smoothed_frequencies = [smoothed_frequencies[i] for i in range(len(smoothed_frequencies)) 
+                                        if sampled_timestamps[i]>=timestamps[1]]
+                sampled_timestamps = [x for x in sampled_timestamps if x>=timestamps[1]]
                 frequencies = frequencies[1:]
                 timestamps = timestamps[1:]
-                smoothed_frequencies = [
-                    smoothed_frequencies[i]
-                    for i in range(len(smoothed_frequencies))
-                    if sampled_timestamps[i] >= timestamps[1]
-                ]
-                sampled_timestamps = [
-                    x for x in sampled_timestamps if x >= timestamps[1]
-                ]
             else:
-                self.log(
-                    f"Warning: ticklist was too short ({len(frequencies)} instead of 20), so no filtering applied."
-                )
+                self.log(f"Warning: ticklist was too short ({len(frequencies)} instead of 20) for butterworth.")
                 sampled_timestamps = timestamps
                 smoothed_frequencies = frequencies
+
+        # Sanity check after smoothening
         if len(sampled_timestamps) != len(smoothed_frequencies):
             raise Exception(
                 "Sampled Timestamps and Smoothed Frequencies not the same length!"
             )
-        # Convert GPM threshold to Hz threshold
-        threshold_gpm = self._component.gt.AsyncCaptureThresholdGpmTimes100 / 100
-        gallons_per_tick = self._component.gt.ConstantGallonsPerTick
-        threshold_hz = threshold_gpm / 60 / gallons_per_tick
-        # For the first reading
-        if first_reading:
-            self.latest_hz = int(
-                smoothed_frequencies[0] * 1e6
-            )  # TODO: check with Jessica
-            micro_hz_list = [int(smoothed_frequencies[0] * 1e6)]
-            unix_ms_times = [int(sampled_timestamps[0] / 1e6)]
-        # Record Hz on change
-        else:
-            micro_hz_list = []
-            unix_ms_times = []
-        for i in range(len(smoothed_frequencies)):
-            if abs(smoothed_frequencies[i] - self.latest_hz) > threshold_hz:
-                micro_hz_list.append(int(smoothed_frequencies[i] * 1e6))
-                unix_ms_times.append(int(sampled_timestamps[i] / 1e6))
-        self.latest_hz = smoothed_frequencies[-1]
-        self.latest_tick_ns = sampled_timestamps[-1]
-        self.latest_report_ns = sampled_timestamps[-1]
-
+        
         if self.slow_turner:
-            #print(sampled_timestamps)
-            #print(smoothed_frequencies)
-            #print('')
             return ChannelReadings(
                 ChannelName=self.hz_channel.Name,
                 ValueList=[int(x*1e6) for x in smoothed_frequencies],
                 ScadaReadTimeUnixMsList=[int(x/1e6) for x in sampled_timestamps],
             )
+        
+        # Record Hz on change
+        threshold_gpm = self._component.gt.AsyncCaptureThresholdGpmTimes100 / 100
+        gallons_per_tick = self._component.gt.ConstantGallonsPerTick
+        threshold_hz = threshold_gpm / 60 / gallons_per_tick
+        if first_reading:
+            self.latest_hz = smoothed_frequencies[0]
+            micro_hz_list = [int(smoothed_frequencies[0] * 1e6)]
+            unix_ms_times = [int(sampled_timestamps[0] / 1e6)]
+        else:
+            micro_hz_list = []
+            unix_ms_times = []
+        for i in range(1, len(smoothed_frequencies)):
+            if abs(smoothed_frequencies[i] - micro_hz_list[-1]) > threshold_hz:
+                micro_hz_list.append(int(smoothed_frequencies[i] * 1e6))
+                unix_ms_times.append(int(sampled_timestamps[i] / 1e6))
+        self.latest_hz = smoothed_frequencies[-1]
+        self.latest_tick_ns = sampled_timestamps[-1]
+        self.latest_report_ns = sampled_timestamps[-1]
+        micro_hz_list = [x if x>0 else 0 for x in micro_hz_list]
         
         return ChannelReadings(
             ChannelName=self.hz_channel.Name,
