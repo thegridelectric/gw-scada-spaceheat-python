@@ -12,6 +12,10 @@ annotated-types==0.7.0
     # via pydantic
 attrs==23.1.0
     # via aiohttp
+certifi==2024.8.30
+    # via requests
+charset-normalizer==3.4.0
+    # via requests
 click==8.1.7
     # via
     #   trogon
@@ -29,7 +33,9 @@ gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.g
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
 idna==2.10
-    # via yarl
+    # via
+    #   requests
+    #   yarl
 linkify-it-py==2.0.3
     # via markdown-it-py
 markdown-it-py[linkify,plugins]==3.0.0
@@ -47,9 +53,7 @@ multidict==6.0.4
     #   gridworks-proactor
     #   yarl
 numpy==1.24.1
-    # via
-    #   -r gw_spaceheat/requirements/base.in
-    #   scipy
+    # via -r gw_spaceheat/requirements/base.in
 paho-mqtt==1.6.1
     # via
     #   -r gw_spaceheat/requirements/base.in
@@ -88,6 +92,8 @@ pytz==2024.1
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-protocol
+requests==2.32.3
+    # via -r gw_spaceheat/requirements/base.in
 result==0.9.0
     # via
     #   -r gw_spaceheat/requirements/base.in
@@ -97,8 +103,6 @@ rich==13.8.1
     #   -r gw_spaceheat/requirements/base.in
     #   textual
     #   typer
-scipy==1.14.1
-    # via -r gw_spaceheat/requirements/base.in
 shellingham==1.5.4
     # via typer
 six==1.16.0
@@ -121,6 +125,8 @@ typing-extensions==4.12.2
     #   typer
 uc-micro-py==1.0.3
     # via linkify-it-py
+urllib3==2.2.3
+    # via requests
 xdg==6.0.0
     # via
     #   -r gw_spaceheat/requirements/base.in
