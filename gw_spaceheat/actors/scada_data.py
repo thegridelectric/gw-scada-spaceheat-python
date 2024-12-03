@@ -51,6 +51,7 @@ class ScadaData:
             DdRswtF=int(self.settings.dd_rswt),
             DdDeltaTF=int(self.settings.dd_delta_t),
             HpMaxKwTh=self.settings.hp_max_kw_th,
+            MaxEwtF=self.settings.max_ewt_f
         )
         self.my_channels = self.get_my_channels()
         self.recent_machine_states = {}

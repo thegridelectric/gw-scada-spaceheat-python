@@ -36,6 +36,7 @@ class ScadaSettings(ProactorSettings):
     dd_rswt: float = 150
     dd_delta_t: float = 20
     is_simulated: bool = False
+    max_ewt_f: float = 170
 
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 
