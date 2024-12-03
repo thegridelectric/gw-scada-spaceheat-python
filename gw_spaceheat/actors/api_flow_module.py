@@ -29,7 +29,7 @@ from gwproto.named_types import (
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from result import Ok, Result
-from signal_processing import butter_lowpass, filtering
+from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering
 
 
 FLATLINE_REPORT_S = 60
