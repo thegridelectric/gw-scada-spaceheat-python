@@ -888,18 +888,24 @@ class Scada(ScadaInterface, Proactor):
         if dispatch.FromGNodeAlias != self._layout.atn_g_node_alias:
             self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
             return
-        if self.top_state == TopState.Admin:
-            to_node = self.layout.node_by_handle(dispatch.ToHandle)
-            if to_node:
-                self.get_communicator(to_node.name).process_message(dispatch)
-        elif self.top_state == TopState.Auto:
-            self.pending_dispatch = dispatch
-            # AdminWakesUp: Auto -> ChangingToAdmin
-            self.AdminWakesUp()
+        to_node = self.layout.node_by_handle(dispatch.ToHandle)
+        if to_node:
+            self.get_communicator(to_node.name).process_message(dispatch)
+        # if self.top_state == TopState.Admin:
+        #     to_node = self.layout.node_by_handle(dispatch.ToHandle)
+        #     if to_node:
+        #         self.get_communicator(to_node.name).process_message(dispatch)
+        # elif self.top_state == TopState.Auto:
+        #     self.pending_dispatch = dispatch
+        #     # AdminWakesUp: Auto -> ChangingToAdmin
+        #     self.AdminWakesUp()
 
-            for node in self.layout.direct_reports(self.auto_node):
-                self._send_to(node, GoDormant(FromName=H0N.auto, ToName=node.name))
-        #TODO: if MainAutoState is not atn, ignore
+        #     for node in self.layout.direct_reports(self.auto_node):
+        #         self._send_to(node, GoDormant(
+        #             FromName=H0N.auto, 
+        #             ToName=node.name,
+        #             TriggerId=dispatch.TriggerId))
+        # #TODO: if MainAutoState is not atn, ignore
     
     def dormant_received(self, ack: DormantAck) -> None:
         if ack.ToName == H0N.auto:
