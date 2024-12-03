@@ -4,6 +4,8 @@ from enum import auto
 import uuid
 import time
 import json
+
+import aiohttp
 import numpy as np
 from datetime import datetime, timedelta
 import pytz
@@ -146,8 +148,7 @@ class HomeAlone(Actor):
         # Get the weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-        self.get_weather()
-    
+
     @property
     def data(self) -> ScadaData:
         return self._services.data
@@ -226,7 +227,11 @@ class HomeAlone(Actor):
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
     async def main(self):
+        async with aiohttp.ClientSession() as session:
+            await self.main_loop(session)
 
+    async def main_loop(self, session: aiohttp.ClientSession) -> None:
+        await self.get_weather(session)
         await asyncio.sleep(2)
         self.initialize_relays()
 
@@ -244,7 +249,7 @@ class HomeAlone(Actor):
                     self.storage_declared_ready = False
 
                 if datetime.now(self.timezone)>self.weather['time'][0]:
-                    self.get_weather()
+                    await self.get_weather(session)
 
                 self.get_latest_temperatures()
 
@@ -577,16 +582,16 @@ class HomeAlone(Actor):
         a, b, c = self.rswt_quadratic_params
         return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
         
-    def get_weather(self) -> None:
+    async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
         weather_file = config_dir / "weather.json"
         try:
             url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-            response = requests.get(url)
-            if response.status_code != 200:
-                self.log(f"Error fetching weather data: {response.status_code}")
+            response = await session.get(url)
+            if response.status != 200:
+                self.log(f"Error fetching weather data: {response.status}")
                 return None
-            data = response.json()
+            data = await response.json()
             forecast_hourly_url = data['properties']['forecastHourly']
             forecast_response = requests.get(forecast_hourly_url)
             if forecast_response.status_code != 200:
