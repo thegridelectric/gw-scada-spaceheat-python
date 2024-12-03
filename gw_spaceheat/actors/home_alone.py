@@ -133,7 +133,6 @@ class HomeAlone(Actor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
-        self.max_EWT = self.settings.max_EWT
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
@@ -721,8 +720,8 @@ class HomeAlone(Actor):
             return True
         else:
             if H0N.store_cold_pipe in self.latest_temperatures:
-                if self.latest_temperatures[H0N.store_cold_pipe] > self.max_EWT:
-                    self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.max_EWT} F).")
+                if self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF:
+                    self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.params.MaxEwtF} F).")
                     self.log("The storage will therefore be considered ready, as we cannot charge it further.")
                     self.full_storage_energy = total_usable_kwh
                     self.storage_declared_ready = True
