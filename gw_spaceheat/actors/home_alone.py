@@ -113,6 +113,7 @@ class HomeAlone(Actor):
 
         self.temperatures_available = False
         self.storage_declared_ready = False
+        self.full_storage_energy = None
         # Relays
         self.hp_scada_ops_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
         self.hp_failsafe_relay: ShNode = self.hardware_layout.node(H0N.hp_failsafe_relay)
@@ -132,6 +133,7 @@ class HomeAlone(Actor):
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
+        self.max_EWT = self.settings.max_EWT
 
         # used by the rswt quad params calculator
         self._cached_params: Optional[Ha1Params] = None 
@@ -242,6 +244,7 @@ class HomeAlone(Actor):
 
                 if self.is_onpeak():
                     self.storage_declared_ready = False
+                    self.full_storage_energy = None
 
                 if datetime.now(self.timezone)>self.weather['time'][0]:
                     self.get_weather()
@@ -280,7 +283,7 @@ class HomeAlone(Actor):
                     elif self.is_buffer_full():
                         if self.is_storage_ready():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
-                        else:
+                        elif self.full_storage_energy is None:
                             self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                     
                 elif self.state==HomeAloneState.HpOnStoreCharge.value:
@@ -301,8 +304,17 @@ class HomeAlone(Actor):
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                         elif not self.is_storage_ready():
                             usable, required = self.is_storage_ready(return_missing=True)
-                            if usable > 0.9*required and self.storage_declared_ready:
-                                self.log("The storage was already declared ready during this off-peak period")
+                            if self.storage_declared_ready:
+                                if self.full_storage_energy is None:
+                                    if usable > 0.9*required:
+                                        self.log("The storage was already declared ready during this off-peak period")
+                                    else:
+                                        self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
+                                else:
+                                    if usable > 0.9*self.full_storage_energy:
+                                        self.log("The storage was already declared full during this off-peak period")
+                                    else:
+                                        self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
                             else:
                                 self.trigger_event(HomeAloneEvent.OffPeakStorageNotReady.value)
 
@@ -708,6 +720,13 @@ class HomeAlone(Actor):
             self.storage_declared_ready = True
             return True
         else:
+            if H0N.store_cold_pipe in self.latest_temperatures:
+                if self.latest_temperatures[H0N.store_cold_pipe] > self.max_EWT:
+                    self.log(f"The storage is not ready, but the bottom is above the maximum EWT ({self.max_EWT} F).")
+                    self.log("The storage will therefore be considered ready, as we cannot charge it further.")
+                    self.full_storage_energy = total_usable_kwh
+                    self.storage_declared_ready = True
+                    return True
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
             self.log(f"Max required SWT during the next onpeak: {round(self.rwt(0, return_rswt_onpeak=True),2)} F")
             # self.log(f"Max storage available (~ all layers are at 170F): {}")
