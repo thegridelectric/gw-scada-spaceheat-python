@@ -28,6 +28,7 @@ from gwproto.named_types import (
 )
 from result import Ok, Result
 from transitions import Machine
+import transitions
 
 class PicoWarning(ValueError):
     pico_name: str
@@ -208,7 +209,8 @@ class PicoCycler(Actor):
         picos, or indirectly when state is PicosLive and we receive a
         PicoMissing message from an actor
         """
-        self.trigger_event(PicoCyclerEvent.PicoMissing)
+        if not self.trigger_event(PicoCyclerEvent.PicoMissing):
+            return
         self.log(f"TRIGGERING PICO REBOOT! {self.fsm_comment}")
         # increment reboot attempts for all flatlined picos
         for pico in self.pico_states:
@@ -300,8 +302,8 @@ class PicoCycler(Actor):
     def confirm_rebooted(self) -> None:
         if self.state == PicoCyclerState.PicosRebooting.value:
             # ConfirmRebooted: PicosRebooting -> PicosLive
-            self.trigger_event(PicoCyclerEvent.ConfirmRebooted)
-            self.send_fsm_report()
+            if self.trigger_event(PicoCyclerEvent.ConfirmRebooted):
+                self.send_fsm_report()
 
     def process_fsm_full_report(self, payload: FsmFullReport) -> None:
         if payload.FromName != H0N.vdc_relay:
@@ -350,14 +352,14 @@ class PicoCycler(Actor):
     def confirm_opened(self):
         if self.state == PicoCyclerState.RelayOpening.value:
             # ConfirmOpened: RelayOpening -> RelayOpen
-            self.trigger_event(PicoCyclerEvent.ConfirmOpened)
-            asyncio.create_task(self._wait_and_close_relay())
+            if self.trigger_event(PicoCyclerEvent.ConfirmOpened):
+                asyncio.create_task(self._wait_and_close_relay())
 
     def confirm_closed(self) -> None:
         if self.state == PicoCyclerState.RelayClosing.value:
             # ConfirmClosed: RelayClosing -> PicosRebooting
-            self.trigger_event(PicoCyclerEvent.ConfirmClosed)
-            asyncio.create_task(self._wait_for_rebooting_picos())
+            if self.trigger_event(PicoCyclerEvent.ConfirmClosed):
+                asyncio.create_task(self._wait_for_rebooting_picos())
 
     async def _wait_and_close_relay(self) -> None:
         # Wait for RelayOpen_S seconds before closing the relay
@@ -385,8 +387,8 @@ class PicoCycler(Actor):
             self.confirm_rebooted()
 
     def reboot_dud(self) -> None:
-        self.trigger_event(PicoCyclerEvent.RebootDud)
-        self.send_fsm_report()
+        if self.trigger_event(PicoCyclerEvent.RebootDud):
+            self.send_fsm_report()
 
     def shake_zombies(self) -> None:
         self.last_zombie_shake = time.time()
@@ -399,37 +401,37 @@ class PicoCycler(Actor):
         self.log(f"Shaking these zombies: {self.zombies}")
         self.trigger_id = str(uuid.uuid4())
         # ShakeZombies: AllZombies/PicosLive -> RelayOpening
-        self.trigger_event(PicoCyclerEvent.ShakeZombies)
-        # Send action on to pico relay
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.pico_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
-            SendTimeUnixMs=int(time.time() * 1000),
-            TriggerId=self.trigger_id,
-        )
-        self._send_to(self.pico_relay, event)
-        self.log(f"OpenRelay to {self.pico_relay.name}")
-
-    def start_closing(self) -> None:
-        # Transition to RelayClosing and send CloseRelayCmd
-        if self.state == PicoCyclerState.RelayOpen:
-            # StartCLosing: RelayOpen -> RelayClosing
-            self.trigger_event(PicoCyclerEvent.StartClosing)
+        if self.trigger_event(PicoCyclerEvent.ShakeZombies):
             # Send action on to pico relay
             event = FsmEvent(
                 FromHandle=self.node.handle,
                 ToHandle=self.pico_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
+                EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=self.trigger_id,
             )
             self._send_to(self.pico_relay, event)
-            # self.services.logger.error(
-            #     f"{self.node.handle} sending Close to {self.pico_relay.name}"
-            # )
+            self.log(f"OpenRelay to {self.pico_relay.name}")
+
+    def start_closing(self) -> None:
+        # Transition to RelayClosing and send CloseRelayCmd
+        if self.state == PicoCyclerState.RelayOpen:
+            # StartCLosing: RelayOpen -> RelayClosing
+            if self.trigger_event(PicoCyclerEvent.StartClosing):
+                # Send action on to pico relay
+                event = FsmEvent(
+                    FromHandle=self.node.handle,
+                    ToHandle=self.pico_relay.handle,
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.CloseRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=self.trigger_id,
+                )
+                self._send_to(self.pico_relay, event)
+                # self.services.logger.error(
+                #     f"{self.node.handle} sending Close to {self.pico_relay.name}"
+                # )
 
     def send_fsm_report(self) -> None:
         # This is the end of a triggered cycle, so send  FsmFullReport to SCADA
@@ -451,10 +453,14 @@ class PicoCycler(Actor):
         self.trigger_id = None
         self.fsm_comment = None
 
-    def trigger_event(self, event: PicoCyclerEvent) -> None:
+    def trigger_event(self, event: PicoCyclerEvent) -> bool:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
-        self.trigger(event)
+        try:
+            self.trigger(event)
+        except transitions.core.MachineError as e:
+            self.log(f"transition failure!: {e}")
+            return False
         # Add to fsm reports of linked state changes
         if not self.trigger_id:
             self.trigger_id = str(uuid.uuid4())
@@ -484,6 +490,7 @@ class PicoCycler(Actor):
         self.services.logger.error(
             f"[{self.name}] {event.value}: {orig_state} -> {self.state}"
         )
+        return True
 
     def start(self) -> None:
         self.services.add_task(
