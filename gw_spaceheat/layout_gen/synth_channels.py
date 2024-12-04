@@ -11,7 +11,7 @@ class SynthConfig(BaseModel):
     CreatedByNodeName: str = 'synth-generator'
     Strategy: str = 'layer-by-layer-above-RSWT'
     SyncReportMinutes: PositiveInt = 60
-    TelemetryName: str = TelemetryName.WattHours.value, 
+    TelemetryName: str = TelemetryName.WattHours.name
 
 def add_synth(db: LayoutDb, synth_cfg: SynthConfig) -> None:
 
@@ -23,7 +23,7 @@ def add_synth(db: LayoutDb, synth_cfg: SynthConfig) -> None:
             TelemetryName = synth_cfg.TelemetryName, 
             TerminalAssetAlias = db.terminal_asset_alias,
             Strategy = synth_cfg.Strategy,
-            DisplayName = f"{synth_cfg.Name.replace('-','').title()} {synth_cfg.TelemetryName}",
+            DisplayName = f"{synth_cfg.Name.title().replace('-','')} {synth_cfg.TelemetryName}",
             SyncReportMinutes = synth_cfg.SyncReportMinutes
             )
         ]
