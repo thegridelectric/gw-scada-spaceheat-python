@@ -48,7 +48,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
                 AsyncCapture=True,
                 Exponent=1,
                 Unit=Unit.VoltsRms,
-                OutputIdx=1,
+                OutputIdx=2,
                 InitialVoltsTimes100=dfr_config.PrimaryPumpDefault,
             ),
             DfrConfig(
@@ -57,7 +57,7 @@ def add_dfrs(db: LayoutDb, dfr_config: DfrConf) -> None:
                 AsyncCapture=True,
                 Exponent=1,
                 Unit=Unit.VoltsRms,
-                OutputIdx=1,
+                OutputIdx=3,
                 InitialVoltsTimes100=dfr_config.StorePumpDefault,
             ),
         ]

@@ -39,6 +39,7 @@ def add_relays(
                     WiringConfig=RelayWiringConfig.NormallyClosed,
                     EventType=ChangeRelayState.enum_name(),
                     DeEnergizingEvent=ChangeRelayState.CloseRelay,
+                    EnergizingEvent=ChangeRelayState.OpenRelay,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless,
@@ -52,6 +53,7 @@ def add_relays(
                     WiringConfig=RelayWiringConfig.NormallyClosed,
                     EventType=ChangeRelayState.enum_name(),
                     DeEnergizingEvent=ChangeRelayState.CloseRelay,
+                    EnergizingEvent=ChangeRelayState.OpenRelay,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless,
@@ -65,6 +67,7 @@ def add_relays(
                     WiringConfig=RelayWiringConfig.NormallyOpen,
                     EventType=ChangeStoreFlowRelay.enum_name(),
                     DeEnergizingEvent=ChangeStoreFlowRelay.DischargeStore,
+                    EnergizingEvent=ChangeStoreFlowRelay.ChargeStore,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless
@@ -78,6 +81,7 @@ def add_relays(
                     WiringConfig=RelayWiringConfig.DoubleThrow,
                     EventType=ChangeHeatPumpControl.enum_name(),
                     DeEnergizingEvent=ChangeHeatPumpControl.SwitchToTankAquastat,
+                    EnergizingEvent=ChangeHeatPumpControl.SwitchToScada,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless
@@ -91,6 +95,7 @@ def add_relays(
                     WiringConfig=RelayWiringConfig.NormallyClosed,
                     EventType=ChangeRelayState.enum_name(),
                     DeEnergizingEvent=ChangeRelayState.CloseRelay,
+                    EnergizingEvent=ChangeRelayState.OpenRelay,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless
@@ -104,6 +109,7 @@ def add_relays(
                     WiringConfig=RelayWiringConfig.DoubleThrow,
                     EventType=ChangeAquastatControl.enum_name(),
                     DeEnergizingEvent=ChangeAquastatControl.SwitchToBoiler,
+                    EnergizingEvent=ChangeAquastatControl.SwitchToScada,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless
@@ -117,6 +123,7 @@ def add_relays(
                     WiringConfig=RelayWiringConfig.NormallyOpen,
                     EventType=ChangeRelayState.enum_name(),
                     DeEnergizingEvent=ChangeRelayState.OpenRelay,
+                    EnergizingEvent=ChangeRelayState.CloseRelay,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless
