@@ -50,6 +50,12 @@ class SynthGenerator(ScadaActor):
     @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
+    
+    @property
+    def no_power_rswt(self) -> float:
+        alpha = self.params.AlphaTimes10 / 10
+        beta = self.params.BetaTimes100 / 100
+        return -alpha/beta
 
     @property
     def rswt_quadratic_params(self) -> np.ndarray:
