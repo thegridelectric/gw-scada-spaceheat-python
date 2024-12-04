@@ -8,18 +8,18 @@ from typing import List, Literal, Optional, Sequence
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gw.errors import DcError
-from gwproactor import QOS, Actor, MonitoredName, Problems, ServicesInterface
+from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoTankModuleComponent
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TempCalcMethod
-from gwproto.message import Header
 from gwproto.named_types import PicoMissing, SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from result import Ok, Result
+from actors.scada_actor import ScadaActor
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
@@ -36,7 +36,7 @@ class MicroVolts(BaseModel):
     Version: Literal["100"] = "100"
 
 
-class ApiTankModule(Actor):
+class ApiTankModule(ScadaActor):
     _stop_requested: bool
     _component: PicoTankModuleComponent
 
@@ -58,7 +58,6 @@ class ApiTankModule(Actor):
                 f"  Component id: {component.gt.ComponentId}"
             )
         self._stop_requested: bool = False
-        self.layout = self.services.hardware_layout
         self._component = component
         if self._component.gt.Enabled:
             self._services.add_web_route(

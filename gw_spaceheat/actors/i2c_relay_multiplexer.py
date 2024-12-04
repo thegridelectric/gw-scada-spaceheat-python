@@ -1,6 +1,5 @@
 """Implements I2cRelayMultiplexer Actors"""
 import asyncio
-import importlib.util
 import time
 from datetime import datetime
 from enum import Enum
@@ -8,25 +7,23 @@ from typing import Any, Dict, List, Optional, Sequence, cast
 
 from gw.enums import GwStrEnum
 # from actors.simple_sensor import SimpleSensor, SimpleSensorDriverThread
-from gwproactor import QOS, Actor, MonitoredName, ServicesInterface
+from gwproactor import MonitoredName, ServicesInterface
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import \
     I2cMultichannelDtRelayComponent
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.house_0_layout import House0Layout
-from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
                            FsmReportType, MakeModel,
                            RelayEnergizationState, RelayWiringConfig,
                            TelemetryName)
-from gwproto.message import Header
 from gwproto.named_types import (FsmEvent, SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
 from actors.config import ScadaSettings
-
+from actors.scada_actor import ScadaActor
 
 class ChangeKridaPin(Enum):
     Energize = 0
@@ -45,7 +42,7 @@ class SimulatedPin(BaseModel):
 SLEEP_STEP_SECONDS = 0.1
 
 
-class I2cRelayMultiplexer(Actor):
+class I2cRelayMultiplexer(ScadaActor):
     RELAY_LOOP_S = 300
     node: ShNode
     component: I2cMultichannelDtRelayComponent
@@ -63,9 +60,7 @@ class I2cRelayMultiplexer(Actor):
         name: str,
         services: ServicesInterface,
     ):
-        self.layout = cast(House0Layout, services.hardware_layout)
         super().__init__(name, services)
-        self.settings: ScadaSettings = self.services.settings
         self.is_simulated = self.settings.is_simulated
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)
         if self.component.cac.MakeModel != MakeModel.KRIDA__DOUBLEEMR16I2CV3:

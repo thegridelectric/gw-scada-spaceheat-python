@@ -5,7 +5,7 @@ from typing import Dict, List, cast, Sequence, Optional
 
 from gw.enums import GwStrEnum
 from gwproto.data_classes.data_channel import DataChannel
-from gwproactor import Actor, ServicesInterface, MonitoredName
+from gwproactor import  ServicesInterface, MonitoredName
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
@@ -33,9 +33,9 @@ from gwproto.enums import (
 from gwproto.named_types import FsmAtomicReport, FsmEvent, FsmFullReport, MachineStates
 from result import Err, Ok, Result
 from transitions import Machine
+from actors.scada_actor import ScadaActor
 
-
-class Relay(Actor):
+class Relay(ScadaActor):
     STATE_REPORT_S = 300
     node: ShNode
     component: I2cMultichannelDtRelayComponent
@@ -52,7 +52,6 @@ class Relay(Actor):
         name: str,
         services: ServicesInterface,
     ):
-        self.layout = cast(House0Layout, services.hardware_layout)
         super().__init__(name, services)
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)
         if self.component.cac.MakeModel != MakeModel.KRIDA__DOUBLEEMR16I2CV3:

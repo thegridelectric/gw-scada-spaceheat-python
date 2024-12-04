@@ -1,6 +1,6 @@
-from gwproactor import Actor, ServicesInterface
+from gwproactor import ServicesInterface
 from actors.config import ScadaSettings
-from typing import Any, Optional, Sequence
+from typing import Optional
 import asyncio
 import time
 import numpy as np
@@ -9,21 +9,16 @@ import json
 from gwproto import Message
 from actors.scada_data import ScadaData
 from result import Ok, Result
-from gwproto.data_classes.house_0_names import H0N, H0CN
 from datetime import datetime, timedelta
 import pytz
-from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
-                                 FsmFullReport, GoDormant, WakeUp)
-from gwproto.named_types import (FsmEvent, SingleReading,
-                                 SyncedReadings, FsmAtomicReport)
+from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp
 
-
-class SynthGenerator(Actor):
+from actors.scada_actor import ScadaActor
+class SynthGenerator(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
-        self.settings: ScadaSettings = self.services.settings
         self.stop_requested = False
         self.timezone = pytz.timezone(self.settings.timezone_str)
 

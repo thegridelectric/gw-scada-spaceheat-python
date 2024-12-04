@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Optional, Sequence
+from typing import Optional, Sequence
 from enum import auto
 import uuid
 import time
@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import pytz
 import requests
 from gw.enums import GwStrEnum
-from gwproactor import Actor, ServicesInterface,  MonitoredName
+from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from actors.scada_data import ScadaData
@@ -22,7 +22,7 @@ from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquast
 from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
                                  FsmFullReport, GoDormant, WakeUp)
 from actors.config import ScadaSettings
-
+from actors.scada_actor import ScadaActor
 
 class HomeAloneState(GwStrEnum):
     WaitingForTemperaturesOnPeak = auto()
@@ -54,7 +54,7 @@ class HomeAloneEvent(GwStrEnum):
         return "home.alone.event"
 
 
-class HomeAlone(Actor):
+class HomeAlone(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     states = [
         "WaitingForTemperaturesOnPeak",
@@ -99,7 +99,6 @@ class HomeAlone(Actor):
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
-        self.settings: ScadaSettings = self.services.settings
         self.cn: H0CN = self.layout.channel_names
         
         self._stop_requested: bool = False

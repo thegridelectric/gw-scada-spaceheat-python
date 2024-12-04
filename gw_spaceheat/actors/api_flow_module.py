@@ -8,14 +8,13 @@ import numpy as np
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
 from gw.errors import DcError
-from gwproactor import QOS, Actor, MonitoredName, Problems, ServicesInterface
+from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoFlowModuleComponent
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
-from gwproto.message import Header
 from gwproto.messages import ProblemEvent
 from gwproto.named_types import (
     ChannelReadings,
@@ -26,6 +25,7 @@ from gwproto.named_types import (
     TicklistReed,
     TicklistReedReport,
 )
+from actors.scada_actor import ScadaActor
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from result import Ok, Result
@@ -56,7 +56,7 @@ class FlowReedParams(BaseModel):
     Version: Literal["101"] = "101"
 
 
-class ApiFlowModule(Actor):
+class ApiFlowModule(ScadaActor):
     _stop_requested: bool
     _component: PicoFlowModuleComponent
     last_heard: float
@@ -81,7 +81,6 @@ class ApiFlowModule(Actor):
                 f"  Component id: {component.gt.ComponentId}"
             )
         self._stop_requested: bool = False
-        self.layout = self.services.hardware_layout
         self._component = component
         self.hw_uid = self._component.gt.HwUid
 

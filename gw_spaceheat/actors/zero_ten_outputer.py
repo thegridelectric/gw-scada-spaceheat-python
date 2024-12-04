@@ -2,21 +2,19 @@
 import time
 from typing import cast
 
-from gwproactor import Actor, ServicesInterface
+from gwproactor import ServicesInterface
 from gwproactor.message import Message
-from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.named_types import AnalogDispatch
 from result import Err, Result
+from actors.scada_actor import ScadaActor
 
-
-class ZeroTenOutputer(Actor):
+class ZeroTenOutputer(ScadaActor):
     def __init__(
         self,
         name: str,
         services: ServicesInterface,
     ):
-        self.layout = cast(House0Layout, services.hardware_layout)
         super().__init__(name, services)
         self.node
         self.dfr_multiplexer = self.layout.node(H0N.zero_ten_out_multiplexer)

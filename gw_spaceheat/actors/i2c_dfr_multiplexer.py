@@ -4,27 +4,25 @@ import time
 import smbus2
 from typing import Any, Dict, List, Optional, Sequence, cast
 
-from gwproactor import QOS, Actor, MonitoredName, ServicesInterface
+from gwproactor import  MonitoredName, ServicesInterface
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.dfr_component import DfrComponent
 from gwproto.data_classes.house_0_layout import House0Layout
-from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass, MakeModel
-from gwproto.message import Header
 from gwproto.named_types import AnalogDispatch, SingleReading
 from gw.errors import DcError
 from actors.config import ScadaSettings
 
 from result import Err, Ok, Result
-
+from actors.scada_actor import ScadaActor
 
 DFR_OUTPUT_SET_RANGE = 0x01
 DFR_OUTPUT_RANGE_10V = 17
 
 
 SLEEP_STEP_SECONDS = 0.1
-class I2cDfrMultiplexer(Actor):
+class I2cDfrMultiplexer(ScadaActor):
     LOOP_S = 300
     node: ShNode
     component: DfrComponent
@@ -40,9 +38,7 @@ class I2cDfrMultiplexer(Actor):
         name: str,
         services: ServicesInterface,
     ):
-        self.layout = cast(House0Layout, services.hardware_layout)
         super().__init__(name, services)
-        self.settings: ScadaSettings = self.services.settings
         self.is_simulated = self.settings.is_simulated
         self.component = cast(DfrComponent, self.node.component)
         if self.component.cac.MakeModel == MakeModel.DFROBOT__DFR0971_TIMES2:

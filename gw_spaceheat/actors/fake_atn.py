@@ -1,16 +1,13 @@
-from gwproactor import Actor, ServicesInterface
-from actors.config import ScadaSettings
+from gwproactor import ServicesInterface
 import asyncio
 from gwproto import Message
 from result import Ok, Result
-from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
-                                 FsmFullReport, GoDormant, WakeUp)
-
-class FakeAtn(Actor):
+from gwproto.named_types import ( GoDormant, WakeUp)
+from actors.scada_actor import ScadaActor
+class FakeAtn(ScadaActor):
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
-        self.settings: ScadaSettings = self.services.settings
 
     def start(self) -> None:
         self.services.add_task(

@@ -5,7 +5,7 @@ from enum import auto
 from typing import Dict, List, Optional, Sequence
 
 from gw.enums import GwStrEnum
-from gwproactor import Actor, MonitoredName, Problems, ServicesInterface
+from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.house_0_names import H0N
@@ -29,6 +29,7 @@ from gwproto.named_types import (
 from result import Ok, Result
 from transitions import Machine
 import transitions
+from actors.scada_actor import ScadaActor
 
 class PicoWarning(ValueError):
     pico_name: str
@@ -50,7 +51,7 @@ class SinglePicoState(GwStrEnum):
     Flatlined = auto()
 
 
-class PicoCycler(Actor):
+class PicoCycler(ScadaActor):
     REBOOT_ATTEMPTS = 3
     RELAY_OPEN_S: float = 5
     PICO_REBOOT_S = 60
@@ -92,7 +93,6 @@ class PicoCycler(Actor):
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
-        self.layout = self._services.hardware_layout
         self.pico_relay = self.layout.node(H0N.vdc_relay)
         self.pico_actors = [
             node
