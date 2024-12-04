@@ -2,11 +2,12 @@
 easier."""
 from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
+from actors.atomic_ally import AtomicAlly
+from actors.fake_atn import FakeAtn
 from actors.home_alone import HomeAlone
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
-from actors.hubitat_tank_module import HubitatTankModule
 from actors.i2c_dfr_multiplexer import I2cDfrMultiplexer
 from actors.i2c_relay_multiplexer import I2cRelayMultiplexer
 from actors.multipurpose_sensor import MultipurposeSensor
@@ -16,16 +17,18 @@ from actors.power_meter import PowerMeter
 from actors.relay import Relay
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
+from actors.synth_generator import SynthGenerator
 from actors.zero_ten_outputer import ZeroTenOutputer
 
 __all__ = [
     "ApiFlowModule",
     "ApiTankModule",
+    "AtomicAlly",
+    "FakeAtn",
     "HomeAlone",
     "HoneywellThermostat",
     "Hubitat",
     "HubitatPoller",
-    "HubitatTankModule",
     "I2cDfrMultiplexer",
     "I2cRelayMultiplexer",
     "MultipurposeSensor",
@@ -35,5 +38,6 @@ __all__ = [
     "Relay",
     "Scada",
     "ScadaInterface",
+    "SynthGenerator",
     "ZeroTenOutputer",
 ]

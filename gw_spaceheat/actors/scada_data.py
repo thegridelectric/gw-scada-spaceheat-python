@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.data_channel import DataChannel
+from gwproto.data_classes.synth_channel import SynthChannel
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.messages import (
     ChannelReadings,
@@ -53,25 +54,30 @@ class ScadaData:
             HpMaxKwTh=self.settings.hp_max_kw_th,
             MaxEwtF=self.settings.max_ewt_f
         )
-        self.my_channels = self.get_my_channels()
+        self.my_data_channels = self.get_my_data_channels()
+        self.my_synth_channels = self.get_my_synth_channels()
+        self.my_channels = self.my_data_channels + self.my_synth_channels
         self.recent_machine_states = {}
         self.latest_channel_values: Dict[str, int] = {  # noqa
             ch.Name: None for ch in self.my_channels
         }
-        self.latest_channel_unix_ms: Dict[DataChannel, int] = {  # noqa
+        self.latest_channel_unix_ms: Dict[str, int] = {  # noqa
             ch.Name: None for ch in self.my_channels
         }
-        self.recent_channel_values: Dict[DataChannel, List] = {
+        self.recent_channel_values: Dict[str, List] = {
             ch.Name: [] for ch in self.my_channels
         }
-        self.recent_channel_unix_ms: Dict[DataChannel, List] = {
+        self.recent_channel_unix_ms: Dict[str, List] = {
             ch.Name: [] for ch in self.my_channels
         }
         self.recent_fsm_reports = {}
         self.flush_latest_readings()
 
-    def get_my_channels(self) -> List[DataChannel]:
+    def get_my_data_channels(self) -> List[DataChannel]:
         return list(self.layout.data_channels.values())
+    
+    def get_my_synth_channels(self) -> List[SynthChannel]:
+        return list(self.layout.synth_channels.values())
 
     def flush_latest_readings(self):
         self.recent_channel_values = {ch.Name: [] for ch in self.my_channels}

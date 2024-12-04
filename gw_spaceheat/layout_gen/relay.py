@@ -143,15 +143,7 @@ def add_relays(
         )
 
     db.add_nodes(
-            [    
-                SpaceheatNodeGt(
-                    ShNodeId=db.make_node_id(H0N.home_alone),
-                    Name=H0N.home_alone,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.home_alone}",
-                    Handle="auto.h",
-                    ActorClass=ActorClass.HomeAlone,
-                    DisplayName="HomeAlone",
-                ),
+            [
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(H0N.relay_multiplexer),
                     Name=H0N.relay_multiplexer,

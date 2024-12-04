@@ -19,6 +19,7 @@ from gwproto.named_types import ComponentGt
 from gwproto.named_types import ElectricMeterCacGt
 from gwproto.named_types import SpaceheatNodeGt
 from gwproto.named_types import DataChannelGt
+from gwproto.named_types import SynthChannelGt
 from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.property_format import SpaceheatName
@@ -136,6 +137,7 @@ class LayoutIDMap:
     components_by_alias: dict[str, str]
     nodes_by_name: dict[str, str]
     channels_by_name: dict[str, str]
+    synth_channels_by_name: dict[str, str]
     gnodes: dict[str, dict]
     zone_list: List[str]
     total_store_tanks: int
@@ -145,6 +147,7 @@ class LayoutIDMap:
         self.components_by_alias = {}
         self.nodes_by_name = {}
         self.channels_by_name = {}
+        self.synth_channels_by_name = {}
         self.gnodes = {}
         self.zone_list = []
         self.total_store_tanks = 3
@@ -173,6 +176,17 @@ class LayoutIDMap:
                         for channel in v:
                             try:
                                 self.add_channel(
+                                    channel["Id"],
+                                    channel["Name"]
+                                )
+                            except Exception as e:
+                                raise Exception(
+                                    f"ERROR in LayoutIDMap() for {k}:{channel}. Error: {type(e)}, <{e}>"
+                                )
+                elif k == "SynthChannels":
+                        for channel in v:
+                            try:
+                                self.add_synth_channel(
                                     channel["Id"],
                                     channel["Name"]
                                 )
@@ -223,6 +237,9 @@ class LayoutIDMap:
     def add_channel(self, id_: str, name: str):
         self.channels_by_name[name] = id_
 
+    def add_synth_channel(self, id_: str, name: str):
+        self.synth_channels_by_name[name] = id_
+
     @classmethod
     def from_path(cls, path: Path) -> "LayoutIDMap":
         with path.open() as f:
@@ -253,11 +270,12 @@ class LayoutIDMap:
         return cls.from_path(dest_path)
 
 class LayoutDb:
-    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt | DataChannelGt]]
+    lists: dict[str, list[ComponentAttributeClassGt | ComponentGt | SpaceheatNodeGt | DataChannelGt | SynthChannelGt]]
     cacs_by_id: dict[str, ComponentAttributeClassGt]
     components_by_id: dict[str, ComponentGt]
     nodes_by_id: dict[str, SpaceheatNodeGt]
     channels_by_id: dict[str, DataChannelGt]
+    synth_channels_by_id: dict[str, SynthChannelGt]
     loaded: LayoutIDMap
     maps: LayoutIDMap
     misc: dict
@@ -270,6 +288,7 @@ class LayoutDb:
         components: Optional[list[ComponentGt]] = None,
         nodes: Optional[list[SpaceheatNodeGt]] = None,
         channels: Optional[list[DataChannelGt]] = None,
+        synth_channels: Optional[list[SynthChannelGt]] = None,
         add_stubs: bool = False,
         stub_config: Optional[StubConfig] = None,
     ):
@@ -279,6 +298,7 @@ class LayoutDb:
         self.component_lists = {}
         self.nodes_by_id = {}
         self.channels_by_id = {}
+        self.synth_channels_by_id = {}
         self.misc = {}
         self.loaded = existing_layout or LayoutIDMap()
         self.maps = LayoutIDMap()
@@ -290,6 +310,8 @@ class LayoutDb:
             self.add_nodes(nodes)
         if channels is not None:
             self.add_data_channels(channels)
+        if synth_channels is not None:
+            self.add_synth_channels(synth_channels)
         
         if add_stubs:
             self.add_stubs(stub_config)
@@ -309,6 +331,9 @@ class LayoutDb:
     
     def channel_id_by_name(self, name: str) -> Optional[str]:
         return self.maps.channels_by_name.get(name, None)
+    
+    def synth_channel_id_by_name(self, name: str) -> Optional[str]:
+        return self.maps.synth_channels_by_name.get(name, None)
 
     @classmethod
     def make_cac_id(cls, make_model: MakeModel) -> str:
@@ -332,6 +357,9 @@ class LayoutDb:
     
     def make_channel_id(self, name: str) -> str:
         return self.loaded.channels_by_name.get(name, str(uuid.uuid4()))
+    
+    def make_synth_channel_id(self, name: str) -> str:
+        return self.loaded.synth_channels_by_name.get(name, str(uuid.uuid4()))
 
     def add_cacs(self, cacs:list[ComponentAttributeClassGt], layout_list_name: str = "OtherCacs"):
         for cac in cacs:
@@ -405,6 +433,23 @@ class LayoutDb:
             if layout_list_name not in self.lists:
                 self.lists[layout_list_name] = []
             self.lists[layout_list_name].append(dc)
+
+    def add_synth_channels(self, scs: list[SynthChannelGt]):
+        for sc in scs:
+            if sc.Id in self.synth_channels_by_id:
+                raise ValueError(
+                    f"ERROR synth channel id {sc.Id} already present."
+                )
+            if sc.Name in self.maps.synth_channels_by_name:
+                raise ValueError(
+                    f"ERROR Synth Channel name {sc.Name} already present"
+                )
+            self.synth_channels_by_id[sc.Id] = sc
+            self.maps.add_synth_channel(sc.Id, sc.Name)
+            layout_list_name = "SynthChannels"
+            if layout_list_name not in self.lists:
+                self.lists[layout_list_name] = []
+            self.lists[layout_list_name].append(sc)
         
 
     def add_stub_power_meter(self, cfg: Optional[StubConfig] = None):
@@ -587,6 +632,28 @@ class LayoutDb:
                     Name=H0N.atn,
                     ActorClass=ActorClass.NoActor,
                     DisplayName="Atn",
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.atomic_ally),
+                    Name=H0N.atomic_ally,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.atomic_ally}",
+                    ActorClass=ActorClass.AtomicAlly,
+                    DisplayName="Atomic Ally",
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.synth_generator),
+                    Name=H0N.synth_generator,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.synth_generator}",
+                    ActorClass=ActorClass.SynthGenerator,
+                    DisplayName="Synth Generator",
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.home_alone),
+                    Name=H0N.home_alone,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.home_alone}",
+                    Handle="auto.h",
+                    ActorClass=ActorClass.HomeAlone,
+                    DisplayName="HomeAlone",
                 ),
             ]
         )
