@@ -284,6 +284,8 @@ class HomeAlone(Actor):
                             self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                         elif self.full_storage_energy is None:
                             self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
+                        else:
+                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                     
                 elif self.state==HomeAloneState.HpOnStoreCharge.value:
                     if self.is_onpeak():
