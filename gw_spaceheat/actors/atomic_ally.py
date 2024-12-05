@@ -6,7 +6,7 @@ from actors.scada_actor import ScadaActor
 from gwproto.named_types import ( GoDormant, WakeUp)
 
 class AtomicAlly(ScadaActor):
-
+    MAIN_LOOP_SLEEP_SECONDS = 10
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
 
@@ -28,3 +28,9 @@ class AtomicAlly(ScadaActor):
             case WakeUp():
                 ...
         return Ok(True)
+    
+    async def main(self):
+        await asyncio.sleep(2)
+        self.log("In synth gen main loop")
+        while not self._stop_requested:
+            await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)

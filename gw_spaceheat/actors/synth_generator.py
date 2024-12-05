@@ -19,7 +19,7 @@ class SynthGenerator(ScadaActor):
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
-        self.stop_requested = False
+        self._stop_requested = False
         self.timezone = pytz.timezone(self.settings.timezone_str)
 
         # House parameters in the .env file
@@ -85,6 +85,7 @@ class SynthGenerator(ScadaActor):
 
     async def main(self):
         await asyncio.sleep(2)
+        self.log("In synth gen main loop")
         while not self._stop_requested:
 
             if datetime.now(self.timezone)>self.weather['time'][0]:
