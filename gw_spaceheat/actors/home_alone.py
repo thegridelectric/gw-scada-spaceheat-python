@@ -8,6 +8,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import pytz
 import requests
+from pydantic import ValidationError
 from gw.enums import GwStrEnum
 from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -348,79 +349,97 @@ class HomeAlone(ScadaActor):
             self._valved_to_discharge_store()
         
     def _turn_on_HP(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_scada_ops_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.hp_scada_ops_relay, event)
-        self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.hp_scada_ops_relay, event)
+            self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def _turn_off_HP(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_scada_ops_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        
-        self._send_to(self.hp_scada_ops_relay, event)
-        self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            
+            self._send_to(self.hp_scada_ops_relay, event)
+            self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def _turn_on_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_pump_failsafe.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_pump_failsafe, event)
-        self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_pump_failsafe.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_pump_failsafe, event)
+            self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def _turn_off_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_pump_failsafe.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_pump_failsafe, event)
-        self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_pump_failsafe.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_pump_failsafe, event)
+            self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def _valved_to_charge_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeStoreFlowRelay.enum_name(),
-            EventName=ChangeStoreFlowRelay.ChargeStore,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_charge_discharge_relay, event)
-        self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_charge_discharge_relay.handle,
+                EventType=ChangeStoreFlowRelay.enum_name(),
+                EventName=ChangeStoreFlowRelay.ChargeStore,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_charge_discharge_relay, event)
+            self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
 
     def _valved_to_discharge_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeStoreFlowRelay.enum_name(),
-            EventName=ChangeStoreFlowRelay.DischargeStore,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_charge_discharge_relay, event)
-        self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_charge_discharge_relay.handle,
+                EventType=ChangeStoreFlowRelay.enum_name(),
+                EventName=ChangeStoreFlowRelay.DischargeStore,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_charge_discharge_relay, event)
+            self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
 
     def start(self) -> None:
         self.services.add_task(
