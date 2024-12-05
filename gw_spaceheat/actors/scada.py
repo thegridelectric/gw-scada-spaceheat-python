@@ -17,7 +17,7 @@ from gwproactor.links.link_settings import LinkSettings
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
 from gwproto import MQTTTopic
-from gwproto.enums import ActorClass, MainAutoState, MainAutoEvent
+from gwproto.enums import ActorClass, MainAutoState
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmAtomicReport, FsmEvent, FsmFullReport
@@ -150,6 +150,16 @@ class ScadaCmdDiagnostic(enum.Enum):
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
 
+class MainAutoEvent(GwStrEnum):
+    AtnLinkDead = auto()
+    AtnDispatchRequest = auto()
+    GoDormant = auto()
+    WakeUp = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "main.auto.event"
+    
 class TopState(GwStrEnum):
     Auto = auto()
     Admin = auto()
@@ -194,7 +204,7 @@ class Scada(ScadaInterface, Proactor):
     main_auto_states = ["Atn", "HomeAlone", "Dormant"]
     main_auto_transitions = [
         {"trigger": "AtnLinkDead", "source": "Atn", "dest": "HomeAlone"},
-        {"trigger": "AtnLinkAlive", "source": "HomeAlone", "dest": "Atn"},
+        {"trigger": "AtnDispatchRequest", "source": "HomeAlone", "dest": "Atn"},
         {"trigger": "GoDormant", "source": "Atn", "dest": "Dormant"},
         {"trigger": "GoDormant", "source": "HomeAlone", "dest": "Dormant"},
         {"trigger": "WakeUp", "source": "Dormant", "dest": "HomeAlone"}
