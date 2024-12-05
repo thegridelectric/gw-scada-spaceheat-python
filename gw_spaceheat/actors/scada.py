@@ -8,8 +8,13 @@ import time
 from typing import Any
 from typing import List
 from typing import Optional
+from typing import Sequence
+
 import dotenv
 from enum import auto
+
+from gwproto.data_classes.data_channel import DataChannel
+from gwproto.data_classes.synth_channel import SynthChannel
 from gwproto.message import Header
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
@@ -17,7 +22,7 @@ from gwproactor.links.link_settings import LinkSettings
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
 from gwproto import MQTTTopic
-from gwproto.enums import ActorClass, MainAutoState, MainAutoEvent
+from gwproto.enums import ActorClass, MainAutoState
 from gwproto.data_classes.house_0_names import H0N
 from gwproto.data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmAtomicReport, FsmEvent, FsmFullReport
@@ -27,18 +32,14 @@ from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import SendSnap, SendLayout
 
-from gwproto.named_types import (AdminWakesUp, AnalogDispatch, ChannelReadings, MachineStates, 
+from gwproto.named_types import (AnalogDispatch, ChannelReadings, MachineStates,
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
                                 TicklistReedReport, TicklistHallReport)
 
 from gwproto.named_types import GoDormant, DormantAck
 
 from gwproto.messages import ReportEvent
-
-
-from admin.messages import AdminCommandReadRelays
-from admin.messages import AdminCommandSetRelay
-from admin.messages import RelayStates
+from gwproto.named_types import Ha1Params
 
 from actors.api_flow_module import TicklistHall, TicklistReed
 from gwproto import MQTTCodec
@@ -48,6 +49,7 @@ from result import Result
 from gwproactor import ActorInterface
 from gw.enums import GwStrEnum
 from actors.api_tank_module import MicroVolts
+from actors.message import CancelAdminMode
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
@@ -67,11 +69,8 @@ ScadaMessageDecoder = create_message_model(
         "gwproto.messages",
         "gwproactor.message",
         "actors.message",
-        "admin.messages",
     ]
 )
-
-SYNC_SNAP_S = 30
 
 class GridworksMQTTCodec(MQTTCodec):
     exp_src: str
@@ -182,6 +181,8 @@ class Scada(ScadaInterface, Proactor):
     _last_sync_snap_s: int
     _dispatch_live_hack: bool
     _channels_reported: bool
+    _layout_lite: LayoutLite
+    _admin_timeout_task: Optional[asyncio.Task] = None
 
     top_states = ["Auto", "Admin", "ChangingToAdmin", "ChangingToAuto"]
     top_transitions = [
@@ -206,12 +207,17 @@ class Scada(ScadaInterface, Proactor):
         hardware_layout: House0Layout,
         actor_nodes: Optional[List[ShNode]] = None,
     ):
-        print(f"actor_nodes are {actor_nodes}")
         if not isinstance(hardware_layout, House0Layout):
             raise Exception("Make sure to pass Hosue0Layout object as hardware_layout!")
         self.is_simulated = False
         self._layout: House0Layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
+        self._layout_lite = self._make_layout_lite(
+            layout=self._layout,
+            data_channels=self._data.my_channels,
+            synth_channels=self._data.my_synth_channels,
+            ha1_params=self._data.ha1_params,
+        )
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         remote_actor_node_names = {node.name for node in self._layout.nodes.values() if
                    self._layout.parent_node(node) != self._node and
@@ -301,7 +307,6 @@ class Scada(ScadaInterface, Proactor):
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
-        print("hi!")
 
     @classmethod
     def make_event_persister(cls, settings: ScadaSettings) -> TimedRollingFilePersister:
@@ -408,29 +413,42 @@ class Scada(ScadaInterface, Proactor):
                 finally:
                     break
 
-    def send_layout_info(self) -> None:
-        tank_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
-        flow_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
-        if H0N.relay_multiplexer in self.layout.nodes.keys():
-            layout = LayoutLite(
-                FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
-                FromGNodeInstanceId=self.hardware_layout.scada_g_node_id,
-                Strategy=self._layout.strategy,
-                ZoneList=self._layout.zone_list,
-                TotalStoreTanks=self._layout.total_store_tanks,
+    @classmethod
+    def _make_layout_lite(
+            cls,
+            layout: House0Layout,
+            data_channels: Sequence[DataChannel],
+            synth_channels: Sequence[SynthChannel],
+            ha1_params: Ha1Params,
+    ) -> LayoutLite:
+        tank_nodes = [node for node in layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
+        flow_nodes = [node for node in layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
+        return LayoutLite(
+                FromGNodeAlias=layout.scada_g_node_alias,
+                FromGNodeInstanceId=layout.scada_g_node_id,
+                Strategy=layout.strategy,
+                ZoneList=layout.zone_list,
+                TotalStoreTanks=layout.total_store_tanks,
                 TankModuleComponents=[node.component.gt for node in tank_nodes],
                 FlowModuleComponents=[node.component.gt for node in flow_nodes],
-                ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
-                DataChannels=[ch.to_gt() for ch in self.data.my_data_channels],
-                SynthChannels=[ch.to_gt() for ch in self.data.my_synth_channels],
-                Ha1Params=self.data.ha1_params,
-                I2cRelayComponent=self.hardware_layout.node(H0N.relay_multiplexer).component.gt,
+                ShNodes=[node.to_gt() for node in layout.nodes.values()],
+                DataChannels=[ch.to_gt() for ch in data_channels],
+                Ha1Params=ha1_params,
+                I2cRelayComponent=layout.node(H0N.relay_multiplexer).component.gt,
+                SynthChannels=[ch.to_gt() for ch in synth_channels],
                 MessageCreatedMs=int(time.time() * 1000),
-                MessageId=str(uuid.uuid4())
+                MessageId=str(uuid.uuid4()),
             )
-            self._links.publish_upstream(layout)
-            #self.generate_event(LayoutEvent(Layout=layout))
-            self.logger.error("Just sent layout")
+
+    def _send_layout_lite(self, link_name: str) -> None:
+        self.publish_message(
+            link_name,
+            Message(
+                Src=self.publication_name,
+                Payload=self._layout_lite,
+            )
+        )
+
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
@@ -443,6 +461,8 @@ class Scada(ScadaInterface, Proactor):
         snapshot = self._data.make_snapshot()
         self._publish_to_local(self._node, snapshot)
         self._links.publish_upstream(snapshot)
+        if self.settings.admin.enabled:
+            self._publish_to_link(self.ADMIN_MQTT, snapshot)
 
     def next_report_second(self) -> int:
         last_report_second_nominal = int(
@@ -454,9 +474,9 @@ class Scada(ScadaInterface, Proactor):
     def next_sync_snap_s(self) -> int:
         last_sync_snap_s = int(
             self._last_sync_snap_s
-            - (self._last_sync_snap_s % SYNC_SNAP_S)
+            - (self._last_sync_snap_s % self.settings.seconds_per_snapshot)
         )
-        return last_sync_snap_s + SYNC_SNAP_S
+        return last_sync_snap_s + self.settings.seconds_per_snapshot
 
     def seconds_til_next_report(self) -> float:
         return self.next_report_second() - time.time()
@@ -469,6 +489,16 @@ class Scada(ScadaInterface, Proactor):
             self._last_sync_snap_s = int(time.time())
             return True
         #TODO: add sending on change.
+
+    def _publish_to_link(self, link_name: str, payload: Any, qos: QOS = QOS.AtMostOnce):
+        return self.publish_message(
+            link_name,
+            Message(
+                Src=self.publication_name,
+                Payload=payload
+            ),
+            qos=qos
+        )
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
         message = Message(Src=from_node.Name, Payload=payload)
@@ -558,6 +588,9 @@ class Scada(ScadaInterface, Proactor):
             case TicklistReedReport():
                 path_dbg |= 0x00040000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+            case CancelAdminMode():
+                path_dbg |= 0x00080000
+                self._turn_off_admin_mode()
             case _:
                 raise ValueError(
                     f"There is no handler for message payload type [{type(message.Payload)}]"
@@ -593,7 +626,7 @@ class Scada(ScadaInterface, Proactor):
                 self._analog_dispatch_received(decoded.Payload)
             case SendLayout():
                 path_dbg |= 0x00000002
-                self._send_layout_received(decoded.Payload)
+                self._send_layout_lite(self.upstream_client)
             case SendSnap():
                 path_dbg |= 0x00000004
                 self._send_snap_received(decoded.Payload)
@@ -625,6 +658,40 @@ class Scada(ScadaInterface, Proactor):
                 path_dbg |= 0x00000004
         self._logger.path("--_process_downstream_mqtt_message  path:0x%08X", path_dbg)
 
+    async def _timeout_admin(self) -> None:
+        try:
+            await asyncio.sleep(self.settings.admin.timeout_seconds)
+            self._send(Message(Src=self.name, Dst=self.name, Payload=CancelAdminMode()))
+        except asyncio.CancelledError:
+            ...
+
+    def _renew_admin_timeout(self):
+        if self._admin_timeout_task is not None:
+            self._admin_timeout_task.cancel()
+        self._admin_timeout_task = asyncio.create_task(self._timeout_admin())
+
+    def _turn_on_admin_mode(self) -> None:
+        for node in [
+            node for node in self._layout.nodes.values()
+            if node.ActorClass == ActorClass.Relay
+        ]:
+            node.Handle = f"{H0N.admin}.{node.Name}"
+
+
+    def _turn_off_admin_mode(self) -> None:
+        if self._admin_timeout_task is not None:
+            if not self._admin_timeout_task.cancelled():
+                self._admin_timeout_task.cancel()
+            self._admin_timeout_task = None
+        for node in [
+            node for node in self._layout.nodes.values()
+            if node.ActorClass == ActorClass.Relay
+        ]:
+            ...
+            # Restore handle to:
+            #   "auto.h.{node.name}" except for
+            #   "auto.pico-cycler.relay1"
+
     def _process_admin_mqtt_message(
             self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
@@ -633,43 +700,32 @@ class Scada(ScadaInterface, Proactor):
         if self.settings.admin.enabled:
             path_dbg |= 0x00000001
             match decoded.Payload:
-                case AdminWakesUp():
+                case SendLayout():
                     path_dbg |= 0x00000002
-                    self.admin_wakes_up_received(decoded.Payload)
-                case FsmEvent():
-                    # send into the _derived_process_message
-                    to_name = decoded.Payload.ToHandle.split('.')[-1]
-                    self.send(
-                        Message(
-                            header=Header(
-                                Src=H0N.admin,
-                                Dst=to_name,
-                                MessageType=decoded.Payload.TypeName,
-                            ),
-                            Payload=decoded.Payload
-                        )
-                    )
+                    self._publish_to_link(self.ADMIN_MQTT, self._layout_lite)
+                case SendSnap():
                     path_dbg |= 0x00000004
-                case AdminCommandReadRelays():
+                    self._publish_to_link(self.ADMIN_MQTT, self._data.make_snapshot())
+                case FsmEvent() as event:
                     path_dbg |= 0x00000008
-                    self._links.publish_message(
-                        self.ADMIN_MQTT,
-                        Message(
-                            Src=self.publication_name,
-                            Payload=RelayStates()
-                        ),
-                    )
-                
+                    self._turn_on_admin_mode()
+                    if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
+                        path_dbg |= 0x00000010
+                        communicator.process_message(
+                            Message(
+                                header=Header(
+                                    Src=H0N.admin,
+                                    Dst=communicator.name,
+                                    MessageType=decoded.Payload.TypeName,
+                                ),
+                                Payload=decoded.Payload
+                            )
+                        )
                 case _:
                     # Intentionally ignore this for forward compatibility
-                    path_dbg |= 0x00000004
+                    path_dbg |= 0x00000020
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
 
-    def _fsm_event_from_admin(self, fsm_event: FsmEvent) -> None:
-        to_node = self._layout.node_from_handle(fsm_event.ToHandle)
-        if to_node:
-            self.get_communicator(to_node.name).process_message(fsm_event)
-    
     def update_env_variable(self, variable, new_value) -> None:
         """
         Updates .env with new Scada Params. 
@@ -730,16 +786,6 @@ class Scada(ScadaInterface, Proactor):
                 )
             self.logger.error(f"Sending back {response}")
             self._links.publish_upstream(response)
-    
-    def _send_layout_received(self, payload: SendLayout) -> None:
-        print(f"Got SendLayout! {payload}")
-        self.payload = payload
-        if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
-            print(f"Not the correct gnode: {payload.FromGNodeAlias}")
-            return
-        if payload.FromName == H0N.atn:
-            print("Sending layout info")
-            self.send_layout_info()
 
     def _send_snap_received(self, payload: SendSnap):
         if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
@@ -781,12 +827,22 @@ class Scada(ScadaInterface, Proactor):
     def fsm_full_report_received(self, payload: FsmFullReport) -> None:
         self._data.recent_fsm_reports[payload.TriggerId] = payload
 
+    def _forward_single_reading(self, reading: SingleReading) -> None:
+        if (
+            self.settings.admin.enabled
+            and self._layout.node(
+                self._layout.data_channels[reading.ChannelName].AboutNodeName
+            ).ActorClass == ActorClass.Relay
+        ):
+            self._publish_to_link(self.ADMIN_MQTT, reading)
+
     def single_reading_received(self, payload: SingleReading) -> None:
         ch = self._layout.data_channels[payload.ChannelName]
         self._data.recent_channel_values[ch.Name].append(payload.Value)
         self._data.recent_channel_unix_ms[ch.Name].append(payload.ScadaReadTimeUnixMs)
         self._data.latest_channel_values[ch.Name] = payload.Value
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+        self._forward_single_reading(payload)
 
     def synced_readings_received(
         self, from_node: ShNode, payload: SyncedReadings
@@ -872,18 +928,12 @@ class Scada(ScadaInterface, Proactor):
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         if transition.link_name == self.upstream_client:
             self._dispatch_live_hack = False
-            self.logger.error("Link state: "
-                              f" {self._links._states._links['gridworks'].curr_state.name.value}")
         return Ok()
 
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
         if transition.link_name == self.upstream_client:
             self._dispatch_live_hack = True
-            self.logger.error("Link state: "
-                              f" {self._links._states._links['gridworks'].curr_state.name.value}")
-            
-            self.send_layout_info()
-
+            self._send_layout_lite(transition.link_name)
         return Ok()
 
     def _analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
@@ -913,49 +963,6 @@ class Scada(ScadaInterface, Proactor):
     def dormant_received(self, ack: DormantAck) -> None:
         if ack.ToName == H0N.auto:
             direct_report = self.layout.node(ack.FromName)
-            
-
-    def admin_wakes_up_received(self, wakeup: AdminWakesUp) -> None:
-        if wakeup.FromName != H0N.admin:
-            raise Exception(f"Expect admin wakes up from {H0N.admin}, got {wakeup.FromName}")
-        if self.top_state != TopState.Auto:
-            self.logger.error(f"Ignoring admin wakeup, in state {self.top_state}")
-            return
-
-        # AdminWakesUp: Auto -> ChangingToAdmin
-        self.AdminWakesUp()
-
-        for node in self.layout.direct_reports(self.auto_node):
-            self._send_to(node, GoDormant(FromName=H0N.auto, ToName=node.name))
-
-        #TODO: turn this into a recursion where reports hand over THEIR reports to their boss
-        # and then as a final step go dormant.
-
-        # hack for now:
-        # 1. auto FSM (and all sub-fsms, e.g. HomeAlone) goes dormant
-        if self.auto_state != MainAutoState.Dormant:
-            self.GoDormant()
-
-        # 2. Make admin the direct boss of all relays and dfrs
-        relay_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.Relay] 
-        dfr_nodes = [node for node in self._layout.nodes.values() if node.ActorClass == ActorClass.ZeroTenOutputer] 
-
-        for node in relay_nodes + dfr_nodes:
-            node.Handle = f"{H0N.admin}.{node.Name}"
-        
-        self.logger.warning("All relays and dfrs now have admin as boss")
-        time.sleep(0.5)
-
-        # AdminWakesUp: ChangingToAdmin -> Admin
-        self.trigger(TopEvent.ChangeToAdmin)
-        message = Message(
-            Src=self.name, 
-            Dst=H0N.admin, 
-            Payload=AdminWakesUp(FromName=self.name, ToName=H0N.admin)
-        )
-        return self.services._links.publish_message(
-                self.services.ADMIN_MQTT, message, qos=QOS.AtMostOnce
-            )
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report

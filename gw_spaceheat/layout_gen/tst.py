@@ -14,11 +14,16 @@ from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types import DataChannelGt
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.data_classes.house_0_names import H0N, H0CN
+from pydantic_extra_types.mac_address import MacAddress
+
 from layout_gen import LayoutDb
 from layout_gen import LayoutIDMap
 from layout_gen import StubConfig
 from layout_gen import HubitatThermostatGenCfg
 from layout_gen import add_thermostat
+from layout_gen.relay import add_relays
+from layout_gen.relay import RelayCfg
+
 
 def make_tst_layout(src_path: Path) -> LayoutDb:
     db = LayoutDb(
@@ -39,7 +44,7 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         Host="192.168.0.1",
         MakerApiId=1,
         AccessToken="64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
-        MacAddress="34:E1:D1:82:22:22",
+        MacAddress=MacAddress("34:E1:D1:82:22:22"),
     )
 
 
@@ -52,6 +57,8 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
             device_id=1,
         )
     )
+
+    add_relays(db, RelayCfg(PollPeriodMs=200, CapturePeriodS=300))
 
     return db
 

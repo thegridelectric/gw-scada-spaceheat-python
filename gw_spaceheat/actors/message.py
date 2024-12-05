@@ -3,12 +3,14 @@
 import time
 from typing import List
 from typing import cast
+from typing import Literal
 
 from gwproto.enums import TelemetryName
 from gwproto.message import Header
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import SyncedReadings
+from pydantic import BaseModel
 
 
 class PowerWattsMessage(Message[PowerWatts]):
@@ -52,3 +54,6 @@ class SyncedReadingsMessage(Message[SyncedReadings]):
         )
 
 
+class CancelAdminMode(BaseModel):
+    TypeName: Literal["cancel.admin.mode"] = "cancel.admin.mode"
+    Version: Literal["000"] = "000"

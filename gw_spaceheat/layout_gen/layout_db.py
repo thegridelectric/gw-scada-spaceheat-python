@@ -4,7 +4,7 @@ import subprocess
 import typing
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, Tuple,List
+from typing import Dict, Optional, List
 import uuid
 
 from gw.errors import DcError
@@ -121,7 +121,7 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
 class StubConfig:
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
     terminal_asset_alias: Optional[str] = None
-    zone_list: Tuple[str, ...] = field(default_factory=tuple)
+    zone_list: typing.Sequence[str] = field(default_factory=tuple)
     total_store_tanks: int = 3
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True

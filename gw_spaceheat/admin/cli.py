@@ -1,4 +1,6 @@
+import logging
 from enum import StrEnum
+from typing import Annotated
 
 import dotenv
 import rich
@@ -6,9 +8,9 @@ import typer
 
 from gwproactor.command_line_utils import get_settings, print_settings
 
-from admin.set_client import SetAdminClient
+from admin.tdemo.cli import app as tdemo_cli
 from admin.settings import AdminClientSettings
-from admin.watch_client import WatchAdminClient
+from admin.watch.relay_app import RelaysApp
 
 app = typer.Typer(
     no_args_is_help=True,
@@ -17,6 +19,8 @@ app = typer.Typer(
     help="GridWorks Scada Admin Client",
 )
 
+app.add_typer(tdemo_cli, name="demo", help="Textual demo commands.")
+
 DEFAULT_TARGET: str = "d1.isone.me.versant.keene.orange.scada"
 
 class RelayState(StrEnum):
@@ -24,94 +28,44 @@ class RelayState(StrEnum):
     closed = "1"
 
 
-def _set_relay(
-    *,
-    target: str,
-    open_relay: bool,
-    env: str = ".env",
-    user: str = "HeatpumpWizard",
-    json: bool = False,
-) -> None:
-    # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
-    # noinspection PyArgumentList
-    settings = AdminClientSettings(
-        target_gnode=target,
-        _env_file=dotenv.find_dotenv(env)
-    )
-    if not json:
-        rich.print(settings)
-    admin = SetAdminClient(
-        settings=settings,
-        open_relay=open_relay,
-        user=user,
-        json=json,
-    )
-    admin.run()
-
-
-@app.command()
-def set_relay(
-    target: str,
-    open_relay: bool,
-    env_file: str = ".env",
-    user: str = "HeatpumpWizard",
-    json: bool = False,
-) -> None:
-    _set_relay(
-        target=target,
-        open_relay=open_relay,
-        env=env_file,
-        user=user,
-        json=json,
-    )
 
 @app.command()
 def watch(
     target: str = "",
     env_file: str = ".env",
-    user: str = "HeatpumpWizard",
-    json: bool = False,
+    verbose: Annotated[
+        int,
+        typer.Option(
+            "--verbose", "-v", count=True
+        )
+    ] = 0
 ) -> None:
+    """Watch and set relays. """
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
     # noinspection PyArgumentList
     settings = AdminClientSettings(
-        _env_file=dotenv.find_dotenv(env_file)
+        _env_file=dotenv.find_dotenv(env_file),
     )
     if target:
         settings.target_gnode = target
     elif not settings.target_gnode:
         settings.target_gnode = DEFAULT_TARGET
-    if not json:
-        rich.print(settings)
-    admin = WatchAdminClient(
-        settings=settings,
-        user=user,
-        json=json,
-    )
-    admin.run()
-
-
-@app.command()
-def run(
-    target: str = DEFAULT_TARGET,
-    open_relay: bool = True,
-    env_file: str = ".env",
-    user: str = "HeatpumpWizard",
-    json: bool = False,
-) -> None:
-    _set_relay(
-        target=target,
-        open_relay=open_relay,
-        env=env_file,
-        user=user,
-        json=json,
-    )
+    if verbose:
+        if verbose == 1:
+            verbosity = logging.WARN
+        else:
+            verbosity = logging.INFO
+        settings.verbosity = verbosity
+    rich.print(settings)
+    watch_app = RelaysApp(settings=settings)
+    watch_app.run()
 
 @app.command()
 def config(
     target: str = "",
     env_file: str = ".env",
 ) -> None:
+    """Show admin settings."""
     settings = get_settings(settings_type=AdminClientSettings, env_file=env_file)
     settings.target_gnode = target
     print_settings(settings=settings, env_file=env_file)

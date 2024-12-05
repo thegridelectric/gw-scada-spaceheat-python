@@ -327,6 +327,7 @@ class PicoCycler(ScadaActor):
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         # print(f"++pico_cycler  {message.message_type()}", flush=True)
+        self.services.logger.path(f"++pico_cycler  {message.message_type()}")
         path_dbg = 0
         src_node = self.layout.node(message.Header.Src)
         if src_node is not None:
@@ -346,7 +347,7 @@ class PicoCycler(ScadaActor):
                     self.process_synced_readings(src_node, message.Payload)
                 case _:
                     path_dbg |= 0x00000020
-        # print(f"--pico_cycler  path:0x{path_dbg:08X}", flush=True)
+        self.services.logger.path(f"--pico_cycler  path:0x{path_dbg:08X}")
         return Ok(True)
 
     def confirm_opened(self):
@@ -442,7 +443,6 @@ class PicoCycler(ScadaActor):
                 FromName=self.name,
                 TriggerId=self.trigger_id,
                 AtomicList=self.fsm_reports,
-                Comment=self.fsm_comment,
             ),
         )
         self.services.logger.error(

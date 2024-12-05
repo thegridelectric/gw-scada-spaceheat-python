@@ -14,12 +14,14 @@ class PersisterSettings(BaseModel):
 class AdminLinkSettings(MQTTClient):
     enabled: bool = False
     name: str = H0N.admin
+    timeout_seconds: float = 60 * 30
 
 class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""
     local_mqtt: MQTTClient = MQTTClient()
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300
+    seconds_per_snapshot: int = 300
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings()
