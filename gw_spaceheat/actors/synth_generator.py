@@ -100,7 +100,8 @@ class SynthGenerator(ScadaActor):
                 self.get_weather()
 
             self.get_latest_temperatures()
-            self.update_energy()
+            if self.temperatures_available:
+                self.update_energy()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
