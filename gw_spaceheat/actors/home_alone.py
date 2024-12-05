@@ -146,7 +146,6 @@ class HomeAlone(ScadaActor):
         # Get the weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-        self.get_weather()
     
     @property
     def data(self) -> ScadaData:
@@ -244,8 +243,11 @@ class HomeAlone(ScadaActor):
                     self.storage_declared_ready = False
                     self.full_storage_energy = None
 
-                if datetime.now(self.timezone)>self.weather['time'][0]:
+                if self.weather is None:
                     self.get_weather()
+                else:
+                    if datetime.now(self.timezone)>self.weather['time'][0]:
+                        self.get_weather()
 
                 self.get_latest_temperatures()
 
