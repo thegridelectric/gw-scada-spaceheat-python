@@ -7,9 +7,7 @@ import threading
 import time
 from typing import Any
 from typing import List
-from typing import Optional, Union
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.synth_channel import SynthChannel
+from typing import Optional
 import dotenv
 from enum import auto
 from gwproto.message import Header
@@ -784,7 +782,10 @@ class Scada(ScadaInterface, Proactor):
         self._data.recent_fsm_reports[payload.TriggerId] = payload
 
     def single_reading_received(self, payload: SingleReading) -> None:
-        ch: Union[DataChannel, SynthChannel] = self.data.my_channels[payload.ChannelName]
+        if payload.ChannelName in self._layout.data_channels:
+            ch = self._layout.data_channels[payload.ChannelName]
+        elif payload.ChannelName in self._layout.synth_channels:
+            ch = self._layout.synth_channels[payload.ChannelName]
         self._data.recent_channel_values[ch.Name].append(payload.Value)
         self._data.recent_channel_unix_ms[ch.Name].append(payload.ScadaReadTimeUnixMs)
         self._data.latest_channel_values[ch.Name] = payload.Value
@@ -805,7 +806,7 @@ class Scada(ScadaInterface, Proactor):
                 raise ValueError(
                     f"Name {channel_name} in payload.SyncedReadings not a recognized Data Channel!"
                 )
-            ch: Union[DataChannel, SynthChannel] = self.data.my_channels[channel_name]
+            ch = self._layout.data_channels[channel_name]
             self._data.recent_channel_values[ch.Name].append(
                 payload.ValueList[idx]
             )
@@ -829,7 +830,7 @@ class Scada(ScadaInterface, Proactor):
             raise ValueError(
                     f"Name {payload.ChannelName} in ChannelReadings not a recognized Data Channel!"
                 )
-        ch: Union[DataChannel, SynthChannel] = self.data.my_channels[payload.ChannelName]
+        ch = self._layout.data_channels[payload.ChannelName]
         if from_node != ch.captured_by_node:
             raise ValueError(
                 f"{payload.ChannelName} shoudl be read by {ch.captured_by_node}, not {from_node}!"
