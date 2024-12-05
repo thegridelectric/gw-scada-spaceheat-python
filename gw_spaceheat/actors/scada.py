@@ -36,7 +36,7 @@ from gwproto.named_types import (AnalogDispatch, ChannelReadings, MachineStates,
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
                                 TicklistReedReport, TicklistHallReport)
 
-from gwproto.named_types import GoDormant, DormantAck
+from gwproto.named_types import DormantAck
 
 from gwproto.messages import ReportEvent
 from gwproto.named_types import Ha1Params
@@ -152,8 +152,6 @@ class ScadaCmdDiagnostic(enum.Enum):
 class TopState(GwStrEnum):
     Auto = auto()
     Admin = auto()
-    ChangingToAdmin = auto()
-    ChangingToAuto = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -161,13 +159,21 @@ class TopState(GwStrEnum):
 
 class TopEvent(GwStrEnum):
     AdminWakesUp = auto()
-    AutoWakesUp = auto()
-    ChangeToAuto = auto()
-    ChangeToAdmin = auto()
+    AdminTimesOut= auto()
 
     @classmethod
     def enum_name(cls) -> str:
         return "top.event"
+
+class MainAutoEvent(GwStrEnum):
+    AtnLinkDead = auto()
+    AtnDispatchRequest = auto()
+    GoDormant = auto()
+    WakeUp = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "main.auto.event"
 
 class Scada(ScadaInterface, Proactor):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
@@ -184,18 +190,16 @@ class Scada(ScadaInterface, Proactor):
     _layout_lite: LayoutLite
     _admin_timeout_task: Optional[asyncio.Task] = None
 
-    top_states = ["Auto", "Admin", "ChangingToAdmin", "ChangingToAuto"]
+    top_states = ["Auto", "Admin"]
     top_transitions = [
-        {"trigger": "AdminWakesUp", "source": "Auto", "dest": "ChangingToAdmin"},
-        {"trigger": "ChangeToAdmin", "source": "ChangingToAdmin", "dest": "Admin"},
-        {"trigger": "AutoWakesUp", "source": "Admin", "dest": "ChangingToAuto"},
-        {"trigger": "ChangeToAuto", "source": "ChangingToAuto", "dest": "Admin"},
+        {"trigger": "AdminWakesUp", "source": "Auto", "dest": "Admin"},
+        {"trigger": "AdminTimesOut", "source": "Admin", "dest": "Auto"},
     ]
 
     main_auto_states = ["Atn", "HomeAlone", "Dormant"]
     main_auto_transitions = [
         {"trigger": "AtnLinkDead", "source": "Atn", "dest": "HomeAlone"},
-        {"trigger": "AtnLinkAlive", "source": "HomeAlone", "dest": "Atn"},
+        {"trigger": "AtnDispatchRequest", "source": "HomeAlone", "dest": "Atn"},
         {"trigger": "GoDormant", "source": "Atn", "dest": "Dormant"},
         {"trigger": "GoDormant", "source": "HomeAlone", "dest": "Dormant"},
         {"trigger": "WakeUp", "source": "Dormant", "dest": "HomeAlone"}
@@ -670,7 +674,8 @@ class Scada(ScadaInterface, Proactor):
             self._admin_timeout_task.cancel()
         self._admin_timeout_task = asyncio.create_task(self._timeout_admin())
 
-    def _turn_on_admin_mode(self) -> None:
+    def _admin_wakes_up(self) -> None:
+        self.AdminWakesUp()
         for node in [
             node for node in self._layout.nodes.values()
             if node.ActorClass == ActorClass.Relay
@@ -708,7 +713,7 @@ class Scada(ScadaInterface, Proactor):
                     self._publish_to_link(self.ADMIN_MQTT, self._data.make_snapshot())
                 case FsmEvent() as event:
                     path_dbg |= 0x00000008
-                    self._turn_on_admin_mode()
+                    self._admin_wakes_up()
                     if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
                         path_dbg |= 0x00000010
                         communicator.process_message(
