@@ -9,6 +9,7 @@ class AtomicAlly(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 10
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
+        self._stop_requested: bool = False
 
     def start(self) -> None:
         self.services.add_task(
@@ -31,6 +32,6 @@ class AtomicAlly(ScadaActor):
     
     async def main(self):
         await asyncio.sleep(2)
-        self.log("In synth gen main loop")
+        self.log("In atomic ally main loop")
         while not self._stop_requested:
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
