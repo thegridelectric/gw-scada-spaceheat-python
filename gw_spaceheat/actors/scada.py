@@ -837,7 +837,10 @@ class Scada(ScadaInterface, Proactor):
             self._publish_to_link(self.ADMIN_MQTT, reading)
 
     def single_reading_received(self, payload: SingleReading) -> None:
-        ch = self._layout.data_channels[payload.ChannelName]
+        if payload.ChannelName in self._layout.data_channels:
+            ch = self._layout.data_channels[payload.ChannelName]
+        elif payload.ChannelName in self._layout.synth_channels:
+            ch = self._layout.synth_channels[payload.ChannelName]
         self._data.recent_channel_values[ch.Name].append(payload.Value)
         self._data.recent_channel_unix_ms[ch.Name].append(payload.ScadaReadTimeUnixMs)
         self._data.latest_channel_values[ch.Name] = payload.Value

@@ -146,7 +146,6 @@ class HomeAlone(ScadaActor):
         # Get the weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-        self.get_weather()
     
     @property
     def data(self) -> ScadaData:
@@ -227,7 +226,7 @@ class HomeAlone(ScadaActor):
 
     async def main(self):
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(5)
         self.initialize_relays()
 
         while not self._stop_requested:
@@ -244,8 +243,11 @@ class HomeAlone(ScadaActor):
                     self.storage_declared_ready = False
                     self.full_storage_energy = None
 
-                if datetime.now(self.timezone)>self.weather['time'][0]:
+                if self.weather is None:
                     self.get_weather()
+                else:
+                    if datetime.now(self.timezone)>self.weather['time'][0]:
+                        self.get_weather()
 
                 self.get_latest_temperatures()
 
@@ -482,13 +484,19 @@ class HomeAlone(ScadaActor):
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
     def get_latest_temperatures(self):
-        temp = {
-            x: self.data.latest_channel_values[x] 
-            for x in self.temperature_channel_names
-            if x in self.data.latest_channel_values
-            and self.data.latest_channel_values[x] is not None
-            }
-        self.latest_temperatures = temp.copy()
+        if not self.is_simulated:
+            temp = {
+                x: self.data.latest_channel_values[x] 
+                for x in self.temperature_channel_names
+                if x in self.data.latest_channel_values
+                and self.data.latest_channel_values[x] is not None
+                }
+            self.latest_temperatures = temp.copy()
+        else:
+            self.log("IN SIMULATION - set all temperatures to 60 degC")
+            self.latest_temperatures = {}
+            for channel_name in self.temperature_channel_names:
+                self.latest_temperatures[channel_name] = 60 * 1000
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
             print('Temperatures available')
@@ -502,6 +510,10 @@ class HomeAlone(ScadaActor):
                 self.fill_missing_store_temps()
                 print("Successfully filled in the missing storage temperatures.")
                 self.temperatures_available = True
+        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy]
+        required_storage = self.data.latest_channel_values[H0N.required_energy]
+        if total_usable_kwh is None or required_storage is None:
+            self.temperatures_available = False
     
     def initialize_relays(self):
         if self.is_onpeak:
@@ -669,48 +681,10 @@ class HomeAlone(ScadaActor):
         self.log(f"Average Power = {self.weather['avg_power']}")
         self.log(f"RSWT = {self.weather['required_swt']}")
         self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.weather['required_swt']]}")
-       
-    def get_required_storage(self, time_now: datetime) -> float:
-        morning_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
-             if 7<=t.hour<=11]
-            )
-        midday_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
-             if 12<=t.hour<=15]
-            )
-        afternoon_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
-             if 16<=t.hour<=19]
-            )
-        # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
-        #     or (time_now.weekday()<5 and time_now.hour<=6)):
-        if (time_now.hour>=20 or time_now.hour<=6):
-            self.log('Preparing for a morning onpeak + afternoon onpeak')
-            afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwTh - midday_kWh) # TODO make the kW_th a function of COP and kW_el
-            return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
-        # elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
-        elif (time_now.hour>=12 and time_now.hour<16):
-            self.log('Preparing for an afternoon onpeak')
-            return afternoon_kWh
-        else:
-            self.log('No onpeak period coming up soon')
-            return 0
 
     def is_storage_ready(self, return_missing=False) -> bool:
-        time_now = datetime.now(self.timezone)
-        latest_temperatures = self.latest_temperatures.copy()
-        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
-        total_usable_kwh = 0
-        while True:
-            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
-                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
-                    break
-            total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
-        required_storage = self.get_required_storage(time_now)
+        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
+        required_storage = self.data.latest_channel_values[H0N.required_energy] / 1000
         if return_missing:
             return total_usable_kwh, required_storage
         if total_usable_kwh >= required_storage:
