@@ -11,6 +11,7 @@ from actors.scada_data import ScadaData
 from result import Ok, Result
 from datetime import datetime, timedelta
 import pytz
+from gwproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp
 
 from actors.scada_actor import ScadaActor
@@ -19,8 +20,15 @@ class SynthGenerator(ScadaActor):
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
-        self._stop_requested = False
-        self.timezone = pytz.timezone(self.settings.timezone_str)
+        self.cn: H0CN = self.layout.channel_names
+        self._stop_requested: bool = False
+        self.hardware_layout = self._services.hardware_layout
+        self.temperature_channel_names = [
+            H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4,
+            H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
+            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
+            *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
+        ]
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -118,15 +126,38 @@ class SynthGenerator(ScadaActor):
     def params(self) -> Ha1Params:
         return self.data.ha1_params
     
+    def fill_missing_store_temps(self):
+        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
+        for layer in all_store_layers:
+            if (layer not in self.latest_temperatures 
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
+                self.latest_temperatures[layer] = None
+        if H0CN.store_cold_pipe in self.latest_temperatures:
+            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
+        else:
+            value_below = 0
+        for layer in sorted(all_store_layers, reverse=True):
+            if self.latest_temperatures[layer] is None:
+                self.latest_temperatures[layer] = value_below
+            value_below = self.latest_temperatures[layer]  
+        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
+    
     # Receive latest temperatures
     def get_latest_temperatures(self):
-        temp = {
-            x: self.data.latest_channel_values[x] 
-            for x in self.temperature_channel_names
-            if x in self.data.latest_channel_values
-            and self.data.latest_channel_values[x] is not None
-            }
-        self.latest_temperatures = temp.copy()
+        if not self.is_simulated:
+            temp = {
+                x: self.data.latest_channel_values[x] 
+                for x in self.temperature_channel_names
+                if x in self.data.latest_channel_values
+                and self.data.latest_channel_values[x] is not None
+                }
+            self.latest_temperatures = temp.copy()
+        else:
+            self.log("IN SIMULATION - set all temperatures to 60 degC")
+            self.latest_temperatures = {}
+            for channel_name in self.temperature_channel_names:
+                self.latest_temperatures[channel_name] = 60 * 1000
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
         else:
@@ -308,3 +339,25 @@ class SynthGenerator(ScadaActor):
         self.log(f"Average Power = {self.weather['avg_power']}")
         self.log(f"RSWT = {self.weather['required_swt']}")
         self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.weather['required_swt']]}")
+
+    def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
+        timenow = datetime.now(self.timezone)
+        if timenow.hour > 19 or timenow.hour < 7:
+            required_swt = max(
+                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                if t.hour in [7,8,9,10,11,16,17,18,19]]
+                )
+        else:
+            required_swt = max(
+                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                if t.hour in [16,17,18,19]]
+                )
+        if return_rswt_onpeak:
+            return required_swt
+        if swt < required_swt - 10:
+            delta_t = 0
+        elif swt < required_swt:
+            delta_t = self.delta_T(required_swt) * (swt-(required_swt-10))/10
+        else:
+            delta_t = self.delta_T(swt)
+        return round(swt - delta_t,2)

@@ -31,6 +31,6 @@ class FakeAtn(ScadaActor):
     
     async def main(self):
         await asyncio.sleep(2)
-        self.log("In synth gen main loop")
+        self.log("In fake atn main loop")
         while not self._stop_requested:
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
