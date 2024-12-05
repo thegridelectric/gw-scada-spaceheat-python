@@ -828,13 +828,13 @@ class Scada(ScadaInterface, Proactor):
         self._data.recent_fsm_reports[payload.TriggerId] = payload
 
     def _forward_single_reading(self, reading: SingleReading) -> None:
-        if (
-            self.settings.admin.enabled
-            and self._layout.node(
-                self._layout.data_channels[reading.ChannelName].AboutNodeName
-            ).ActorClass == ActorClass.Relay
+        if (self.settings.admin.enabled
+            and reading.ChannelName in self._layout.data_channels
         ):
-            self._publish_to_link(self.ADMIN_MQTT, reading)
+            if self._layout.node(
+                self._layout.data_channels[reading.ChannelName].AboutNodeName
+            ).ActorClass== ActorClass.Relay:
+                self._publish_to_link(self.ADMIN_MQTT, reading)
 
     def single_reading_received(self, payload: SingleReading) -> None:
         if payload.ChannelName in self._layout.data_channels:
