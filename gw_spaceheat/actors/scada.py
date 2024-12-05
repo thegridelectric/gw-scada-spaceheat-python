@@ -214,7 +214,7 @@ class Scada(ScadaInterface, Proactor):
         self._data = ScadaData(settings, hardware_layout)
         self._layout_lite = self._make_layout_lite(
             layout=self._layout,
-            data_channels=self._data.my_channels,
+            data_channels=self._data.my_data_channels,
             synth_channels=self._data.my_synth_channels,
             ha1_params=self._data.ha1_params,
         )
