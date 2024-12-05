@@ -1,20 +1,21 @@
-from gwproactor import ServicesInterface
-from actors.config import ScadaSettings
-from typing import Optional
-import asyncio
 import time
-import numpy as np
-import requests
 import json
-from gwproto import Message
-from actors.scada_data import ScadaData
+import pytz
+import asyncio
+import requests
+import numpy as np
+from typing import Optional
 from result import Ok, Result
 from datetime import datetime, timedelta
-import pytz
+from actors.config import ScadaSettings
+from actors.scada_data import ScadaData
+from gwproto import Message
 from gwproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp
-
+from gwproactor import ServicesInterface
 from actors.scada_actor import ScadaActor
+
+
 class SynthGenerator(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
 
@@ -230,7 +231,7 @@ class SynthGenerator(ScadaActor):
             self.log('Preparing for an afternoon onpeak')
             return afternoon_kWh
         else:
-            self.log('No onpeak period coming up soon')
+            self.log('Currently in on-peak or no on-peak period coming up soon')
             return 0
     
     def to_celcius(self, t: float) -> float:
