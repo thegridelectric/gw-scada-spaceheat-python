@@ -67,7 +67,10 @@ def config(
 ) -> None:
     """Show admin settings."""
     settings = get_settings(settings_type=AdminClientSettings, env_file=env_file)
-    settings.target_gnode = target
+    if target:
+        settings.target_gnode = target
+    elif not settings.target_gnode:
+        settings.target_gnode = DEFAULT_TARGET
     print_settings(settings=settings, env_file=env_file)
 
 
