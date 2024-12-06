@@ -740,10 +740,10 @@ class HomeAlone(ScadaActor):
         else:
             self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if self.cn.tank[1].depth1 in self.latest_temperatures: # TODO: this will always be true since we are filling missing temperatures
-            tank_top = self.cn.tank[1].depth1
-        elif H0CN.store_hot_pipe in self.latest_temperatures:
+        if H0CN.store_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.store_hot_pipe
+        elif self.cn.tank[1].depth1 in self.latest_temperatures:
+            tank_top = self.cn.tank[1].depth1
         elif H0CN.buffer_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.buffer_hot_pipe
         else:
