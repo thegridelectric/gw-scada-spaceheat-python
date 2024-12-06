@@ -418,6 +418,9 @@ class ApiFlowModule(ScadaActor):
                 )
             )
         )
+        if self.slow_turner: #TODO remove
+            self.log(f"Rel timestamps: {data.RelativeMillisecondList}")
+            self.log(f"Timestamps: {self.nano_timestamps}")
 
     def update_timestamps_for_hall(self, data: TicklistHall) -> None:
         pi_time_received_post = time.time_ns()
@@ -477,7 +480,6 @@ class ApiFlowModule(ScadaActor):
             return
         self.last_heard = time.time()
         if self.slow_turner and len(data.RelativeMillisecondList) == 0:
-            # print("Empty ticklist for primary in beech")
             if self.latest_gpm is None:
                 self.latest_gpm = 0
                 self.latest_hz = 0
@@ -517,12 +519,14 @@ class ApiFlowModule(ScadaActor):
             final_tick_ns = self.nano_timestamps[-1]
             if self.latest_tick_ns is not None:
                 final_nonzero_hz = 1e9 / (final_tick_ns - self.latest_tick_ns)
+                self.log(f"Single tick, freq: {final_nonzero_hz} Hz")
             else:
                 final_nonzero_hz = 0
             self.latest_tick_ns = final_tick_ns
             self.latest_report_ns = final_tick_ns
             self.latest_hz = 0
             if self.slow_turner:
+                self.log(f"mHz: {int(final_nonzero_hz*1e6)}")
                 micro_hz_readings = ChannelReadings(
                     ChannelName=self.hz_channel.Name,
                     ValueList=[int(final_nonzero_hz * 1e6)],
@@ -629,9 +633,8 @@ class ApiFlowModule(ScadaActor):
         hz_list = [x / 1e6 for x in micro_hz_readings.ValueList]
         gpms = [x * 60 * gallons_per_tick for x in hz_list]
         self.latest_gpm = gpms[-1]
-        # self.log("gpms x 100 for slow turner:")
-        # if self.slow_turner:
-        #     print([int(x * 100) for x in gpms])
+        if self.slow_turner: #TODO: remove
+            self.log(f"mHz: {micro_hz_readings}, gpm: {gpms}")
         return ChannelReadings(
             ChannelName=self.gpm_channel.Name,
             ValueList=[int(x * 100) for x in gpms],
@@ -651,6 +654,10 @@ class ApiFlowModule(ScadaActor):
         frequencies = [1/(t2-t1)*1e9 for t1,t2 in zip(self.nano_timestamps[:-1], self.nano_timestamps[1:])]
         frequencies = frequencies + [frequencies[-1]]
 
+        if self.slow_turner: # TODO: remove
+            self.log(f"Before processing timestamps:\n{timestamps}")
+            self.log(f"Before processing frequencies:\n{frequencies}")
+
         # Sort values by time
         if sorted(timestamps) != timestamps:
             sorted_by_time = sorted(zip(timestamps, frequencies))
@@ -662,22 +669,22 @@ class ApiFlowModule(ScadaActor):
             timestamps = [timestamps[i] for i in range(len(frequencies)) if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
             frequencies = [x for x in frequencies  if (x<max_hz and x>=min_hz)]
 
-        # Add 0 flow when there is more than no_flow_ms between two points
-        new_timestamps = []
-        new_frequencies = []
-        for i in range(len(timestamps) - 1):
-            new_timestamps.append(timestamps[i]) 
-            new_frequencies.append(frequencies[i])  
-            if timestamps[i+1] - timestamps[i] > self._component.gt.NoFlowMs * 1e6:
-                add_step_ns = 20*1e6
-                while timestamps[i] + add_step_ns < timestamps[i+1]:
-                    new_timestamps.append(timestamps[i] + add_step_ns)
-                    new_frequencies.append(0.001)
-                    add_step_ns += 20*1e6
-        new_timestamps.append(timestamps[-1])
-        new_frequencies.append(frequencies[-1])
-        sorted_times_values = sorted(zip(new_timestamps, new_frequencies))
-        timestamps, frequencies = zip(*sorted_times_values)
+            # Add 0 flow when there is more than no_flow_ms between two points
+            new_timestamps = []
+            new_frequencies = []
+            for i in range(len(timestamps) - 1):
+                new_timestamps.append(timestamps[i]) 
+                new_frequencies.append(frequencies[i])  
+                if timestamps[i+1] - timestamps[i] > self._component.gt.NoFlowMs * 1e6:
+                    add_step_ns = 20*1e6
+                    while timestamps[i] + add_step_ns < timestamps[i+1]:
+                        new_timestamps.append(timestamps[i] + add_step_ns)
+                        new_frequencies.append(0.001)
+                        add_step_ns += 20*1e6
+            new_timestamps.append(timestamps[-1])
+            new_frequencies.append(frequencies[-1])
+            sorted_times_values = sorted(zip(new_timestamps, new_frequencies))
+            timestamps, frequencies = zip(*sorted_times_values)
 
         # First reading
         if self.latest_hz is None:
@@ -688,6 +695,9 @@ class ApiFlowModule(ScadaActor):
         if self.slow_turner:
             sampled_timestamps = timestamps
             smoothed_frequencies = frequencies
+            # TODO: remove
+            self.log(f"After processing timestamps:\n{sampled_timestamps}")
+            self.log(f"After processing frequencies:\n{smoothed_frequencies}")
 
         # Exponential weighted average
         elif self._component.gt.HzCalcMethod == HzCalcMethod.BasicExpWeightedAvg:
