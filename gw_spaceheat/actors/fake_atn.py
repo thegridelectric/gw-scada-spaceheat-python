@@ -41,14 +41,14 @@ class FakeAtn(ScadaActor):
         self.log("In fake atn main loop")
         # SendTimeMs should be no more than 10 seconds after SlotStartS
         # slot start has to fall on top of 5 minutes
-        t = int(time.time())
-        slot_start_s = t -(t % 3600)
+        t = time.time()
+        slot_start_s = int(t -(t % 3600))
         if t - slot_start_s < 12:
             sample_dispatch = EnergyInstruction(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
-                SlotStartS=t -(t % 3600),
+                SlotStartS=slot_start_s,
                 SlotDurationMinutes=60,
-                SendTimeMs=int(time.time() * 1000),
+                SendTimeMs=int(t * 1000),
                 AvgPowerWatts=9500
             )
             self.log(f"Sample dispatch: {sample_dispatch}")
