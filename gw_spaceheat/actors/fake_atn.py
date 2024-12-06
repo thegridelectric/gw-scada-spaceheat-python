@@ -43,7 +43,7 @@ class FakeAtn(ScadaActor):
         # slot start has to fall on top of 5 minutes
         t = time.time()
         slot_start_s = int(t -(t % 3600))
-        if t - slot_start_s < 12:
+        if t - slot_start_s < 9:
             sample_dispatch = EnergyInstruction(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 SlotStartS=slot_start_s,
