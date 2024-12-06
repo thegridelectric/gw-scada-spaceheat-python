@@ -741,16 +741,13 @@ class ApiFlowModule(ScadaActor):
         threshold_hz = threshold_gpm / 60 / gallons_per_tick
         if first_reading:
             self.latest_hz = smoothed_frequencies[0]
-            micro_hz_list = [int(smoothed_frequencies[0] * 1e6)]
-            unix_ms_times = [int(sampled_timestamps[0] / 1e6)]
-        else:
-            micro_hz_list = []
-            unix_ms_times = []
+        micro_hz_list = [int(self.latest_hz * 1e6)]
+        unix_ms_times = [int(sampled_timestamps[0] / 1e6)]
         for i in range(1, len(smoothed_frequencies)):
-            if abs(smoothed_frequencies[i] - self.latest_hz) > threshold_hz:
+            if abs(smoothed_frequencies[i] - micro_hz_list[-1]/1e6) > threshold_hz:
                 micro_hz_list.append(int(smoothed_frequencies[i] * 1e6))
                 unix_ms_times.append(int(sampled_timestamps[i] / 1e6))
-        self.latest_hz = smoothed_frequencies[-1]
+        self.latest_hz = micro_hz_list[-1]/1e6
         self.latest_tick_ns = sampled_timestamps[-1]
         self.latest_report_ns = sampled_timestamps[-1]
         micro_hz_list = [x if x>0 else 0 for x in micro_hz_list]
