@@ -1,0 +1,74 @@
+Screen {
+    layout: vertical;
+}
+
+#mqtt_state {
+    height: 1fr;
+    border: solid green;
+}
+
+
+#relay_scroll {
+    height: 10fr;
+    border: solid green;
+}
+
+#message_table {
+    height: 3fr;
+    border: solid green;
+}
+
+
+Relay {
+    layout: horizontal;
+    background: $boost;
+    height: auto;
+    width: auto;
+}
+
+#relay_channel_name {
+    dock: left;
+    width: 30;
+    border: solid orange;
+}
+
+#relay_energized_label {
+    border: solid orange;
+    width: 30;
+    text-align: right;
+}
+
+#relay_energized {
+    border: solid orange;
+    width: 60;
+    text-align: center;
+}
+
+#relay_switch_label {
+    width: 30;
+    border: solid orange;
+    align-horizontal: right;
+    text-align: right;
+}
+
+#relay_switch {
+    height: auto;
+    width: auto;
+    dock: right;
+    border: solid orange;
+}
+
+#custom-design {
+    background: darkslategrey;
+}
+
+#custom-design > .switch--slider {
+    color: dodgerblue;
+    background: darkslateblue;
+}
+
+Relays {
+    content-align: center middle;
+    text-opacity: 60%;
+    height: 14fr;
+}
