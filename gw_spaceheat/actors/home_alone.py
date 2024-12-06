@@ -284,10 +284,13 @@ class HomeAlone(ScadaActor):
                     elif self.is_buffer_full():
                         if self.is_storage_ready():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
-                        elif self.full_storage_energy is None:
-                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                         else:
-                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
+                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                            if usable < required:
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
+                            else:
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                     
                 elif self.state==HomeAloneState.HpOnStoreCharge.value:
                     if self.is_onpeak():
@@ -306,7 +309,8 @@ class HomeAlone(ScadaActor):
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                         elif not self.is_storage_ready():
-                            usable, required = self.is_storage_ready(return_missing=True)
+                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
                             if self.storage_declared_ready:
                                 if self.full_storage_energy is None:
                                     if usable > 0.9*required:
