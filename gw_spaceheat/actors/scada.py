@@ -149,6 +149,16 @@ class ScadaCmdDiagnostic(enum.Enum):
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
 
+class MainAutoEvent(GwStrEnum):
+    AtnLinkDead = auto()
+    AtnDispatchRequest = auto()
+    GoDormant = auto()
+    WakeUp = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "main.auto.event"
+    
 class TopState(GwStrEnum):
     Auto = auto()
     Admin = auto()
@@ -653,10 +663,14 @@ class Scada(ScadaInterface, Proactor):
                 self.generate_event(decoded.Payload)
             case SyncedReadings():
                 path_dbg |= 0x00000002
-                self.synced_readings_received(
-                    self._layout.node(decoded.Header.Src),
-                    decoded.Payload
-                )
+                try:
+                    self.synced_readings_received(
+                        self._layout.node(decoded.Header.Src),
+                        decoded.Payload
+                    )
+                except Exception as e:
+                    #TODO - consider sending an Alert or ProbemEvent
+                    self.logger.error(f"Failed to process SyncedReading from scada2!: {e}")
             case _:
                 # Intentionally ignore this for forward compatibility
                 path_dbg |= 0x00000004

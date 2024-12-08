@@ -8,6 +8,7 @@ import numpy as np
 from datetime import datetime, timedelta
 import pytz
 import requests
+from pydantic import ValidationError
 from gw.enums import GwStrEnum
 from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -283,10 +284,13 @@ class HomeAlone(ScadaActor):
                     elif self.is_buffer_full():
                         if self.is_storage_ready():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
-                        elif self.full_storage_energy is None:
-                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                         else:
-                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
+                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                            if usable < required:
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
+                            else:
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                     
                 elif self.state==HomeAloneState.HpOnStoreCharge.value:
                     if self.is_onpeak():
@@ -305,7 +309,8 @@ class HomeAlone(ScadaActor):
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                         elif not self.is_storage_ready():
-                            usable, required = self.is_storage_ready(return_missing=True)
+                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
                             if self.storage_declared_ready:
                                 if self.full_storage_energy is None:
                                     if usable > 0.9*required:
@@ -348,79 +353,97 @@ class HomeAlone(ScadaActor):
             self._valved_to_discharge_store()
         
     def _turn_on_HP(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_scada_ops_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.hp_scada_ops_relay, event)
-        self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.hp_scada_ops_relay, event)
+            self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def _turn_off_HP(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_scada_ops_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        
-        self._send_to(self.hp_scada_ops_relay, event)
-        self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            
+            self._send_to(self.hp_scada_ops_relay, event)
+            self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def _turn_on_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_pump_failsafe.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_pump_failsafe, event)
-        self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_pump_failsafe.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_pump_failsafe, event)
+            self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def _turn_off_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_pump_failsafe.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_pump_failsafe, event)
-        self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_pump_failsafe.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_pump_failsafe, event)
+            self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def _valved_to_charge_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeStoreFlowRelay.enum_name(),
-            EventName=ChangeStoreFlowRelay.ChargeStore,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_charge_discharge_relay, event)
-        self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_charge_discharge_relay.handle,
+                EventType=ChangeStoreFlowRelay.enum_name(),
+                EventName=ChangeStoreFlowRelay.ChargeStore,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_charge_discharge_relay, event)
+            self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
 
     def _valved_to_discharge_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeStoreFlowRelay.enum_name(),
-            EventName=ChangeStoreFlowRelay.DischargeStore,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_charge_discharge_relay, event)
-        self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_charge_discharge_relay.handle,
+                EventType=ChangeStoreFlowRelay.enum_name(),
+                EventName=ChangeStoreFlowRelay.DischargeStore,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_charge_discharge_relay, event)
+            self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
 
     def start(self) -> None:
         self.services.add_task(
@@ -721,10 +744,10 @@ class HomeAlone(ScadaActor):
         else:
             self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if self.cn.tank[1].depth1 in self.latest_temperatures: # TODO: this will always be true since we are filling missing temperatures
-            tank_top = self.cn.tank[1].depth1
-        elif H0CN.store_hot_pipe in self.latest_temperatures:
+        if H0CN.store_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.store_hot_pipe
+        elif self.cn.tank[1].depth1 in self.latest_temperatures:
+            tank_top = self.cn.tank[1].depth1
         elif H0CN.buffer_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.buffer_hot_pipe
         else:
