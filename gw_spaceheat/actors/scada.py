@@ -226,12 +226,6 @@ class Scada(ScadaInterface, Proactor):
         self.is_simulated = False
         self._layout: House0Layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
-        self._layout_lite = self._make_layout_lite(
-            layout=self._layout,
-            data_channels=self._data.my_data_channels,
-            synth_channels=self._data.my_synth_channels,
-            ha1_params=self._data.ha1_params,
-        )
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         remote_actor_node_names = {node.name for node in self._layout.nodes.values() if
                    self._layout.parent_node(node) != self._node and
@@ -427,29 +421,24 @@ class Scada(ScadaInterface, Proactor):
                 finally:
                     break
 
-    @classmethod
-    def _make_layout_lite(
-            cls,
-            layout: House0Layout,
-            data_channels: Sequence[DataChannel],
-            synth_channels: Sequence[SynthChannel],
-            ha1_params: Ha1Params,
-    ) -> LayoutLite:
-        tank_nodes = [node for node in layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
-        flow_nodes = [node for node in layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
+    @property
+    def _layout_lite(self) -> LayoutLite:
+        tank_nodes = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
+        flow_nodes = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
         return LayoutLite(
-                FromGNodeAlias=layout.scada_g_node_alias,
-                FromGNodeInstanceId=layout.scada_g_node_id,
-                Strategy=layout.strategy,
-                ZoneList=layout.zone_list,
-                TotalStoreTanks=layout.total_store_tanks,
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                FromGNodeInstanceId=self.layout.scada_g_node_id,
+                Strategy=self.layout.strategy,
+                ZoneList=self.layout.zone_list,
+                TotalStoreTanks=self.layout.total_store_tanks,
                 TankModuleComponents=[node.component.gt for node in tank_nodes],
                 FlowModuleComponents=[node.component.gt for node in flow_nodes],
-                ShNodes=[node.to_gt() for node in layout.nodes.values()],
-                DataChannels=[ch.to_gt() for ch in data_channels],
-                Ha1Params=ha1_params,
-                I2cRelayComponent=layout.node(H0N.relay_multiplexer).component.gt,
-                SynthChannels=[ch.to_gt() for ch in synth_channels],
+                ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
+                DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
+                SynthChannels=[ch.to_gt() for ch in self.layout.synth_channels.values()],
+                Ha1Params=self.data.ha1_params,
+                I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
+                
                 MessageCreatedMs=int(time.time() * 1000),
                 MessageId=str(uuid.uuid4()),
             )
@@ -462,7 +451,6 @@ class Scada(ScadaInterface, Proactor):
                 Payload=self._layout_lite,
             )
         )
-
 
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
