@@ -12,8 +12,8 @@ from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
 from gwproto.named_types import Report, SyncedReadings
 from gwproto.named_types import SnapshotSpaceheat
-from gwproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_names import H0N
+from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 
 from actors.scada_interface import ScadaInterface

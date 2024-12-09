@@ -17,13 +17,15 @@ from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.house_0_names import H0N, H0CN
+from data_classes.house_0_names import H0N, H0CN
 from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
-                           ChangeStoreFlowRelay, FsmReportType, MainAutoState)
-from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
-                                 FsmFullReport, GoDormant, WakeUp)
-from actors.config import ScadaSettings
+                           ChangeStoreFlowRelay, FsmReportType)
+from gwproto.named_types import (Alert, MachineStates, FsmAtomicReport,
+                                 FsmFullReport)
+
 from actors.scada_actor import ScadaActor
+from named_types import FsmEvent, Ha1Params, GoDormant, WakeUp
+
 
 class HomeAloneState(GwStrEnum):
     WaitingForTemperaturesOnPeak = auto()
@@ -32,6 +34,7 @@ class HomeAloneState(GwStrEnum):
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
+    Dormant = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -49,6 +52,8 @@ class HomeAloneEvent(GwStrEnum):
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
     TemperaturesAvailable = auto()
+    GoDormant = auto()
+    WakeUp = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -58,6 +63,7 @@ class HomeAloneEvent(GwStrEnum):
 class HomeAlone(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     states = [
+        "Dormant",
         "WaitingForTemperaturesOnPeak",
         "WaitingForTemperaturesOffPeak",
         "HpOnStoreOff",
@@ -96,7 +102,11 @@ class HomeAlone(ScadaActor):
         # Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "OnPeakBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "OffPeakStart", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
-    ]
+    ] + [
+            {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
+            for state in states if state != "Dormant"
+    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "WaitingForTemperaturesOnPeak"}]
+    
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
@@ -234,10 +244,8 @@ class HomeAlone(ScadaActor):
             #self.log("PATTING HOME ALONE WATCHDOG")
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.services.auto_state != MainAutoState.HomeAlone:
-                self.log("State: DORMANT")
-            else:
-                self.log(f"State: {self.state}")
+            self.log(f"State: {self.state}")
+            if self.state != HomeAloneState.Dormant:                
                 previous_state = self.state
 
                 if self.is_onpeak():
@@ -459,22 +467,30 @@ class HomeAlone(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case GoDormant():
-                self._go_dormant_received(message.Payload)
+                self.GoDormant()
             case WakeUp():
-                self._wake_up_received(message.Payload)
+                self.WakeUp()
         return Ok(True)
     
-    def _go_dormant_received(self) -> None:
+    def GoDormant(self) -> None:
         """
         Relays no longer belong to home alone until wake up received
         """
-        ...
+        self.log("Just got message to GoDormant from SCADA.")
+        if self.state != HomeAloneState.Dormant:
+            self.trigger(HomeAloneEvent.GoDormant)
+        else:
+            self.log("IGNORING")
+        self.log(f"State: {self.state}")
     
-    def _wake_up_received(self) -> None:
+    def WakeUp(self) -> None:
         """
         Home alone is again in charge of things.
         """
-        ...
+        self.log("Just got message to Wake Up from SCADA. State")
+        if self.state == HomeAloneState.Dormant:
+            self.trigger(HomeAloneEvent.WakeUp)
+        # at the top of the next loop it'll be in "WaitingForTemperaturesOnPeak"
 
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:

@@ -1,0 +1,144 @@
+{
+    "Entities": [
+            {
+                "Name": "RestfulPost",
+                "DisplayName": "RestfulPost",
+                "Description": "",
+                "PluralName": "RestfulPosts",
+                "AirtableName": "RestfulPosts"
+            },
+            {
+                "Name": "RestfulGet",
+                "DisplayName": "RestfulGet",
+                "Description": "",
+                "PluralName": "RestfulGets",
+                "AirtableName": "RestfulGets"
+            },
+            {
+                "Name": "GtEnum",
+                "DisplayName": "GtEnum",
+                "Description": "",
+                "PluralName": "GtEnums",
+                "AirtableName": "GtEnums"
+            },
+            {
+                "Name": "RabbitExchangeRole",
+                "DisplayName": "RabbitExchangeRole",
+                "Description": "",
+                "PluralName": "RabbitExchangeRoles",
+                "AirtableName": "RabbitExchangeRoles"
+            },
+            {
+                "Name": "VersionedEnum",
+                "DisplayName": "VersionedEnum",
+                "Description": "",
+                "PluralName": "VersionedEnums",
+                "AirtableName": "VersionedEnums"
+            },
+            {
+                "Name": "TypeHelper",
+                "DisplayName": "TypeHelper",
+                "Description": "",
+                "PluralName": "TypeHelpers",
+                "AirtableName": "TypeHelpers"
+            },
+            {
+                "Name": "RabbitPairing",
+                "DisplayName": "RabbitPairing",
+                "Description": "",
+                "PluralName": "RabbitPairings",
+                "AirtableName": "RabbitPairings"
+            },
+            {
+                "Name": "EnumSymbol",
+                "DisplayName": "EnumSymbol",
+                "Description": "",
+                "PluralName": "EnumSymbols",
+                "AirtableName": "EnumSymbols"
+            },
+            {
+                "Name": "TypeAttribute",
+                "DisplayName": "TypeAttribute",
+                "Description": "",
+                "PluralName": "TypeAttributes",
+                "AirtableName": "TypeAttributes"
+            },
+            {
+                "Name": "TypeAxiom",
+                "DisplayName": "TypeAxiom",
+                "Description": "",
+                "PluralName": "TypeAxioms",
+                "AirtableName": "TypeAxioms"
+            },
+            {
+                "Name": "PropertyFormat",
+                "DisplayName": "PropertyFormat",
+                "Description": "",
+                "PluralName": "PropertyFormats",
+                "AirtableName": "PropertyFormats"
+            },
+            {
+                "Name": "TypeBase",
+                "DisplayName": "TypeBase",
+                "Description": "",
+                "PluralName": "TypeBases",
+                "AirtableName": "TypeBases"
+            },
+            {
+                "Name": "Protocol",
+                "DisplayName": "Protocol",
+                "Description": "",
+                "PluralName": "Protocols",
+                "AirtableName": "Protocols"
+            },
+            {
+                "Name": "ProtocolType",
+                "DisplayName": "ProtocolType",
+                "Description": "",
+                "PluralName": "ProtocolTypes",
+                "AirtableName": "ProtocolTypes"
+            },
+            {
+                "Name": "GNodeRole",
+                "DisplayName": "GNodeRole",
+                "Description": "",
+                "PluralName": "GNodeRoles",
+                "AirtableName": "GNodeRoles"
+            },
+            {
+                "Name": "Topic",
+                "DisplayName": "Topic",
+                "Description": "",
+                "PluralName": "Topics",
+                "AirtableName": "Topics"
+            },
+            {
+                "Name": "VersionedType",
+                "DisplayName": "VersionedType",
+                "Description": "",
+                "PluralName": "VersionedTypes",
+                "AirtableName": "VersionedTypes"
+            },
+            {
+                "Name": "TypeHelperAttribute",
+                "DisplayName": "TypeHelperAttribute",
+                "Description": "",
+                "PluralName": "TypeHelperAttributes",
+                "AirtableName": "TypeHelperAttributes"
+            },
+            {
+                "Name": "AppUser",
+                "DisplayName": "AppUser",
+                "Description": "",
+                "PluralName": "AppUsers",
+                "AirtableName": "AppUsers"
+            },
+            {
+                "Name": "ProtocolEnum",
+                "DisplayName": "ProtocolEnum",
+                "Description": "",
+                "PluralName": "ProtocolEnums",
+                "AirtableName": "ProtocolEnums"
+            }
+    ]
+}

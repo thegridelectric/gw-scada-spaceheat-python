@@ -7,12 +7,11 @@ from typing import Any, Dict, List, Optional, Sequence, cast
 from gwproactor import  MonitoredName, ServicesInterface
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.dfr_component import DfrComponent
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass, MakeModel
 from gwproto.named_types import AnalogDispatch, SingleReading
 from gw.errors import DcError
-from actors.config import ScadaSettings
 
 from result import Err, Ok, Result
 from actors.scada_actor import ScadaActor

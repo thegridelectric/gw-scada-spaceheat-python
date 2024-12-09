@@ -6,7 +6,7 @@ from pydantic import model_validator
 from pydantic_settings import SettingsConfigDict
 
 from gwproactor import ProactorSettings
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 
 
 class AdminClientSettings(ProactorSettings):

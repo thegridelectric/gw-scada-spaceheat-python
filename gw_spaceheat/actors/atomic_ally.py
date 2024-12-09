@@ -3,13 +3,14 @@ import asyncio
 from gwproto import Message
 from result import Ok, Result
 from actors.scada_actor import ScadaActor
-from gwproto.named_types import ( GoDormant, WakeUp)
+from named_types import  GoDormant, WakeUp
 
 class AtomicAlly(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 10
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
+        self.state = "Dormant"
 
     def start(self) -> None:
         self.services.add_task(
@@ -29,6 +30,23 @@ class AtomicAlly(ScadaActor):
             case WakeUp():
                 ...
         return Ok(True)
+    
+    def GoDormant(self) -> None:
+        self.log("Just got message to GoDormant from SCADA.")
+        if self.state != "Dormant": # Todo: make sure Dormant is an AtomicAllyState
+            self.trigger("GoDormant") # Todo: Make sure GoDormant is a trigger from all other states to Dormant
+        else:
+            self.log("IGNORING")
+        self.log(f"State: {self.state}")
+    
+    def WakeUp(self) -> None:
+        """
+        Home alone is again in charge of things.
+        """
+        self.log("Just got message to Wake Up from SCADA. State")
+        if self.state == "Dormant":
+            self.trigger("WakeUp")
+        # Todo: Decide where WakeUp goes
     
     async def main(self):
         await asyncio.sleep(2)

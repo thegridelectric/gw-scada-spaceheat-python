@@ -52,8 +52,3 @@ class SyncedReadingsMessage(Message[SyncedReadings]):
             ),
             Payload=payload,
         )
-
-
-class CancelAdminMode(BaseModel):
-    TypeName: Literal["cancel.admin.mode"] = "cancel.admin.mode"
-    Version: Literal["000"] = "000"

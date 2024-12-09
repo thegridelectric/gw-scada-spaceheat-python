@@ -5,10 +5,8 @@ from gwproto import Message
 from result import Ok, Result
 from gw.enums import MarketTypeName
 from gwproto.enums import MarketPriceUnit, MarketQuantityUnit
-from gwproto.named_types import (
-    AtnBid, GoDormant, 
-    EnergyInstruction, PriceQuantityUnitless, WakeUp)
 from actors.scada_actor import ScadaActor
+from named_types import AtnBid, EnergyInstruction, GoDormant, PriceQuantityUnitless, WakeUp
 
 class FakeAtn(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 61

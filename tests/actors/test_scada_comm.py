@@ -4,7 +4,7 @@ import pytest
 
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from tests.atn import Atn
 from tests.atn import AtnSettings
 from gwproactor_test import CommTestHelper

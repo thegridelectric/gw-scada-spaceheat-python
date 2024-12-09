@@ -4,7 +4,7 @@ from gwproto.named_types import I2cMultichannelDtRelayComponentGt
 from pydantic import BaseModel
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from gwproto.named_types import RelayActorConfig
-from gwproto.data_classes.house_0_names import H0N, H0CN, House0RelayIdx
+from data_classes.house_0_names import H0N, H0CN, House0RelayIdx
 from gwproto.named_types import SpaceheatNodeGt, DataChannelGt
 from layout_gen import LayoutDb
 component_display_name = "i2c krida relay boards"

@@ -12,14 +12,15 @@ from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoTankModuleComponent
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TempCalcMethod
-from gwproto.named_types import PicoMissing, SyncedReadings, TankModuleParams
+from gwproto.named_types import SyncedReadings, TankModuleParams
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from result import Ok, Result
 from actors.scada_actor import ScadaActor
+from named_types import PicoMissing
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees

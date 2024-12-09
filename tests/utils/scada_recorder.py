@@ -13,7 +13,7 @@ from paho.mqtt.client import MQTT_ERR_SUCCESS
 
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import MQTTClientWrapper
 from gwproactor.message import MQTTSubackPayload

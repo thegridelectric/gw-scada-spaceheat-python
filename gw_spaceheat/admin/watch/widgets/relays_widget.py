@@ -5,7 +5,6 @@ from logging import Logger
 from typing import Optional
 
 from gwproto import MQTTTopic
-from gwproto.named_types import LayoutLite
 from gwproto.named_types import SnapshotSpaceheat
 from textual.app import ComposeResult
 from textual.containers import HorizontalGroup
@@ -31,6 +30,8 @@ from admin.watch.clients.relay_client import RelayConfigChange
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayState
 from admin.watch.widgets.constrained_mqtt_widget import Mqtt
+
+from named_types import LayoutLite
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())

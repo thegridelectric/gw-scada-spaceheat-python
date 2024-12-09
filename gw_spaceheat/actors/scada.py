@@ -5,16 +5,10 @@ import enum
 import uuid
 import threading
 import time
-from typing import Any
-from typing import List
-from typing import Optional
-from typing import Sequence
+from typing import Any, List, Optional, cast
 
 import dotenv
-from enum import auto
-
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.synth_channel import SynthChannel
+from transitions import Machine
 from gwproto.message import Header
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
@@ -22,24 +16,21 @@ from gwproactor.links.link_settings import LinkSettings
 from gwproactor.message import InternalShutdownMessage
 from gwproto import create_message_model
 from gwproto import MQTTTopic
-from gwproto.enums import ActorClass, MainAutoState
-from gwproto.data_classes.house_0_names import H0N
-from gwproto.data_classes.house_0_layout import House0Layout
-from gwproto.messages import FsmAtomicReport, FsmEvent, FsmFullReport
+from gwproto.enums import ActorClass
+
+from data_classes.house_0_layout import House0Layout
+from gwproto.messages import FsmAtomicReport, FsmFullReport
 from gwproto.messages import EventBase
-from gwproto.messages import LayoutLite
 from gwproto.message import Message
 from gwproto.messages import PowerWatts
-from gwproto.messages import SendSnap, SendLayout
+from gwproto.messages import SendSnap
 
 from gwproto.named_types import (AnalogDispatch, ChannelReadings, MachineStates,
-                                 PicoMissing, ScadaParams, SingleReading, SyncedReadings,
+                                SingleReading, SyncedReadings,
                                 TicklistReedReport, TicklistHallReport)
 
-from gwproto.named_types import DormantAck
 
 from gwproto.messages import ReportEvent
-from gwproto.named_types import Ha1Params
 
 from actors.api_flow_module import TicklistHall, TicklistReed
 from gwproto import MQTTCodec
@@ -47,9 +38,7 @@ from result import Ok
 from result import Result
 
 from gwproactor import ActorInterface
-from gw.enums import GwStrEnum
 from actors.api_tank_module import MicroVolts
-from actors.message import CancelAdminMode
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
@@ -60,12 +49,16 @@ from gwproactor.links import Transition
 from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
-from transitions import Machine
 
+from data_classes.house_0_names import H0N
+from enums import MainAutoState, MainAutoEvent, TopState, TopEvent
+from named_types import (DispatchContractCounterpartyRequest, FsmEvent, GoDormant, 
+                        LayoutLite, PicoMissing, ScadaParams, SendLayout, WakeUp)
 
 ScadaMessageDecoder = create_message_model(
-    "ScadaMessageDecoder",
+    "ScadaMessageDecoder", 
     [
+        "named_types",
         "gwproto.messages",
         "gwproactor.message",
         "actors.message",
@@ -149,42 +142,6 @@ class ScadaCmdDiagnostic(enum.Enum):
     IGNORING_ATN_DISPATCH = "IgnoringAtnDispatch"
 
 
-class MainAutoEvent(GwStrEnum):
-    AtnLinkDead = auto()
-    AtnDispatchRequest = auto()
-    GoDormant = auto()
-    WakeUp = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "main.auto.event"
-    
-class TopState(GwStrEnum):
-    Auto = auto()
-    Admin = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "top.state"
-
-class TopEvent(GwStrEnum):
-    AdminWakesUp = auto()
-    AdminTimesOut= auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "top.event"
-
-class MainAutoEvent(GwStrEnum):
-    AtnLinkDead = auto()
-    AtnDispatchRequest = auto()
-    GoDormant = auto()
-    WakeUp = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "main.auto.event"
-
 class Scada(ScadaInterface, Proactor):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
@@ -209,10 +166,10 @@ class Scada(ScadaInterface, Proactor):
     main_auto_states = ["Atn", "HomeAlone", "Dormant"]
     main_auto_transitions = [
         {"trigger": "AtnLinkDead", "source": "Atn", "dest": "HomeAlone"},
-        {"trigger": "AtnDispatchRequest", "source": "HomeAlone", "dest": "Atn"},
-        {"trigger": "GoDormant", "source": "Atn", "dest": "Dormant"},
-        {"trigger": "GoDormant", "source": "HomeAlone", "dest": "Dormant"},
-        {"trigger": "WakeUp", "source": "Dormant", "dest": "HomeAlone"}
+        {"trigger": "AtnWantsControl", "source": "HomeAlone", "dest": "Atn"},
+        {"trigger": "AutoGoesDormant", "source": "Atn", "dest": "Dormant"},
+        {"trigger": "AutoGoesDormant", "source": "HomeAlone", "dest": "Dormant"},
+        {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"}
     ]
     def __init__(
         self,
@@ -276,7 +233,6 @@ class Scada(ScadaInterface, Proactor):
                     codec=AdminCodec(self.publication_name),
                 ),
             )
-
         self._links.log_subscriptions("construction")
         now = int(time.time())
         self._channels_reported = False
@@ -294,6 +250,7 @@ class Scada(ScadaInterface, Proactor):
                         self.DEFAULT_ACTORS_MODULE
                     )
                 )
+        self.top_state: TopState = TopState.Auto
         self.top_machine = Machine(
             model=self,
             states=Scada.top_states,
@@ -302,6 +259,7 @@ class Scada(ScadaInterface, Proactor):
             send_event=False,
             model_attribute="top_state",
         )
+        self.auto_state: MainAutoState = MainAutoState.HomeAlone
         self.auto_machine = Machine(
             model=self,
             states=Scada.main_auto_states,
@@ -343,8 +301,8 @@ class Scada(ScadaInterface, Proactor):
         return H0N.primary_scada
 
     @property
-    def settings(self):
-        return self._settings
+    def settings(self) -> ScadaSettings:
+        return cast(ScadaSettings, self._settings)
 
     @property
     def hardware_layout(self) -> House0Layout:
@@ -353,12 +311,6 @@ class Scada(ScadaInterface, Proactor):
     @property
     def layout(self) -> House0Layout:
         return self._layout
-    
-    @property
-    def auto_node(self) -> ShNode:
-        if H0N.auto not in self._layout.nodes:
-            raise Exception(f"Missing {H0N.auto} Node")
-        return self._layout.node(H0N.auto)
 
     @property
     def data(self) -> ScadaData:
@@ -554,6 +506,8 @@ class Scada(ScadaInterface, Proactor):
                 else:
                     path_dbg |= 0x00000100
                     self.get_communicator(message.Header.Dst).process_message(message)
+            case GoDormant():
+                self.get_communicator(message.Header.Dst).process_message(message)
             case MachineStates():
                 path_dbg |= 0x00000200
                 self.machine_states_received(message.Payload)
@@ -566,6 +520,7 @@ class Scada(ScadaInterface, Proactor):
             case SingleReading():
                 path_dbg |= 0x00001000
                 self.single_reading_received(message.Payload)
+                self.layout.atn_g_node_alias
             case SyncedReadings():
                 if message.Header.Dst == self.name:
                     path_dbg |= 0x00002000
@@ -590,9 +545,8 @@ class Scada(ScadaInterface, Proactor):
             case TicklistReedReport():
                 path_dbg |= 0x00040000
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
-            case CancelAdminMode():
-                path_dbg |= 0x00080000
-                self._turn_off_admin_mode()
+            case WakeUp():
+                self.get_communicator(message.Header.Dst).process_message(message)
             case _:
                 raise ValueError(
                     f"There is no handler for message payload type [{type(message.Payload)}]"
@@ -626,18 +580,20 @@ class Scada(ScadaInterface, Proactor):
             case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
+            case DispatchContractCounterpartyRequest():
+                self.atn_wants_control(decoded.Payload)
             case SendLayout():
-                path_dbg |= 0x00000002
+                path_dbg |= 0x00000004
                 self._send_layout_lite(self.upstream_client)
             case SendSnap():
-                path_dbg |= 0x00000004
+                path_dbg |= 0x00000008
                 self._send_snap_received(decoded.Payload)
             case ScadaParams():
-                path_dbg |= 0x00000008
+                path_dbg |= 0x00000010
                 self._scada_params_received(decoded.Payload)
             case _:
                 # Intentionally ignore this for forward compatibility
-                path_dbg |= 0x00000010
+                path_dbg |= 0x00000020
         self._logger.path("--_process_upstream_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_downstream_mqtt_message(
@@ -664,41 +620,6 @@ class Scada(ScadaInterface, Proactor):
                 path_dbg |= 0x00000004
         self._logger.path("--_process_downstream_mqtt_message  path:0x%08X", path_dbg)
 
-    async def _timeout_admin(self) -> None:
-        try:
-            await asyncio.sleep(self.settings.admin.timeout_seconds)
-            self._send(Message(Src=self.name, Dst=self.name, Payload=CancelAdminMode()))
-        except asyncio.CancelledError:
-            ...
-
-    def _renew_admin_timeout(self):
-        if self._admin_timeout_task is not None:
-            self._admin_timeout_task.cancel()
-        self._admin_timeout_task = asyncio.create_task(self._timeout_admin())
-
-    def _admin_wakes_up(self) -> None:
-        self.AdminWakesUp()
-        for node in [
-            node for node in self._layout.nodes.values()
-            if node.ActorClass == ActorClass.Relay
-        ]:
-            node.Handle = f"{H0N.admin}.{node.Name}"
-
-
-    def _turn_off_admin_mode(self) -> None:
-        if self._admin_timeout_task is not None:
-            if not self._admin_timeout_task.cancelled():
-                self._admin_timeout_task.cancel()
-            self._admin_timeout_task = None
-        for node in [
-            node for node in self._layout.nodes.values()
-            if node.ActorClass == ActorClass.Relay
-        ]:
-            ...
-            # Restore handle to:
-            #   "auto.h.{node.name}" except for
-            #   "auto.pico-cycler.relay1"
-
     def _process_admin_mqtt_message(
             self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
@@ -715,7 +636,11 @@ class Scada(ScadaInterface, Proactor):
                     self._publish_to_link(self.ADMIN_MQTT, self._data.make_snapshot())
                 case FsmEvent() as event:
                     path_dbg |= 0x00000008
-                    self._admin_wakes_up()
+                    if self.top_state != TopState.Admin:
+                        # change control
+                        self.admin_wakes_up()
+                    # start or extend the admin timeout
+                    self._renew_admin_timeout()
                     if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
                         path_dbg |= 0x00000010
                         communicator.process_message(
@@ -732,6 +657,16 @@ class Scada(ScadaInterface, Proactor):
                     # Intentionally ignore this for forward compatibility
                     path_dbg |= 0x00000020
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
+    
+    async def _timeout_admin(self) -> None:
+        await asyncio.sleep(self.settings.admin.timeout_seconds)
+        if self.top_state == TopState.Admin:
+            self.admin_times_out()
+    
+    def _renew_admin_timeout(self):
+        if self._admin_timeout_task is not None:
+            self._admin_timeout_task.cancel()
+        self._admin_timeout_task = asyncio.create_task(self._timeout_admin())
 
     def update_env_variable(self, variable, new_value) -> None:
         """
@@ -934,15 +869,113 @@ class Scada(ScadaInterface, Proactor):
     # State Machine related
     #####################################################################
 
+    # Top States: Admin, Auto
+    # Top Events: AdminWakesUp, AdminTimesOut
+
+    def admin_wakes_up(self) -> None:
+        if self.top_state == TopState.Admin:
+            self.log("Ignoring AdminWakesUp, TopState already Admin")
+            return
+        # Trigger the AdminWakesUp event for top state:  Auto => Admin 
+        self.AdminWakesUp()
+        if self.auto_state == MainAutoState.Dormant:
+            self.log("AdminWakesUp called when auto state was dormant!!")
+            return
+        # This will set auto_state and update the actuator forest to Admin
+        self.auto_goes_dormant()
+        
+    def admin_times_out(self) -> None:
+        if self.top_state == TopState.Auto:
+            self.log("Ignoring AdminTimesOut, TopState already Auto")
+            return
+
+        # Trigger the AdminTimesOut event for top state:  Admin => Auto
+        self.AdminTimesOut()
+
+        # cancel the timeout
+        if self._admin_timeout_task is not None:
+            if not self._admin_timeout_task.cancelled():
+                self._admin_timeout_task.cancel()
+            self._admin_timeout_task = None
+    
+        # wake up auto state, which has been dormant. This will set 
+        # the actuator forest to HomeAlone
+        self.auto_wakes_up()
+
+    # AUTO STATE MACHINE
+
+    def auto_wakes_up(self) -> None:
+        if self.auto_state !=MainAutoState.Dormant:
+            self.log(f"STRANGE!! auto state is already{self.auto_state}")
+            return
+
+        # Trigger AutoWakesUp for auto state: Dormant -> HomeAlone
+        self.AutoWakesUp()
+        # all actuators report directly to home alone
+        self.set_home_alone_control_forest()
+        # Let homealone know its in charge again
+        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+
+    def auto_goes_dormant(self) -> None:
+        self._dispatch_live_hack = False
+        if self.auto_state == MainAutoState.Dormant:
+            self.log("Ignoring AutoGoesDormant ... auto state is already dormant")
+            return
+        
+        # Trigger AutoGoesDormant for auto state: Atn OR HomeAlone -> Dormant 
+        self.AutoGoesDormant()
+
+        # ADMIN CONTROL FOREST: a single tree, controlling all actuators
+        self.set_admin_control_forest()
+
+        # Let the active node know  its lost control of their actuators
+        if self.auto_state == MainAutoState.HomeAlone:
+            to_node = self.layout.home_alone 
+        else:
+            to_node = self.layout.atomic_ally
+        self._send_to(to_node, GoDormant(FromName=self.name, ToName=to_node.Name))
+    
+    def atn_wants_control(self, t: DispatchContractCounterpartyRequest) -> None:
+        if t.FromGNodeAlias != self.layout.atn_g_node_alias:
+            self.log(f"HUH? Message from {t.FromGNodeAlias}")
+            return
+        if self.auto_state != MainAutoState.HomeAlone:
+            self.log(f"Ignoring control request from atn, auto_state: {self.auto_state}")
+            return
+        
+        # Trigger AtnWantsControl for auto state: HomeAlone -> Atn
+        self.AtnWantsControl()
+
+        # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
+        # Ally which reports to atn.
+        self.set_atn_control_forest()
+        
+        # Set the hack dispatch contract to True... will take this out shortly
+        self._dispatch_live_hack = True
+        # Let the atomic ally know its party time.
+        self._send_to(self.layout.atomic_ally, WakeUp(ToName=H0N.atomic_ally))
+
+    def atn_link_dead(self) -> None:
+        if self.auto_state != MainAutoState.Atn:
+            self.log(f"Atn link is dead, but we were in state {self.auto_state} anyway")
+            return
+        
+        # Trigger AtnLinkDead auto state:  Atn -> HomeAlone
+        self.AtnLinkDead()
+        self._dispatch_live_hack = False
+        self.set_home_alone_control_forest()
+        # Let home alone know its in charge
+        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
 
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         if transition.link_name == self.upstream_client:
-            self._dispatch_live_hack = False
+            # proactor-speak for Atn is no longer talking with Scada, as evidenced
+            # by the once-a-minute pings disappearing
+            self.atn_link_dead()
         return Ok()
 
     def _derived_recv_activated(self, transition: Transition) -> Result[bool, BaseException]:
         if transition.link_name == self.upstream_client:
-            self._dispatch_live_hack = True
             self._send_layout_lite(transition.link_name)
         return Ok()
 
@@ -963,16 +996,37 @@ class Scada(ScadaInterface, Proactor):
         #     # AdminWakesUp: Auto -> ChangingToAdmin
         #     self.AdminWakesUp()
 
-        #     for node in self.layout.direct_reports(self.auto_node):
+        #     for node in self.layout.direct_reports(self.layout.auto_node):
         #         self._send_to(node, GoDormant(
         #             FromName=H0N.auto, 
         #             ToName=node.name,
         #             TriggerId=dispatch.TriggerId))
         # #TODO: if MainAutoState is not atn, ignore
     
-    def dormant_received(self, ack: DormantAck) -> None:
-        if ack.ToName == H0N.auto:
-            direct_report = self.layout.node(ack.FromName)
+    ###########################################################
+    # CONTROL FORESTS - the handles of the Spaceheat Nodes form a tree
+    # where the line of direct report is required for following a command
+    ##########################################################
+
+    def set_home_alone_control_forest(self) -> None:
+        #HOMEALONE CONTROL FOREST. Direct reports are pico cycler and home alone
+        for node in self.layout.actuators:
+            if node.Name == H0N.vdc_relay:
+                node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+            else:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
+
+    def set_admin_control_forest(self) -> None:
+        # ADMIN CONTROL FOREST. All actuators report directly to admin
+        for node in self.layout.actuators:
+            node.Handle = f"{H0N.admin}.{node.Name}"
+    
+    def set_atn_control_forest(self) -> None:
+        for node in self.layout.actuators:
+            if node.Name == H0N.vdc_relay:
+                node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+            else:
+                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
@@ -995,7 +1049,7 @@ class Scada(ScadaInterface, Proactor):
 
                 self.machine_states_received(
                     MachineStates(
-                        MachineHandle=self.auto_node.handle,
+                        MachineHandle=self.layout.auto_node.handle,
                         StateEnum=MainAutoState.enum_name(),
                         StateList=[self.auto_state],
                         UnixMsList=[int(time.time() * 1000)],
@@ -1043,4 +1097,7 @@ class Scada(ScadaInterface, Proactor):
             if self._dispatch_live_hack:
                 raise Exception(f"WTF. _dispatch_live_hack True but auto_state is {self._auto_state}")
             return False
-            
+    
+    def log(self, note: str) ->None:
+        log_str = f"[scada] {note}"
+        self.services.logger.error(log_str)

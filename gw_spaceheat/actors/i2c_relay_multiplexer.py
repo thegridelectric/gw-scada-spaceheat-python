@@ -12,19 +12,18 @@ from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import \
     I2cMultichannelDtRelayComponent
 from gwproto.data_classes.data_channel import DataChannel
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
                            FsmReportType, MakeModel,
                            RelayEnergizationState, RelayWiringConfig,
                            TelemetryName)
-from gwproto.named_types import (FsmEvent, SingleReading,
+from gwproto.named_types import (SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
-from actors.config import ScadaSettings
 from actors.scada_actor import ScadaActor
-
+from named_types import FsmEvent
 class ChangeKridaPin(Enum):
     Energize = 0
     DeEnergize = 1
@@ -243,9 +242,9 @@ class I2cRelayMultiplexer(ScadaActor):
         return [MonitoredName(self.name, self.RELAY_LOOP_S * 2)]
 
     async def maintain_relay_states(self):
+        first_time: bool = True
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            await asyncio.sleep(self.RELAY_LOOP_S)
             channel_names = []
             values = []
             ft = datetime.fromtimestamp(time.time()).strftime("%H:%M:%S")
@@ -253,19 +252,26 @@ class I2cRelayMultiplexer(ScadaActor):
                 idx = self.get_idx(relay)
                 channel_names.append(self.get_channel(relay).Name)
                 if self.relay_state[idx] == RelayEnergizationState.Energized:
-                    self.krida_relay_pin[idx].value = KridaPinState.Energized.value
                     values.append(RelayEnergizationState.Energized.value)
-                    print(f"[{ft}] {relay.name}: Make sure Energized")
+                    if not first_time:
+                        self.krida_relay_pin[idx].value = KridaPinState.Energized.value
+                        print(f"[{ft}] {relay.name}: Make sure Energized")
                 else:
-                    self.krida_relay_pin[idx].value = KridaPinState.DeEnergized.value
                     values.append(RelayEnergizationState.DeEnergized.value)
-                    print(f"[{ft}] {relay.name}: Make sure DeEnergized")
+                    if not first_time:
+                        self.krida_relay_pin[idx].value = KridaPinState.DeEnergized.value
+                        print(f"[{ft}] {relay.name}: Make sure DeEnergized")
             readings = SyncedReadings(
                 ChannelNameList=channel_names,
                 ValueList=values,
                 ScadaReadTimeUnixMs=int(time.time() * 1000),
             )
+            # if first_time:
+            #     self.log("SENDING FIRST TIME!!")
+            #     self.log(readings)
             self._send_to(self.primary_scada, readings)
+            first_time = False
+            await asyncio.sleep(self.RELAY_LOOP_S)
 
     def start(self) -> None:
         self.initialize_board()

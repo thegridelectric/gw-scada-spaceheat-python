@@ -14,8 +14,7 @@ import pytz
 
 
 from gwproactor.links.link_settings import LinkSettings
-from gwproto.data_classes.house_0_names import H0N
-from gwproto.named_types import Ha1Params, ScadaParams, LayoutLite
+
 from gwproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
 import rich
@@ -27,12 +26,12 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
-from gwproto.messages import ReportEvent, LayoutEvent
+from gwproto.messages import ReportEvent
 from gwproto.messages import EventBase
 from gwproto.messages import PowerWatts
 from gwproto.messages import Report
 from gwproto.messages import SnapshotSpaceheat
-from gwproto.named_types import AnalogDispatch, Ha1Params, SendLayout
+from gwproto.named_types import AnalogDispatch 
 
 from gwproactor import ActorInterface
 from gwproactor import QOS
@@ -47,6 +46,9 @@ from tests.atn.dashboard.dashboard import Dashboard
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
 
+from data_classes.house_0_names import H0N
+from named_types import (DispatchContractCounterpartyRequest, Ha1Params, LayoutLite, 
+                        ScadaParams, SendLayout)
 class AtnMQTTCodec(MQTTCodec):
     exp_src: str
     exp_dst: str = H0N.atn
@@ -229,8 +231,6 @@ class Atn(ActorInterface, Proactor):
                 elif decoded.Payload.TypeName == SnapshotSpaceheat.model_fields["TypeName"].default:
                     path_dbg |= 0x00000080
                     self._process_snapshot(decoded.Payload)
-                elif decoded.Payload.TypeName == LayoutEvent.model_fields["TypeName"].default:
-                    self.logger.error("Got a LayoutEvent type")
             case _:
                 path_dbg |= 0x00000100
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
@@ -339,6 +339,22 @@ class Atn(ActorInterface, Proactor):
                     )
         )
         self.logger.error("Requesting layout")
+
+    def take_control(self) -> float:
+        """
+        Will trigger Atn mode in scada, if the Scada gets this message
+        and is in HomeAlone
+        """
+        self.send_threadsafe(
+            Message(
+                        Src=self.name,
+                        Dst=self.name,
+                        Payload=DispatchContractCounterpartyRequest(
+                            FromGNodeAlias=self.layout.atn_g_node_alias,
+                            BlockchainSig="bogus_algo_sig"
+                        ),
+                    )
+        )
 
     def set_alpha(self, alpha: float) -> None:
         if self.ha1_params is None:

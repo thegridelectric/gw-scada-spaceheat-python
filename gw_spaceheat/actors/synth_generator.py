@@ -7,14 +7,15 @@ import numpy as np
 from typing import Optional
 from result import Ok, Result
 from datetime import datetime, timedelta
-from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwproto import Message
-from gwproto.data_classes.house_0_names import H0N, H0CN
-from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp
-from gwproactor import ServicesInterface
-from actors.scada_actor import ScadaActor
 
+from gwproto.named_types import SingleReading
+from gwproactor import ServicesInterface
+
+from actors.scada_actor import ScadaActor
+from data_classes.house_0_names import H0CN
+from named_types import GoDormant, Ha1Params, WakeUp
 
 class SynthGenerator(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60

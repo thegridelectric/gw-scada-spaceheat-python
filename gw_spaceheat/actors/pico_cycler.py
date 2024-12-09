@@ -8,20 +8,16 @@ from gw.enums import GwStrEnum
 from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
     ActorClass,
     ChangeRelayState,
     FsmReportType,
-    PicoCyclerEvent,
-    PicoCyclerState,
 )
-from gwproto.messages import PicoMissing # noqa
 from gwproto.named_types import (
     ChannelReadings,
     FsmAtomicReport,
-    FsmEvent,
     FsmFullReport,
     MachineStates,
     SyncedReadings,
@@ -30,6 +26,8 @@ from result import Ok, Result
 from transitions import Machine
 import transitions
 from actors.scada_actor import ScadaActor
+from enums import PicoCyclerEvent, PicoCyclerState
+from named_types import FsmEvent, GoDormant, PicoMissing, WakeUp
 
 class PicoWarning(ValueError):
     pico_name: str
@@ -68,6 +66,7 @@ class PicoCycler(ScadaActor):
     _stop_requested: bool
     # PicoCyclerState.values()
     states = [
+        "Dormant",
         "PicosLive",
         "RelayOpening",
         "RelayOpen",
@@ -89,7 +88,11 @@ class PicoCycler(ScadaActor):
         {"trigger": "RebootDud", "source": "PicosRebooting", "dest": "AllZombies"},
         {"trigger": "ShakeZombies", "source": "AllZombies", "dest": "RelayOpening"},
         {"trigger": "ShakeZombies", "source": "PicosLive", "dest": "RelayOpening"},
-    ]
+    ] + [ 
+        {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
+        for state in states if state !="Dormant"
+    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "RelayOpening"}]
+    
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
@@ -342,16 +345,49 @@ class PicoCycler(ScadaActor):
                 case FsmFullReport():
                     path_dbg |= 0x00000004
                     self.process_fsm_full_report(message.Payload)
+                case GoDormant():
+                    self.GoDormant()
                 case PicoMissing():
                     path_dbg |= 0x00000008
                     self.process_pico_missing(src_node, message.Payload)
                 case SyncedReadings():
                     path_dbg |= 0x00000010
                     self.process_synced_readings(src_node, message.Payload)
+                case WakeUp():
+                    self.WakeUp()
                 case _:
                     path_dbg |= 0x00000020
         self.services.logger.path(f"--pico_cycler  path:0x{path_dbg:08X}")
         return Ok(True)
+    
+    def GoDormant(self) -> None:
+        if self.state != PicoCyclerState.Dormant:
+            self.trigger(PicoCyclerEvent.GoDormant)
+        else:
+            self.log("IGNORING GoDormant")
+        self.log(f"State: {self.state}")
+    
+    def WakeUp(self) -> None:
+        if self.state == PicoCyclerState.Dormant:
+            self.trigger(PicoCyclerEvent.WakeUp)
+            # WakeUp: Dormant -> RelayOpening
+            self.log(f"Just got WakeUp. Expect state RelayOpening: {self.state}")
+            # Send action on to pico relay
+            try:
+                event = FsmEvent(
+                    FromHandle=self.node.handle,
+                    ToHandle=self.pico_relay.handle,
+                    EventType=ChangeRelayState.enum_name(),
+                    EventName=ChangeRelayState.OpenRelay,
+                    SendTimeUnixMs=int(time.time() * 1000),
+                    TriggerId=self.trigger_id,
+                )
+                self._send_to(self.pico_relay, event)
+                self.log(f"OpenRelay to {self.pico_relay.name}")
+            except ValidationError as e:
+                self.log(f"Tried to change a relay but didn't have the rights: {e}")
+        else:
+            self.log(f"Got WakeUp message but ignoring since in state {self.state}")
 
     def confirm_opened(self):
         if self.state == PicoCyclerState.RelayOpening.value:
