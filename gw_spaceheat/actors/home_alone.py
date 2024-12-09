@@ -575,6 +575,9 @@ class HomeAlone(ScadaActor):
             return False
 
     def is_buffer_empty(self) -> bool:
+        # TESTING
+        return True
+        # TESTING
         if H0CN.buffer.depth2 in self.latest_temperatures:
             buffer_empty_ch = H0CN.buffer.depth2
         elif H0CN.dist_swt in self.latest_temperatures:
@@ -592,6 +595,9 @@ class HomeAlone(ScadaActor):
             return False            
     
     def is_buffer_full(self) -> bool:
+        # TESTING
+        return False
+        # TESTING
         if H0CN.buffer.depth4 in self.latest_temperatures:
             buffer_full_temp = H0CN.buffer.depth4
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
