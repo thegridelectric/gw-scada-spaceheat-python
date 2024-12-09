@@ -35,8 +35,8 @@ class RelayConfig(BaseModel):
     about_node_name: str = ""
     channel_name: str = ""
     event_type: str = ""
-    energized_name: str = ""
-    deenergized_name: str = ""
+    energized_description: str = ""
+    deenergized_description: str = ""
 
 class RelayEnergized(StrEnum):
     deenergized = auto()
@@ -156,8 +156,8 @@ class RelayWatchClient(AdminSubClient):
                 about_node_name=node_name,
                 channel_name=relay_channels[node_name].Name,
                 event_type=relay_actor_configs[node_name].EventType,
-                energized_name=relay_actor_configs[node_name].EnergizingEvent,
-                deenergized_name=relay_actor_configs[node_name].DeEnergizingEvent,
+                energized_description=relay_actor_configs[node_name].EnergizingEvent,
+                deenergized_description=relay_actor_configs[node_name].DeEnergizingEvent,
             ) for node_name in relay_node_names
         }
 
@@ -291,9 +291,9 @@ class RelayWatchClient(AdminSubClient):
                 ToHandle=f"{H0N.admin}.{relay_name}",
                 EventType=relay_config.event_type,
                 EventName=(
-                      relay_config.energized_name
+                      relay_config.energized_description
                       if state == RelayEnergized.energized
-                      else relay_config.deenergized_name
+                      else relay_config.deenergized_description
                 ),
                 SendTimeUnixMs=int(set_time.timestamp() * 1000),
                 TriggerId=str(uuid.uuid4()),

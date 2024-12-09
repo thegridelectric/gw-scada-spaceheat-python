@@ -18,53 +18,98 @@ Screen {
     border: solid green;
 }
 
+Button {
+    margin: 1 2;
+}
+
+RelayButton {
+    margin: 1 2;
+}
+
 
 Relay {
     layout: horizontal;
     background: $boost;
     height: auto;
     width: auto;
+    height: 5;
+}
+
+Relay1 {
+    layout: horizontal;
+    visibility: visible;
+    height: auto;
+    width: 110;
+    display: none;
+}
+
+Relay2 {
+    layout: horizontal;
+    visibility: visible;
+    height: auto;
+}
+
+RelayStateText {
+    border: solid blue;
+    width: 30;
+    height: 5;
+    text-align: center;
+}
+
+RelayControlButtons {
+    border: solid blue;
+    width: 67;
+    margin: 0 0;
+    padding: 0 0;
+}
+
+#deenergized_button {
+    width: 1fr;
+    width: 30;
+    height: 3;
+    margin: 0 1;
+    padding: 0 0;
+}
+
+#energized_button {
+    width: 30;
+    height: 3;
+    margin: 0 1;
+    padding: 0 0;
+}
+
+#relay_channel_name2 {
+    dock: left;
+    width: 30;
+    height: 5;
+    border: solid blue;
+    text-align: center;
 }
 
 #relay_channel_name {
     dock: left;
     width: 30;
-    border: solid orange;
-}
-
-#relay_energized_label {
-    border: solid orange;
-    width: 30;
-    text-align: right;
+    border: solid blue;
+    text-align: center;
 }
 
 #relay_energized {
-    border: solid orange;
-    width: 60;
+    border: solid blue;
+    width: 30;
     text-align: center;
 }
 
 #relay_switch_label {
     width: 30;
-    border: solid orange;
+    border: solid blue;
     align-horizontal: right;
     text-align: right;
 }
 
 #relay_switch {
-    height: auto;
     width: auto;
-    dock: right;
-    border: solid orange;
-}
-
-#custom-design {
-    background: darkslategrey;
-}
-
-#custom-design > .switch--slider {
-    color: dodgerblue;
-    background: darkslateblue;
+    height: auto;
+    border: solid blue;
 }
 
 Relays {

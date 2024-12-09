@@ -14,8 +14,9 @@ from admin.settings import AdminClientSettings
 from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
-from admin.watch.widgets.relays_widget import Relay
-from admin.watch.widgets.relays_widget import Relays
+from admin.watch.widgets.relay import RelayControlButtons
+from admin.watch.widgets.relays import Relay
+from admin.watch.widgets.relays import Relays
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
@@ -75,6 +76,14 @@ class RelaysApp(App):
         except NoMatches:
             ...
 
+    def on_relay_control_buttons_pressed(self, message: RelayControlButtons.Pressed):
+        try:
+            self._relay_client.set_relay(
+                message.about_node_name,
+                RelayEnergized.energized if message.energize else RelayEnergized.deenergized
+            )
+        except NoMatches:
+            ...
 
     def action_toggle_dark(self) -> None:
         """An action to toggle dark mode."""
