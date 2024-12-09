@@ -739,6 +739,10 @@ class ApiFlowModule(ScadaActor):
             )
         
         if self.slow_turner:
+            self.latest_hz = smoothed_frequencies[-1]
+            self.latest_tick_ns = sampled_timestamps[-1]
+            self.latest_report_ns = sampled_timestamps[-1]
+            self.log(f"Latest tick (!): {self.latest_tick_ns}")
             return ChannelReadings(
                 ChannelName=self.hz_channel.Name,
                 ValueList=[int(x*1e6) for x in smoothed_frequencies],
