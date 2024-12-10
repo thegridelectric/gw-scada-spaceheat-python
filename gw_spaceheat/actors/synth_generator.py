@@ -11,9 +11,14 @@ from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwproto import Message
 from gwproto.data_classes.house_0_names import H0N, H0CN
-from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp
+from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp, EnergyInstruction, PowerWatts
 from gwproactor import ServicesInterface
 from actors.scada_actor import ScadaActor
+
+
+class RemainingElec():
+    def __init__(self, remaining_elec_wh: float):
+        self.remaining_elec_wh = int(remaining_elec_wh)
 
 
 class SynthGenerator(ScadaActor):
@@ -30,6 +35,7 @@ class SynthGenerator(ScadaActor):
             H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
             *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
         ]
+        self.elec_assigned_amount = None
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -47,7 +53,7 @@ class SynthGenerator(ScadaActor):
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
 
-        # Get the weather forecast
+        # For the weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
 
@@ -116,8 +122,13 @@ class SynthGenerator(ScadaActor):
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
+            case EnergyInstruction():
+                self.process_energy_instruction(message)
+                self._send_to(self.atomic_ally, message)
             case GoDormant():
                 ...
+            case PowerWatts():
+                self.process_power_watts(message)
             case WakeUp():
                 ...
         return Ok(True)
@@ -172,8 +183,32 @@ class SynthGenerator(ScadaActor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
+    def process_energy_instruction(self, message: EnergyInstruction) -> None:
+        self.elec_assigned_amount = message.AvgPowerWatts
+        self.elec_used_since_assigned_time = 0
+        self.log(f"Received an energy instruction for {self.elec_assigned_amount}")
+        self.previous_watts = self.data.latest_channel_values[H0N.hp_idu] + self.data.latest_channel_values[H0N.hp_odu]
+        self.previous_time = max(self.data.latest_channel_unix_ms[H0N.hp_idu], self.data.latest_channel_unix_ms[H0N.hp_odu])
+        self.log(f"The latest HP power reading is {round(self.previous_watts,1)} Watts, at {datetime.fromtimestamp(self.previous_time/1000)}")
+
+    def process_power_watts(self, message: PowerWatts) -> None:
+        if self.elec_assigned_amount is None:
+            return
+        # Compute the electricity used in the powerwatts report
+        time_now = time.time() * 1000
+        self.log(f"Time since last PowerWatts: {(time_now - self.previous_time)/1000} seconds")
+        elec_watthours = self.previous_watts * (time_now - self.previous_time)/1000/3600
+        self.previous_watts = message.Watts
+        self.previous_time = time_now
+        # Add that electricity to the total used since the last energy instruction
+        self.elec_used_since_assigned_time += elec_watthours
+        self.log(f"Electricity used since EnergyInstruction: {round(self.elec_used_since_assigned_time,1)} Wh")
+        remaining_wh = self.elec_assigned_amount - self.elec_used_since_assigned_time
+        self.log(f"Remaining electricity to be used from EnergyInstruction: {int(remaining_wh)} Wh")
+        self._send_to(self.atomic_ally, RemainingElec(remaining_wh))
+
     # Compute usable and required energy
-    def update_energy(self) -> bool:
+    def update_energy(self) -> None:
         time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}

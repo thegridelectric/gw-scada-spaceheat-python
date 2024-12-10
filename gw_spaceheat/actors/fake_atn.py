@@ -52,6 +52,8 @@ class FakeAtn(ScadaActor):
                 AvgPowerWatts=9500
             )
             self.log(f"Sample dispatch: {sample_dispatch}")
+        await asyncio.sleep(10)
+        self._send_to(self.primary_scada, sample_dispatch)
         MarketPriceUnit.USDPerMWh
         # at or below $35.432/MWh buy 7 kWh
         mtn = MarketTypeName.rt60gate5.value

@@ -29,7 +29,7 @@ from gwproto.messages import SendSnap, SendLayout
 
 from gwproto.named_types import (AdminWakesUp, AnalogDispatch, ChannelReadings, MachineStates, 
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
-                                TicklistReedReport, TicklistHallReport)
+                                TicklistReedReport, TicklistHallReport, EnergyInstruction)
 
 from gwproto.named_types import GoDormant, DormantAck
 
@@ -489,11 +489,17 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
+            case EnergyInstruction():
+                try:
+                    self.get_communicator(H0N.synth_generator).process_message(message)
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
             case PowerWatts():
                 path_dbg |= 0x00000001
                 if from_node is self._layout.power_meter_node:
                     path_dbg |= 0x00000002
                     self.power_watts_received(message.Payload)
+                    self.get_communicator(H0N.synth_generator).process_message(message)
                 else:
                     raise Exception(
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
