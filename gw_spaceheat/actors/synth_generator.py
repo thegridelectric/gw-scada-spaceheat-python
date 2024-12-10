@@ -183,12 +183,16 @@ class SynthGenerator(ScadaActor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
-    def process_energy_instruction(self, message: EnergyInstruction) -> None:
-        self.elec_assigned_amount = message.AvgPowerWatts
+    def process_energy_instruction(self, message) -> None:
+        self.elec_assigned_amount = message.Payload.AvgPowerWatts
         self.elec_used_since_assigned_time = 0
         self.log(f"Received an energy instruction for {self.elec_assigned_amount}")
-        self.previous_watts = self.data.latest_channel_values[H0N.hp_idu] + self.data.latest_channel_values[H0N.hp_odu]
-        self.previous_time = max(self.data.latest_channel_unix_ms[H0N.hp_idu], self.data.latest_channel_unix_ms[H0N.hp_odu])
+        if self.is_simulated:
+            self.previous_watts = 1000
+            self.previous_time = (time.time()-3600)*1000
+        else:
+            self.previous_watts = self.data.latest_channel_values[H0N.hp_idu] + self.data.latest_channel_values[H0N.hp_odu]
+            self.previous_time = max(self.data.latest_channel_unix_ms[H0N.hp_idu], self.data.latest_channel_unix_ms[H0N.hp_odu])
         self.log(f"The latest HP power reading is {round(self.previous_watts,1)} Watts, at {datetime.fromtimestamp(self.previous_time/1000)}")
 
     def process_power_watts(self, message: PowerWatts) -> None:

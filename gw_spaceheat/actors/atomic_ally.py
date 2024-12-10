@@ -259,7 +259,7 @@ class AtomicAlly(ScadaActor):
         
         while not self._stop_requested:
             
-            self._send(PatInternalWatchdogMessage(src=self.name))
+            # self._send(PatInternalWatchdogMessage(src=self.name))
 
             if self.services.auto_state != MainAutoState.Atn:
                 self.log("State: DORMANT")
