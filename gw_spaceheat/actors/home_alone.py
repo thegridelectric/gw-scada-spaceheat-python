@@ -48,7 +48,6 @@ class HomeAloneEvent(GwStrEnum):
     OnPeakBufferEmpty = auto()
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
-    TemperaturesAvailable = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -268,9 +267,9 @@ class HomeAlone(ScadaActor):
                                 self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                             else:
                                 if self.is_storage_ready():
-                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                                 else:
-                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
+                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                     elif self.state==HomeAloneState.WaitingForTemperaturesOffPeak:
                         if self.is_onpeak():
                             self.trigger_event(HomeAloneEvent.OnPeakStart.value)
