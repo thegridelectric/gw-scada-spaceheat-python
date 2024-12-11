@@ -503,7 +503,7 @@ class Scada(ScadaInterface, Proactor):
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case PowerWatts():
                 path_dbg |= 0x00000001
-                if from_node is self._layout.power_meter_node:
+                if from_node is self._layout.power_meter_node or message.Header.Src==H0N.fake_atn: # TODO: remove or?
                     path_dbg |= 0x00000002
                     self.power_watts_received(message.Payload)
                     self.get_communicator(H0N.synth_generator).process_message(message)
