@@ -202,7 +202,6 @@ class AtomicAlly(ScadaActor):
                     if "HpOn" in self.state:
                         self._turn_off_HP()
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
-                self.log(f"Remaining electricity to be used from EnergyInstruction: {self.remaining_elec_wh} Wh")
             case WakeUp():
                 self._wake_up_received(message.Payload)
             
@@ -524,10 +523,10 @@ class AtomicAlly(ScadaActor):
         if self.remaining_elec_wh is None:
             return True
         if self.remaining_elec_wh <= 1:
-            self.log("No electricity available.")
+            self.log("No electricity available")
             return True
         else:
-            self.log(f"Electricity available: {self.remaining_elec_wh} Wh.")
+            self.log(f"Electricity available: {self.remaining_elec_wh} Wh")
             return False
     
     def is_buffer_empty(self) -> bool:
