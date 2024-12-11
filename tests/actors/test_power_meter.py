@@ -4,7 +4,7 @@ import logging
 import typing
 
 from gwproto.enums import ActorClass
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from tests.utils.fragment_runner import AsyncFragmentRunner
 from tests.utils.fragment_runner import ProtocolFragment
 from gwproactor_test import await_for
