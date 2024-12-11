@@ -21,8 +21,7 @@ from gwproto.data_classes.house_0_names import H0N, H0CN
 from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
                            ChangeStoreFlowRelay, FsmReportType, MainAutoState)
 from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
-                                 FsmFullReport, GoDormant, WakeUp, EnergyInstruction, PowerWatts)
-from actors.config import ScadaSettings
+                                 FsmFullReport, GoDormant, WakeUp, EnergyInstruction)
 from actors.scada_actor import ScadaActor
 from actors.synth_generator import RemainingElec
 
@@ -204,21 +203,21 @@ class AtomicAlly(ScadaActor):
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
                 self._wake_up_received(message.Payload)
-            
+
         return Ok(True)
-    
+
     def _go_dormant_received(self) -> None:
         """
         Relays no longer belong to home alone until wake up received
         """
         ...
-    
+
     def _wake_up_received(self) -> None:
         """
         Home alone is again in charge of things.
         """
         ...
-    
+
     def trigger_event(self, event: AtomicAllyEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
@@ -237,32 +236,38 @@ class AtomicAlly(ScadaActor):
         # Could update this to receive back reports from the relays and
         # add them to the report.
         trigger_id = str(uuid.uuid4())
-        self._send_to(self.primary_scada,
-                FsmFullReport(
-                    FromName=self.name,
-                    TriggerId=trigger_id,
-                    AtomicList=[
-                        FsmAtomicReport(
-                            MachineHandle=self.node.handle,
-                            StateEnum=AtomicAllyState.enum_name(),
-                            ReportType=FsmReportType.Event,
-                            EventEnum=AtomicAllyEvent.enum_name(),
-                            Event=event,
-                            FromState=orig_state,
-                            ToState=self.state,
-                            UnixTimeMs=now_ms,
-                            TriggerId=trigger_id,
-                        )
-                    ]
-                ))
-    
+        self._send_to(
+            self.primary_scada,
+            FsmFullReport(
+                FromName=self.name,
+                TriggerId=trigger_id,
+                AtomicList=[
+                    FsmAtomicReport(
+                        MachineHandle=self.node.handle,
+                        StateEnum=AtomicAllyState.enum_name(),
+                        ReportType=FsmReportType.Event,
+                        EventEnum=AtomicAllyEvent.enum_name(),
+                        Event=event,
+                        FromState=orig_state,
+                        ToState=self.state,
+                        UnixTimeMs=now_ms,
+                        TriggerId=trigger_id,
+                    )
+                ],
+            ),
+        )
+
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
+
     async def main(self):
 
         await asyncio.sleep(2)
-        
+
         while not self._stop_requested:
-            
-            # self._send(PatInternalWatchdogMessage(src=self.name))
+
+            self._send(PatInternalWatchdogMessage(src=self.name))
 
             if self.services.auto_state != MainAutoState.Atn:
                 self.log("State: DORMANT")
@@ -273,15 +278,21 @@ class AtomicAlly(ScadaActor):
                 if self.weather is None:
                     self.get_weather()
                 else:
-                    if datetime.now(self.timezone)>self.weather['time'][0]:
+                    if datetime.now(self.timezone) > self.weather["time"][0]:
                         self.get_weather()
 
                 self.get_latest_temperatures()
 
-                if (self.state==AtomicAllyState.WaitingNoElec or self.state==AtomicAllyState.WaitingElec):
+                if (
+                    self.state == AtomicAllyState.WaitingNoElec
+                    or self.state == AtomicAllyState.WaitingElec
+                ):
                     if self.temperatures_available:
                         if self.no_more_elec():
-                            if self.is_buffer_empty() and not self.is_storage_colder_than_buffer():
+                            if (
+                                self.is_buffer_empty()
+                                and not self.is_storage_colder_than_buffer()
+                            ):
                                 self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty.value)
                             else:
                                 self.trigger_event(AtomicAllyEvent.NoElecBufferFull.value)
@@ -290,29 +301,38 @@ class AtomicAlly(ScadaActor):
                                 self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
                             else:
                                 self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
-                    elif self.state==AtomicAllyState.WaitingElec and self.no_more_elec():
+                    elif (
+                        self.state == AtomicAllyState.WaitingElec
+                        and self.no_more_elec()
+                    ):
                         self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
-                    elif self.state==AtomicAllyState.WaitingNoElec and not self.no_more_elec():
+                    elif (
+                        self.state == AtomicAllyState.WaitingNoElec
+                        and not self.no_more_elec()
+                    ):
                         self.trigger_event(AtomicAllyEvent.ElecAvailable.value)
 
                 # 1
-                elif self.state==AtomicAllyState.HpOnStoreOff.value:
+                elif self.state == AtomicAllyState.HpOnStoreOff.value:
                     if self.no_more_elec():
                         self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
                     elif self.is_buffer_full():
                         self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
-                    
+
                 # 2
-                elif self.state==AtomicAllyState.HpOnStoreCharge.value:
+                elif self.state == AtomicAllyState.HpOnStoreCharge.value:
                     if self.no_more_elec():
                         self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
                     elif self.is_buffer_empty() or self.is_storage_full():
                         self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
-                    
+
                 # 3
-                elif self.state==AtomicAllyState.HpOffStoreOff.value:
+                elif self.state == AtomicAllyState.HpOffStoreOff.value:
                     if self.no_more_elec():
-                        if self.is_buffer_empty() and not self.is_storage_colder_than_buffer():
+                        if (
+                            self.is_buffer_empty()
+                            and not self.is_storage_colder_than_buffer()
+                        ):
                             self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty.value)
                     else:
                         if self.is_buffer_empty() or self.is_storage_full():
@@ -321,9 +341,12 @@ class AtomicAlly(ScadaActor):
                             self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
 
                 # 4
-                elif self.state==AtomicAllyState.HpOffStoreDischarge.value:
+                elif self.state == AtomicAllyState.HpOffStoreDischarge.value:
                     if self.no_more_elec():
-                        if self.is_buffer_full() or self.is_storage_colder_than_buffer():
+                        if (
+                            self.is_buffer_full()
+                            or self.is_storage_colder_than_buffer()
+                        ):
                             self.trigger_event(AtomicAllyEvent.NoElecBufferFull.value)
                     else:
                         if self.is_buffer_empty() or self.is_storage_full():
@@ -331,13 +354,13 @@ class AtomicAlly(ScadaActor):
                         else:
                             self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
 
-                if self.state != previous_state:                    
+                if self.state != previous_state:
                     self.update_relays(previous_state)
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def update_relays(self, previous_state) -> None:
-        if self.state==AtomicAllyState.WaitingNoElec.value:
+        if self.state == AtomicAllyState.WaitingNoElec.value:
             self._turn_off_HP()
         if "HpOn" not in previous_state and "HpOn" in self.state:
             self._turn_on_HP()
@@ -355,7 +378,7 @@ class AtomicAlly(ScadaActor):
     def _turn_on_HP(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle='auto.h',
+                FromHandle=self.node.handle,
                 ToHandle=self.hp_scada_ops_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
@@ -370,7 +393,7 @@ class AtomicAlly(ScadaActor):
     def _turn_off_HP(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle='auto.h',
+                FromHandle=self.node.handle,
                 ToHandle=self.hp_scada_ops_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
@@ -386,7 +409,7 @@ class AtomicAlly(ScadaActor):
     def _turn_on_store(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle='auto.h',
+                FromHandle=self.node.handle,
                 ToHandle=self.store_pump_failsafe.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
@@ -401,7 +424,7 @@ class AtomicAlly(ScadaActor):
     def _turn_off_store(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle='auto.h',
+                FromHandle=self.node.handle,
                 ToHandle=self.store_pump_failsafe.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
@@ -416,7 +439,7 @@ class AtomicAlly(ScadaActor):
     def _valved_to_charge_store(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle='auto.h',
+                FromHandle=self.node.handle,
                 ToHandle=self.store_charge_discharge_relay.handle,
                 EventType=ChangeStoreFlowRelay.enum_name(),
                 EventName=ChangeStoreFlowRelay.ChargeStore,
@@ -431,7 +454,7 @@ class AtomicAlly(ScadaActor):
     def _valved_to_discharge_store(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle='auto.h',
+                FromHandle=self.node.handle,
                 ToHandle=self.store_charge_discharge_relay.handle,
                 EventType=ChangeStoreFlowRelay.enum_name(),
                 EventName=ChangeStoreFlowRelay.DischargeStore,
@@ -494,30 +517,34 @@ class AtomicAlly(ScadaActor):
         required_storage = self.data.latest_channel_values[H0N.required_energy]
         if total_usable_kwh is None or required_storage is None:
             self.temperatures_available = False
-    
+
     def initialize_relays(self):
         if self.no_more_elec():
             self._turn_off_HP()
         event = FsmEvent(
-            FromHandle='auto.h',
+            FromHandle=self.node.handle,
             ToHandle=self.hp_failsafe_relay.handle,
             EventType=ChangeHeatPumpControl.enum_name(),
             EventName=ChangeHeatPumpControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
+            SendTimeUnixMs=int(time.time() * 1000),
             TriggerId=str(uuid.uuid4()),
-            )
+        )
         self._send_to(self.hp_failsafe_relay, event)
-        self.log(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
+        self.log(
+            f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}"
+        )
         event = FsmEvent(
-            FromHandle='auto.h',
+            FromHandle=self.node.handle,
             ToHandle=self.aquastat_ctrl_relay.handle,
             EventType=ChangeAquastatControl.enum_name(),
             EventName=ChangeAquastatControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
+            SendTimeUnixMs=int(time.time() * 1000),
             TriggerId=str(uuid.uuid4()),
-            )
+        )
         self._send_to(self.aquastat_ctrl_relay, event)
-        self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
+        self.log(
+            f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}"
+        )
 
     def no_more_elec(self) -> bool:
         if self.remaining_elec_wh is None or self.remaining_elec_wh <= 1:

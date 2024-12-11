@@ -4,15 +4,14 @@ import pytz
 import asyncio
 import requests
 import numpy as np
-from typing import Optional
+from typing import Optional, Sequence
 from result import Ok, Result
 from datetime import datetime, timedelta
-from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwproto import Message
-from gwproto.data_classes.house_0_names import H0N, H0CN
+from gwproto.data_classes.house_0_names import H0CN
 from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp, EnergyInstruction, PowerWatts
-from gwproactor import ServicesInterface
+from gwproactor import MonitoredName, ServicesInterface
 from actors.scada_actor import ScadaActor
 
 # TODO: move to gwproto.named_types
@@ -62,7 +61,7 @@ class SynthGenerator(ScadaActor):
         # For the weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-
+    
     @property
     def data(self) -> ScadaData:
         return self._services.data
@@ -103,6 +102,10 @@ class SynthGenerator(ScadaActor):
             asyncio.create_task(self.main(), name="Synth Generator keepalive")
         )
 
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
+    
     async def main(self):
         await asyncio.sleep(2)
         self.log("In synth gen main loop")
@@ -140,14 +143,6 @@ class SynthGenerator(ScadaActor):
             case WakeUp():
                 ...
         return Ok(True)
-    
-    @property
-    def data(self) -> ScadaData:
-        return self._services.data
-    
-    @property
-    def params(self) -> Ha1Params:
-        return self.data.ha1_params
     
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
