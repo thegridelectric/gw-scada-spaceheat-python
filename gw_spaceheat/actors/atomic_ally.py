@@ -355,7 +355,7 @@ class AtomicAlly(ScadaActor):
     def _turn_on_HP(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle,
+                FromHandle='auto.h',
                 ToHandle=self.hp_scada_ops_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
@@ -370,7 +370,7 @@ class AtomicAlly(ScadaActor):
     def _turn_off_HP(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle,
+                FromHandle='auto.h',
                 ToHandle=self.hp_scada_ops_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
@@ -386,7 +386,7 @@ class AtomicAlly(ScadaActor):
     def _turn_on_store(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle,
+                FromHandle='auto.h',
                 ToHandle=self.store_pump_failsafe.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
@@ -401,7 +401,7 @@ class AtomicAlly(ScadaActor):
     def _turn_off_store(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle,
+                FromHandle='auto.h',
                 ToHandle=self.store_pump_failsafe.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
@@ -416,7 +416,7 @@ class AtomicAlly(ScadaActor):
     def _valved_to_charge_store(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle,
+                FromHandle='auto.h',
                 ToHandle=self.store_charge_discharge_relay.handle,
                 EventType=ChangeStoreFlowRelay.enum_name(),
                 EventName=ChangeStoreFlowRelay.ChargeStore,
@@ -431,7 +431,7 @@ class AtomicAlly(ScadaActor):
     def _valved_to_discharge_store(self) -> None:
         try:
             event = FsmEvent(
-                FromHandle=self.node.handle,
+                FromHandle='auto.h',
                 ToHandle=self.store_charge_discharge_relay.handle,
                 EventType=ChangeStoreFlowRelay.enum_name(),
                 EventName=ChangeStoreFlowRelay.DischargeStore,
@@ -499,7 +499,7 @@ class AtomicAlly(ScadaActor):
         if self.no_more_elec():
             self._turn_off_HP()
         event = FsmEvent(
-            FromHandle=self.node.handle,
+            FromHandle='auto.h',
             ToHandle=self.hp_failsafe_relay.handle,
             EventType=ChangeHeatPumpControl.enum_name(),
             EventName=ChangeHeatPumpControl.SwitchToScada,
@@ -509,7 +509,7 @@ class AtomicAlly(ScadaActor):
         self._send_to(self.hp_failsafe_relay, event)
         self.log(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
         event = FsmEvent(
-            FromHandle=self.node.handle,
+            FromHandle='auto.h',
             ToHandle=self.aquastat_ctrl_relay.handle,
             EventType=ChangeAquastatControl.enum_name(),
             EventName=ChangeAquastatControl.SwitchToScada,
