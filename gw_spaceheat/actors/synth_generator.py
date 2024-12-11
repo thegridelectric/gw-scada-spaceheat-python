@@ -346,7 +346,7 @@ class SynthGenerator(ScadaActor):
 
     def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
         timenow = datetime.now(self.timezone)
-        if timenow.hour > 19 or timenow.hour < 7:
+        if timenow.hour > 19 or timenow.hour < 12:
             required_swt = max(
                 [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
                 if t.hour in [7,8,9,10,11,16,17,18,19]]
