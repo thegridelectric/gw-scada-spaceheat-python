@@ -1,11 +1,15 @@
+import uuid
+import time
 from typing import Any, cast
-
+from pydantic import ValidationError
 from actors.config import ScadaSettings
 from gwproactor import Actor, ServicesInterface
 from gwproto import Message
+from gwproto.enums import ChangeRelayState, ChangeStoreFlowRelay
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
+from named_types import FsmEvent
 
 
 class ScadaActor(Actor):
@@ -43,6 +47,158 @@ class ScadaActor(Actor):
     @property
     def synth_generator(self) -> ShNode:
         return self.layout.node(H0N.synth_generator)
+    
+    ################################
+    # Relays
+    ################################
+
+    @property
+    def vdc_relay(self) -> ShNode:
+        return self.layout.node(H0N.vdc_relay)
+    
+    @property
+    def tstat_common_relay(self) -> ShNode:
+        return self.layout.node(H0N.tstat_common_relay)
+
+    @property
+    def store_charge_discharge_relay(self) -> ShNode:
+        return self.layout.node(H0N.store_charge_discharge_relay)
+    
+    @property
+    def hp_failsafe_relay(self) -> ShNode:
+        return self.layout.node(H0N.hp_failsafe_relay)
+    
+    @property
+    def hp_scada_ops_relay(self) -> ShNode:
+        return self.layout.node(H0N.hp_scada_ops_relay)
+
+    @property
+    def aquastat_control_relay(self) -> ShNode:
+        return self.layout.node(H0N.aquastat_ctrl_relay)
+    
+    @property
+    def store_pump_failsafe(self) -> ShNode:
+        return self.layout.node(H0N.store_pump_failsafe)
+    
+    ###############################
+    # Relay controls
+    ################################
+
+    def valved_to_discharge_store(self) -> None:
+        """
+        Set valves to discharge store (de-energizing) store_charge_discharge_relay (3).
+        Will log an error and do nothing if not the boss of this relay
+        """
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_charge_discharge_relay.handle,
+                EventType=ChangeStoreFlowRelay.enum_name(),
+                EventName=ChangeStoreFlowRelay.DischargeStore,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_charge_discharge_relay, event)
+            self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def valved_to_charge_store(self) -> None:
+        """
+        Set valves to charge store (energizing) store_charge_discharge_relay (3).
+        Will log an error and do nothing if not the boss of this relay
+        """
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_charge_discharge_relay.handle,
+                EventType=ChangeStoreFlowRelay.enum_name(),
+                EventName=ChangeStoreFlowRelay.ChargeStore,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_charge_discharge_relay, event)
+            self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+    
+
+    def turn_on_HP(self) -> None:
+        """
+        Turn on heat pump by closing (de-energizing) hp_scada_ops_relay (6).
+        Will log an error and do nothing if not the boss of this relay
+        """
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.hp_scada_ops_relay, event)
+            self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def turn_off_HP(self) -> None:
+        """
+        Turn off heat pump by opening (energizing) hp_scada_ops_relay (6).
+        Will log an error and do nothing if not the boss of this relay
+        """
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            
+            self._send_to(self.hp_scada_ops_relay, event)
+            self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def turn_on_store_pump(self) -> None:
+        """
+        Turn on the store pump by closing (energizing) store_pump_failsafe relay (9).
+        Will log an error and do nothing if not the boss of this relay
+        """
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_pump_failsafe.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_pump_failsafe, event)
+            self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def turn_off_store_pump(self) -> None:
+        """
+        Turn off the store pump by opening (de-energizing) store_pump_failsafe relay (9).
+        Will log an error and do nothing if not the boss of this relay
+        """
+        try:
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.store_pump_failsafe.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.store_pump_failsafe, event)
+            self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def boss(self) -> ShNode:
         if ".".join(self.node.handle.split(".")[:-1]) == "":

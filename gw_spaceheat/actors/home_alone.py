@@ -125,9 +125,7 @@ class HomeAlone(ScadaActor):
         self.storage_declared_ready = False
         self.full_storage_energy = None
         # Relays
-        self.hp_scada_ops_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
-        self.hp_failsafe_relay: ShNode = self.hardware_layout.node(H0N.hp_failsafe_relay)
-        self.aquastat_ctrl_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
+        self.aquastat_control_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
         self.store_pump_failsafe: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
         self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
         self.machine = Machine(
@@ -347,112 +345,19 @@ class HomeAlone(ScadaActor):
 
     def update_relays(self, previous_state) -> None:
         if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
-            self._turn_off_HP()
+            self.turn_off_HP()
         if "HpOn" not in previous_state and "HpOn" in self.state:
-            self._turn_on_HP()
+            self.turn_on_HP()
         if "HpOff" not in previous_state and "HpOff" in self.state:
-            self._turn_off_HP()
+            self.turn_off_HP()
         if "StoreDischarge" in self.state:
-            self._turn_on_store()
+            self.turn_on_store_pump()
         if "StoreDischarge" not in self.state:
-            self._turn_off_store()
+            self.turn_off_store_pump()
         if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
-            self._valved_to_charge_store()
+            self.valved_to_charge_store()
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
-            self._valved_to_discharge_store()
-        
-    def _turn_on_HP(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_off_HP(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            
-            self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_on_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_pump_failsafe, event)
-            self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_off_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_pump_failsafe, event)
-            self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _valved_to_charge_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_charge_discharge_relay.handle,
-                EventType=ChangeStoreFlowRelay.enum_name(),
-                EventName=ChangeStoreFlowRelay.ChargeStore,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_charge_discharge_relay, event)
-            self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-
-    def _valved_to_discharge_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_charge_discharge_relay.handle,
-                EventType=ChangeStoreFlowRelay.enum_name(),
-                EventName=ChangeStoreFlowRelay.DischargeStore,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_charge_discharge_relay, event)
-            self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
+            self.valved_to_discharge_store()
 
     def start(self) -> None:
         self.services.add_task(
@@ -468,31 +373,13 @@ class HomeAlone(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case GoDormant():
-                self.go_dormant()
+                if self.state != HomeAloneState.Dormant:
+                    self.trigger_event(HomeAloneEvent.GoDormant)
             case WakeUp():
-                self.wake_up()
+                if self.state == HomeAloneState.Dormant:
+                    self.trigger_event(HomeAloneEvent.WakeUp)
         return Ok(True)
     
-    def go_dormant(self) -> None:
-        """
-        Relays no longer belong to home alone until wake up received
-        """
-        self.log("Just got message to GoDormant from SCADA.")
-        if self.state != HomeAloneState.Dormant:
-            self.GoDormant()
-        else:
-            self.log("IGNORING")
-        self.log(f"State: {self.state}")
-    
-    def wake_up(self) -> None:
-        """
-        Home alone is again in charge of things.
-        """
-        self.log("Just got message to Wake Up from SCADA. State")
-        if self.state == HomeAloneState.Dormant:
-            self.WakeUp()
-        # at the top of the next loop it'll be in "WaitingForTemperaturesOnPeak"
-
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
             for channel_name in self.temperature_channel_names:
@@ -557,26 +444,30 @@ class HomeAlone(ScadaActor):
     
     def initialize_relays(self):
         if self.is_onpeak:
-            self._turn_off_HP()
+            self.turn_off_HP()
+
+        try: 
+            event = FsmEvent(
+                FromHandle=self.node.handle,
+                ToHandle=self.hp_failsafe_relay.handle,
+                EventType=ChangeHeatPumpControl.enum_name(),
+                EventName=ChangeHeatPumpControl.SwitchToScada,
+                SendTimeUnixMs=int(time.time()*1000),
+                TriggerId=str(uuid.uuid4()),
+                )
+            self._send_to(self.hp_failsafe_relay, event)
+            self.log(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
         event = FsmEvent(
             FromHandle=self.node.handle,
-            ToHandle=self.hp_failsafe_relay.handle,
-            EventType=ChangeHeatPumpControl.enum_name(),
-            EventName=ChangeHeatPumpControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.hp_failsafe_relay, event)
-        self.log(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.aquastat_ctrl_relay.handle,
+            ToHandle=self.aquastat_control_relay.handle,
             EventType=ChangeAquastatControl.enum_name(),
             EventName=ChangeAquastatControl.SwitchToScada,
             SendTimeUnixMs=int(time.time()*1000),
             TriggerId=str(uuid.uuid4()),
             )
-        self._send_to(self.aquastat_ctrl_relay, event)
+        self._send_to(self.aquastat_control_relay, event)
         self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
     def is_onpeak(self) -> bool:

@@ -37,6 +37,8 @@ class AtomicAllyState(GwStrEnum):
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
+    Dormant = auto()
+
 
     @classmethod
     def enum_name(cls) -> str:
@@ -50,6 +52,9 @@ class AtomicAllyEvent(GwStrEnum):
     ElecBufferEmpty = auto()
     NoElecBufferFull = auto()
     NoElecBufferEmpty = auto()
+    WakeUp = auto()
+    GoDormant = auto()
+    
 
     @classmethod
     def enum_name(cls) -> str:
@@ -95,7 +100,10 @@ class AtomicAlly(ScadaActor):
         {"trigger": "NoElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
         {"trigger": "ElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOnStoreCharge"},
-    ]
+    ]+ [
+            {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
+            for state in states if state != "Dormant"
+    ] + [{"trigger":"WakeUp", "source": "Dormant", "dest": "WaitingNoElec"}]
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
@@ -109,13 +117,6 @@ class AtomicAlly(ScadaActor):
             *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
         ]
         self.temperatures_available = False
-        # Relays
-        self.hardware_layout = self._services.hardware_layout
-        self.hp_scada_ops_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
-        self.hp_failsafe_relay: ShNode = self.hardware_layout.node(H0N.hp_failsafe_relay)
-        self.aquastat_ctrl_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
-        self.store_pump_failsafe: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
-        self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
         # State machine
         self.machine = Machine(
             model=self,
@@ -196,36 +197,31 @@ class AtomicAlly(ScadaActor):
                 # TODO: possibly add other state changes which need to happen asap
                 if message.Payload.AvgPowerWatts == 0:
                     if "HpOn" in self.state:
-                        self._turn_off_HP()
+                        self.turn_off_HP()
             case GoDormant():
-                self._go_dormant_received(message.Payload)
+                self.log("Just got message to GoDormant!")
+                if self.state != AtomicAllyState.Dormant.value:
+                    # GoDormant: AnyOther -> Dormant ...
+                    self.trigger_event(AtomicAllyEvent.GoDormant)
+                    self.log("Going dormant")
             case RemainingElec():
                 # TODO: perhaps 1 Wh is not the best number here
                 if message.Payload.RemainingWattHours <= 1:
                     if "HpOn" in self.state:
-                        self._turn_off_HP()
+                        self.turn_off_HP()
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
-                self._wake_up_received(message.Payload)
+                self.log("Just got message to Wake Up from SCADA!")
+                if self.state == AtomicAllyState.Dormant.value:
+                    # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
+                    # TODO: think through whether atomic ally also needs an init
+                    # state. Note it will always be coming from HomeAlone
+                    # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
+                    self.trigger_event(AtomicAllyEvent.WakeUp)
+                    self.log("Updating relays.")
+                    self.update_relays(previous_state=AtomicAllyState.Dormant.value)
 
         return Ok(True)
-    
-    def _go_dormant_received(self) -> None:
-        self.log("Just got message to GoDormant from SCADA.")
-        if self.state != "Dormant": # Todo: make sure Dormant is an AtomicAllyState
-            self.trigger("GoDormant") # Todo: Make sure GoDormant is a trigger from all other states to Dormant
-        else:
-            self.log("IGNORING")
-        self.log(f"State: {self.state}")
-    
-    def _wake_up_received(self) -> None:
-        """
-        Home alone is again in charge of things.
-        """
-        self.log("Just got message to Wake Up from SCADA. State")
-        if self.state == "Dormant":
-            self.trigger("WakeUp")
-        # Todo: Decide where WakeUp goes
     
     def trigger_event(self, event: AtomicAllyEvent) -> None:
         now_ms = int(time.time() * 1000)
@@ -368,112 +364,21 @@ class AtomicAlly(ScadaActor):
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    def update_relays(self, previous_state) -> None:
+    def update_relays(self, previous_state: str) -> None:
         if self.state == AtomicAllyState.WaitingNoElec.value:
-            self._turn_off_HP()
+            self.turn_off_HP()
         if "HpOn" not in previous_state and "HpOn" in self.state:
-            self._turn_on_HP()
+            self.turn_on_HP()
         if "HpOff" not in previous_state and "HpOff" in self.state:
-            self._turn_off_HP()
+            self.turn_off_HP()
         if "StoreDischarge" in self.state:
-            self._turn_on_store()
+            self.turn_on_store_pump()
         if "StoreDischarge" not in self.state:
-            self._turn_off_store()
+            self.turn_off_store_pump()
         if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
-            self._valved_to_charge_store()
+            self.valved_to_charge_store()
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
-            self._valved_to_discharge_store()
-
-    def _turn_on_HP(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_off_HP(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            
-            self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_on_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_pump_failsafe, event)
-            self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_off_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_pump_failsafe, event)
-            self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _valved_to_charge_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_charge_discharge_relay.handle,
-                EventType=ChangeStoreFlowRelay.enum_name(),
-                EventName=ChangeStoreFlowRelay.ChargeStore,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_charge_discharge_relay, event)
-            self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _valved_to_discharge_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_charge_discharge_relay.handle,
-                EventType=ChangeStoreFlowRelay.enum_name(),
-                EventName=ChangeStoreFlowRelay.DischargeStore,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_charge_discharge_relay, event)
-            self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+            self.valved_to_discharge_store()
 
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
@@ -529,7 +434,7 @@ class AtomicAlly(ScadaActor):
 
     def initialize_relays(self):
         if self.no_more_elec():
-            self._turn_off_HP()
+            self.turn_off_HP()
         event = FsmEvent(
             FromHandle=self.node.handle,
             ToHandle=self.hp_failsafe_relay.handle,
@@ -544,13 +449,13 @@ class AtomicAlly(ScadaActor):
         )
         event = FsmEvent(
             FromHandle=self.node.handle,
-            ToHandle=self.aquastat_ctrl_relay.handle,
+            ToHandle=self.aquastat_control_relay.handle,
             EventType=ChangeAquastatControl.enum_name(),
             EventName=ChangeAquastatControl.SwitchToScada,
             SendTimeUnixMs=int(time.time() * 1000),
             TriggerId=str(uuid.uuid4()),
         )
-        self._send_to(self.aquastat_ctrl_relay, event)
+        self._send_to(self.aquastat_control_relay, event)
         self.log(
             f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}"
         )
