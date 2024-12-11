@@ -116,6 +116,8 @@ class SynthGenerator(ScadaActor):
             self.get_latest_temperatures()
             if self.temperatures_available:
                 self.update_energy()
+            
+            self.update_remaining_elec()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -132,7 +134,8 @@ class SynthGenerator(ScadaActor):
             case GoDormant():
                 ...
             case PowerWatts():
-                self.process_power_watts(message)
+                self.update_remaining_elec()
+                self.previous_watts = message.Payload.Watts
             case WakeUp():
                 ...
         return Ok(True)
@@ -197,16 +200,13 @@ class SynthGenerator(ScadaActor):
             self.previous_watts = self.data.latest_channel_values[H0N.hp_idu] + self.data.latest_channel_values[H0N.hp_odu]
         self.previous_time = message.Payload.SendTimeMs
 
-    def process_power_watts(self, message: PowerWatts) -> None:
+    def update_remaining_elec(self) -> None:
         if self.elec_assigned_amount is None:
             return
-        # Compute the electricity used in the powerwatts report
         time_now = time.time() * 1000
         self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")
         elec_watthours = self.previous_watts * (time_now - self.previous_time)/1000/3600
-        self.previous_watts = message.Payload.Watts
-        self.previous_time = time_now
-        # Add that electricity to the total used since the last energy instruction
+        self.log(f"This corresponds to an additional {round(elec_watthours,1)} Wh of electricity used")
         self.elec_used_since_assigned_time += elec_watthours
         self.log(f"Electricity used since EnergyInstruction: {round(self.elec_used_since_assigned_time,1)} Wh")
         remaining_wh = int(self.elec_assigned_amount - self.elec_used_since_assigned_time)
@@ -216,6 +216,7 @@ class SynthGenerator(ScadaActor):
             RemainingWattHours=remaining_wh
         )
         self._send_to(self.atomic_ally, remaining)
+        self.previous_time = time_now
 
     # Compute usable and required energy
     def update_energy(self) -> None:
