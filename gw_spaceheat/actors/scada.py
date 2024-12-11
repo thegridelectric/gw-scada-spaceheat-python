@@ -51,6 +51,7 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
+from actors.synth_generator import RemainingElec
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -492,6 +493,12 @@ class Scada(ScadaInterface, Proactor):
             case EnergyInstruction():
                 try:
                     self.get_communicator(H0N.synth_generator).process_message(message)
+                    self.get_communicator(H0N.atomic_ally).process_message(message)
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
+            case RemainingElec():
+                try:
+                    self.get_communicator(H0N.atomic_ally).process_message(message)
                 except Exception as e:
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case PowerWatts():

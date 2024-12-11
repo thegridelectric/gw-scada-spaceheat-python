@@ -138,6 +138,7 @@ class AtomicAlly(ScadaActor):
         # Weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
+        self.remaining_elec_wh = None
     
     @property
     def data(self) -> ScadaData:
@@ -188,6 +189,7 @@ class AtomicAlly(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case EnergyInstruction():
+                self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
                 # TODO: possibly add other state changes which need to happen asap
                 if message.Payload.AvgPowerWatts == 0:
                     if "HpOn" in self.state:
@@ -195,10 +197,12 @@ class AtomicAlly(ScadaActor):
             case GoDormant():
                 self._go_dormant_received(message.Payload)
             case RemainingElec():
-                if message.Payload.remaining_elec_wh == 0:
+                # TODO: perhaps 1 Wh is not the best number here
+                if message.Payload.RemainingWattHours <= 1:
                     if "HpOn" in self.state:
                         self._turn_off_HP()
-                self.remaining_elec_wh = message.Payload.remaining_elec_wh
+                self.remaining_elec_wh = message.Payload.RemainingWattHours
+                self.log(f"Remaining electricity to be used from EnergyInstruction: {self.remaining_elec_wh} Wh")
             case WakeUp():
                 self._wake_up_received(message.Payload)
             
@@ -266,6 +270,12 @@ class AtomicAlly(ScadaActor):
             else:
                 self.log(f"State: {self.state}")
                 previous_state = self.state
+
+                if self.weather is None:
+                    self.get_weather()
+                else:
+                    if datetime.now(self.timezone)>self.weather['time'][0]:
+                        self.get_weather()
 
                 self.get_latest_temperatures()
 
@@ -511,11 +521,13 @@ class AtomicAlly(ScadaActor):
         self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
     def no_more_elec(self) -> bool:
+        if self.remaining_elec_wh is None:
+            return True
         if self.remaining_elec_wh <= 1:
-            self.log("All assigned electricity has been used.")
+            self.log("No electricity available.")
             return True
         else:
-            self.log(f"There are {round(self.remaining_elec_wh/1000,2)} kWh of electricity left to be used.")
+            self.log(f"Electricity available: {self.remaining_elec_wh} Wh.")
             return False
     
     def is_buffer_empty(self) -> bool:
@@ -557,10 +569,10 @@ class AtomicAlly(ScadaActor):
         
     def is_storage_full(self) -> bool:
         if self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF:
-            self.log(f"Storage is full (store cold pipe > maximum EWT ({self.params.MaxEwtF} F).")
+            self.log(f"Storage is full (store-cold-pipe > {self.params.MaxEwtF} F).")
             return True
         else:
-            self.log(f"Storage is not full (store cold pipe <= maximum EWT ({self.params.MaxEwtF} F).")
+            self.log(f"Storage is not full (store-cold-pipe <= {self.params.MaxEwtF} F).")
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:

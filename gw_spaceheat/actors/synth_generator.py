@@ -15,10 +15,15 @@ from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp, Ene
 from gwproactor import ServicesInterface
 from actors.scada_actor import ScadaActor
 
-
-class RemainingElec():
-    def __init__(self, remaining_elec_wh: float):
-        self.remaining_elec_wh = int(remaining_elec_wh)
+# TODO: move to gwproto.named_types
+from typing import Literal
+from pydantic import BaseModel
+from gwproto.property_format import LeftRightDotStr
+class RemainingElec(BaseModel):
+    FromGNodeAlias: LeftRightDotStr
+    RemainingWattHours: int
+    TypeName: Literal["remaining.elec"] = "remaining.elec"
+    Version: Literal["000"] = "000"
 
 
 class SynthGenerator(ScadaActor):
@@ -124,7 +129,6 @@ class SynthGenerator(ScadaActor):
         match message.Payload:
             case EnergyInstruction():
                 self.process_energy_instruction(message)
-                self._send_to(self.atomic_ally, message)
             case GoDormant():
                 ...
             case PowerWatts():
@@ -186,30 +190,32 @@ class SynthGenerator(ScadaActor):
     def process_energy_instruction(self, message) -> None:
         self.elec_assigned_amount = message.Payload.AvgPowerWatts
         self.elec_used_since_assigned_time = 0
-        self.log(f"Received an energy instruction for {self.elec_assigned_amount}")
+        self.log(f"Received an EnergyInstruction for {self.elec_assigned_amount} Watts average power")
         if self.is_simulated:
             self.previous_watts = 1000
-            self.previous_time = (time.time()-3600)*1000
         else:
             self.previous_watts = self.data.latest_channel_values[H0N.hp_idu] + self.data.latest_channel_values[H0N.hp_odu]
-            self.previous_time = max(self.data.latest_channel_unix_ms[H0N.hp_idu], self.data.latest_channel_unix_ms[H0N.hp_odu])
-        self.log(f"The latest HP power reading is {round(self.previous_watts,1)} Watts, at {datetime.fromtimestamp(self.previous_time/1000)}")
+        self.previous_time = message.Payload.SendTimeMs
 
     def process_power_watts(self, message: PowerWatts) -> None:
         if self.elec_assigned_amount is None:
             return
         # Compute the electricity used in the powerwatts report
         time_now = time.time() * 1000
-        self.log(f"Time since last PowerWatts: {(time_now - self.previous_time)/1000} seconds")
+        self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")
         elec_watthours = self.previous_watts * (time_now - self.previous_time)/1000/3600
-        self.previous_watts = message.Watts
+        self.previous_watts = message.Payload.Watts
         self.previous_time = time_now
         # Add that electricity to the total used since the last energy instruction
         self.elec_used_since_assigned_time += elec_watthours
         self.log(f"Electricity used since EnergyInstruction: {round(self.elec_used_since_assigned_time,1)} Wh")
-        remaining_wh = self.elec_assigned_amount - self.elec_used_since_assigned_time
-        self.log(f"Remaining electricity to be used from EnergyInstruction: {int(remaining_wh)} Wh")
-        self._send_to(self.atomic_ally, RemainingElec(remaining_wh))
+        remaining_wh = int(self.elec_assigned_amount - self.elec_used_since_assigned_time)
+        self.log(f"Remaining electricity to be used from EnergyInstruction: {remaining_wh} Wh")
+        remaining = RemainingElec(
+            FromGNodeAlias=self.layout.atn_g_node_alias,
+            RemainingWattHours=remaining_wh
+        )
+        self._send_to(self.atomic_ally, remaining)
 
     # Compute usable and required energy
     def update_energy(self) -> None:
