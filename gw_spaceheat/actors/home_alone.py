@@ -277,9 +277,9 @@ class HomeAlone(ScadaActor):
                                 self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                             else:
                                 if self.is_storage_ready():
-                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                                 else:
-                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
+                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                     elif self.state==HomeAloneState.WaitingForTemperaturesOffPeak:
                         if self.is_onpeak():
                             self.trigger_event(HomeAloneEvent.OnPeakStart.value)
@@ -468,29 +468,29 @@ class HomeAlone(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case GoDormant():
-                self.GoDormant()
+                self.go_dormant()
             case WakeUp():
-                self.WakeUp()
+                self.wake_up()
         return Ok(True)
     
-    def GoDormant(self) -> None:
+    def go_dormant(self) -> None:
         """
         Relays no longer belong to home alone until wake up received
         """
         self.log("Just got message to GoDormant from SCADA.")
         if self.state != HomeAloneState.Dormant:
-            self.trigger(HomeAloneEvent.GoDormant)
+            self.GoDormant()
         else:
             self.log("IGNORING")
         self.log(f"State: {self.state}")
     
-    def WakeUp(self) -> None:
+    def wake_up(self) -> None:
         """
         Home alone is again in charge of things.
         """
         self.log("Just got message to Wake Up from SCADA. State")
         if self.state == HomeAloneState.Dormant:
-            self.trigger(HomeAloneEvent.WakeUp)
+            self.WakeUp()
         # at the top of the next loop it'll be in "WaitingForTemperaturesOnPeak"
 
     def change_all_temps(self, temp_c) -> None:
@@ -793,7 +793,7 @@ class HomeAlone(ScadaActor):
     
     def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
         timenow = datetime.now(self.timezone)
-        if timenow.hour > 19 or timenow.hour < 7:
+        if timenow.hour > 19 or timenow.hour < 12:
             required_swt = max(
                 [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
                 if t.hour in [7,8,9,10,11,16,17,18,19]]

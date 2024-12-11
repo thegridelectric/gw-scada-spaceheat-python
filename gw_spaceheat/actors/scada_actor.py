@@ -35,6 +35,14 @@ class ScadaActor(Actor):
     @property
     def primary_scada(self) -> ShNode:
         return self.layout.node(H0N.primary_scada)
+    
+    @property
+    def atomic_ally(self) -> ShNode:
+        return self.layout.node(H0N.atomic_ally)
+    
+    @property
+    def synth_generator(self) -> ShNode:
+        return self.layout.node(H0N.synth_generator)
 
     def boss(self) -> ShNode:
         if ".".join(self.node.handle.split(".")[:-1]) == "":
