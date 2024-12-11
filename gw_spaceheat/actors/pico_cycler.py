@@ -232,6 +232,7 @@ class PicoCycler(ScadaActor):
                 EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=self.trigger_id,
+                Comment="Triggered by pico missing"
             )
             self._send_to(self.pico_relay, event)
             self.log(f"OpenRelay to {self.pico_relay.name}")
@@ -371,8 +372,10 @@ class PicoCycler(ScadaActor):
         if self.state == PicoCyclerState.Dormant:
             self.trigger(PicoCyclerEvent.WakeUp)
             # WakeUp: Dormant -> RelayOpening
-            self.log(f"Just got WakeUp. Expect state RelayOpening: {self.state}")
+            self.log("Waking up and rebooting!")
             # Send action on to pico relay
+            self.trigger_id = str(uuid.uuid4())
+            self.fsm_comment = "Waking Up from admin"
             try:
                 event = FsmEvent(
                     FromHandle=self.node.handle,
@@ -381,6 +384,7 @@ class PicoCycler(ScadaActor):
                     EventName=ChangeRelayState.OpenRelay,
                     SendTimeUnixMs=int(time.time() * 1000),
                     TriggerId=self.trigger_id,
+                    Comment = "Waking Up from admin"
                 )
                 self._send_to(self.pico_relay, event)
                 self.log(f"OpenRelay to {self.pico_relay.name}")
@@ -451,6 +455,7 @@ class PicoCycler(ScadaActor):
                     EventName=ChangeRelayState.OpenRelay,
                     SendTimeUnixMs=int(time.time() * 1000),
                     TriggerId=self.trigger_id,
+                    Comment="Shaking zombies"
                 )
                 self._send_to(self.pico_relay, event)
                 self.log(f"OpenRelay to {self.pico_relay.name}")
@@ -561,7 +566,6 @@ class PicoCycler(ScadaActor):
         """
         await asyncio.sleep(3)
         self.trigger_id = str(uuid.uuid4())
-        self.fsm_comment = "triggering pico missing at initialization"
         self.pico_missing()
 
         while not self._stop_requested:

@@ -188,6 +188,10 @@ class House0Layout(HardwareLayout):
     @property
     def atn(self) -> ShNode:
         return self.node(H0N.atn)
+    
+    @property
+    def pico_cycler(self) -> ShNode:
+        return self.node(H0N.pico_cycler)
 
     @property
     def vdc_relay(self) -> ShNode:

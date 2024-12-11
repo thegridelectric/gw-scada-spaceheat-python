@@ -877,7 +877,9 @@ class Scada(ScadaInterface, Proactor):
             self.log("Ignoring AdminWakesUp, TopState already Admin")
             return
         # Trigger the AdminWakesUp event for top state:  Auto => Admin 
+        
         self.AdminWakesUp()
+        self.log(f"Message from Admin! top_state {self.top_state}")
         if self.auto_state == MainAutoState.Dormant:
             self.log("AdminWakesUp called when auto state was dormant!!")
             return
@@ -888,10 +890,10 @@ class Scada(ScadaInterface, Proactor):
         if self.top_state == TopState.Auto:
             self.log("Ignoring AdminTimesOut, TopState already Auto")
             return
-
+        
         # Trigger the AdminTimesOut event for top state:  Admin => Auto
         self.AdminTimesOut()
-
+        self.log(f"Admin timed out! {self.top_state}")
         # cancel the timeout
         if self._admin_timeout_task is not None:
             if not self._admin_timeout_task.cancelled():
@@ -913,8 +915,9 @@ class Scada(ScadaInterface, Proactor):
         self.AutoWakesUp()
         # all actuators report directly to home alone
         self.set_home_alone_control_forest()
-        # Let homealone know its in charge again
+        # Let homealone and pico-cycler know they in charge again
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self._send_to(self.layout.pico_cycler,WakeUp(ToName=H0N.pico_cycler) )
 
     def auto_goes_dormant(self) -> None:
         self._dispatch_live_hack = False
@@ -924,16 +927,17 @@ class Scada(ScadaInterface, Proactor):
         
         # Trigger AutoGoesDormant for auto state: Atn OR HomeAlone -> Dormant 
         self.AutoGoesDormant()
-
+        self.log(f"auto_state {self.auto_state}")
         # ADMIN CONTROL FOREST: a single tree, controlling all actuators
         self.set_admin_control_forest()
-
-        # Let the active node know  its lost control of their actuators
-        if self.auto_state == MainAutoState.HomeAlone:
-            to_node = self.layout.home_alone 
-        else:
-            to_node = self.layout.atomic_ally
-        self._send_to(to_node, GoDormant(FromName=self.name, ToName=to_node.Name))
+        
+        # Let the active nodes know they've lost control of their actuators
+        report_1 =  self.layout.home_alone 
+        if self.auto_state == MainAutoState.Atn:
+            report_1 = self.layout.atomic_ally
+        reports: List[ShNode] = [report_1, self.layout.pico_cycler]
+        for report in reports:
+            self._send_to(report, GoDormant(FromName=self.name, ToName=report.Name))
     
     def atn_wants_control(self, t: DispatchContractCounterpartyRequest) -> None:
         if t.FromGNodeAlias != self.layout.atn_g_node_alias:
@@ -945,14 +949,16 @@ class Scada(ScadaInterface, Proactor):
         
         # Trigger AtnWantsControl for auto state: HomeAlone -> Atn
         self.AtnWantsControl()
-
+        self.log(f"AtnWantsControl! Auto state {self.auto_state}")
         # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
         # Ally which reports to atn.
         self.set_atn_control_forest()
         
         # Set the hack dispatch contract to True... will take this out shortly
         self._dispatch_live_hack = True
-        # Let the atomic ally know its party time.
+        # Let homealone know its dormant:
+        self._send_to(self.layout.home_alone, GoDormant(FromName=self.name, ToName=H0N.home_alone))
+        # Let the atomic ally know its live
         self._send_to(self.layout.atomic_ally, WakeUp(ToName=H0N.atomic_ally))
 
     def atn_link_dead(self) -> None:
@@ -962,10 +968,12 @@ class Scada(ScadaInterface, Proactor):
         
         # Trigger AtnLinkDead auto state:  Atn -> HomeAlone
         self.AtnLinkDead()
+        self.log(f"AtnLink id dead! Auto state {self.auto_state}")
         self._dispatch_live_hack = False
         self.set_home_alone_control_forest()
         # Let home alone know its in charge
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        # Pico Cycler shouldn't change
 
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
         if transition.link_name == self.upstream_client:

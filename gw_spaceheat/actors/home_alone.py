@@ -238,6 +238,7 @@ class HomeAlone(ScadaActor):
     async def main(self):
 
         await asyncio.sleep(5)
+        self.log("INITIALIZING RELAYS")
         self.initialize_relays()
 
         while not self._stop_requested:
