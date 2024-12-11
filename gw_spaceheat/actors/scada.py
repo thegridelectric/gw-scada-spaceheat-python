@@ -29,7 +29,7 @@ from gwproto.messages import SendSnap, SendLayout
 
 from gwproto.named_types import (AdminWakesUp, AnalogDispatch, ChannelReadings, MachineStates, 
                                  PicoMissing, ScadaParams, SingleReading, SyncedReadings,
-                                TicklistReedReport, TicklistHallReport)
+                                TicklistReedReport, TicklistHallReport, EnergyInstruction)
 
 from gwproto.named_types import GoDormant, DormantAck
 
@@ -51,6 +51,7 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
+from actors.synth_generator import RemainingElec
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -489,11 +490,23 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
+            case EnergyInstruction():
+                try:
+                    self.get_communicator(H0N.synth_generator).process_message(message)
+                    self.get_communicator(H0N.atomic_ally).process_message(message)
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
+            case RemainingElec():
+                try:
+                    self.get_communicator(H0N.atomic_ally).process_message(message)
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
             case PowerWatts():
                 path_dbg |= 0x00000001
-                if from_node is self._layout.power_meter_node:
+                if from_node is self._layout.power_meter_node or message.Header.Src==H0N.fake_atn: # TODO: remove or?
                     path_dbg |= 0x00000002
                     self.power_watts_received(message.Payload)
+                    self.get_communicator(H0N.synth_generator).process_message(message)
                 else:
                     raise Exception(
                         f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
@@ -800,6 +813,8 @@ class Scada(ScadaInterface, Proactor):
             ch = self._layout.data_channels[payload.ChannelName]
         elif payload.ChannelName in self._layout.synth_channels:
             ch = self._layout.synth_channels[payload.ChannelName]
+        else:
+            raise Exception(f"Missing channel name {payload.ChannelName}!")
         self._data.recent_channel_values[ch.Name].append(payload.Value)
         self._data.recent_channel_unix_ms[ch.Name].append(payload.ScadaReadTimeUnixMs)
         self._data.latest_channel_values[ch.Name] = payload.Value
