@@ -198,7 +198,7 @@ class SynthGenerator(ScadaActor):
         if self.is_simulated:
             self.previous_watts = 1000
         else:
-            self.previous_watts = self.data.latest_channel_values[H0N.hp_idu] + self.data.latest_channel_values[H0N.hp_odu]
+            self.previous_watts = self.data.latest_channel_values[H0CN.hp_idu_pwr] + self.data.latest_channel_values[H0CN.hp_odu_pwr]
         self.previous_time = payload.SendTimeMs
 
     def update_remaining_elec(self) -> None:

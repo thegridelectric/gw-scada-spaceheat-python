@@ -520,9 +520,7 @@ class AtomicAlly(ScadaActor):
         self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
     def no_more_elec(self) -> bool:
-        if self.remaining_elec_wh is None:
-            return True
-        if self.remaining_elec_wh <= 1:
+        if self.remaining_elec_wh is None or self.remaining_elec_wh <= 1:
             self.log("No electricity available")
             return True
         else:
