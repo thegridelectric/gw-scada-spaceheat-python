@@ -4,15 +4,14 @@ import pytz
 import asyncio
 import requests
 import numpy as np
-from typing import Optional
+from typing import Optional, Sequence
 from result import Ok, Result
 from datetime import datetime, timedelta
-from actors.config import ScadaSettings
 from actors.scada_data import ScadaData
 from gwproto import Message
-from gwproto.data_classes.house_0_names import H0N, H0CN
+from gwproto.data_classes.house_0_names import H0CN
 from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp, EnergyInstruction, PowerWatts
-from gwproactor import ServicesInterface
+from gwproactor import MonitoredName, ServicesInterface
 from actors.scada_actor import ScadaActor
 
 # TODO: move to gwproto.named_types
@@ -41,6 +40,7 @@ class SynthGenerator(ScadaActor):
             *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
         ]
         self.elec_assigned_amount = None
+        self.previous_time = None
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -61,7 +61,7 @@ class SynthGenerator(ScadaActor):
         # For the weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-
+    
     @property
     def data(self) -> ScadaData:
         return self._services.data
@@ -102,6 +102,10 @@ class SynthGenerator(ScadaActor):
             asyncio.create_task(self.main(), name="Synth Generator keepalive")
         )
 
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
+    
     async def main(self):
         await asyncio.sleep(2)
         self.log("In synth gen main loop")
@@ -130,7 +134,7 @@ class SynthGenerator(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case EnergyInstruction():
-                self.process_energy_instruction(message)
+                self.process_energy_instruction(message.Payload)
             case GoDormant():
                 ...
             case PowerWatts():
@@ -139,14 +143,6 @@ class SynthGenerator(ScadaActor):
             case WakeUp():
                 ...
         return Ok(True)
-    
-    @property
-    def data(self) -> ScadaData:
-        return self._services.data
-    
-    @property
-    def params(self) -> Ha1Params:
-        return self.data.ha1_params
     
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
@@ -190,19 +186,20 @@ class SynthGenerator(ScadaActor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
-    def process_energy_instruction(self, message) -> None:
-        self.elec_assigned_amount = message.Payload.AvgPowerWatts
+    def process_energy_instruction(self, payload: EnergyInstruction) -> None:
+        self.elec_assigned_amount = payload.AvgPowerWatts * payload.SlotDurationMinutes/60
         self.elec_used_since_assigned_time = 0
         self.log(f"Received an EnergyInstruction for {self.elec_assigned_amount} Watts average power")
         if self.is_simulated:
             self.previous_watts = 1000
         else:
-            self.previous_watts = self.data.latest_channel_values[H0N.hp_idu] + self.data.latest_channel_values[H0N.hp_odu]
-        self.previous_time = message.Payload.SendTimeMs
+            self.previous_watts = self.data.latest_channel_values[H0CN.hp_idu_pwr] + self.data.latest_channel_values[H0CN.hp_odu_pwr]
+        self.previous_time = payload.SendTimeMs
 
     def update_remaining_elec(self) -> None:
-        if self.elec_assigned_amount is None:
+        if self.elec_assigned_amount is None or self.previous_time is None:
             return
+        self.log(f"Elec assigned {self.elec_assigned_amount}, previous_time: {self.previous_time}")
         time_now = time.time() * 1000
         self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")
         elec_watthours = self.previous_watts * (time_now - self.previous_time)/1000/3600
