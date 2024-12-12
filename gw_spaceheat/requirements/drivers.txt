@@ -155,8 +155,10 @@ six==1.16.0
     #   transitions
 smbus2==0.4.1
     # via -r /Users/Andrew/git/gridworks/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
-textual==0.79.1
-    # via trogon
+textual==1.0.0
+    # via
+    #   -r /Users/Andrew/git/gridworks/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
+    #   trogon
 transitions==0.9.2
     # via -r /Users/Andrew/git/gridworks/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
 trogon==0.5.0
