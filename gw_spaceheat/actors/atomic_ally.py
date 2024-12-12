@@ -8,7 +8,6 @@ import numpy as np
 from datetime import datetime, timedelta
 import pytz
 import requests
-from pydantic import ValidationError
 from gw.enums import GwStrEnum
 from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -16,10 +15,8 @@ from gwproto import Message
 from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
-from gwproto.data_classes.sh_node import ShNode
 
-from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
-                           ChangeStoreFlowRelay, FsmReportType)
+from gwproto.enums import  FsmReportType
 from gwproto.named_types import (Alert,  MachineStates, FsmAtomicReport,
                                  FsmFullReport, )
 from actors.scada_actor import ScadaActor
@@ -27,7 +24,7 @@ from named_types import  GoDormant, WakeUp
 from actors.synth_generator import RemainingElec
 from data_classes.house_0_names import H0N, H0CN
 from enums import MainAutoState
-from named_types import EnergyInstruction, FsmEvent, Ha1Params
+from named_types import EnergyInstruction, Ha1Params
 
 
 class AtomicAllyState(GwStrEnum):
@@ -433,32 +430,10 @@ class AtomicAlly(ScadaActor):
             self.temperatures_available = False
 
     def initialize_relays(self):
+        self.hp_failsafe_switch_to_scada()
+        self.aquastat_ctrl_switch_to_scada()
         if self.no_more_elec():
             self.turn_off_HP()
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_failsafe_relay.handle,
-            EventType=ChangeHeatPumpControl.enum_name(),
-            EventName=ChangeHeatPumpControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time() * 1000),
-            TriggerId=str(uuid.uuid4()),
-        )
-        self._send_to(self.hp_failsafe_relay, event)
-        self.log(
-            f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}"
-        )
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.aquastat_control_relay.handle,
-            EventType=ChangeAquastatControl.enum_name(),
-            EventName=ChangeAquastatControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time() * 1000),
-            TriggerId=str(uuid.uuid4()),
-        )
-        self._send_to(self.aquastat_control_relay, event)
-        self.log(
-            f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}"
-        )
 
     def no_more_elec(self) -> bool:
         if self.remaining_elec_wh is None or self.remaining_elec_wh <= 1:

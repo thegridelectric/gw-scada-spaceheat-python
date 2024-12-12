@@ -8,7 +8,6 @@ import numpy as np
 from datetime import datetime, timedelta
 import pytz
 import requests
-from pydantic import ValidationError
 from gw.enums import GwStrEnum
 from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -16,15 +15,13 @@ from gwproto import Message
 from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
-from gwproto.data_classes.sh_node import ShNode
 from data_classes.house_0_names import H0N, H0CN
-from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
-                           ChangeStoreFlowRelay, FsmReportType)
+from gwproto.enums import FsmReportType
 from gwproto.named_types import (Alert, MachineStates, FsmAtomicReport,
                                  FsmFullReport)
 
 from actors.scada_actor import ScadaActor
-from named_types import FsmEvent, Ha1Params, GoDormant, WakeUp
+from named_types import Ha1Params, GoDormant, WakeUp
 
 
 class HomeAloneState(GwStrEnum):
@@ -125,9 +122,6 @@ class HomeAlone(ScadaActor):
         self.storage_declared_ready = False
         self.full_storage_energy = None
         # Relays
-        self.aquastat_control_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
-        self.store_pump_failsafe: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
-        self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
         self.machine = Machine(
             model=self,
             states=HomeAlone.states,
@@ -443,32 +437,11 @@ class HomeAlone(ScadaActor):
             self.temperatures_available = False
     
     def initialize_relays(self):
+        self.hp_failsafe_switch_to_scada()
+        self.aquastat_ctrl_switch_to_scada()
+
         if self.is_onpeak:
             self.turn_off_HP()
-
-        try: 
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.hp_failsafe_relay.handle,
-                EventType=ChangeHeatPumpControl.enum_name(),
-                EventName=ChangeHeatPumpControl.SwitchToScada,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.hp_failsafe_relay, event)
-            self.log(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.aquastat_control_relay.handle,
-            EventType=ChangeAquastatControl.enum_name(),
-            EventName=ChangeAquastatControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.aquastat_control_relay, event)
-        self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
 
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
@@ -667,7 +640,7 @@ class HomeAlone(ScadaActor):
         else:
             print("Storage top warmer than buffer top")
             return False
-    
+
     def to_celcius(self, t: float) -> float:
         return (t-32)*5/9
 

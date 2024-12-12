@@ -12,6 +12,7 @@ from gwproto import Message
 
 from gwproto.named_types import SingleReading, PowerWatts
 from gwproactor import MonitoredName, ServicesInterface
+from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
@@ -113,6 +114,7 @@ class SynthGenerator(ScadaActor):
         await asyncio.sleep(2)
         self.log("In synth gen main loop")
         while not self._stop_requested:
+            self._send(PatInternalWatchdogMessage(src=self.name))
 
             if self.weather is None:
                 self.get_weather()

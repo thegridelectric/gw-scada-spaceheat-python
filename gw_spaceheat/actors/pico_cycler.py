@@ -3,7 +3,6 @@ import time
 import uuid
 from enum import auto
 from typing import Dict, List, Optional, Sequence
-from pydantic import ValidationError
 from gw.enums import GwStrEnum
 from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
@@ -27,7 +26,7 @@ from transitions import Machine
 import transitions
 from actors.scada_actor import ScadaActor
 from enums import PicoCyclerEvent, PicoCyclerState
-from named_types import FsmEvent, GoDormant, PicoMissing, WakeUp
+from named_types import GoDormant, PicoMissing, WakeUp
 
 class PicoWarning(ValueError):
     pico_name: str
@@ -205,7 +204,6 @@ class PicoCycler(ScadaActor):
             self.fsm_comment = comment
             self.pico_missing()
 
-
     def pico_missing(self) -> None:
         """
         Called directly when rebooting picos does not bring back all the
@@ -224,20 +222,7 @@ class PicoCycler(ScadaActor):
                 if self.reboots[pico] == self.REBOOT_ATTEMPTS:
                     self.raise_zombie_pico_warning(pico)
         # Send action on to pico relay
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.pico_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=self.trigger_id,
-                Comment="Triggered by pico missing"
-            )
-            self._send_to(self.pico_relay, event)
-            self.log(f"OpenRelay to {self.pico_relay.name}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+        self.open_vdc_relay(trigger_id=self.trigger_id)
     
     def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
         if actor not in self.pico_actors:
@@ -374,22 +359,7 @@ class PicoCycler(ScadaActor):
             # WakeUp: Dormant -> RelayOpening
             self.log("Waking up and rebooting!")
             # Send action on to pico relay
-            self.trigger_id = str(uuid.uuid4())
-            self.fsm_comment = "Waking Up from admin"
-            try:
-                event = FsmEvent(
-                    FromHandle=self.node.handle,
-                    ToHandle=self.pico_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.OpenRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=self.trigger_id,
-                    Comment = "Waking Up from admin"
-                )
-                self._send_to(self.pico_relay, event)
-                self.log(f"OpenRelay to {self.pico_relay.name}")
-            except ValidationError as e:
-                self.log(f"Tried to change a relay but didn't have the rights: {e}")
+            self.open_vdc_relay()
         else:
             self.log(f"Got WakeUp message but ignoring since in state {self.state}")
 
@@ -446,21 +416,7 @@ class PicoCycler(ScadaActor):
         self.trigger_id = str(uuid.uuid4())
         # ShakeZombies: AllZombies/PicosLive -> RelayOpening
         if self.trigger_event(PicoCyclerEvent.ShakeZombies):
-            # Send action on to pico relay
-            try:
-                event = FsmEvent(
-                    FromHandle=self.node.handle,
-                    ToHandle=self.pico_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.OpenRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=self.trigger_id,
-                    Comment="Shaking zombies"
-                )
-                self._send_to(self.pico_relay, event)
-                self.log(f"OpenRelay to {self.pico_relay.name}")
-            except ValidationError as e:
-                self.log(f"Tried to change a relay but didn't have the rights: {e}")
+            self.open_vdc_relay(self.trigger_id)
 
     def start_closing(self) -> None:
         # Transition to RelayClosing and send CloseRelayCmd
@@ -468,18 +424,7 @@ class PicoCycler(ScadaActor):
             # StartCLosing: RelayOpen -> RelayClosing
             if self.trigger_event(PicoCyclerEvent.StartClosing):
                 # Send action on to pico relay
-                try:
-                    event = FsmEvent(
-                        FromHandle=self.node.handle,
-                        ToHandle=self.pico_relay.handle,
-                        EventType=ChangeRelayState.enum_name(),
-                        EventName=ChangeRelayState.CloseRelay,
-                        SendTimeUnixMs=int(time.time() * 1000),
-                        TriggerId=self.trigger_id,
-                    )
-                    self._send_to(self.pico_relay, event)
-                except ValidationError as e:
-                    self.log(f"Tried to change a relay but didn't have the rights: {e}")
+                self.close_vdc_relay(self.trigger_id)
 
     def send_fsm_report(self) -> None:
         # This is the end of a triggered cycle, so send  FsmFullReport to SCADA

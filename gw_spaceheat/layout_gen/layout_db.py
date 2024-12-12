@@ -637,6 +637,7 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.atomic_ally),
                     Name=H0N.atomic_ally,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.atomic_ally}",
+                    Handle=f"{H0N.atn}.{H0N.atomic_ally}",
                     ActorClass=ActorClass.AtomicAlly,
                     DisplayName="Atomic Ally",
                 ),
