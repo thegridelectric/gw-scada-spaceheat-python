@@ -12,6 +12,7 @@ from gw.enums import GwStrEnum
 from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
+from gwproto.enums import ActorClass
 from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
@@ -371,7 +372,9 @@ class HomeAlone(ScadaActor):
                     self.trigger_event(HomeAloneEvent.GoDormant)
             case WakeUp():
                 if self.state == HomeAloneState.Dormant:
+                    # WakeUp: Dormant -> WaitingForTemperaturesOnPeak, but rename that ..
                     self.trigger_event(HomeAloneEvent.WakeUp)
+                    self.initialize_relays()
         return Ok(True)
     
     def change_all_temps(self, temp_c) -> None:
@@ -437,6 +440,20 @@ class HomeAlone(ScadaActor):
             self.temperatures_available = False
     
     def initialize_relays(self):
+        self.log("IN INITIALIZATION")
+        my_relays =  {
+            relay
+            for relay in self.layout.nodes.values()
+            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
+        }
+        for relay in my_relays - {
+            self.store_charge_discharge_relay, # keep as it was
+            self.hp_failsafe_relay,
+            self.hp_scada_ops_relay, # keep as it was unless on peak
+            self.aquastat_control_relay 
+        }:
+            self.de_energize(relay)
+            self.log(f"JUST DE-ENERGIZED {relay.name}")
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
 
