@@ -130,12 +130,12 @@ class SynthGenerator(ScadaActor):
     
     async def main(self):
         await asyncio.sleep(2)
-        self.log("In synth gen main loop")
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
             if self.weather is None:
                 self.get_weather()
+                self.get_price_forecast()
             else:
                 if datetime.now(self.timezone)>self.weather['time'][0]:
                     self.get_weather()
@@ -327,6 +327,17 @@ class SynthGenerator(ScadaActor):
         rhp = required_kw_thermal
         a, b, c = self.rswt_quadratic_params
         return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
+    
+    def get_price_forecast(self) -> None:
+        daily_dp = [50.13]*7 + [487.63]*5 + [54.98]*4 + [487.63]*4 + [50.13]*4
+        dp_forecast_usd_per_mwh = (daily_dp[datetime.now(tz=self.timezone).hour+1:] + daily_dp[:datetime.now(tz=self.timezone).hour+1])*2
+        lmp_forecast_usd_per_mwh = [102]*48
+        pf = PriceForecast(
+            Time = [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+            DpForecast = dp_forecast_usd_per_mwh,
+            LmpForecsat = lmp_forecast_usd_per_mwh,
+        )
+        self._send_to(self.fake_atn, pf)
 
     def get_weather(self) -> None:
         config_dir = self.settings.paths.config_dir
@@ -414,8 +425,6 @@ class SynthGenerator(ScadaActor):
             RswtDeltaTForecast = [round(self.delta_T(x),2) for x in self.weather['required_swt']]
         )
         self._send_to(self.fake_atn, wf)
-        self._send_to(self.atomic_ally, wf)
-        self._send_to(self.home_alone, wf)
         # Crop to use only 24 hours of forecast in this code
         for key in self.weather:
             self.weather[key] = self.weather[key][:24]
