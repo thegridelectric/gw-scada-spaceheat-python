@@ -4,18 +4,18 @@ Screen {
 
 #mqtt_state {
     height: 1fr;
-    border: solid green;
+    border: solid $border;
 }
 
 
 #relay_scroll {
     height: 10fr;
-    border: solid green;
+    border: solid $border;
 }
 
 #message_table {
     height: 3fr;
-    border: solid green;
+    border: solid $border;
 }
 
 Button {
@@ -32,7 +32,6 @@ Relay {
     background: $boost;
     height: auto;
     width: auto;
-    height: 5;
 }
 
 Relay1 {
@@ -44,20 +43,33 @@ Relay1 {
 }
 
 Relay2 {
+    /*border: solid $success-lighten-3;*/
     layout: horizontal;
     visibility: visible;
     height: auto;
+    /*max-width: 140;*/
+    /*display: none;*/
 }
 
+Relay2 > * {
+    border: solid $success-lighten-3;
+}
+
+Relay2 #relay_channel_name2 {
+    dock: left;
+    width: 30;
+    height: 5;
+    text-align: center;
+}
+
+
 RelayStateText {
-    border: solid blue;
     width: 30;
     height: 5;
     text-align: center;
 }
 
 RelayControlButtons {
-    border: solid blue;
     width: 67;
     margin: 0 0;
     padding: 0 0;
@@ -78,30 +90,22 @@ RelayControlButtons {
     padding: 0 0;
 }
 
-#relay_channel_name2 {
-    dock: left;
-    width: 30;
-    height: 5;
-    border: solid blue;
-    text-align: center;
-}
-
 #relay_channel_name {
     dock: left;
     width: 30;
-    border: solid blue;
+    border: solid $accent;
     text-align: center;
 }
 
 #relay_energized {
-    border: solid blue;
+    border: solid $accent;
     width: 30;
     text-align: center;
 }
 
 #relay_switch_label {
     width: 30;
-    border: solid blue;
+    border: solid $accent;
     align-horizontal: right;
     text-align: right;
 }
@@ -109,7 +113,7 @@ RelayControlButtons {
 #relay_switch {
     width: auto;
     height: auto;
-    border: solid blue;
+    border: solid $accent;
 }
 
 Relays {

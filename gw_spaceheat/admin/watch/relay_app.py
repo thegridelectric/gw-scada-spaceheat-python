@@ -14,7 +14,8 @@ from admin.settings import AdminClientSettings
 from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
-from admin.watch.widgets.relay import RelayControlButtons
+from admin.watch.widgets.relay1 import Relay1
+from admin.watch.widgets.relay2 import RelayControlButtons
 from admin.watch.widgets.relays import Relay
 from admin.watch.widgets.relays import Relays
 
@@ -70,7 +71,7 @@ class RelaysApp(App):
     def on_mount(self) -> None:
         self._admin_client.start()
 
-    def on_relay_relay_switch_changed(self, message: Relay.RelaySwitchChanged):
+    def on_relay1_relay_switch_changed(self, message: Relay1.RelaySwitchChanged):
         try:
             relay_widget = self.query_one(
                 f"#{message.relay_widget_id}",
