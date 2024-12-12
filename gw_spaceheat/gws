@@ -1,4 +1,4 @@
-#!python
+#!gw_spaceheat/venv/bin/python
 import sys
 from cli import app
 
