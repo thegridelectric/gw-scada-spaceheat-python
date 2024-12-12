@@ -1,5 +1,5 @@
 from typing import List
-from gwproto.enums import ActorClass, MakeModel, Unit, RelayWiringConfig, TelemetryName, ChangeRelayState, ChangeAquastatControl, ChangeHeatcallSource, ChangeHeatPumpControl, ChangePrimaryPumpControl, ChangeStoreFlowRelay
+from gwproto.enums import ActorClass, MakeModel, Unit, RelayWiringConfig, TelemetryName, ChangeRelayState, ChangeAquastatControl, ChangeHeatcallSource, ChangeHeatPumpControl, PrimaryPumpControl, ChangeStoreFlowRelay
 from gwproto.named_types import I2cMultichannelDtRelayComponentGt
 from pydantic import BaseModel
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
@@ -128,8 +128,72 @@ def add_relays(
                     Exponent=0,
                     Unit=Unit.Unitless
                 ),
+                RelayActorConfig(
+                    ChannelName=H0CN.primary_pump_failsafe_relay_state,
+                    RelayIdx=House0RelayIdx.primary_pump_failsafe,
+                    ActorName=H0N.primary_pump_failsafe,
+                    PollPeriodMs=cfg.PollPeriodMs,
+                    CapturePeriodS=cfg.CapturePeriodS,
+                    WiringConfig=RelayWiringConfig.DoubleThrow,
+                    EventType=PrimaryPumpControl.enum_name(),
+                    DeEnergizingEvent=PrimaryPumpControl.HeatPump,
+                    EnergizingEvent=PrimaryPumpControl.Scada,
+                    AsyncCapture=True,
+                    Exponent=0,
+                    Unit=Unit.Unitless
+                ),
+                RelayActorConfig(
+                    ChannelName=H0CN.primary_pump_scada_ops_relay_state,
+                    RelayIdx=House0RelayIdx.primary_pump_ops,
+                    ActorName=H0N.primary_pump_scada_ops,
+                    PollPeriodMs=cfg.PollPeriodMs,
+                    CapturePeriodS=cfg.CapturePeriodS,
+                    WiringConfig=RelayWiringConfig.NormallyOpen,
+                    EventType=ChangeRelayState.enum_name(),
+                    DeEnergizingEvent=ChangeRelayState.OpenRelay,
+                    EnergizingEvent=ChangeRelayState.CloseRelay,
+                    AsyncCapture=True,
+                    Exponent=0,
+                    Unit=Unit.Unitless
+                ),
 
         ]
+        
+        # Add 2 relays for each thermostat zone
+        IDX = 17
+        ChangeHeatcallSource
+        zone_names = db.misc["ZoneList"]
+        for i in range(len(zone_names)):
+            zone = zone_names[i]
+            RelayActorConfig(
+                    ChannelName=f"zone{i+1}-{zone.lower}-failsafe-relay{IDX+2*i}",
+                    RelayIdx=IDX+2*i,
+                    ActorName=f"relay{IDX+2*i}",
+                    PollPeriodMs=cfg.PollPeriodMs,
+                    CapturePeriodS=cfg.CapturePeriodS,
+                    WiringConfig=RelayWiringConfig.DoubleThrow,
+                    EventType=ChangeHeatcallSource.enum_name(),
+                    DeEnergizingEvent=ChangeHeatcallSource.SwitchToWallThermostat,
+                    EnergizingEvent=ChangeHeatcallSource.SwitchToScada,
+                    AsyncCapture=True,
+                    Exponent=0,
+                    Unit=Unit.Unitless
+                ),
+        RelayActorConfig(
+                    ChannelName=f"zone{i+1}-{zone.lower}-failsafe-relay{IDX+2*i+1}",
+                    RelayIdx=IDX+2*i+1,
+                    ActorName=f"relay{IDX+2*i+1}",
+                    PollPeriodMs=cfg.PollPeriodMs,
+                    CapturePeriodS=cfg.CapturePeriodS,
+                    WiringConfig=RelayWiringConfig.DoubleThrow,
+                    EventType=ChangeHeatcallSource.enum_name(),
+                    DeEnergizingEvent=ChangeHeatcallSource.SwitchToWallThermostat,
+                    EnergizingEvent=ChangeHeatcallSource.SwitchToScada,
+                    AsyncCapture=True,
+                    Exponent=0,
+                    Unit=Unit.Unitless
+                ),
+
         db.add_components(
             [
                 I2cMultichannelDtRelayComponentGt(
@@ -223,6 +287,24 @@ def add_relays(
                     DisplayName="Store Pump Failsafe",
                     ComponentId=db.component_id_by_alias(component_display_name)
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(H0N.primary_pump_failsafe),
+                    Name=H0N.primary_pump_failsafe,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.primary_pump_failsafe}",
+                    Handle=f"auto.{H0N.home_alone}.{H0N.primary_pump_failsafe}",
+                    ActorClass=ActorClass.Relay,
+                    DisplayName="Primary Pump Failsafe",
+                    ComponentId=db.component_id_by_alias(component_display_name)
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(H0N.primary_pump_scada_ops),
+                    Name=H0N.primary_pump_scada_ops,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.primary_pump_scada_ops}",
+                    Handle=f"auto.{H0N.home_alone}.{H0N.primary_pump_scada_ops}",
+                    ActorClass=ActorClass.Relay,
+                    DisplayName="Primary Pump SCADA Ops",
+                    ComponentId=db.component_id_by_alias(component_display_name)
+                ),
             ]
         )
 
@@ -290,6 +372,24 @@ def add_relays(
                 TelemetryName=TelemetryName.RelayState,
                 TerminalAssetAlias=db.terminal_asset_alias,
                 Id=db.make_channel_id(H0CN.store_pump_failsafe_relay_state)
+            ),
+            DataChannelGt(
+                Name=H0CN.primary_pump_failsafe_relay_state,
+                DisplayName="Primary Pump Failsafe Relay State",
+                AboutNodeName=H0N.primary_pump_failsafe,
+                CapturedByNodeName=H0N.relay_multiplexer,
+                TelemetryName=TelemetryName.RelayState,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(H0CN.primary_pump_failsafe_relay_state)
+            ),
+            DataChannelGt(
+                Name=H0CN.primary_pump_scada_ops_relay_state,
+                DisplayName="Primary Pump SCADA Ops Relay State",
+                AboutNodeName=H0N.primary_pump_scada_ops,
+                CapturedByNodeName=H0N.relay_multiplexer,
+                TelemetryName=TelemetryName.RelayState,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(H0CN.primary_pump_scada_ops_relay_state)
             )
         ]
     )
