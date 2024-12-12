@@ -41,7 +41,7 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from actors.synth_generator import RemainingElec
+from actors.synth_generator import RemainingElec, WeatherForecast
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -560,6 +560,13 @@ class Scada(ScadaInterface, Proactor):
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case WakeUp():
                 self.get_communicator(message.Header.Dst).process_message(message)
+            case WeatherForecast():
+                try:
+                    self.get_communicator(H0N.atomic_ally).process_message(message)
+                    self.get_communicator(H0N.home_alone).process_message(message)
+                    self.get_communicator(H0N.fake_atn).process_message(message)
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
             case _:
                 raise ValueError(
                     f"There is no handler for message payload type [{type(message.Payload)}]"

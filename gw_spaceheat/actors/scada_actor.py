@@ -46,6 +46,14 @@ class ScadaActor(Actor):
         return self.layout.node(H0N.atomic_ally)
     
     @property
+    def home_alone(self) -> ShNode:
+        return self.layout.node(H0N.home_alone)
+    
+    @property
+    def fake_atn(self) -> ShNode:
+        return self.layout.node(H0N.fake_atn)
+    
+    @property
     def synth_generator(self) -> ShNode:
         return self.layout.node(H0N.synth_generator)
     
