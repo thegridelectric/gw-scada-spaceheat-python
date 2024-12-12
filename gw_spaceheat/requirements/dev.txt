@@ -210,7 +210,7 @@ textual==1.0.0
     #   textual-serve
     #   trogon
 textual-dev==1.7.0
-    # via -r gw_spaceheat/requirements/dev.in
+    # via -r /Users/Andrew/git/gridworks/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
 textual-serve==1.1.1
     # via textual-dev
 tomli==2.0.1

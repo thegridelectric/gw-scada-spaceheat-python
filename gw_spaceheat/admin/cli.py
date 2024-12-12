@@ -28,7 +28,6 @@ class RelayState(StrEnum):
     closed = "1"
 
 
-
 @app.command()
 def watch(
     target: str = "",
@@ -38,7 +37,14 @@ def watch(
         typer.Option(
             "--verbose", "-v", count=True
         )
+    ] = 0,
+    paho_verbose: Annotated[
+        int,
+        typer.Option(
+            "--paho-verbose", count=True
+        )
     ] = 0
+
 ) -> None:
     """Watch and set relays. """
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
@@ -52,10 +58,16 @@ def watch(
         settings.target_gnode = DEFAULT_TARGET
     if verbose:
         if verbose == 1:
-            verbosity = logging.WARN
-        else:
             verbosity = logging.INFO
+        else:
+            verbosity = logging.DEBUG
         settings.verbosity = verbosity
+    if paho_verbose:
+        if paho_verbose == 1:
+            paho_verbosity = logging.INFO
+        else:
+            paho_verbosity = logging.DEBUG
+        settings.paho_verbosity = paho_verbosity
     rich.print(settings)
     watch_app = RelaysApp(settings=settings)
     watch_app.run()
