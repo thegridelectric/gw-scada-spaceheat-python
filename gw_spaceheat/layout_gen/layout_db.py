@@ -4,7 +4,7 @@ import subprocess
 import typing
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, Tuple,List
+from typing import Dict, Optional, List
 import uuid
 
 from gw.errors import DcError
@@ -24,7 +24,7 @@ from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
-from gwproto.data_classes.house_0_names import H0N, H0CN
+from data_classes.house_0_names import H0N, H0CN
 
 
 class ChannelStubDb(ChannelStub):
@@ -121,7 +121,7 @@ ChanneStubDbByName: Dict[str, ChannelStubDb] = {
 class StubConfig:
     atn_gnode_alias: str = "d1.isone.ct.newhaven.orange1"
     terminal_asset_alias: Optional[str] = None
-    zone_list: Tuple[str, ...] = field(default_factory=tuple)
+    zone_list: typing.Sequence[str] = field(default_factory=tuple)
     total_store_tanks: int = 3
     scada_display_name: str = "Dummy Orange Scada"
     add_stub_power_meter: bool = True
@@ -637,6 +637,7 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.atomic_ally),
                     Name=H0N.atomic_ally,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.atomic_ally}",
+                    Handle=f"{H0N.atn}.{H0N.atomic_ally}",
                     ActorClass=ActorClass.AtomicAlly,
                     DisplayName="Atomic Ally",
                 ),

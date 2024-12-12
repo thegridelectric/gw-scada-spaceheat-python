@@ -9,10 +9,14 @@ from result import Ok, Result
 from datetime import datetime, timedelta
 from actors.scada_data import ScadaData
 from gwproto import Message
-from gwproto.data_classes.house_0_names import H0CN
-from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp, EnergyInstruction, PowerWatts
+
+from gwproto.named_types import SingleReading, PowerWatts
 from gwproactor import MonitoredName, ServicesInterface
+from gwproactor.message import PatInternalWatchdogMessage
+
 from actors.scada_actor import ScadaActor
+from data_classes.house_0_names import H0CN
+from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
 
 # TODO: move to gwproto.named_types
 from typing import Literal
@@ -110,6 +114,7 @@ class SynthGenerator(ScadaActor):
         await asyncio.sleep(2)
         self.log("In synth gen main loop")
         while not self._stop_requested:
+            self._send(PatInternalWatchdogMessage(src=self.name))
 
             if self.weather is None:
                 self.get_weather()

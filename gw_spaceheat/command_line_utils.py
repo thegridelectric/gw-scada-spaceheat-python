@@ -17,11 +17,11 @@ from pydantic import BaseModel
 from actors import Parentless
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass
 from pydantic_settings import BaseSettings
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 
 LOGGING_FORMAT = "%(asctime)s %(message)s"
 

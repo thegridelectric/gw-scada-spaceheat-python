@@ -12,14 +12,13 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.messages import (
     ChannelReadings,
     FsmFullReport,
-    Ha1Params,
     MachineStates,
     Report,
     SingleReading,
     SnapshotSpaceheat,
 )
 
-
+from named_types import Ha1Params
 class ScadaData:
     latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]

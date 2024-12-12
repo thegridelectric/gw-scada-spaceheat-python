@@ -1,18 +1,17 @@
 """Test HomeAlone w strategy ha1"""
 import uuid
 import time
-import dotenv
 from pathlib import Path
 
-from gwproto.data_classes.house_0_layout import House0Layout
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
 
 from actors import Scada
 from actors import HomeAlone
 from actors.config import ScadaSettings
-from gwproto.named_types import ScadaParams
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_layout import House0Layout
+from data_classes.house_0_names import H0N
+from named_types import ScadaParams
 
 def test_ha1(monkeypatch, tmp_path):
     # change to test directory and create an empty .env

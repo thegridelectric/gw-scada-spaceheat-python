@@ -1,6 +1,6 @@
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import model_validator, BaseModel
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
@@ -14,12 +14,14 @@ class PersisterSettings(BaseModel):
 class AdminLinkSettings(MQTTClient):
     enabled: bool = False
     name: str = H0N.admin
+    timeout_seconds: float = 60 * 1
 
 class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""
     local_mqtt: MQTTClient = MQTTClient()
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300
+    seconds_per_snapshot: int = 30
     async_power_reporting_threshold: float = 0.02
     persister: PersisterSettings = PersisterSettings()
     admin: AdminLinkSettings = AdminLinkSettings()

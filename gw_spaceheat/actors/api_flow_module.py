@@ -12,21 +12,21 @@ from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoFlowModuleComponent
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
 from gwproto.messages import ProblemEvent
 from gwproto.named_types import (
     ChannelReadings,
-    PicoMissing,
     SyncedReadings,
     TicklistHall,
     TicklistHallReport,
     TicklistReed,
     TicklistReedReport,
 )
-from actors.scada_actor import ScadaActor
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from actors.scada_actor import ScadaActor
+from named_types import PicoMissing
 from pydantic import BaseModel
 from result import Ok, Result
 from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering

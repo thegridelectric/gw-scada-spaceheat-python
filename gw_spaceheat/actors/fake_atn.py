@@ -3,12 +3,10 @@ import asyncio
 import time
 from gwproto import Message
 from result import Ok, Result
-from gw.enums import MarketTypeName
-from gwproto.enums import MarketPriceUnit, MarketQuantityUnit
-from gwproto.named_types import (
-    AtnBid, GoDormant, 
-    EnergyInstruction, PriceQuantityUnitless, WakeUp, PowerWatts)
 from actors.scada_actor import ScadaActor
+from gw.enums import MarketTypeName
+from enums import MarketPriceUnit, MarketQuantityUnit
+from named_types import AtnBid, EnergyInstruction, LatestPrice
 
 class FakeAtn(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 61
@@ -30,9 +28,7 @@ class FakeAtn(ScadaActor):
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
-            case GoDormant():
-                ...
-            case WakeUp():
+            case LatestPrice():
                 ...
         return Ok(True)
     

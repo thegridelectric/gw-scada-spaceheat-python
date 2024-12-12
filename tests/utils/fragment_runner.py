@@ -16,14 +16,14 @@ from gwproactor.config import LoggingSettings
 
 import actors
 from actors.config import ScadaSettings
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from gwproactor import ActorInterface
 from gwproactor import Proactor
 from gwproactor import setup_logging
 from gwproactor_test import await_for
 from gwproactor_test.certs import uses_tls
 from gwproactor_test.certs import copy_keys
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 
 from tests.atn import Atn
 from tests.atn import AtnSettings

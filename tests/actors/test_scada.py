@@ -6,7 +6,7 @@ from typing import cast
 from gwproto.messages import ReportEvent
 from gwproto.messages import ChannelReadings
 
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from tests.atn import AtnSettings
 from tests.utils.fragment_runner import Actors
 from tests.utils.fragment_runner import AsyncFragmentRunner
@@ -21,7 +21,7 @@ from actors import Scada
 from actors.config import ScadaSettings
 from gwproto.messages import SnapshotSpaceheat
 from gwproto.messages import Report
-from gwproto.data_classes.house_0_names import H0N, H0CN
+from data_classes.house_0_names import H0N, H0CN
 
 def test_scada_small():
     settings = ScadaSettings()
@@ -44,6 +44,8 @@ def test_scada_small():
         list(scada._data.recent_channel_unix_ms.keys())
         == channel_names
     )
+
+    assert scada.layout.vdc_relay.name == H0N.vdc_relay
 
     ###########################################
     # Testing making report events

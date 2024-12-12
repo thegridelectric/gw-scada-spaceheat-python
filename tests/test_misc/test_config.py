@@ -52,6 +52,7 @@ def test_scada_settings_defaults(clean_scada_env):
             )
         ).model_dump(),
         seconds_per_report=300,
+        seconds_per_snapshot=30,
         async_power_reporting_threshold=0.02,
         paths=Paths().model_dump(),
         logging=LoggingSettings().model_dump(),

@@ -8,7 +8,6 @@ import numpy as np
 from datetime import datetime, timedelta
 import pytz
 import requests
-from pydantic import ValidationError
 from gw.enums import GwStrEnum
 from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
@@ -16,14 +15,14 @@ from gwproto import Message
 from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.house_0_names import H0N, H0CN
-from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
-                           ChangeStoreFlowRelay, FsmReportType, MainAutoState)
-from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
-                                 FsmFullReport, GoDormant, WakeUp)
-from actors.config import ScadaSettings
+from data_classes.house_0_names import H0N, H0CN
+from gwproto.enums import FsmReportType
+from gwproto.named_types import (Alert, MachineStates, FsmAtomicReport,
+                                 FsmFullReport)
+
 from actors.scada_actor import ScadaActor
+from named_types import Ha1Params, GoDormant, WakeUp
+
 
 class HomeAloneState(GwStrEnum):
     WaitingForTemperaturesOnPeak = auto()
@@ -32,6 +31,7 @@ class HomeAloneState(GwStrEnum):
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
+    Dormant = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -48,6 +48,9 @@ class HomeAloneEvent(GwStrEnum):
     OnPeakBufferEmpty = auto()
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
+    TemperaturesAvailable = auto()
+    GoDormant = auto()
+    WakeUp = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -57,6 +60,7 @@ class HomeAloneEvent(GwStrEnum):
 class HomeAlone(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     states = [
+        "Dormant",
         "WaitingForTemperaturesOnPeak",
         "WaitingForTemperaturesOffPeak",
         "HpOnStoreOff",
@@ -95,7 +99,11 @@ class HomeAlone(ScadaActor):
         # Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "OnPeakBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "OffPeakStart", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
-    ]
+    ] + [
+            {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
+            for state in states if state != "Dormant"
+    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "WaitingForTemperaturesOnPeak"}]
+    
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
@@ -114,11 +122,6 @@ class HomeAlone(ScadaActor):
         self.storage_declared_ready = False
         self.full_storage_energy = None
         # Relays
-        self.hp_scada_ops_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
-        self.hp_failsafe_relay: ShNode = self.hardware_layout.node(H0N.hp_failsafe_relay)
-        self.aquastat_ctrl_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
-        self.store_pump_failsafe: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
-        self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
         self.machine = Machine(
             model=self,
             states=HomeAlone.states,
@@ -227,16 +230,15 @@ class HomeAlone(ScadaActor):
     async def main(self):
 
         await asyncio.sleep(5)
+        self.log("INITIALIZING RELAYS")
         self.initialize_relays()
 
         while not self._stop_requested:
             #self.log("PATTING HOME ALONE WATCHDOG")
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.services.auto_state != MainAutoState.HomeAlone:
-                self.log("State: DORMANT")
-            else:
-                self.log(f"State: {self.state}")
+            self.log(f"State: {self.state}")
+            if self.state != HomeAloneState.Dormant:                
                 previous_state = self.state
 
                 if self.is_onpeak():
@@ -337,112 +339,19 @@ class HomeAlone(ScadaActor):
 
     def update_relays(self, previous_state) -> None:
         if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
-            self._turn_off_HP()
+            self.turn_off_HP()
         if "HpOn" not in previous_state and "HpOn" in self.state:
-            self._turn_on_HP()
+            self.turn_on_HP()
         if "HpOff" not in previous_state and "HpOff" in self.state:
-            self._turn_off_HP()
+            self.turn_off_HP()
         if "StoreDischarge" in self.state:
-            self._turn_on_store()
+            self.turn_on_store_pump()
         if "StoreDischarge" not in self.state:
-            self._turn_off_store()
+            self.turn_off_store_pump()
         if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
-            self._valved_to_charge_store()
+            self.valved_to_charge_store()
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
-            self._valved_to_discharge_store()
-        
-    def _turn_on_HP(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_off_HP(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.hp_scada_ops_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            
-            self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_on_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_pump_failsafe, event)
-            self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _turn_off_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_pump_failsafe, event)
-            self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-    def _valved_to_charge_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_charge_discharge_relay.handle,
-                EventType=ChangeStoreFlowRelay.enum_name(),
-                EventName=ChangeStoreFlowRelay.ChargeStore,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_charge_discharge_relay, event)
-            self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
-
-    def _valved_to_discharge_store(self) -> None:
-        try:
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.store_charge_discharge_relay.handle,
-                EventType=ChangeStoreFlowRelay.enum_name(),
-                EventName=ChangeStoreFlowRelay.DischargeStore,
-                SendTimeUnixMs=int(time.time()*1000),
-                TriggerId=str(uuid.uuid4()),
-                )
-            self._send_to(self.store_charge_discharge_relay, event)
-            self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-        except ValidationError as e:
-            self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
+            self.valved_to_discharge_store()
 
     def start(self) -> None:
         self.services.add_task(
@@ -458,23 +367,13 @@ class HomeAlone(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case GoDormant():
-                self._go_dormant_received(message.Payload)
+                if self.state != HomeAloneState.Dormant:
+                    self.trigger_event(HomeAloneEvent.GoDormant)
             case WakeUp():
-                self._wake_up_received(message.Payload)
+                if self.state == HomeAloneState.Dormant:
+                    self.trigger_event(HomeAloneEvent.WakeUp)
         return Ok(True)
     
-    def _go_dormant_received(self) -> None:
-        """
-        Relays no longer belong to home alone until wake up received
-        """
-        ...
-    
-    def _wake_up_received(self) -> None:
-        """
-        Home alone is again in charge of things.
-        """
-        ...
-
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
             for channel_name in self.temperature_channel_names:
@@ -538,28 +437,11 @@ class HomeAlone(ScadaActor):
             self.temperatures_available = False
     
     def initialize_relays(self):
+        self.hp_failsafe_switch_to_scada()
+        self.aquastat_ctrl_switch_to_scada()
+
         if self.is_onpeak:
-            self._turn_off_HP()
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_failsafe_relay.handle,
-            EventType=ChangeHeatPumpControl.enum_name(),
-            EventName=ChangeHeatPumpControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.hp_failsafe_relay, event)
-        self.log(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.aquastat_ctrl_relay.handle,
-            EventType=ChangeAquastatControl.enum_name(),
-            EventName=ChangeAquastatControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.aquastat_ctrl_relay, event)
-        self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
+            self.turn_off_HP()
 
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
@@ -758,7 +640,7 @@ class HomeAlone(ScadaActor):
         else:
             print("Storage top warmer than buffer top")
             return False
-    
+
     def to_celcius(self, t: float) -> float:
         return (t-32)*5/9
 
