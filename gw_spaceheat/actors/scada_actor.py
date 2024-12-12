@@ -5,8 +5,8 @@ from pydantic import ValidationError
 from actors.config import ScadaSettings
 from gwproactor import Actor, ServicesInterface
 from gwproto import Message
-from gwproto.enums import (ChangeAquastatControl, ChangeRelayState, ChangeStoreFlowRelay, 
-                           ChangeHeatPumpControl, ChangePrimaryPumpControl)
+from gwproto.enums import (ActorClass, ChangeAquastatControl, ChangeRelayState, 
+                           ChangeStoreFlowRelay, ChangeHeatPumpControl, ChangePrimaryPumpControl)
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
@@ -101,15 +101,55 @@ class ScadaActor(Actor):
     # Relay controls
     ################################
 
-    def energize(self, relay: ShNode) -> None:
-        # TODO: call the correct function below as a function of what relay
-        # it is
-        ...
-
     def de_energize(self, relay: ShNode) -> None:
-        # TODO: call the correct function below as a function of what relay
-        # it is
-        ...
+        if relay.ActorClass != ActorClass.Relay:
+            self.log(f"Can only energize relays! ignoring energize {relay}")
+            return
+        if relay == self.vdc_relay:
+            self.close_vdc_relay()
+        elif relay == self.tstat_common_relay:
+            self.close_tstat_common_relay()
+        elif relay == self.store_charge_discharge_relay:
+            self.valved_to_discharge_store()
+        elif relay == self.hp_failsafe_relay:
+            self.hp_failsafe_switch_to_aquastat()
+        elif relay == self.hp_scada_ops_relay:
+            self.turn_on_HP()
+        elif relay == self.aquastat_control_relay:
+            self.aquastat_ctrl_switch_to_boiler()
+        elif relay == self.store_pump_failsafe:
+            self.turn_off_store_pump()
+        elif relay == self.primary_pump_failsafe:
+            self.primary_pump_failsafe_to_hp()
+        elif relay == self.primary_pump_scada_ops:
+            self.turn_off_primary_pump()
+        else:
+            self.log(f"Unrecognized relay {relay}! Not energizing")
+
+    def energize(self, relay: ShNode) -> None:
+        if relay.ActorClass != ActorClass.Relay:
+            self.log(f"Can only energize relays! ignoring energize {relay}")
+            return
+        if relay == self.vdc_relay:
+            self.open_vdc_relay()
+        elif relay == self.tstat_common_relay:
+            self.open_tstat_common_relay()
+        elif relay == self.store_charge_discharge_relay:
+            self.valved_to_charge_store()
+        elif relay == self.hp_failsafe_relay:
+            self.hp_failsafe_switch_to_scada()
+        elif relay == self.hp_scada_ops_relay:
+            self.turn_off_HP()
+        elif relay == self.aquastat_control_relay:
+            self.aquastat_ctrl_switch_to_scada()
+        elif relay == self.store_pump_failsafe:
+            self.turn_on_store_pump()
+        elif relay == self.primary_pump_failsafe:
+            self.primary_pump_failsafe_to_scada()
+        elif relay == self.primary_pump_scada_ops:
+            self.turn_on_primary_pump()
+        else:
+            self.log(f"Unrecognized relay {relay}! Not energizing")
 
     def close_vdc_relay(self, trigger_id: Optional[str] = None) -> None:
         """
@@ -128,7 +168,7 @@ class ScadaActor(Actor):
                 TriggerId=trigger_id,
             )
             self._send_to(self.vdc_relay, event)
-            self.log(f"OpenRelay to {self.vdc_relay.name}")
+            self.log(f"CloseRelay to {self.vdc_relay.name}")
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -140,6 +180,7 @@ class ScadaActor(Actor):
         if trigger_id is None:
             trigger_id = str(uuid.uuid4())
         try:
+         
             event = FsmEvent(
                 FromHandle=self.node.handle,
                 ToHandle=self.vdc_relay.handle,
@@ -170,7 +211,7 @@ class ScadaActor(Actor):
                 TriggerId=trigger_id,
             )
             self._send_to(self.tstat_common_relay, event)
-            self.log(f"OpenRelay to {self.tstat_common_relay.name}")
+            self.log(f"CloseRelay to {self.tstat_common_relay.name}")
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -186,7 +227,7 @@ class ScadaActor(Actor):
                 FromHandle=self.node.handle,
                 ToHandle=self.tstat_common_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.CloseRelay,
+                EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=trigger_id,
             )
@@ -306,7 +347,7 @@ class ScadaActor(Actor):
                 )
             
             self._send_to(self.hp_scada_ops_relay, event)
-            self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
+            self.log(f"{self.node.handle} sending OpenRelay to Hp Scada Ops {H0N.hp_scada_ops_relay}")
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -325,7 +366,7 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
                 )
             self._send_to(self.aquastat_control_relay, event)
-            self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
+            self.log(f"{self.node.handle} sending SwitchToScada to Boiler Ctrl {H0N.aquastat_ctrl_relay}")
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
