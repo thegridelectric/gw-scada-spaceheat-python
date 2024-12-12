@@ -3,25 +3,20 @@ import time
 import uuid
 from enum import auto
 from typing import Dict, List, Optional, Sequence
-
 from gw.enums import GwStrEnum
 from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
     ActorClass,
     ChangeRelayState,
     FsmReportType,
-    PicoCyclerEvent,
-    PicoCyclerState,
 )
-from gwproto.messages import PicoMissing # noqa
 from gwproto.named_types import (
     ChannelReadings,
     FsmAtomicReport,
-    FsmEvent,
     FsmFullReport,
     MachineStates,
     SyncedReadings,
@@ -30,6 +25,8 @@ from result import Ok, Result
 from transitions import Machine
 import transitions
 from actors.scada_actor import ScadaActor
+from enums import PicoCyclerEvent, PicoCyclerState
+from named_types import GoDormant, PicoMissing, WakeUp
 
 class PicoWarning(ValueError):
     pico_name: str
@@ -68,6 +65,7 @@ class PicoCycler(ScadaActor):
     _stop_requested: bool
     # PicoCyclerState.values()
     states = [
+        "Dormant",
         "PicosLive",
         "RelayOpening",
         "RelayOpen",
@@ -89,7 +87,11 @@ class PicoCycler(ScadaActor):
         {"trigger": "RebootDud", "source": "PicosRebooting", "dest": "AllZombies"},
         {"trigger": "ShakeZombies", "source": "AllZombies", "dest": "RelayOpening"},
         {"trigger": "ShakeZombies", "source": "PicosLive", "dest": "RelayOpening"},
-    ]
+    ] + [ 
+        {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
+        for state in states if state !="Dormant"
+    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "RelayOpening"}]
+    
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
@@ -202,7 +204,6 @@ class PicoCycler(ScadaActor):
             self.fsm_comment = comment
             self.pico_missing()
 
-
     def pico_missing(self) -> None:
         """
         Called directly when rebooting picos does not bring back all the
@@ -221,16 +222,7 @@ class PicoCycler(ScadaActor):
                 if self.reboots[pico] == self.REBOOT_ATTEMPTS:
                     self.raise_zombie_pico_warning(pico)
         # Send action on to pico relay
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.pico_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
-            SendTimeUnixMs=int(time.time() * 1000),
-            TriggerId=self.trigger_id,
-        )
-        self._send_to(self.pico_relay, event)
-        self.log(f"OpenRelay to {self.pico_relay.name}")
+        self.open_vdc_relay(trigger_id=self.trigger_id)
     
     def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
         if actor not in self.pico_actors:
@@ -339,16 +331,37 @@ class PicoCycler(ScadaActor):
                 case FsmFullReport():
                     path_dbg |= 0x00000004
                     self.process_fsm_full_report(message.Payload)
+                case GoDormant():
+                    self.GoDormant()
                 case PicoMissing():
                     path_dbg |= 0x00000008
                     self.process_pico_missing(src_node, message.Payload)
                 case SyncedReadings():
                     path_dbg |= 0x00000010
                     self.process_synced_readings(src_node, message.Payload)
+                case WakeUp():
+                    self.WakeUp()
                 case _:
                     path_dbg |= 0x00000020
         self.services.logger.path(f"--pico_cycler  path:0x{path_dbg:08X}")
         return Ok(True)
+    
+    def GoDormant(self) -> None:
+        if self.state != PicoCyclerState.Dormant:
+            self.trigger(PicoCyclerEvent.GoDormant)
+        else:
+            self.log("IGNORING GoDormant")
+        self.log(f"State: {self.state}")
+    
+    def WakeUp(self) -> None:
+        if self.state == PicoCyclerState.Dormant:
+            self.trigger(PicoCyclerEvent.WakeUp)
+            # WakeUp: Dormant -> RelayOpening
+            self.log("Waking up and rebooting!")
+            # Send action on to pico relay
+            self.open_vdc_relay()
+        else:
+            self.log(f"Got WakeUp message but ignoring since in state {self.state}")
 
     def confirm_opened(self):
         if self.state == PicoCyclerState.RelayOpening.value:
@@ -403,17 +416,7 @@ class PicoCycler(ScadaActor):
         self.trigger_id = str(uuid.uuid4())
         # ShakeZombies: AllZombies/PicosLive -> RelayOpening
         if self.trigger_event(PicoCyclerEvent.ShakeZombies):
-            # Send action on to pico relay
-            event = FsmEvent(
-                FromHandle=self.node.handle,
-                ToHandle=self.pico_relay.handle,
-                EventType=ChangeRelayState.enum_name(),
-                EventName=ChangeRelayState.OpenRelay,
-                SendTimeUnixMs=int(time.time() * 1000),
-                TriggerId=self.trigger_id,
-            )
-            self._send_to(self.pico_relay, event)
-            self.log(f"OpenRelay to {self.pico_relay.name}")
+            self.open_vdc_relay(self.trigger_id)
 
     def start_closing(self) -> None:
         # Transition to RelayClosing and send CloseRelayCmd
@@ -421,18 +424,7 @@ class PicoCycler(ScadaActor):
             # StartCLosing: RelayOpen -> RelayClosing
             if self.trigger_event(PicoCyclerEvent.StartClosing):
                 # Send action on to pico relay
-                event = FsmEvent(
-                    FromHandle=self.node.handle,
-                    ToHandle=self.pico_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=self.trigger_id,
-                )
-                self._send_to(self.pico_relay, event)
-                # self.services.logger.error(
-                #     f"{self.node.handle} sending Close to {self.pico_relay.name}"
-                # )
+                self.close_vdc_relay(self.trigger_id)
 
     def send_fsm_report(self) -> None:
         # This is the end of a triggered cycle, so send  FsmFullReport to SCADA
@@ -519,7 +511,6 @@ class PicoCycler(ScadaActor):
         """
         await asyncio.sleep(3)
         self.trigger_id = str(uuid.uuid4())
-        self.fsm_comment = "triggering pico missing at initialization"
         self.pico_missing()
 
         while not self._stop_requested:

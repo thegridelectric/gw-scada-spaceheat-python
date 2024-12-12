@@ -19,7 +19,7 @@ from command_line_utils import get_nodes_run_by_scada
 from command_line_utils import get_requested_names
 from gwproactor.config import MQTTClient
 from gw.errors import DcError
-from gwproto.data_classes.house_0_layout import House0Layout
+from data_classes.house_0_layout import House0Layout
 from gwproto.enums import ActorClass
 
 

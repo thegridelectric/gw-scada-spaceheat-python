@@ -1,0 +1,108 @@
+{
+  "ShowHidden": false,
+  "ShowAllFiles": false,
+  "CurrentPath": "",
+  "Name": "scada",
+  "ProjectSettings": [
+    {
+      "Name": "project-name",
+      "Value": "scada"
+    },
+    {
+      "Name": "dataclasses-namespace",
+      "Value": "scada.Lib.DataClasses"
+    }
+  ],
+  "ProjectTranspilers": [
+    {
+      "MatchedTranspiler": {
+        "Name": "SSoT",
+        "Description": "SSoT"
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "SSoT",
+      "RelativePath": "",
+      "CommandLine": "effortless/ssot -p ssot-key=IuUqkLn41mZ8TS"
+    },
+    {
+      "MatchedTranspiler": {
+        "Name": "ODXMLToEntitiesJson",
+        "Description": "ODXML to Entities Json"
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "ODXMLToEntitiesJson",
+      "RelativePath": "/SSoT",
+      "CommandLine": "odxml-to-entities-json -i ../ODXML/DataSchema.odxml -o Entities.json"
+    },
+    {
+      "MatchedTranspiler": {
+        "Name": "AirtableToXml",
+        "Description": "Extracts the contents of an airtable base as a single Xml file."
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "AirtableToXml",
+      "RelativePath": "/SSoT",
+      "CommandLine": "airtable/airtable-to-xml -p baseId=appgibWM6WZW20bBx -i Entities.json -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Enum",
+      "CommandLine": "codee42/xml-xslt-transform -i ../SSoT/Airtable.xml -i DeriveEnums.xslt -i ../GnfCommon.xslt -i ../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Enum/EnumInit",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveEnumInit.xslt -i ../../GnfCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Enum/EnumTest",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveEnumTests.xslt -i ../../GnfCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Types",
+      "CommandLine": "codee42/xml-xslt-transform -i ../SSoT/Airtable.xml -i DeriveTypes.xslt -i ../GnfCommon.xslt -i ../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Types/TypeInit",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveTypeInit.xslt -i ../../GnfCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    },
+    {
+      "MatchedTranspiler": {
+        "Name": "XmlXsltTransform",
+        "Description": "Given an Xml and Xslt file, will process and \"split\" a resulting fileset."
+      },
+      "IsSSoTTranspiler": false,
+      "Name": "XmlXsltTransform",
+      "RelativePath": "/Types/TypeTests",
+      "CommandLine": "codee42/xml-xslt-transform -i ../../SSoT/Airtable.xml -i DeriveTypeTests.xslt -i ../../GnfCommon.xslt -i ../../ODXML/DataSchema.odxml -w 120000"
+    }
+  ]
+}

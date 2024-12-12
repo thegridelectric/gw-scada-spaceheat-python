@@ -12,21 +12,21 @@ from gwproactor import MonitoredName, Problems, ServicesInterface
 from gwproactor.message import InternalShutdownMessage, PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.components import PicoFlowModuleComponent
-from gwproto.data_classes.house_0_names import H0N
+from data_classes.house_0_names import H0N
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import GpmFromHzMethod, HzCalcMethod, MakeModel, TelemetryName
 from gwproto.messages import ProblemEvent
 from gwproto.named_types import (
     ChannelReadings,
-    PicoMissing,
     SyncedReadings,
     TicklistHall,
     TicklistHallReport,
     TicklistReed,
     TicklistReedReport,
 )
-from actors.scada_actor import ScadaActor
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from actors.scada_actor import ScadaActor
+from named_types import PicoMissing
 from pydantic import BaseModel
 from result import Ok, Result
 from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering
@@ -477,7 +477,6 @@ class ApiFlowModule(ScadaActor):
             return
         self.last_heard = time.time()
         if self.slow_turner and len(data.RelativeMillisecondList) == 0:
-            # print("Empty ticklist for primary in beech")
             if self.latest_gpm is None:
                 self.latest_gpm = 0
                 self.latest_hz = 0
@@ -629,9 +628,6 @@ class ApiFlowModule(ScadaActor):
         hz_list = [x / 1e6 for x in micro_hz_readings.ValueList]
         gpms = [x * 60 * gallons_per_tick for x in hz_list]
         self.latest_gpm = gpms[-1]
-        # self.log("gpms x 100 for slow turner:")
-        # if self.slow_turner:
-        #     print([int(x * 100) for x in gpms])
         return ChannelReadings(
             ChannelName=self.gpm_channel.Name,
             ValueList=[int(x * 100) for x in gpms],
@@ -662,22 +658,22 @@ class ApiFlowModule(ScadaActor):
             timestamps = [timestamps[i] for i in range(len(frequencies)) if (frequencies[i]<max_hz and frequencies[i]>=min_hz)]
             frequencies = [x for x in frequencies  if (x<max_hz and x>=min_hz)]
 
-        # Add 0 flow when there is more than no_flow_ms between two points
-        new_timestamps = []
-        new_frequencies = []
-        for i in range(len(timestamps) - 1):
-            new_timestamps.append(timestamps[i]) 
-            new_frequencies.append(frequencies[i])  
-            if timestamps[i+1] - timestamps[i] > self._component.gt.NoFlowMs * 1e6:
-                add_step_ns = 20*1e6
-                while timestamps[i] + add_step_ns < timestamps[i+1]:
-                    new_timestamps.append(timestamps[i] + add_step_ns)
-                    new_frequencies.append(0.001)
-                    add_step_ns += 20*1e6
-        new_timestamps.append(timestamps[-1])
-        new_frequencies.append(frequencies[-1])
-        sorted_times_values = sorted(zip(new_timestamps, new_frequencies))
-        timestamps, frequencies = zip(*sorted_times_values)
+            # Add 0 flow when there is more than no_flow_ms between two points
+            new_timestamps = []
+            new_frequencies = []
+            for i in range(len(timestamps) - 1):
+                new_timestamps.append(timestamps[i]) 
+                new_frequencies.append(frequencies[i])  
+                if timestamps[i+1] - timestamps[i] > self._component.gt.NoFlowMs * 1e6:
+                    add_step_ns = 20*1e6
+                    while timestamps[i] + add_step_ns < timestamps[i+1]:
+                        new_timestamps.append(timestamps[i] + add_step_ns)
+                        new_frequencies.append(0.001)
+                        add_step_ns += 20*1e6
+            new_timestamps.append(timestamps[-1])
+            new_frequencies.append(frequencies[-1])
+            sorted_times_values = sorted(zip(new_timestamps, new_frequencies))
+            timestamps, frequencies = zip(*sorted_times_values)
 
         # First reading
         if self.latest_hz is None:
@@ -729,6 +725,9 @@ class ApiFlowModule(ScadaActor):
             )
         
         if self.slow_turner:
+            self.latest_hz = smoothed_frequencies[-1]
+            self.latest_tick_ns = sampled_timestamps[-1]
+            self.latest_report_ns = sampled_timestamps[-1]
             return ChannelReadings(
                 ChannelName=self.hz_channel.Name,
                 ValueList=[int(x*1e6) for x in smoothed_frequencies],
@@ -741,16 +740,13 @@ class ApiFlowModule(ScadaActor):
         threshold_hz = threshold_gpm / 60 / gallons_per_tick
         if first_reading:
             self.latest_hz = smoothed_frequencies[0]
-            micro_hz_list = [int(smoothed_frequencies[0] * 1e6)]
-            unix_ms_times = [int(sampled_timestamps[0] / 1e6)]
-        else:
-            micro_hz_list = []
-            unix_ms_times = []
+        micro_hz_list = [int(self.latest_hz * 1e6)]
+        unix_ms_times = [int(sampled_timestamps[0] / 1e6)]
         for i in range(1, len(smoothed_frequencies)):
-            if abs(smoothed_frequencies[i] - self.latest_hz) > threshold_hz:
+            if abs(smoothed_frequencies[i] - micro_hz_list[-1]/1e6) > threshold_hz:
                 micro_hz_list.append(int(smoothed_frequencies[i] * 1e6))
                 unix_ms_times.append(int(sampled_timestamps[i] / 1e6))
-        self.latest_hz = smoothed_frequencies[-1]
+        self.latest_hz = micro_hz_list[-1]/1e6
         self.latest_tick_ns = sampled_timestamps[-1]
         self.latest_report_ns = sampled_timestamps[-1]
         micro_hz_list = [x if x>0 else 0 for x in micro_hz_list]

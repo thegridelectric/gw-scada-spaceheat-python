@@ -13,7 +13,7 @@ from gwproto.named_types import SpaceheatNodeGt
 from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types import DataChannelGt
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
-from gwproto.data_classes.house_0_names import H0N, H0CN
+from data_classes.house_0_names import H0N, H0CN
 from pydantic_extra_types.mac_address import MacAddress
 
 from layout_gen import LayoutDb
@@ -38,7 +38,6 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         )
     )
     _add_power_meter(db)
-    _add_atn(db)
 
     hubitat = HubitatGt(
         Host="192.168.0.1",
@@ -46,7 +45,6 @@ def make_tst_layout(src_path: Path) -> LayoutDb:
         AccessToken="64a43fa4-0eb9-478f-ad2e-374bc9b7e51f",
         MacAddress=MacAddress("34:E1:D1:82:22:22"),
     )
-
 
     add_thermostat(
         db,

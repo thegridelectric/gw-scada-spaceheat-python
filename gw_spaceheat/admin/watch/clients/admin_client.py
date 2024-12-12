@@ -11,9 +11,7 @@ from typing import Type
 from gwproto import Message
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
-from gwproto.data_classes.house_0_names import H0N
-from gwproto.named_types import LayoutLite
-from gwproto.named_types import SendLayout
+from data_classes.house_0_names import H0N
 from gwproto.named_types import SendSnap
 from gwproto.named_types import SnapshotSpaceheat
 from paho.mqtt.client import MQTTMessageInfo
@@ -25,6 +23,7 @@ from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from admin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
 from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
+from named_types import LayoutLite, SendLayout
 
 module_logger = logging.getLogger(__name__)
 

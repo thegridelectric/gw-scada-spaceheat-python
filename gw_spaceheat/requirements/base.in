@@ -13,10 +13,14 @@ gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.g
 
 # gridworks-proactor >=0.5.0
 gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
-rich
 smbus2
 pymodbus
 pyserial
 pyModbusTCP
+
+# cli tools
+rich
 typer
 trogon
+textual>=1.0.0
+textual-dev

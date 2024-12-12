@@ -44,11 +44,18 @@ class RelaysApp(App):
     ) -> None:
         self.settings = settings
         logger.setLevel(settings.verbosity)
+        if self.settings.paho_verbosity is not None:
+            paho_logger = logging.getLogger("paho." + __name__)
+            paho_logger.addHandler(TextualHandler())
+            paho_logger.setLevel(settings.paho_verbosity)
+        else:
+            paho_logger = None
         self._relay_client = RelayWatchClient(logger=logger)
         self._admin_client = AdminClient(
             settings,
             subclients=[self._relay_client],
-            logger=logger
+            logger=logger,
+            paho_logger=paho_logger,
         )
         super().__init__()
 
@@ -108,5 +115,6 @@ if __name__ == "__main__":
     # noinspection PyArgumentList
     settings_ = AdminClientSettings(_env_file=dotenv.find_dotenv())
     settings_.verbosity = logging.DEBUG
+    # settings_.paho_verbosity = logging.DEBUG
     app = RelaysApp(settings=settings_)
     app.run()

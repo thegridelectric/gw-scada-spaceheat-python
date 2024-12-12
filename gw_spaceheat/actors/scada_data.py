@@ -3,7 +3,7 @@ not necessarily re-use. """
 
 import time
 import uuid
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.data_channel import DataChannel
@@ -12,14 +12,13 @@ from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.messages import (
     ChannelReadings,
     FsmFullReport,
-    Ha1Params,
     MachineStates,
     Report,
     SingleReading,
     SnapshotSpaceheat,
 )
 
-
+from named_types import Ha1Params
 class ScadaData:
     latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]
@@ -56,7 +55,7 @@ class ScadaData:
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_synth_channels = self.get_my_synth_channels()
-        self.my_channels = self.my_data_channels + self.my_synth_channels
+        self.my_channels: Union[DataChannel, SynthChannel] = self.my_data_channels + self.my_synth_channels
         self.recent_machine_states = {}
         self.latest_channel_values: Dict[str, int] = {  # noqa
             ch.Name: None for ch in self.my_channels
@@ -118,16 +117,18 @@ class ScadaData:
             Id=str(uuid.uuid4()),
         )
 
-    def capture_seconds(self, ch: DataChannel) -> int:
+    def capture_seconds(self, ch: Union[DataChannel, SynthChannel]) -> int:
         if ch.Name not in self.seconds_by_channel:
-            self.seconds_by_channel == {}
+            self.seconds_by_channel = {}
             components = [c.gt for c in self.layout.components.values()]
             for c in components:
                 for config in c.ConfigList:
                     self.seconds_by_channel[config.ChannelName] = config.CapturePeriodS
+            for s in self.my_synth_channels:
+                self.seconds_by_channel[s.Name] = s.SyncReportMinutes * 60
         return self.seconds_by_channel[ch.Name]
 
-    def flatlined(self, ch: DataChannel) -> bool:
+    def flatlined(self, ch: Union[DataChannel, SynthChannel]) -> bool:
         if self.latest_channel_unix_ms[ch.Name] is None:
             return True
         # nyquist

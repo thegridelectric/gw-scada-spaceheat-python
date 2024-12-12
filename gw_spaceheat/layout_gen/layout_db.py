@@ -24,7 +24,7 @@ from gwproto.named_types import ElectricMeterChannelConfig
 from gwproto.named_types.electric_meter_component_gt import ElectricMeterComponentGt
 from gwproto.property_format import SpaceheatName
 from gwproto.data_classes.telemetry_tuple import ChannelStub
-from gwproto.data_classes.house_0_names import H0N, H0CN
+from data_classes.house_0_names import H0N, H0CN
 
 
 class ChannelStubDb(ChannelStub):
@@ -637,6 +637,7 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.atomic_ally),
                     Name=H0N.atomic_ally,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.atomic_ally}",
+                    Handle=f"{H0N.atn}.{H0N.atomic_ally}",
                     ActorClass=ActorClass.AtomicAlly,
                     DisplayName="Atomic Ally",
                 ),

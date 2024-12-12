@@ -12,17 +12,18 @@ from gw.enums import GwStrEnum
 from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
+from gwproto.enums import ActorClass
 from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
-from gwproto.data_classes.sh_node import ShNode
-from gwproto.data_classes.house_0_names import H0N, H0CN
-from gwproto.enums import (ChangeRelayState, ChangeHeatPumpControl, ChangeAquastatControl, 
-                           ChangeStoreFlowRelay, FsmReportType, MainAutoState)
-from gwproto.named_types import (Alert, FsmEvent, Ha1Params, MachineStates, FsmAtomicReport,
-                                 FsmFullReport, GoDormant, WakeUp)
-from actors.config import ScadaSettings
+from data_classes.house_0_names import H0N, H0CN
+from gwproto.enums import FsmReportType
+from gwproto.named_types import (Alert, MachineStates, FsmAtomicReport,
+                                 FsmFullReport)
+
 from actors.scada_actor import ScadaActor
+from named_types import Ha1Params, GoDormant, WakeUp
+
 
 class HomeAloneState(GwStrEnum):
     WaitingForTemperaturesOnPeak = auto()
@@ -31,6 +32,7 @@ class HomeAloneState(GwStrEnum):
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
+    Dormant = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -48,6 +50,8 @@ class HomeAloneEvent(GwStrEnum):
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
     TemperaturesAvailable = auto()
+    GoDormant = auto()
+    WakeUp = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -57,6 +61,7 @@ class HomeAloneEvent(GwStrEnum):
 class HomeAlone(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
     states = [
+        "Dormant",
         "WaitingForTemperaturesOnPeak",
         "WaitingForTemperaturesOffPeak",
         "HpOnStoreOff",
@@ -95,7 +100,11 @@ class HomeAlone(ScadaActor):
         # Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "OnPeakBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "OffPeakStart", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
-    ]
+    ] + [
+            {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
+            for state in states if state != "Dormant"
+    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "WaitingForTemperaturesOnPeak"}]
+    
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
@@ -114,11 +123,6 @@ class HomeAlone(ScadaActor):
         self.storage_declared_ready = False
         self.full_storage_energy = None
         # Relays
-        self.hp_scada_ops_relay: ShNode = self.hardware_layout.node(H0N.hp_scada_ops_relay)
-        self.hp_failsafe_relay: ShNode = self.hardware_layout.node(H0N.hp_failsafe_relay)
-        self.aquastat_ctrl_relay: ShNode = self.hardware_layout.node(H0N.aquastat_ctrl_relay)
-        self.store_pump_failsafe: ShNode = self.hardware_layout.node(H0N.store_pump_failsafe)
-        self.store_charge_discharge_relay: ShNode = self.hardware_layout.node(H0N.store_charge_discharge_relay)
         self.machine = Machine(
             model=self,
             states=HomeAlone.states,
@@ -146,7 +150,6 @@ class HomeAlone(ScadaActor):
         # Get the weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-        self.get_weather()
     
     @property
     def data(self) -> ScadaData:
@@ -227,25 +230,27 @@ class HomeAlone(ScadaActor):
 
     async def main(self):
 
-        await asyncio.sleep(2)
+        await asyncio.sleep(5)
+        self.log("INITIALIZING RELAYS")
         self.initialize_relays()
 
         while not self._stop_requested:
             #self.log("PATTING HOME ALONE WATCHDOG")
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.services.auto_state != MainAutoState.HomeAlone:
-                self.log("State: DORMANT")
-            else:
-                self.log(f"State: {self.state}")
+            self.log(f"State: {self.state}")
+            if self.state != HomeAloneState.Dormant:                
                 previous_state = self.state
 
                 if self.is_onpeak():
                     self.storage_declared_ready = False
                     self.full_storage_energy = None
 
-                if datetime.now(self.timezone)>self.weather['time'][0]:
+                if self.weather is None:
                     self.get_weather()
+                else:
+                    if datetime.now(self.timezone)>self.weather['time'][0]:
+                        self.get_weather()
 
                 self.get_latest_temperatures()
 
@@ -265,9 +270,9 @@ class HomeAlone(ScadaActor):
                                 self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                             else:
                                 if self.is_storage_ready():
-                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                                 else:
-                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
+                                    self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                     elif self.state==HomeAloneState.WaitingForTemperaturesOffPeak:
                         if self.is_onpeak():
                             self.trigger_event(HomeAloneEvent.OnPeakStart.value)
@@ -281,10 +286,13 @@ class HomeAlone(ScadaActor):
                     elif self.is_buffer_full():
                         if self.is_storage_ready():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
-                        elif self.full_storage_energy is None:
-                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
                         else:
-                            self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
+                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                            if usable < required:
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady.value)
+                            else:
+                                self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                     
                 elif self.state==HomeAloneState.HpOnStoreCharge.value:
                     if self.is_onpeak():
@@ -303,7 +311,8 @@ class HomeAlone(ScadaActor):
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
                         elif not self.is_storage_ready():
-                            usable, required = self.is_storage_ready(return_missing=True)
+                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
                             if self.storage_declared_ready:
                                 if self.full_storage_energy is None:
                                     if usable > 0.9*required:
@@ -331,94 +340,19 @@ class HomeAlone(ScadaActor):
 
     def update_relays(self, previous_state) -> None:
         if self.state==HomeAloneState.WaitingForTemperaturesOnPeak.value:
-            self._turn_off_HP()
+            self.turn_off_HP()
         if "HpOn" not in previous_state and "HpOn" in self.state:
-            self._turn_on_HP()
+            self.turn_on_HP()
         if "HpOff" not in previous_state and "HpOff" in self.state:
-            self._turn_off_HP()
+            self.turn_off_HP()
         if "StoreDischarge" in self.state:
-            self._turn_on_store()
+            self.turn_on_store_pump()
         if "StoreDischarge" not in self.state:
-            self._turn_off_store()
+            self.turn_off_store_pump()
         if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
-            self._valved_to_charge_store()
+            self.valved_to_charge_store()
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
-            self._valved_to_discharge_store()
-        
-    def _turn_on_HP(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_scada_ops_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.hp_scada_ops_relay, event)
-        self.log(f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}")
-
-    def _turn_off_HP(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_scada_ops_relay.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        
-        self._send_to(self.hp_scada_ops_relay, event)
-        self.log(f"{self.node.handle} sending OpenRelay to Hp ScadaP[s {H0N.hp_scada_ops_relay}")
-
-    def _turn_on_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_pump_failsafe.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.CloseRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_pump_failsafe, event)
-        self.log(f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-
-
-    def _turn_off_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_pump_failsafe.handle,
-            EventType=ChangeRelayState.enum_name(),
-            EventName=ChangeRelayState.OpenRelay,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_pump_failsafe, event)
-        self.log(f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}")
-
-
-    def _valved_to_charge_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeStoreFlowRelay.enum_name(),
-            EventName=ChangeStoreFlowRelay.ChargeStore,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_charge_discharge_relay, event)
-        self.log(f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
-
-    def _valved_to_discharge_store(self) -> None:
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.store_charge_discharge_relay.handle,
-            EventType=ChangeStoreFlowRelay.enum_name(),
-            EventName=ChangeStoreFlowRelay.DischargeStore,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.store_charge_discharge_relay, event)
-        self.log(f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}")
+            self.valved_to_discharge_store()
 
     def start(self) -> None:
         self.services.add_task(
@@ -434,23 +368,15 @@ class HomeAlone(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
             case GoDormant():
-                self._go_dormant_received(message.Payload)
+                if self.state != HomeAloneState.Dormant:
+                    self.trigger_event(HomeAloneEvent.GoDormant)
             case WakeUp():
-                self._wake_up_received(message.Payload)
+                if self.state == HomeAloneState.Dormant:
+                    # WakeUp: Dormant -> WaitingForTemperaturesOnPeak, but rename that ..
+                    self.trigger_event(HomeAloneEvent.WakeUp)
+                    self.initialize_relays()
         return Ok(True)
     
-    def _go_dormant_received(self) -> None:
-        """
-        Relays no longer belong to home alone until wake up received
-        """
-        ...
-    
-    def _wake_up_received(self) -> None:
-        """
-        Home alone is again in charge of things.
-        """
-        ...
-
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
             for channel_name in self.temperature_channel_names:
@@ -482,13 +408,19 @@ class HomeAlone(ScadaActor):
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
     def get_latest_temperatures(self):
-        temp = {
-            x: self.data.latest_channel_values[x] 
-            for x in self.temperature_channel_names
-            if x in self.data.latest_channel_values
-            and self.data.latest_channel_values[x] is not None
-            }
-        self.latest_temperatures = temp.copy()
+        if not self.is_simulated:
+            temp = {
+                x: self.data.latest_channel_values[x] 
+                for x in self.temperature_channel_names
+                if x in self.data.latest_channel_values
+                and self.data.latest_channel_values[x] is not None
+                }
+            self.latest_temperatures = temp.copy()
+        else:
+            self.log("IN SIMULATION - set all temperatures to 60 degC")
+            self.latest_temperatures = {}
+            for channel_name in self.temperature_channel_names:
+                self.latest_temperatures[channel_name] = 60 * 1000
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
             print('Temperatures available')
@@ -502,30 +434,31 @@ class HomeAlone(ScadaActor):
                 self.fill_missing_store_temps()
                 print("Successfully filled in the missing storage temperatures.")
                 self.temperatures_available = True
+        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy]
+        required_storage = self.data.latest_channel_values[H0N.required_energy]
+        if total_usable_kwh is None or required_storage is None:
+            self.temperatures_available = False
     
     def initialize_relays(self):
+        self.log("IN INITIALIZATION")
+        my_relays =  {
+            relay
+            for relay in self.layout.nodes.values()
+            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
+        }
+        for relay in my_relays - {
+            self.store_charge_discharge_relay, # keep as it was
+            self.hp_failsafe_relay,
+            self.hp_scada_ops_relay, # keep as it was unless on peak
+            self.aquastat_control_relay 
+        }:
+            self.de_energize(relay)
+            self.log(f"JUST DE-ENERGIZED {relay.name}")
+        self.hp_failsafe_switch_to_scada()
+        self.aquastat_ctrl_switch_to_scada()
+
         if self.is_onpeak:
-            self._turn_off_HP()
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.hp_failsafe_relay.handle,
-            EventType=ChangeHeatPumpControl.enum_name(),
-            EventName=ChangeHeatPumpControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.hp_failsafe_relay, event)
-        self.log(f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}")
-        event = FsmEvent(
-            FromHandle=self.node.handle,
-            ToHandle=self.aquastat_ctrl_relay.handle,
-            EventType=ChangeAquastatControl.enum_name(),
-            EventName=ChangeAquastatControl.SwitchToScada,
-            SendTimeUnixMs=int(time.time()*1000),
-            TriggerId=str(uuid.uuid4()),
-            )
-        self._send_to(self.aquastat_ctrl_relay, event)
-        self.log(f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}")
+            self.turn_off_HP()
 
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
@@ -669,48 +602,10 @@ class HomeAlone(ScadaActor):
         self.log(f"Average Power = {self.weather['avg_power']}")
         self.log(f"RSWT = {self.weather['required_swt']}")
         self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.weather['required_swt']]}")
-       
-    def get_required_storage(self, time_now: datetime) -> float:
-        morning_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
-             if 7<=t.hour<=11]
-            )
-        midday_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
-             if 12<=t.hour<=15]
-            )
-        afternoon_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
-             if 16<=t.hour<=19]
-            )
-        # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
-        #     or (time_now.weekday()<5 and time_now.hour<=6)):
-        if (time_now.hour>=20 or time_now.hour<=6):
-            self.log('Preparing for a morning onpeak + afternoon onpeak')
-            afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwTh - midday_kWh) # TODO make the kW_th a function of COP and kW_el
-            return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
-        # elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
-        elif (time_now.hour>=12 and time_now.hour<16):
-            self.log('Preparing for an afternoon onpeak')
-            return afternoon_kWh
-        else:
-            self.log('No onpeak period coming up soon')
-            return 0
 
     def is_storage_ready(self, return_missing=False) -> bool:
-        time_now = datetime.now(self.timezone)
-        latest_temperatures = self.latest_temperatures.copy()
-        storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
-        simulated_layers = [self.to_fahrenheit(v/1000) for k,v in storage_temperatures.items()]        
-        total_usable_kwh = 0
-        while True:
-            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
-                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
-                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
-                    break
-            total_usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
-            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
-        required_storage = self.get_required_storage(time_now)
+        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
+        required_storage = self.data.latest_channel_values[H0N.required_energy] / 1000
         if return_missing:
             return total_usable_kwh, required_storage
         if total_usable_kwh >= required_storage:
@@ -747,7 +642,7 @@ class HomeAlone(ScadaActor):
         else:
             self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
-        if self.cn.tank[1].depth1 in self.latest_temperatures: # TODO: this will always be true since we are filling missing temperatures
+        if self.cn.tank[1].depth1 in self.latest_temperatures:
             tank_top = self.cn.tank[1].depth1
         elif H0CN.store_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.store_hot_pipe
@@ -762,7 +657,7 @@ class HomeAlone(ScadaActor):
         else:
             print("Storage top warmer than buffer top")
             return False
-    
+
     def to_celcius(self, t: float) -> float:
         return (t-32)*5/9
 
@@ -779,7 +674,7 @@ class HomeAlone(ScadaActor):
     
     def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
         timenow = datetime.now(self.timezone)
-        if timenow.hour > 19 or timenow.hour < 7:
+        if timenow.hour > 19 or timenow.hour < 12:
             required_swt = max(
                 [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
                 if t.hour in [7,8,9,10,11,16,17,18,19]]

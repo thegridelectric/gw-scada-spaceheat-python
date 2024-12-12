@@ -1,26 +1,50 @@
-from gwproactor import ServicesInterface
-from actors.config import ScadaSettings
-from typing import Optional
-import asyncio
 import time
-import numpy as np
-import requests
 import json
-from gwproto import Message
-from actors.scada_data import ScadaData
+import pytz
+import asyncio
+import requests
+import numpy as np
+from typing import Optional, Sequence
 from result import Ok, Result
 from datetime import datetime, timedelta
-import pytz
-from gwproto.named_types import GoDormant, Ha1Params, SingleReading, WakeUp
+from actors.scada_data import ScadaData
+from gwproto import Message
+
+from gwproto.named_types import SingleReading, PowerWatts
+from gwproactor import MonitoredName, ServicesInterface
+from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
+from data_classes.house_0_names import H0CN
+from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
+
+# TODO: move to gwproto.named_types
+from typing import Literal
+from pydantic import BaseModel
+from gwproto.property_format import LeftRightDotStr
+class RemainingElec(BaseModel):
+    FromGNodeAlias: LeftRightDotStr
+    RemainingWattHours: int
+    TypeName: Literal["remaining.elec"] = "remaining.elec"
+    Version: Literal["000"] = "000"
+
+
 class SynthGenerator(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
-        self._stop_requested = False
-        self.timezone = pytz.timezone(self.settings.timezone_str)
+        self.cn: H0CN = self.layout.channel_names
+        self._stop_requested: bool = False
+        self.hardware_layout = self._services.hardware_layout
+        self.temperature_channel_names = [
+            H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4,
+            H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 
+            H0CN.buffer_cold_pipe, H0CN.buffer_hot_pipe, H0CN.store_cold_pipe, H0CN.store_hot_pipe,
+            *(depth for tank in self.cn.tank.values() for depth in [tank.depth1, tank.depth2, tank.depth3, tank.depth4])
+        ]
+        self.elec_assigned_amount = None
+        self.previous_time = None
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -38,11 +62,10 @@ class SynthGenerator(ScadaActor):
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
 
-        # Get the weather forecast
+        # For the weather forecast
         self.weather = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-        self.get_weather()
-
+    
     @property
     def data(self) -> ScadaData:
         return self._services.data
@@ -83,16 +106,27 @@ class SynthGenerator(ScadaActor):
             asyncio.create_task(self.main(), name="Synth Generator keepalive")
         )
 
+    @property
+    def monitored_names(self) -> Sequence[MonitoredName]:
+        return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
+    
     async def main(self):
         await asyncio.sleep(2)
         self.log("In synth gen main loop")
         while not self._stop_requested:
+            self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if datetime.now(self.timezone)>self.weather['time'][0]:
+            if self.weather is None:
                 self.get_weather()
+            else:
+                if datetime.now(self.timezone)>self.weather['time'][0]:
+                    self.get_weather()
 
             self.get_latest_temperatures()
-            self.update_energy()
+            if self.temperatures_available:
+                self.update_energy()
+            
+            self.update_remaining_elec()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -104,29 +138,49 @@ class SynthGenerator(ScadaActor):
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
+            case EnergyInstruction():
+                self.process_energy_instruction(message.Payload)
             case GoDormant():
                 ...
+            case PowerWatts():
+                self.update_remaining_elec()
+                self.previous_watts = message.Payload.Watts
             case WakeUp():
                 ...
         return Ok(True)
     
-    @property
-    def data(self) -> ScadaData:
-        return self._services.data
-    
-    @property
-    def params(self) -> Ha1Params:
-        return self.data.ha1_params
+    def fill_missing_store_temps(self):
+        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
+        for layer in all_store_layers:
+            if (layer not in self.latest_temperatures 
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
+                self.latest_temperatures[layer] = None
+        if H0CN.store_cold_pipe in self.latest_temperatures:
+            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
+        else:
+            value_below = 0
+        for layer in sorted(all_store_layers, reverse=True):
+            if self.latest_temperatures[layer] is None:
+                self.latest_temperatures[layer] = value_below
+            value_below = self.latest_temperatures[layer]  
+        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
     
     # Receive latest temperatures
     def get_latest_temperatures(self):
-        temp = {
-            x: self.data.latest_channel_values[x] 
-            for x in self.temperature_channel_names
-            if x in self.data.latest_channel_values
-            and self.data.latest_channel_values[x] is not None
-            }
-        self.latest_temperatures = temp.copy()
+        if not self.is_simulated:
+            temp = {
+                x: self.data.latest_channel_values[x] 
+                for x in self.temperature_channel_names
+                if x in self.data.latest_channel_values
+                and self.data.latest_channel_values[x] is not None
+                }
+            self.latest_temperatures = temp.copy()
+        else:
+            self.log("IN SIMULATION - set all temperatures to 60 degC")
+            self.latest_temperatures = {}
+            for channel_name in self.temperature_channel_names:
+                self.latest_temperatures[channel_name] = 60 * 1000
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
         else:
@@ -137,8 +191,37 @@ class SynthGenerator(ScadaActor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
+    def process_energy_instruction(self, payload: EnergyInstruction) -> None:
+        self.elec_assigned_amount = payload.AvgPowerWatts * payload.SlotDurationMinutes/60
+        self.elec_used_since_assigned_time = 0
+        self.log(f"Received an EnergyInstruction for {self.elec_assigned_amount} Watts average power")
+        if self.is_simulated:
+            self.previous_watts = 1000
+        else:
+            self.previous_watts = self.data.latest_channel_values[H0CN.hp_idu_pwr] + self.data.latest_channel_values[H0CN.hp_odu_pwr]
+        self.previous_time = payload.SendTimeMs
+
+    def update_remaining_elec(self) -> None:
+        if self.elec_assigned_amount is None or self.previous_time is None:
+            return
+        self.log(f"Elec assigned {self.elec_assigned_amount}, previous_time: {self.previous_time}")
+        time_now = time.time() * 1000
+        self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")
+        elec_watthours = self.previous_watts * (time_now - self.previous_time)/1000/3600
+        self.log(f"This corresponds to an additional {round(elec_watthours,1)} Wh of electricity used")
+        self.elec_used_since_assigned_time += elec_watthours
+        self.log(f"Electricity used since EnergyInstruction: {round(self.elec_used_since_assigned_time,1)} Wh")
+        remaining_wh = int(self.elec_assigned_amount - self.elec_used_since_assigned_time)
+        self.log(f"Remaining electricity to be used from EnergyInstruction: {remaining_wh} Wh")
+        remaining = RemainingElec(
+            FromGNodeAlias=self.layout.atn_g_node_alias,
+            RemainingWattHours=remaining_wh
+        )
+        self._send_to(self.atomic_ally, remaining)
+        self.previous_time = time_now
+
     # Compute usable and required energy
-    def update_energy(self) -> bool:
+    def update_energy(self) -> None:
         time_now = datetime.now(self.timezone)
         latest_temperatures = self.latest_temperatures.copy()
         storage_temperatures = {k:v for k,v in latest_temperatures.items() if 'tank' in k}
@@ -198,7 +281,7 @@ class SynthGenerator(ScadaActor):
             self.log('Preparing for an afternoon onpeak')
             return afternoon_kWh
         else:
-            self.log('No onpeak period coming up soon')
+            self.log('Currently in on-peak or no on-peak period coming up soon')
             return 0
     
     def to_celcius(self, t: float) -> float:
@@ -308,3 +391,25 @@ class SynthGenerator(ScadaActor):
         self.log(f"Average Power = {self.weather['avg_power']}")
         self.log(f"RSWT = {self.weather['required_swt']}")
         self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.weather['required_swt']]}")
+
+    def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
+        timenow = datetime.now(self.timezone)
+        if timenow.hour > 19 or timenow.hour < 12:
+            required_swt = max(
+                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                if t.hour in [7,8,9,10,11,16,17,18,19]]
+                )
+        else:
+            required_swt = max(
+                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                if t.hour in [16,17,18,19]]
+                )
+        if return_rswt_onpeak:
+            return required_swt
+        if swt < required_swt - 10:
+            delta_t = 0
+        elif swt < required_swt:
+            delta_t = self.delta_T(required_swt) * (swt-(required_swt-10))/10
+        else:
+            delta_t = self.delta_T(swt)
+        return round(swt - delta_t,2)
