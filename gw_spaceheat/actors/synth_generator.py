@@ -4,7 +4,7 @@ import pytz
 import asyncio
 import requests
 import numpy as np
-from typing import Optional, Sequence
+from typing import Optional, Sequence, List
 from result import Ok, Result
 from datetime import datetime, timedelta
 from actors.scada_data import ScadaData
@@ -18,15 +18,33 @@ from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
 from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
 
-# TODO: move to gwproto.named_types
+# -------------- TODO: move to named_types -------------
 from typing import Literal
 from pydantic import BaseModel
 from gwproto.property_format import LeftRightDotStr
+
 class RemainingElec(BaseModel):
     FromGNodeAlias: LeftRightDotStr
     RemainingWattHours: int
     TypeName: Literal["remaining.elec"] = "remaining.elec"
     Version: Literal["000"] = "000"
+
+class WeatherForecast(BaseModel):
+    Time: List[datetime]
+    OatForecast: List[float]
+    WsForecast: List[float]
+    AvgPowerForecast: List[float]
+    RswtForecast: List[float]
+    RswtDeltaTForecast: List[float]
+    TypeName: Literal["weather.forecast"] = "weather.forecast"
+    Version: Literal["000"] = "000"
+
+class PriceForecast(BaseModel):
+    DpForecast: List[float]
+    LmpForecsat: List[float]
+    TypeName: Literal["price.forecast"] = "price.forecast"
+    Version: Literal["000"] = "000"
+# -------------- TODO: move to named_types -------------
 
 
 class SynthGenerator(ScadaActor):
@@ -112,12 +130,12 @@ class SynthGenerator(ScadaActor):
     
     async def main(self):
         await asyncio.sleep(2)
-        self.log("In synth gen main loop")
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
             if self.weather is None:
                 self.get_weather()
+                self.get_price_forecast()
             else:
                 if datetime.now(self.timezone)>self.weather['time'][0]:
                     self.get_weather()
@@ -204,7 +222,6 @@ class SynthGenerator(ScadaActor):
     def update_remaining_elec(self) -> None:
         if self.elec_assigned_amount is None or self.previous_time is None:
             return
-        self.log(f"Elec assigned {self.elec_assigned_amount}, previous_time: {self.previous_time}")
         time_now = time.time() * 1000
         self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")
         elec_watthours = self.previous_watts * (time_now - self.previous_time)/1000/3600
@@ -310,6 +327,17 @@ class SynthGenerator(ScadaActor):
         rhp = required_kw_thermal
         a, b, c = self.rswt_quadratic_params
         return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
+    
+    def get_price_forecast(self) -> None:
+        daily_dp = [50.13]*7 + [487.63]*5 + [54.98]*4 + [487.63]*4 + [50.13]*4
+        dp_forecast_usd_per_mwh = (daily_dp[datetime.now(tz=self.timezone).hour+1:] + daily_dp[:datetime.now(tz=self.timezone).hour+1])*2
+        lmp_forecast_usd_per_mwh = [102]*48
+        pf = PriceForecast(
+            Time = [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+            DpForecast = dp_forecast_usd_per_mwh,
+            LmpForecsat = lmp_forecast_usd_per_mwh,
+        )
+        self._send_to(self.fake_atn, pf)
 
     def get_weather(self) -> None:
         config_dir = self.settings.paths.config_dir
@@ -334,7 +362,7 @@ class SynthGenerator(ScadaActor):
                     and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
                     forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
             forecasts = dict(list(forecasts.items())[:96])
-            cropped_forecast = dict(list(forecasts.items())[:24])
+            cropped_forecast = dict(list(forecasts.items())[:48])
             self.weather = {
                 'time': list(cropped_forecast.keys()),
                 'oat': list(cropped_forecast.values()),
@@ -347,7 +375,7 @@ class SynthGenerator(ScadaActor):
                 'ws': [0]*len(forecasts)
                 }
             with open(weather_file, 'w') as f:
-                json.dump(weather_long, f, indent=4)
+                json.dump(weather_long, f, indent=4) 
         
         except Exception as e:
             self.log(f"[!] Unable to get weather forecast from API: {e}")
@@ -355,28 +383,28 @@ class SynthGenerator(ScadaActor):
                 with open(weather_file, 'r') as f:
                     weather_long = json.load(f)
                     weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
-                if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=24):
+                if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=48):
                     self.log("A valid weather forecast is available locally.")
                     time_late = weather_long['time'][0] - datetime.now(self.timezone)
                     hours_late = int(time_late.total_seconds()/3600)
                     self.weather = weather_long
                     for key in self.weather:
-                        self.weather[key] = self.weather[key][hours_late:hours_late+24]
+                        self.weather[key] = self.weather[key][hours_late:hours_late+48]
                 else:
                     self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                     current_month = datetime.now().month-1
                     self.weather = {
-                        'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                        'oat': [self.coldest_oat_by_month[current_month]]*24,
-                        'ws': [0]*24,
+                        'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+                        'oat': [self.coldest_oat_by_month[current_month]]*48,
+                        'ws': [0]*48,
                         }
             except Exception as e:
                 self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                 current_month = datetime.now().month-1
                 self.weather = {
-                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                    'oat': [self.coldest_oat_by_month[current_month]]*24,
-                    'ws': [0]*24,
+                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+                    'oat': [self.coldest_oat_by_month[current_month]]*48,
+                    'ws': [0]*48,
                     }
 
         self.weather['avg_power'] = [
@@ -387,6 +415,19 @@ class SynthGenerator(ScadaActor):
             self.required_swt(x) 
             for x in self.weather['avg_power']
             ]
+        # Send weather forecast to relevant scada actors
+        wf = WeatherForecast(
+            Time = self.weather['time'],
+            OatForecast = self.weather['oat'],
+            WsForecast = self.weather['ws'],
+            AvgPowerForecast = self.weather['avg_power'],
+            RswtForecast = self.weather['required_swt'],
+            RswtDeltaTForecast = [round(self.delta_T(x),2) for x in self.weather['required_swt']]
+        )
+        self._send_to(self.fake_atn, wf)
+        # Crop to use only 24 hours of forecast in this code
+        for key in self.weather:
+            self.weather[key] = self.weather[key][:24]
         self.log(f"OAT = {self.weather['oat']}")
         self.log(f"Average Power = {self.weather['avg_power']}")
         self.log(f"RSWT = {self.weather['required_swt']}")

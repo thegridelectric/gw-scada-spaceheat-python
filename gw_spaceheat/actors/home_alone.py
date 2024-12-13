@@ -14,6 +14,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.enums import ActorClass
 from actors.scada_data import ScadaData
+from actors.synth_generator import WeatherForecast
 from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
@@ -131,25 +132,11 @@ class HomeAlone(ScadaActor):
             send_event=True,
         )     
         self.state: HomeAloneState = HomeAloneState.WaitingForTemperaturesOnPeak  
-        # House parameters in the .env file
-        self.is_simulated = self.settings.is_simulated
         self.timezone = pytz.timezone(self.settings.timezone_str)
-        self.latitude = self.settings.latitude
-        self.longitude = self.settings.longitude
-
-        # used by the rswt quad params calculator
-        self._cached_params: Optional[Ha1Params] = None 
-        self._rswt_quadratic_params: Optional[np.ndarray] = None 
-    
-        self.log(f"self.timezone: {self.timezone}")
-        self.log(f"self.latitude: {self.latitude}")
-        self.log(f"self.longitude: {self.longitude}")
+        self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        
-        # Get the weather forecast
         self.weather = None
-        self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
     
     @property
     def data(self) -> ScadaData:
@@ -158,34 +145,6 @@ class HomeAlone(ScadaActor):
     @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
-
-    @property
-    def rswt_quadratic_params(self) -> np.ndarray:
-        """Property to get quadratic parameters for calculating heating power 
-        from required source water temp, recalculating if necessary
-        """
-        if self.params != self._cached_params:
-            intermediate_rswt = self.params.IntermediateRswtF
-            dd_rswt = self.params.DdRswtF
-            intermediate_power = self.params.IntermediatePowerKw
-            dd_power = self.params.DdPowerKw
-            x_rswt = np.array([self.no_power_rswt, intermediate_rswt, dd_rswt])
-            y_hpower = np.array([0, intermediate_power, dd_power])
-            A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
-            self._rswt_quadratic_params = np.linalg.solve(A, y_hpower)
-            self._cached_params = self.params
-            self.log(f"Calculating rswt_quadratic_params: {self._rswt_quadratic_params}")
-        
-        if self._rswt_quadratic_params is None:
-            raise Exception("_rswt_quadratic_params should have been set here!!")
-        return self._rswt_quadratic_params
-
-
-    @property
-    def no_power_rswt(self) -> float:
-        alpha = self.params.AlphaTimes10 / 10
-        beta = self.params.BetaTimes100 / 100
-        return -alpha/beta
 
     def trigger_event(self, event: HomeAloneEvent) -> None:
         now_ms = int(time.time() * 1000)
@@ -247,10 +206,8 @@ class HomeAlone(ScadaActor):
                     self.full_storage_energy = None
 
                 if self.weather is None:
-                    self.get_weather()
-                else:
-                    if datetime.now(self.timezone)>self.weather['time'][0]:
-                        self.get_weather()
+                    await asyncio.sleep(5)
+                    continue
 
                 self.get_latest_temperatures()
 
@@ -375,6 +332,16 @@ class HomeAlone(ScadaActor):
                     # WakeUp: Dormant -> WaitingForTemperaturesOnPeak, but rename that ..
                     self.trigger_event(HomeAloneEvent.WakeUp)
                     self.initialize_relays()
+            case WeatherForecast():
+                self.log("Received weather forecast")
+                self.weather = {
+                    'time': message.Payload.Time,
+                    'oat': message.Payload.OatForecast, 
+                    'ws': message.Payload.WsForecast,
+                    'required_swt': message.Payload.RswtForecast,
+                    'avg_power': message.Payload.AvgPowerForecast,
+                    'required_swt_deltaT': message.Payload.RswtDeltaTForecast,
+                    }
         return Ok(True)
     
     def change_all_temps(self, temp_c) -> None:
@@ -481,7 +448,8 @@ class HomeAlone(ScadaActor):
             self.alert(alias="buffer_empty_fail", msg="Impossible to know if the buffer is empty!")
             return False
         max_rswt_next_3hours = max(self.weather['required_swt'][:3])
-        min_buffer = round(max_rswt_next_3hours - self.delta_T(max_rswt_next_3hours),1)
+        max_deltaT_rswt_next_3_hours = max(self.weather['required_swt_deltaT'][:3])
+        min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
         if self.latest_temperatures[buffer_empty_ch]/1000*9/5+32 < min_buffer: # TODO use to_fahrenheit()
             self.log(f"Buffer empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch]/1000*9/5+32,1)} < {min_buffer} F)")
             return True
@@ -509,100 +477,6 @@ class HomeAlone(ScadaActor):
             self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} <= {max_buffer} F)")
             return False
 
-    def required_heating_power(self, oat: float, wind_speed_mph: float) -> float:
-        ws = wind_speed_mph
-        alpha = self.params.AlphaTimes10 / 10
-        beta = self.params.BetaTimes100 / 100
-        gamma = self.params.GammaEx6 / 1e6
-        r = alpha + beta*oat + gamma*ws
-        return round(r,2) if r>0 else 0
-
-    def required_swt(self, required_kw_thermal: float) -> float:
-        rhp = required_kw_thermal
-        a, b, c = self.rswt_quadratic_params
-        return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
-        
-    def get_weather(self) -> None:
-        config_dir = self.settings.paths.config_dir
-        weather_file = config_dir / "weather.json"
-        try:
-            url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-            response = requests.get(url)
-            if response.status_code != 200:
-                self.log(f"Error fetching weather data: {response.status_code}")
-                return None
-            data = response.json()
-            forecast_hourly_url = data['properties']['forecastHourly']
-            forecast_response = requests.get(forecast_hourly_url)
-            if forecast_response.status_code != 200:
-                self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
-                return None
-            forecast_data = forecast_response.json()
-            forecasts = {}
-            periods = forecast_data['properties']['periods']
-            for period in periods:
-                if ('temperature' in period and 'startTime' in period 
-                    and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
-                    forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
-            forecasts = dict(list(forecasts.items())[:96])
-            cropped_forecast = dict(list(forecasts.items())[:24])
-            self.weather = {
-                'time': list(cropped_forecast.keys()),
-                'oat': list(cropped_forecast.values()),
-                'ws': [0]*len(cropped_forecast)
-                }
-            self.log(f"Obtained a {len(forecasts)}-hour weather forecast starting at {self.weather['time'][0]}")
-            weather_long = {
-                'time': [x.timestamp() for x in list(forecasts.keys())],
-                'oat': list(forecasts.values()),
-                'ws': [0]*len(forecasts)
-                }
-            with open(weather_file, 'w') as f:
-                json.dump(weather_long, f, indent=4)
-        
-        except Exception as e:
-            self.log(f"[!] Unable to get weather forecast from API: {e}")
-            try:
-                with open(weather_file, 'r') as f:
-                    weather_long = json.load(f)
-                    weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
-                if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=24):
-                    self.log("A valid weather forecast is available locally.")
-                    time_late = weather_long['time'][0] - datetime.now(self.timezone)
-                    hours_late = int(time_late.total_seconds()/3600)
-                    self.weather = weather_long
-                    for key in self.weather:
-                        self.weather[key] = self.weather[key][hours_late:hours_late+24]
-                else:
-                    self.log("No valid weather forecasts available locally. Using coldest of the current month.")
-                    current_month = datetime.now().month-1
-                    self.weather = {
-                        'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                        'oat': [self.coldest_oat_by_month[current_month]]*24,
-                        'ws': [0]*24,
-                        }
-            except Exception as e:
-                self.log("No valid weather forecasts available locally. Using coldest of the current month.")
-                current_month = datetime.now().month-1
-                self.weather = {
-                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(24)],
-                    'oat': [self.coldest_oat_by_month[current_month]]*24,
-                    'ws': [0]*24,
-                    }
-
-        self.weather['avg_power'] = [
-            self.required_heating_power(oat, ws) 
-            for oat, ws in zip(self.weather['oat'], self.weather['ws'])
-            ]
-        self.weather['required_swt'] = [
-            self.required_swt(x) 
-            for x in self.weather['avg_power']
-            ]
-        self.log(f"OAT = {self.weather['oat']}")
-        self.log(f"Average Power = {self.weather['avg_power']}")
-        self.log(f"RSWT = {self.weather['required_swt']}")
-        self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.weather['required_swt']]}")
-
     def is_storage_ready(self, return_missing=False) -> bool:
         total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
         required_storage = self.data.latest_channel_values[H0N.required_energy] / 1000
@@ -610,8 +484,6 @@ class HomeAlone(ScadaActor):
             return total_usable_kwh, required_storage
         if total_usable_kwh >= required_storage:
             self.log(f"Storage ready (usable {round(total_usable_kwh,1)} kWh >= required {round(required_storage,1)} kWh)")
-            self.log(f"Maximum required SWT during the next onpeak: {round(self.rwt(0, return_rswt_onpeak=True),2)} F")
-            # self.log(f"Max storage available (~ all layers are at 170F): {}")
             self.storage_declared_ready = True
             return True
         else:
@@ -624,8 +496,6 @@ class HomeAlone(ScadaActor):
                     self.storage_declared_ready = True
                     return True
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
-            self.log(f"Max required SWT during the next onpeak: {round(self.rwt(0, return_rswt_onpeak=True),2)} F")
-            # self.log(f"Max storage available (~ all layers are at 170F): {}")
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
@@ -658,41 +528,8 @@ class HomeAlone(ScadaActor):
             print("Storage top warmer than buffer top")
             return False
 
-    def to_celcius(self, t: float) -> float:
-        return (t-32)*5/9
-
     def to_fahrenheit(self, t:float) -> float:
         return t*9/5+32
-
-    def delta_T(self, swt: float) -> float:
-        a, b, c = self.rswt_quadratic_params
-        delivered_heat_power = a*swt**2 + b*swt + c
-        dd_delta_t = self.params.DdDeltaTF
-        dd_power = self.params.DdPowerKw
-        d = dd_delta_t/dd_power * delivered_heat_power
-        return d if d>0 else 0
-    
-    def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
-        timenow = datetime.now(self.timezone)
-        if timenow.hour > 19 or timenow.hour < 12:
-            required_swt = max(
-                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
-                if t.hour in [7,8,9,10,11,16,17,18,19]]
-                )
-        else:
-            required_swt = max(
-                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
-                if t.hour in [16,17,18,19]]
-                )
-        if return_rswt_onpeak:
-            return required_swt
-        if swt < required_swt - 10:
-            delta_t = 0
-        elif swt < required_swt:
-            delta_t = self.delta_T(required_swt) * (swt-(required_swt-10))/10
-        else:
-            delta_t = self.delta_T(swt)
-        return round(swt - delta_t,2)
 
     def alert(self, alias: str, msg: str) -> None:
         alert_str = f"[ALERT] {msg}"
