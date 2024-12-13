@@ -29,11 +29,14 @@ class RelaysApp(App):
     dark: Reactive[bool]
     _admin_client: AdminClient
     _relay_client: RelayWatchClient
+    _theme_names: list[str]
 
     BINDINGS = [
         ("d", "toggle_dark", "Toggle dark mode"),
         ("n", "shuffle_title", "Shuffle title"),
         ("t", "reset_title", "Reset title"),
+        ("a", "previous_theme", "Previous theme"),
+        ("s", "next_theme", "Next theme"),
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
     CSS_PATH = "relay_app.tcss"
@@ -59,6 +62,9 @@ class RelaysApp(App):
             paho_logger=paho_logger,
         )
         super().__init__()
+        self._theme_names = [
+            theme for theme in self.available_themes if theme != "textual-ansi"
+        ]
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -110,6 +116,21 @@ class RelaysApp(App):
     async def action_quit(self) -> None:
         self._admin_client.stop()
         await super().action_quit()
+
+    def _change_theme(self, distance: int):
+        self.theme = self._theme_names[
+            (self._theme_names.index(self.current_theme.name) + distance)
+            % len(self._theme_names)
+        ]
+        self.clear_notifications()
+        self.notify(f"Theme is {self.current_theme.name}")
+
+    def action_next_theme(self) -> None:
+        self._change_theme(1)
+
+    def action_previous_theme(self) -> None:
+        self._change_theme(-1)
+
 
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013

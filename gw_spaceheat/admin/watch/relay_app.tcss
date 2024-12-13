@@ -55,7 +55,7 @@ Relay2 > * {
     border: solid $success-lighten-3;
 }
 
-Relay2 #relay_channel_name2 {
+#relay_channel_name {
     dock: left;
     width: 30;
     height: 5;
@@ -90,27 +90,27 @@ RelayControlButtons {
     padding: 0 0;
 }
 
-#relay_channel_name {
+Relay1 #relay_channel_name {
     dock: left;
     width: 30;
     border: solid $accent;
     text-align: center;
 }
 
-#relay_energized {
+Relay1 #relay_energized {
     border: solid $accent;
     width: 30;
     text-align: center;
 }
 
-#relay_switch_label {
+Relay1 #relay_switch_label {
     width: 30;
     border: solid $accent;
     align-horizontal: right;
     text-align: right;
 }
 
-#relay_switch {
+Relay1 #relay_switch {
     width: auto;
     height: auto;
     border: solid $accent;

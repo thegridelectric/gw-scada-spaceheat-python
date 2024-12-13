@@ -145,5 +145,5 @@ class Relay2(Horizontal):
         ).data_bind(energized=Relay2.energized, config=Relay2.config)
 
     def watch_config(self):
-        if self.query("#relay_channel_name2"):
-            self.query_one("#relay_channel_name2", Static).update(self.config.channel_name)
+        if self.query("#relay_channel_name"):
+            self.query_one("#relay_channel_name", Static).update(self.config.channel_name)
