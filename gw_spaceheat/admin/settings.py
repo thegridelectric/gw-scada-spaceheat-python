@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from typing import Self
 
 from gwproactor.config import MQTTClient
@@ -13,6 +14,7 @@ class AdminClientSettings(ProactorSettings):
     target_gnode: str = ""
     link: MQTTClient = MQTTClient()
     verbosity: int = logging.WARN
+    paho_verbosity: Optional[int] = None
     model_config = SettingsConfigDict(
         env_prefix="GWADMIN_",
         env_nested_delimiter="__",
