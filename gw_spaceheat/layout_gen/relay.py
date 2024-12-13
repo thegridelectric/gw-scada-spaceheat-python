@@ -1,5 +1,5 @@
 from typing import List
-from gwproto.enums import ActorClass, MakeModel, Unit, RelayWiringConfig, TelemetryName, ChangeRelayState, ChangeAquastatControl, ChangeHeatcallSource, ChangeHeatPumpControl, PrimaryPumpControl, ChangeStoreFlowRelay
+from gwproto.enums import ActorClass, MakeModel, Unit, RelayWiringConfig, TelemetryName, ChangeRelayState, ChangeAquastatControl, ChangeHeatcallSource, ChangeHeatPumpControl, ChangePrimaryPumpControl, ChangeStoreFlowRelay
 from gwproto.named_types import I2cMultichannelDtRelayComponentGt
 from pydantic import BaseModel
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
@@ -135,9 +135,9 @@ def add_relays(
                     PollPeriodMs=cfg.PollPeriodMs,
                     CapturePeriodS=cfg.CapturePeriodS,
                     WiringConfig=RelayWiringConfig.DoubleThrow,
-                    EventType=PrimaryPumpControl.enum_name(),
-                    DeEnergizingEvent=PrimaryPumpControl.HeatPump,
-                    EnergizingEvent=PrimaryPumpControl.Scada,
+                    EventType=ChangePrimaryPumpControl.enum_name(),
+                    DeEnergizingEvent=ChangePrimaryPumpControl.SwitchToHeatPump,
+                    EnergizingEvent=ChangePrimaryPumpControl.SwitchToScada,
                     AsyncCapture=True,
                     Exponent=0,
                     Unit=Unit.Unitless
@@ -160,13 +160,15 @@ def add_relays(
         ]
         
         # Add 2 relays for each thermostat zone
-        IDX = 17
-        ChangeHeatcallSource
+        IDX = House0RelayIdx.base_stat
         zone_names = db.misc["ZoneList"]
         for i in range(len(zone_names)):
+            failsafe_idx = House0RelayIdx.base_stat + 2*i
+            ops_idx = House0RelayIdx.base_stat + 2*i + 1
             zone = zone_names[i]
-            RelayActorConfig(
-                    ChannelName=f"zone{i+1}-{zone.lower}-failsafe-relay{IDX+2*i}",
+            config_list += [
+                RelayActorConfig(
+                    ChannelName=f"zone{i+1}-{zone.lower()}-failsafe-relay{failsafe_idx}",
                     RelayIdx=IDX+2*i,
                     ActorName=f"relay{IDX+2*i}",
                     PollPeriodMs=cfg.PollPeriodMs,
@@ -179,8 +181,8 @@ def add_relays(
                     Exponent=0,
                     Unit=Unit.Unitless
                 ),
-        RelayActorConfig(
-                    ChannelName=f"zone{i+1}-{zone.lower}-failsafe-relay{IDX+2*i+1}",
+                RelayActorConfig(
+                    ChannelName=f"zone{i+1}-{zone.lower()}-ops-relay{ops_idx}",
                     RelayIdx=IDX+2*i+1,
                     ActorName=f"relay{IDX+2*i+1}",
                     PollPeriodMs=cfg.PollPeriodMs,
@@ -193,6 +195,7 @@ def add_relays(
                     Exponent=0,
                     Unit=Unit.Unitless
                 ),
+            ]
 
         db.add_components(
             [
@@ -206,8 +209,7 @@ def add_relays(
             ]
         )
 
-    db.add_nodes(
-            [
+    node_list = [
                 SpaceheatNodeGt(
                     ShNodeId=db.make_node_id(H0N.relay_multiplexer),
                     Name=H0N.relay_multiplexer,
@@ -306,10 +308,36 @@ def add_relays(
                     ComponentId=db.component_id_by_alias(component_display_name)
                 ),
             ]
-        )
-
-    db.add_data_channels(
-        [
+    
+    for i in range(len(zone_names)):
+        zone = zone_names[i]
+        failsafe_idx = House0RelayIdx.base_stat + 2*i
+        ops_idx = House0RelayIdx.base_stat + 2*i + 1
+        
+        stat_failsafe_name = f"relay{failsafe_idx}"
+        stat_ops_name = f"relay{ops_idx}"
+        node_list += [
+            SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(stat_failsafe_name),
+                    Name=stat_failsafe_name,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{stat_failsafe_name}",
+                    Handle=f"auto.{H0N.home_alone}.{stat_failsafe_name}",
+                    ActorClass=ActorClass.Relay,
+                    DisplayName=f"{zone.capitalize()} Zone {i+1} Failsf",
+                    ComponentId=db.component_id_by_alias(component_display_name)
+                ),
+            SpaceheatNodeGt(
+                    ShNodeId=db.make_node_id(stat_ops_name),
+                    Name=stat_ops_name,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{stat_ops_name}",
+                    Handle=f"auto.{H0N.home_alone}.{stat_ops_name}",
+                    ActorClass=ActorClass.Relay,
+                    DisplayName=f"{zone.capitalize()} Zone Scada Ops",
+                    ComponentId=db.component_id_by_alias(component_display_name)
+                )
+        ]
+    db.add_nodes(node_list)
+    data_channels = [
             DataChannelGt(
                 Name=H0CN.vdc_relay_state,
                 DisplayName="5V DC Bus Relay State",
@@ -392,4 +420,37 @@ def add_relays(
                 Id=db.make_channel_id(H0CN.primary_pump_scada_ops_relay_state)
             )
         ]
-    )
+    
+    
+    for i in range(len(zone_names)):
+        zone = zone_names[i]
+        failsafe_idx = House0RelayIdx.base_stat + 2*i
+        ops_idx = House0RelayIdx.base_stat + 2*i + 1
+        
+        stat_failsafe_name = f"relay{failsafe_idx}"
+        stat_ops_name = f"relay{ops_idx}"
+
+        failsafe_ch_name = f"zone{i+1}-{zone.lower()}-failsafe-relay{failsafe_idx}"
+        ops_ch_name = f"zone{i+1}-{zone.lower()}-ops-relay{ops_idx}"
+        data_channels += [
+            DataChannelGt(
+                Name=failsafe_ch_name,
+                DisplayName=f"{zone.capitalize()} Zone {i+1} Failsf Relay State",
+                AboutNodeName=stat_failsafe_name,
+                CapturedByNodeName=H0N.relay_multiplexer,
+                TelemetryName=TelemetryName.RelayState,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(failsafe_ch_name)
+            ),
+            DataChannelGt(
+                Name=ops_ch_name,
+                DisplayName=f"{zone.capitalize()} Zone {i+1} Scada Ops Relay State",
+                AboutNodeName=stat_failsafe_name,
+                CapturedByNodeName=H0N.relay_multiplexer,
+                TelemetryName=TelemetryName.RelayState,
+                TerminalAssetAlias=db.terminal_asset_alias,
+                Id=db.make_channel_id(failsafe_ch_name)
+            )
+        ]
+    
+    db.add_data_channels(data_channels)
