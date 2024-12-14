@@ -59,7 +59,8 @@ class House0RelayIdx:
     boiler_scada_ops: Literal[10] = 10
     primary_pump_ops: Literal[11] = 11
     primary_pump_failsafe: Literal[12] = 12
-
+    # pattern: zone1 failsafe is 17, zone2 ops is 18 etc
+    base_stat: Literal[17] = 17
 
 class H0N:
     # core actors

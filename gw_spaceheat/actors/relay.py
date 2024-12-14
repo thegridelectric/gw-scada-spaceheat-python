@@ -20,6 +20,7 @@ from gwproto.enums import (
     ChangeRelayPin,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    ChangeHeatcallSource,
     FsmReportType,
     HeatPumpControl,
     MakeModel,
@@ -27,11 +28,14 @@ from gwproto.enums import (
     RelayClosedOrOpen,
     RelayWiringConfig,
     StoreFlowRelay,
+    HeatcallSource,
+
 )
 
 from gwproto.named_types import FsmAtomicReport, FsmFullReport, MachineStates
 from result import Err, Ok, Result
 from transitions import Machine
+from data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
 from named_types import FsmEvent
 
@@ -252,15 +256,26 @@ class Relay(ScadaActor):
         )
 
     def initialize_fsm(self):
+        self.my_state_enum = RelayClosedOrOpen
+        self.my_event_enum = ChangeRelayState
+        self.de_energized_state = "RelayClosed"
+        zone_names = self.layout.zone_list
+        stat_failsafe_names = []
+        stat_ops_names = []
+        for i in range(len(zone_names)):
+            failsafe_idx = House0RelayIdx.base_stat + 2*i
+            ops_idx = House0RelayIdx.base_stat + 2*i + 1
+            stat_failsafe_names.append(f"relay{failsafe_idx}")
+            stat_ops_names.append( f"relay{ops_idx}")
+    
         if self.name in {
             H0N.vdc_relay,
             H0N.tstat_common_relay,
             H0N.hp_scada_ops_relay,
             H0N.store_pump_failsafe,
             H0N.primary_pump_scada_ops,
-        }:
-            self.my_state_enum = RelayClosedOrOpen
-            self.my_event_enum = ChangeRelayState
+        } | set(stat_ops_names):
+        
             self.transitions = [
                 {
                     "trigger": ChangeRelayState.CloseRelay,
@@ -429,12 +444,47 @@ class Relay(ScadaActor):
                 )
             self.de_energized_state = PrimaryPumpControl.HeatPump
             self.energized_state = PrimaryPumpControl.Scada
+        elif self.name in stat_failsafe_names:
+            self.my_state_enum = HeatcallSource
+            self.my_event_enum = ChangeHeatcallSource
+            self.transitions = [
+                {
+                    "trigger": ChangeHeatcallSource.SwitchToScada,
+                    "source": HeatcallSource.Scada,
+                    "dest": HeatcallSource.Scada
+                },
+                {
+                    "trigger": ChangeHeatcallSource.SwitchToScada,
+                    "source": HeatcallSource.WallThermostat,
+                    "dest": HeatcallSource.Scada
+                },
+                {
+                    "trigger": ChangeHeatcallSource.SwitchToWallThermostat,
+                    "source": HeatcallSource.Scada,
+                    "dest": HeatcallSource.WallThermostat
+                },
+                {
+                    "trigger": ChangeHeatcallSource.SwitchToWallThermostat,
+                    "source": HeatcallSource.WallThermostat,
+                    "dest": HeatcallSource.WallThermostat
+                }     
+            ]
+            if self.de_energizing_event != ChangeHeatcallSource.SwitchToWallThermostat:
+                raise Exception(
+                    f"Expect SwitchToWallThermostat as de-energizing event for {self.name}; got {self.de_energizing_event}"
+                )
+            self.de_energized_state = HeatcallSource.WallThermostat
+            self.energized_state = HeatcallSource.Scada
         else:
             raise Exception(f"Unknown relay {self.name}!")
-        self.machine = Machine(
-            model=self,
-            states=self.my_state_enum.values(),
-            transitions=self.transitions,
-            initial=self.de_energized_state,
-            send_event=True,
-        )
+        try:
+            self.machine = Machine(
+                model=self,
+                states=self.my_state_enum.values(),
+                transitions=self.transitions,
+                initial=self.de_energized_state,
+                send_event=True,
+            )
+
+        except AttributeError as e:
+            self.log(f"PROBLEM with {self.node}!: {e}")
