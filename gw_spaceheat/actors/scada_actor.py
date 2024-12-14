@@ -151,7 +151,7 @@ class ScadaActor(Actor):
             zone_by_ops_relay[self.stat_ops_relay(zone)] = zone
         if relay in zone_by_failsafe_relay:
             self.heatcall_ctrl_to_stat(zone_by_failsafe_relay[relay])
-        elif zone in zone_by_ops_relay:
+        elif relay in zone_by_ops_relay:
             self.stat_ops_open_relay(zone_by_ops_relay[relay])
         elif relay == self.vdc_relay:
             self.close_vdc_relay()
@@ -604,7 +604,7 @@ class ScadaActor(Actor):
         try:
             event = FsmEvent(
                 FromHandle=self.node.handle,
-                ToHandle=self.stat_failsafe_relay(zone),
+                ToHandle=self.stat_failsafe_relay(zone).handle,
                 EventType=ChangeHeatcallSource.enum_name(),
                 EventName=ChangeHeatcallSource.SwitchToScada,
                 SendTimeUnixMs=int(time.time() * 1000),
@@ -612,7 +612,7 @@ class ScadaActor(Actor):
             )
             self._send_to(self.stat_failsafe_relay(zone), event)
             self.log(
-                f"{self.node.handle} sending SwitchToScada to {self.stat_failsafe_relay(zone)} (zone {zone})"
+                f"{self.node.handle} sending SwitchToScada to {self.stat_failsafe_relay(zone).name} (zone {zone})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
@@ -629,7 +629,7 @@ class ScadaActor(Actor):
         try:
             event = FsmEvent(
                 FromHandle=self.node.handle,
-                ToHandle=self.stat_failsafe_relay(zone),
+                ToHandle=self.stat_failsafe_relay(zone).handle,
                 EventType=ChangeHeatcallSource.enum_name(),
                 EventName=ChangeHeatcallSource.SwitchToWallThermostat,
                 SendTimeUnixMs=int(time.time() * 1000),
@@ -637,7 +637,7 @@ class ScadaActor(Actor):
             )
             self._send_to(self.stat_failsafe_relay(zone), event)
             self.log(
-                f"{self.node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(zone)} (zone {zone})"
+                f"{self.node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(zone).name} (zone {zone})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
@@ -662,7 +662,7 @@ class ScadaActor(Actor):
             )
             self._send_to(self.stat_ops_relay(zone), event)
             self.log(
-                f"{self.node.handle} sending CloseRelay to {self.stat_ops_relay(zone)} (zone {zone})"
+                f"{self.node.handle} sending CloseRelay to {self.stat_ops_relay(zone).name} (zone {zone})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
@@ -687,7 +687,7 @@ class ScadaActor(Actor):
             )
             self._send_to(self.stat_ops_relay(zone), event)
             self.log(
-                f"{self.node.handle} sending OpenRelay to {self.stat_ops_relay(zone)} (zone {zone})"
+                f"{self.node.handle} sending OpenRelay to {self.stat_ops_relay(zone).name} (zone {zone})"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
