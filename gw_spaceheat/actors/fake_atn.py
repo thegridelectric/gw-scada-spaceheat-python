@@ -60,65 +60,68 @@ class FakeAtn(ScadaActor):
             case LatestPrice():
                 ...
         return Ok(True)
+    
+    def run_d(self)-> None:
+        # In the last 5 minutes of the hour: make a bid for the next hour
+        if (datetime.now().minute >= 55
+                and self.weather_forecast is not None 
+                and self.price_forecast is not None):
+            # TODO: Find current top temperature and thermocline
+            initial_top_temp, initial_thermocline = get_initial_state(self.data.latest_channel_values)
+            
+            # Find PQ pairs using Dijkstra
+            configuration = DConfig(
+                InitialTopTemp = initial_top_temp,
+                InitialThermocline = initial_thermocline,
+                DpForecastUsdMwh = self.price_forecast['dp'],
+                LmpForecastUsdMwh = self.price_forecast['lmp'],
+                OatForecastF = self.weather_forecast['oat'],
+                WindSpeedForecastMph = self.weather_forecast['ws'],
+                AlphaTimes10 = self.params.AlphaTimes10,
+                BetaTimes100 = self.params.BetaTimes100,
+                GammaEx6 = self.params.GammaEx6,
+                IntermediatePowerKw = self.params.IntermediatePowerKw,
+                IntermediateRswtF = self.params.IntermediateRswtF,
+                DdPowerKw = self.params.DdPowerKw,
+                DdRswtF = self.params.DdRswtF,
+                DdDeltaTF = self.params.DdDeltaTF,
+                MaxEwtF = self.params.MaxEwtF
+            )
+            self.log("Creating graph")
+            g = DGraph(configuration)
+            self.log("Solving Dijkstra")
+            g.solve_dijkstra()
+            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
+            self.log(f"Obtained Price-Quantity pairs")
+
+            # Generate bid
+            t = time.time()
+            slot_start_s = int(t-(t%3600))
+            mtn = MarketTypeName.rt60gate5.value
+            market_slot_name = f"e.{mtn}.{FakeAtn.P_NODE}.{slot_start_s}"
+            bid = AtnBid(
+                BidderAlias=self.layout.atn_g_node_alias,
+                MarketSlotName=market_slot_name,
+                PqPairs=pq_pairs,
+                InjectionIsPositive=False, # withdrawing energy since load not generation
+                PriceUnit=MarketPriceUnit.USDPerMWh,
+                QuantityUnit=MarketQuantityUnit.AvgkW,
+                SignedMarketFeeTxn="BogusAlgoSignature"
+            )
+            self.log(f"Bid: {bid}")
+
+        else:
+            self.log(f"Minute {datetime.now().minute}")
      
     async def main(self):
 
         await asyncio.sleep(10)
 
         while not self._stop_requested:
-
-            # In the last 5 minutes of the hour: make a bid for the next hour
-            if (datetime.now().minute >= 55
-                and self.weather_forecast is not None 
-                and self.price_forecast is not None):
-
-                # TODO: Find current top temperature and thermocline
-                initial_top_temp, initial_thermocline = get_initial_state(self.data.latest_channel_values)
-                
-                # Find PQ pairs using Dijkstra
-                configuration = DConfig(
-                    InitialTopTemp = initial_top_temp,
-                    InitialThermocline = initial_thermocline,
-                    DpForecastUsdMwh = self.price_forecast['dp'],
-                    LmpForecastUsdMwh = self.price_forecast['lmp'],
-                    OatForecastF = self.weather_forecast['oat'],
-                    WindSpeedForecastMph = self.weather_forecast['ws'],
-                    AlphaTimes10 = self.params.AlphaTimes10,
-                    BetaTimes100 = self.params.BetaTimes100,
-                    GammaEx6 = self.params.GammaEx6,
-                    IntermediatePowerKw = self.params.IntermediatePowerKw,
-                    IntermediateRswtF = self.params.IntermediateRswtF,
-                    DdPowerKw = self.params.DdPowerKw,
-                    DdRswtF = self.params.DdRswtF,
-                    DdDeltaTF = self.params.DdDeltaTF,
-                    MaxEwtF = self.params.MaxEwtF
-                )
-                self.log("Creating graph")
-                g = DGraph(configuration)
-                self.log("Solving Dijkstra")
-                g.solve_dijkstra()
-                pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
-                self.log(f"Obtained Price-Quantity pairs")
-
-                # Generate bid
-                t = time.time()
-                slot_start_s = int(t-(t%3600))
-                mtn = MarketTypeName.rt60gate5.value
-                market_slot_name = f"e.{mtn}.{FakeAtn.P_NODE}.{slot_start_s}"
-                bid = AtnBid(
-                    BidderAlias=self.layout.atn_g_node_alias,
-                    MarketSlotName=market_slot_name,
-                    PqPairs=pq_pairs,
-                    InjectionIsPositive=False, # withdrawing energy since load not generation
-                    PriceUnit=MarketPriceUnit.USDPerMWh,
-                    QuantityUnit=MarketQuantityUnit.AvgkW,
-                    SignedMarketFeeTxn="BogusAlgoSignature"
-                )
-                self.log(f"Bid: {bid}")
-
-            else:
-                self.log(f"Minute {datetime.now().minute}")
-
+            # try:
+            #     self.run_d()
+            # except Exception as e:
+            #     self.log(f"Exception running d: {e}")    
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
 
