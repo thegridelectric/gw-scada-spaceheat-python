@@ -54,7 +54,6 @@ class SynthGenerator(ScadaActor):
         super().__init__(name, services)
         self.cn: H0CN = self.layout.channel_names
         self._stop_requested: bool = False
-        self.hardware_layout = self._services.hardware_layout
         self.temperature_channel_names = [
             H0CN.buffer.depth1, H0CN.buffer.depth2, H0CN.buffer.depth3, H0CN.buffer.depth4,
             H0CN.hp_ewt, H0CN.hp_lwt, H0CN.dist_swt, H0CN.dist_rwt, 

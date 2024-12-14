@@ -659,13 +659,28 @@ class LayoutDb:
                     ShNodeId=self.make_node_id(H0N.home_alone),
                     Name=H0N.home_alone,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.home_alone}",
-                    Handle="auto.h",
+                    Handle=f"{H0N.auto}.{H0N.home_alone}",
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.pump_doctor),
+                    Name=H0N.pump_doctor,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.pump_doctor}",
+                    Handle=f"{H0N.auto}.{H0N.home_alone}.{H0N.pump_doctor}",
+                    ActorClass=ActorClass.PumpDoctor,
+                    DisplayName="Pump Doctor",
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.defrost_manager),
+                    Name=H0N.defrost_manager,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.defrost_manager}",
+                    Handle=f"{H0N.auto}.{H0N.home_alone}.{H0N.defrost_manager}",
+                    ActorClass=ActorClass.DefrostManager,
+                    DisplayName="Defrost Manager",
+                ),
             ]
         )
-    
 
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:

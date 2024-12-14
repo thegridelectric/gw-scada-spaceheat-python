@@ -78,6 +78,10 @@ class H0N:
     synth_generator = "synth-generator"
     zero_ten_out_multiplexer = "dfr-multiplexer"
 
+    # mid-level actors
+    pump_doctor = "pump-doctor"
+    defrost_manager = "defrost-manager"
+
     # core power-metered nodes
     hp_odu = "hp-odu"
     hp_idu = "hp-idu"
