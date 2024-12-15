@@ -331,7 +331,11 @@ class SynthGenerator(ScadaActor):
         if not self.temperatures_available:
             self.get_latest_temperatures()
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
-        tank_temps = {key: self.to_fahrenheit(self.latest_temperatures[key]/1000) for key in all_store_layers}
+        try:
+            tank_temps = {key: self.to_fahrenheit(self.latest_temperatures[key]/1000) for key in all_store_layers}
+        except KeyError as e:
+            self.log(f"Failed to get all the tank temps in get_thermocline_and_centroids! Bailing on process {e}")
+            return
         self.log(tank_temps)
         # Process the temperatures before clustering
         processed_temps = []
