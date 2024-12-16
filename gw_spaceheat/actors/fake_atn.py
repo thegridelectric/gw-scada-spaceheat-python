@@ -97,6 +97,8 @@ class FakeAtn(ScadaActor):
             g = DGraph(configuration)
             self.log("Solving Dijkstra")
             g.solve_dijkstra()
+            self.log("Done!")
+            self.log("Getting PQ pairs...")
             pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
             self.log(f"Obtained Price-Quantity pairs")
 
