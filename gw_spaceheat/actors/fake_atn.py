@@ -137,10 +137,10 @@ class FakeAtn(ScadaActor):
         await asyncio.sleep(10)
 
         while not self._stop_requested:
-            try:
-                self.run_d()
-            except Exception as e:
-                self.log(f"Exception running d: {e}")    
+            # try:
+            #     self.run_d()
+            # except Exception as e:
+            #     self.log(f"Exception running d: {e}")    
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
 
