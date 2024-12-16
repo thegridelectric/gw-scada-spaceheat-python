@@ -63,19 +63,24 @@ class FakeAtn(ScadaActor):
     
     def run_d(self)-> None:
         # In the last 5 minutes of the hour: make a bid for the next hour
-        if (datetime.now().minute >= 55
+        if (datetime.now().minute >= 1
                 and self.weather_forecast is not None 
                 and self.price_forecast is not None):
+            
+            self.log("Preparing to run Dijkstra")
 
             if ('top-centroid' not in self.data.latest_channel_values
                 or 'therrmocline-position' not in self.data.latest_channel_values):
+                self.log("Need thermocline and top centroid")
                 return
             else:
                 if (self.data.latest_channel_values['top-centroid'] is None or
                     self.data.latest_channel_values['thermocline-position'] is None):
+                    self.log("Need thermocline and top centroid")
                     return
 
             # Find PQ pairs using Dijkstra
+            self.log("Building configuration for Dijkstra")
             configuration = DConfig(
                 InitialTopTemp = self.data.latest_channel_values['top-centroid'] / 1000,
                 InitialThermocline = self.data.latest_channel_values['thermocline-position'],
