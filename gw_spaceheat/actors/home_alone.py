@@ -50,6 +50,7 @@ class HomeAloneEvent(GwStrEnum):
     OnPeakBufferEmpty = auto()
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
+    OnPeakBothEmpty = auto()
     TemperaturesAvailable = auto()
     GoDormant = auto()
     WakeUp = auto()
@@ -98,9 +99,11 @@ class HomeAlone(ScadaActor):
         {"trigger": "OnPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
         {"trigger": "OffPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
         {"trigger": "OffPeakStorageNotReady", "source": "HpOffStoreOff", "dest": "HpOnStoreCharge"},
+        {"trigger": "OnPeakBothEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
         # Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "OnPeakBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "OffPeakStart", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
+        {"trigger": "OnPeakBothEmpty", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
     ] + [
             {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
             for state in states if state != "Dormant"
@@ -262,6 +265,9 @@ class HomeAlone(ScadaActor):
                 elif self.state==HomeAloneState.HpOffStoreOff.value:
                     if self.is_onpeak():
                         if self.is_buffer_empty():
+                            if self.is_storage_empty():
+                                self.log("On-peak but both buffer and storage are empty! Turn on HP!")
+                                self.trigger_event(HomeAloneEvent.OnPeakBothEmpty.value)
                             if not self.is_storage_colder_than_buffer():
                                 self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                     else:
@@ -287,7 +293,12 @@ class HomeAlone(ScadaActor):
                 elif self.state==HomeAloneState.HpOffStoreDischarge.value:
                     if not self.is_onpeak():
                         self.trigger_event(HomeAloneEvent.OffPeakStart.value)
-                    elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
+                    elif self.is_buffer_full():
+                        self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
+                    elif self.is_buffer_empty() and self.is_storage_empty():
+                        self.log("Onpeak but both buffer and storage are empty! Turn on HP!")
+                        self.trigger_event(HomeAloneEvent.OnPeakBothEmpty.value)
+                    elif self.is_storage_colder_than_buffer():
                         self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
                 if self.state != previous_state:                    
@@ -497,6 +508,9 @@ class HomeAlone(ScadaActor):
                     return True
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
             return False
+        
+    def is_storage_empty(self):
+        return False
         
     def is_storage_colder_than_buffer(self) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:
