@@ -161,14 +161,12 @@ class SynthGenerator(ScadaActor):
                 if datetime.now(self.timezone)>self.weather['time'][0]:
                     self.get_weather()
 
-            # In the last 5 minutes of the hour
-            if datetime.now(self.timezone).minute >= 53:
-                self.get_thermocline_and_centroids()
-
             self.get_latest_temperatures()
             if self.temperatures_available:
                 self.update_energy()
-            
+                if datetime.now(self.timezone).minute >= 53:
+                    self.get_thermocline_and_centroids()
+
             self.update_remaining_elec()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
@@ -329,7 +327,7 @@ class SynthGenerator(ScadaActor):
     def get_thermocline_and_centroids(self) -> None:
         # Get all tank temperatures in a dict
         if not self.temperatures_available:
-            self.get_latest_temperatures()
+            return
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
         try:
             tank_temps = {key: self.to_fahrenheit(self.latest_temperatures[key]/1000) for key in all_store_layers}
@@ -375,9 +373,9 @@ class SynthGenerator(ScadaActor):
                 cluster_top = cluster_bottom.copy()
                 cluster_bottom = cluster_top_copy
         thermocline = len(cluster_top)
-        top_centroid_f = sum(cluster_top)/len(cluster_top)
+        top_centroid_f = round(sum(cluster_top)/len(cluster_top),3)
         if cluster_bottom:
-            bottom_centroid_f = sum(cluster_bottom)/len(cluster_bottom)
+            bottom_centroid_f = round(sum(cluster_bottom)/len(cluster_bottom),3)
         else:
             bottom_centroid_f = min(cluster_top)
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
