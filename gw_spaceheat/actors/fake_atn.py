@@ -68,7 +68,6 @@ class FakeAtn(ScadaActor):
                 and self.price_forecast is not None):
             
             self.log("Preparing to run Dijkstra")
-
             if ('top-centroid' not in self.data.latest_channel_values
                 or 'therrmocline-position' not in self.data.latest_channel_values):
                 self.log("Need thermocline and top centroid")
@@ -78,12 +77,19 @@ class FakeAtn(ScadaActor):
                     self.data.latest_channel_values['thermocline-position'] is None):
                     self.log("Need thermocline and top centroid")
                     return
+                
+            initial_toptemp = 140
+            initial_thermocline = 8
+
+            # TODO: uncomment
+            # initial_toptemp = self.data.latest_channel_values['top-centroid'] / 1000,
+            # initial_thermocline = self.data.latest_channel_values['thermocline-position'],
 
             # Find PQ pairs using Dijkstra
             self.log("Building configuration for Dijkstra")
             configuration = DConfig(
-                InitialTopTemp = self.data.latest_channel_values['top-centroid'] / 1000,
-                InitialThermocline = self.data.latest_channel_values['thermocline-position'],
+                InitialTopTemp = initial_toptemp,
+                InitialThermocline = initial_thermocline,
                 DpForecastUsdMwh = self.price_forecast['dp'],
                 LmpForecastUsdMwh = self.price_forecast['lmp'],
                 OatForecastF = self.weather_forecast['oat'],
