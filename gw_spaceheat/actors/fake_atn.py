@@ -66,13 +66,19 @@ class FakeAtn(ScadaActor):
         if (datetime.now().minute >= 55
                 and self.weather_forecast is not None 
                 and self.price_forecast is not None):
-            # TODO: Find current top temperature and thermocline
-            initial_top_temp, initial_thermocline = get_initial_state(self.data.latest_channel_values)
-            
+
+            if ('top-centroid' not in self.data.latest_channel_values
+                or 'therrmocline-position' not in self.data.latest_channel_values):
+                return
+            else:
+                if (self.data.latest_channel_values['top-centroid'] is None or
+                    self.data.latest_channel_values['thermocline-position'] is None):
+                    return
+
             # Find PQ pairs using Dijkstra
             configuration = DConfig(
-                InitialTopTemp = initial_top_temp,
-                InitialThermocline = initial_thermocline,
+                InitialTopTemp = self.data.latest_channel_values['top-centroid'] / 1000,
+                InitialThermocline = self.data.latest_channel_values['thermocline-position'],
                 DpForecastUsdMwh = self.price_forecast['dp'],
                 LmpForecastUsdMwh = self.price_forecast['lmp'],
                 OatForecastF = self.weather_forecast['oat'],
