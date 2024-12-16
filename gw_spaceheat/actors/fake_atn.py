@@ -11,7 +11,7 @@ from enums import MarketPriceUnit, MarketQuantityUnit
 from named_types import AtnBid, EnergyInstruction, LatestPrice, Ha1Params
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from actors.scada_data import ScadaData
-from actors.flo import DGraph, DConfig, get_initial_state
+from actors.flo import DGraph, DConfig
 from actors.synth_generator import WeatherForecast, PriceForecast
 
 class FakeAtn(ScadaActor):
