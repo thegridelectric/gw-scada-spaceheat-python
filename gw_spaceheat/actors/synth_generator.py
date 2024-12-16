@@ -334,7 +334,6 @@ class SynthGenerator(ScadaActor):
         except KeyError as e:
             self.log(f"Failed to get all the tank temps in get_thermocline_and_centroids! Bailing on process {e}")
             return
-        self.log(tank_temps)
         # Process the temperatures before clustering
         processed_temps = []
         for key in tank_temps:

@@ -71,12 +71,12 @@ class FakeAtn(ScadaActor):
             if ('top-centroid' not in self.data.latest_channel_values
                 or 'therrmocline-position' not in self.data.latest_channel_values):
                 self.log("Need thermocline and top centroid")
-                return
+                # return
             else:
                 if (self.data.latest_channel_values['top-centroid'] is None or
                     self.data.latest_channel_values['thermocline-position'] is None):
                     self.log("Need thermocline and top centroid")
-                    return
+                    # return
                 
             initial_toptemp = 140
             initial_thermocline = 8
