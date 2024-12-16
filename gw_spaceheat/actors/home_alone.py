@@ -521,7 +521,7 @@ class HomeAlone(ScadaActor):
         else:
             self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the storage is warmer than the top of the buffer!")
             return False
-        if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top]:
+        if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top] + 3:
             self.log("Storage top colder than buffer top")
             return True
         else:
