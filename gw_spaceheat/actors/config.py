@@ -39,6 +39,7 @@ class ScadaSettings(ProactorSettings):
     dd_delta_t: float = 20
     is_simulated: bool = False
     max_ewt_f: int = 170
+    oil_boiler_during_onpeak: bool = False 
 
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 

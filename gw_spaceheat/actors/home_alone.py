@@ -50,6 +50,7 @@ class HomeAloneEvent(GwStrEnum):
     OnPeakBufferEmpty = auto()
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
+    OnPeakHouseCold = auto()
     TemperaturesAvailable = auto()
     GoDormant = auto()
     WakeUp = auto()
@@ -95,6 +96,7 @@ class HomeAlone(ScadaActor):
         {"trigger": "OffPeakStorageReady", "source": "HpOnStoreCharge", "dest": "HpOffStoreOff"},
         {"trigger": "OnPeakStart", "source": "HpOnStoreCharge", "dest": "HpOffStoreOff"},
         # Starting at: HP off, Store off ============ idle
+        {"trigger": "OnPeakHouseCold", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
         {"trigger": "OnPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOffStoreDischarge"},
         {"trigger": "OffPeakBufferEmpty", "source": "HpOffStoreOff", "dest": "HpOnStoreOff"},
         {"trigger": "OffPeakStorageNotReady", "source": "HpOffStoreOff", "dest": "HpOnStoreCharge"},
@@ -134,9 +136,12 @@ class HomeAlone(ScadaActor):
         self.state: HomeAloneState = HomeAloneState.WaitingForTemperaturesOnPeak  
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.is_simulated = self.settings.is_simulated
+        self.oil_boiler_during_onpeak = self.settings.oil_boiler_during_onpeak
+        self.oil_boiler_on = False
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.weather = None
+        self.zone_setpoints = {}
     
     @property
     def data(self) -> ScadaData:
@@ -204,10 +209,19 @@ class HomeAlone(ScadaActor):
                 if self.is_onpeak():
                     self.storage_declared_ready = False
                     self.full_storage_energy = None
+                else:
+                    self.hp_on_during_onpeak = False
+                    if self.oil_boiler_on:
+                        self.turn_off_oil_boiler()
 
                 if self.weather is None:
                     await asyncio.sleep(5)
                     continue
+
+                time_now = datetime.now(self.timezone) 
+                if (((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
+                    or self.zone_setpoints == {}):
+                    self.get_zone_setpoints()
 
                 self.get_latest_temperatures()
 
@@ -238,10 +252,12 @@ class HomeAlone(ScadaActor):
                             self.trigger_event(HomeAloneEvent.OffPeakStart.value)
 
                 elif self.state==HomeAloneState.HpOnStoreOff.value:
-                    if self.is_onpeak():
+                    if self.is_onpeak() and not self.hp_on_during_onpeak:
                         self.trigger_event(HomeAloneEvent.OnPeakStart.value)
                     elif self.is_buffer_full():
-                        if self.is_storage_ready():
+                        if self.hp_on_during_onpeak:
+                            self.trigger_event(HomeAloneEvent.OnPeakStart.value)
+                        elif self.is_storage_ready():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferFullStorageReady.value)
                         else:
                             usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
@@ -261,9 +277,20 @@ class HomeAlone(ScadaActor):
                     
                 elif self.state==HomeAloneState.HpOffStoreOff.value:
                     if self.is_onpeak():
-                        if self.is_buffer_empty():
-                            if not self.is_storage_colder_than_buffer():
+                        if self.is_buffer_empty() and not self.oil_boiler_on:
+                            if self.is_storage_empty() and self.is_house_cold():
+                                if not self.oil_boiler_during_onpeak:
+                                    self.log("Turning on HP during on-peak!")
+                                    self.hp_on_during_onpeak = True
+                                    self.trigger_event(HomeAloneEvent.OnPeakHouseCold.value)
+                                elif not self.oil_boiler_on:
+                                    self.log("Turning on oil boiler during onpeak!")
+                                    self.turn_on_oil_boiler()
+                            elif not self.is_storage_colder_than_buffer():
                                 self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
+                        if self.is_buffer_full() and self.oil_boiler_on:
+                            self.turn_off_oil_boiler()
+
                     else:
                         if self.is_buffer_empty():
                             self.trigger_event(HomeAloneEvent.OffPeakBufferEmpty.value)
@@ -289,6 +316,8 @@ class HomeAlone(ScadaActor):
                         self.trigger_event(HomeAloneEvent.OffPeakStart.value)
                     elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
                         self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
+                    elif self.is_buffer_empty() and self.is_storage_empty():
+                        self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
                 if self.state != previous_state:                    
                     self.update_relays(previous_state)
@@ -310,6 +339,17 @@ class HomeAlone(ScadaActor):
             self.valved_to_charge_store()
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
             self.valved_to_discharge_store()
+
+    def turn_on_oil_boiler(self):
+        self.oil_boiler_on = True
+        self.hp_failsafe_switch_to_aquastat()
+        self.aquastat_ctrl_switch_to_boiler()
+
+    def turn_off_oil_boiler(self):
+        self.log("Turning off oil boiler")
+        self.oil_boiler_on = False
+        self.hp_failsafe_switch_to_scada()
+        self.aquastat_ctrl_switch_to_scada()
 
     def start(self) -> None:
         self.services.add_task(
@@ -384,10 +424,10 @@ class HomeAlone(ScadaActor):
                 }
             self.latest_temperatures = temp.copy()
         else:
-            self.log("IN SIMULATION - set all temperatures to 60 degC")
+            self.log("IN SIMULATION - set all temperatures to 20 degC")
             self.latest_temperatures = {}
             for channel_name in self.temperature_channel_names:
-                self.latest_temperatures[channel_name] = 60 * 1000
+                self.latest_temperatures[channel_name] = 20 * 1000
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
             print('Temperatures available')
@@ -497,6 +537,45 @@ class HomeAlone(ScadaActor):
                     return True
             self.log(f"Storage not ready (usable {round(total_usable_kwh,1)} kWh < required {round(required_storage,1)} kWh)")
             return False
+        
+    def is_storage_empty(self):
+        if not self.is_simulated:
+            total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
+        else:
+            total_usable_kwh = 0
+        if total_usable_kwh < 0.2:
+            self.log("Storage is empty")
+            return True
+        else:
+            self.log("Storage is not empty")
+            return False
+        
+    def get_zone_setpoints(self):
+        if self.is_simulated:
+            self.zone_setpoints = {'zone1': 70, 'zone2': 65}
+            self.log(f"IN SIMULATION - fake setpoints set to {self.zone_setpoints}")
+            return
+        self.zone_setpoints = {}
+        for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
+            zone_name = zone_setpoint.replace('-set','')
+            self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
+        self.log(f"Found all zone setpoints: {self.zone_setpoints}")
+    
+    def is_house_cold(self):
+        for zone in self.zone_setpoints:
+            setpoint = self.zone_setpoints[zone]
+            if not self.is_simulated:
+                if zone+'-temp' not in self.data.latest_channel_values:
+                    self.log(f"Could not find latest temperature for {zone}!")
+                    continue
+                temperature = self.data.latest_channel_values[zone+'-temp']
+            else:
+                temperature = 40
+            if temperature < setpoint - 1:
+                self.log(f"{zone} temperature is lower than the setpoint before starting on-peak")
+                return True    
+        self.log("All zones are at or above their setpoint at the beginning of on-peak")
+        return False
         
     def is_storage_colder_than_buffer(self) -> bool:
         if H0CN.buffer.depth1 in self.latest_temperatures:
