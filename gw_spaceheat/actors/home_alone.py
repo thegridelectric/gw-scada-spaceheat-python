@@ -561,7 +561,8 @@ class HomeAlone(ScadaActor):
         self.zone_setpoints = {}
         for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
             zone_name = zone_setpoint.replace('-set','')
-            self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
+            if self.data.latest_channel_values[zone_setpoint] is not None:
+                self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
         self.log(f"Found all zone setpoints: {self.zone_setpoints}")
     
     def is_house_cold(self):
