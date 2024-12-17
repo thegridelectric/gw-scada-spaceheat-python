@@ -941,7 +941,7 @@ class Scada(ScadaInterface, Proactor):
         # Trigger AutoWakesUp for auto state: Dormant -> HomeAlone
         self.AutoWakesUp()
         # all actuators report directly to home alone
-        self.set_home_alone_control_forest()
+        self.set_home_alone_command_tree()
         # Let homealone and pico-cycler know they in charge again
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         self._send_to(self.layout.pico_cycler,WakeUp(ToName=H0N.pico_cycler) )
@@ -956,7 +956,7 @@ class Scada(ScadaInterface, Proactor):
         self.AutoGoesDormant()
         self.log(f"auto_state {self.auto_state}")
         # ADMIN CONTROL FOREST: a single tree, controlling all actuators
-        self.set_admin_control_forest()
+        self.set_admin_command_tree()
         
         # Let the active nodes know they've lost control of their actuators
         report_1 =  self.layout.home_alone 
@@ -979,7 +979,7 @@ class Scada(ScadaInterface, Proactor):
         self.log(f"AtnWantsControl! Auto state {self.auto_state}")
         # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
         # Ally which reports to atn.
-        self.set_atn_control_forest()
+        self.set_atn_command_tree()
         
         # Set the hack dispatch contract to True... will take this out shortly
         self._dispatch_live_hack = True
@@ -997,7 +997,7 @@ class Scada(ScadaInterface, Proactor):
         self.AtnLinkDead()
         self.log(f"AtnLink id dead! Auto state {self.auto_state}")
         self._dispatch_live_hack = False
-        self.set_home_alone_control_forest()
+        self.set_home_alone_command_tree()
         # Let home alone know its in charge
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         # Pico Cycler shouldn't change
@@ -1039,11 +1039,11 @@ class Scada(ScadaInterface, Proactor):
         # #TODO: if MainAutoState is not atn, ignore
     
     ###########################################################
-    # CONTROL FORESTS - the handles of the Spaceheat Nodes form a tree
+    # Command Trees - the handles of the Spaceheat Nodes form a tree
     # where the line of direct report is required for following a command
     ##########################################################
 
-    def set_home_alone_control_forest(self) -> None:
+    def set_home_alone_command_tree(self) -> None:
         #HOMEALONE CONTROL FOREST. Direct reports are pico cycler and home alone
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
@@ -1051,12 +1051,12 @@ class Scada(ScadaInterface, Proactor):
             else:
                 node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
 
-    def set_admin_control_forest(self) -> None:
+    def set_admin_command_tree(self) -> None:
         # ADMIN CONTROL FOREST. All actuators report directly to admin
         for node in self.layout.actuators:
             node.Handle = f"{H0N.admin}.{node.Name}"
     
-    def set_atn_control_forest(self) -> None:
+    def set_atn_command_tree(self) -> None:
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"

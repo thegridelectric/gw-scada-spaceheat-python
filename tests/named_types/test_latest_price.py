@@ -2,7 +2,7 @@
 
 import json
 
-from gwproto.enums import MarketPriceUnit
+from enums import MarketPriceUnit
 from named_types import LatestPrice
 
 

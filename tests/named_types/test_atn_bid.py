@@ -2,7 +2,7 @@
 
 import json
 
-from gwproto.enums import MarketPriceUnit, MarketQuantityUnit
+from enums import MarketPriceUnit, MarketQuantityUnit
 from named_types import AtnBid
 
 

@@ -63,6 +63,7 @@ class SynthGenerator(ScadaActor):
         ]
         self.elec_assigned_amount = None
         self.previous_time = None
+        self.temperatures_available = False
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -143,7 +144,7 @@ class SynthGenerator(ScadaActor):
             self.get_latest_temperatures()
             if self.temperatures_available:
                 self.update_energy()
-            
+
             self.update_remaining_elec()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
@@ -300,7 +301,7 @@ class SynthGenerator(ScadaActor):
         else:
             self.log('Currently in on-peak or no on-peak period coming up soon')
             return 0
-    
+
     def to_celcius(self, t: float) -> float:
         return (t-32)*5/9
 

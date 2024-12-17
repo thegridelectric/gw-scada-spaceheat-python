@@ -11,10 +11,6 @@ def to_kelvin(t):
 def to_celcius(t):
     return (t-32)*5/9
 
-def get_initial_state(a):
-    # TODO
-    return 160, 24
-
 
 class DConfig(BaseModel):
     StartDateTime: datetime = (datetime.now()+timedelta(hours=1)).replace(minute=0,second=0,microsecond=0)
