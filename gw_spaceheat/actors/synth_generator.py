@@ -46,26 +46,6 @@ class PriceForecast(BaseModel):
     Version: Literal["000"] = "000"
 # -------------- TODO: move to named_types -------------
 
-def kmeans(data, k=2, max_iters=100, tol=1e-4):
-    data = np.array(data).reshape(-1, 1)
-    # Initialize centroids randomly
-    centroids = data[np.random.choice(len(data), k, replace=False)]
-    for _ in range(max_iters):
-        # Assign labels by finding the closest centroid for each data point
-        labels = np.argmin(np.abs(data - centroids.T), axis=1)
-        new_centroids = np.zeros_like(centroids)
-        for i in range(k):
-            cluster_points = data[labels == i]
-            if len(cluster_points) > 0:
-                new_centroids[i] = cluster_points.mean()
-            else:
-                # Reinitialize the centroid randomly if no points are assigned to it
-                new_centroids[i] = data[np.random.choice(len(data))]
-        if np.all(np.abs(new_centroids - centroids) < tol):
-            break
-        centroids = new_centroids
-    return labels
-
 
 class SynthGenerator(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
@@ -164,8 +144,6 @@ class SynthGenerator(ScadaActor):
             self.get_latest_temperatures()
             if self.temperatures_available:
                 self.update_energy()
-                if datetime.now(self.timezone).minute >= 53:
-                    self.get_thermocline_and_centroids()
 
             self.update_remaining_elec()
 
@@ -323,87 +301,6 @@ class SynthGenerator(ScadaActor):
         else:
             self.log('Currently in on-peak or no on-peak period coming up soon')
             return 0
-        
-    def get_thermocline_and_centroids(self) -> None:
-        # Get all tank temperatures in a dict
-        if not self.temperatures_available:
-            return
-        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
-        try:
-            tank_temps = {key: self.to_fahrenheit(self.latest_temperatures[key]/1000) for key in all_store_layers}
-        except KeyError as e:
-            self.log(f"Failed to get all the tank temps in get_thermocline_and_centroids! Bailing on process {e}")
-            return
-        # Process the temperatures before clustering
-        processed_temps = []
-        for key in tank_temps:
-            processed_temps.append(tank_temps[key])
-        iter_count = 0
-        while sorted(processed_temps, reverse=True) != processed_temps and iter_count<20:
-            iter_count+=1
-            processed_temps = []
-            for key in tank_temps:
-                if processed_temps:
-                    if tank_temps[key] > processed_temps[-1]:
-                        mean = round((processed_temps[-1] + tank_temps[key])/2)
-                        processed_temps[-1] = mean
-                        processed_temps.append(mean)
-                    else:
-                        processed_temps.append(tank_temps[key])
-                else:
-                    processed_temps.append(tank_temps[key])
-            i = 0
-            for key in tank_temps:
-                tank_temps[key] = processed_temps[i]
-                i+=1
-            if iter_count == 20:
-                processed_temps = sorted(processed_temps, reverse=True)
-        # Cluster
-        data = processed_temps.copy()
-        labels = kmeans(data, k=2)
-        cluster_top = sorted([data[i] for i in range(len(data)) if labels[i] == 0])
-        cluster_bottom = sorted([data[i] for i in range(len(data)) if labels[i] == 1])
-        if not cluster_top:
-            cluster_top = cluster_bottom.copy()
-            cluster_bottom = []
-        if cluster_bottom:
-            if max(cluster_bottom) > max(cluster_top):
-                cluster_top_copy = cluster_top.copy()
-                cluster_top = cluster_bottom.copy()
-                cluster_bottom = cluster_top_copy
-        thermocline = len(cluster_top)
-        top_centroid_f = round(sum(cluster_top)/len(cluster_top),3)
-        if cluster_bottom:
-            bottom_centroid_f = round(sum(cluster_bottom)/len(cluster_bottom),3)
-        else:
-            bottom_centroid_f = min(cluster_top)
-        self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
-        # Post values
-        t_ms = int(time.time() * 1000)
-        self._send_to(
-                self.primary_scada,
-                SingleReading(
-                    ChannelName="thermocline-position",
-                    Value=thermocline,
-                    ScadaReadTimeUnixMs=t_ms,
-                ),
-            )
-        self._send_to(
-                self.primary_scada,
-                SingleReading(
-                    ChannelName="top-centroid",
-                    Value=int(top_centroid_f*1000),
-                    ScadaReadTimeUnixMs=t_ms,
-                ),
-            )
-        self._send_to(
-                self.primary_scada,
-                SingleReading(
-                    ChannelName="bottom-centroid",
-                    Value=int(bottom_centroid_f*1000),
-                    ScadaReadTimeUnixMs=t_ms,
-                ),
-            )
 
     def to_celcius(self, t: float) -> float:
         return (t-32)*5/9
