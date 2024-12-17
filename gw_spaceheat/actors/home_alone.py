@@ -278,7 +278,7 @@ class HomeAlone(ScadaActor):
                 elif self.state==HomeAloneState.HpOffStoreOff.value:
                     if self.is_onpeak():
                         if self.is_buffer_empty() and not self.oil_boiler_on:
-                            if self.is_storage_empty() and self.is_house_cold():
+                            if self.is_buffer_empty(really_empty=True) and self.is_storage_empty() and self.is_house_cold():
                                 if not self.oil_boiler_during_onpeak:
                                     self.log("Turning on HP during on-peak!")
                                     self.hp_on_during_onpeak = True
@@ -479,9 +479,12 @@ class HomeAlone(ScadaActor):
             self.log("Not on-peak")
             return False
 
-    def is_buffer_empty(self) -> bool:
+    def is_buffer_empty(self, really_empty=False) -> bool:
         if H0CN.buffer.depth2 in self.latest_temperatures:
-            buffer_empty_ch = H0CN.buffer.depth2
+            if really_empty:
+                buffer_empty_ch = H0CN.buffer.depth1
+            else:
+                buffer_empty_ch = H0CN.buffer.depth2
         elif H0CN.dist_swt in self.latest_temperatures:
             buffer_empty_ch = H0CN.dist_swt
         else:
