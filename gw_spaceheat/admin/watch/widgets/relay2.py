@@ -11,7 +11,6 @@ from textual.message import Message
 from textual.reactive import Reactive
 from textual.reactive import reactive
 from textual.widgets import Button
-from textual.widgets import Rule
 from textual.widgets import Static
 
 from admin.watch.clients.relay_client import RelayConfig

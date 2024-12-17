@@ -39,23 +39,19 @@ Relay1 {
     visibility: visible;
     height: auto;
     width: 110;
-    display: none;
 }
 
 Relay2 {
-    /*border: solid $success-lighten-3;*/
     layout: horizontal;
     visibility: visible;
     height: auto;
-    /*max-width: 140;*/
-    /*display: none;*/
 }
 
 Relay2 > * {
     border: solid $success-lighten-3;
 }
 
-#relay_channel_name {
+Relay2 #relay_channel_name {
     dock: left;
     width: 30;
     height: 5;
@@ -120,4 +116,8 @@ Relays {
     content-align: center middle;
     text-opacity: 60%;
     height: 14fr;
+}
+
+.undisplayed {
+    display: none;
 }

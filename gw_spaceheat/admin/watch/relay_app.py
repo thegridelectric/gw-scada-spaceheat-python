@@ -15,6 +15,7 @@ from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
 from admin.watch.widgets.relay1 import Relay1
+from admin.watch.widgets.relay2 import Relay2
 from admin.watch.widgets.relay2 import RelayControlButtons
 from admin.watch.widgets.relays import Relay
 from admin.watch.widgets.relays import Relays
@@ -37,6 +38,9 @@ class RelaysApp(App):
         ("t", "reset_title", "Reset title"),
         ("a", "previous_theme", "Previous theme"),
         ("s", "next_theme", "Next theme"),
+        ("m", "toggle_messages", "Toggle message display"),
+        ("1", "toggle_v1", "Toggle v1 display"),
+        ("2", "toggle_v2", "Toggle v2 display"),
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
     CSS_PATH = "relay_app.tcss"
@@ -78,29 +82,18 @@ class RelaysApp(App):
         self._admin_client.start()
 
     def on_relay1_relay_switch_changed(self, message: Relay1.RelaySwitchChanged):
-        try:
-            relay_widget = self.query_one(
-                f"#{message.relay_widget_id}",
-                Relay,
-            )
-            self._relay_client.set_relay(
-                relay_widget.config.about_node_name,
-                RelayEnergized.energized if message.switch.value else RelayEnergized.deenergized
-            )
-        except NoMatches:
-            ...
+        self._relay_client.set_relay(
+            message.about_node_name,
+            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
+        )
 
     def on_relay_control_buttons_pressed(self, message: RelayControlButtons.Pressed):
-        try:
-            self._relay_client.set_relay(
-                message.about_node_name,
-                RelayEnergized.energized if message.energize else RelayEnergized.deenergized
-            )
-        except NoMatches:
-            ...
+        self._relay_client.set_relay(
+            message.about_node_name,
+            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
+        )
 
     def action_toggle_dark(self) -> None:
-        """An action to toggle dark mode."""
         self.theme = (
             "textual-dark" if self.theme == "textual-light" else "textual-light"
         )
@@ -131,6 +124,14 @@ class RelaysApp(App):
     def action_previous_theme(self) -> None:
         self._change_theme(-1)
 
+    def action_toggle_v1(self) -> None:
+        self.query(Relay1).toggle_class("undisplayed")
+
+    def action_toggle_v2(self) -> None:
+        self.query(Relay2).toggle_class("undisplayed")
+
+    def action_toggle_messages(self) -> None:
+        self.query("#message_table").toggle_class("undisplayed")
 
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013

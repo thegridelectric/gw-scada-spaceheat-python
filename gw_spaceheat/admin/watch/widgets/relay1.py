@@ -69,10 +69,17 @@ class Relay1(Horizontal):
             return self.config.deenergized_description
 
     class RelaySwitchChanged(Switch.Changed):
+        def __init__(self, about_node_name: str, switch: Switch, energize: bool) -> None:
+            super().__init__(switch, energize)
+            self.about_node_name = about_node_name
+            self.energize = energize
 
-        def __init__(self, relay_widget_id: str, switch: Switch, value: bool) -> None:
-            super().__init__(switch, value)
-            self.relay_widget_id = relay_widget_id
 
     def on_switch_changed(self, message: Switch.Changed) -> None:
-        self.post_message(Relay1.RelaySwitchChanged(self.id, message.switch, message.value))
+        self.post_message(
+            Relay1.RelaySwitchChanged(
+                self.config.about_node_name,
+                message.switch,
+                message.value
+            )
+        )

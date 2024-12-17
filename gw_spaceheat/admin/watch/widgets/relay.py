@@ -39,11 +39,19 @@ class Relay(Horizontal):
 
     def compose(self) -> ComposeResult:
         with HorizontalGroup():
-            yield Relay1(id = f"{self.id}-v1", logger=self.logger).data_bind(
-                config=self.config,
-                observed=self.observed,
+            yield Relay1(
+                id = f"{self.id}-v1",
+                logger=self.logger,
+                # classes="undisplayed",
+            ).data_bind(
+                config=Relay.config,
+                observed=Relay.observed,
             )
-            yield Relay2(id = f"{self.id}-v2", logger=self.logger).data_bind(
+            yield Relay2(
+                id = f"{self.id}-v2",
+                logger=self.logger,
+                classes = "undisplayed",
+            ).data_bind(
                 energized=Relay.energized,
                 config=Relay.config,
             )

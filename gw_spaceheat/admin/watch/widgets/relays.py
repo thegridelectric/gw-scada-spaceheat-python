@@ -59,7 +59,7 @@ class Relays(Widget):
         with Vertical():
             yield MqttState(id="mqtt_state")
             yield VerticalScroll(id="relay_scroll")
-            yield DataTable(id="message_table")
+            yield DataTable(id="message_table", classes="undisplayed")
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
