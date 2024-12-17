@@ -15,7 +15,7 @@ from gwproactor import setup_logging
 from tests.atn import AtnSettings
 
 try:
-    from tests.atn.atn import Atn
+    from gw_spaceheat.actors.atn import Atn
 except ImportError as e:
     raise ImportError(
         f"ERROR. ({e})\n\n"
