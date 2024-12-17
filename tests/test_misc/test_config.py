@@ -43,6 +43,7 @@ def test_scada_settings_defaults(clean_scada_env):
         dd_rswt=150,
         dd_delta_t=20,
         max_ewt_f=170,
+        oil_boiler_during_onpeak=False,
 
         local_mqtt=exp_local_mqtt.model_dump(),
         gridworks_mqtt=MQTTClient(
