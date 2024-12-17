@@ -8,13 +8,14 @@ from functools import cached_property
 from typing import Any
 from typing import cast
 from typing import Optional
-from typing import List
-from datetime import datetime
+from typing import List, Dict, cast
+from datetime import datetime, timedelta
 import pytz
-
+import requests
+import json
 
 from gwproactor.links.link_settings import LinkSettings
-
+from data_classes.house_0_names import H0CN
 from gwproto.named_types import SendSnap
 from paho.mqtt.client import MQTTMessageInfo
 import rich
@@ -22,7 +23,7 @@ from pydantic import BaseModel
 
 from gwproto import create_message_model
 from gwproto import MQTTCodec
-from gwproto.data_classes.hardware_layout import HardwareLayout
+from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
@@ -50,12 +51,31 @@ from data_classes.house_0_names import H0N
 from named_types import (DispatchContractCounterpartyRequest, Ha1Params, LayoutLite, 
                         ScadaParams, SendLayout)
 
+from gwproactor import ServicesInterface
+import asyncio
+import time
+import numpy as np
+from datetime import datetime
+from gwproto import Message
+from result import Ok, Result
+from typing import List, Tuple
+from actors.scada_actor import ScadaActor
+from gw.enums import MarketTypeName
+from enums import MarketPriceUnit, MarketQuantityUnit
+from named_types import AtnBid, EnergyInstruction, LatestPrice, Ha1Params
+from named_types.price_quantity_unitless import PriceQuantityUnitless
+from actors.scada_data import ScadaData
+from actors.flo import DGraph, DConfig
+from actors.synth_generator import WeatherForecast, PriceForecast
+from data_classes.house_0_names import H0CN
+from gwproto.named_types import SingleReading
+
 
 class AtnMQTTCodec(MQTTCodec):
     exp_src: str
     exp_dst: str = H0N.atn
 
-    def __init__(self, hardware_layout: HardwareLayout):
+    def __init__(self, hardware_layout: House0Layout):
         self.exp_src = hardware_layout.scada_g_node_alias
         super().__init__(
             create_message_model(
@@ -78,20 +98,24 @@ class Telemetry(BaseModel):
     Value: int
     Unit: TelemetryName
 
+
 @dataclass
 class AtnData:
-    layout: HardwareLayout
+    layout: House0Layout
     my_channels: List[DataChannel]
     latest_snapshot: Optional[SnapshotSpaceheat] = None
     latest_report: Optional[Report] = None
 
-    def __init__(self, layout: HardwareLayout):
+    def __init__(self, layout: House0Layout):
         self.layout=layout
         self.my_channels = list(layout.data_channels.values())
         self.latest_snapshot = None
         self.latest_report = None
 
+
 class Atn(ActorInterface, Proactor):
+    MAIN_LOOP_SLEEP_SECONDS = 120
+    P_NODE = "hw1.isone.ver.keene"
     SCADA_MQTT = "scada"
     data: AtnData
     event_loop_thread: Optional[threading.Thread] = None
@@ -102,7 +126,7 @@ class Atn(ActorInterface, Proactor):
         self,
         name: str,
         settings: AtnSettings,
-        hardware_layout: HardwareLayout,
+        hardware_layout: House0Layout,
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
         self._web_manager.disable()
@@ -117,7 +141,23 @@ class Atn(ActorInterface, Proactor):
                 downstream=True,
             )
         )
-        self.ha1_params = None
+        self.is_simulated = self.settings.is_simulated
+        self.latest_channel_values: Dict[str, int] = {}
+        self.timezone = pytz.timezone(self.settings.timezone_str)
+        self.latitude = self.settings.latitude
+        self.longitude = self.settings.longitude
+        self.sent_bid = False
+        self.weather_forecast = None
+        self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
+        self.price_forecast = None
+        # TODO use hardware layout to define the temperature_channel_names
+        self.temperature_channel_names = [
+            'buffer-depth1', 'buffer-depth2', 'buffer-depth3', 'buffer-depth4',
+            'tank1-depth1', 'tank1-depth2', 'tank1-depth3', 'tank1-depth4',
+            'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 'tank2-depth4',
+            'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4',
+            ]
+        self.ha1_params: Optional[Ha1Params] = None
         self.latest_report: Optional[Report] = None
         self.report_output_dir = self.settings.paths.data_dir / "report"
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
@@ -159,8 +199,8 @@ class Atn(ActorInterface, Proactor):
         return cast(AtnSettings, self._settings)
 
     @property
-    def layout(self) -> HardwareLayout:
-        return self._layout
+    def layout(self) -> House0Layout:
+        return cast(House0Layout, self._layout)
 
     def init(self):
         """Called after constructor so derived functions can be used in setup."""
@@ -281,6 +321,13 @@ class Atn(ActorInterface, Proactor):
             self.dashboard.process_snapshot(snapshot)
         if self.settings.dashboard.print_snap:
             self._logger.warning(self.snapshot_str(snapshot))
+        for reading in snapshot.LatestReadingList:
+            self.latest_channel_values[reading.ChannelName] = reading.Value
+        if self.is_simulated:
+            for channel in self.temperature_channel_names:
+                self.latest_channel_values[channel] = 60000
+
+        self.log("Received and processed a SnapShot")
 
     def _process_layout_lite(self, layout: LayoutLite) -> None:
         self.ha1_params = layout.Ha1Params
@@ -550,7 +597,353 @@ class Atn(ActorInterface, Proactor):
 
     async def main(self):
         while not self._stop_requested:
-            asyncio.sleep(10)
+            await asyncio.sleep(5)
+            while self.ha1_params is None:
+                self.send_layout()
+                self.log("Sent layout")
+                await asyncio.sleep(2)
+            while not self.latest_channel_values:
+                self.log("Waiting for a snapshot")
+                await asyncio.sleep(15)  
+            try:
+                self.run_d()
+            except Exception as e:
+                self.log(f"Exception running Dijkstra: {e}")   
+            await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS) 
+
+    def run_d(self)-> None:
+        # In the last 5 minutes of the hour: make a bid for the next hour
+        if datetime.now().minute >= 55 and not self.sent_bid:
+
+            self.get_weather_forecast()
+            self.get_price_forecast()
+                        
+            self.log("Finding thermocline position and top temperature")
+            initial_toptemp, initial_thermocline = self.get_thermocline_and_centroids()
+            if (initial_toptemp, initial_thermocline) == (0,0):
+                self.log("Can not run Dijkstra!")
+                # TODO go to HomeAlone?
+                return
+
+            configuration = DConfig(
+                InitialTopTemp = initial_toptemp,
+                InitialThermocline = initial_thermocline * 2,
+                DpForecastUsdMwh = self.price_forecast['dp'],
+                LmpForecastUsdMwh = self.price_forecast['lmp'],
+                OatForecastF = self.weather_forecast['oat'],
+                WindSpeedForecastMph = self.weather_forecast['ws'],
+                AlphaTimes10 = self.ha1_params.AlphaTimes10,
+                BetaTimes100 = self.ha1_params.BetaTimes100,
+                GammaEx6 = self.ha1_params.GammaEx6,
+                IntermediatePowerKw = self.ha1_params.IntermediatePowerKw,
+                IntermediateRswtF = self.ha1_params.IntermediateRswtF,
+                DdPowerKw = self.ha1_params.DdPowerKw,
+                DdRswtF = self.ha1_params.DdRswtF,
+                DdDeltaTF = self.ha1_params.DdDeltaTF,
+                MaxEwtF = self.ha1_params.MaxEwtF
+            )
+
+            self.log("Creating graph")
+            st = time.time()
+            g = DGraph(configuration)
+            self.log(f"Done in {round(time.time()-st,2)} seconds")
+            self.log("Solving Dijkstra")
+            g.solve_dijkstra()
+            self.log("Solved!")
+            self.log("Finding PQ pairs")
+            st = time.time()
+            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
+            self.log(f"Found in {round(time.time()-st,2)} seconds")
+
+            # Generate bid
+            t = time.time()
+            slot_start_s = int(t-(t%3600))
+            mtn = MarketTypeName.rt60gate5.value
+            market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
+            bid = AtnBid(
+                BidderAlias=self.layout.atn_g_node_alias,
+                MarketSlotName=market_slot_name,
+                PqPairs=pq_pairs,
+                InjectionIsPositive=False, # withdrawing energy since load not generation
+                PriceUnit=MarketPriceUnit.USDPerMWh,
+                QuantityUnit=MarketQuantityUnit.AvgkW,
+                SignedMarketFeeTxn="BogusAlgoSignature"
+            )
+            self.log(f"Bid: {bid}")
+            self.sent_bid = True
+
+        elif datetime.now().minute <= 55 and self.sent_bid:
+            self.sent_bid = False
+        else:
+            self.log(f"Minute {datetime.now().minute}")
+
+    def to_fahrenheit(self, t:float) -> float:
+        return t*9/5+32
+    
+    def fill_missing_store_temps(self):
+        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
+        for layer in all_store_layers:
+            if (layer not in self.latest_temperatures 
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) < 70
+            or self.to_fahrenheit(self.latest_temperatures[layer]/1000) > 200):
+                self.latest_temperatures[layer] = None
+        if H0CN.store_cold_pipe in self.latest_temperatures:
+            value_below = self.latest_temperatures[H0CN.store_cold_pipe]
+        else:
+            value_below = 0
+        for layer in sorted(all_store_layers, reverse=True):
+            if self.latest_temperatures[layer] is None:
+                self.latest_temperatures[layer] = value_below
+            value_below = self.latest_temperatures[layer]  
+        self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
+
+    def get_latest_temperatures(self):
+        if not self.settings.is_simulated:
+            temp = {
+                x: self.latest_channel_values[x] 
+                for x in self.temperature_channel_names
+                if x in self.latest_channel_values
+                and self.latest_channel_values[x] is not None
+                }
+            self.latest_temperatures = temp.copy()
+        else:
+            self.log("IN SIMULATION - set all temperatures to 60 degC")
+            self.latest_temperatures = {}
+            for channel_name in self.temperature_channel_names:
+                self.latest_temperatures[channel_name] = 60 * 1000
+        if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
+            self.temperatures_available = True
+        else:
+            self.temperatures_available = False
+            all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
+            available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
+            if all_buffer == available_buffer:
+                self.fill_missing_store_temps()
+                self.temperatures_available = True
+
+    def get_thermocline_and_centroids(self) -> Tuple[float, int]:
+        # Get all tank temperatures in a dict, if you can't abort
+        self.get_latest_temperatures()
+        if not self.temperatures_available:
+            self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
+            return 0, 0
+        all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
+        try:
+            tank_temps = {key: self.to_fahrenheit(self.latest_temperatures[key]/1000) for key in all_store_layers}
+        except KeyError as e:
+            self.log(f"Failed to get all the tank temps in get_thermocline_and_centroids! Bailing on process {e}")
+            return 0, 0
+        # Process the temperatures before clustering
+        processed_temps = []
+        for key in tank_temps:
+            processed_temps.append(tank_temps[key])
+        iter_count = 0
+        while sorted(processed_temps, reverse=True) != processed_temps and iter_count<20:
+            iter_count+=1
+            processed_temps = []
+            for key in tank_temps:
+                if processed_temps:
+                    if tank_temps[key] > processed_temps[-1]:
+                        mean = round((processed_temps[-1] + tank_temps[key])/2)
+                        processed_temps[-1] = mean
+                        processed_temps.append(mean)
+                    else:
+                        processed_temps.append(tank_temps[key])
+                else:
+                    processed_temps.append(tank_temps[key])
+            i = 0
+            for key in tank_temps:
+                tank_temps[key] = processed_temps[i]
+                i+=1
+            if iter_count == 20:
+                processed_temps = sorted(processed_temps, reverse=True)
+        # Cluster
+        data = processed_temps.copy()
+        labels = self.kmeans(data, k=2)
+        cluster_top = sorted([data[i] for i in range(len(data)) if labels[i] == 0])
+        cluster_bottom = sorted([data[i] for i in range(len(data)) if labels[i] == 1])
+        if not cluster_top:
+            cluster_top = cluster_bottom.copy()
+            cluster_bottom = []
+        if cluster_bottom:
+            if max(cluster_bottom) > max(cluster_top):
+                cluster_top_copy = cluster_top.copy()
+                cluster_top = cluster_bottom.copy()
+                cluster_bottom = cluster_top_copy
+        thermocline = len(cluster_top)
+        top_centroid_f = round(sum(cluster_top)/len(cluster_top),3)
+        if cluster_bottom:
+            bottom_centroid_f = round(sum(cluster_bottom)/len(cluster_bottom),3)
+        else:
+            bottom_centroid_f = min(cluster_top)
+        self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
+        # Post values
+        t_ms = int(time.time() * 1000)
+        sr_thermocline = SingleReading(
+            ChannelName="thermocline-position",
+            Value=thermocline,
+            ScadaReadTimeUnixMs=t_ms,
+            )
+        sr_top_centroid = SingleReading(
+            ChannelName="top-centroid",
+            Value=int(top_centroid_f*1000),
+            ScadaReadTimeUnixMs=t_ms,
+            )
+        sr_bottom_centroid = SingleReading(
+            ChannelName="bottom-centroid",
+            Value=int(bottom_centroid_f*1000),
+            ScadaReadTimeUnixMs=t_ms,
+            )
+        # TODO
+        # self.send_threadsafe(
+        #     Message(
+        #         Src=self.name,
+        #         Dst=self.layout.node(H0N.primary_scada),
+        #         Payload=sr_thermocline,
+        #         )
+        #     )
+        # self.send_threadsafe(
+        #     Message(
+        #         Src=self.name,
+        #         Dst=self.layout.node(H0N.primary_scada),
+        #         Payload=sr_top_centroid,
+        #         )
+        #     )
+        # self.send_threadsafe(
+        #     Message(
+        #         Src=self.name,
+        #         Dst=self.layout.node(H0N.primary_scada),
+        #         Payload=sr_bottom_centroid,
+        #         )
+        #     )
+        return top_centroid_f, thermocline
+
+    def send_energy_instr(self, watthours:int):
+        t = time.time()
+        wait_s = 300 - t%300
+        time.sleep(wait_s)
+        t = time.time()
+        slot_start_s = int(t - (t % 300))
+        if t - slot_start_s < 10:
+            sample_dispatch = EnergyInstruction(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    SlotStartS=slot_start_s,
+                    SlotDurationMinutes=60,
+                    SendTimeMs=int(time.time()*1000),
+                    AvgPowerWatts=int(watthours)
+                )
+            self.log(f"Sent EnergyInstruction: {sample_dispatch}")
+            # TODO
+            # self.send_threadsafe(
+            #     Message(
+            #         Src=self.name,
+            #         Dst=self.layout.node(H0N.synth_generator),
+            #         Payload=sample_dispatch,
+            #     )
+            # )
+
+    def get_weather_forecast(self) -> None:
+        config_dir = self.settings.paths.config_dir
+        weather_file = config_dir / "weather.json"
+        try:
+            url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
+            response = requests.get(url)
+            if response.status_code != 200:
+                self.log(f"Error fetching weather data: {response.status_code}")
+                return None
+            data = response.json()
+            forecast_hourly_url = data['properties']['forecastHourly']
+            forecast_response = requests.get(forecast_hourly_url)
+            if forecast_response.status_code != 200:
+                self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
+                return None
+            forecast_data = forecast_response.json()
+            forecasts = {}
+            periods = forecast_data['properties']['periods']
+            for period in periods:
+                if ('temperature' in period and 'startTime' in period 
+                    and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
+                    forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
+            forecasts = dict(list(forecasts.items())[:96])
+            cropped_forecast = dict(list(forecasts.items())[:48])
+            wf = {
+                'time': list(cropped_forecast.keys()),
+                'oat': list(cropped_forecast.values()),
+                'ws': [0]*len(cropped_forecast)
+                }
+            self.log(f"Obtained a {len(forecasts)}-hour weather forecast starting at {wf['time'][0]}")
+            weather_long = {
+                'time': [x.timestamp() for x in list(forecasts.keys())],
+                'oat': list(forecasts.values()),
+                'ws': [0]*len(forecasts)
+                }
+            with open(weather_file, 'w') as f:
+                json.dump(weather_long, f, indent=4) 
+        
+        except Exception as e:
+            self.log(f"[!] Unable to get weather forecast from API: {e}")
+            try:
+                with open(weather_file, 'r') as f:
+                    weather_long = json.load(f)
+                    weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
+                if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=48):
+                    self.log("A valid weather forecast is available locally.")
+                    time_late = weather_long['time'][0] - datetime.now(self.timezone)
+                    hours_late = int(time_late.total_seconds()/3600)
+                    wf = weather_long
+                    for key in wf:
+                        wf[key] = wf[key][hours_late:hours_late+48]
+                else:
+                    self.log("No valid weather forecasts available locally. Using coldest of the current month.")
+                    current_month = datetime.now().month-1
+                    wf = {
+                        'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+                        'oat': [self.coldest_oat_by_month[current_month]]*48,
+                        'ws': [0]*48,
+                        }
+            except Exception as e:
+                self.log("No valid weather forecasts available locally. Using coldest of the current month.")
+                current_month = datetime.now().month-1
+                wf = {
+                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+                    'oat': [self.coldest_oat_by_month[current_month]]*48,
+                    'ws': [0]*48,
+                    }
+
+        self.weather_forecast = {
+            'oat': wf['oat'], 
+            'ws': wf['ws'],
+            }
+
+    def get_price_forecast(self) -> None:
+        daily_dp = [50.13]*7 + [487.63]*5 + [54.98]*4 + [487.63]*4 + [50.13]*4
+        dp_forecast_usd_per_mwh = (daily_dp[datetime.now(tz=self.timezone).hour+1:] + daily_dp[:datetime.now(tz=self.timezone).hour+1])*2
+        lmp_forecast_usd_per_mwh = [102]*48
+        self.price_forecast = {
+            'dp': dp_forecast_usd_per_mwh,
+            'lmp': lmp_forecast_usd_per_mwh
+            }
+        
+    def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
+        data = np.array(data).reshape(-1, 1)
+        centroids = data[np.random.choice(len(data), k, replace=False)]
+        for _ in range(max_iters):
+            labels = np.argmin(np.abs(data - centroids.T), axis=1)
+            new_centroids = np.zeros_like(centroids)
+            for i in range(k):
+                cluster_points = data[labels == i]
+                if len(cluster_points) > 0:
+                    new_centroids[i] = cluster_points.mean()
+                else:
+                    new_centroids[i] = data[np.random.choice(len(data))]
+            if np.all(np.abs(new_centroids - centroids) < tol):
+                break
+            centroids = new_centroids
+        return labels
+
+    def log(self, note: str) ->None:
+        log_str = f"[scada] {note}"
+        self.services.logger.error(log_str)
 
     def summary_str(self) -> str:
         """Summarize results in a string"""

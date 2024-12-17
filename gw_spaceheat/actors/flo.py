@@ -284,7 +284,8 @@ class DGraph():
             pathcost_from_current_node = [x+y for x,y in zip(cost_to_nextnode, pathcost_from_nextnode)]
             min_pathcost_elec = round(elec_to_nextnode[pathcost_from_current_node.index(min(pathcost_from_current_node))],2)
             if self.pq_pairs:
-                if self.pq_pairs[-1].QuantityTimes1000/1000 != min_pathcost_elec:
+                # TODO: instead of not equal, say if difference is bigger than a certain number of Wh?
+                if self.pq_pairs[-1].QuantityTimes1000 != int(min_pathcost_elec * 1000):
                     self.pq_pairs.append(
                         PriceQuantityUnitless(
                             PriceTimes1000 = int(elec_price*10 * 1000),         # usd/mwh * 1000
