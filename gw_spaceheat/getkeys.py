@@ -33,10 +33,10 @@ if __name__ == "__main__":
     For scada
     ---------- 
     To generate and copy keys for the scada 'almond', ensure you have the ssh key for certbot in $HOME/.ssh and rclone
-    remotes configured for 'certbot' and 'almond' and run:  
+    remotes configured for 'certbot' and 'almond' and run:
     
         python gw_spaceheat/getkeys.py almond gridworks_mqtt almond /home/pi/.config/gridworks/scada/certs
-    
+
     For test ATN
     ------------
     To generate and copy keys for the test ATN running on the 'cloudatn' machine used by the scada 'almond', ensure you
@@ -86,6 +86,18 @@ if __name__ == "__main__":
         "--certbot-rclone-name",
         default="certbot",
         help="Name of the rclone remote used for certbot.",
+    )
+    parser.add_argument(
+        "--certbot-dns",
+        default=[],
+        action="append",
+        help=(
+            "Network names allowed when contacting a server with this "
+            "certificate. To generate, for example, a certificate used by the "
+            "MQTT broker on a Pi reachable at localhost, 192.168.1.202 and "
+            "somepi.local, specify: --certbot-dns localhost "
+            "--certbot-dns 192.168.1.202 --certbot-certs somepi.local"
+        )
     )
     parser.add_argument(
         "--force", action="store_true", help="Force regeneration of keys."
@@ -149,6 +161,9 @@ if __name__ == "__main__":
         f"--certs-dir {certbot_certs_dir} "
         f"{args.mqtt_name}"
     )
+    if args.certbot_dns:
+        for server_name in args.certbot_dns:
+            generate_key_command_str += f" --dns {server_name}"
     certbot_src_dir = f"{certbot_certs_dir}/{args.mqtt_name}"
     certbot_src_private_dir = f"{certbot_src_dir}/private"
     rclone_dest_name = f"{args.dest_rclone_name}:" if args.dest_rclone_name else ""
