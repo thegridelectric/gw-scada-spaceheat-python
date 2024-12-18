@@ -36,6 +36,7 @@ from named_types import (AtnBid, DispatchContractGoDormant,
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
+from transitions import Machine
 
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings, DashboardSettings
@@ -98,6 +99,21 @@ class Atn(ActorInterface, Proactor):
     dashboard: Optional[Dashboard]
     ha1_params: Optional[Ha1Params]
 
+    states = [
+        "DispatchDormantScadaReady",
+        "DispatchDormantScadaNotReady",
+        "DispatchLive"
+    ]
+
+    transitions = [
+        {"trigger": "ScadaReadyReceived", "source": "DispatchDormantScadaNotReady", "dest": "DispatchDormantScadaReady"},
+        {"trigger": "AtnWantsControl", "source": "DispatchDormantScadaReady", "dest": "DispatchLive"},
+        {"trigger": "AtnReleasesControl", "source": "DispatchLive", "dest": "DispatchDormantScadaNotReady"},
+        {"trigger": "ScadaLinkDead", "source": "DispatchLive", "dest": "DispatchDormantScadaNotReady"},
+         {"trigger": "ScadaLinkDead", "source": "DispatchDormantScadaReady", "dest": "DispatchDormantScadaNotReady"}
+
+    ]
+
     def __init__(
         self,
         name: str,
@@ -117,6 +133,14 @@ class Atn(ActorInterface, Proactor):
                 downstream=True,
             )
         )
+        self.machine = Machine(
+            model=self,
+            states=Atn.states,
+            transitions=Atn.transitions,
+            initial="DispatchDormantScadaNotReady",
+            send_event=False,
+        ) 
+        self.log(f"State is {self.state}")
         self.is_simulated = self.settings.is_simulated
         self.latest_channel_values: Dict[str, int] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
@@ -319,6 +343,10 @@ class Atn(ActorInterface, Proactor):
     def _process_layout_lite(self, layout: LayoutLite) -> None:
         self.ha1_params = layout.Ha1Params
         self.logger.error(f"Just got layout: {self.ha1_params}")
+        if self.state == "DispatchDormantScadaNotReady":
+            # ScadaReadyReceived: DispatchDormantScadaNotReady -> DispatchDormantScadaReady
+            self.ScadaReadyReceived()
+        self.log(f"State is now {self.state}")
         self.temperature_channel_names = [
             x.Name
             for x in layout.DataChannels
@@ -392,6 +420,14 @@ class Atn(ActorInterface, Proactor):
         Will trigger Atn mode in scada, if the Scada gets this message
         and is in HomeAlone
         """
+        if not self.state == "DispatchDormantScadaReady":
+            self.log("Scada not ready! Not taking control")
+            return
+        elif not self.latest_channel_values:
+            self.log("Not taking control! Do not have latest channel values")
+            return
+        # AtnWantsControl: DispatchDormantScadaReady -> DispatchLive
+        self.AtnWantsControl()
         self.send_threadsafe(
             Message(
                 Src=self.name,
@@ -402,11 +438,14 @@ class Atn(ActorInterface, Proactor):
                 ),
             )
         )
+        self.log(f"Wants control! State is now {self.state}")
 
     def release_control(self) -> float:
         """
         If scada is in Atn mode, will go to Homealone
         """
+        if self.state == "DispatchLive":
+            self.AtnReleasesControl()
         self.send_threadsafe(
             Message(
                 Src=self.name,
@@ -627,103 +666,103 @@ class Atn(ActorInterface, Proactor):
         self._tasks.append(
             asyncio.create_task(self.fake_market_maker(), name="fake market maker")
         )
+        self._tasks.append
 
     async def main(self):
         while not self._stop_requested:
             await asyncio.sleep(5)
-            while self.ha1_params is None:
-                self.send_layout()
-                await asyncio.sleep(2)
-            while not self.latest_channel_values:
-                self.log("Waiting for a snapshot")
-                await asyncio.sleep(15)
-            try:
-                self.run_d()
-            except Exception as e:
-                self.log(f"Exception running Dijkstra: {e}")
+            if datetime.now().minute >= 55 and not self.sent_bid:
+                if self.state == "DispatchLive":
+                    # In the last 5 minutes of the hour: make a bid for the next hour
+                    try:
+                        self.run_d()
+                    except Exception as e:
+                        self.log(f"Exception running Dijkstra: {e}")
+                else:
+                    self.log(f"In the last 5 minutes but not running d. State is {self.state}")
+            elif datetime.now().minute <= 55 and self.sent_bid:
+                self.sent_bid = False
+            else:
+                self.log(f"Minute {datetime.now().minute}")
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def run_d(self) -> None:
         # In the last 5 minutes of the hour: make a bid for the next hour
-        if datetime.now().minute >= 55 and not self.sent_bid:
+        if datetime.now().minute < 55 or self.sent_bid:
+            self.log("NOT RUNNING Dijsktra! Either not in last 5 minutes or already sent bid")
+            return
+        self.get_weather_forecast()
+        self.get_price_forecast()
 
-            self.get_weather_forecast()
-            self.get_price_forecast()
+        self.log("Finding thermocline position and top temperature")
+        initial_toptemp, initial_thermocline = self.get_thermocline_and_centroids()
+        if (initial_toptemp, initial_thermocline) is None:
+            self.log("Can not run Dijkstra. Releasing control of Scada!")
+            self.release_control()
+            return
 
-            self.log("Finding thermocline position and top temperature")
-            initial_toptemp, initial_thermocline = self.get_thermocline_and_centroids()
-            if (initial_toptemp, initial_thermocline) is None:
-                self.log("Can not run Dijkstra. Releasing control of Scada!")
-                self.release_control()
-                return
-
-            configuration = FloParamsHouse0(
-                StartUnixS=int(
-                    datetime.timestamp(
-                        (datetime.now() + timedelta(hours=1)).replace(
-                            minute=0, second=0, microsecond=0
-                        )
+        configuration = FloParamsHouse0(
+            StartUnixS=int(
+                datetime.timestamp(
+                    (datetime.now() + timedelta(hours=1)).replace(
+                        minute=0, second=0, microsecond=0
                     )
-                ),
-                InitialTopTemp=initial_toptemp,
-                InitialThermocline=initial_thermocline * 2,
-                DpForecastUsdMwh=self.price_forecast["dp"],
-                LmpForecastUsdMwh=self.price_forecast["lmp"],
-                OatForecastF=self.weather_forecast["oat"],
-                WindSpeedForecastMph=self.weather_forecast["ws"],
-                AlphaTimes10=self.ha1_params.AlphaTimes10,
-                BetaTimes100=self.ha1_params.BetaTimes100,
-                GammaEx6=self.ha1_params.GammaEx6,
-                IntermediatePowerKw=self.ha1_params.IntermediatePowerKw,
-                IntermediateRswtF=self.ha1_params.IntermediateRswtF,
-                DdPowerKw=self.ha1_params.DdPowerKw,
-                DdRswtF=self.ha1_params.DdRswtF,
-                DdDeltaTF=self.ha1_params.DdDeltaTF,
-                MaxEwtF=self.ha1_params.MaxEwtF,
-            )
+                )
+            ),
+            InitialTopTemp=initial_toptemp,
+            InitialThermocline=initial_thermocline * 2,
+            DpForecastUsdMwh=self.price_forecast["dp"],
+            LmpForecastUsdMwh=self.price_forecast["lmp"],
+            OatForecastF=self.weather_forecast["oat"],
+            WindSpeedForecastMph=self.weather_forecast["ws"],
+            AlphaTimes10=self.ha1_params.AlphaTimes10,
+            BetaTimes100=self.ha1_params.BetaTimes100,
+            GammaEx6=self.ha1_params.GammaEx6,
+            IntermediatePowerKw=self.ha1_params.IntermediatePowerKw,
+            IntermediateRswtF=self.ha1_params.IntermediateRswtF,
+            DdPowerKw=self.ha1_params.DdPowerKw,
+            DdRswtF=self.ha1_params.DdRswtF,
+            DdDeltaTF=self.ha1_params.DdDeltaTF,
+            MaxEwtF=self.ha1_params.MaxEwtF,
+        )
 
-            self.log("Creating graph")
-            st = time.time()
-            g = DGraph(configuration)
-            self.log(f"Done in {round(time.time()-st,2)} seconds")
-            self.log("Solving Dijkstra")
-            g.solve_dijkstra()
-            self.log("Solved!")
-            self.log("Finding PQ pairs")
-            st = time.time()
-            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
-            self.log(
-                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
-            )
-            # TODO: remove this later
-            if len(pq_pairs) > 100:
-                self.log("TOO MANY PQ PAIRS!")
+        self.log("Creating graph")
+        st = time.time()
+        g = DGraph(configuration)
+        self.log(f"Done in {round(time.time()-st,2)} seconds")
+        self.log("Solving Dijkstra")
+        g.solve_dijkstra()
+        self.log("Solved!")
+        self.log("Finding PQ pairs")
+        st = time.time()
+        pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
+        self.log(
+            f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
+        )
+        # TODO: remove this later
+        if len(pq_pairs) > 100:
+            self.log("TOO MANY PQ PAIRS!")
 
-            # Generate bid
-            t = time.time()
-            slot_start_s = int(t - (t % 3600))
-            mtn = MarketTypeName.rt60gate5.value
-            market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-            bid = AtnBid(
-                BidderAlias=self.layout.atn_g_node_alias,
-                MarketSlotName=market_slot_name,
-                PqPairs=pq_pairs,
-                InjectionIsPositive=False,  # withdrawing energy since load not generation
-                PriceUnit=MarketPriceUnit.USDPerMWh,
-                QuantityUnit=MarketQuantityUnit.AvgkW,
-                SignedMarketFeeTxn="BogusAlgoSignature",
-            )
-            self._links.publish_message(
-                self.SCADA_MQTT, Message(Src=self.name, Dst="broadcast", Payload=bid)
-            )
-            self.latest_bid = bid
-            self.log(f"Bid: {bid}")
-            self.sent_bid = True
-
-        elif datetime.now().minute <= 55 and self.sent_bid:
-            self.sent_bid = False
-        else:
-            self.log(f"Minute {datetime.now().minute}")
+        # Generate bid
+        t = time.time()
+        slot_start_s = int(t - (t % 3600))
+        mtn = MarketTypeName.rt60gate5.value
+        market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
+        bid = AtnBid(
+            BidderAlias=self.layout.atn_g_node_alias,
+            MarketSlotName=market_slot_name,
+            PqPairs=pq_pairs,
+            InjectionIsPositive=False,  # withdrawing energy since load not generation
+            PriceUnit=MarketPriceUnit.USDPerMWh,
+            QuantityUnit=MarketQuantityUnit.AvgkW,
+            SignedMarketFeeTxn="BogusAlgoSignature",
+        )
+        self._links.publish_message(
+            self.SCADA_MQTT, Message(Src=self.layout.atn_g_node_alias, Dst="broadcast", Payload=bid)
+        )
+        self.latest_bid = bid
+        self.log(f"Bid: {bid}")
+        self.sent_bid = True
 
     def latest_price_received(self, payload: LatestPrice) -> None:
         self.log("Received latest price")
