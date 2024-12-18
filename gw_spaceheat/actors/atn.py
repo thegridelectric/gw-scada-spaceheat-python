@@ -758,7 +758,8 @@ class Atn(ActorInterface, Proactor):
             SignedMarketFeeTxn="BogusAlgoSignature",
         )
         self._links.publish_message(
-            self.SCADA_MQTT, Message(Src=self.layout.atn_g_node_alias, Dst="broadcast", Payload=bid)
+            self.SCADA_MQTT, 
+            Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
         )
         self.latest_bid = bid
         self.log(f"Bid: {bid}")
@@ -1093,10 +1094,12 @@ class Atn(ActorInterface, Proactor):
             slot_start_s = int(now) - int(now) % 300
             mtn = MarketTypeName.rt60gate5.value
             market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
+            pricex1000 = int(self.get_price() * 1000)
+            self.log(f"Trying to Broadcasting price(x1000) {pricex1000} at the top of the hour.")
             try:
                 price = LatestPrice(
                     FromGNodeAlias=Atn.P_NODE,
-                    PriceTimes1000=self.get_price(),
+                    PriceTimes1000=pricex1000,
                     PriceUnit=MarketPriceUnit.USDPerMWh,
                     MarketSlotName=market_slot_name,
                     MessageId=str(uuid.uuid4()),
@@ -1104,9 +1107,9 @@ class Atn(ActorInterface, Proactor):
                 self.send_threadsafe(
                     Message(Src=self.name, Dst=self.name, Payload=price)
                 )
-            except Exception:
-                self.log("Problem generating or sending a LatestPrice")
-            print("Broadcasting price at the top of the hour.")
+            except Exception as e:
+                self.log(f"Problem generating or sending a LatestPrice: {e}")
+            
 
     def log(self, note: str) -> None:
         log_str = f"[atn] {note}"
