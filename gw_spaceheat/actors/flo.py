@@ -282,14 +282,14 @@ class DGraph():
                 pathcost_from_nextnode.append(e.head.pathcost)
             cost_to_nextnode = [x*elec_price/100 for x in elec_to_nextnode]
             pathcost_from_current_node = [x+y for x,y in zip(cost_to_nextnode, pathcost_from_nextnode)]
-            min_pathcost_elec = round(elec_to_nextnode[pathcost_from_current_node.index(min(pathcost_from_current_node))],2)
+            min_pathcost_elec = elec_to_nextnode[pathcost_from_current_node.index(min(pathcost_from_current_node))]
             if self.pq_pairs:
-                # TODO: instead of not equal, say if difference is bigger than a certain number of Wh?
-                if self.pq_pairs[-1].QuantityTimes1000 != int(min_pathcost_elec * 1000):
+                # Record a new pair if at least 0.01 kWh of difference in quantity with the previous one
+                if self.pq_pairs[-1].QuantityTimes1000 - int(min_pathcost_elec * 1000) > 10:
                     self.pq_pairs.append(
                         PriceQuantityUnitless(
                             PriceTimes1000 = int(elec_price*10 * 1000),         # usd/mwh * 1000
-                            QuantityTimes1000 = int(min_pathcost_elec * 1000))  # kWh * 1000
+                            QuantityTimes1000 = int(min_pathcost_elec * 1000))  # kWh * 1000 = Wh
                     )
             else:
                 self.pq_pairs.append(

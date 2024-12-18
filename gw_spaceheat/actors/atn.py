@@ -151,13 +151,7 @@ class Atn(ActorInterface, Proactor):
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast = None
         self.data_channels: List
-        # TODO use hardware layout to define the temperature_channel_names
-        self.temperature_channel_names = [
-            'buffer-depth1', 'buffer-depth2', 'buffer-depth3', 'buffer-depth4',
-            'tank1-depth1', 'tank1-depth2', 'tank1-depth3', 'tank1-depth4',
-            'tank2-depth1', 'tank2-depth2', 'tank2-depth3', 'tank2-depth4',
-            'tank3-depth1', 'tank3-depth2', 'tank3-depth3', 'tank3-depth4',
-            ]
+        self.temperature_channel_names = None
         self.ha1_params: Optional[Ha1Params] = None
         self.latest_report: Optional[Report] = None
         self.report_output_dir = self.settings.paths.data_dir / "report"
@@ -330,15 +324,18 @@ class Atn(ActorInterface, Proactor):
             self._logger.warning(self.snapshot_str(snapshot))
         for reading in snapshot.LatestReadingList:
             self.latest_channel_values[reading.ChannelName] = reading.Value
-        if self.is_simulated:
+        if self.is_simulated and self.temperature_channel_names is not None:
             for channel in self.temperature_channel_names:
                 self.latest_channel_values[channel] = 60000
-
         self.log("Received and processed a SnapShot")
 
     def _process_layout_lite(self, layout: LayoutLite) -> None:
         self.ha1_params = layout.Ha1Params
         self.logger.error(f"Just got layout: {self.ha1_params}")
+        self.temperature_channel_names = [
+            x for x in layout.DataChannels 
+            if 'depth' in x.Name and 'mv' not in x.Name]
+        self.log(self.temperature_channel_names)
 
     def _process_report(self, report: Report) -> None:
         self.data.latest_report = report
@@ -397,7 +394,7 @@ class Atn(ActorInterface, Proactor):
                         ),
                     )
         )
-        self.logger.error("Requesting layout")
+        self.log("Requesting layout")
 
     def take_control(self) -> float:
         """
@@ -621,7 +618,6 @@ class Atn(ActorInterface, Proactor):
             await asyncio.sleep(5)
             while self.ha1_params is None:
                 self.send_layout()
-                self.log("Sent layout")
                 await asyncio.sleep(2)
             while not self.latest_channel_values:
                 self.log("Waiting for a snapshot")
@@ -674,7 +670,10 @@ class Atn(ActorInterface, Proactor):
             self.log("Finding PQ pairs")
             st = time.time()
             pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
-            self.log(f"Found in {round(time.time()-st,2)} seconds")
+            self.log(f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds")
+            # TODO: remove this later
+            if len(pq_pairs) > 100:
+                self.log("TOO MANY PQ PAIRS!")
 
             # Generate bid
             t = time.time()
@@ -719,6 +718,9 @@ class Atn(ActorInterface, Proactor):
         self.latest_temperatures = {k:self.latest_temperatures[k] for k in sorted(self.latest_temperatures)}
 
     def get_latest_temperatures(self):
+        if self.temperature_channel_names is None:
+            self.temperatures_available = False
+            return
         if not self.settings.is_simulated:
             temp = {
                 x: self.latest_channel_values[x] 
