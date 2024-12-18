@@ -18,6 +18,8 @@ class AdminLinkSettings(MQTTClient):
 
 class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""
+    #logging related (temporary)
+    pico_cycler_state_logging: bool = False
     local_mqtt: MQTTClient = MQTTClient()
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300

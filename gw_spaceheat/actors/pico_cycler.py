@@ -186,7 +186,6 @@ class PicoCycler(ScadaActor):
         if actor not in self.pico_actors:
             return
         if pico in self.zombies:
-            # self.log(f"Zombie {actor.name} {pico} reporting missing.")
             return
         if self.pico_states[pico] == SinglePicoState.Alive:
             # this pico is now flatlined if it was not before
@@ -479,8 +478,8 @@ class PicoCycler(ScadaActor):
                 UnixMsList=[now_ms],
             ),
         )
-        self.services.logger.error(
-            f"[{self.name}] {event.value}: {orig_state} -> {self.state}"
+        self.state_log(
+            f"{event.value}: {orig_state} -> {self.state}"
         )
         return True
 
@@ -559,4 +558,9 @@ class PicoCycler(ScadaActor):
                     ]).problem_event(summary="pico-zombies"),
                 )
                 self.last_zombie_problem_report_s = time.time()
+
+    def pico_state_log(self, note: str) -> None:
+        log_str = f"[PicoCyclerState] {note}"
+        if self.settings.pico_cycler_state_logging:
+            self.services.logger.error(log_str)
     

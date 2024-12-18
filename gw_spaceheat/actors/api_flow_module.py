@@ -223,7 +223,7 @@ class ApiFlowModule(ScadaActor):
             except Exception as e:
                 try:
                     if not isinstance(e, asyncio.CancelledError):
-                        self.services.logger.exception(e)
+                        self.log(e)
                         self._send(
                             InternalShutdownMessage(
                                 Src=self.name,
@@ -302,7 +302,7 @@ class ApiFlowModule(ScadaActor):
                 f"{self.name} has {self._component.cac.MakeModel}"
                 "but got FlowHallParams!"
             )
-        self.log(f"{params.HwUid} PARAMS")
+        self.pico_state_log(f"{params.HwUid} PARAMS")
         # temporary hack prior to installerapp - in case a pico gets installed
         # and the hardware layout does not have its id yet
         if self._component.gt.HwUid is None or self._component.gt.HwUid == params.HwUid:
@@ -341,7 +341,7 @@ class ApiFlowModule(ScadaActor):
                 f"{self.name} has {self._component.cac.MakeModel}"
                 "but got FlowReedParams!"
             )
-        self.log(f"{params.HwUid} PARAMS")
+        self.pico_state_log(f"{params.HwUid} PARAMS")
         if self._component.gt.HwUid is None or self._component.gt.HwUid == params.HwUid:
             if self._component.gt.HwUid is None:
                 self.hw_uid = params.HwUid
@@ -766,3 +766,8 @@ class ApiFlowModule(ScadaActor):
         if H0N.pico_cycler in self.layout.nodes:
             return self.layout.nodes[H0N.pico_cycler]
         return None
+
+    def pico_state_log(self, note: str) -> None:
+        log_str = f"[PicoRelated] {note}"
+        if self.settings.pico_cycler_state_logging:
+            self.services.logger.error(log_str)
