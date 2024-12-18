@@ -62,19 +62,17 @@ class Relays(Widget):
             yield DataTable(id="message_table", classes="undisplayed")
 
     def on_mount(self) -> None:
-        table = self.query_one(DataTable)
+        table = self.query_one("#message_table", DataTable)
         table.add_columns(
             "Time", "Type", "Payload",
         )
 
     class RelayStateChange(Message):
-
         def __init__(self, changes: dict[str, ObservedRelayStateChange]) -> None:
             self.changes = changes
             super().__init__()
 
     class ConfigChange(Message):
-
         def __init__(self, changes: dict[str, RelayConfigChange]) -> None:
             self.changes = changes
             super().__init__()
@@ -146,22 +144,22 @@ class Relays(Widget):
     def on_relays_layout(self, message: Layout) -> None:
         self.query_one(MqttState).message_count += 1
         self.query_one(MqttState).layout_count += 1
-        self.query_one(DataTable).add_row(
+        self.query_one("#message_table", DataTable).add_row(
             datetime.datetime.now(),
             type_name(LayoutLite),
             message.layout,
         )
-        self.query_one(DataTable).scroll_end()
+        self.query_one("#message_table", DataTable).scroll_end()
 
     def on_relays_snapshot(self, message: Snapshot) -> None:
         self.query_one(MqttState).message_count += 1
         self.query_one(MqttState).snapshot_count += 1
-        self.query_one(DataTable).add_row(
+        self.query_one("#message_table", DataTable).add_row(
             datetime.datetime.now(),
             type_name(SnapshotSpaceheat),
             message.snapshot,
         )
-        self.query_one(DataTable).scroll_end()
+        self.query_one("#message_table", DataTable).scroll_end()
     
     def on_mqtt_state_change(self, message: Mqtt.StateChange):
         self.query_one(MqttState).mqtt_state = message.new_state
@@ -169,12 +167,12 @@ class Relays(Widget):
     def on_mqtt_receipt(self, message: Mqtt.Receipt):
         self.query_one(MqttState).message_count += 1
         payload = json.loads(message.payload.decode("utf-8"))
-        self.query_one(DataTable).add_row(
+        self.query_one("#message_table", DataTable).add_row(
             datetime.datetime.now(),
             MQTTTopic.decode(message.topic).message_type,
             str(payload.get("Payload", payload))
         )
-        self.query_one(DataTable).scroll_end()
+        self.query_one("#message_table", DataTable).scroll_end()
 
     def relay_client_callbacks(self) -> RelayClientCallbacks:
         return RelayClientCallbacks(

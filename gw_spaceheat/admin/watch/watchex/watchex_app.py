@@ -13,16 +13,16 @@ from admin.settings import AdminClientSettings
 from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
+from admin.watch.watchex.relays2 import Relays2
 from admin.watch.widgets.relay1 import Relay1
 from admin.watch.widgets.relay2 import Relay2
 from admin.watch.widgets.relay2 import RelayControlButtons
-from admin.watch.widgets.relays import Relays
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
 
 
-class RelaysApp(App):
+class WatchExApp(App):
     TITLE: str = "I am a teapot"
     title: str = reactive(TITLE)
     dark: Reactive[bool]
@@ -41,7 +41,7 @@ class RelaysApp(App):
         ("2", "toggle_v2", "Toggle v2 display"),
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
-    CSS_PATH = "relay_app.tcss"
+    CSS_PATH = "watchex_app.tcss"
 
     def __init__(
         self,
@@ -71,7 +71,7 @@ class RelaysApp(App):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header(show_clock=True)
-        relays = Relays(logger=logger)
+        relays = Relays2(logger=logger)
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
         yield relays
         yield Footer()
@@ -137,5 +137,5 @@ if __name__ == "__main__":
     settings_ = AdminClientSettings(_env_file=dotenv.find_dotenv())
     settings_.verbosity = logging.DEBUG
     # settings_.paho_verbosity = logging.DEBUG
-    app = RelaysApp(settings=settings_)
+    app = WatchExApp(settings=settings_)
     app.run()

@@ -1,0 +1,128 @@
+Screen {
+    layout: vertical;
+}
+
+#mqtt_state {
+    height: 1fr;
+    border: solid $border;
+}
+
+#relays_table {
+    height: 10fr;
+    border: solid $border;
+}
+
+
+#relay_scroll {
+    height: 10fr;
+    border: solid $border;
+}
+
+#message_table {
+    height: 3fr;
+    border: solid $border;
+}
+
+Button {
+    margin: 1 2;
+}
+
+RelayButton {
+    margin: 1 2;
+}
+
+
+Relay {
+    layout: horizontal;
+    background: $boost;
+    height: auto;
+    width: auto;
+}
+
+Relay1 {
+    layout: horizontal;
+    visibility: visible;
+    height: auto;
+    width: 110;
+}
+
+Relay2 {
+    layout: horizontal;
+    visibility: visible;
+    height: auto;
+}
+
+Relay2 > * {
+    border: solid $success-lighten-3;
+}
+
+Relay2 #relay_channel_name {
+    dock: left;
+    width: 30;
+    height: 5;
+    text-align: center;
+}
+
+
+RelayStateText {
+    width: 30;
+    height: 5;
+    text-align: center;
+}
+
+RelayControlButtons {
+    width: 67;
+    margin: 0 0;
+    padding: 0 0;
+}
+
+#deenergized_button {
+    width: 1fr;
+    width: 30;
+    height: 3;
+    margin: 0 1;
+    padding: 0 0;
+}
+
+#energized_button {
+    width: 30;
+    height: 3;
+    margin: 0 1;
+    padding: 0 0;
+}
+
+Relay1 #relay_channel_name {
+    dock: left;
+    width: 30;
+    border: solid $accent;
+    text-align: center;
+}
+
+Relay1 #relay_energized {
+    border: solid $accent;
+    width: 30;
+    text-align: center;
+}
+
+Relay1 #relay_switch_label {
+    width: 30;
+    border: solid $accent;
+    align-horizontal: right;
+    text-align: right;
+}
+
+Relay1 #relay_switch {
+    width: auto;
+    height: auto;
+    border: solid $accent;
+}
+
+Relays {
+    content-align: center middle;
+    text-opacity: 60%;
+    height: 14fr;
+}
+
+.undisplayed {
+    display: none;
+}

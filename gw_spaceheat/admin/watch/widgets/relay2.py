@@ -23,7 +23,11 @@ class RelayWidgetConfig(RelayConfig):
     deenergized_icon: str = "-"
     show_icon: bool = True
 
-    def get_state_str(self, energized: bool) -> str:
+    @classmethod
+    def from_config(cls, config: RelayConfig) -> "RelayWidgetConfig":
+        return RelayWidgetConfig(**config.model_dump())
+
+    def get_state_str(self, energized: Optional[bool]) -> str:
         if energized is None:
             icon = "?"
             description = "?"
