@@ -150,9 +150,9 @@ class ApiTankModule(ScadaActor):
             params = TankModuleParams(**json.loads(text))
         except BaseException as e:
             self._report_post_error(e, "malformed tankmodule parameters!")
-            return
+            return Response()
         if params.ActorNodeName != self.name:
-            return
+            return Response()
 
         if self.is_valid_pico_uid(params):
             cfg = next(
@@ -176,9 +176,6 @@ class ApiTankModule(ScadaActor):
                 AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroVolts,
                 CaptureOffsetS=offset,
             )
-            self.log("New params:")
-            self.log(new_params)
-            self.log(new_params.model_dump_json())
             if self.need_to_update_layout(params):
                 if params.PicoAB == "a":
                     self.pico_a_uid = params.HwUid
