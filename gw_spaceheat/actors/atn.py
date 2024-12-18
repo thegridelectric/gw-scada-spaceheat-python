@@ -147,6 +147,7 @@ class Atn(ActorInterface, Proactor):
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
         self.sent_bid = False
+        self.latest_bid = None
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast = None
@@ -226,6 +227,9 @@ class Atn(ActorInterface, Proactor):
             case EnergyInstruction():
                 path_dbg |= 0x00000080
                 self._publish_to_scada(message.Payload)
+            case LatestPrice():
+                path_dbg |= 0x00000100
+                self.latest_price_received(message.Payload)
             case ScadaParams():
                 path_dbg |= 0x00000004
                 self._publish_to_scada(message.Payload)
@@ -693,6 +697,7 @@ class Atn(ActorInterface, Proactor):
                 QuantityUnit=MarketQuantityUnit.AvgkW,
                 SignedMarketFeeTxn="BogusAlgoSignature"
             )
+            self.latest_bid = bid
             self.log(f"Bid: {bid}")
             self.sent_bid = True
 
@@ -700,6 +705,21 @@ class Atn(ActorInterface, Proactor):
             self.sent_bid = False
         else:
             self.log(f"Minute {datetime.now().minute}")
+
+    def latest_price_received(self, payload: LatestPrice) -> None:
+        self.log("Received latest price")
+        if datetime.now(self.timezone).minute != 0 and datetime.now(self.timezone).second <= 5:
+            self.log("The latest price was not received within the first 5 seconds of the hour. Abort.")
+            return
+        pq_pairs = [(x.PriceTimes1000, x.QuantityTimes1000) for x in self.latest_bid.PqPairs]
+        sorted_pq_pairs = sorted(pq_pairs, key=lambda pair: pair[0], reverse=True)
+        quantity = None
+        for pair in sorted_pq_pairs:
+            if pair[0] < payload.PriceTimes1000 and quantity is None:
+                quantity = pair[1]/1000
+        time_left_in_hour = 3600 # TODO: first time step in Dijkstra can be < 1h
+        energy_wh = quantity * time_left_in_hour/3600
+        self.send_energy_instr(watthours=energy_wh)
 
     def to_fahrenheit(self, t:float) -> float:
         return t*9/5+32
@@ -942,7 +962,7 @@ class Atn(ActorInterface, Proactor):
         current_hour = datetime.now(tz=self.timezone).hour
         return price_by_hr[(current_hour - 1) % len(price_by_hr)]
     
-    async def broadcast_price(self):
+    async def fake_market_maker(self):
         while True:
             # Calculate the time to the next top of the hour
             now = time.time()
@@ -955,18 +975,18 @@ class Atn(ActorInterface, Proactor):
             slot_start_s = int(now) - int(now) % 300
             mtn = MarketTypeName.rt60gate5.value
             market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-
-            price = LatestPrice(
-                FromGNodeAlias="hw1.isone.me.versant.keene",
-                PriceTimes1000=3,
-                PriceUnit=MarketPriceUnit.USDPerMWh,
-                MarketSlotName=market_slot_name,
-                MessageId=str(uuid.uuid4())
-            )
+            try:
+                price = LatestPrice(
+                    FromGNodeAlias=Atn.P_NODE,
+                    PriceTimes1000=self.get_price(),
+                    PriceUnit=MarketPriceUnit.USDPerMWh,
+                    MarketSlotName=market_slot_name,
+                    MessageId=str(uuid.uuid4())
+                )
+                self.send_threadsafe(Message(Src=self.name, Dst=self.name, Payload=price))
+            except Exception as e:
+                self.log("Problem generating or sending a LatestPrice") 
             print("Broadcasting price at the top of the hour.")
-
-    async def fake_market_maker(self) -> None:
-
 
     def log(self, note: str) ->None:
         log_str = f"[atn] {note}"

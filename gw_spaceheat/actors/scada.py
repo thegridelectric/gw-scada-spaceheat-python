@@ -605,12 +605,15 @@ class Scada(ScadaInterface, Proactor):
             case DispatchContractGoLive():
                 self.atn_wants_control(decoded.Payload)
             case EnergyInstruction():
+                try:
+                    self.get_communicator(H0N.synth_generator).process_message(decoded)
+                except Exception as e:
+                    self.logger.error(f"In SynthGenerator: Problem with {message.Header}: {e}")
                 if self.auto_state == MainAutoState.Atn:
                     try:
-                        self.get_communicator(H0N.synth_generator).process_message(decoded)
                         self.get_communicator(H0N.atomic_ally).process_message(decoded)
                     except Exception as e:
-                        self.logger.error(f"Problem with {message.Header}: {e}")
+                        self.logger.error(f"In AtomicAlly: Problem with {message.Header}: {e}")
 
             case SendLayout():
                 path_dbg |= 0x00000004
