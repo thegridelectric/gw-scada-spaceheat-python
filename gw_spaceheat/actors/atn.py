@@ -697,6 +697,10 @@ class Atn(ActorInterface, Proactor):
                 QuantityUnit=MarketQuantityUnit.AvgkW,
                 SignedMarketFeeTxn="BogusAlgoSignature"
             )
+            self._links.publish_message(self.SCADA_MQTT,
+                                        Message(Src=self.name,
+                                                Dst="broadcast",
+                                                Payload=bid))
             self.latest_bid = bid
             self.log(f"Bid: {bid}")
             self.sent_bid = True
