@@ -16,7 +16,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
+from named_types import EnergyInstruction, Ha1Params
 
 # -------------- TODO: move to named_types -------------
 from typing import Literal
@@ -159,13 +159,9 @@ class SynthGenerator(ScadaActor):
         match message.Payload:
             case EnergyInstruction():
                 self.process_energy_instruction(message.Payload)
-            case GoDormant():
-                ...
             case PowerWatts():
                 self.update_remaining_elec()
                 self.previous_watts = message.Payload.Watts
-            case WakeUp():
-                ...
         return Ok(True)
     
     def fill_missing_store_temps(self):
