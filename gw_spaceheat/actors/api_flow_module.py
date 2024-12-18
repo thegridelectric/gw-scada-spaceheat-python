@@ -292,9 +292,9 @@ class ApiFlowModule(ScadaActor):
             params = FlowHallParams(**json.loads(text))
         except BaseException as e:
             self._report_post_error(e, "malformed FlowHall parameters!")
-            return
+            return Response()
         if params.FlowNodeName != self._component.gt.FlowNodeName:
-            return
+            return Response()
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
             raise Exception(
                 f"{self.name} has {self._component.cac.MakeModel}"
@@ -314,6 +314,7 @@ class ApiFlowModule(ScadaActor):
                 PublishTicklistPeriodS=self._component.gt.PublishTicklistPeriodS,
                 PublishEmptyTicklistAfterS=self._component.gt.PublishEmptyTicklistAfterS,
             )
+            self.log(new_params.model_dump_json())
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
@@ -329,9 +330,9 @@ class ApiFlowModule(ScadaActor):
             params = FlowReedParams(**json.loads(text))
         except BaseException as e:
             self._report_post_error(e, "malformed tankmodule parameters!")
-            return
+            return Response()
         if params.FlowNodeName != self._component.gt.FlowNodeName:
-            return
+            return Response()
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
             raise Exception(
                 f"{self.name} has {self._component.cac.MakeModel}"
@@ -353,6 +354,7 @@ class ApiFlowModule(ScadaActor):
                 PublishAnyTicklistAfterS=self._component.gt.PublishAnyTicklistAfterS,
                 DeadbandMilliseconds=params.DeadbandMilliseconds,
             )
+            self.log(new_params.model_dump_json())
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
