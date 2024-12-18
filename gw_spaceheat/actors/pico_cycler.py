@@ -478,7 +478,7 @@ class PicoCycler(ScadaActor):
                 UnixMsList=[now_ms],
             ),
         )
-        self.state_log(
+        self.pico_state_log(
             f"{event.value}: {orig_state} -> {self.state}"
         )
         return True
