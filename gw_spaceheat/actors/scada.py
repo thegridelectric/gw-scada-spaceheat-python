@@ -464,12 +464,6 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case EnergyInstruction():
-                try:
-                    self.get_communicator(H0N.synth_generator).process_message(message)
-                    self.get_communicator(H0N.atomic_ally).process_message(message)
-                except Exception as e:
-                    self.logger.error(f"Problem with {message.Header}: {e}")
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
@@ -607,6 +601,14 @@ class Scada(ScadaInterface, Proactor):
                 self._analog_dispatch_received(decoded.Payload)
             case DispatchContractCounterpartyRequest():
                 self.atn_wants_control(decoded.Payload)
+            case EnergyInstruction():
+                if self.auto_state == MainAutoState.Atn:
+                    try:
+                        self.get_communicator(H0N.synth_generator).process_message(decoded)
+                        self.get_communicator(H0N.atomic_ally).process_message(decoded)
+                    except Exception as e:
+                        self.logger.error(f"Problem with {message.Header}: {e}")
+
             case SendLayout():
                 path_dbg |= 0x00000004
                 self._send_layout_lite(self.upstream_client)

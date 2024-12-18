@@ -225,6 +225,9 @@ class Atn(ActorInterface, Proactor):
             case DispatchContractCounterpartyRequest():
                 path_dbg |= 0x00000002
                 self._publish_to_scada(message.Payload)
+            case EnergyInstruction():
+                path_dbg |= 0x00000080
+                self._publish_to_scada(message.Payload)
             case ScadaParams():
                 path_dbg |= 0x00000004
                 self._publish_to_scada(message.Payload)
@@ -490,7 +493,6 @@ class Atn(ActorInterface, Proactor):
                 self.logger.error(f"Failed to set DdDeltaTF! {e}")
 
     def set_dist_010(self, val: int = 30) -> None:
-        # TODO: remove lie about this being from auto
         self.send_threadsafe(
              Message(
                 Src=self.name,
@@ -620,7 +622,7 @@ class Atn(ActorInterface, Proactor):
                         
             self.log("Finding thermocline position and top temperature")
             initial_toptemp, initial_thermocline = self.get_thermocline_and_centroids()
-            if (initial_toptemp, initial_thermocline) == (0,0):
+            if (initial_toptemp, initial_thermocline) is None:
                 self.log("Can not run Dijkstra!")
                 # TODO go to HomeAlone?
                 return
@@ -721,18 +723,18 @@ class Atn(ActorInterface, Proactor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
-    def get_thermocline_and_centroids(self) -> Tuple[float, int]:
+    def get_thermocline_and_centroids(self) -> Optional[Tuple[float, int]]:
         # Get all tank temperatures in a dict, if you can't abort
         self.get_latest_temperatures()
         if not self.temperatures_available:
             self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
-            return 0, 0
+            return None
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
         try:
             tank_temps = {key: self.to_fahrenheit(self.latest_temperatures[key]/1000) for key in all_store_layers}
         except KeyError as e:
             self.log(f"Failed to get all the tank temps in get_thermocline_and_centroids! Bailing on process {e}")
-            return 0, 0
+            return None
         # Process the temperatures before clustering
         processed_temps = []
         for key in tank_temps:
@@ -777,70 +779,34 @@ class Atn(ActorInterface, Proactor):
         else:
             bottom_centroid_f = min(cluster_top)
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
-        # Post values
-        t_ms = int(time.time() * 1000)
-        sr_thermocline = SingleReading(
-            ChannelName="thermocline-position",
-            Value=thermocline,
-            ScadaReadTimeUnixMs=t_ms,
-            )
-        sr_top_centroid = SingleReading(
-            ChannelName="top-centroid",
-            Value=int(top_centroid_f*1000),
-            ScadaReadTimeUnixMs=t_ms,
-            )
-        sr_bottom_centroid = SingleReading(
-            ChannelName="bottom-centroid",
-            Value=int(bottom_centroid_f*1000),
-            ScadaReadTimeUnixMs=t_ms,
-            )
-        # TODO
-        # self.send_threadsafe(
-        #     Message(
-        #         Src=self.name,
-        #         Dst=self.layout.node(H0N.primary_scada),
-        #         Payload=sr_thermocline,
-        #         )
-        #     )
-        # self.send_threadsafe(
-        #     Message(
-        #         Src=self.name,
-        #         Dst=self.layout.node(H0N.primary_scada),
-        #         Payload=sr_top_centroid,
-        #         )
-        #     )
-        # self.send_threadsafe(
-        #     Message(
-        #         Src=self.name,
-        #         Dst=self.layout.node(H0N.primary_scada),
-        #         Payload=sr_bottom_centroid,
-        #         )
-        #     )
+        # TODO: post top_centroid, thermocline, bottom_centroid as synthetic channels
         return top_centroid_f, thermocline
 
-    def send_energy_instr(self, watthours:int):
+    def send_energy_instr(self, watthours: int, slot_minutes: int = 60):
+        # wait until the top of the 5 minutes
         t = time.time()
         wait_s = 300 - t%300
         time.sleep(wait_s)
         t = time.time()
         slot_start_s = int(t - (t % 300))
+        # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
         if t - slot_start_s < 10:
-            sample_dispatch = EnergyInstruction(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    SlotStartS=slot_start_s,
-                    SlotDurationMinutes=60,
-                    SendTimeMs=int(time.time()*1000),
-                    AvgPowerWatts=int(watthours)
+            payload = EnergyInstruction(
+                        FromGNodeAlias=self.layout.atn_g_node_alias,
+                        SlotStartS=slot_start_s,
+                        SlotDurationMinutes=slot_minutes,
+                        SendTimeMs=int(time.time()*1000),
+                        AvgPowerWatts=int(watthours)
+                    )
+            self.payload = payload
+            self.log(f"Sent EnergyInstruction: {payload}")
+            self.send_threadsafe(
+                Message(
+                    Src=self.name,
+                    Dst=self.name,
+                    Payload=payload,
                 )
-            self.log(f"Sent EnergyInstruction: {sample_dispatch}")
-            # TODO
-            # self.send_threadsafe(
-            #     Message(
-            #         Src=self.name,
-            #         Dst=self.layout.node(H0N.synth_generator),
-            #         Payload=sample_dispatch,
-            #     )
-            # )
+            )
 
     def get_weather_forecast(self) -> None:
         config_dir = self.settings.paths.config_dir
@@ -942,7 +908,7 @@ class Atn(ActorInterface, Proactor):
         return labels
 
     def log(self, note: str) ->None:
-        log_str = f"[scada] {note}"
+        log_str = f"[atn] {note}"
         self.services.logger.error(log_str)
 
     def summary_str(self) -> str:
