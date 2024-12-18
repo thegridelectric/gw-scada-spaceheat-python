@@ -187,7 +187,11 @@ class ApiTankModule(ScadaActor):
                 # TODO: send message to self so that writing to hardware layout isn't
                 # happening in IO loop
             self.log(f"{self.name}-{params.PicoAB}, {params.HwUid} ")
-            return Response(text=new_params.model_dump_json())
+            try:
+                r = Response(text=new_params.model_dump_json())
+            except Exception as e:
+                self.log("There was an issue initializing a new response object!")
+            return r
         else:
             # A strange pico is identifying itself as our "a" tank
             self.log(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
