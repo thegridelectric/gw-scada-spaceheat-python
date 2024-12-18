@@ -1,19 +1,17 @@
-import numpy as np
 import time
-from datetime import datetime, timedelta
+import numpy as np
+from typing import Dict, List, Tuple, Optional, Literal
+from named_types import PriceQuantityUnitless, FloParamsHouse0
 from pydantic import BaseModel, StrictInt
-from typing import List, Literal, Optional
-from named_types.price_quantity_unitless import PriceQuantityUnitless
-from gwproto.property_format import LeftRightDotStr, UUID4Str, UTCSeconds
 
+from gwproto.property_format import UTCSeconds
 def to_kelvin(t):
     return (t-32)*5/9 + 273.15
 
 def to_celcius(t):
     return (t-32)*5/9
 
-
-class FloParamsHouse0(BaseModel):
+class OrigDConfig(BaseModel):
     # g_node_alias: LeftRightDotStr
     StartUnixS: UTCSeconds = int(time.time())
     TimezoneString: str = "America/New_York"
@@ -54,7 +52,6 @@ class FloParamsHouse0(BaseModel):
     Version: Literal["000"] = "000"
     # TODO add validators
 
-
 class DParams():
     def __init__(self, config: FloParamsHouse0) -> None:
         self.config = config
@@ -67,9 +64,9 @@ class DParams():
         self.initial_top_temp = config.InitialTopTempF
         self.initial_thermocline = config.InitialThermocline
         self.storage_losses_percent = config.StorageLossesPercent
-        self.reg_forecast = [x/10 for x in config.RegForecastUsdMwh[:self.horizon]]
-        self.dist_forecast = [x/10 for x in config.DistForecastUsdMwh[:self.horizon]]
-        self.lmp_forecast = [x/10 for x in config.LmpForecastUsdMwh[:self.horizon]]
+        self.reg_forecast = [x/10 for x in config.RegPriceForecast[:self.horizon]]
+        self.dist_forecast = [x/10 for x in config.DistPriceForecast[:self.horizon]]
+        self.lmp_forecast = [x/10 for x in config.LmpForecast[:self.horizon]]
         self.elec_price_forecast = [rp+dp+lmp for rp,dp,lmp in zip(self.reg_forecast, self.dist_forecast, self.lmp_forecast)]
         self.oat_forecast = config.OatForecastF[:self.horizon]
         self.ws_forecast = config.WindSpeedForecastMph[:self.horizon]
@@ -125,11 +122,17 @@ class DParams():
         d = 0 if swt<self.no_power_rswt else d
         return d if d>0 else 0
     
-    def delta_T_inverse(self, rwt):
+    def delta_T_inverse(self, rwt: float) -> float:
+        """Raise exception with quad coeffs and rwt if imaginary"""
         a, b, c = self.quadratic_coefficients
         aa = -self.dd_delta_t/self.dd_power * a
         bb = 1-self.dd_delta_t/self.dd_power * b
         cc = -self.dd_delta_t/self.dd_power * c
+        sqrt_argument = ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)
+        if sqrt_argument < 0:
+            raise Exception(f"Imaginary value in delta_T_inverse!. quad coeffs a, b, c = {a, b, c}"
+                            f" and rwt {rwt} result in sqrt of {sqrt_argument}")
+
         return -bb/(2*aa) - ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)**0.5 - rwt
     
     def get_quadratic_coeffs(self):
@@ -138,9 +141,9 @@ class DParams():
         A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
         return [float(x) for x in np.linalg.solve(A, y_hpower)] 
     
-    def get_available_top_temps(self):
-        available_temps = [round(self.initial_top_temp)]
-        x = round(self.initial_top_temp)
+    def get_available_top_temps(self) -> Tuple[Dict, Dict]:
+        available_temps = [self.initial_top_temp]
+        x = self.initial_top_temp
         while round(x + self.delta_T_inverse(x),2) <= 175:
             x = round(x + self.delta_T_inverse(x),2)
             available_temps.append(x)
@@ -192,8 +195,8 @@ class DNode():
 
 class DEdge():
     def __init__(self, tail:DNode, head:DNode, cost:float, hp_heat_out:float):
-        self.tail = tail
-        self.head = head
+        self.tail: DNode = tail
+        self.head: DNode = head
         self.cost = cost
         self.hp_heat_out = hp_heat_out
 
@@ -204,12 +207,13 @@ class DEdge():
 class DGraph():
     def __init__(self, config: FloParamsHouse0):
         self.params = DParams(config)
+        self.nodes: Dict[int, List[DNode]] = {}
+        self.edges: Dict[DNode, List[DEdge]] = {}
         self.create_nodes()
         self.create_edges()
 
     def create_nodes(self):
         self.initial_node = DNode(0, self.params.initial_top_temp, self.params.initial_thermocline, self.params)
-        self.nodes = {}
         for time_slice in range(self.params.horizon+1):
             self.nodes[time_slice] = [self.initial_node] if time_slice==0 else []
             self.nodes[time_slice].extend(
@@ -220,7 +224,7 @@ class DGraph():
             )
 
     def create_edges(self):
-        self.edges = {}
+        
         self.bottom_node = DNode(0, self.params.available_top_temps[1], 1, self.params)
         self.top_node = DNode(0, self.params.available_top_temps[-1], self.params.num_layers, self.params)
         
@@ -280,8 +284,8 @@ class DGraph():
     def generate_bid(self):
         self.pq_pairs = []
         min_elec_ctskwh, max_elec_ctskwh = -10, 200
-        for elec_price in range(min_elec_ctskwh*1000, max_elec_ctskwh*1000):
-            elec_price = elec_price/1000
+        for elec_price in range(min_elec_ctskwh*10, max_elec_ctskwh*10):
+            elec_price = elec_price/10
             elec_to_nextnode = []
             pathcost_from_nextnode = []
             for e in self.edges[self.initial_node]:
