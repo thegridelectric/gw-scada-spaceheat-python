@@ -314,7 +314,6 @@ class ApiFlowModule(ScadaActor):
                 PublishTicklistPeriodS=self._component.gt.PublishTicklistPeriodS,
                 PublishEmptyTicklistAfterS=self._component.gt.PublishEmptyTicklistAfterS,
             )
-            self.log(new_params.model_dump_json())
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
@@ -354,7 +353,6 @@ class ApiFlowModule(ScadaActor):
                 PublishAnyTicklistAfterS=self._component.gt.PublishAnyTicklistAfterS,
                 DeadbandMilliseconds=params.DeadbandMilliseconds,
             )
-            self.log(new_params.model_dump_json())
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
