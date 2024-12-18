@@ -978,6 +978,11 @@ class Scada(ScadaInterface, Proactor):
         if self.auto_state != MainAutoState.Atn:
             self.log(f"Ignoring control request from atn, auto_state: {self.auto_state}")
             return
+        self.AtnReleasesControl()
+        self.set_home_alone_command_tree()
+        self._dispatch_live_hack = False
+        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self._send_to(self.layout.atomic_ally, GoDormant(FromName=self.name, ToName=H0N.atomic_ally))
         
     def atn_wants_control(self, t: DispatchContractGoLive) -> None:
         if t.FromGNodeAlias != self.layout.atn_g_node_alias:
@@ -986,12 +991,20 @@ class Scada(ScadaInterface, Proactor):
         if self.auto_state != MainAutoState.HomeAlone:
             self.log(f"Ignoring control request from atn, auto_state: {self.auto_state}")
             return
-        # Trigger AtnReleasesControl for auto state: Atn -> HomeAlone
-        self.AtnReleasesControl()
-        self.set_home_alone_command_tree()
-        self._dispatch_live_hack = False
-        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-        self._send_to(self.layout.atomic_ally, GoDormant(FromName=self.name, ToName=H0N.atomic_ally))
+        
+        # Trigger AtnWantsControl for auto state: HomeAlone -> Atn
+        self.AtnWantsControl()
+        self.log(f"AtnWantsControl! Auto state {self.auto_state}")
+        # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
+        # Ally which reports to atn.
+        self.set_atn_command_tree()
+        
+        # Set the hack dispatch contract to True... will take this out shortly
+        self._dispatch_live_hack = True
+        # Let homealone know its dormant:
+        self._send_to(self.layout.home_alone, GoDormant(FromName=self.name, ToName=H0N.home_alone))
+        # Let the atomic ally know its live
+        self._send_to(self.layout.atomic_ally, WakeUp(ToName=H0N.atomic_ally))
 
     def atn_link_dead(self) -> None:
         if self.auto_state != MainAutoState.Atn:
