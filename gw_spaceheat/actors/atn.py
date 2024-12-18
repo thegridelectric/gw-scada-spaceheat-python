@@ -612,6 +612,9 @@ class Atn(ActorInterface, Proactor):
         self._tasks.append(
             asyncio.create_task(self.main(), name="atn-main")
         )
+        self._tasks.append(
+            asyncio.create_task(self.fake_market_maker(), name="fake market maker")
+        )
 
     async def main(self):
         while not self._stop_requested:
@@ -928,6 +931,42 @@ class Atn(ActorInterface, Proactor):
                 break
             centroids = new_centroids
         return labels
+
+    def get_price(self) -> float:
+        # Daily price pattern for distribution (Versant TOU tariff)
+        daily_dp = [50.13]*7 + [487.63]*5 + [54.98]*4 + [487.63]*4 + [50.13]*4
+        # LMP price pattern 
+        daily_lmp = [102]*48  # Or use another pattern as needed
+
+        price_by_hr = [dp + lmp for dp, lmp in zip(daily_dp, daily_lmp)]
+        current_hour = datetime.now(tz=self.timezone).hour
+        return price_by_hr[(current_hour - 1) % len(price_by_hr)]
+    
+    async def broadcast_price(self):
+        while True:
+            # Calculate the time to the next top of the hour
+            now = time.time()
+            next_top_of_hour = (int(now // 3600) + 1) * 3600  # next top of the hour in seconds
+            sleep_time = next_top_of_hour - now
+            
+            # Sleep until the top of the hour
+            await asyncio.sleep(sleep_time)
+            now = time.time()
+            slot_start_s = int(now) - int(now) % 300
+            mtn = MarketTypeName.rt60gate5.value
+            market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
+
+            price = LatestPrice(
+                FromGNodeAlias="hw1.isone.me.versant.keene",
+                PriceTimes1000=3,
+                PriceUnit=MarketPriceUnit.USDPerMWh,
+                MarketSlotName=market_slot_name,
+                MessageId=str(uuid.uuid4())
+            )
+            print("Broadcasting price at the top of the hour.")
+
+    async def fake_market_maker(self) -> None:
+
 
     def log(self, note: str) ->None:
         log_str = f"[atn] {note}"
