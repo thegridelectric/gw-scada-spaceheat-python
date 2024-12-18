@@ -150,9 +150,9 @@ class ApiTankModule(ScadaActor):
             params = TankModuleParams(**json.loads(text))
         except BaseException as e:
             self._report_post_error(e, "malformed tankmodule parameters!")
-            return
+            return Response()
         if params.ActorNodeName != self.name:
-            return
+            return Response()
 
         if self.is_valid_pico_uid(params):
             cfg = next(
