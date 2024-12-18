@@ -65,7 +65,7 @@ from enums import MarketPriceUnit, MarketQuantityUnit
 from named_types import AtnBid, EnergyInstruction, LatestPrice, Ha1Params
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from actors.scada_data import ScadaData
-from actors.flo import DGraph, DConfig
+from actors.flo import DGraph, FloParamsHouse0
 from actors.synth_generator import WeatherForecast, PriceForecast
 from data_classes.house_0_names import H0CN
 from gwproto.named_types import SingleReading
@@ -333,8 +333,8 @@ class Atn(ActorInterface, Proactor):
         self.ha1_params = layout.Ha1Params
         self.logger.error(f"Just got layout: {self.ha1_params}")
         self.temperature_channel_names = [
-            x for x in layout.DataChannels 
-            if 'depth' in x.Name and 'mv' not in x.Name]
+            x.Name for x in layout.DataChannels 
+            if 'depth' in x.Name and 'micro-v' not in x.Name]
         self.log(self.temperature_channel_names)
 
     def _process_report(self, report: Report) -> None:
@@ -642,7 +642,8 @@ class Atn(ActorInterface, Proactor):
                 self.release_control()
                 return
 
-            configuration = DConfig(
+            configuration = FloParamsHouse0(
+                StartUnixS = int(datetime.timestamp((datetime.now()+timedelta(hours=1)).replace(minute=0,second=0,microsecond=0))),
                 InitialTopTemp = initial_toptemp,
                 InitialThermocline = initial_thermocline * 2,
                 DpForecastUsdMwh = self.price_forecast['dp'],

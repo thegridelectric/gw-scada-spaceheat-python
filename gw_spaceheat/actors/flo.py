@@ -1,9 +1,10 @@
 import numpy as np
-import pytz
+import time
 from datetime import datetime, timedelta
 from pydantic import BaseModel, StrictInt
-from typing import List, Literal
+from typing import List, Literal, Optional
 from named_types.price_quantity_unitless import PriceQuantityUnitless
+from gwproto.property_format import LeftRightDotStr, UUID4Str, UTCSeconds
 
 def to_kelvin(t):
     return (t-32)*5/9 + 273.15
@@ -12,8 +13,11 @@ def to_celcius(t):
     return (t-32)*5/9
 
 
-class DConfig(BaseModel):
-    StartDateTime: datetime = (datetime.now()+timedelta(hours=1)).replace(minute=0,second=0,microsecond=0)
+class FloParamsHouse0(BaseModel):
+    # g_node_alias: LeftRightDotStr
+    StartUnixS: UTCSeconds = int(time.time())
+    TimezoneString: str = "America/New_York"
+    # TIMEZONE STRING
     HorizonHours: int = 48
     NumLayers: int = 24
     # Equipment
@@ -28,10 +32,13 @@ class DConfig(BaseModel):
     InitialTopTempF: float = 160
     InitialThermocline: float = 24
     # Forecasts
-    DpForecastUsdMwh: List[float] = [1]*48
-    LmpForecastUsdMwh: List[float] = [1]*48
-    OatForecastF: List[float] = [30]*48
-    WindSpeedForecastMph: List[float] = [0]*48
+    RegForecastUsdMwh: Optional[List[float]] = [1]*48
+    DistForecastUsdMwh: Optional[List[float]] = [1]*48
+    LmpForecastUsdMwh: Optional[List[float]] = [1]*48
+    OatForecastF: Optional[List[float]] = [30]*48
+    WindSpeedForecastMph: Optional[List[float]] = [0]*48
+    # WeatherUid: Optional[UUID4Str]
+    # PriceUid: Optional[UUID4Str]
     # House parameters
     AlphaTimes10: StrictInt = 120
     BetaTimes100: StrictInt = -22
@@ -43,15 +50,15 @@ class DConfig(BaseModel):
     DdDeltaTF: StrictInt = 20
     MaxEwtF: StrictInt = 170
     # TypeName and Version
-    TypeName: Literal["d.config"] = "d.config"
+    TypeName: Literal["d.config"] = "flo.params.house0"
     Version: Literal["000"] = "000"
     # TODO add validators
 
 
 class DParams():
-    def __init__(self, config: DConfig) -> None:
+    def __init__(self, config: FloParamsHouse0) -> None:
         self.config = config
-        self.start_time = config.StartDateTime
+        self.start_time = config.StartUnixS
         self.horizon = config.HorizonHours
         self.num_layers = config.NumLayers
         self.storage_volume = config.StorageVolumeGallons
@@ -60,9 +67,10 @@ class DParams():
         self.initial_top_temp = config.InitialTopTempF
         self.initial_thermocline = config.InitialThermocline
         self.storage_losses_percent = config.StorageLossesPercent
-        self.dp_forecast = [x/10 for x in config.DpForecastUsdMwh[:self.horizon]]
+        self.reg_forecast = [x/10 for x in config.RegForecastUsdMwh[:self.horizon]]
+        self.dist_forecast = [x/10 for x in config.DistForecastUsdMwh[:self.horizon]]
         self.lmp_forecast = [x/10 for x in config.LmpForecastUsdMwh[:self.horizon]]
-        self.elec_price_forecast = [dp+lmp for dp,lmp in zip(self.dp_forecast, self.lmp_forecast)]
+        self.elec_price_forecast = [rp+dp+lmp for rp,dp,lmp in zip(self.reg_forecast, self.dist_forecast, self.lmp_forecast)]
         self.oat_forecast = config.OatForecastF[:self.horizon]
         self.ws_forecast = config.WindSpeedForecastMph[:self.horizon]
         self.alpha = config.AlphaTimes10/10
@@ -194,7 +202,7 @@ class DEdge():
 
 
 class DGraph():
-    def __init__(self, config: DConfig):
+    def __init__(self, config: FloParamsHouse0):
         self.params = DParams(config)
         self.create_nodes()
         self.create_edges()
