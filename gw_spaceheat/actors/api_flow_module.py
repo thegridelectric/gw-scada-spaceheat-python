@@ -292,8 +292,10 @@ class ApiFlowModule(ScadaActor):
             params = FlowHallParams(**json.loads(text))
         except BaseException as e:
             self._report_post_error(e, "malformed FlowHall parameters!")
+            self.log("Flow module params are malformed")
             return Response()
         if params.FlowNodeName != self._component.gt.FlowNodeName:
+            self.log("FlowNodeName is not correct")
             return Response()
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWHALL:
             raise Exception(
@@ -329,8 +331,10 @@ class ApiFlowModule(ScadaActor):
             params = FlowReedParams(**json.loads(text))
         except BaseException as e:
             self._report_post_error(e, "malformed tankmodule parameters!")
+            self.log("Flow module params are malformed")
             return Response()
         if params.FlowNodeName != self._component.gt.FlowNodeName:
+            self.log("FlowNodeName is not correct")
             return Response()
         if self._component.cac.MakeModel != MakeModel.GRIDWORKS__PICOFLOWREED:
             raise Exception(
