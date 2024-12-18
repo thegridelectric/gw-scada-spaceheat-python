@@ -48,8 +48,8 @@ from tests.atn import messages
 from tests.atn.atn_config import AtnSettings
 
 from data_classes.house_0_names import H0N
-from named_types import (DispatchContractCounterpartyRequest, Ha1Params, LayoutLite, 
-                        ScadaParams, SendLayout)
+from named_types import (DispatchContractGoDormant, DispatchContractGoLive, Ha1Params, 
+                        LayoutLite, ScadaParams, SendLayout)
 
 from gwproactor import ServicesInterface
 import asyncio
@@ -150,6 +150,7 @@ class Atn(ActorInterface, Proactor):
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast = None
+        self.data_channels: List
         # TODO use hardware layout to define the temperature_channel_names
         self.temperature_channel_names = [
             'buffer-depth1', 'buffer-depth2', 'buffer-depth3', 'buffer-depth4',
@@ -222,7 +223,10 @@ class Atn(ActorInterface, Proactor):
             case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._publish_to_scada(message.Payload)
-            case DispatchContractCounterpartyRequest():
+            case DispatchContractGoDormant():
+                path_dbg |= 0x00000002
+                self._publish_to_scada(message.Payload)
+            case DispatchContractGoLive():
                 path_dbg |= 0x00000002
                 self._publish_to_scada(message.Payload)
             case EnergyInstruction():
@@ -404,7 +408,22 @@ class Atn(ActorInterface, Proactor):
             Message(
                         Src=self.name,
                         Dst=self.name,
-                        Payload=DispatchContractCounterpartyRequest(
+                        Payload=DispatchContractGoLive(
+                            FromGNodeAlias=self.layout.atn_g_node_alias,
+                            BlockchainSig="bogus_algo_sig"
+                        ),
+                    )
+        )
+
+    def release_control(self) -> float:
+        """
+        If scada is in Atn mode, will go to Homealone
+        """
+        self.send_threadsafe(
+            Message(
+                        Src=self.name,
+                        Dst=self.name,
+                        Payload=DispatchContractGoDormant(
                             FromGNodeAlias=self.layout.atn_g_node_alias,
                             BlockchainSig="bogus_algo_sig"
                         ),
@@ -623,8 +642,8 @@ class Atn(ActorInterface, Proactor):
             self.log("Finding thermocline position and top temperature")
             initial_toptemp, initial_thermocline = self.get_thermocline_and_centroids()
             if (initial_toptemp, initial_thermocline) is None:
-                self.log("Can not run Dijkstra!")
-                # TODO go to HomeAlone?
+                self.log("Can not run Dijkstra. Releasing control of Scada!")
+                self.release_control()
                 return
 
             configuration = DConfig(
