@@ -144,90 +144,56 @@ class ApiTankModule(ScadaActor):
                 return True
 
     async def _handle_params_post(self, request: Request) -> Response:
-        # Log the entry point of the function
-        self.log(f"Entering _handle_params_post for {self.name}")
-        
-        # Attempt to get the request text
         text = await self._get_text(request)
         self.params_text = text
-
-        # Try-except block for JSON loading
         try:
-            self.log("Attempting to load parameters from request text...")
             params = TankModuleParams(**json.loads(text))
-            self.log("Parameters loaded successfully.")
         except BaseException as e:
             self._report_post_error(e, "malformed tankmodule parameters!")
-            self.log(f"Error during parameter loading: {e}")  # Log the error message
-            return None  # No response returned, let the caller handle error (same as before)
-
-        # Check if ActorNodeName matches
+            return
         if params.ActorNodeName != self.name:
-            self.log(f"ActorNodeName mismatch: {params.ActorNodeName} != {self.name}")
-            return None  # Return None to signify no action (same as before)
+            self.log("ActorNodeName is not the same as self.name!")
+            return
 
-        # Proceed if Pico UID is valid
         if self.is_valid_pico_uid(params):
-            try:
-                self.log(f"Searching for config for {self.name}-depth1...")
-                cfg = next(
-                    (
-                        cfg
-                        for cfg in self._component.gt.ConfigList
-                        if cfg.ChannelName == f"{self.name}-depth1"
-                    ),
-                    None,
+            cfg = next(
+                (
+                    cfg
+                    for cfg in self._component.gt.ConfigList
+                    if cfg.ChannelName == f"{self.name}-depth1"
+                ),
+                None,
+            )
+
+            period = cfg.CapturePeriodS
+            offset = round(period - time.time() % period, 3) - 2
+            new_params = TankModuleParams(
+                HwUid=params.HwUid,
+                ActorNodeName=self.name,
+                PicoAB=params.PicoAB,
+                CapturePeriodS=cfg.CapturePeriodS,
+                Samples=self._component.gt.Samples,
+                NumSampleAverages=self._component.gt.NumSampleAverages,
+                AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroVolts,
+                CaptureOffsetS=offset,
+            )
+            if self.need_to_update_layout(params):
+                if params.PicoAB == "a":
+                    self.pico_a_uid = params.HwUid
+                else:
+                    self.pico_b_uid = params.HwUid
+                self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} "
+                    f"and add Pico{params.PicoAB.capitalize()}HwUid = '{params.HwUid}'"
                 )
-                if not cfg:
-                    self.log(f"No configuration found for {self.name}-depth1!")
-                    return None  # Return None if no config found, same as before
-
-                period = cfg.CapturePeriodS
-                offset = round(period - time.time() % period, 3) - 2
-                new_params = TankModuleParams(
-                    HwUid=params.HwUid,
-                    ActorNodeName=self.name,
-                    PicoAB=params.PicoAB,
-                    CapturePeriodS=cfg.CapturePeriodS,
-                    Samples=self._component.gt.Samples,
-                    NumSampleAverages=self._component.gt.NumSampleAverages,
-                    AsyncCaptureDeltaMicroVolts=self._component.gt.AsyncCaptureDeltaMicroVolts,
-                    CaptureOffsetS=offset,
-                )
-
-                # Log layout update if needed
-                if self.need_to_update_layout(params):
-                    self.log(f"Updating layout for {self.name}, Pico {params.PicoAB} with HwUid {params.HwUid}")
-                    if params.PicoAB == "a":
-                        self.pico_a_uid = params.HwUid
-                    else:
-                        self.pico_b_uid = params.HwUid
-                    self.log(f"UPDATE LAYOUT!!: In layout_gen, go to add_tank2 {self.name} "
-                            f"and add Pico{params.PicoAB.capitalize()}HwUid = '{params.HwUid}'")
-                    # TODO: send message to self to avoid writing to hardware layout in IO loop
-                self.log(f"{self.name}-{params.PicoAB}, {params.HwUid} ")
-
-                # Create the response with the new parameters
-                try:
-                    self.log("Attempting to create a response with new_params...")
-                    r = Response(text=new_params.model_dump_json())  # Assuming `Response` is your custom class
-                    self.log("Response created successfully.")
-                except Exception as e:
-                    self.log(f"There was an issue initializing a new response object: {e}")
-                    return None  # Return None in case of failure to create a response
-
-                return r  # Return the created response
-
-            except Exception as e:
-                self.log(f"Error in handling parameters for {self.name}: {e}")
-                return None  # Return None in case of general errors
-
+                # TODO: send message to self so that writing to hardware layout isn't
+                # happening in IO loop
+            self.log(f"{self.name}-{params.PicoAB}, {params.HwUid} ")
+            return Response(text=new_params.model_dump_json())
         else:
-            self.log(f"Unknown Pico {params.HwUid} identifying as {self.name} Pico A!")
+            # A strange pico is identifying itself as our "a" tank
+            self.log(f"unknown pico {params.HwUid} identifying as {self.name} Pico A!")
             # TODO: send problem report?
-            return None  # Return None to handle the error in the caller
-
-
+            return Response()
 
     async def _handle_microvolts_post(self, request: Request) -> Response:
         text = await self._get_text(request)
