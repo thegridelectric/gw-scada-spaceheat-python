@@ -73,7 +73,6 @@ class ApiTankModule(ScadaActor):
                 path="/" + self.params_path,
                 handler=self._handle_params_post,
             )
-        self.log_data = False
         self.pico_a_uid = self._component.gt.PicoAHwUid
         self.pico_b_uid = self._component.gt.PicoBHwUid
         # use the following for generate pico offline reports for triggering the pico cycler
@@ -186,7 +185,7 @@ class ApiTankModule(ScadaActor):
                 )
                 # TODO: send message to self so that writing to hardware layout isn't
                 # happening in IO loop
-            self.log(f"{self.name}-{params.PicoAB}, {params.HwUid} ")
+            self.pico_state_log(f"{self.name}-{params.PicoAB}, {params.HwUid} ")
             return Response(text=new_params.model_dump_json())
         else:
             # A strange pico is identifying itself as our "a" tank
@@ -216,7 +215,7 @@ class ApiTankModule(ScadaActor):
         elif data.HwUid == self.pico_b_uid:
             self.last_heard_b = time.time()
         else:
-            self.services.logger.error(
+            self.log(
                 f"{self.name}: Ignoring data from pico {data.HwUid} - not recognized!"
             )
             return
@@ -254,19 +253,6 @@ class ApiTankModule(ScadaActor):
         )
         self._send_to(self.pico_cycler, msg)
         self._send_to(self.primary_scada, msg)
-        # self.services.logger.error("sending temperatures to scada")
-        if self.log_data:
-            combined = list(zip(data.AboutNodeNameList, data.MicroVoltsList))
-            combined.sort(key=lambda x: x[0])
-            data.AboutNodeNameList, data.MicroVoltsList = zip(*combined)
-            for i in range(len(data.MicroVoltsList)):
-                mv = data.MicroVoltsList[i]
-                try:
-                    temp_f = self.simple_beta_for_pico(mv / 1e6, fahrenheit=True)
-                    self.log(f"{data.AboutNodeNameList[i]}: {round(temp_f, 2)} F")
-                except Exception:
-                    #TODO - raise problem??
-                    self.log(f"{data.AboutNodeNameList[i]}: OPEN")
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         match message.Payload:
@@ -368,3 +354,8 @@ class ApiTankModule(ScadaActor):
         if H0N.pico_cycler in self.layout.nodes:
             return self.layout.nodes[H0N.pico_cycler]
         return None
+
+    def pico_state_log(self, note: str) -> None:
+        log_str = f"[PicoRelated] {note}"
+        if self.settings.pico_cycler_state_logging:
+            self.services.logger.error(log_str)
