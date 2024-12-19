@@ -767,6 +767,8 @@ class Atn(ActorInterface, Proactor):
 
     def latest_price_received(self, payload: LatestPrice) -> None:
         self.log("Received latest price")
+        if self.latest_bid is None:
+            self.log("Ignoring - no bid exists")
         if (
             datetime.now(self.timezone).minute != 0
             and datetime.now(self.timezone).second <= 5
@@ -1072,12 +1074,11 @@ class Atn(ActorInterface, Proactor):
     def get_price(self) -> float:
         # Daily price pattern for distribution (Versant TOU tariff)
         daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        # LMP price pattern
-        daily_lmp = [102] * 48  # Or use another pattern as needed
-
+        daily_lmp = [102] * 24
         price_by_hr = [dp + lmp for dp, lmp in zip(daily_dp, daily_lmp)]
         current_hour = datetime.now(tz=self.timezone).hour
-        return price_by_hr[(current_hour - 1) % len(price_by_hr)]
+        print(current_hour)
+        return price_by_hr[(current_hour)]
 
     async def fake_market_maker(self):
         while True:
