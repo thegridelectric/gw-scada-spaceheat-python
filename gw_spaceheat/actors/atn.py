@@ -16,8 +16,8 @@ import rich
 from actors.flo import DGraph
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
-from enums import MarketPriceUnit, MarketQuantityUnit
-from gw.enums import MarketTypeName
+from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
+
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
 from gwproactor.links.link_settings import LinkSettings
@@ -715,6 +715,7 @@ class Atn(ActorInterface, Proactor):
             InitialThermocline=initial_thermocline * 2,
             LmpForecast=self.price_forecast["lmp"],
             DistPriceForecast=self.price_forecast["dp"],
+            RegPriceForecast=self.price_forecast["reg"],
             OatForecastF=self.weather_forecast["oat"],
             WindSpeedForecastMph=self.weather_forecast["ws"],
             AlphaTimes10=self.ha1_params.AlphaTimes10,
@@ -1055,9 +1056,11 @@ class Atn(ActorInterface, Proactor):
             + daily_dp[: datetime.now(tz=self.timezone).hour + 1]
         ) * 2
         lmp_forecast_usd_per_mwh = [102] * 48
+        reg_forecast_usd_per_mwh = [0] * 48
         self.price_forecast = {
             "dp": dp_forecast_usd_per_mwh,
             "lmp": lmp_forecast_usd_per_mwh,
+            "reg": reg_forecast_usd_per_mwh,
         }
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
