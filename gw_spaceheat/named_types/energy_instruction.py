@@ -3,7 +3,7 @@
 from typing import Literal
 
 from gwproto.property_format import LeftRightDotStr, UTCMilliseconds, UTCSeconds
-from pydantic import BaseModel, PositiveInt, field_validator
+from pydantic import BaseModel, PositiveInt, StrictInt, field_validator
 
 
 class EnergyInstruction(BaseModel):
@@ -11,7 +11,7 @@ class EnergyInstruction(BaseModel):
     SlotStartS: UTCSeconds
     SlotDurationMinutes: PositiveInt
     SendTimeMs: UTCMilliseconds
-    AvgPowerWatts: PositiveInt
+    AvgPowerWatts: StrictInt
     TypeName: Literal["energy.instruction"] = "energy.instruction"
     Version: Literal["000"] = "000"
 
@@ -19,7 +19,7 @@ class EnergyInstruction(BaseModel):
     @classmethod
     def check_slot_start_s(cls, v: int) -> int:
         """
-        Axiom 1: SlotStartS should fall on the top of. minutes
+        Axiom 1: SlotStartS should fall on the top of 5 minutes
         """
         # Implement Axiom(s)
         return v

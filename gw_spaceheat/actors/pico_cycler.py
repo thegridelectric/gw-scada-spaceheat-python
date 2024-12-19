@@ -225,8 +225,8 @@ class PicoCycler(ScadaActor):
     
     def process_synced_readings(self, actor: ShNode, payload: SyncedReadings) -> None:
         if actor not in self.pico_actors:
-            self.services.logger.error(
-                f"{self.name} received channel readings from {actor.name}, not one of its pico relays"
+            self.log(
+                f"Received channel readings from {actor.name}, not one of its pico relays"
             )
             return
         pico: str | None = None
@@ -258,8 +258,8 @@ class PicoCycler(ScadaActor):
 
     def process_channel_readings(self, actor: ShNode, payload: ChannelReadings) -> None:
         if actor not in self.pico_actors:
-            self.services.logger.error(
-                f"{self.name} received channel readings from {actor.name}, not one of its pico relays"
+            self.log(
+                f"Received channel readings from {actor.name}, not one of its pico relays"
             )
             return
         pico: str | None = None
@@ -301,11 +301,9 @@ class PicoCycler(ScadaActor):
             raise Exception(
                 f"should only get FsmFullReports from VdcRelay, not {payload.FromName}"
             )
-        start_time = payload.AtomicList[0].UnixTimeMs
-        end_time = payload.AtomicList[-1].UnixTimeMs
-        self.services.logger.error(
-            f"[{self.name}] Relay1 dispatch took {end_time - start_time} ms"
-        )
+        # start_time = payload.AtomicList[0].UnixTimeMs
+        # end_time = payload.AtomicList[-1].UnixTimeMs
+        # self.log(f"Relay1 dispatch took {end_time - start_time} ms")
         relay_report = payload.AtomicList[0]
         if relay_report.EventEnum != ChangeRelayState.enum_name():
             raise Exception(
@@ -376,15 +374,15 @@ class PicoCycler(ScadaActor):
 
     async def _wait_and_close_relay(self) -> None:
         # Wait for RelayOpen_S seconds before closing the relay
-        self.services.logger.error(
-            f"[{self.name}] Keeping VDC Relay 1 open for {self.RELAY_OPEN_S} seconds"
+        self.pico_state_log(
+            f"Keeping VDC Relay 1 open for {self.RELAY_OPEN_S} seconds"
         )
         await asyncio.sleep(self.RELAY_OPEN_S)
         self.start_closing()
 
     async def _wait_for_rebooting_picos(self) -> None:
-        self.services.logger.error(
-            f"[{self.name}, {self.state}] Waiting {self.PICO_REBOOT_S} seconds for picos to come back"
+        self.pico_state_log(
+            f"Waiting {self.PICO_REBOOT_S} seconds for picos to come back"
         )
         if self.state != PicoCyclerState.PicosRebooting:
             raise Exception(
@@ -436,10 +434,10 @@ class PicoCycler(ScadaActor):
                 AtomicList=self.fsm_reports,
             ),
         )
-        self.services.logger.error(
-            "Sending report to scada. check "
-            f"s._data.recent_fsm_reports['{self.trigger_id}']"
-        )
+        # self.log(
+        #     "Sending report to scada. check "
+        #     f"s._data.recent_fsm_reports['{self.trigger_id}']"
+        # )
         self.fsm_reports = []
         self.trigger_id = None
         self.fsm_comment = None
@@ -513,8 +511,7 @@ class PicoCycler(ScadaActor):
         self.pico_missing()
 
         while not self._stop_requested:
-            self.log(f"State is {self.state}")
-            # self.services.logger.error("################# PATTING PICO WATCHDOG")
+            self.pico_state_log(f"State is {self.state}")
             hiccup = 2.2
             sleep_s = max(
                 hiccup, self.STATE_REPORT_S - (time.time() % self.STATE_REPORT_S) - 2
