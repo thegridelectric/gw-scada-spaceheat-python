@@ -235,8 +235,8 @@ class DGraph():
     def generate_bid(self):
         self.pq_pairs = []
         min_elec_ctskwh, max_elec_ctskwh = -10, 200
-        for elec_price in range(min_elec_ctskwh*1000, max_elec_ctskwh*1000):
-            elec_price = elec_price/1000
+        for elec_price in range(min_elec_ctskwh*10, max_elec_ctskwh*10):
+            elec_price = elec_price/10
             elec_to_nextnode = []
             pathcost_from_nextnode = []
             for e in self.edges[self.initial_node]:
