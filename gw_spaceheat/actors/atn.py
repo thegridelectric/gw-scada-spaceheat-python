@@ -695,12 +695,12 @@ class Atn(ActorInterface, Proactor):
         self.get_price_forecast()
 
         self.log("Finding thermocline position and top temperature")
-        initial_toptemp, initial_thermocline = self.get_thermocline_and_centroids()
-        if (initial_toptemp, initial_thermocline) is None:
-            self.log("Can not run Dijkstra. Releasing control of Scada!")
+        result = self.get_thermocline_and_centroids()
+        if result is None:
+            self.log("Get thermocline and centroid failed! Releasing control of Scada!")
             self.release_control()
             return
-
+        initial_toptemp, initial_thermocline = result
         flo_params = FloParamsHouse0(
             StartUnixS=int(
                 datetime.timestamp(
