@@ -775,6 +775,7 @@ class Atn(ActorInterface, Proactor):
         self.log("Received latest price")
         if self.latest_bid is None:
             self.log("Ignoring - no bid exists")
+            return
         if (
             datetime.now(self.timezone).minute != 0
             and datetime.now(self.timezone).second <= 5
