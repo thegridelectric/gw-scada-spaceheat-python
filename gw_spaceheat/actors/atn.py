@@ -702,7 +702,7 @@ class Atn(ActorInterface, Proactor):
             return
         initial_toptemp, initial_thermocline = result
         flo_params = FloParamsHouse0(
-            GNodeALias=self.layout.scada_g_node_alias,
+            GNodeAlias=self.layout.scada_g_node_alias,
 
             StartUnixS=int(
                 datetime.timestamp(
@@ -711,7 +711,7 @@ class Atn(ActorInterface, Proactor):
                     )
                 )
             ),
-            InitialTopTempF=initial_toptemp,
+            InitialTopTempF=int(initial_toptemp),
             InitialThermocline=initial_thermocline * 2,
             LmpForecast=self.price_forecast["lmp"],
             DistPriceForecast=self.price_forecast["dp"],
