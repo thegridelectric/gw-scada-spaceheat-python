@@ -1,58 +1,12 @@
 import numpy as np
-import time
-from datetime import datetime, timedelta
-from pydantic import BaseModel, StrictInt
-from typing import List, Literal, Optional
-from named_types.price_quantity_unitless import PriceQuantityUnitless
-from gwproto.property_format import LeftRightDotStr, UUID4Str, UTCSeconds
+from typing import Dict, List
+from named_types import PriceQuantityUnitless, FloParamsHouse0
 
 def to_kelvin(t):
     return (t-32)*5/9 + 273.15
 
 def to_celcius(t):
     return (t-32)*5/9
-
-
-class FloParamsHouse0(BaseModel):
-    # g_node_alias: LeftRightDotStr
-    StartUnixS: UTCSeconds = int(time.time())
-    TimezoneString: str = "America/New_York"
-    # TIMEZONE STRING
-    HorizonHours: int = 48
-    NumLayers: int = 24
-    # Equipment
-    StorageVolumeGallons: float = 360
-    StorageLossesPercent: float = 0.5
-    HpMinElecKw: float = -0.5
-    HpMaxElecKw: float = 11
-    CopIntercept: float = 2
-    CopOatCoeff: float = 0
-    CopLwtCoeff: float = 0
-    # Initial state
-    InitialTopTempF: float = 160
-    InitialThermocline: float = 24
-    # Forecasts
-    RegForecastUsdMwh: Optional[List[float]] = [1]*48
-    DistForecastUsdMwh: Optional[List[float]] = [1]*48
-    LmpForecastUsdMwh: Optional[List[float]] = [1]*48
-    OatForecastF: Optional[List[float]] = [30]*48
-    WindSpeedForecastMph: Optional[List[float]] = [0]*48
-    # WeatherUid: Optional[UUID4Str]
-    # PriceUid: Optional[UUID4Str]
-    # House parameters
-    AlphaTimes10: StrictInt = 120
-    BetaTimes100: StrictInt = -22
-    GammaEx6: StrictInt = 0
-    IntermediatePowerKw: float = 1.5
-    IntermediateRswtF: StrictInt = 110
-    DdPowerKw: float = 12
-    DdRswtF: StrictInt = 160
-    DdDeltaTF: StrictInt = 20
-    MaxEwtF: StrictInt = 170
-    # TypeName and Version
-    TypeName: Literal["d.config"] = "flo.params.house0"
-    Version: Literal["000"] = "000"
-    # TODO add validators
 
 
 class DParams():
@@ -67,9 +21,9 @@ class DParams():
         self.initial_top_temp = config.InitialTopTempF
         self.initial_thermocline = config.InitialThermocline
         self.storage_losses_percent = config.StorageLossesPercent
-        self.reg_forecast = [x/10 for x in config.RegForecastUsdMwh[:self.horizon]]
-        self.dist_forecast = [x/10 for x in config.DistForecastUsdMwh[:self.horizon]]
-        self.lmp_forecast = [x/10 for x in config.LmpForecastUsdMwh[:self.horizon]]
+        self.reg_forecast = [x/10 for x in config.RegPriceForecast[:self.horizon]]
+        self.dist_forecast = [x/10 for x in config.DistPriceForecast[:self.horizon]]
+        self.lmp_forecast = [x/10 for x in config.LmpForecast[:self.horizon]]
         self.elec_price_forecast = [rp+dp+lmp for rp,dp,lmp in zip(self.reg_forecast, self.dist_forecast, self.lmp_forecast)]
         self.oat_forecast = config.OatForecastF[:self.horizon]
         self.ws_forecast = config.WindSpeedForecastMph[:self.horizon]
@@ -192,8 +146,8 @@ class DNode():
 
 class DEdge():
     def __init__(self, tail:DNode, head:DNode, cost:float, hp_heat_out:float):
-        self.tail = tail
-        self.head = head
+        self.tail: DNode = tail
+        self.head: DNode = head
         self.cost = cost
         self.hp_heat_out = hp_heat_out
 
@@ -204,12 +158,13 @@ class DEdge():
 class DGraph():
     def __init__(self, config: FloParamsHouse0):
         self.params = DParams(config)
+        self.nodes: Dict[int, List[DNode]] = {}
+        self.edges: Dict[DNode, List[DEdge]] = {}
         self.create_nodes()
         self.create_edges()
 
     def create_nodes(self):
         self.initial_node = DNode(0, self.params.initial_top_temp, self.params.initial_thermocline, self.params)
-        self.nodes = {}
         for time_slice in range(self.params.horizon+1):
             self.nodes[time_slice] = [self.initial_node] if time_slice==0 else []
             self.nodes[time_slice].extend(
@@ -220,7 +175,7 @@ class DGraph():
             )
 
     def create_edges(self):
-        self.edges = {}
+        
         self.bottom_node = DNode(0, self.params.available_top_temps[1], 1, self.params)
         self.top_node = DNode(0, self.params.available_top_temps[-1], self.params.num_layers, self.params)
         

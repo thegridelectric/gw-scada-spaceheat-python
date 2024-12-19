@@ -13,7 +13,7 @@ import numpy as np
 import pytz
 import requests
 import rich
-from actors.flo import DGraph, FloParamsHouse0
+from actors.flo import DGraph
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit
@@ -31,9 +31,10 @@ from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent,
                               SnapshotSpaceheat)
 from gwproto.named_types import AnalogDispatch, SendSnap
 from named_types import (AtnBid, DispatchContractGoDormant,
-                         DispatchContractGoLive, EnergyInstruction, Ha1Params,
-                         LatestPrice, LayoutLite, ScadaParams, SendLayout)
-from named_types.price_quantity_unitless import PriceQuantityUnitless
+                         DispatchContractGoLive, EnergyInstruction, FloParamsHouse0,
+                         Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
+                         ScadaParams, SendLayout)
+
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 from transitions import Machine
@@ -338,7 +339,6 @@ class Atn(ActorInterface, Proactor):
         if self.is_simulated and self.temperature_channel_names is not None:
             for channel in self.temperature_channel_names:
                 self.latest_channel_values[channel] = 60000
-        self.log("Received and processed a SnapShot")
 
     def _process_layout_lite(self, layout: LayoutLite) -> None:
         self.ha1_params = layout.Ha1Params
@@ -701,7 +701,7 @@ class Atn(ActorInterface, Proactor):
             self.release_control()
             return
 
-        configuration = FloParamsHouse0(
+        flo_params = FloParamsHouse0(
             StartUnixS=int(
                 datetime.timestamp(
                     (datetime.now() + timedelta(hours=1)).replace(
@@ -711,8 +711,8 @@ class Atn(ActorInterface, Proactor):
             ),
             InitialTopTemp=initial_toptemp,
             InitialThermocline=initial_thermocline * 2,
-            DpForecastUsdMwh=self.price_forecast["dp"],
-            LmpForecastUsdMwh=self.price_forecast["lmp"],
+            LmpForecast=self.price_forecast["lmp"],
+            DistPriceForecast=self.price_forecast["dp"],
             OatForecastF=self.weather_forecast["oat"],
             WindSpeedForecastMph=self.weather_forecast["ws"],
             AlphaTimes10=self.ha1_params.AlphaTimes10,
@@ -724,11 +724,15 @@ class Atn(ActorInterface, Proactor):
             DdRswtF=self.ha1_params.DdRswtF,
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
-        )
 
+        )
+        self._links.publish_message(
+            self.SCADA_MQTT, 
+            Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
+        )
         self.log("Creating graph")
         st = time.time()
-        g = DGraph(configuration)
+        g = DGraph(flo_params)
         self.log(f"Done in {round(time.time()-st,2)} seconds")
         self.log("Solving Dijkstra")
         g.solve_dijkstra()
