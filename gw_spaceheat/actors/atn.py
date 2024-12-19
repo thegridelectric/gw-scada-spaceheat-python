@@ -919,11 +919,7 @@ class Atn(ActorInterface, Proactor):
         return top_centroid_f, thermocline
 
     def send_energy_instr(self, watthours: int, slot_minutes: int = 60):
-        # wait until the top of the 5 minutes
-        t = time.time()
-        wait_s = 300 - t % 300
-        time.sleep(wait_s)
-        t = time.time()
+        t = int(time.time())
         slot_start_s = int(t - (t % 300))
         # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
         if t - slot_start_s < 10:
@@ -943,6 +939,9 @@ class Atn(ActorInterface, Proactor):
                     Payload=payload,
                 )
             )
+        else:
+            self.log(f"Too late to send energy instruction! {t-slot_start_s} is more "
+                     "than 10 s after top of 5 minutes")
 
     def get_weather_forecast(self) -> None:
         config_dir = self.settings.paths.config_dir
