@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from named_types import PriceQuantityUnitless, FloParamsHouse0
 
 def to_kelvin(t):
@@ -7,7 +7,6 @@ def to_kelvin(t):
 
 def to_celcius(t):
     return (t-32)*5/9
-
 
 class DParams():
     def __init__(self, config: FloParamsHouse0) -> None:
@@ -79,11 +78,17 @@ class DParams():
         d = 0 if swt<self.no_power_rswt else d
         return d if d>0 else 0
     
-    def delta_T_inverse(self, rwt):
+    def delta_T_inverse(self, rwt: float) -> float:
+        """Raise exception with quad coeffs and rwt if imaginary"""
         a, b, c = self.quadratic_coefficients
         aa = -self.dd_delta_t/self.dd_power * a
         bb = 1-self.dd_delta_t/self.dd_power * b
         cc = -self.dd_delta_t/self.dd_power * c
+        sqrt_argument = rwt - bb**2/(4*aa)+bb**2/(2*aa) - cc
+        if sqrt_argument < 0:
+            raise Exception(f"Imaginary value in delta_T_inverse!. quad coeffs a, b, c = {a, b, c}"
+                            f" and rwt {rwt} result in sqrt of {sqrt_argument}")
+
         return -bb/(2*aa) - ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)**0.5 - rwt
     
     def get_quadratic_coeffs(self):
@@ -92,9 +97,9 @@ class DParams():
         A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
         return [float(x) for x in np.linalg.solve(A, y_hpower)] 
     
-    def get_available_top_temps(self):
-        available_temps = [round(self.initial_top_temp)]
-        x = round(self.initial_top_temp)
+    def get_available_top_temps(self) -> Tuple[Dict, Dict]:
+        available_temps = [self.initial_top_temp]
+        x = self.initial_top_temp
         while round(x + self.delta_T_inverse(x),2) <= 175:
             x = round(x + self.delta_T_inverse(x),2)
             available_temps.append(x)
