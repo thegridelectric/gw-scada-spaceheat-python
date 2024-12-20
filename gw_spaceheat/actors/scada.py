@@ -52,7 +52,7 @@ from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
-from named_types import (DispatchContractCounterpartyRequest, EnergyInstruction, 
+from named_types import (DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, 
                         FsmEvent, GoDormant, LayoutLite, PicoMissing, ScadaParams, 
                         SendLayout, WakeUp)
 
@@ -170,7 +170,8 @@ class Scada(ScadaInterface, Proactor):
         {"trigger": "AtnWantsControl", "source": "HomeAlone", "dest": "Atn"},
         {"trigger": "AutoGoesDormant", "source": "Atn", "dest": "Dormant"},
         {"trigger": "AutoGoesDormant", "source": "HomeAlone", "dest": "Dormant"},
-        {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"}
+        {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"},
+        {"trigger": "AtnReleasesControl", "source": "Atn", "dest": "HomeAlone"}
     ]
     def __init__(
         self,
@@ -464,12 +465,6 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case EnergyInstruction():
-                try:
-                    self.get_communicator(H0N.synth_generator).process_message(message)
-                    self.get_communicator(H0N.atomic_ally).process_message(message)
-                except Exception as e:
-                    self.logger.error(f"Problem with {message.Header}: {e}")
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
@@ -605,8 +600,21 @@ class Scada(ScadaInterface, Proactor):
             case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
-            case DispatchContractCounterpartyRequest():
+            case DispatchContractGoDormant():
+                self.atn_releases_control(decoded.Payload)
+            case DispatchContractGoLive():
                 self.atn_wants_control(decoded.Payload)
+            case EnergyInstruction():
+                try:
+                    self.get_communicator(H0N.synth_generator).process_message(decoded)
+                except Exception as e:
+                    self.logger.error(f"In SynthGenerator: Problem with {message.Header}: {e}")
+                if self.auto_state == MainAutoState.Atn:
+                    try:
+                        self.get_communicator(H0N.atomic_ally).process_message(decoded)
+                    except Exception as e:
+                        self.logger.error(f"In AtomicAlly: Problem with {message.Header}: {e}")
+
             case SendLayout():
                 path_dbg |= 0x00000004
                 self._send_layout_lite(self.upstream_client)
@@ -966,7 +974,20 @@ class Scada(ScadaInterface, Proactor):
         for report in reports:
             self._send_to(report, GoDormant(FromName=self.name, ToName=report.Name))
     
-    def atn_wants_control(self, t: DispatchContractCounterpartyRequest) -> None:
+    def atn_releases_control(self, t: DispatchContractGoDormant) -> None:
+        if t.FromGNodeAlias != self.layout.atn_g_node_alias:
+            self.log(f"HUH? Message from {t.FromGNodeAlias}")
+            return
+        if self.auto_state != MainAutoState.Atn:
+            self.log(f"Ignoring control request from atn, auto_state: {self.auto_state}")
+            return
+        self.AtnReleasesControl()
+        self.set_home_alone_command_tree()
+        self._dispatch_live_hack = False
+        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self._send_to(self.layout.atomic_ally, GoDormant(FromName=self.name, ToName=H0N.atomic_ally))
+        
+    def atn_wants_control(self, t: DispatchContractGoLive) -> None:
         if t.FromGNodeAlias != self.layout.atn_g_node_alias:
             self.log(f"HUH? Message from {t.FromGNodeAlias}")
             return

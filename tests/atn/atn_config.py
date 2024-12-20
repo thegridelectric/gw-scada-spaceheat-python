@@ -40,6 +40,10 @@ class AtnSettings(ProactorSettings):
     c_to_f: bool = True
     save_events: bool = False
     dashboard: DashboardSettings = DashboardSettings()
+    timezone_str: str = "America/New_York"
+    latitude: float = 45.6573 
+    longitude: float = -68.7098
+    is_simulated: bool = False
 
     model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
 

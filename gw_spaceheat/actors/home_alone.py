@@ -559,10 +559,15 @@ class HomeAlone(ScadaActor):
             self.log(f"IN SIMULATION - fake setpoints set to {self.zone_setpoints}")
             return
         self.zone_setpoints = {}
+        temps = {}
         for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
             zone_name = zone_setpoint.replace('-set','')
-            self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
+            if self.data.latest_channel_values[zone_setpoint] is not None:
+                self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
+            if self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None:
+                temps[zone_name] = self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')]
         self.log(f"Found all zone setpoints: {self.zone_setpoints}")
+        self.log(f"Found all zone temperatures: {temps}")
     
     def is_house_cold(self):
         for zone in self.zone_setpoints:
