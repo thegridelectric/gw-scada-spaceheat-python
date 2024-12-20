@@ -1,56 +1,12 @@
-import time
 import numpy as np
-from typing import Dict, List, Tuple, Optional, Literal
+from typing import Dict, List, Tuple
 from named_types import PriceQuantityUnitless, FloParamsHouse0
-from pydantic import BaseModel, StrictInt
 
-from gwproto.property_format import UTCSeconds
 def to_kelvin(t):
     return (t-32)*5/9 + 273.15
 
 def to_celcius(t):
     return (t-32)*5/9
-
-class OrigDConfig(BaseModel):
-    # g_node_alias: LeftRightDotStr
-    StartUnixS: UTCSeconds = int(time.time())
-    TimezoneString: str = "America/New_York"
-    # TIMEZONE STRING
-    HorizonHours: int = 48
-    NumLayers: int = 24
-    # Equipment
-    StorageVolumeGallons: float = 360
-    StorageLossesPercent: float = 0.5
-    HpMinElecKw: float = -0.5
-    HpMaxElecKw: float = 11
-    CopIntercept: float = 2
-    CopOatCoeff: float = 0
-    CopLwtCoeff: float = 0
-    # Initial state
-    InitialTopTempF: float = 160
-    InitialThermocline: float = 24
-    # Forecasts
-    RegForecastUsdMwh: Optional[List[float]] = [1]*48
-    DistForecastUsdMwh: Optional[List[float]] = [1]*48
-    LmpForecastUsdMwh: Optional[List[float]] = [1]*48
-    OatForecastF: Optional[List[float]] = [30]*48
-    WindSpeedForecastMph: Optional[List[float]] = [0]*48
-    # WeatherUid: Optional[UUID4Str]
-    # PriceUid: Optional[UUID4Str]
-    # House parameters
-    AlphaTimes10: StrictInt = 120
-    BetaTimes100: StrictInt = -22
-    GammaEx6: StrictInt = 0
-    IntermediatePowerKw: float = 1.5
-    IntermediateRswtF: StrictInt = 110
-    DdPowerKw: float = 12
-    DdRswtF: StrictInt = 160
-    DdDeltaTF: StrictInt = 20
-    MaxEwtF: StrictInt = 170
-    # TypeName and Version
-    TypeName: Literal["d.config"] = "flo.params.house0"
-    Version: Literal["000"] = "000"
-    # TODO add validators
 
 class DParams():
     def __init__(self, config: FloParamsHouse0) -> None:
@@ -130,7 +86,7 @@ class DParams():
         cc = -self.dd_delta_t/self.dd_power * c
         sqrt_argument = ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)
         if sqrt_argument < 0:
-            self.log(f"Imaginary value in delta_T_inverse!. quad coeffs a, b, c = {a, b, c}"
+            print(f"Imaginary value in delta_T_inverse!. quad coeffs a, b, c = {a, b, c}"
                             f" and rwt {rwt} result in sqrt of {sqrt_argument}\n"
                             "Return 20")
             return 20.0
