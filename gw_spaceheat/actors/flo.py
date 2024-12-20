@@ -130,8 +130,10 @@ class DParams():
         cc = -self.dd_delta_t/self.dd_power * c
         sqrt_argument = ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)
         if sqrt_argument < 0:
-            raise Exception(f"Imaginary value in delta_T_inverse!. quad coeffs a, b, c = {a, b, c}"
-                            f" and rwt {rwt} result in sqrt of {sqrt_argument}")
+            self.log(f"Imaginary value in delta_T_inverse!. quad coeffs a, b, c = {a, b, c}"
+                            f" and rwt {rwt} result in sqrt of {sqrt_argument}\n"
+                            "Return 20")
+            return 20.0
 
         return -bb/(2*aa) - ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)**0.5 - rwt
     
