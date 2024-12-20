@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from gwproto.enums import MarketPriceUnit
+from enums import MarketPriceUnit
 from gwproto.property_format import LeftRightDotStr, MarketSlotName, UUID4Str
 from pydantic import BaseModel, StrictInt
 

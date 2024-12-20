@@ -62,6 +62,7 @@ class AtomicAlly(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
 
     states = [
+        AtomicAllyState.Dormant.value,
         AtomicAllyState.WaitingElec.value,
         AtomicAllyState.WaitingNoElec.value,
         AtomicAllyState.HpOnStoreOff.value,
@@ -119,10 +120,10 @@ class AtomicAlly(ScadaActor):
             model=self,
             states=AtomicAlly.states,
             transitions=AtomicAlly.transitions,
-            initial=AtomicAllyState.WaitingNoElec.value,
+            initial=AtomicAllyState.Dormant,
             send_event=True,
         )     
-        self.state: AtomicAllyState = AtomicAllyState.WaitingNoElec  
+        self.state: AtomicAllyState = AtomicAllyState.Dormant 
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")

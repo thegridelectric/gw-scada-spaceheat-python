@@ -52,7 +52,7 @@ from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
-from named_types import (DispatchContractCounterpartyRequest, EnergyInstruction, 
+from named_types import (DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, 
                         FsmEvent, GoDormant, LayoutLite, PicoMissing, ScadaParams, 
                         SendLayout, WakeUp)
 
@@ -170,7 +170,8 @@ class Scada(ScadaInterface, Proactor):
         {"trigger": "AtnWantsControl", "source": "HomeAlone", "dest": "Atn"},
         {"trigger": "AutoGoesDormant", "source": "Atn", "dest": "Dormant"},
         {"trigger": "AutoGoesDormant", "source": "HomeAlone", "dest": "Dormant"},
-        {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"}
+        {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"},
+        {"trigger": "AtnReleasesControl", "source": "Atn", "dest": "HomeAlone"}
     ]
     def __init__(
         self,
@@ -464,12 +465,6 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case EnergyInstruction():
-                try:
-                    self.get_communicator(H0N.synth_generator).process_message(message)
-                    self.get_communicator(H0N.atomic_ally).process_message(message)
-                except Exception as e:
-                    self.logger.error(f"Problem with {message.Header}: {e}")
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
@@ -605,8 +600,21 @@ class Scada(ScadaInterface, Proactor):
             case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
-            case DispatchContractCounterpartyRequest():
+            case DispatchContractGoDormant():
+                self.atn_releases_control(decoded.Payload)
+            case DispatchContractGoLive():
                 self.atn_wants_control(decoded.Payload)
+            case EnergyInstruction():
+                try:
+                    self.get_communicator(H0N.synth_generator).process_message(decoded)
+                except Exception as e:
+                    self.logger.error(f"In SynthGenerator: Problem with {message.Header}: {e}")
+                if self.auto_state == MainAutoState.Atn:
+                    try:
+                        self.get_communicator(H0N.atomic_ally).process_message(decoded)
+                    except Exception as e:
+                        self.logger.error(f"In AtomicAlly: Problem with {message.Header}: {e}")
+
             case SendLayout():
                 path_dbg |= 0x00000004
                 self._send_layout_lite(self.upstream_client)
@@ -941,7 +949,7 @@ class Scada(ScadaInterface, Proactor):
         # Trigger AutoWakesUp for auto state: Dormant -> HomeAlone
         self.AutoWakesUp()
         # all actuators report directly to home alone
-        self.set_home_alone_control_forest()
+        self.set_home_alone_command_tree()
         # Let homealone and pico-cycler know they in charge again
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         self._send_to(self.layout.pico_cycler,WakeUp(ToName=H0N.pico_cycler) )
@@ -956,7 +964,7 @@ class Scada(ScadaInterface, Proactor):
         self.AutoGoesDormant()
         self.log(f"auto_state {self.auto_state}")
         # ADMIN CONTROL FOREST: a single tree, controlling all actuators
-        self.set_admin_control_forest()
+        self.set_admin_command_tree()
         
         # Let the active nodes know they've lost control of their actuators
         report_1 =  self.layout.home_alone 
@@ -966,7 +974,20 @@ class Scada(ScadaInterface, Proactor):
         for report in reports:
             self._send_to(report, GoDormant(FromName=self.name, ToName=report.Name))
     
-    def atn_wants_control(self, t: DispatchContractCounterpartyRequest) -> None:
+    def atn_releases_control(self, t: DispatchContractGoDormant) -> None:
+        if t.FromGNodeAlias != self.layout.atn_g_node_alias:
+            self.log(f"HUH? Message from {t.FromGNodeAlias}")
+            return
+        if self.auto_state != MainAutoState.Atn:
+            self.log(f"Ignoring control request from atn, auto_state: {self.auto_state}")
+            return
+        self.AtnReleasesControl()
+        self.set_home_alone_command_tree()
+        self._dispatch_live_hack = False
+        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self._send_to(self.layout.atomic_ally, GoDormant(FromName=self.name, ToName=H0N.atomic_ally))
+        
+    def atn_wants_control(self, t: DispatchContractGoLive) -> None:
         if t.FromGNodeAlias != self.layout.atn_g_node_alias:
             self.log(f"HUH? Message from {t.FromGNodeAlias}")
             return
@@ -979,7 +1000,7 @@ class Scada(ScadaInterface, Proactor):
         self.log(f"AtnWantsControl! Auto state {self.auto_state}")
         # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
         # Ally which reports to atn.
-        self.set_atn_control_forest()
+        self.set_atn_command_tree()
         
         # Set the hack dispatch contract to True... will take this out shortly
         self._dispatch_live_hack = True
@@ -997,7 +1018,7 @@ class Scada(ScadaInterface, Proactor):
         self.AtnLinkDead()
         self.log(f"AtnLink id dead! Auto state {self.auto_state}")
         self._dispatch_live_hack = False
-        self.set_home_alone_control_forest()
+        self.set_home_alone_command_tree()
         # Let home alone know its in charge
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         # Pico Cycler shouldn't change
@@ -1039,11 +1060,11 @@ class Scada(ScadaInterface, Proactor):
         # #TODO: if MainAutoState is not atn, ignore
     
     ###########################################################
-    # CONTROL FORESTS - the handles of the Spaceheat Nodes form a tree
+    # Command Trees - the handles of the Spaceheat Nodes form a tree
     # where the line of direct report is required for following a command
     ##########################################################
 
-    def set_home_alone_control_forest(self) -> None:
+    def set_home_alone_command_tree(self) -> None:
         #HOMEALONE CONTROL FOREST. Direct reports are pico cycler and home alone
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
@@ -1051,12 +1072,12 @@ class Scada(ScadaInterface, Proactor):
             else:
                 node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
 
-    def set_admin_control_forest(self) -> None:
+    def set_admin_command_tree(self) -> None:
         # ADMIN CONTROL FOREST. All actuators report directly to admin
         for node in self.layout.actuators:
             node.Handle = f"{H0N.admin}.{node.Name}"
     
-    def set_atn_control_forest(self) -> None:
+    def set_atn_command_tree(self) -> None:
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"

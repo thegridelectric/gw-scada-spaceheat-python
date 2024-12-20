@@ -16,7 +16,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
+from named_types import EnergyInstruction, Ha1Params
 
 # -------------- TODO: move to named_types -------------
 from typing import Literal
@@ -62,6 +62,7 @@ class SynthGenerator(ScadaActor):
         ]
         self.elec_assigned_amount = None
         self.previous_time = None
+        self.temperatures_available = False
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -142,7 +143,7 @@ class SynthGenerator(ScadaActor):
             self.get_latest_temperatures()
             if self.temperatures_available:
                 self.update_energy()
-            
+
             self.update_remaining_elec()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
@@ -157,13 +158,9 @@ class SynthGenerator(ScadaActor):
         match message.Payload:
             case EnergyInstruction():
                 self.process_energy_instruction(message.Payload)
-            case GoDormant():
-                ...
             case PowerWatts():
                 self.update_remaining_elec()
                 self.previous_watts = message.Payload.Watts
-            case WakeUp():
-                ...
         return Ok(True)
     
     def fill_missing_store_temps(self):
@@ -299,7 +296,7 @@ class SynthGenerator(ScadaActor):
         else:
             self.log('Currently in on-peak or no on-peak period coming up soon')
             return 0
-    
+
     def to_celcius(self, t: float) -> float:
         return (t-32)*5/9
 
