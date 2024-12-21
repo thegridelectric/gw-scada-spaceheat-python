@@ -789,13 +789,18 @@ class Atn(ActorInterface, Proactor):
             (x.PriceTimes1000, x.QuantityTimes1000) for x in self.latest_bid.PqPairs
         ]
         sorted_pq_pairs = sorted(pq_pairs, key=lambda pair: pair[0], reverse=True)
-        quantity = None
+        # Quantity is AvgkW, so QuantityTimes1000 is avg_w
+        assert self.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
+        avg_w = None
         for pair in sorted_pq_pairs:
-            if pair[0] < payload.PriceTimes1000 and quantity is None:
-                quantity = pair[1] # WattHours
-        time_left_in_hour = 3600  # TODO: first time step in Dijkstra can be < 1h
-        energy_wh = quantity * time_left_in_hour / 3600
-        self.send_energy_instr(watthours=energy_wh)
+            if pair[0] < payload.PriceTimes1000 and avg_w is None:
+                avg_w = pair[1] # WattHours
+
+        # 1 hour
+        energy_wh = avg_w * 1
+        if energy_wh < 1000:
+            energy_wh = 0
+        self.send_energy_instr(watthours=energy_wh, slot_minutes=60)
 
     def to_fahrenheit(self, t: float) -> float:
         return t * 9 / 5 + 32
