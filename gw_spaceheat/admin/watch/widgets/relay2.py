@@ -24,10 +24,21 @@ class RelayWidgetConfig(RelayConfig):
     show_icon: bool = True
 
     @classmethod
-    def from_config(cls, config: RelayConfig) -> "RelayWidgetConfig":
-        return RelayWidgetConfig(**config.model_dump())
+    def from_config(
+            cls,
+            config: RelayConfig,
+            energized_icon: str = "⚡",
+            deenergized_icon: str = "-",
+            show_icon: bool = True,
+    ) -> "RelayWidgetConfig":
+        return RelayWidgetConfig(
+            energized_icon=energized_icon,
+            deenergized_icon=deenergized_icon,
+            show_icon=show_icon,
+            **config.model_dump()
+        )
 
-    def get_state_str(self, energized: Optional[bool]) -> str:
+    def get_state_str(self, energized: Optional[bool], *, show_icon: Optional[bool] = None) -> str:
         if energized is None:
             icon = "?"
             description = "?"
@@ -37,7 +48,7 @@ class RelayWidgetConfig(RelayConfig):
         else:
             icon = self.deenergized_icon
             description = self.deenergized_description
-        if self.show_icon:
+        if (show_icon is None and self.show_icon) or show_icon is True:
             return f"{icon} / {description}"
         return description
 
@@ -78,18 +89,23 @@ class RelayControlButtons(HorizontalGroup):
         self.set_reactive(RelayControlButtons.config, config or RelayWidgetConfig())
 
     def compose(self) -> ComposeResult:
-        yield Button(
+        deenergize = Button(
             label=self.config.get_state_str(False),
             disabled=self.energized is not True,
             variant="success",
             id="deenergized_button",
         )
-        yield Button(
+        # deenergize.border_title = "[underline]D[/underline]eenergize"
+        yield deenergize
+        energize = Button(
             label=self.config.get_state_str(True),
             disabled=self.energized is not False,
             variant="error",
             id="energized_button",
         )
+        # energize.border_title = "[underline]E[/underline]nergize"
+        yield energize
+
 
     def watch_energized(self) -> None:
         self.query_one("#deenergized_button").disabled = self.energized is not True

@@ -14,8 +14,6 @@ from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
 from admin.watch.watchex.relays2 import Relays2
-from admin.watch.widgets.relay1 import Relay1
-from admin.watch.widgets.relay2 import Relay2
 from admin.watch.widgets.relay2 import RelayControlButtons
 
 logger = logging.getLogger(__name__)
@@ -37,11 +35,11 @@ class WatchExApp(App):
         ("a", "previous_theme", "Previous theme"),
         ("s", "next_theme", "Next theme"),
         ("m", "toggle_messages", "Toggle message display"),
-        ("1", "toggle_v1", "Toggle v1 display"),
-        ("2", "toggle_v2", "Toggle v2 display"),
         Binding("q", "quit", "Quit", show=True, priority=True),
+        Binding("ctrl+c", "quit", "Quit", show=False),
     ]
     CSS_PATH = "watchex_app.tcss"
+
 
     def __init__(
         self,
@@ -71,19 +69,13 @@ class WatchExApp(App):
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
         yield Header(show_clock=True)
-        relays = Relays2(logger=logger)
+        relays = Relays2(logger=logger, id="relays2")
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
         yield relays
         yield Footer()
 
     def on_mount(self) -> None:
         self._admin_client.start()
-
-    def on_relay1_relay_switch_changed(self, message: Relay1.RelaySwitchChanged):
-        self._relay_client.set_relay(
-            message.about_node_name,
-            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
-        )
 
     def on_relay_control_buttons_pressed(self, message: RelayControlButtons.Pressed):
         self._relay_client.set_relay(
@@ -121,12 +113,6 @@ class WatchExApp(App):
 
     def action_previous_theme(self) -> None:
         self._change_theme(-1)
-
-    def action_toggle_v1(self) -> None:
-        self.query(Relay1).toggle_class("undisplayed")
-
-    def action_toggle_v2(self) -> None:
-        self.query(Relay2).toggle_class("undisplayed")
 
     def action_toggle_messages(self) -> None:
         self.query("#message_table").toggle_class("undisplayed")

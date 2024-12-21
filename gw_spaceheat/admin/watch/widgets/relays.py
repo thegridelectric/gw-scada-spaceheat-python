@@ -51,9 +51,9 @@ class Relays(Widget):
     mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped)
     logger: Logger
 
-    def __init__(self, logger: Optional[Logger] = None) -> None:
+    def __init__(self, logger: Optional[Logger] = None, **kwargs) -> None:
         self.logger = logger or module_logger
-        super().__init__()
+        super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
         with Vertical():
