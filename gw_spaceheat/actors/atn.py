@@ -792,7 +792,7 @@ class Atn(ActorInterface, Proactor):
         quantity = None
         for pair in sorted_pq_pairs:
             if pair[0] < payload.PriceTimes1000 and quantity is None:
-                quantity = pair[1] / 1000
+                quantity = pair[1] # WattHours
         time_left_in_hour = 3600  # TODO: first time step in Dijkstra can be < 1h
         energy_wh = quantity * time_left_in_hour / 3600
         self.send_energy_instr(watthours=energy_wh)
