@@ -92,7 +92,7 @@ class AtnData:
 
 
 class Atn(ActorInterface, Proactor):
-    MAIN_LOOP_SLEEP_SECONDS = 120
+    MAIN_LOOP_SLEEP_SECONDS = 61
     P_NODE = "hw1.isone.ver.keene"
     SCADA_MQTT = "scada"
     data: AtnData
