@@ -562,6 +562,7 @@ class HomeAlone(ScadaActor):
         temps = {}
         for zone_setpoint in [x for x in self.data.latest_channel_values if 'zone' in x and 'set' in x]:
             zone_name = zone_setpoint.replace('-set','')
+            self.log(f"Found zone: {zone_name}")
             if self.data.latest_channel_values[zone_setpoint] is not None:
                 self.zone_setpoints[zone_name] = self.data.latest_channel_values[zone_setpoint]
             if self.data.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None:
