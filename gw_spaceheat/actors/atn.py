@@ -826,6 +826,7 @@ class Atn(ActorInterface, Proactor):
     def get_latest_temperatures(self):
         if self.temperature_channel_names is None:
             self.temperatures_available = False
+            self.log("Can't get latest temperatures, don't have temperature channel names!")
             return
         if not self.settings.is_simulated:
             temp = {
@@ -856,6 +857,9 @@ class Atn(ActorInterface, Proactor):
 
     def get_thermocline_and_centroids(self) -> Optional[Tuple[float, int]]:
         # Get all tank temperatures in a dict, if you can't abort
+        if self.temperature_channel_names is None:
+            self.send_layout()
+            time.sleep(5)
         self.get_latest_temperatures()
         if not self.temperatures_available:
             self.log(
