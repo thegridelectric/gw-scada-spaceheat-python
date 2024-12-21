@@ -41,7 +41,7 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from actors.synth_generator import RemainingElec, WeatherForecast, PriceForecast
+from actors.synth_generator import RemainingElec, WeatherForecast
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -472,7 +472,7 @@ class Scada(ScadaInterface, Proactor):
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case PowerWatts():
                 path_dbg |= 0x00000001
-                if from_node is self._layout.power_meter_node or message.Header.Src==H0N.fake_atn: # TODO: remove or?
+                if from_node is self._layout.power_meter_node:
                     path_dbg |= 0x00000002
                     self.power_watts_received(message.Payload)
                     self.get_communicator(H0N.synth_generator).process_message(message)
@@ -525,11 +525,6 @@ class Scada(ScadaInterface, Proactor):
             case PicoMissing():
                 path_dbg |= 0x00000800
                 self.get_communicator(message.Header.Dst).process_message(message)
-            case PriceForecast():
-                try:
-                    self.get_communicator(H0N.fake_atn).process_message(message)
-                except Exception as e:
-                    self.logger.error(f"Problem with {message.Header}: {e}")
             case SingleReading():
                 path_dbg |= 0x00001000
                 self.single_reading_received(message.Payload)
@@ -564,7 +559,6 @@ class Scada(ScadaInterface, Proactor):
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
                     self.get_communicator(H0N.home_alone).process_message(message)
-                    self.get_communicator(H0N.fake_atn).process_message(message)
                 except Exception as e:
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case _:

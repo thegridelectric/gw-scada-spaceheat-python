@@ -957,15 +957,6 @@
       "Version": "200"
     },
     {
-      "ActorClass": "FakeAtn",
-      "ActorHierarchyName": "s.fake-atn",
-      "DisplayName": "Fake ATN",
-      "Name": "fake-atn",
-      "ShNodeId": "1c7eed52-d1af-441e-97f3-cc3f98e3b561",
-      "TypeName": "spaceheat.node.gt",
-      "Version": "200"
-    },
-    {
       "ActorClass": "Hubitat",
       "ComponentId": "4a5e3fca-2b8e-4321-bd61-b43401535cc2",
       "DisplayName": "Hubitat 82:22:22",
