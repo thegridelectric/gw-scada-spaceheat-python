@@ -157,10 +157,20 @@ class AtomicAlly(ScadaActor):
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
             case RemainingElec():
-                # TODO: perhaps 1 Wh is not the best number here
-                if message.Payload.RemainingWattHours <= 1:
+                if self.data.latest_energy_instruction is None:
+                    return
+                slot_end_s = self.data.latest_energy_instruction.SlotStartS + \
+                             self.data.latest_energy_instruction.SlotDurationMinutes * 60
+
+                # If the target is hit more than 5 minutes before the end of the slot
+                # turn off
+                if message.Payload.RemainingWattHours <= 0 and \
+                    time.time() < slot_end_s - 300:
                     if "HpOn" in self.state:
                         self.turn_off_HP()
+                
+                # TODO: If a new energy instruction has not been issued by 30
+                # seconds after the expiration of the previous one, go to home alone
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
                 if self.state == AtomicAllyState.Dormant.value:
@@ -399,7 +409,10 @@ class AtomicAlly(ScadaActor):
             self.turn_off_HP()
 
     def no_more_elec(self) -> bool:
-        if self.remaining_elec_wh is None or self.remaining_elec_wh <= 1:
+        slot_end_s = self.data.latest_energy_instruction.SlotStartS + \
+                    self.data.latest_energy_instruction.SlotDurationMinutes * 60
+        if self.data.latest_energy_instruction is None or \
+        (self.remaining_elec_wh <= 0 and time.time() < slot_end_s - 300):
             self.log("No electricity available")
             return True
         else:

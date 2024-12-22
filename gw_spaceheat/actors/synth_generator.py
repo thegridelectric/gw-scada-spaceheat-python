@@ -216,7 +216,7 @@ class SynthGenerator(ScadaActor):
         self.previous_time = payload.SendTimeMs
 
     def update_remaining_elec(self) -> None:
-        if self.elec_assigned_amount is None or self.previous_time is None:
+        if self.data.latest_energy_instruction is None:
             return
         time_now = time.time() * 1000
         self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")

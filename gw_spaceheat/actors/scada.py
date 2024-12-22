@@ -599,6 +599,7 @@ class Scada(ScadaInterface, Proactor):
             case DispatchContractGoLive():
                 self.atn_wants_control(decoded.Payload)
             case EnergyInstruction():
+                self.data.latest_energy_instruction = decoded.Payload
                 try:
                     self.get_communicator(H0N.synth_generator).process_message(decoded)
                 except Exception as e:

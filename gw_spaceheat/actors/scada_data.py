@@ -18,7 +18,7 @@ from gwproto.messages import (
     SnapshotSpaceheat,
 )
 
-from named_types import Ha1Params
+from named_types import EnergyInstruction, Ha1Params
 class ScadaData:
     latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]
@@ -31,6 +31,8 @@ class ScadaData:
     settings: ScadaSettings
     layout: HardwareLayout
     ha1_params: Ha1Params
+    latest_energy_instruction: Optional[EnergyInstruction]
+    watt_hours_toward_instruction: Optional[int]
 
     def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
         self.latest_total_power_w: Optional[int] = None
@@ -71,6 +73,7 @@ class ScadaData:
         }
         self.recent_fsm_reports = {}
         self.flush_latest_readings()
+        self.latest_energy_instruction = None
 
     def get_my_data_channels(self) -> List[DataChannel]:
         return list(self.layout.data_channels.values())
