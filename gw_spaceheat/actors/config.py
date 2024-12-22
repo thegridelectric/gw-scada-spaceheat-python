@@ -19,6 +19,7 @@ class AdminLinkSettings(MQTTClient):
 class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""
     #logging related (temporary)
+    contract_suspended: bool = False
     pico_cycler_state_logging: bool = False
     local_mqtt: MQTTClient = MQTTClient()
     gridworks_mqtt: MQTTClient = MQTTClient()

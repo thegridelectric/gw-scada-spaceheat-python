@@ -101,12 +101,15 @@ class Atn(ActorInterface, Proactor):
     ha1_params: Optional[Ha1Params]
 
     states = [
-        "DispatchDormantScadaReady",
+        "ContractSuspended",
         "DispatchDormantScadaNotReady",
+        "DispatchDormantScadaReady",
         "DispatchLive"
     ]
 
     transitions = [
+        {"trigger": "SlaViolated", "source": "DispatchLive", "dest": "ContractSuspended"},
+        {"trigger": "Reauthorized", "source": "ContractSuspended", "dest": "DispatchDormantScadaNotReady"},
         {"trigger": "ScadaReadyReceived", "source": "DispatchDormantScadaNotReady", "dest": "DispatchDormantScadaReady"},
         {"trigger": "AtnWantsControl", "source": "DispatchDormantScadaReady", "dest": "DispatchLive"},
         {"trigger": "AtnReleasesControl", "source": "DispatchLive", "dest": "DispatchDormantScadaNotReady"},

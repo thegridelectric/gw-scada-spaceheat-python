@@ -23,13 +23,15 @@ from actors.synth_generator import RemainingElec, WeatherForecast
 
 
 class AtomicAllyState(GwStrEnum): 
+    DormantNotReady = auto()
+    DormantReady = auto()
+    Initializing = auto()
     WaitingElec = auto()
     WaitingNoElec = auto()
     HpOnStoreOff = auto()
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
-    Dormant = auto()
 
 
     @classmethod
@@ -57,7 +59,7 @@ class AtomicAlly(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
 
     states = [
-        AtomicAllyState.Dormant.value,
+        AtomicAllyState.DormantNotReady.value,
         AtomicAllyState.WaitingElec.value,
         AtomicAllyState.WaitingNoElec.value,
         AtomicAllyState.HpOnStoreOff.value,
@@ -98,6 +100,7 @@ class AtomicAlly(ScadaActor):
             for state in states if state != "Dormant"
     ] + [{"trigger":"WakeUp", "source": "Dormant", "dest": "WaitingNoElec"}]
 
+
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self._stop_requested: bool = False
@@ -115,10 +118,10 @@ class AtomicAlly(ScadaActor):
             model=self,
             states=AtomicAlly.states,
             transitions=AtomicAlly.transitions,
-            initial=AtomicAllyState.Dormant,
+            initial=AtomicAllyState.DormantNotReady,
             send_event=True,
         )     
-        self.state: AtomicAllyState = AtomicAllyState.Dormant 
+        self.state: AtomicAllyState = AtomicAllyState.DormantNotReady 
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
@@ -153,7 +156,7 @@ class AtomicAlly(ScadaActor):
 
             case GoDormant():
                 self.log("Just got message to GoDormant!")
-                if self.state != AtomicAllyState.Dormant.value:
+                if self.state != AtomicAllyState.DormantNotReady.value:
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
@@ -165,14 +168,14 @@ class AtomicAlly(ScadaActor):
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
                 self.log("Just got message to Wake Up from SCADA!")
-                if self.state == AtomicAllyState.Dormant.value:
+                if self.state == AtomicAllyState.DormantNotReady.value:
                     # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
                     # TODO: think through whether atomic ally also needs an init
                     # state. Note it will always be coming from HomeAlone
                     # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
                     self.trigger_event(AtomicAllyEvent.WakeUp)
                     self.log("Updating relays.")
-                    self.update_relays(previous_state=AtomicAllyState.Dormant.value)
+                    self.update_relays(previous_state=AtomicAllyState.DormantNotReady.value)
             case WeatherForecast():
                 self.log("Received weather forecast")
                 self.weather = {
@@ -234,7 +237,7 @@ class AtomicAlly(ScadaActor):
         if not self.weather:
             self.log("Strange ... Do not have weather yet! Not updating state since can't check buffer state")
             return
-        if self.state != AtomicAllyState.Dormant:
+        if self.state != AtomicAllyState.DormantNotReady:
             previous_state = self.state
 
             self.get_latest_temperatures()
