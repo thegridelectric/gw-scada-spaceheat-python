@@ -75,15 +75,18 @@ class RelayStateText(Static):
 class RelayControlButtons(HorizontalGroup):
     energized: Reactive[Optional[bool]] = reactive(None)
     config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
+    _show_titles: bool = False
 
     def __init__(
         self,
         energized: Optional[bool] = None,
         config: Optional[RelayWidgetConfig] = None,
         logger: logging.Logger = module_logger,
+        show_titles: bool = False,
         **kwargs
     ):
         self.logger = logger
+        self._show_titles = show_titles
         super().__init__(**kwargs)
         self.set_reactive(RelayControlButtons.energized, energized)
         self.set_reactive(RelayControlButtons.config, config or RelayWidgetConfig())
@@ -95,15 +98,16 @@ class RelayControlButtons(HorizontalGroup):
             variant="success",
             id="deenergized_button",
         )
-        # deenergize.border_title = "[underline]D[/underline]eenergize"
-        yield deenergize
         energize = Button(
             label=self.config.get_state_str(True),
             disabled=self.energized is not False,
             variant="error",
             id="energized_button",
         )
-        # energize.border_title = "[underline]E[/underline]nergize"
+        if self._show_titles:
+            deenergize.border_title = "[underline]D[/underline]eenergize"
+            energize.border_title = "[underline]E[/underline]nergize"
+        yield deenergize
         yield energize
 
 

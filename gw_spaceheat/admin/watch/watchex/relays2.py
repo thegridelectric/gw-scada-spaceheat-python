@@ -60,6 +60,7 @@ class Relays2(Relays):
             yield RelayControlButtons(
                 id="relays_control_buttons",
                 config=RelayWidgetConfig(),
+                show_titles=True,
             )
             yield DataTable(id="message_table", classes="undisplayed")
 
