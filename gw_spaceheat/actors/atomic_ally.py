@@ -1,26 +1,25 @@
 import asyncio
-from typing import Sequence
-from enum import auto
-import uuid
 import time
+import uuid
+from enum import auto
+from typing import Sequence
+
 import pytz
+from data_classes.house_0_names import H0CN, H0N
 from gw.enums import GwStrEnum
-from gwproactor import ServicesInterface,  MonitoredName
+from gwproactor import MonitoredName, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from actors.scada_data import ScadaData
+from gwproto.enums import FsmReportType
+from gwproto.named_types import (Alert, FsmAtomicReport, FsmFullReport,
+                                 MachineStates)
+from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
 from result import Ok, Result
 from transitions import Machine
 
-from gwproto.enums import  FsmReportType
-from gwproto.named_types import (Alert,  MachineStates, FsmAtomicReport,
-                                 FsmFullReport, )
 from actors.scada_actor import ScadaActor
-from named_types import  GoDormant, WakeUp
+from actors.scada_data import ScadaData
 from actors.synth_generator import RemainingElec, WeatherForecast
-from data_classes.house_0_names import H0N, H0CN
-from enums import MainAutoState
-from named_types import EnergyInstruction, Ha1Params
 
 
 class AtomicAllyState(GwStrEnum): 
@@ -150,9 +149,8 @@ class AtomicAlly(ScadaActor):
         match message.Payload:
             case EnergyInstruction():
                 self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
-                if message.Payload.AvgPowerWatts == 0:
-                    if "HpOn" in self.state:
-                        self.turn_off_HP()
+                self.check_and_update_state()
+
             case GoDormant():
                 self.log("Just got message to GoDormant!")
                 if self.state != AtomicAllyState.Dormant.value:
@@ -233,6 +231,9 @@ class AtomicAlly(ScadaActor):
 
     def check_and_update_state(self) -> None:
         self.log(f"State: {self.state}")
+        if not self.weather:
+            self.log("Strange ... Do not have weather yet! Not updating state since can't check buffer state")
+            return
         if self.state != AtomicAllyState.Dormant:
             previous_state = self.state
 
