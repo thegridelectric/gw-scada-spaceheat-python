@@ -2,6 +2,7 @@
 
 import asyncio
 import enum
+from enum import auto
 import uuid
 import threading
 import time
@@ -9,6 +10,7 @@ from typing import Any, List, Optional, cast
 
 import dotenv
 from transitions import Machine
+from gw.enums import GwStrEnum
 from gwproto.message import Header
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
 from gwproactor.links import LinkManagerTransition
@@ -56,6 +58,29 @@ from named_types import (DispatchContractGoDormant, DispatchContractGoLive, Ener
                         FsmEvent, GoDormant, LayoutLite, PicoMissing, ScadaParams, 
                         SendLayout, WakeUp)
 
+
+class DispatchContractState(GwStrEnum):
+    ContractSuspended = auto()
+    ScadaNotReady = auto()
+    ScadaReady = auto()
+    DispatchLive = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "dispatch.contract.state"
+
+
+class DispatchContractEvent(GwStrEnum):
+    SlaViolated = auto()
+    Reauthorized = auto()
+    WeatherAndTempsAvail = auto()
+    AtnWantsControl = auto()
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "dispatch.contract.event"
+    
+    
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
     [
