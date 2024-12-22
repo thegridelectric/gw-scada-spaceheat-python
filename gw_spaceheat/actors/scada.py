@@ -961,12 +961,8 @@ class Scada(ScadaInterface, Proactor):
         self.set_admin_command_tree()
         
         # Let the active nodes know they've lost control of their actuators
-        report_1 =  self.layout.home_alone 
-        if self.auto_state == MainAutoState.Atn:
-            report_1 = self.layout.atomic_ally
-        reports: List[ShNode] = [report_1, self.layout.pico_cycler]
-        for report in reports:
-            self._send_to(report, GoDormant(FromName=self.name, ToName=report.Name))
+        for direct_report in [self.layout.atomic_ally, self.layout.home_alone , self.layout.pico_cycler]:
+            self._send_to(direct_report, GoDormant(FromName=self.name, ToName=direct_report.Name))
     
     def atn_releases_control(self, t: DispatchContractGoDormant) -> None:
         if t.FromGNodeAlias != self.layout.atn_g_node_alias:

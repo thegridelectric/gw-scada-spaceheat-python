@@ -152,7 +152,6 @@ class AtomicAlly(ScadaActor):
                 self.check_and_update_state()
 
             case GoDormant():
-                self.log("Just got message to GoDormant!")
                 if self.state != AtomicAllyState.Dormant.value:
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(AtomicAllyEvent.GoDormant)
@@ -164,15 +163,13 @@ class AtomicAlly(ScadaActor):
                         self.turn_off_HP()
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
-                self.log("Just got message to Wake Up from SCADA!")
                 if self.state == AtomicAllyState.Dormant.value:
                     # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
                     # TODO: think through whether atomic ally also needs an init
                     # state. Note it will always be coming from HomeAlone
                     # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
                     self.trigger_event(AtomicAllyEvent.WakeUp)
-                    self.log("Updating relays.")
-                    self.update_relays(previous_state=AtomicAllyState.Dormant.value)
+                    self.check_and_update_state()
             case WeatherForecast():
                 self.log("Received weather forecast")
                 self.weather = {
