@@ -72,10 +72,17 @@ class RelayStateText(Static):
     def render(self) -> RenderResult:
         return self.config.get_state_str(self.energized)
 
-class RelayControlButtons(HorizontalGroup):
+class RelayControlButtons(HorizontalGroup, can_focus=True):
+    BINDINGS = [
+        ("E", "energize", "Energize relay"),
+        ("D", "deenergize", "Deenergize relay"),
+    ]
+
     energized: Reactive[Optional[bool]] = reactive(None)
     config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
     _show_titles: bool = False
+    _maintain_focus: bool = True
+    _enable_bindings: bool = False
 
     def __init__(
         self,
@@ -83,10 +90,14 @@ class RelayControlButtons(HorizontalGroup):
         config: Optional[RelayWidgetConfig] = None,
         logger: logging.Logger = module_logger,
         show_titles: bool = False,
+        maintain_focus: bool = True,
+        enable_bindings: bool = False,
         **kwargs
     ):
         self.logger = logger
         self._show_titles = show_titles
+        self._maintain_focus = maintain_focus
+        self._enable_bindings = enable_bindings
         super().__init__(**kwargs)
         self.set_reactive(RelayControlButtons.energized, energized)
         self.set_reactive(RelayControlButtons.config, config or RelayWidgetConfig())
@@ -110,10 +121,37 @@ class RelayControlButtons(HorizontalGroup):
         yield deenergize
         yield energize
 
+    def action_energize(self) -> None:
+        if self.energized is False:
+            self.energized = True
+
+    def action_deenergize(self) -> None:
+        if self.energized is True:
+            self.energized = False
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> Optional[bool]:
+        if not self._enable_bindings:
+            return False
+        if action == "deenergize" and self.energized is True:
+            return True
+        elif action == "energize" and self.energized is False:
+            return True
+        return None
 
     def watch_energized(self) -> None:
-        self.query_one("#deenergized_button").disabled = self.energized is not True
-        self.query_one("#energized_button").disabled = self.energized is not False
+        deenergize = self.query_one("#deenergized_button")
+        energize = self.query_one("#energized_button")
+        deenergize.disabled = self.energized is not True
+        energize.disabled = self.energized is not False
+        if self._maintain_focus and (
+                self.has_focus or
+                energize.has_focus or
+                deenergize.has_focus
+        ):
+            if self.energized is True:
+                deenergize.focus()
+            elif self.energized is False:
+                energize.focus()
 
     def watch_config(self):
         self.query_one("#deenergized_button").label = self.config.get_state_str(False)
