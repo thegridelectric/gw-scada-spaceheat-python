@@ -97,10 +97,10 @@ class DParams():
     def get_available_top_temps(self) -> Tuple[Dict, Dict]:
         available_temps = [self.initial_top_temp]
         x = self.initial_top_temp
-        while round(x + self.delta_T_inverse(x),2) <= 180:
+        while round(x + self.delta_T_inverse(x),2) <= 185:
             x = round(x + self.delta_T_inverse(x),2)
             available_temps.append(int(x))
-        while x+10 <= 180:
+        while x+10 <= 185:
             x += 10
             available_temps.append(int(x))
         x = self.initial_top_temp
@@ -110,7 +110,9 @@ class DParams():
         while x >= 70:
             x += -10
             available_temps.append(int(x))
-        available_temps = sorted(available_temps) + [190]
+        available_temps = sorted(available_temps)
+        if max(available_temps) < 176:
+            available_temps = available_temps + [185]
         energy_between_nodes = {}
         m_layer = self.storage_volume*3.785 / self.num_layers
         for i in range(1,len(available_temps)):
