@@ -28,6 +28,7 @@ class WatchExApp(App):
         ("[", "previous_theme", "Previous theme"),
         ("]", "next_theme", "Next theme"),
         ("m", "toggle_messages", "Toggle message display"),
+        ("c", "toggle_relay_state_colors", "Toggle relay state colors"),
         Binding("q", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+c", "quit", "Quit", show=False),
     ]
@@ -103,6 +104,10 @@ class WatchExApp(App):
 
     def action_toggle_messages(self) -> None:
         self.query("#message_table").toggle_class("undisplayed")
+
+    def action_toggle_relay_state_colors(self) -> None:
+        relays = self.query_one("#relays2", Relays2)
+        relays.state_colors = not relays.state_colors
 
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013

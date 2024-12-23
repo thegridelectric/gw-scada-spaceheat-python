@@ -8,6 +8,8 @@ from rich.color import Color as RichColor
 from textual.app import ComposeResult
 from textual.color import Color
 from textual.containers import Vertical
+from textual.reactive import reactive
+from textual.reactive import Reactive
 from textual.signal import Signal
 from textual.theme import Theme
 from textual.widgets import DataTable
@@ -48,6 +50,7 @@ class Relays2(Relays):
         ("E", "energize", "Energize relay"),
         ("D", "deenergize", "Deenergize relay"),
     ]
+    state_colors: Reactive[bool] = reactive(False)
 
     _relays: dict[str, RelayWidgetInfo]
     _highlighted_relay_name: Optional[str] = None
@@ -141,8 +144,9 @@ class Relays2(Relays):
         if relay_name in self._relays:
             relay = self._relays[relay_name]
             relay_state = relay.get_state()
-            if relay_state is None:
-                state_style = None
+            state_text = relay.get_state_str()
+            if relay_state is None or not self.state_colors:
+                state_renderable = state_text
             else:
                 if relay_state:
                     state_theme_variable_color = self.app.theme_variables["text-error"]
@@ -150,18 +154,19 @@ class Relays2(Relays):
                     state_theme_variable_color = self.app.theme_variables["text-success"]
                 textual_row_style = table.get_component_styles(row_style_class)
                 state_style = Style(
-                        color=self.make_translucent(
-                            state_theme_variable_color,
-                            opacity=textual_row_style.opacity,
-                            background=textual_row_style.background,
-                        ),
-                        bgcolor=textual_row_style.rich_style.bgcolor,
-                    )
+                    color=self.make_translucent(
+                        state_theme_variable_color,
+                        opacity=textual_row_style.opacity,
+                        background=textual_row_style.background,
+                    ),
+                    bgcolor=textual_row_style.rich_style.bgcolor,
+                )
+                state_renderable = Text(state_text, style=state_style)
             return {
                 "Relay Name": relay.config.channel_name,
                 "Deenergized Name": relay.config.get_state_str(False, show_icon=False),
                 "Energized Name": relay.config.get_state_str(True, show_icon=False),
-                "State": Text(relay.get_state_str(), style=state_style),
+                "State": state_renderable,
             }
         return {}
 
@@ -205,9 +210,12 @@ class Relays2(Relays):
         buttons.energized = relay_info.get_state()
         self.refresh_bindings()
 
-    def handle_theme_change_signal(self, _signal: Signal[Theme]) -> None:
+    def _update_table(self):
         for relay_name in self._relays:
             self._update_relay_row(relay_name)
+
+    def handle_theme_change_signal(self, _signal: Signal[Theme]) -> None:
+        self._update_table()
 
     def on_data_table_row_highlighted(self, message: DataTable.RowHighlighted) -> None:
         if self._highlighted_relay_name is not None:
@@ -215,3 +223,6 @@ class Relays2(Relays):
         self._highlighted_relay_name = message.row_key.value
         self._update_relay_row(self._highlighted_relay_name)
         self._update_buttons(self._highlighted_relay_name)
+
+    def watch_state_colors(self):
+        self._update_table()
