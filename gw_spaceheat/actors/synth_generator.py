@@ -323,7 +323,8 @@ class SynthGenerator(ScadaActor):
     def required_swt(self, required_kw_thermal: float) -> float:
         rhp = required_kw_thermal
         a, b, c = self.rswt_quadratic_params
-        return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
+        c2 = c - required_kw_thermal
+        return round((-b + (b**2-4*a*c2)**0.5)/(2*a), 2)
     
     def get_price_forecast(self) -> None:
         daily_dp = [50.13]*7 + [487.63]*5 + [54.98]*4 + [487.63]*4 + [50.13]*4

@@ -71,7 +71,8 @@ class DParams():
 
     def required_swt(self, rhp):
         a, b, c = self.quadratic_coefficients
-        return -b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5
+        c2 = c - rhp
+        return (-b + (b**2-4*a*c2)**0.5)/(2*a)
 
     def delta_T(self, swt):
         d = self.dd_delta_t/self.dd_power * self.delivered_heating_power(swt)
@@ -79,19 +80,13 @@ class DParams():
         return d if d>0 else 0
     
     def delta_T_inverse(self, rwt: float) -> float:
-        """Raise exception with quad coeffs and rwt if imaginary"""
         a, b, c = self.quadratic_coefficients
         aa = -self.dd_delta_t/self.dd_power * a
         bb = 1-self.dd_delta_t/self.dd_power * b
-        cc = -self.dd_delta_t/self.dd_power * c
-        sqrt_argument = ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)
-        if sqrt_argument < 0:
-            print(f"Imaginary value in delta_T_inverse!. quad coeffs a, b, c = {a, b, c}"
-                            f" and rwt {rwt} result in sqrt of {sqrt_argument}\n"
-                            "Return 20")
-            return 20.0
-
-        return -bb/(2*aa) - ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)**0.5 - rwt
+        cc = -self.dd_delta_t/self.dd_power * c - rwt
+        if bb**2-4*aa*cc < 0 or (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt > 30:
+            return 30
+        return (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt
     
     def get_quadratic_coeffs(self):
         x_rswt = np.array([self.no_power_rswt, self.intermediate_rswt, self.dd_rswt])
@@ -102,20 +97,20 @@ class DParams():
     def get_available_top_temps(self) -> Tuple[Dict, Dict]:
         available_temps = [self.initial_top_temp]
         x = self.initial_top_temp
-        while round(x + self.delta_T_inverse(x),2) <= 175:
+        while round(x + self.delta_T_inverse(x),2) <= 180:
             x = round(x + self.delta_T_inverse(x),2)
-            available_temps.append(x)
-        while x+10 <= 175:
+            available_temps.append(int(x))
+        while x+10 <= 180:
             x += 10
-            available_temps.append(x)
-        x = round(self.initial_top_temp)
+            available_temps.append(int(x))
+        x = self.initial_top_temp
         while self.delta_T(x) >= 3:
             x = round(x - self.delta_T(x))
-            available_temps.append(x)
+            available_temps.append(int(x))
         while x >= 70:
             x += -10
-            available_temps.append(x)
-        available_temps = sorted(available_temps)
+            available_temps.append(int(x))
+        available_temps = sorted(available_temps) + [190]
         energy_between_nodes = {}
         m_layer = self.storage_volume*3.785 / self.num_layers
         for i in range(1,len(available_temps)):
