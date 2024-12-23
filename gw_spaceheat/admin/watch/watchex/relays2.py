@@ -42,7 +42,13 @@ class RelayWidgetInfo(BaseModel):
         return self.config.get_energize_str(False)
 
 class Relays2(Relays):
+    BINDINGS = [
+        ("E", "energize", "Energize relay"),
+        ("D", "deenergize", "Deenergize relay"),
+    ]
+
     _relays: dict[str, RelayWidgetInfo]
+    _highlighted_relay_name: Optional[str] = None
 
     def __init__(self, logger: Optional[Logger] = None, **kwargs) -> None:
         self._relays = {}
@@ -61,27 +67,37 @@ class Relays2(Relays):
                 id="relays_control_buttons",
                 config=RelayWidgetConfig(),
                 show_titles=True,
+                enable_bindings=True,
             )
             yield DataTable(id="message_table", classes="undisplayed")
 
     def on_mount(self) -> None:
         data_table = self.query_one("#relays_table", DataTable)
         for column_name, width in [
-            ("Name", 28),
+            ("Relay Name", 28),
+            ("Deenergized Name", 25),
+            ("Energized Name", 25),
             ("State", 25),
-            ("Deenergize", 25),
-            ("Energize", 25),
-            # ("Deenergize2", 25),
-            # ("Energize2", 25),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
-            message_table = self.query_one("#message_table", DataTable)
-            message_table.add_columns(
-            "Time", "Type", "Payload",
-            )
+        message_table = self.query_one("#message_table", DataTable)
+        message_table.add_columns(
+        "Time", "Type", "Payload",
+        )
+
+    def action_energize(self) -> None:
+        self.query_one("#relays_control_buttons", RelayControlButtons).action_energize()
+        self.refresh_bindings()
+
+    def action_deenergize(self) -> None:
+        self.query_one("#relays_control_buttons", RelayControlButtons).action_deenergize()
+        self.refresh_bindings()
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> Optional[bool]:
+        return self.query_one("#relays_control_buttons", RelayControlButtons).check_action(action, parameters)
 
     def on_relays_relay_state_change(self, message: Relays.RelayStateChange) -> None:
-        self.logger.debug("++Relays2.on_relays_relay_state_change  %d", len(message.changes))
+        # self.logger.debug("++Relays2.on_relays_relay_state_change  %d", len(message.changes))
         path_dbg = 0
         for relay_name, change in message.changes.items():
             path_dbg |= 0x00000001
@@ -95,7 +111,7 @@ class Relays2(Relays):
                 relay_idx = table.get_row_index(relay_name)
                 if relay_idx == table.cursor_row:
                     self._update_buttons(relay_name)
-        self.logger.debug("--Relays2.on_relays_relay_state_change  path:0x%08X", path_dbg)
+        # self.logger.debug("--Relays2.on_relays_relay_state_change  path:0x%08X", path_dbg)
 
     @classmethod
     def make_translucent(
@@ -111,61 +127,36 @@ class Relays2(Relays):
 
     def _get_relay_row_data(self, relay_name: str, row_idx: int) -> dict[str, CellType]:
         table = self.query_one("#relays_table", DataTable)
-        # if table.cursor_row == row_idx:
-        #     row_style_class = "datatable--cursor"
-        if row_idx % 2 == 0:
+        if table.cursor_row == row_idx:
+            row_style_class = "datatable--cursor"
+        elif row_idx % 2 == 0:
             row_style_class = "datatable--even-row"
         else:
             row_style_class = "datatable--odd-row"
         if relay_name in self._relays:
             relay = self._relays[relay_name]
-            textual_row_style = table.get_component_styles(row_style_class)
-            rich_row_style = textual_row_style.rich_style
-            return {
-                "Name": relay.config.channel_name,
-                "State": relay.get_state_str(),
-                "Deenergize": Text(
-                    relay.config.get_state_str(False, show_icon=False),
-                    style=Style(
+            relay_state = relay.get_state()
+            if relay_state is None:
+                state_style = None
+            else:
+                if relay_state:
+                    state_theme_variable_color = self.app.theme_variables["text-error"]
+                else:
+                    state_theme_variable_color = self.app.theme_variables["text-success"]
+                textual_row_style = table.get_component_styles(row_style_class)
+                state_style = Style(
                         color=self.make_translucent(
-                            self.app.theme_variables["text-success"],
+                            state_theme_variable_color,
                             opacity=textual_row_style.opacity,
-                            background=textual_row_style.background
+                            background=textual_row_style.background,
                         ),
-                        bgcolor=rich_row_style.bgcolor,
-                    ),
-                    # justify="center",
-                ),
-                "Energize": Text(
-                    relay.config.get_state_str(True, show_icon=False),
-                    style=Style(
-                            color=self.make_translucent(
-                                self.app.theme_variables["text-error"],
-                                opacity=textual_row_style.opacity,
-                                background=textual_row_style.background,
-                            ),
-                            bgcolor=rich_row_style.bgcolor,
-                        ),
-                    # justify="center",
-                ),
-                # "Deenergize2": Text(
-                #     relay.config.get_state_str(False, show_icon=False),
-                #     style=Style(
-                #         color=self.app.theme_variables["text-success"],
-                #         bgcolor=self.app.theme_variables["success"],
-                #         bold=True,
-                #     ),
-                #     justify="center",
-                # ),
-                # "Energize2": Text(
-                #     relay.config.get_state_str(True, show_icon=False),
-                #     style=Style(
-                #         color=self.app.theme_variables["text-error"],
-                #         bgcolor=self.app.theme_variables["error"],
-                #         bold=True,
-                #     ),
-                #     justify="center",
-                # ),
+                        bgcolor=textual_row_style.rich_style.bgcolor,
+                    )
+            return {
+                "Relay Name": relay.config.channel_name,
+                "Deenergized Name": relay.config.get_state_str(False, show_icon=False),
+                "Energized Name": relay.config.get_state_str(True, show_icon=False),
+                "State": Text(relay.get_state_str(), style=state_style),
             }
         return {}
 
@@ -207,6 +198,15 @@ class Relays2(Relays):
         buttons = self.query_one("#relays_control_buttons", RelayControlButtons)
         buttons.config = relay_info.config
         buttons.energized = relay_info.get_state()
+        self.refresh_bindings()
+
+    def update_table(self):
+        for relay_name in self._relays:
+            self._update_relay_row(relay_name)
 
     def on_data_table_row_highlighted(self, message: DataTable.RowHighlighted) -> None:
-        self._update_buttons(message.row_key.value)
+        if self._highlighted_relay_name is not None:
+            self._update_relay_row(self._highlighted_relay_name)
+        self._highlighted_relay_name = message.row_key.value
+        self._update_relay_row(self._highlighted_relay_name)
+        self._update_buttons(self._highlighted_relay_name)

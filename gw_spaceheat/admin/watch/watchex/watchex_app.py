@@ -1,12 +1,9 @@
 import logging
-import random
 
 import dotenv
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.logging import TextualHandler
-from textual.reactive import reactive
-from textual.reactive import Reactive
 from textual.widgets import Header, Footer
 
 from admin.settings import AdminClientSettings
@@ -21,19 +18,15 @@ logger.addHandler(TextualHandler())
 
 
 class WatchExApp(App):
-    TITLE: str = "I am a teapot"
-    title: str = reactive(TITLE)
-    dark: Reactive[bool]
+    TITLE: str = "Scada Relay Monitor"
     _admin_client: AdminClient
     _relay_client: RelayWatchClient
     _theme_names: list[str]
 
     BINDINGS = [
         ("d", "toggle_dark", "Toggle dark mode"),
-        ("n", "shuffle_title", "Shuffle title"),
-        ("t", "reset_title", "Reset title"),
-        ("a", "previous_theme", "Previous theme"),
-        ("s", "next_theme", "Next theme"),
+        ("[", "previous_theme", "Previous theme"),
+        ("]", "next_theme", "Next theme"),
         ("m", "toggle_messages", "Toggle message display"),
         Binding("q", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+c", "quit", "Quit", show=False),
@@ -65,9 +58,9 @@ class WatchExApp(App):
         self._theme_names = [
             theme for theme in self.available_themes if theme != "textual-ansi"
         ]
+        self.set_reactive(WatchExApp.sub_title, self.settings.target_gnode)
 
     def compose(self) -> ComposeResult:
-        """Create child widgets for the app."""
         yield Header(show_clock=True)
         relays = Relays2(logger=logger, id="relays2")
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
@@ -85,16 +78,10 @@ class WatchExApp(App):
 
     def action_toggle_dark(self) -> None:
         self.theme = (
-            "textual-dark" if self.theme == "textual-light" else "textual-light"
+            "textual-dark" if "light" in self.theme else "textual-light"
         )
-
-    def action_shuffle_title(self) -> None:
-        lst = list(self.title)
-        random.shuffle(lst)
-        self.title = "".join(lst)
-
-    def action_reset_title(self) -> None:
-        self.title = self.TITLE
+        self.clear_notifications()
+        self.notify(f"Theme is {self.current_theme.name}")
 
     async def action_quit(self) -> None:
         self._admin_client.stop()

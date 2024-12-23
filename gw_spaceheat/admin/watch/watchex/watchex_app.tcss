@@ -19,14 +19,8 @@ Screen {
 
 Button {
     margin: 1 2;
-}
+    border-title-color: $text;
 
-RelayButton {
-    margin: 1 2;
-    border-title-align: center;
-    border-title-style: bold;
-    text-align: center;
-    content-align: center bottom;
 }
 
 RelayControlButtons {
