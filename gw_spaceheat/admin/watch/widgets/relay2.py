@@ -123,11 +123,21 @@ class RelayControlButtons(HorizontalGroup, can_focus=True):
 
     def action_energize(self) -> None:
         if self.energized is False:
-            self.energized = True
+            self.post_message(
+                RelayControlButtons.Pressed(
+                    self.config.about_node_name,
+                    True,
+                )
+            )
 
     def action_deenergize(self) -> None:
         if self.energized is True:
-            self.energized = False
+            self.post_message(
+                RelayControlButtons.Pressed(
+                    self.config.about_node_name,
+                    False,
+                )
+            )
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> Optional[bool]:
         if not self._enable_bindings:
