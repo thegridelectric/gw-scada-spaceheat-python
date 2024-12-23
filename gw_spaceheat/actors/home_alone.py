@@ -286,7 +286,7 @@ class HomeAlone(ScadaActor):
                                 elif not self.oil_boiler_on:
                                     self.log("Turning on oil boiler during onpeak!")
                                     self.turn_on_oil_boiler()
-                            elif not self.is_storage_colder_than_buffer():
+                            elif not self.is_storage_colder_than_buffer() and not self.is_storage_empty():
                                 self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                         if self.is_buffer_full() and self.oil_boiler_on:
                             self.turn_off_oil_boiler()
@@ -580,8 +580,8 @@ class HomeAlone(ScadaActor):
                 temperature = self.data.latest_channel_values[zone+'-temp']
             else:
                 temperature = 40
-            if temperature < setpoint - 1:
-                self.log(f"{zone} temperature is lower than the setpoint before starting on-peak")
+            if temperature < setpoint - 2*1000:
+                self.log(f"{zone} temperature is 2F lower than the setpoint before starting on-peak")
                 return True    
         self.log("All zones are at or above their setpoint at the beginning of on-peak")
         return False
