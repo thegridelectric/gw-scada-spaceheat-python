@@ -580,8 +580,8 @@ class HomeAlone(ScadaActor):
                 temperature = self.data.latest_channel_values[zone+'-temp']
             else:
                 temperature = 40
-            if temperature < setpoint - 2*1000:
-                self.log(f"{zone} temperature is 2F lower than the setpoint before starting on-peak")
+            if temperature < setpoint - 1*1000:
+                self.log(f"{zone} temperature is at least 1F lower than the setpoint before starting on-peak")
                 return True    
         self.log("All zones are at or above their setpoint at the beginning of on-peak")
         return False
