@@ -8,6 +8,8 @@ from rich.color import Color as RichColor
 from textual.app import ComposeResult
 from textual.color import Color
 from textual.containers import Vertical
+from textual.signal import Signal
+from textual.theme import Theme
 from textual.widgets import DataTable
 from textual.widgets._data_table import CellType # noqa
 from textual.widgets._data_table import RowDoesNotExist # noqa
@@ -54,7 +56,6 @@ class Relays2(Relays):
         self._relays = {}
         super().__init__(logger, **kwargs)
 
-
     def compose(self) -> ComposeResult:
         with Vertical():
             yield MqttState(id="mqtt_state")
@@ -83,6 +84,10 @@ class Relays2(Relays):
         message_table = self.query_one("#message_table", DataTable)
         message_table.add_columns(
         "Time", "Type", "Payload",
+        )
+        self.app.theme_changed_signal.subscribe(
+            self,
+            self.handle_theme_change_signal
         )
 
     def action_energize(self) -> None:
@@ -200,7 +205,7 @@ class Relays2(Relays):
         buttons.energized = relay_info.get_state()
         self.refresh_bindings()
 
-    def update_table(self):
+    def handle_theme_change_signal(self, _signal: Signal[Theme]) -> None:
         for relay_name in self._relays:
             self._update_relay_row(relay_name)
 
