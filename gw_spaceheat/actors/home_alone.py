@@ -314,10 +314,12 @@ class HomeAlone(ScadaActor):
                 elif self.state==HomeAloneState.HpOffStoreDischarge.value:
                     if not self.is_onpeak():
                         self.trigger_event(HomeAloneEvent.OffPeakStart.value)
+                    # TODO: make StorageColderThanBuffer another trigger to HpOffStoreOff
                     elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
                         self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
-                    elif self.is_buffer_empty() and self.is_storage_empty():
-                        self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
+                    # we should keep discharging the store as long as it is warmer than the buffer
+                    # elif self.is_buffer_empty() and self.is_storage_empty():
+                    #     self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
                 if self.state != previous_state:                    
                     self.update_relays(previous_state)
