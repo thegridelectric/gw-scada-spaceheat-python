@@ -286,7 +286,7 @@ class HomeAlone(ScadaActor):
                                 elif not self.oil_boiler_on:
                                     self.log("Turning on oil boiler during onpeak!")
                                     self.turn_on_oil_boiler()
-                            elif not self.is_storage_colder_than_buffer() and not self.is_storage_empty():
+                            elif not self.is_storage_colder_than_buffer():
                                 self.trigger_event(HomeAloneEvent.OnPeakBufferEmpty.value)
                         if self.is_buffer_full() and self.oil_boiler_on:
                             self.turn_off_oil_boiler()
