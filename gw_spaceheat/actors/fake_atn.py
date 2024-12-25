@@ -12,7 +12,7 @@ from enums import MarketPriceUnit, MarketQuantityUnit
 from named_types import AtnBid, EnergyInstruction, LatestPrice, Ha1Params
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from actors.scada_data import ScadaData
-from actors.flo import DGraph, DConfig
+from actors.flo import DGraph, FloParamsHouse0
 from actors.synth_generator import WeatherForecast, PriceForecast
 from data_classes.house_0_names import H0CN
 from gwproto.named_types import SingleReading
@@ -106,7 +106,7 @@ class FakeAtn(ScadaActor):
                 self.log("Can not run Dijkstra!")
                 return
 
-            configuration = DConfig(
+            configuration = FloParamsHouse0(
                 InitialTopTemp = initial_toptemp,
                 InitialThermocline = initial_thermocline,
                 DpForecastUsdMwh = self.price_forecast['dp'],

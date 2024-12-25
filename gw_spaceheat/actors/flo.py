@@ -1,9 +1,6 @@
 import numpy as np
-import pytz
-from datetime import datetime, timedelta
-from pydantic import BaseModel, StrictInt
-from typing import List, Literal
-from named_types.price_quantity_unitless import PriceQuantityUnitless
+from typing import Dict, List, Tuple
+from named_types import PriceQuantityUnitless, FloParamsHouse0
 
 def to_kelvin(t):
     return (t-32)*5/9 + 273.15
@@ -11,47 +8,10 @@ def to_kelvin(t):
 def to_celcius(t):
     return (t-32)*5/9
 
-
-class DConfig(BaseModel):
-    StartDateTime: datetime = (datetime.now()+timedelta(hours=1)).replace(minute=0,second=0,microsecond=0)
-    HorizonHours: int = 48
-    NumLayers: int = 24
-    # Equipment
-    StorageVolumeGallons: float = 360
-    StorageLossesPercent: float = 0.5
-    HpMinElecKw: float = -0.5
-    HpMaxElecKw: float = 11
-    CopIntercept: float = 2
-    CopOatCoeff: float = 0
-    CopLwtCoeff: float = 0
-    # Initial state
-    InitialTopTempF: float = 160
-    InitialThermocline: float = 24
-    # Forecasts
-    DpForecastUsdMwh: List[float] = [1]*48
-    LmpForecastUsdMwh: List[float] = [1]*48
-    OatForecastF: List[float] = [30]*48
-    WindSpeedForecastMph: List[float] = [0]*48
-    # House parameters
-    AlphaTimes10: StrictInt = 120
-    BetaTimes100: StrictInt = -22
-    GammaEx6: StrictInt = 0
-    IntermediatePowerKw: float = 1.5
-    IntermediateRswtF: StrictInt = 110
-    DdPowerKw: float = 12
-    DdRswtF: StrictInt = 160
-    DdDeltaTF: StrictInt = 20
-    MaxEwtF: StrictInt = 170
-    # TypeName and Version
-    TypeName: Literal["d.config"] = "d.config"
-    Version: Literal["000"] = "000"
-    # TODO add validators
-
-
 class DParams():
-    def __init__(self, config: DConfig) -> None:
+    def __init__(self, config: FloParamsHouse0) -> None:
         self.config = config
-        self.start_time = config.StartDateTime
+        self.start_time = config.StartUnixS
         self.horizon = config.HorizonHours
         self.num_layers = config.NumLayers
         self.storage_volume = config.StorageVolumeGallons
@@ -60,9 +20,10 @@ class DParams():
         self.initial_top_temp = config.InitialTopTempF
         self.initial_thermocline = config.InitialThermocline
         self.storage_losses_percent = config.StorageLossesPercent
-        self.dp_forecast = [x/10 for x in config.DpForecastUsdMwh[:self.horizon]]
-        self.lmp_forecast = [x/10 for x in config.LmpForecastUsdMwh[:self.horizon]]
-        self.elec_price_forecast = [dp+lmp for dp,lmp in zip(self.dp_forecast, self.lmp_forecast)]
+        self.reg_forecast = [x/10 for x in config.RegPriceForecast[:self.horizon]]
+        self.dist_forecast = [x/10 for x in config.DistPriceForecast[:self.horizon]]
+        self.lmp_forecast = [x/10 for x in config.LmpForecast[:self.horizon]]
+        self.elec_price_forecast = [rp+dp+lmp for rp,dp,lmp in zip(self.reg_forecast, self.dist_forecast, self.lmp_forecast)]
         self.oat_forecast = config.OatForecastF[:self.horizon]
         self.ws_forecast = config.WindSpeedForecastMph[:self.horizon]
         self.alpha = config.AlphaTimes10/10
@@ -110,19 +71,22 @@ class DParams():
 
     def required_swt(self, rhp):
         a, b, c = self.quadratic_coefficients
-        return -b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5
+        c2 = c - rhp
+        return (-b + (b**2-4*a*c2)**0.5)/(2*a)
 
     def delta_T(self, swt):
         d = self.dd_delta_t/self.dd_power * self.delivered_heating_power(swt)
         d = 0 if swt<self.no_power_rswt else d
         return d if d>0 else 0
     
-    def delta_T_inverse(self, rwt):
+    def delta_T_inverse(self, rwt: float) -> float:
         a, b, c = self.quadratic_coefficients
         aa = -self.dd_delta_t/self.dd_power * a
         bb = 1-self.dd_delta_t/self.dd_power * b
-        cc = -self.dd_delta_t/self.dd_power * c
-        return -bb/(2*aa) - ((rwt-bb**2/(4*aa)+bb**2/(2*aa)-cc)/aa)**0.5 - rwt
+        cc = -self.dd_delta_t/self.dd_power * c - rwt
+        if bb**2-4*aa*cc < 0 or (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt > 30:
+            return 30
+        return (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt
     
     def get_quadratic_coeffs(self):
         x_rswt = np.array([self.no_power_rswt, self.intermediate_rswt, self.dd_rswt])
@@ -130,23 +94,25 @@ class DParams():
         A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
         return [float(x) for x in np.linalg.solve(A, y_hpower)] 
     
-    def get_available_top_temps(self):
-        available_temps = [round(self.initial_top_temp)]
-        x = round(self.initial_top_temp)
-        while round(x + self.delta_T_inverse(x),2) <= 175:
+    def get_available_top_temps(self) -> Tuple[Dict, Dict]:
+        available_temps = [self.initial_top_temp]
+        x = self.initial_top_temp
+        while round(x + self.delta_T_inverse(x),2) <= 185:
             x = round(x + self.delta_T_inverse(x),2)
-            available_temps.append(x)
-        while x+10 <= 175:
+            available_temps.append(int(x))
+        while x+10 <= 185:
             x += 10
-            available_temps.append(x)
-        x = round(self.initial_top_temp)
+            available_temps.append(int(x))
+        x = self.initial_top_temp
         while self.delta_T(x) >= 3:
             x = round(x - self.delta_T(x))
-            available_temps.append(x)
+            available_temps.append(int(x))
         while x >= 70:
             x += -10
-            available_temps.append(x)
+            available_temps.append(int(x))
         available_temps = sorted(available_temps)
+        if max(available_temps) < 176:
+            available_temps = available_temps + [185]
         energy_between_nodes = {}
         m_layer = self.storage_volume*3.785 / self.num_layers
         for i in range(1,len(available_temps)):
@@ -184,8 +150,8 @@ class DNode():
 
 class DEdge():
     def __init__(self, tail:DNode, head:DNode, cost:float, hp_heat_out:float):
-        self.tail = tail
-        self.head = head
+        self.tail: DNode = tail
+        self.head: DNode = head
         self.cost = cost
         self.hp_heat_out = hp_heat_out
 
@@ -194,14 +160,15 @@ class DEdge():
 
 
 class DGraph():
-    def __init__(self, config: DConfig):
+    def __init__(self, config: FloParamsHouse0):
         self.params = DParams(config)
+        self.nodes: Dict[int, List[DNode]] = {}
+        self.edges: Dict[DNode, List[DEdge]] = {}
         self.create_nodes()
         self.create_edges()
 
     def create_nodes(self):
         self.initial_node = DNode(0, self.params.initial_top_temp, self.params.initial_thermocline, self.params)
-        self.nodes = {}
         for time_slice in range(self.params.horizon+1):
             self.nodes[time_slice] = [self.initial_node] if time_slice==0 else []
             self.nodes[time_slice].extend(
@@ -212,7 +179,7 @@ class DGraph():
             )
 
     def create_edges(self):
-        self.edges = {}
+        
         self.bottom_node = DNode(0, self.params.available_top_temps[1], 1, self.params)
         self.top_node = DNode(0, self.params.available_top_temps[-1], self.params.num_layers, self.params)
         
@@ -272,8 +239,8 @@ class DGraph():
     def generate_bid(self):
         self.pq_pairs = []
         min_elec_ctskwh, max_elec_ctskwh = -10, 200
-        for elec_price in range(min_elec_ctskwh*1000, max_elec_ctskwh*1000):
-            elec_price = elec_price/1000
+        for elec_price in range(min_elec_ctskwh*10, max_elec_ctskwh*10):
+            elec_price = elec_price/10
             elec_to_nextnode = []
             pathcost_from_nextnode = []
             for e in self.edges[self.initial_node]:
@@ -282,13 +249,14 @@ class DGraph():
                 pathcost_from_nextnode.append(e.head.pathcost)
             cost_to_nextnode = [x*elec_price/100 for x in elec_to_nextnode]
             pathcost_from_current_node = [x+y for x,y in zip(cost_to_nextnode, pathcost_from_nextnode)]
-            min_pathcost_elec = round(elec_to_nextnode[pathcost_from_current_node.index(min(pathcost_from_current_node))],2)
+            min_pathcost_elec = elec_to_nextnode[pathcost_from_current_node.index(min(pathcost_from_current_node))]
             if self.pq_pairs:
-                if self.pq_pairs[-1].QuantityTimes1000/1000 != min_pathcost_elec:
+                # Record a new pair if at least 0.01 kWh of difference in quantity with the previous one
+                if self.pq_pairs[-1].QuantityTimes1000 - int(min_pathcost_elec * 1000) > 10:
                     self.pq_pairs.append(
                         PriceQuantityUnitless(
                             PriceTimes1000 = int(elec_price*10 * 1000),         # usd/mwh * 1000
-                            QuantityTimes1000 = int(min_pathcost_elec * 1000))  # kWh * 1000
+                            QuantityTimes1000 = int(min_pathcost_elec * 1000))  # kWh * 1000 = Wh
                     )
             else:
                 self.pq_pairs.append(
