@@ -11,6 +11,7 @@ from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
 from admin.watch.watchex.relays2 import Relays2
+from admin.watch.watchex.relays2 import RelayToggleButton
 from admin.watch.widgets.relay2 import RelayControlButtons
 
 logger = logging.getLogger(__name__)
@@ -24,11 +25,12 @@ class WatchExApp(App):
     _theme_names: list[str]
 
     BINDINGS = [
-        ("d", "toggle_dark", "Toggle dark mode"),
-        ("[", "previous_theme", "Previous theme"),
-        ("]", "next_theme", "Next theme"),
-        ("m", "toggle_messages", "Toggle message display"),
-        ("c", "toggle_relay_state_colors", "Toggle relay state colors"),
+        Binding("d", "toggle_dark", "Toggle dark mode"),
+        Binding("[", "previous_theme", " <- Theme ->"),
+        Binding("]", "next_theme", " "),
+        Binding("m", "toggle_messages", "Toggle message display"),
+        Binding("c", "toggle_relay_state_colors", "Option: state colors"),
+        Binding("b", "toggle_buttons", "Option: double/single buttons"),
         Binding("q", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+c", "quit", "Quit", show=False),
     ]
@@ -77,6 +79,12 @@ class WatchExApp(App):
             RelayEnergized.energized if message.energize else RelayEnergized.deenergized
         )
 
+    def on_relay_toggle_button_pressed(self, message: RelayToggleButton.Pressed):
+        self._relay_client.set_relay(
+            message.about_node_name,
+            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
+        )
+
     def action_toggle_dark(self) -> None:
         self.theme = (
             "textual-dark" if "light" in self.theme else "textual-light"
@@ -108,6 +116,11 @@ class WatchExApp(App):
     def action_toggle_relay_state_colors(self) -> None:
         relays = self.query_one("#relays2", Relays2)
         relays.state_colors = not relays.state_colors
+
+    def action_toggle_buttons(self) -> None:
+        self.query("#relay_control_buttons").toggle_class("undisplayed")
+        self.query("#relay_toggle_button_container").toggle_class("undisplayed")
+        self.refresh_bindings()
 
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013

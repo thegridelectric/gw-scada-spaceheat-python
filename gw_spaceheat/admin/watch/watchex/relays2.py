@@ -1,4 +1,6 @@
+import logging
 from logging import Logger
+from typing import Literal
 from typing import Optional
 
 from pydantic import BaseModel
@@ -7,11 +9,16 @@ from rich.text import Text
 from rich.color import Color as RichColor
 from textual.app import ComposeResult
 from textual.color import Color
+from textual.containers import Horizontal
+from textual.containers import HorizontalGroup
 from textual.containers import Vertical
+from textual.logging import TextualHandler
+from textual.message import Message
 from textual.reactive import reactive
 from textual.reactive import Reactive
 from textual.signal import Signal
 from textual.theme import Theme
+from textual.widgets import Button
 from textual.widgets import DataTable
 from textual.widgets._data_table import CellType # noqa
 from textual.widgets._data_table import RowDoesNotExist # noqa
@@ -22,6 +29,9 @@ from admin.watch.widgets.relay2 import RelayControlButtons
 from admin.watch.widgets.relay2 import RelayWidgetConfig
 from admin.watch.widgets.relays import MqttState
 from admin.watch.widgets.relays import Relays
+
+module_logger = logging.getLogger(__name__)
+module_logger.addHandler(TextualHandler())
 
 class RelayWidgetInfo(BaseModel):
     config: RelayWidgetConfig = RelayWidgetConfig()
@@ -45,12 +55,88 @@ class RelayWidgetInfo(BaseModel):
     def get_deenergize_str(self) -> str:
         return self.config.get_energize_str(False)
 
+class RelayToggleButton(Button, can_focus=True):
+    BINDINGS = [
+        ("n", "toggle_relay", "Toggle selected relay"),
+    ]
+
+    energized: Reactive[Optional[bool]] = reactive(None)
+    config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
+
+    def __init__(
+        self,
+        energized: Optional[bool] = None,
+        config: Optional[RelayWidgetConfig] = None,
+        logger: logging.Logger = module_logger,
+        **kwargs
+    ) -> None:
+        self.logger = logger
+        super().__init__(
+            variant=self.variant_from_state(energized),
+            **kwargs
+        )
+        self.set_reactive(RelayToggleButton.energized, energized)
+        self.set_reactive(RelayToggleButton.config, config or RelayWidgetConfig())
+        self.update_title()
+
+    def update_title(self):
+        if self.energized is True:
+            self.border_title = f"Dee[underline]n[/]ergize {self.config.channel_name}"
+        elif self.energized is False:
+            self.border_title = f"E[underline]n[/]ergize {self.config.channel_name}"
+
+    @classmethod
+    def variant_from_state(cls, energized: Optional[bool]) -> Literal["default", "success", "error"]:
+        if energized is None:
+            return "default"
+        elif energized:
+            return "success"
+        return "error"
+
+    def action_toggle_relay(self) -> None:
+        if self.energized is not None:
+            self.post_message(
+                RelayToggleButton.Pressed(
+                    self.config.about_node_name,
+                    not self.energized,
+                )
+            )
+
+    def watch_energized(self) -> None:
+        self.label = self.config.get_state_str(not self.energized)
+        self.disabled = self.energized is None
+        self.variant = self.variant_from_state(self.energized)
+        self.update_title()
+
+    def watch_config(self):
+        self.label = self.config.get_state_str(self.energized)
+        self.update_title()
+
+    class Pressed(Message):
+        def __init__(self, about_node_name: str, energize: bool) -> None:
+            super().__init__()
+            self.about_node_name = about_node_name
+            self.energize = energize
+
+    def on_button_pressed(self):
+        if self.energized is not None:
+            self.post_message(
+                RelayToggleButton.Pressed(
+                    self.config.about_node_name,
+                    not self.energized,
+                )
+            )
+
+
 class Relays2(Relays):
     BINDINGS = [
+        ("n", "toggle_relay", "Toggle selected relay"),
         ("E", "energize", "Energize relay"),
         ("D", "deenergize", "Deenergize relay"),
     ]
     state_colors: Reactive[bool] = reactive(False)
+    curr_energized: Reactive[Optional[bool]] = reactive(None)
+    curr_config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
 
     _relays: dict[str, RelayWidgetInfo]
     _highlighted_relay_name: Optional[str] = None
@@ -67,12 +153,26 @@ class Relays2(Relays):
                 zebra_stripes=True,
                 cursor_type="row",
             )
-            yield RelayControlButtons(
-                id="relays_control_buttons",
-                config=RelayWidgetConfig(),
-                show_titles=True,
-                enable_bindings=True,
-            )
+            with Horizontal():
+                with HorizontalGroup(
+                    id="relay_toggle_button_container",
+                    classes="undisplayed",
+                ):
+                    yield RelayToggleButton(
+                        label="bar",
+                        id="relay_toggle_button",
+                    ).data_bind(
+                        energized=Relays2.curr_energized,
+                        config=Relays2.curr_config,
+                    )
+                yield RelayControlButtons(
+                    id="relay_control_buttons",
+                    show_titles=True,
+                    enable_bindings=True,
+                ).data_bind(
+                    energized=Relays2.curr_energized,
+                    config=Relays2.curr_config,
+                )
             yield DataTable(id="message_table", classes="undisplayed")
 
     def on_mount(self) -> None:
@@ -93,16 +193,47 @@ class Relays2(Relays):
             self.handle_theme_change_signal
         )
 
+    def _change_energize(self, energize: bool) -> None:
+        if not (
+            relay_buttons := self.query_one(
+                "#relay_control_buttons",
+                RelayControlButtons
+            )
+        ).has_class("undisplayed"):
+            if energize:
+                relay_buttons.action_energize()
+            else:
+                relay_buttons.action_deenergize()
+            self.refresh_bindings()
+        elif not (
+            relay_toggle_button := self.query_one(
+                "#relay_toggle_button",
+                RelayToggleButton
+            )
+        ).has_class("undisplayed"):
+            relay_toggle_button.action_toggle_relay()
+
     def action_energize(self) -> None:
-        self.query_one("#relays_control_buttons", RelayControlButtons).action_energize()
-        self.refresh_bindings()
+        self._change_energize(True)
 
     def action_deenergize(self) -> None:
-        self.query_one("#relays_control_buttons", RelayControlButtons).action_deenergize()
-        self.refresh_bindings()
+        self._change_energize(False)
+
+    def action_toggle_relay(self) -> None:
+        self._change_energize(not self.curr_energized)
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> Optional[bool]:
-        return self.query_one("#relays_control_buttons", RelayControlButtons).check_action(action, parameters)
+        if action == "toggle_relay":
+            return not self.query_one(
+                "#relay_toggle_button_container",
+                HorizontalGroup
+            ).has_class("undisplayed")
+        else:
+            buttons = self.query_one("#relay_control_buttons", RelayControlButtons)
+            if buttons.has_class("undisplayed"):
+                return False
+            else:
+                return buttons.check_action(action, parameters)
 
     def on_relays_relay_state_change(self, message: Relays.RelayStateChange) -> None:
         # self.logger.debug("++Relays2.on_relays_relay_state_change  %d", len(message.changes))
@@ -205,9 +336,8 @@ class Relays2(Relays):
 
     def _update_buttons(self, relay_name: str) -> None:
         relay_info = self._relays[relay_name]
-        buttons = self.query_one("#relays_control_buttons", RelayControlButtons)
-        buttons.config = relay_info.config
-        buttons.energized = relay_info.get_state()
+        self.curr_config = relay_info.config
+        self.curr_energized = relay_info.get_state()
         self.refresh_bindings()
 
     def _update_table(self):

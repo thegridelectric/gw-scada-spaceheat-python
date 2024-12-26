@@ -20,16 +20,30 @@ Screen {
 Button {
     margin: 1 2;
     border-title-color: $text;
+}
 
+#relay_toggle_button_container {
+    layout: horizontal;
+    border: solid $border;
+    align: center middle;
+}
+
+RelayToggleButton {
+    width: 40;
+    height: 3;
+    margin: 0 1;
+    padding: 0 0;
+    text-style: bold;
 }
 
 RelayControlButtons {
+    layout: horizontal;
+    width: 1fr;
     align: center middle;
     border: solid $border;
 }
 
 #deenergized_button {
-    width: 1fr;
     width: 30;
     height: 3;
     margin: 0 1;
