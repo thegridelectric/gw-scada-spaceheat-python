@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 
 import numpy as np
 import pytz
-import requests
+import aiohttp
 import rich
 from actors.flo import DGraph
 from data_classes.house_0_layout import House0Layout
@@ -669,13 +669,17 @@ class Atn(ActorInterface, Proactor):
         self._tasks.append
 
     async def main(self):
+        async with aiohttp.ClientSession() as session:
+            await self.main_loop(session)
+
+    async def main_loop(self, session: aiohttp.ClientSession) -> None:
         while not self._stop_requested:
             await asyncio.sleep(5)
             if datetime.now().minute >= 55 and not self.sent_bid:
                 if self.state == "DispatchLive":
                     # In the last 5 minutes of the hour: make a bid for the next hour
                     try:
-                        self.run_d()
+                        await self.run_d(session)
                     except Exception as e:
                         self.log(f"Exception running Dijkstra: {e}")
                 else:
@@ -686,12 +690,12 @@ class Atn(ActorInterface, Proactor):
                 self.log(f"Minute {datetime.now().minute}")
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    def run_d(self) -> None:
+    async def run_d(self, session: aiohttp.ClientSession) -> None:
         # In the last 5 minutes of the hour: make a bid for the next hour
         if datetime.now().minute < 55 or self.sent_bid:
             self.log("NOT RUNNING Dijsktra! Either not in last 5 minutes or already sent bid")
             return
-        self.get_weather_forecast()
+        self.get_weather(session)
         self.get_price_forecast()
 
         self.log("Finding thermocline position and top temperature")
@@ -960,21 +964,21 @@ class Atn(ActorInterface, Proactor):
             self.log(f"Too late to send energy instruction! {t-slot_start_s} is more "
                      "than 10 s after top of 5 minutes")
 
-    def get_weather_forecast(self) -> None:
+    async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
         weather_file = config_dir / "weather.json"
         try:
             url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-            response = requests.get(url)
-            if response.status_code != 200:
-                self.log(f"Error fetching weather data: {response.status_code}")
+            response =  await session.get(url)
+            if response.status != 200:
+                self.log(f"Error fetching weather data: {response.status}")
                 return None
             data = response.json()
             forecast_hourly_url = data["properties"]["forecastHourly"]
-            forecast_response = requests.get(forecast_hourly_url)
-            if forecast_response.status_code != 200:
+            forecast_response = await session.get(forecast_hourly_url)
+            if forecast_response.status != 200:
                 self.log(
-                    f"Error fetching hourly weather forecast: {forecast_response.status_code}"
+                    f"Error fetching hourly weather forecast: {forecast_response.status}"
                 )
                 return None
             forecast_data = forecast_response.json()
