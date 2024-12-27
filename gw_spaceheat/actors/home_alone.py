@@ -1,13 +1,10 @@
 import asyncio
-from typing import Optional, Sequence
+from typing import Sequence
 from enum import auto
 import uuid
 import time
-import json
-import numpy as np
 from datetime import datetime, timedelta
 import pytz
-import requests
 from gw.enums import GwStrEnum
 from gwproactor import ServicesInterface,  MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
