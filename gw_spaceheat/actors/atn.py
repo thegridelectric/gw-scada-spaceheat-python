@@ -695,11 +695,11 @@ class Atn(ActorInterface, Proactor):
         if datetime.now().minute < 55 or self.sent_bid:
             self.log("NOT RUNNING Dijsktra! Either not in last 5 minutes or already sent bid")
             return
-        self.get_weather(session)
+        await self.get_weather(session)
         self.get_price_forecast()
 
         self.log("Finding thermocline position and top temperature")
-        result = self.get_thermocline_and_centroids()
+        result = await self.get_thermocline_and_centroids()
         if result is None:
             self.log("Get thermocline and centroid failed! Releasing control of Scada!")
             self.release_control()
@@ -864,11 +864,11 @@ class Atn(ActorInterface, Proactor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
-    def get_thermocline_and_centroids(self) -> Optional[Tuple[float, int]]:
+    async def get_thermocline_and_centroids(self) -> Optional[Tuple[float, int]]:
         # Get all tank temperatures in a dict, if you can't abort
         if self.temperature_channel_names is None:
             self.send_layout()
-            time.sleep(5)
+            await asyncio.sleep(5)
         self.get_latest_temperatures()
         if not self.temperatures_available:
             self.log(
@@ -973,7 +973,7 @@ class Atn(ActorInterface, Proactor):
             if response.status != 200:
                 self.log(f"Error fetching weather data: {response.status}")
                 return None
-            data = response.json()
+            data = await response.json()
             forecast_hourly_url = data["properties"]["forecastHourly"]
             forecast_response = await session.get(forecast_hourly_url)
             if forecast_response.status != 200:
@@ -981,7 +981,7 @@ class Atn(ActorInterface, Proactor):
                     f"Error fetching hourly weather forecast: {forecast_response.status}"
                 )
                 return None
-            forecast_data = forecast_response.json()
+            forecast_data = await forecast_response.json()
             forecasts = {}
             periods = forecast_data["properties"]["periods"]
             for period in periods:
