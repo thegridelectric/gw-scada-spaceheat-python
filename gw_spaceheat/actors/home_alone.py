@@ -314,10 +314,12 @@ class HomeAlone(ScadaActor):
                 elif self.state==HomeAloneState.HpOffStoreDischarge.value:
                     if not self.is_onpeak():
                         self.trigger_event(HomeAloneEvent.OffPeakStart.value)
+                    # TODO: make StorageColderThanBuffer another trigger to HpOffStoreOff
                     elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
                         self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
-                    elif self.is_buffer_empty() and self.is_storage_empty():
-                        self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
+                    # we should keep discharging the store as long as it is warmer than the buffer
+                    # elif self.is_buffer_empty() and self.is_storage_empty():
+                    #     self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
 
                 if self.state != previous_state:                    
                     self.update_relays(previous_state)
@@ -580,8 +582,8 @@ class HomeAlone(ScadaActor):
                 temperature = self.data.latest_channel_values[zone+'-temp']
             else:
                 temperature = 40
-            if temperature < setpoint - 1:
-                self.log(f"{zone} temperature is lower than the setpoint before starting on-peak")
+            if temperature < setpoint - 1*1000:
+                self.log(f"{zone} temperature is at least 1F lower than the setpoint before starting on-peak")
                 return True    
         self.log("All zones are at or above their setpoint at the beginning of on-peak")
         return False
