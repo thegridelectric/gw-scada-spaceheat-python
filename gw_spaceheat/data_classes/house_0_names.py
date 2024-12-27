@@ -66,7 +66,6 @@ class H0N:
     # core actors
     atn = "a"
     atomic_ally = "aa"
-    fake_atn = "fake-atn"
     primary_scada = "s"
     secondary_scada = "s2"
     home_alone = "h"

@@ -3,7 +3,6 @@ easier."""
 from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
 from actors.atomic_ally import AtomicAlly
-from actors.fake_atn import FakeAtn
 from actors.home_alone import HomeAlone
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hubitat import Hubitat
@@ -24,7 +23,6 @@ __all__ = [
     "ApiFlowModule",
     "ApiTankModule",
     "AtomicAlly",
-    "FakeAtn",
     "HomeAlone",
     "HoneywellThermostat",
     "Hubitat",

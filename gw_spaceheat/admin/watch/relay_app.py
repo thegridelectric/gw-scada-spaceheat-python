@@ -14,8 +14,11 @@ from admin.settings import AdminClientSettings
 from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
-from admin.watch.widgets.relays_widget import Relay
-from admin.watch.widgets.relays_widget import Relays
+from admin.watch.widgets.relay1 import Relay1
+from admin.watch.widgets.relay2 import Relay2
+from admin.watch.widgets.relay2 import RelayControlButtons
+from admin.watch.widgets.relays import Relay
+from admin.watch.widgets.relays import Relays
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
@@ -27,11 +30,17 @@ class RelaysApp(App):
     dark: Reactive[bool]
     _admin_client: AdminClient
     _relay_client: RelayWatchClient
+    _theme_names: list[str]
 
     BINDINGS = [
         ("d", "toggle_dark", "Toggle dark mode"),
         ("n", "shuffle_title", "Shuffle title"),
         ("t", "reset_title", "Reset title"),
+        ("a", "previous_theme", "Previous theme"),
+        ("s", "next_theme", "Next theme"),
+        ("m", "toggle_messages", "Toggle message display"),
+        ("1", "toggle_v1", "Toggle v1 display"),
+        ("2", "toggle_v2", "Toggle v2 display"),
         Binding("q", "quit", "Quit", show=True, priority=True),
     ]
     CSS_PATH = "relay_app.tcss"
@@ -57,6 +66,9 @@ class RelaysApp(App):
             paho_logger=paho_logger,
         )
         super().__init__()
+        self._theme_names = [
+            theme for theme in self.available_themes if theme != "textual-ansi"
+        ]
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
@@ -69,22 +81,19 @@ class RelaysApp(App):
     def on_mount(self) -> None:
         self._admin_client.start()
 
-    def on_relay_relay_switch_changed(self, message: Relay.RelaySwitchChanged):
-        try:
-            relay_widget = self.query_one(
-                f"#{message.relay_widget_id}",
-                Relay,
-            )
-            self._relay_client.set_relay(
-                relay_widget.config.about_node_name,
-                RelayEnergized.energized if message.switch.value else RelayEnergized.deenergized
-            )
-        except NoMatches:
-            ...
+    def on_relay1_relay_switch_changed(self, message: Relay1.RelaySwitchChanged):
+        self._relay_client.set_relay(
+            message.about_node_name,
+            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
+        )
 
+    def on_relay_control_buttons_pressed(self, message: RelayControlButtons.Pressed):
+        self._relay_client.set_relay(
+            message.about_node_name,
+            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
+        )
 
     def action_toggle_dark(self) -> None:
-        """An action to toggle dark mode."""
         self.theme = (
             "textual-dark" if self.theme == "textual-light" else "textual-light"
         )
@@ -100,6 +109,29 @@ class RelaysApp(App):
     async def action_quit(self) -> None:
         self._admin_client.stop()
         await super().action_quit()
+
+    def _change_theme(self, distance: int):
+        self.theme = self._theme_names[
+            (self._theme_names.index(self.current_theme.name) + distance)
+            % len(self._theme_names)
+        ]
+        self.clear_notifications()
+        self.notify(f"Theme is {self.current_theme.name}")
+
+    def action_next_theme(self) -> None:
+        self._change_theme(1)
+
+    def action_previous_theme(self) -> None:
+        self._change_theme(-1)
+
+    def action_toggle_v1(self) -> None:
+        self.query(Relay1).toggle_class("undisplayed")
+
+    def action_toggle_v2(self) -> None:
+        self.query(Relay2).toggle_class("undisplayed")
+
+    def action_toggle_messages(self) -> None:
+        self.query("#message_table").toggle_class("undisplayed")
 
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013

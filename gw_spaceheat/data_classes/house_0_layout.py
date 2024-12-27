@@ -178,10 +178,6 @@ class House0Layout(HardwareLayout):
         return self.node(H0N.auto)
     
     @property
-    def fake_atn(self) -> ShNode:
-        return self.node(H0N.fake_atn)
-    
-    @property
     def atomic_ally(self) -> ShNode:
         return self.node(H0N.atomic_ally)
     

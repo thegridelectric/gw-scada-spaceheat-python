@@ -16,7 +16,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
+from named_types import EnergyInstruction, Ha1Params
 
 # -------------- TODO: move to named_types -------------
 from typing import Literal
@@ -136,7 +136,6 @@ class SynthGenerator(ScadaActor):
 
             if self.weather is None:
                 self.get_weather()
-                self.get_price_forecast()
             else:
                 if datetime.now(self.timezone)>self.weather['time'][0]:
                     self.get_weather()
@@ -159,13 +158,9 @@ class SynthGenerator(ScadaActor):
         match message.Payload:
             case EnergyInstruction():
                 self.process_energy_instruction(message.Payload)
-            case GoDormant():
-                ...
             case PowerWatts():
                 self.update_remaining_elec()
                 self.previous_watts = message.Payload.Watts
-            case WakeUp():
-                ...
         return Ok(True)
     
     def fill_missing_store_temps(self):
@@ -325,9 +320,9 @@ class SynthGenerator(ScadaActor):
         return round(r,2) if r>0 else 0
 
     def required_swt(self, required_kw_thermal: float) -> float:
-        rhp = required_kw_thermal
         a, b, c = self.rswt_quadratic_params
-        return round(-b/(2*a) + ((rhp-b**2/(4*a)+b**2/(2*a)-c)/a)**0.5,2)
+        c2 = c - required_kw_thermal
+        return round((-b + (b**2-4*a*c2)**0.5)/(2*a), 2)
     
     def get_price_forecast(self) -> None:
         daily_dp = [50.13]*7 + [487.63]*5 + [54.98]*4 + [487.63]*4 + [50.13]*4
@@ -425,7 +420,8 @@ class SynthGenerator(ScadaActor):
             RswtForecast = self.weather['required_swt'],
             RswtDeltaTForecast = [round(self.delta_T(x),2) for x in self.weather['required_swt']]
         )
-        self._send_to(self.fake_atn, wf)
+        self._send_to(self.home_alone, wf)
+        # Todo: broadcast weather forecast for ability to analyze HomeAlone actions
         # Crop to use only 24 hours of forecast in this code
         for key in self.weather:
             self.weather[key] = self.weather[key][:24]
