@@ -56,6 +56,9 @@ class I2cDfrMultiplexer(ScadaActor):
         if self.is_simulated:
             self.bus = None
         else:
+            #TODO(Andy): Bus interaction should not be in constructor.
+            #              Perhaps in initialize_board(), which is called
+            #              from start()
             try:
                 self.bus = smbus2.SMBus(1)
             except Exception as e:
@@ -219,10 +222,17 @@ class I2cDfrMultiplexer(ScadaActor):
             await asyncio.sleep(sleep_s)
             if sleep_s != hiccup:
                 for dfr in self.my_dfrs:
+                    # TODO(Andy): I'm not sure bus interaction should be in this 
+                    #             thread. It could be slow, though perhaps not 
+                    #             slow enough to matter from this thread. 
+                    #             There should probably be a separate thread which
+                    #             interacts with I2C
                     self.set_level(dfr, self.dfr_val[dfr.name])
                 self._send(PatInternalWatchdogMessage(src=self.name))
 
     def start(self) -> None:
+        # TODO(Andy) This work should perhaps be in another thread.
+        #            This class could become a SyncThreadActor
         try:
             self.initialize_board()
         except Exception as e:

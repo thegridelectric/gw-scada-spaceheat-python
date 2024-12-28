@@ -2,6 +2,7 @@ import time
 import uuid
 from typing import Any, Dict, Optional, cast
 
+from actors import ScadaInterface
 from actors.config import ScadaSettings
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N, House0RelayIdx
@@ -23,17 +24,29 @@ from pydantic import ValidationError
 
 
 class ScadaActor(Actor):
+    # TODO(Andy) I think these should be removed.
+    #   ScadaActor should take a ScadaInterface, not a ServicesInterface.
+    #   Then self.services.layout and self.services.settings etc return
+    #   what is expected (refined in ScadaInterface)
+    #   Also, the node implementation in the base should work as expected, rather
+    #   than there being two distinct implementations.
     layout: House0Layout
     node: ShNode
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
 
     @property
     def node(self) -> ShNode:
+        # TODO(Andy) I'm not aware of any context where _node should be
+        #            _stale, and if so we should fix it.
         # note: self._node exists in proactor but may be stale
         return self.layout.node(self.name)
 
+    # TODO(Andy) I think the way to handle this is for self.services to be
+    #   refined to declare that it returns a ScadaInterface, and then
+    #   the interface's layout returns a House0Layout
+    #   this function could go away unless it is here for ergonomics.
     @property
     def layout(self) -> House0Layout:
         try:
@@ -42,10 +55,20 @@ class ScadaActor(Actor):
             raise Exception(f"Failed to cast layout as House0Layout!! {e}")
         return layout
 
+    # TODO(Andy) add this, refining base-class services property.
+    @property
+    def services(self) -> ScadaInterface:
+        return self.services
+
+    # TODO(Andy) should be unecessary with change above.
     @property
     def settings(self) -> ScadaSettings:
         return self.services.settings
 
+    # TODO(Andy) should be aspect of self.services.layout and probably
+    #   cached there. This function could be a wrapper if ergonomics of
+    #   calling self.primary_scada is vs self.services.layout.primary_scada
+    #   are what is desired. This comment applies to all such wrappers below.
     @property
     def primary_scada(self) -> ShNode:
         return self.layout.node(H0N.primary_scada)
@@ -57,7 +80,7 @@ class ScadaActor(Actor):
     @property
     def home_alone(self) -> ShNode:
         return self.layout.node(H0N.home_alone)
-    
+
     @property
     def synth_generator(self) -> ShNode:
         return self.layout.node(H0N.synth_generator)
@@ -136,6 +159,8 @@ class ScadaActor(Actor):
     # Relay controls
     ################################
 
+    # TODO(Andy) I don't understand why relay control functions are here, or
+    #  why relay control functions need a branch for each named relay
     def de_energize(self, relay: ShNode) -> None:
         if relay.ActorClass != ActorClass.Relay:
             self.log(f"Can only energize relays! ignoring energize {relay}")
@@ -687,7 +712,8 @@ class ScadaActor(Actor):
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
-
+    # TODO(Andy) this seems like it should be a cached ShNode function
+    #  (and cache is cleared when handle is changed)
     def boss(self) -> ShNode:
         if ".".join(self.node.handle.split(".")[:-1]) == "":
             return self.node
@@ -702,6 +728,8 @@ class ScadaActor(Actor):
     def direct_reports(self) -> list[ShNode]:
         return [n for n in self.layout.nodes.values() if self.is_boss_of(n)]
 
+    # TODO(Andy) it should be possible to have a version of this without
+    #   warnings
     def _send_to(self, dst: ShNode, payload: Any) -> None:
         if dst is None:
             return
