@@ -35,9 +35,9 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks==1.2.0
     # via gridworks-protocol
-gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
+gridworks-proactor==1.1.0
     # via -r gw_spaceheat/requirements/base.in
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
+gridworks-protocol==1.2.0
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
@@ -78,7 +78,9 @@ paho-mqtt==1.6.1
 platformdirs==4.3.2
     # via textual
 propcache==0.2.1
-    # via aiohttp
+    # via
+    #   aiohttp
+    #   yarl
 pydantic==2.8.2
     # via
     #   -r gw_spaceheat/requirements/base.in
