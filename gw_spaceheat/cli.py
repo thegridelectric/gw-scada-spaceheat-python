@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Annotated
+from typing import Optional
 
 import dotenv
 import rich
@@ -7,16 +8,17 @@ import typer
 from trogon import Trogon
 from typer.main import get_group
 
-import show_layout
 from admin.cli import app as admin_cli
 from actors.config import ScadaSettings
 from layout_gen.genlayout import app as layout_cli
+
+__version__: str = "0.2.0"
 
 app = typer.Typer(
     no_args_is_help=True,
     pretty_exceptions_enable=False,
     rich_markup_mode="rich",
-    help="GridWorks Scada CLI",
+    help=f"GridWorks Scada CLI, version {__version__}",
 )
 
 app.add_typer(admin_cli, name="admin", help="Admin commands.")
@@ -41,9 +43,24 @@ def commands(ctx: typer.Context) -> None:
     """CLI command builder."""
     Trogon(get_group(app), click_context=ctx).run()
 
+def version_callback(value: bool):
+    if value:
+        print(f"gws {__version__}")
+        raise typer.Exit()
 
 @app.callback()
-def main_app_callback() -> None: ...
+def main_app_callback(
+    _version: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--version",
+            callback=version_callback,
+            is_eager=True,
+            help="Show version and exit."
+        ),
+    ] = None,
+) -> None:
+    """Commands for the main gws application"""
 
 
 # For sphinx:
