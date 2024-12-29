@@ -649,13 +649,6 @@ class LayoutDb:
                     DisplayName="Synth Generator",
                 ),
                 SpaceheatNodeGt(
-                    ShNodeId=self.make_node_id(H0N.fake_atn),
-                    Name=H0N.fake_atn,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.fake_atn}",
-                    ActorClass=ActorClass.FakeAtn,
-                    DisplayName="Fake ATN",
-                ),
-                SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.home_alone),
                     Name=H0N.home_alone,
                     ActorHierarchyName=f"{H0N.primary_scada}.{H0N.home_alone}",

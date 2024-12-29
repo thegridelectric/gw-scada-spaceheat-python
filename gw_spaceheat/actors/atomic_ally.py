@@ -1,33 +1,28 @@
 import asyncio
-from typing import Optional, Sequence
-from enum import auto
-import uuid
 import time
-import json
-import numpy as np
-from datetime import datetime, timedelta
+import uuid
+from enum import auto
+from typing import Sequence
+
 import pytz
-import requests
+from data_classes.house_0_names import H0CN, H0N
 from gw.enums import GwStrEnum
-from gwproactor import ServicesInterface,  MonitoredName
+from gwproactor import MonitoredName, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
-from actors.scada_data import ScadaData
+from gwproto.enums import FsmReportType
+from gwproto.named_types import (Alert, FsmAtomicReport, FsmFullReport,
+                                 MachineStates)
+from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
 from result import Ok, Result
 from transitions import Machine
 
-from gwproto.enums import  FsmReportType
-from gwproto.named_types import (Alert,  MachineStates, FsmAtomicReport,
-                                 FsmFullReport, )
 from actors.scada_actor import ScadaActor
-from named_types import  GoDormant, WakeUp
+from actors.scada_data import ScadaData
 from actors.synth_generator import RemainingElec, WeatherForecast
-from data_classes.house_0_names import H0N, H0CN
-from enums import MainAutoState
-from named_types import EnergyInstruction, Ha1Params
 
 
-class AtomicAllyState(GwStrEnum):
+class AtomicAllyState(GwStrEnum): 
     WaitingElec = auto()
     WaitingNoElec = auto()
     HpOnStoreOff = auto()
@@ -154,12 +149,9 @@ class AtomicAlly(ScadaActor):
         match message.Payload:
             case EnergyInstruction():
                 self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
-                # TODO: possibly add other state changes which need to happen asap
-                if message.Payload.AvgPowerWatts == 0:
-                    if "HpOn" in self.state:
-                        self.turn_off_HP()
+                self.check_and_update_state()
+
             case GoDormant():
-                self.log("Just got message to GoDormant!")
                 if self.state != AtomicAllyState.Dormant.value:
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(AtomicAllyEvent.GoDormant)
@@ -171,15 +163,13 @@ class AtomicAlly(ScadaActor):
                         self.turn_off_HP()
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
-                self.log("Just got message to Wake Up from SCADA!")
                 if self.state == AtomicAllyState.Dormant.value:
                     # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
                     # TODO: think through whether atomic ally also needs an init
                     # state. Note it will always be coming from HomeAlone
                     # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
                     self.trigger_event(AtomicAllyEvent.WakeUp)
-                    self.log("Updating relays.")
-                    self.update_relays(previous_state=AtomicAllyState.Dormant.value)
+                    self.check_and_update_state()
             case WeatherForecast():
                 self.log("Received weather forecast")
                 self.weather = {
@@ -235,101 +225,103 @@ class AtomicAlly(ScadaActor):
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
-    
-    async def main(self):
 
-        await asyncio.sleep(2)
+    def check_and_update_state(self) -> None:
+        self.log(f"State: {self.state}")
+        if not self.weather:
+            self.log("Strange ... Do not have weather yet! Not updating state since can't check buffer state")
+            return
+        if self.state != AtomicAllyState.Dormant:
+            previous_state = self.state
 
-        while not self._stop_requested:
+            self.get_latest_temperatures()
 
-            self._send(PatInternalWatchdogMessage(src=self.name))
-
-            if self.services.auto_state != MainAutoState.Atn:
-                self.log("State: DORMANT")
-            else:
-                self.log(f"State: {self.state}")
-                previous_state = self.state
-
-                if self.weather is None:
-                    await asyncio.sleep(5)
-                    continue
-
-                self.get_latest_temperatures()
-
-                if (
-                    self.state == AtomicAllyState.WaitingNoElec
-                    or self.state == AtomicAllyState.WaitingElec
-                ):
-                    if self.temperatures_available:
-                        if self.no_more_elec():
-                            if (
-                                self.is_buffer_empty()
-                                and not self.is_storage_colder_than_buffer()
-                            ):
-                                self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty.value)
-                            else:
-                                self.trigger_event(AtomicAllyEvent.NoElecBufferFull.value)
-                        else:
-                            if self.is_buffer_empty() or self.is_storage_full():
-                                self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
-                            else:
-                                self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
-                    elif (
-                        self.state == AtomicAllyState.WaitingElec
-                        and self.no_more_elec()
-                    ):
-                        self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
-                    elif (
-                        self.state == AtomicAllyState.WaitingNoElec
-                        and not self.no_more_elec()
-                    ):
-                        self.trigger_event(AtomicAllyEvent.ElecAvailable.value)
-
-                # 1
-                elif self.state == AtomicAllyState.HpOnStoreOff.value:
-                    if self.no_more_elec():
-                        self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
-                    elif self.is_buffer_full():
-                        self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
-
-                # 2
-                elif self.state == AtomicAllyState.HpOnStoreCharge.value:
-                    if self.no_more_elec():
-                        self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
-                    elif self.is_buffer_empty() or self.is_storage_full():
-                        self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
-
-                # 3
-                elif self.state == AtomicAllyState.HpOffStoreOff.value:
+            if (
+                self.state == AtomicAllyState.WaitingNoElec
+                or self.state == AtomicAllyState.WaitingElec
+            ):
+                if self.temperatures_available:
                     if self.no_more_elec():
                         if (
                             self.is_buffer_empty()
                             and not self.is_storage_colder_than_buffer()
                         ):
                             self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty.value)
-                    else:
-                        if self.is_buffer_empty() or self.is_storage_full():
-                            self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
                         else:
-                            self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
-
-                # 4
-                elif self.state == AtomicAllyState.HpOffStoreDischarge.value:
-                    if self.no_more_elec():
-                        if (
-                            self.is_buffer_full()
-                            or self.is_storage_colder_than_buffer()
-                        ):
                             self.trigger_event(AtomicAllyEvent.NoElecBufferFull.value)
                     else:
                         if self.is_buffer_empty() or self.is_storage_full():
                             self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
                         else:
                             self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                elif (
+                    self.state == AtomicAllyState.WaitingElec
+                    and self.no_more_elec()
+                ):
+                    self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
+                elif (
+                    self.state == AtomicAllyState.WaitingNoElec
+                    and not self.no_more_elec()
+                ):
+                    self.trigger_event(AtomicAllyEvent.ElecAvailable.value)
 
-                if self.state != previous_state:
-                    self.update_relays(previous_state)
+            # 1
+            elif self.state == AtomicAllyState.HpOnStoreOff.value:
+                if self.no_more_elec():
+                    self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
+                elif self.is_buffer_full():
+                    self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
 
+            # 2
+            elif self.state == AtomicAllyState.HpOnStoreCharge.value:
+                if self.no_more_elec():
+                    self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
+                elif self.is_buffer_empty() or self.is_storage_full():
+                    self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
+
+            # 3
+            elif self.state == AtomicAllyState.HpOffStoreOff.value:
+                if self.no_more_elec():
+                    if (
+                        self.is_buffer_empty()
+                        and not self.is_storage_colder_than_buffer()
+                    ):
+                        self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty.value)
+                else:
+                    if self.is_buffer_empty() or self.is_storage_full():
+                        self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
+                    else:
+                        self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+
+            # 4
+            elif self.state == AtomicAllyState.HpOffStoreDischarge.value:
+                if self.no_more_elec():
+                    if (
+                        self.is_buffer_full()
+                        or self.is_storage_colder_than_buffer()
+                    ):
+                        self.trigger_event(AtomicAllyEvent.NoElecBufferFull.value)
+                else:
+                    if self.is_buffer_empty() or self.is_storage_full():
+                        self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
+                    else:
+                        self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+
+            if self.state != previous_state:
+                self.update_relays(previous_state)
+
+    async def main(self):
+        await asyncio.sleep(2)
+        # SynthGenerator gets weather ASAP on boot, including various fallbacks
+        # if the request does not work. So wait a bit if 
+        if self.weather is None:
+            await asyncio.sleep(5)
+        if self.weather is None:
+            raise Exception("No access to weather! Won't be able to heat the buffer")
+            
+        while not self._stop_requested:
+            self._send(PatInternalWatchdogMessage(src=self.name))
+            self.check_and_update_state()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def update_relays(self, previous_state: str) -> None:

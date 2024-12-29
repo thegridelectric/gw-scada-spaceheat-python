@@ -2,7 +2,7 @@ import time
 import json
 import pytz
 import asyncio
-import requests
+import aiohttp
 import numpy as np
 from typing import Optional, Sequence, List
 from result import Ok, Result
@@ -130,16 +130,17 @@ class SynthGenerator(ScadaActor):
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
     
     async def main(self):
+        async with aiohttp.ClientSession() as session:
+            await self.main_loop(session)
+
+    async def main_loop(self, session: aiohttp.ClientSession) -> None:
+        await self.get_weather(session)
         await asyncio.sleep(2)
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.weather is None:
-                self.get_weather()
-                self.get_price_forecast()
-            else:
-                if datetime.now(self.timezone)>self.weather['time'][0]:
-                    self.get_weather()
+            if datetime.now(self.timezone)>self.weather['time'][0]:
+                await self.get_weather(session)
 
             self.get_latest_temperatures()
             if self.temperatures_available:
@@ -321,7 +322,6 @@ class SynthGenerator(ScadaActor):
         return round(r,2) if r>0 else 0
 
     def required_swt(self, required_kw_thermal: float) -> float:
-        rhp = required_kw_thermal
         a, b, c = self.rswt_quadratic_params
         c2 = c - required_kw_thermal
         return round((-b + (b**2-4*a*c2)**0.5)/(2*a), 2)
@@ -335,24 +335,24 @@ class SynthGenerator(ScadaActor):
             DpForecast = dp_forecast_usd_per_mwh,
             LmpForecsat = lmp_forecast_usd_per_mwh,
         )
-        self._send_to(self.fake_atn, pf)
+        self._send_to(self.atomic_ally, pf)
 
-    def get_weather(self) -> None:
+    async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
         weather_file = config_dir / "weather.json"
         try:
             url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
-            response = requests.get(url)
-            if response.status_code != 200:
-                self.log(f"Error fetching weather data: {response.status_code}")
+            response = await session.get(url)
+            if response.status != 200:
+                self.log(f"Error fetching weather data: {response.status}")
                 return None
-            data = response.json()
+            data = await response.json()
             forecast_hourly_url = data['properties']['forecastHourly']
-            forecast_response = requests.get(forecast_hourly_url)
-            if forecast_response.status_code != 200:
-                self.log(f"Error fetching hourly weather forecast: {forecast_response.status_code}")
+            forecast_response = await session.get(forecast_hourly_url)
+            if forecast_response.status != 200:
+                self.log(f"Error fetching hourly weather forecast: {forecast_response.status}")
                 return None
-            forecast_data = forecast_response.json()
+            forecast_data = await forecast_response.json()
             forecasts = {}
             periods = forecast_data['properties']['periods']
             for period in periods:
@@ -422,7 +422,8 @@ class SynthGenerator(ScadaActor):
             RswtForecast = self.weather['required_swt'],
             RswtDeltaTForecast = [round(self.delta_T(x),2) for x in self.weather['required_swt']]
         )
-        self._send_to(self.fake_atn, wf)
+        self._send_to(self.home_alone, wf)
+        # Todo: broadcast weather forecast for ability to analyze HomeAlone actions
         # Crop to use only 24 hours of forecast in this code
         for key in self.weather:
             self.weather[key] = self.weather[key][:24]

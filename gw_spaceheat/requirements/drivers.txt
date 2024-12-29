@@ -67,9 +67,9 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks==1.2.0
     # via gridworks-protocol
-gridworks-proactor @ git+https://github.com/thegridelectric/gridworks-proactor.git@dev
+gridworks-proactor==1.1.1
     # via -r /Users/Andrew/git/gridworks/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
-gridworks-protocol @ git+https://github.com/thegridelectric/gridworks-protocol.git@dev
+gridworks-protocol==1.2.0
     # via
     #   -r /Users/Andrew/git/gridworks/gw-scada-spaceheat-python/gw_spaceheat/requirements/base.in
     #   gridworks-proactor
