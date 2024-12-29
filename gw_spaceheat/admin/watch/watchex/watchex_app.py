@@ -29,8 +29,8 @@ class WatchExApp(App):
         Binding("[", "previous_theme", " <- Theme ->"),
         Binding("]", "next_theme", " "),
         Binding("m", "toggle_messages", "Toggle message display"),
-        Binding("c", "toggle_relay_state_colors", "Option: state colors"),
-        Binding("b", "toggle_buttons", "Option: double/single buttons"),
+        Binding("c", "toggle_relay_state_colors", "Option: state colors", show=False),
+        Binding("b", "toggle_buttons", "Double/single buttons"),
         Binding("q", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+c", "quit", "Quit", show=False),
     ]
