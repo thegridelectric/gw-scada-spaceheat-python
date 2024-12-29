@@ -154,7 +154,6 @@ class Relays2(Relays):
             with Horizontal(id="buttons"):
                 with HorizontalGroup(
                     id="relay_toggle_button_container",
-                    classes="undisplayed",
                 ):
                     yield RelayToggleButton(
                         label="bar",
@@ -167,6 +166,7 @@ class Relays2(Relays):
                     id="relay_control_buttons",
                     show_titles=True,
                     enable_bindings=True,
+                    classes="undisplayed",
                 ).data_bind(
                     energized=Relays2.curr_energized,
                     config=Relays2.curr_config,
