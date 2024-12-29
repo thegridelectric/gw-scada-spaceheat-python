@@ -109,7 +109,7 @@ class RelayToggleButton(Button, can_focus=True):
         self.update_title()
 
     def watch_config(self):
-        self.label = self.config.get_state_str(self.energized)
+        self.label = self.config.get_state_str(not self.energized)
         self.update_title()
 
     class Pressed(Message):
@@ -336,8 +336,8 @@ class Relays2(Relays):
 
     def _update_buttons(self, relay_name: str) -> None:
         relay_info = self._relays[relay_name]
-        self.curr_config = relay_info.config
         self.curr_energized = relay_info.get_state()
+        self.curr_config = relay_info.config
         self.refresh_bindings()
 
     def _update_table(self):
