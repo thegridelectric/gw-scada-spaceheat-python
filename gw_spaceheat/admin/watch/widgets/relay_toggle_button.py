@@ -8,7 +8,7 @@ from textual.reactive import Reactive
 from textual.reactive import reactive
 from textual.widgets import Button
 
-from admin.watch.widgets.relay2 import RelayWidgetConfig
+from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
