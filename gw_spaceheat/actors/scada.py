@@ -1060,7 +1060,7 @@ class Scada(ScadaInterface, Proactor):
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             else:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
 
     def set_admin_command_tree(self) -> None:
         # ADMIN CONTROL FOREST. All actuators report directly to admin

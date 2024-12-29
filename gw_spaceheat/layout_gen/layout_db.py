@@ -656,6 +656,20 @@ class LayoutDb:
                     ActorClass=ActorClass.HomeAlone,
                     DisplayName="HomeAlone",
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.home_alone_normal),
+                    Name=H0N.home_alone_normal,
+                    Handle="auto.h.n",
+                    ActorClass=ActorClass.NoActor,
+                    DisplayName="HomeAlone Normal",
+                ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.home_alone_onpeak_backup),
+                    Name=H0N.home_alone_onpeak_backup,
+                    Handle="auto.h.onpeak-backup",
+                    ActorClass=ActorClass.NoActor,
+                    DisplayName="HomeAlone Onpeak Backup",
+                ),
             ]
         )
     
