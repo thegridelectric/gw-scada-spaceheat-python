@@ -1,5 +1,6 @@
 import typer
 
+from admin.tdemo.actions import ActionsApp
 from admin.tdemo.stopwatch import StopwatchApp
 from admin.tdemo.switch import SwitchApp
 
@@ -22,6 +23,12 @@ def switch():
     """Run textual switch demo"""
     switch_app = SwitchApp()
     switch_app.run()
+
+@app.command()
+def actions():
+    """Run textual actions demo"""
+    actions_app = ActionsApp()
+    actions_app.run()
 
 
 @app.callback()

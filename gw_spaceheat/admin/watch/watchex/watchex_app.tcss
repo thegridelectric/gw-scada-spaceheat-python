@@ -1,0 +1,64 @@
+Screen {
+    layout: vertical;
+}
+
+#mqtt_state {
+    height: 1fr;
+    border: solid $border;
+}
+
+#message_table {
+    height: 3fr;
+    border: solid $border;
+}
+
+#relays_table {
+    height: 6fr;
+    border: solid $border;
+}
+
+#buttons {
+    layout: horizontal;
+    border: solid $border;
+    align: center middle;
+    height: 2fr;
+    padding: 1 1;
+}
+
+
+Button {
+    margin: 1 2;
+    border-title-color: $text;
+}
+
+RelayToggleButton {
+    width: 40;
+    height: 3;
+    margin: 0 1;
+    padding: 0 0;
+    text-style: bold;
+}
+
+RelayControlButtons {
+    layout: horizontal;
+    width: 1fr;
+}
+
+#deenergized_button {
+    width: 30;
+    height: 3;
+    margin: 0 1;
+    padding: 0 0;
+}
+
+#energized_button {
+    width: 30;
+    height: 3;
+    margin: 0 1;
+    padding: 0 0;
+}
+
+
+.undisplayed {
+    display: none;
+}
