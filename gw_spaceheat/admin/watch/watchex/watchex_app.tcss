@@ -17,14 +17,13 @@ Screen {
     border: solid $border;
 }
 
-#buttons {
+#relay_toggle_button_container {
     layout: horizontal;
     border: solid $border;
     align: center middle;
     height: 2fr;
     padding: 1 1;
 }
-
 
 Button {
     margin: 1 2;
@@ -38,26 +37,6 @@ RelayToggleButton {
     padding: 0 0;
     text-style: bold;
 }
-
-RelayControlButtons {
-    layout: horizontal;
-    width: 1fr;
-}
-
-#deenergized_button {
-    width: 30;
-    height: 3;
-    margin: 0 1;
-    padding: 0 0;
-}
-
-#energized_button {
-    width: 30;
-    height: 3;
-    margin: 0 1;
-    padding: 0 0;
-}
-
 
 .undisplayed {
     display: none;

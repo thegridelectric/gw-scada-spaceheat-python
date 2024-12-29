@@ -29,13 +29,10 @@ class WatchExApp(App):
         Binding("[", "previous_theme", " <- Theme ->"),
         Binding("]", "next_theme", " "),
         Binding("m", "toggle_messages", "Toggle message display"),
-        Binding("c", "toggle_relay_state_colors", "Option: state colors", show=False),
-        Binding("b", "toggle_buttons", "Double/single buttons"),
         Binding("q", "quit", "Quit", show=True, priority=True),
         Binding("ctrl+c", "quit", "Quit", show=False),
     ]
     CSS_PATH = "watchex_app.tcss"
-
 
     def __init__(
         self,
@@ -112,15 +109,6 @@ class WatchExApp(App):
 
     def action_toggle_messages(self) -> None:
         self.query("#message_table").toggle_class("undisplayed")
-
-    def action_toggle_relay_state_colors(self) -> None:
-        relays = self.query_one("#relays2", Relays2)
-        relays.state_colors = not relays.state_colors
-
-    def action_toggle_buttons(self) -> None:
-        self.query("#relay_control_buttons").toggle_class("undisplayed")
-        self.query("#relay_toggle_button_container").toggle_class("undisplayed")
-        self.refresh_bindings()
 
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013

@@ -24,6 +24,7 @@ from admin.watch.clients.relay_client import ObservedRelayStateChange
 from admin.watch.clients.relay_client import RelayClientCallbacks
 from admin.watch.clients.relay_client import RelayConfigChange
 from admin.watch.widgets.mqtt import Mqtt
+from admin.watch.widgets.mqtt import MqttState
 from admin.watch.widgets.relay import Relay
 from admin.watch.widgets.relay import RelayWidgetConfig
 
@@ -31,21 +32,6 @@ from named_types import LayoutLite
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
-
-class MqttState(Widget):
-
-    mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped, layout=True)
-    message_count: Reactive[int] = reactive(0, layout=True)
-    snapshot_count: Reactive[int] = reactive(0, layout=True)
-    layout_count: Reactive[int] = reactive(0, layout=True)
-
-    def render(self) -> str:
-        return (
-            f"MQTT broker connection: {self.mqtt_state:12s}  "
-            f"Messages received: {self.message_count}  "
-            f"Snapshots: {self.snapshot_count}  "
-            f"Layouts: {self.layout_count}"
-        )
 
 class Relays(Widget):
     mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped)
