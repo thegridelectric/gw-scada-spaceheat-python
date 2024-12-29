@@ -74,8 +74,7 @@ class RelayStateText(Static):
 
 class RelayControlButtons(HorizontalGroup, can_focus=True):
     BINDINGS = [
-        ("E", "energize", "Energize relay"),
-        ("D", "deenergize", "Deenergize relay"),
+        ("n", "toggle_relay", "Toggle selected relay")
     ]
 
     energized: Reactive[Optional[bool]] = reactive(None)
@@ -116,35 +115,25 @@ class RelayControlButtons(HorizontalGroup, can_focus=True):
             id="energized_button",
         )
         if self._show_titles:
-            deenergize.border_title = "[underline]D[/underline]eenergize"
-            energize.border_title = "[underline]E[/underline]nergize"
+            deenergize.border_title = "Dee[underline]n[/]ergize"
+            energize.border_title = "E[underline]n[/]ergize"
         yield deenergize
         yield energize
 
-    def action_energize(self) -> None:
-        if self.energized is False:
-            self.post_message(
-                RelayControlButtons.Pressed(
-                    self.config.about_node_name,
-                    True,
-                )
+    def action_toggle_relay(self) -> None:
+        if self.energized is None:
+            return
+        self.post_message(
+            RelayControlButtons.Pressed(
+                self.config.about_node_name,
+                not self.energized,
             )
-
-    def action_deenergize(self) -> None:
-        if self.energized is True:
-            self.post_message(
-                RelayControlButtons.Pressed(
-                    self.config.about_node_name,
-                    False,
-                )
-            )
+        )
 
     def check_action(self, action: str, parameters: tuple[object, ...]) -> Optional[bool]:
         if not self._enable_bindings:
             return False
-        if action == "deenergize" and self.energized is True:
-            return True
-        elif action == "energize" and self.energized is False:
+        if action == "toggle_relay" and self.energized is not None:
             return True
         return None
 

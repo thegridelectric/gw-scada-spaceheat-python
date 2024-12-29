@@ -81,9 +81,9 @@ class RelayToggleButton(Button, can_focus=True):
 
     def update_title(self):
         if self.energized is True:
-            self.border_title = f"Dee[underline]n[/]ergize {self.config.channel_name}"
+            self.border_title = f"Dee[underline]n[/]ergize"
         elif self.energized is False:
-            self.border_title = f"E[underline]n[/]ergize {self.config.channel_name}"
+            self.border_title = f"E[underline]n[/]ergize"
 
     @classmethod
     def variant_from_state(cls, energized: Optional[bool]) -> Literal["default", "success", "error"]:
@@ -131,8 +131,6 @@ class RelayToggleButton(Button, can_focus=True):
 class Relays2(Relays):
     BINDINGS = [
         ("n", "toggle_relay", "Toggle selected relay"),
-        ("E", "energize", "Energize relay"),
-        ("D", "deenergize", "Deenergize relay"),
     ]
     state_colors: Reactive[bool] = reactive(False)
     curr_energized: Reactive[Optional[bool]] = reactive(None)
@@ -153,7 +151,7 @@ class Relays2(Relays):
                 zebra_stripes=True,
                 cursor_type="row",
             )
-            with Horizontal():
+            with Horizontal(id="buttons"):
                 with HorizontalGroup(
                     id="relay_toggle_button_container",
                     classes="undisplayed",
@@ -200,10 +198,7 @@ class Relays2(Relays):
                 RelayControlButtons
             )
         ).has_class("undisplayed"):
-            if energize:
-                relay_buttons.action_energize()
-            else:
-                relay_buttons.action_deenergize()
+            relay_buttons.action_toggle_relay()
             self.refresh_bindings()
         elif not (
             relay_toggle_button := self.query_one(
@@ -213,27 +208,8 @@ class Relays2(Relays):
         ).has_class("undisplayed"):
             relay_toggle_button.action_toggle_relay()
 
-    def action_energize(self) -> None:
-        self._change_energize(True)
-
-    def action_deenergize(self) -> None:
-        self._change_energize(False)
-
     def action_toggle_relay(self) -> None:
         self._change_energize(not self.curr_energized)
-
-    def check_action(self, action: str, parameters: tuple[object, ...]) -> Optional[bool]:
-        if action == "toggle_relay":
-            return not self.query_one(
-                "#relay_toggle_button_container",
-                HorizontalGroup
-            ).has_class("undisplayed")
-        else:
-            buttons = self.query_one("#relay_control_buttons", RelayControlButtons)
-            if buttons.has_class("undisplayed"):
-                return False
-            else:
-                return buttons.check_action(action, parameters)
 
     def on_relays_relay_state_change(self, message: Relays.RelayStateChange) -> None:
         # self.logger.debug("++Relays2.on_relays_relay_state_change  %d", len(message.changes))
@@ -338,6 +314,10 @@ class Relays2(Relays):
         relay_info = self._relays[relay_name]
         self.curr_energized = relay_info.get_state()
         self.curr_config = relay_info.config
+        self.query_one(
+            "#buttons",
+            Horizontal,
+        ).border_title = relay_info.config.channel_name
         self.refresh_bindings()
 
     def _update_table(self):
