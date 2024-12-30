@@ -467,8 +467,10 @@ class Scada(ScadaInterface, Proactor):
         match message.Payload:
             case AdminKeepAlive():
                 self._renew_admin_timeout()
+                self.log('Admin timeout renewed')
             case AdminReleaseControl():
                 self.admin_times_out()
+                self.log('Admin released control')
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
