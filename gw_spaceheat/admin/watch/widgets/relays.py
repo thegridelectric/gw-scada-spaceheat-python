@@ -102,7 +102,7 @@ class Relays(Widget):
             ("Channel Name", None),
             ("Deenergized Name", None),
             ("Energized Name", None),
-            ("State", 25),
+            ("State", 28),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
         message_table = self.query_one("#message_table", DataTable)
@@ -149,7 +149,12 @@ class Relays(Widget):
         table = self.query_one("#relays_table", DataTable)
         data = self._get_relay_row_data(relay_name)
         for column_name, value in data.items():
-            table.update_cell(relay_name, column_name, value)
+            table.update_cell(
+                relay_name,
+                column_name,
+                value,
+                update_width=column_name=="State",
+            )
 
     def on_relays_config_change(self, message: ConfigChange) -> None:
         message.prevent_default()

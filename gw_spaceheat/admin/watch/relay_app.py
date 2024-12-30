@@ -13,7 +13,7 @@ from admin.watch.clients.relay_client import RelayWatchClient
 from admin.watch.widgets.relays import Relays
 from admin.watch.widgets.relay_toggle_button import RelayToggleButton
 
-__version__: str = "0.2.1"
+__version__: str = "0.2.2"
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
