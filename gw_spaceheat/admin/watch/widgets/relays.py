@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import sys
 from logging import Logger
 from typing import Optional
 
@@ -97,9 +98,10 @@ class Relays(Widget):
     def on_mount(self) -> None:
         data_table = self.query_one("#relays_table", DataTable)
         for column_name, width in [
-            ("Relay Name", 28),
-            ("Deenergized Name", 25),
-            ("Energized Name", 25),
+            ("Relay", None),
+            ("Channel Name", None),
+            ("Deenergized Name", None),
+            ("Energized Name", None),
             ("State", 25),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
@@ -108,11 +110,23 @@ class Relays(Widget):
         "Time", "Type", "Payload",
         )
 
-    def action_toggle_relay(self) -> None:
-        self.query_one(
-            "#relay_toggle_button",
-            RelayToggleButton
-        ).action_toggle_relay()
+    def _get_relay_row_data(self, relay_name: str) -> dict[str, CellType]:
+        if relay_name in self._relays:
+            relay = self._relays[relay_name]
+            return {
+                "Relay": relay.config.table_name.relay_number,
+                "Channel Name": relay.config.table_name.row_name,
+                "Deenergized Name": relay.config.get_state_str(
+                    False,
+                    show_icon=False
+                ),
+                "Energized Name": relay.config.get_state_str(
+                    True,
+                    show_icon=False
+                ),
+                "State": relay.get_state_str(),
+            }
+        return {}
 
     def on_relays_relay_state_change(self, message: RelayStateChange) -> None:
         for relay_name, change in message.changes.items():
@@ -127,22 +141,6 @@ class Relays(Widget):
                 if relay_idx == table.cursor_row:
                     self._update_buttons(relay_name)
 
-    def _get_relay_row_data(self, relay_name: str) -> dict[str, CellType]:
-        if relay_name in self._relays:
-            relay = self._relays[relay_name]
-            return {
-                "Relay Name": relay.config.channel_name,
-                "Deenergized Name": relay.config.get_state_str(
-                    False,
-                    show_icon=False
-                ),
-                "Energized Name": relay.config.get_state_str(
-                    True,
-                    show_icon=False
-                ),
-                "State": relay.get_state_str(),
-            }
-        return {}
 
     def _get_relay_row(self, relay_name: str) -> list[str | CellType]:
         return list(self._get_relay_row_data(relay_name).values())
@@ -176,6 +174,11 @@ class Relays(Widget):
                         *self._get_relay_row(relay_name),
                         key=relay_name
                     )
+        table.sort(
+            "Relay",
+            "Channel Name",
+            key=lambda row: (row[0], row[1]) if row[0] is not None else (sys.maxsize, row[1]),
+        )
 
     def _update_buttons(self, relay_name: str) -> None:
         relay_info = self._relays[relay_name]
@@ -184,7 +187,7 @@ class Relays(Widget):
         self.query_one(
             "#relay_toggle_button_container",
             HorizontalGroup,
-        ).border_title = relay_info.config.channel_name
+        ).border_title = relay_info.config.table_name.border_title
         self.refresh_bindings()
 
     def on_data_table_row_highlighted(self, message: DataTable.RowHighlighted) -> None:
@@ -223,6 +226,12 @@ class Relays(Widget):
             str(payload.get("Payload", payload))
         )
         self.query_one("#message_table", DataTable).scroll_end()
+
+    def action_toggle_relay(self) -> None:
+        self.query_one(
+            "#relay_toggle_button",
+            RelayToggleButton
+        ).action_toggle_relay()
 
     def relay_client_callbacks(self) -> RelayClientCallbacks:
         return RelayClientCallbacks(

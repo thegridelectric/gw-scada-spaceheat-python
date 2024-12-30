@@ -1,15 +1,63 @@
+import logging
+import re
+from functools import cached_property
+from typing import ClassVar
 from typing import Optional
 
 from pydantic import BaseModel
+from textual.logging import TextualHandler
 
 from admin.watch.clients.relay_client import RelayConfig
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayState
 
+module_logger = logging.getLogger(__name__)
+module_logger.addHandler(TextualHandler())
+
+
+class RelayTableName(BaseModel):
+    channel_name: str = ""
+    row_name: str = ""
+    relay_number: Optional[int] = None
+
+    relay_table_name_rgx: ClassVar[re.Pattern] = re.compile(
+        r"(?P<channel_part>.*)-relay(?P<relay_number>\d+)"
+    )
+
+    @classmethod
+    def from_channel_name(cls, channel_name: str) -> "RelayTableName":
+        relay_match = cls.relay_table_name_rgx.match(channel_name)
+        if relay_match is None:
+            channel_part = channel_name
+            relay_number = None
+        else:
+            channel_part = relay_match.group("channel_part")
+            relay_number = int(relay_match.group("relay_number"))
+        return RelayTableName(
+            channel_name=channel_name,
+            row_name=" ".join(
+                [
+                    word.capitalize()
+                    for word in channel_part.replace("-", " ").split()
+                ]
+            ),
+            relay_number=relay_number
+        )
+
+    @cached_property
+    def border_title(self) -> str:
+        if self.relay_number is None:
+            return self.row_name
+        return f"Relay {self.relay_number}: {self.row_name}"
+
 class RelayWidgetConfig(RelayConfig):
     energized_icon: str = "⚡"
     deenergized_icon: str = "-"
     show_icon: bool = True
+
+    @cached_property
+    def table_name(self) -> RelayTableName:
+        return RelayTableName.from_channel_name(self.channel_name)
 
     @classmethod
     def from_config(

@@ -13,12 +13,14 @@ from admin.watch.clients.relay_client import RelayWatchClient
 from admin.watch.widgets.relays import Relays
 from admin.watch.widgets.relay_toggle_button import RelayToggleButton
 
+__version__: str = "0.2.1"
+
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
 
 
 class RelaysApp(App):
-    TITLE: str = "Scada Relay Monitor"
+    TITLE: str = f"Scada Relay Monitor v{__version__}"
     _admin_client: AdminClient
     _relay_client: RelayWatchClient
     _theme_names: list[str]
