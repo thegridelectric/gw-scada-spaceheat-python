@@ -335,12 +335,6 @@ class Relays2(Relays):
         for column_name, value in data.items():
             table.update_cell(relay_name, column_name, value)
 
-    def _get_relay_number(self, relay_name: str) -> int:
-        if 'relay' in relay_name:
-            relay_number = int(relay_name.split('relay')[1])
-            return relay_number
-        return 1e3
-
     def on_relays_config_change(self, message: Relays.ConfigChange) -> None:
         message.prevent_default()
         table = self.query_one("#relays_table", DataTable)
@@ -360,17 +354,9 @@ class Relays2(Relays):
                     self._relays[relay_name] = RelayWidgetInfo(
                         config=RelayWidgetConfig.from_config(change.new_config)
                     )
-                    insert_pos = 0
-                    new_channel = self._get_relay_number(change.new_config.channel_name.lower())
-                    for row in table.rows:
-                        if new_channel > self._get_relay_number(self._relays[row.key.value].config.channel_name.lower()):
-                            insert_pos += 1
-                        else:
-                            break
                     table.add_row(
                         *self._get_relay_row(relay_name,table.row_count),
-                        key=relay_name,
-                        position=insert_pos
+                        key=relay_name
                     )
 
     def _update_buttons(self, relay_name: str) -> None:
