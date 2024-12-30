@@ -128,6 +128,52 @@ class RelayToggleButton(Button, can_focus=True):
             )
 
 
+class KeepAliveButton(Button):    
+    def __init__(
+        self,
+        logger: logging.Logger = module_logger,
+        **kwargs
+    ) -> None:
+        super().__init__(
+            "Keep alive",
+            variant="primary",
+            id="keepalive_button",
+            **kwargs
+        )
+        self.logger = logger
+
+    class Pressed(Message):
+        ...
+        
+    def on_button_pressed(self) -> None:
+        self.post_message(
+            KeepAliveButton.Pressed()
+        )
+
+
+class ReleaseControlButton(Button):    
+    def __init__(
+        self,
+        logger: logging.Logger = module_logger,
+        **kwargs
+    ) -> None:
+        super().__init__(
+            "Release control",
+            variant="primary",
+            id="release_control_button",
+            **kwargs
+        )
+        self.logger = logger
+
+    class Pressed(Message):
+        ...
+        
+    def on_button_pressed(self) -> None:
+        self.post_message(
+            ReleaseControlButton.Pressed()
+        )
+
+
 class Relays2(Relays):
     BINDINGS = [
         ("n", "toggle_relay", "Toggle selected relay"),
@@ -172,6 +218,9 @@ class Relays2(Relays):
                     config=Relays2.curr_config,
                 )
             yield DataTable(id="message_table", classes="undisplayed")
+            with Horizontal():
+                yield KeepAliveButton()
+                yield ReleaseControlButton()
 
     def on_mount(self) -> None:
         data_table = self.query_one("#relays_table", DataTable)

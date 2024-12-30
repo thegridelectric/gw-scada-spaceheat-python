@@ -13,6 +13,8 @@ from admin.watch.clients.relay_client import RelayWatchClient
 from admin.watch.watchex.relays2 import Relays2
 from admin.watch.watchex.relays2 import RelayToggleButton
 from admin.watch.widgets.relay2 import RelayControlButtons
+from admin.watch.watchex.relays2 import KeepAliveButton
+from admin.watch.watchex.relays2 import ReleaseControlButton
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
@@ -84,6 +86,12 @@ class WatchExApp(App):
             message.about_node_name,
             RelayEnergized.energized if message.energize else RelayEnergized.deenergized
         )
+
+    def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
+        self._relay_client.send_keepalive()
+
+    def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
+        self._relay_client.send_release_control()
 
     def action_toggle_dark(self) -> None:
         self.theme = (
