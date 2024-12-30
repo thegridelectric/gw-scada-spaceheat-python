@@ -88,9 +88,11 @@ class WatchExApp(App):
         )
 
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
+        self.notify("Keep alive button was pressed")
         self._relay_client.send_keepalive()
 
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
+        self.notify("Release control button was pressed")
         self._relay_client.send_release_control()
 
     def action_toggle_dark(self) -> None:
