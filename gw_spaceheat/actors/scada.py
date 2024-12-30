@@ -54,7 +54,7 @@ from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
 from named_types import (DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, 
                         FsmEvent, GoDormant, LayoutLite, PicoMissing, ScadaParams, 
-                        SendLayout, WakeUp)
+                        SendLayout, WakeUp, AdminKeepAlive, AdminReleaseControl)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -465,6 +465,12 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
+            case AdminKeepAlive():
+                self._renew_admin_timeout()
+                self.log('Admin timeout renewed')
+            case AdminReleaseControl():
+                self.admin_times_out()
+                self.log('Admin released control')
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)

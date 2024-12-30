@@ -10,10 +10,12 @@ from admin.settings import AdminClientSettings
 from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
+from admin.watch.widgets.keepalive import KeepAliveButton
+from admin.watch.widgets.keepalive import ReleaseControlButton
 from admin.watch.widgets.relays import Relays
 from admin.watch.widgets.relay_toggle_button import RelayToggleButton
 
-__version__: str = "0.2.2"
+__version__: str = "0.2.3"
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
@@ -104,6 +106,14 @@ class RelaysApp(App):
 
     def action_toggle_messages(self) -> None:
         self.query("#message_table").toggle_class("undisplayed")
+
+    def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
+        self.notify("Keep alive button was pressed")
+        self._relay_client.send_keepalive()
+
+    def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
+        self.notify("Release control button was pressed")
+        self._relay_client.send_release_control()
 
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
