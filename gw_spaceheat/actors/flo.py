@@ -1,4 +1,5 @@
 import numpy as np
+from datetime import datetime
 from typing import Dict, List, Tuple
 from named_types import PriceQuantityUnitless, FloParamsHouse0
 
@@ -44,6 +45,12 @@ class DParams():
         self.min_cop = 1
         self.max_cop = 3
         self.soft_constraint: bool = True
+        # First time step can be shorter than an hour
+        if datetime.fromtimestamp(self.start_time).minute > 0:
+            self.fraction_of_hour_remaining: float = datetime.fromtimestamp(self.start_time).minute / 60
+        else:
+            self.fraction_of_hour_remaining: float = 1
+        self.load_forecast[0] = self.load_forecast[0]*self.fraction_of_hour_remaining
         
     def check_hp_sizing(self):
         max_load_elec = max(self.load_forecast) / self.COP(min(self.oat_forecast), max(self.rswt_forecast))
@@ -192,20 +199,30 @@ class DGraph():
 
                     # The losses might be lower than energy between two nodes
                     losses = self.params.storage_losses_percent/100 * (node_now.energy-self.bottom_node.energy)
+                    if h==0:
+                        losses = losses * self.params.fraction_of_hour_remaining
                     if self.params.load_forecast[h]==0 and losses>0 and losses<self.params.energy_between_nodes[node_now.top_temp]:
                         losses = self.params.energy_between_nodes[node_now.top_temp] + 1/1e9
 
                     store_heat_in = node_next.energy - node_now.energy
                     hp_heat_out = store_heat_in + self.params.load_forecast[h] + losses
+
+                    # The first time step is not necessarily a full hour
+                    if h==0:
+                        min_hp_elec_in = self.params.min_hp_elec_in * self.params.fraction_of_hour_remaining
+                        max_hp_elec_in = self.params.max_hp_elec_in * self.params.fraction_of_hour_remaining
+                    else:
+                        min_hp_elec_in = self.params.min_hp_elec_in
+                        max_hp_elec_in = self.params.max_hp_elec_in
                     
                     # This condition reduces the amount of times we need to compute the COP
-                    if (hp_heat_out/self.params.max_cop <= self.params.max_hp_elec_in and
-                        hp_heat_out/self.params.min_cop >= self.params.min_hp_elec_in):
+                    if (hp_heat_out/self.params.max_cop <= max_hp_elec_in and
+                        hp_heat_out/self.params.min_cop >= min_hp_elec_in):
                     
                         cop = self.params.COP(oat=self.params.oat_forecast[h], lwt=node_next.top_temp)
 
-                        if (hp_heat_out/cop <= self.params.max_hp_elec_in and 
-                            hp_heat_out/cop >= self.params.min_hp_elec_in):
+                        if (hp_heat_out/cop <= max_hp_elec_in and 
+                            hp_heat_out/cop >= min_hp_elec_in):
 
                             cost = self.params.elec_price_forecast[h]/100 * hp_heat_out/cop
 
