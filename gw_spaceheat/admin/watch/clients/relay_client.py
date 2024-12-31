@@ -305,9 +305,9 @@ class RelayWatchClient(AdminSubClient):
             )
         )
 
-    def send_keepalive(self) -> None:
+    def send_keepalive(self, timeout_seconds: Optional[int] = None) -> None:
         self._admin_client.publish(
-            AdminKeepAlive()
+            AdminKeepAlive(AdminTimeoutSeconds=timeout_seconds)
         )
 
     def send_release_control(self) -> None:

@@ -466,7 +466,7 @@ class Scada(ScadaInterface, Proactor):
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
             case AdminKeepAlive():
-                self._renew_admin_timeout()
+                self._renew_admin_timeout(timeout_seconds=message.Payload.AdminTimeoutSeconds)
                 self.log('Admin timeout renewed')
             case AdminReleaseControl():
                 self.admin_times_out()
@@ -691,15 +691,18 @@ class Scada(ScadaInterface, Proactor):
                     path_dbg |= 0x00000020
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
     
-    async def _timeout_admin(self) -> None:
-        await asyncio.sleep(self.settings.admin.timeout_seconds)
+    async def _timeout_admin(self, timeout_seconds: Optional[int] = None) -> None:
+        if timeout_seconds is None:
+            await asyncio.sleep(self.settings.admin.timeout_seconds)
+        else:
+            await asyncio.sleep(timeout_seconds)
         if self.top_state == TopState.Admin:
             self.admin_times_out()
     
-    def _renew_admin_timeout(self):
+    def _renew_admin_timeout(self, timeout_seconds: Optional[int] = None):
         if self._admin_timeout_task is not None:
             self._admin_timeout_task.cancel()
-        self._admin_timeout_task = asyncio.create_task(self._timeout_admin())
+        self._admin_timeout_task = asyncio.create_task(self._timeout_admin(timeout_seconds))
 
     def update_env_variable(self, variable, new_value) -> None:
         """
