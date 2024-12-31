@@ -38,6 +38,8 @@ class RelayConfig(BaseModel):
     event_type: str = ""
     energized_description: str = ""
     deenergized_description: str = ""
+    energized_state: str = ""
+    deenergized_state: str = ""
 
 class RelayEnergized(StrEnum):
     deenergized = auto()
@@ -159,6 +161,8 @@ class RelayWatchClient(AdminSubClient):
                 event_type=relay_actor_configs[node_name].EventType,
                 energized_description=relay_actor_configs[node_name].EnergizingEvent,
                 deenergized_description=relay_actor_configs[node_name].DeEnergizingEvent,
+                # energized_state=relay_actor_configs[node_name].EnergizedState, # TODO energized
+                # deenergized_state=relay_actor_configs[node_name].DeEnergizedState, # TODO
             ) for node_name in relay_node_names
         }
 
