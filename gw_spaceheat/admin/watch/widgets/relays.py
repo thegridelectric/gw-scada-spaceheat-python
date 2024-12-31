@@ -180,7 +180,7 @@ class Relays(Widget):
                     )
         table.sort(
             "Relay",
-            "Channel Name",
+            "Name",
             key=lambda row: (row[0], row[1]) if row[0] is not None else (sys.maxsize, row[1]),
         )
 
