@@ -105,8 +105,8 @@ class Relays(Widget):
         for column_name, width in [
             ("Relay", None),
             ("Name", None),
-            ("Current state", None),
-            ("Action", 30),
+            ("Current state", 25),
+            ("Action", 25),
             ("Energized", None),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
