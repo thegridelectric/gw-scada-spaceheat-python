@@ -1,6 +1,7 @@
 import logging
 from enum import StrEnum
 from typing import Annotated
+from typing import Optional
 
 import dotenv
 import rich
@@ -10,14 +11,14 @@ from gwproactor.command_line_utils import print_settings
 
 from admin.tdemo.cli import app as tdemo_cli
 from admin.settings import AdminClientSettings
-from admin.watch.relay_app import RelaysApp
+from admin.watch.relay_app import RelaysApp, __version__
 from admin.watch.watchex.watchex_app import WatchExApp
 
 app = typer.Typer(
     no_args_is_help=True,
     pretty_exceptions_enable=False,
     rich_markup_mode="rich",
-    help="GridWorks Scada Admin Client",
+    help="GridWorks Scada Admin Client, version {__version__}",
 )
 
 app.add_typer(tdemo_cli, name="demo", help="Textual demo commands.")
@@ -125,8 +126,23 @@ def config(
     print_settings(settings=settings, env_file=env_file)
 
 
+def version_callback(value: bool):
+    if value:
+        print(f"gws admin {__version__}")
+        raise typer.Exit()
+
 @app.callback()
-def _main() -> None: ...
+def _main(
+    _version: Annotated[
+        Optional[bool],
+        typer.Option(
+            "--version",
+            callback=version_callback,
+            is_eager=True,
+            help="Show version and exit."
+        ),
+    ] = None,
+) -> None: ...
 
 
 if __name__ == "__main__":

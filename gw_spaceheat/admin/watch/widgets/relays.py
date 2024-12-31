@@ -1,15 +1,15 @@
 import datetime
 import json
 import logging
+import sys
 from logging import Logger
 from typing import Optional
 
 from gwproto import MQTTTopic
 from gwproto.named_types import SnapshotSpaceheat
 from textual.app import ComposeResult
+from textual.containers import HorizontalGroup
 from textual.containers import Vertical
-from textual.containers import VerticalScroll
-from textual.css.query import NoMatches
 from textual.logging import TextualHandler
 from textual.messages import Message
 from textual.reactive import Reactive
@@ -17,6 +17,7 @@ from textual.reactive import reactive
 
 from textual.widget import Widget
 from textual.widgets import DataTable
+from textual.widgets._data_table import CellType # noqa
 
 from admin.watch.clients.admin_client import type_name
 from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
@@ -24,48 +25,27 @@ from admin.watch.clients.relay_client import ObservedRelayStateChange
 from admin.watch.clients.relay_client import RelayClientCallbacks
 from admin.watch.clients.relay_client import RelayConfigChange
 from admin.watch.widgets.mqtt import Mqtt
-from admin.watch.widgets.relay import Relay
-from admin.watch.widgets.relay import RelayWidgetConfig
+from admin.watch.widgets.mqtt import MqttState
+from admin.watch.widgets.relay_toggle_button import RelayToggleButton
+from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
+from admin.watch.widgets.relay_widget_info import RelayWidgetInfo
 
 from named_types import LayoutLite
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
 
-class MqttState(Widget):
-
-    mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped, layout=True)
-    message_count: Reactive[int] = reactive(0, layout=True)
-    snapshot_count: Reactive[int] = reactive(0, layout=True)
-    layout_count: Reactive[int] = reactive(0, layout=True)
-
-    def render(self) -> str:
-        return (
-            f"MQTT broker connection: {self.mqtt_state:12s}  "
-            f"Messages received: {self.message_count}  "
-            f"Snapshots: {self.snapshot_count}  "
-            f"Layouts: {self.layout_count}"
-        )
-
 class Relays(Widget):
+    BINDINGS = [
+        ("n", "toggle_relay", "Toggle selected relay"),
+    ]
+
     mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped)
+    state_colors: Reactive[bool] = reactive(False)
+    curr_energized: Reactive[Optional[bool]] = reactive(None)
+    curr_config: Reactive[RelayWidgetConfig] = reactive(RelayWidgetConfig)
     logger: Logger
-
-    def __init__(self, logger: Optional[Logger] = None, **kwargs) -> None:
-        self.logger = logger or module_logger
-        super().__init__(**kwargs)
-
-    def compose(self) -> ComposeResult:
-        with Vertical():
-            yield MqttState(id="mqtt_state")
-            yield VerticalScroll(id="relay_scroll")
-            yield DataTable(id="message_table", classes="undisplayed")
-
-    def on_mount(self) -> None:
-        table = self.query_one("#message_table", DataTable)
-        table.add_columns(
-            "Time", "Type", "Payload",
-        )
+    _relays: dict[str, RelayWidgetInfo]
 
     class RelayStateChange(Message):
         def __init__(self, changes: dict[str, ObservedRelayStateChange]) -> None:
@@ -87,59 +67,137 @@ class Relays(Widget):
             self.layout = layout
             super().__init__()
 
-    @classmethod
-    def _relay_widget_name(cls, relay_name: str) -> str:
-        return f"relay-widget-{relay_name}"
+    def __init__(self, logger: Optional[Logger] = None, **kwargs) -> None:
+        self.logger = logger or module_logger
+        self._relays = {}
+        super().__init__(**kwargs)
 
-    @classmethod
-    def _relay_widget_query_name(cls, relay_name: str) -> str:
-        return f"#{cls._relay_widget_name(relay_name)}"
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield MqttState(id="mqtt_state")
+            yield DataTable(
+                id="relays_table",
+                zebra_stripes=True,
+                cursor_type="row",
+            )
+            with HorizontalGroup(
+                id="relay_toggle_button_container",
+            ):
+                yield RelayToggleButton(
+                    label="bar",
+                    id="relay_toggle_button",
+                ).data_bind(
+                    energized=Relays.curr_energized,
+                    config=Relays.curr_config,
+                )
+            yield DataTable(
+                id="message_table",
+                classes="undisplayed",
+            )
+
+    def on_mount(self) -> None:
+        data_table = self.query_one("#relays_table", DataTable)
+        for column_name, width in [
+            ("Relay", None),
+            ("Channel Name", None),
+            ("Deenergized Name", None),
+            ("Energized Name", None),
+            ("State", 28),
+        ]:
+            data_table.add_column(column_name, key=column_name, width=width)
+        message_table = self.query_one("#message_table", DataTable)
+        message_table.add_columns(
+        "Time", "Type", "Payload",
+        )
+
+    def _get_relay_row_data(self, relay_name: str) -> dict[str, CellType]:
+        if relay_name in self._relays:
+            relay = self._relays[relay_name]
+            return {
+                "Relay": relay.config.table_name.relay_number,
+                "Channel Name": relay.config.table_name.row_name,
+                "Deenergized Name": relay.config.get_state_str(
+                    False,
+                    show_icon=False
+                ),
+                "Energized Name": relay.config.get_state_str(
+                    True,
+                    show_icon=False
+                ),
+                "State": relay.get_state_str(),
+            }
+        return {}
 
     def on_relays_relay_state_change(self, message: RelayStateChange) -> None:
-        # self.logger.debug("++on_relays_relay_state_change  %d", len(message.changes))
-        path_dbg = 0
         for relay_name, change in message.changes.items():
-            path_dbg |= 0x00000001
-            try:
-                widget = self.query_one(
-                    self._relay_widget_query_name(relay_name), Relay
-                )
-                widget.observed = change.new_state
-                # self.logger.debug(
-                #     "Changed <%s> to %s",
-                #     self._relay_widget_query_name(relay_name),
-                #     widget.observed
-                # )
-                widget.mutate_reactive(Relay.observed)
-            except NoMatches:
-                path_dbg |= 0x00000002
-        # self.logger.debug("--on_relays_relay_state_change  path:0x%08X", path_dbg)
+            relay_info = self._relays.get(relay_name, None)
+            if relay_info is not None:
+                new_state = RelayWidgetInfo.get_observed_state(change.new_state)
+                if new_state != relay_info.get_state():
+                    relay_info.observed = change.new_state
+                    self._update_relay_row(relay_name)
+                table = self.query_one("#relays_table", DataTable)
+                relay_idx = table.get_row_index(relay_name)
+                if relay_idx == table.cursor_row:
+                    self._update_buttons(relay_name)
+
+
+    def _get_relay_row(self, relay_name: str) -> list[str | CellType]:
+        return list(self._get_relay_row_data(relay_name).values())
+
+    def _update_relay_row(self, relay_name: str) -> None:
+        table = self.query_one("#relays_table", DataTable)
+        data = self._get_relay_row_data(relay_name)
+        for column_name, value in data.items():
+            table.update_cell(
+                relay_name,
+                column_name,
+                value,
+                update_width=column_name=="State",
+            )
 
     def on_relays_config_change(self, message: ConfigChange) -> None:
-        new_configs = []
+        message.prevent_default()
+        table = self.query_one("#relays_table", DataTable)
         for relay_name, change in message.changes.items():
-            try:
-                widget = self.query_one(
-                    self._relay_widget_query_name(relay_name), Relay
-                )
+            relay_info = self._relays.get(relay_name, None)
+            if relay_info is not None:
                 if change.new_config is None:
-                    widget.remove()
+                    self._relays.pop(relay_name)
+                    table.remove_row(relay_name)
                 else:
-                    widget.config = RelayWidgetConfig(
-                        **change.new_config.model_dump()
-                    )
-                    widget.mutate_reactive(Relay.config)
-            except NoMatches:
+                    new_config = RelayWidgetConfig.from_config(change.new_config)
+                    if new_config != relay_info.config:
+                        relay_info.config = new_config
+                        self._update_relay_row(relay_name)
+            else:
                 if change.new_config is not None:
-                    new_configs.append((self._relay_widget_name(relay_name), change.new_config))
-        sorted_new_configs = sorted(new_configs, key=lambda x: x[1].channel_name)
-        for widget_id, new_config in sorted_new_configs:
-            self.query_one("#relay_scroll").mount(
-                Relay(
-                    config=RelayWidgetConfig(**new_config.model_dump()),
-                    id=widget_id,
-                    logger=self.logger)
-            )
+                    self._relays[relay_name] = RelayWidgetInfo(
+                        config=RelayWidgetConfig.from_config(change.new_config)
+                    )
+                    table.add_row(
+                        *self._get_relay_row(relay_name),
+                        key=relay_name
+                    )
+        table.sort(
+            "Relay",
+            "Channel Name",
+            key=lambda row: (row[0], row[1]) if row[0] is not None else (sys.maxsize, row[1]),
+        )
+
+    def _update_buttons(self, relay_name: str) -> None:
+        relay_info = self._relays[relay_name]
+        self.curr_energized = relay_info.get_state()
+        self.curr_config = relay_info.config
+        self.query_one(
+            "#relay_toggle_button_container",
+            HorizontalGroup,
+        ).border_title = relay_info.config.table_name.border_title
+        self.refresh_bindings()
+
+    def on_data_table_row_highlighted(self, message: DataTable.RowHighlighted) -> None:
+        self._update_relay_row(message.row_key.value)
+        self._update_buttons(message.row_key.value)
 
     def on_relays_layout(self, message: Layout) -> None:
         self.query_one(MqttState).message_count += 1
@@ -173,6 +231,12 @@ class Relays(Widget):
             str(payload.get("Payload", payload))
         )
         self.query_one("#message_table", DataTable).scroll_end()
+
+    def action_toggle_relay(self) -> None:
+        self.query_one(
+            "#relay_toggle_button",
+            RelayToggleButton
+        ).action_toggle_relay()
 
     def relay_client_callbacks(self) -> RelayClientCallbacks:
         return RelayClientCallbacks(
