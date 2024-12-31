@@ -94,7 +94,7 @@ class RelayWidgetConfig(RelayConfig):
         if energized:
             if icon:
                 return self.energized_icon
-            return self.energized_state if self.energized_state != "" else self.get_state_str(not energized, show_icon=False)
+            return self.energized_state
         else:
             if icon:
                 return ""
