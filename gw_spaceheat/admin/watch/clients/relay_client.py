@@ -28,7 +28,7 @@ from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.admin_client import AdminSubClient
 from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
-from named_types import FsmEvent, LayoutLite
+from named_types import FsmEvent, LayoutLite, AdminKeepAlive, AdminReleaseControl
 
 module_logger = logging.getLogger(__name__)
 
@@ -299,5 +299,15 @@ class RelayWatchClient(AdminSubClient):
                 SendTimeUnixMs=int(set_time.timestamp() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
+        )
+
+    def send_keepalive(self) -> None:
+        self._admin_client.publish(
+            AdminKeepAlive()
+        )
+
+    def send_release_control(self) -> None:
+        self._admin_client.publish(
+            AdminReleaseControl()
         )
 

@@ -9,6 +9,8 @@ from named_types.flo_params_house0 import FloParamsHouse0
 from named_types.fsm_event import FsmEvent
 from named_types.go_dormant import GoDormant
 from named_types.ha1_params import Ha1Params
+from named_types.admin_keepalive import AdminKeepAlive
+from named_types.admin_release_control import AdminReleaseControl
 from named_types.latest_price import LatestPrice
 from named_types.layout_lite import LayoutLite
 from named_types.pico_missing import PicoMissing
@@ -27,6 +29,8 @@ __all__ = [
     "FsmEvent",
     "GoDormant",
     "Ha1Params",
+    "AdminKeepAlive",
+    "AdminReleaseControl",
     "LatestPrice",
     "LayoutLite",
     "PicoMissing",
