@@ -106,7 +106,7 @@ class Relays(Widget):
             ("Relay", None),
             ("Name", None),
             ("Current state", None),
-            ("Action", None),
+            ("Action", 30),
             ("Energized", None),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
@@ -121,9 +121,9 @@ class Relays(Widget):
             return {
                 "Relay": relay.config.table_name.relay_number,
                 "Name": relay.config.table_name.row_name,
-                "Current state": "banana",
-                "Action": relay.config.get_state_str(relay.get_state(), show_icon=False),
-                "Energized": relay.config.get_energized_str(relay.get_state()),
+                "Current state": relay.config.get_current_state_str(relay.get_state),
+                "Action": relay.config.get_state_str(not relay.get_state(), show_icon=False),
+                "Energized": relay.config.get_current_state_str(relay.get_state(), icon=True),
             }
         return {}
 
