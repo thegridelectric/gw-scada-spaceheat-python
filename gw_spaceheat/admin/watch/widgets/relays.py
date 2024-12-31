@@ -107,7 +107,7 @@ class Relays(Widget):
             ("Name", None),
             ("Current state", None),
             ("Action", None),
-            ("Energized", 28),
+            ("Energized", None),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
         message_table = self.query_one("#message_table", DataTable)
