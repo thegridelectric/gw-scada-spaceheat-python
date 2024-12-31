@@ -465,12 +465,6 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case AdminKeepAlive():
-                self._renew_admin_timeout(timeout_seconds=message.Payload.AdminTimeoutSeconds)
-                self.log('Admin timeout renewed')
-            case AdminReleaseControl():
-                self.admin_times_out()
-                self.log('Admin released control')
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
@@ -600,6 +594,12 @@ class Scada(ScadaInterface, Proactor):
             case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
+            case AdminKeepAlive():
+                self._renew_admin_timeout(timeout_seconds=message.Payload.AdminTimeoutSeconds)
+                self.log('Admin timeout renewed')
+            case AdminReleaseControl():
+                self.admin_times_out()
+                self.log('Admin released control')
             case DispatchContractGoDormant():
                 self.atn_releases_control(decoded.Payload)
             case DispatchContractGoLive():
