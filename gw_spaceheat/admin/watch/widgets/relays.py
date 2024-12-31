@@ -123,7 +123,7 @@ class Relays(Widget):
                 "Name": relay.config.table_name.row_name,
                 "Current state": "banana",
                 "Action": relay.config.get_state_str(relay.get_state(), show_icon=False),
-                "Energized": relay.config.get_energized_str(),
+                "Energized": relay.config.get_energized_str(relay.get_state()),
             }
         return {}
 
