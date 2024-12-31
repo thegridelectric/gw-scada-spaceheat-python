@@ -87,7 +87,14 @@ class RelayWidgetConfig(RelayConfig):
         if (show_icon is None and self.show_icon) or show_icon is True:
             return f"{icon} / {description}"
         return description
-
+        
+    def get_energized_str(self, energized: Optional[bool]) -> str:
+        if energized is None:
+            return "?"
+        if energized:
+            return self.energized_icon
+        return ""
+    
 
 class RelayWidgetInfo(BaseModel):
     config: RelayWidgetConfig = RelayWidgetConfig()

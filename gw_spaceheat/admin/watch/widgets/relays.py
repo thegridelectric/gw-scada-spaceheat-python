@@ -104,10 +104,10 @@ class Relays(Widget):
         data_table = self.query_one("#relays_table", DataTable)
         for column_name, width in [
             ("Relay", None),
-            ("Channel Name", None),
-            ("Deenergized Name", None),
-            ("Energized Name", None),
-            ("State", 28),
+            ("Name", None),
+            ("Current state", None),
+            ("Action", None),
+            ("Energized", 28),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
         message_table = self.query_one("#message_table", DataTable)
@@ -120,16 +120,10 @@ class Relays(Widget):
             relay = self._relays[relay_name]
             return {
                 "Relay": relay.config.table_name.relay_number,
-                "Channel Name": relay.config.table_name.row_name,
-                "Deenergized Name": relay.config.get_state_str(
-                    False,
-                    show_icon=False
-                ),
-                "Energized Name": relay.config.get_state_str(
-                    True,
-                    show_icon=False
-                ),
-                "State": relay.get_state_str(),
+                "Name": relay.config.table_name.row_name,
+                "Current state": "banana",
+                "Action": relay.config.get_state_str(relay.config.get_state(), show_icon=False),
+                "Energized": relay.config.get_energized_str(),
             }
         return {}
 
