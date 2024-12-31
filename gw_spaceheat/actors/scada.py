@@ -686,9 +686,17 @@ class Scada(ScadaInterface, Proactor):
                                 Payload=decoded.Payload
                             )
                         )
+                case AdminKeepAlive():
+                    path_dbg |= 0x00000020
+                    self._renew_admin_timeout()
+                    self.log('Admin timeout renewed')
+                case AdminReleaseControl():
+                    path_dbg |= 0x00000040
+                    self.admin_times_out()
+                    self.log('Admin released control')
                 case _:
                     # Intentionally ignore this for forward compatibility
-                    path_dbg |= 0x00000020
+                    path_dbg |= 0x00000080
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
     
     async def _timeout_admin(self) -> None:
