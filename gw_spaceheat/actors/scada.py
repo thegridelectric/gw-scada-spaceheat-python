@@ -666,8 +666,6 @@ class Scada(ScadaInterface, Proactor):
                     if self.top_state != TopState.Admin:
                         # change control
                         self.admin_wakes_up()
-                    # start or extend the admin timeout
-                    self._renew_admin_timeout() #TODO!!!
                     if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
                         path_dbg |= 0x00000010
                         communicator.process_message(

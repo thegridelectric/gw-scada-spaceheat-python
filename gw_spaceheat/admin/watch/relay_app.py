@@ -76,7 +76,8 @@ class RelaysApp(App):
     def on_relay_toggle_button_pressed(self, message: RelayToggleButton.Pressed):
         self._relay_client.set_relay(
             message.about_node_name,
-            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
+            RelayEnergized.energized if message.energize else RelayEnergized.deenergized,
+            message.timeout_seconds
         )
 
     def action_toggle_dark(self) -> None:

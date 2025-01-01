@@ -78,10 +78,11 @@ class RelayToggleButton(Button, can_focus=True):
         self.update_title()
 
     class Pressed(Message):
-        def __init__(self, about_node_name: str, energize: bool) -> None:
+        def __init__(self, about_node_name: str, energize: bool, timeout_seconds: int) -> None:
             super().__init__()
             self.about_node_name = about_node_name
             self.energize = energize
+            self.timeout_seconds = timeout_seconds
 
     def on_button_pressed(self):
         if self.energized is not None:
