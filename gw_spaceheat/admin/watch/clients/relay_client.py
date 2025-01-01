@@ -38,6 +38,8 @@ class RelayConfig(BaseModel):
     event_type: str = ""
     energized_description: str = ""
     deenergized_description: str = ""
+    energized_state: str = ""
+    deenergized_state: str = ""
 
 class RelayEnergized(StrEnum):
     deenergized = auto()
@@ -159,6 +161,8 @@ class RelayWatchClient(AdminSubClient):
                 event_type=relay_actor_configs[node_name].EventType,
                 energized_description=relay_actor_configs[node_name].EnergizingEvent,
                 deenergized_description=relay_actor_configs[node_name].DeEnergizingEvent,
+                energized_state=relay_actor_configs[node_name].EnergizedState,
+                deenergized_state=relay_actor_configs[node_name].DeEnergizedState,
             ) for node_name in relay_node_names
         }
 
@@ -276,14 +280,15 @@ class RelayWatchClient(AdminSubClient):
         if self._callbacks.mqtt_message_received_callback is not None:
             self._callbacks.mqtt_message_received_callback(topic, payload)
 
-    def set_relay(self, relay_node_name: str, new_state: RelayEnergized):
-        self._send_set_command(relay_node_name, new_state, datetime.datetime.now())
+    def set_relay(self, relay_node_name: str, new_state: RelayEnergized, timeout_seconds: Optional[int] = None):
+        self._send_set_command(relay_node_name, new_state, datetime.datetime.now(), timeout_seconds)
 
     def _send_set_command(
             self,
             relay_name: str,
             state: RelayEnergized,
-            set_time: datetime.datetime
+            set_time: datetime.datetime,
+            timeout_seconds: Optional[int] = None
     ) -> None:
         relay_config = self._relays[relay_name].config
         self._admin_client.publish(
@@ -300,10 +305,13 @@ class RelayWatchClient(AdminSubClient):
                 TriggerId=str(uuid.uuid4()),
             )
         )
-
-    def send_keepalive(self) -> None:
         self._admin_client.publish(
-            AdminKeepAlive()
+            AdminKeepAlive(AdminTimeoutSeconds=timeout_seconds)
+        )
+
+    def send_keepalive(self, timeout_seconds: Optional[int] = None) -> None:
+        self._admin_client.publish(
+            AdminKeepAlive(AdminTimeoutSeconds=timeout_seconds)
         )
 
     def send_release_control(self) -> None:
