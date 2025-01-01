@@ -698,7 +698,6 @@ class Scada(ScadaInterface, Proactor):
         if timeout_seconds is None:
             await asyncio.sleep(self.settings.admin.timeout_seconds)
         else:
-            self.log(f"Sleeping for {timeout_seconds} seconds")
             await asyncio.sleep(timeout_seconds)
         if self.top_state == TopState.Admin:
             self.admin_times_out()
