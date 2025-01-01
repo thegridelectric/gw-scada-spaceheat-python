@@ -474,7 +474,7 @@
         33
       ],
       "TypeName": "i2c.multichannel.dt.relay.component.gt",
-      "Version": "001"
+      "Version": "002"
     },
     {
       "ComponentAttributeClassId": "69a0e36e-9c15-4d50-8a7b-ae63649ecc36",
