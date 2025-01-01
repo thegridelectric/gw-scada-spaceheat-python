@@ -682,8 +682,8 @@ class Scada(ScadaInterface, Proactor):
                     path_dbg |= 0x00000020
                     if self.top_state == TopState.Admin:
                         self.log(f"Message payload: {message.Payload}")
-                        self._renew_admin_timeout(timeout_seconds=message.Payload.AdminTimeoutSeconds)
-                        self.log(f'Admin timeout renewed: {message.Payload.AdminTimeoutSeconds} seconds')
+                        self._renew_admin_timeout(timeout_seconds=message.AdminTimeoutSeconds)
+                        self.log(f'Admin timeout renewed: {message.AdminTimeoutSeconds} seconds')
                     else:
                         self.admin_wakes_up()
                         self.log('Admin Wakes Up')
