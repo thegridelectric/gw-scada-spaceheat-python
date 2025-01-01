@@ -284,7 +284,7 @@ def test_layout_lite_generated() -> None:
             "DisplayName": "i2c krida relay boards",
             "I2cAddressList": [32, 33],
             "TypeName": "i2c.multichannel.dt.relay.component.gt",
-            "Version": "001",
+            "Version": "002",
         },
         "TypeName": "layout.lite",
         "Version": "002",
