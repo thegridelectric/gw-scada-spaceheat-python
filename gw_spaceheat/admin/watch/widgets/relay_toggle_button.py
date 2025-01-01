@@ -85,20 +85,20 @@ class RelayToggleButton(Button, can_focus=True):
             self.timeout_seconds = timeout_seconds
 
     def on_button_pressed(self):
+        input_value = self.app.query_one(TimeInput).value
+        try:
+            time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
+            self.timeout_seconds = int(time_in_minutes * 60)
+        except:
+            self.timeout_seconds = self.default_timeout_seconds
         if self.energized is not None:
             self.post_message(
                 RelayToggleButton.Pressed(
                     self.config.about_node_name,
                     not self.energized,
+                    self.timeout_seconds
                 )
             )
-
-        input_value = self.app.query_one(TimeInput).value
-        try:
-            time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
-            self.timeout_seconds = int(time_in_minutes * 60)
-        except ValueError:
-            print(f"Invalid input: '{input_value}', please enter a valid number.")
         self.post_message(KeepAliveButton.Pressed(self.timeout_seconds))
         timer_display = self.app.query_one(TimerDigits)
         timer_display.restart(self.timeout_seconds)
