@@ -66,7 +66,7 @@ class ReleaseControlButton(Button):
 
     def on_button_pressed(self) -> None:
         timer_display = self.app.query_one(TimerDigits)
-        timer_display.reset(set_to_zero=True)
+        timer_display.reset()
         timer_display.stop()
         self.post_message(
             ReleaseControlButton.Pressed()
