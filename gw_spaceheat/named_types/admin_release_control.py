@@ -1,7 +1,12 @@
-from typing import List, Literal
-from pydantic import BaseModel, field_validator, model_validator
+"""Type admin.release.control, version 000"""
+
+from typing import Literal
+
+from pydantic import BaseModel
 
 
 class AdminReleaseControl(BaseModel):
+    """ """
+
     TypeName: Literal["admin.release.control"] = "admin.release.control"
-    Version: Literal["001"] = "001"
+    Version: Literal["000"] = "000"

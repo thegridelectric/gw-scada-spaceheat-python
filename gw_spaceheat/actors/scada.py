@@ -465,12 +465,6 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case AdminKeepAlive():
-                self._renew_admin_timeout()
-                self.log('Admin timeout renewed')
-            case AdminReleaseControl():
-                self.admin_times_out()
-                self.log('Admin released control')
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
@@ -688,8 +682,12 @@ class Scada(ScadaInterface, Proactor):
                         )
                 case AdminKeepAlive():
                     path_dbg |= 0x00000020
-                    self._renew_admin_timeout()
-                    self.log('Admin timeout renewed')
+                    if self.top_state == TopState.Admin:
+                        self._renew_admin_timeout()
+                        self.log('Admin timeout renewed')
+                    else:
+                        self.admin_wakes_up()
+                        self.log('Admin Wakes Up')
                 case AdminReleaseControl():
                     path_dbg |= 0x00000040
                     self.admin_times_out()
@@ -967,7 +965,6 @@ class Scada(ScadaInterface, Proactor):
         if self.auto_state == MainAutoState.Dormant:
             self.log("Ignoring AutoGoesDormant ... auto state is already dormant")
             return
-        
         # Trigger AutoGoesDormant for auto state: Atn OR HomeAlone -> Dormant 
         self.AutoGoesDormant()
         self.log(f"auto_state {self.auto_state}")
