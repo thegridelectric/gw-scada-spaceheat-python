@@ -5,8 +5,8 @@ from named_types import AdminKeepAlive
 
 def test_admin_keep_alive_generated() -> None:
     d = {
-        "TypeName": "admin.keep.alive",
-        "Version": "000",
+        "TypeName": "admin.keepalive",
+        "Version": "001",
     }
 
     d2 = AdminKeepAlive.model_validate(d).model_dump(exclude_none=True)

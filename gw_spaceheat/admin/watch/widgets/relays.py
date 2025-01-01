@@ -26,6 +26,8 @@ from admin.watch.clients.relay_client import RelayClientCallbacks
 from admin.watch.clients.relay_client import RelayConfigChange
 from admin.watch.widgets.keepalive import KeepAliveButton
 from admin.watch.widgets.keepalive import ReleaseControlButton
+from admin.watch.widgets.timer import TimerDigits
+from admin.watch.widgets.time_input import TimeInput
 from admin.watch.widgets.mqtt import Mqtt
 from admin.watch.widgets.mqtt import MqttState
 from admin.watch.widgets.relay_toggle_button import RelayToggleButton
@@ -80,6 +82,8 @@ class Relays(Widget):
             with HorizontalGroup():
                 yield KeepAliveButton()
                 yield ReleaseControlButton()
+                yield TimeInput()
+                yield TimerDigits()
             yield DataTable(
                 id="relays_table",
                 zebra_stripes=True,

@@ -38,6 +38,15 @@ RelayToggleButton {
     text-style: bold;
 }
 
+TimerDigits {
+    margin: 1 2;
+}
+
+TimeInput {
+    width: 35;
+    margin: 1 2;
+    }
+
 .undisplayed {
     display: none;
 }
