@@ -108,11 +108,10 @@ class RelaysApp(App):
         self.query("#message_table").toggle_class("undisplayed")
 
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
-        self.notify("Keep alive button was pressed")
-        self._relay_client.send_keepalive()
+        self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
+        self._relay_client.send_keepalive(_.timeout_seconds)
 
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
-        self.notify("Release control button was pressed")
         self._relay_client.send_release_control()
 
 if __name__ == "__main__":
