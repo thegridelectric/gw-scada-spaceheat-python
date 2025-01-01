@@ -63,8 +63,8 @@ class RelayWidgetConfig(RelayConfig):
     def from_config(
             cls,
             config: RelayConfig,
-            energized_icon: str = "⚡",
-            deenergized_icon: str = "-",
+            energized_icon: str = "🔴",
+            deenergized_icon: str = "⚫️",
             show_icon: bool = True,
     ) -> "RelayWidgetConfig":
         return RelayWidgetConfig(
@@ -85,9 +85,21 @@ class RelayWidgetConfig(RelayConfig):
             icon = self.deenergized_icon
             description = self.deenergized_description
         if (show_icon is None and self.show_icon) or show_icon is True:
-            return f"{icon} / {description}"
+            return f"{icon} {description}"
         return description
 
+    def get_current_state_str(self, energized: Optional[bool], icon: Optional[bool] = False) -> str:
+        if energized is None:
+            return "?"
+        if energized:
+            if icon:
+                return self.energized_icon
+            return self.energized_state
+        else:
+            if icon:
+                return self.deenergized_icon
+            return self.deenergized_state
+    
 
 class RelayWidgetInfo(BaseModel):
     config: RelayWidgetConfig = RelayWidgetConfig()
