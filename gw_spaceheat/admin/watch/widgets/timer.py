@@ -36,7 +36,7 @@ class TimerDigits(Digits):
     def watch_time_remaining(self, time: float) -> None:
         minutes, seconds = divmod(time, 60)
         hours, minutes = divmod(minutes, 60)
-        self.update(f"{hours:02,.0f}:{minutes:02.0f}:{seconds:03.1f}")
+        self.update(f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}")
 
     def start(self, timeout_seconds: int) -> None:
         self.countdown_seconds = timeout_seconds
