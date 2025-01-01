@@ -594,12 +594,6 @@ class Scada(ScadaInterface, Proactor):
             case AnalogDispatch():
                 path_dbg |= 0x00000001
                 self._analog_dispatch_received(decoded.Payload)
-            case AdminKeepAlive():
-                self._renew_admin_timeout(timeout_seconds=message.Payload.AdminTimeoutSeconds)
-                self.log('Admin timeout renewed')
-            case AdminReleaseControl():
-                self.admin_times_out()
-                self.log('Admin released control')
             case DispatchContractGoDormant():
                 self.atn_releases_control(decoded.Payload)
             case DispatchContractGoLive():
@@ -686,23 +680,32 @@ class Scada(ScadaInterface, Proactor):
                                 Payload=decoded.Payload
                             )
                         )
+                case AdminKeepAlive():
+                    path_dbg |= 0x00000020
+                    if self.top_state == TopState.Admin:
+                        self._renew_admin_timeout()
+                        self.log('Admin timeout renewed')
+                    else:
+                        self.admin_wakes_up()
+                        self.log('Admin Wakes Up')
+                case AdminReleaseControl():
+                    path_dbg |= 0x00000040
+                    self.admin_times_out()
+                    self.log('Admin released control')
                 case _:
                     # Intentionally ignore this for forward compatibility
-                    path_dbg |= 0x00000020
+                    path_dbg |= 0x00000080
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
     
-    async def _timeout_admin(self, timeout_seconds: Optional[int] = None) -> None:
-        if timeout_seconds is None:
-            await asyncio.sleep(self.settings.admin.timeout_seconds)
-        else:
-            await asyncio.sleep(timeout_seconds)
+    async def _timeout_admin(self) -> None:
+        await asyncio.sleep(self.settings.admin.timeout_seconds)
         if self.top_state == TopState.Admin:
             self.admin_times_out()
     
-    def _renew_admin_timeout(self, timeout_seconds: Optional[int] = None):
+    def _renew_admin_timeout(self):
         if self._admin_timeout_task is not None:
             self._admin_timeout_task.cancel()
-        self._admin_timeout_task = asyncio.create_task(self._timeout_admin(timeout_seconds))
+        self._admin_timeout_task = asyncio.create_task(self._timeout_admin())
 
     def update_env_variable(self, variable, new_value) -> None:
         """
@@ -962,7 +965,6 @@ class Scada(ScadaInterface, Proactor):
         if self.auto_state == MainAutoState.Dormant:
             self.log("Ignoring AutoGoesDormant ... auto state is already dormant")
             return
-        
         # Trigger AutoGoesDormant for auto state: Atn OR HomeAlone -> Dormant 
         self.AutoGoesDormant()
         self.log(f"auto_state {self.auto_state}")
