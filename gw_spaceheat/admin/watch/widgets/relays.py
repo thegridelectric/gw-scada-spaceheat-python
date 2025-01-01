@@ -26,8 +26,6 @@ from admin.watch.clients.relay_client import RelayClientCallbacks
 from admin.watch.clients.relay_client import RelayConfigChange
 from admin.watch.widgets.keepalive import KeepAliveButton
 from admin.watch.widgets.keepalive import ReleaseControlButton
-from admin.watch.widgets.timer import TimerDigits
-from admin.watch.widgets.time_input import TimeInput
 from admin.watch.widgets.mqtt import Mqtt
 from admin.watch.widgets.mqtt import MqttState
 from admin.watch.widgets.relay_toggle_button import RelayToggleButton
@@ -82,8 +80,6 @@ class Relays(Widget):
             with HorizontalGroup():
                 yield KeepAliveButton()
                 yield ReleaseControlButton()
-                yield TimeInput()
-                yield TimerDigits()
             yield DataTable(
                 id="relays_table",
                 zebra_stripes=True,
@@ -108,10 +104,10 @@ class Relays(Widget):
         data_table = self.query_one("#relays_table", DataTable)
         for column_name, width in [
             ("Relay", None),
-            ("Name", 25),
-            ("Current state", 25),
-            ("Action", 25),
-            ("Energized", None),
+            ("Channel Name", None),
+            ("Deenergized Name", None),
+            ("Energized Name", None),
+            ("State", 28),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
         message_table = self.query_one("#message_table", DataTable)
@@ -124,10 +120,16 @@ class Relays(Widget):
             relay = self._relays[relay_name]
             return {
                 "Relay": relay.config.table_name.relay_number,
-                "Name": relay.config.table_name.row_name,
-                "Current state": relay.config.get_current_state_str(relay.get_state()),
-                "Action": relay.config.get_state_str(not relay.get_state(), show_icon=False),
-                "Energized": relay.config.get_current_state_str(relay.get_state(), icon=True),
+                "Channel Name": relay.config.table_name.row_name,
+                "Deenergized Name": relay.config.get_state_str(
+                    False,
+                    show_icon=False
+                ),
+                "Energized Name": relay.config.get_state_str(
+                    True,
+                    show_icon=False
+                ),
+                "State": relay.get_state_str(),
             }
         return {}
 
@@ -184,7 +186,7 @@ class Relays(Widget):
                     )
         table.sort(
             "Relay",
-            "Name",
+            "Channel Name",
             key=lambda row: (row[0], row[1]) if row[0] is not None else (sys.maxsize, row[1]),
         )
 
