@@ -47,8 +47,8 @@ class TimerDigits(Digits):
     def stop(self) -> None:
         self.update_timer.pause()
 
-    def reset(self) -> None:
-        self.time_remaining = self.countdown_seconds
+    def reset(self, set_to_zero=False) -> None:
+        self.time_remaining = self.countdown_seconds if not set_to_zero else 0
 
     def restart(self, timeout_seconds) -> None:
         self.reset()
