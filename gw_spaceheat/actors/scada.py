@@ -162,6 +162,7 @@ class Scada(ScadaInterface, Proactor):
     top_transitions = [
         {"trigger": "AdminWakesUp", "source": "Auto", "dest": "Admin"},
         {"trigger": "AdminTimesOut", "source": "Admin", "dest": "Auto"},
+        {"trigger": "AdminReleasesControl", "source": "Admin", "dest": "Auto"}
     ]
 
     main_auto_states = ["Atn", "HomeAlone", "Dormant"]
@@ -687,8 +688,8 @@ class Scada(ScadaInterface, Proactor):
                         self.log('Admin Wakes Up')
                 case AdminReleaseControl():
                     path_dbg |= 0x00000040
-                    self.admin_times_out()
-                    self.log('Admin released control')
+                    if self.top_state == TopState.Admin:
+                        self.admin_releases_control()
                 case _:
                     # Intentionally ignore this for forward compatibility
                     path_dbg |= 0x00000080
@@ -911,14 +912,13 @@ class Scada(ScadaInterface, Proactor):
     #####################################################################
 
     # Top States: Admin, Auto
-    # Top Events: AdminWakesUp, AdminTimesOut
+    # Top Events: AdminWakesUp, AdminTimesOut, AdminReleasesControl
 
     def admin_wakes_up(self) -> None:
         if self.top_state == TopState.Admin:
             self.log("Ignoring AdminWakesUp, TopState already Admin")
             return
         # Trigger the AdminWakesUp event for top state:  Auto => Admin 
-        
         self.AdminWakesUp()
         self.log(f"Message from Admin! top_state {self.top_state}")
         if self.auto_state == MainAutoState.Dormant:
@@ -926,13 +926,29 @@ class Scada(ScadaInterface, Proactor):
             return
         # This will set auto_state and update the actuator forest to Admin
         self.auto_goes_dormant()
-        
+
+    def admin_releases_control(self) -> None:
+        if self.top_state != TopState.Admin:
+            self.log("Ignoring AdminWakesUp, TopState not Admin")
+            return
+        # AdminReleasesControl:  Admin => Auto
+        self.AdminReleasesControl()
+        self.log(f"Admin releases control: {self.top_state}")
+            # cancel the timeout
+        if self._admin_timeout_task is not None:
+            if not self._admin_timeout_task.cancelled():
+                self._admin_timeout_task.cancel()
+            self._admin_timeout_task = None
+            # wake up auto state, which has been dormant. This will set
+        # the actuator forest to HomeAlone
+        self.auto_wakes_up()
+
     def admin_times_out(self) -> None:
         if self.top_state == TopState.Auto:
             self.log("Ignoring AdminTimesOut, TopState already Auto")
             return
         
-        # Trigger the AdminTimesOut event for top state:  Admin => Auto
+        # AdminTimesOut: Admin => Auto
         self.AdminTimesOut()
         self.log(f"Admin timed out! {self.top_state}")
         # cancel the timeout
