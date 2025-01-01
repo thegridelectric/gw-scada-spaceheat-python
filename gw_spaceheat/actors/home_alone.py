@@ -462,7 +462,7 @@ class HomeAlone(ScadaActor):
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
 
-        if self.is_onpeak:
+        if self.is_onpeak():
             self.log("is on peak so turning off HP")
             self.turn_off_HP()
 
