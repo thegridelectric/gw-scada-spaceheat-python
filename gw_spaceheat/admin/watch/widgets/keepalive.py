@@ -57,11 +57,17 @@ class ReleaseControlButton(Button):
             **kwargs
         )
         self.logger = logger
+        self.default_timeout_seconds = AdminLinkSettings().timeout_seconds
+        self.default_timeout_seconds = self.default_timeout_seconds if self.default_timeout_seconds else 5*60
+        self.timeout_seconds = self.default_timeout_seconds
 
     class Pressed(Message):
         ...
 
     def on_button_pressed(self) -> None:
+        timer_display = self.app.query_one(TimerDigits)
+        timer_display.reset()
+        timer_display.stop()
         self.post_message(
             ReleaseControlButton.Pressed()
         )
