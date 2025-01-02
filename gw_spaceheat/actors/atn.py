@@ -691,9 +691,17 @@ class Atn(ActorInterface, Proactor):
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
-        # In the last 5 minutes of the hour: make a bid for the next hour
-        if datetime.now().minute < 55 or self.sent_bid:
-            self.log("NOT RUNNING Dijsktra! Either not in last 5 minutes or already sent bid")
+        if self.sent_bid:
+            self.log("NOT RUNNING Dijsktra! Already sent bid")
+            return
+        if datetime.now().minute >= 55:
+            dijkstra_start_time = int(
+                datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
+                )
+        else:
+            dijkstra_start_time = int(datetime.timestamp(datetime.now()))
+            self.log("NOT RUNNING Dijkstra! Not in the last 5 minutes.")
+            # TODO: under some conditions we might want to run a FLO at another time
             return
         await self.get_weather(session)
         self.get_price_forecast()
@@ -707,16 +715,10 @@ class Atn(ActorInterface, Proactor):
         initial_toptemp, initial_thermocline = result
         flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
-
-            StartUnixS=int(
-                datetime.timestamp(
-                    (datetime.now() + timedelta(hours=1)).replace(
-                        minute=0, second=0, microsecond=0
-                    )
-                )
-            ),
+            StartUnixS=dijkstra_start_time,
             InitialTopTempF=int(initial_toptemp),
             InitialThermocline=initial_thermocline * 2,
+            # TODO: price and weather forecasts should include the current hour if we are running a partial hour
             LmpForecast=self.price_forecast["lmp"],
             DistPriceForecast=self.price_forecast["dp"],
             RegPriceForecast=self.price_forecast["reg"],
@@ -740,6 +742,7 @@ class Atn(ActorInterface, Proactor):
         self.log("Creating graph")
         st = time.time()
         g = DGraph(flo_params)
+        self.log(f"The first time step is {round(g.params.fraction_of_hour_remaining*60)} minutes")
         self.log(f"Done in {round(time.time()-st,2)} seconds")
         self.log("Solving Dijkstra")
         g.solve_dijkstra()

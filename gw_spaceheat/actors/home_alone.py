@@ -669,11 +669,11 @@ class HomeAlone(ScadaActor):
             self.aquastat_control_relay 
         }:
             self.de_energize(relay)
-            self.log(f"JUST DE-ENERGIZED {relay.name}")
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
 
-        if self.is_onpeak:
+        if self.is_onpeak():
+            self.log("is on peak so turning off HP")
             self.turn_off_HP()
 
     def is_onpeak(self) -> bool:

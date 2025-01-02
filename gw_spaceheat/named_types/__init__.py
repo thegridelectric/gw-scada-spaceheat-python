@@ -1,5 +1,7 @@
 """ List of all the types """
 
+from named_types.admin_keep_alive import AdminKeepAlive
+from named_types.admin_release_control import AdminReleaseControl
 from named_types.atn_bid import AtnBid
 from named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from named_types.dispatch_contract_go_live import DispatchContractGoLive
@@ -18,6 +20,8 @@ from named_types.send_layout import SendLayout
 from named_types.wake_up import WakeUp
 
 __all__ = [
+    "AdminKeepAlive",
+    "AdminReleaseControl",
     "AtnBid",
     "DispatchContractGoDormant",
     "DispatchContractGoLive",

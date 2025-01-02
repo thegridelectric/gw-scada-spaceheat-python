@@ -329,7 +329,9 @@ class PicoCycler(ScadaActor):
                     path_dbg |= 0x00000004
                     self.process_fsm_full_report(message.Payload)
                 case GoDormant():
-                    self.GoDormant()
+                    if self.state != PicoCyclerState.Dormant:
+                        self.GoDormant()
+                        self.log("Going Dormant!")
                 case PicoMissing():
                     path_dbg |= 0x00000008
                     self.process_pico_missing(src_node, message.Payload)
@@ -342,13 +344,6 @@ class PicoCycler(ScadaActor):
                     path_dbg |= 0x00000020
         self.services.logger.path(f"--pico_cycler  path:0x{path_dbg:08X}")
         return Ok(True)
-    
-    def GoDormant(self) -> None:
-        if self.state != PicoCyclerState.Dormant:
-            self.trigger(PicoCyclerEvent.GoDormant)
-        else:
-            self.log("IGNORING GoDormant")
-        self.log(f"State: {self.state}")
     
     def WakeUp(self) -> None:
         if self.state == PicoCyclerState.Dormant:

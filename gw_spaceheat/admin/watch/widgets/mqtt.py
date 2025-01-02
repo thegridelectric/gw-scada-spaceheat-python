@@ -1,6 +1,10 @@
 from textual.messages import Message
+from textual.reactive import Reactive
+from textual.reactive import reactive
 
 from textual.widget import Widget
+
+from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 
 
 class Mqtt(Widget):
@@ -24,3 +28,18 @@ class Mqtt(Widget):
 
     def mqtt_receipt(self, topic: str, payload: bytes) -> None:
         self.post_message(Mqtt.Receipt(topic, payload))
+
+class MqttState(Widget):
+
+    mqtt_state: Reactive[str] = reactive(ConstrainedMQTTClient.States.stopped, layout=True)
+    message_count: Reactive[int] = reactive(0, layout=True)
+    snapshot_count: Reactive[int] = reactive(0, layout=True)
+    layout_count: Reactive[int] = reactive(0, layout=True)
+
+    def render(self) -> str:
+        return (
+            f"MQTT broker connection: {self.mqtt_state:12s}  "
+            f"Messages received: {self.message_count}  "
+            f"Snapshots: {self.snapshot_count}  "
+            f"Layouts: {self.layout_count}"
+        )

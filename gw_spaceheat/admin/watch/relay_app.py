@@ -1,45 +1,39 @@
 import logging
-import random
 
 import dotenv
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.logging import TextualHandler
-from textual.reactive import reactive
-from textual.reactive import Reactive
 from textual.widgets import Header, Footer
 
 from admin.settings import AdminClientSettings
 from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.relay_client import RelayEnergized
 from admin.watch.clients.relay_client import RelayWatchClient
-from admin.watch.widgets.relay1 import Relay1
-from admin.watch.widgets.relay2 import Relay2
-from admin.watch.widgets.relay2 import RelayControlButtons
+from admin.watch.widgets.keepalive import KeepAliveButton
+from admin.watch.widgets.keepalive import ReleaseControlButton
 from admin.watch.widgets.relays import Relays
+from admin.watch.widgets.relay_toggle_button import RelayToggleButton
+
+__version__: str = "0.2.3"
 
 logger = logging.getLogger(__name__)
 logger.addHandler(TextualHandler())
 
 
 class RelaysApp(App):
-    TITLE: str = "I am a teapot"
-    title: str = reactive(TITLE)
-    dark: Reactive[bool]
+    TITLE: str = f"Scada Relay Monitor v{__version__}"
     _admin_client: AdminClient
     _relay_client: RelayWatchClient
     _theme_names: list[str]
 
     BINDINGS = [
-        ("d", "toggle_dark", "Toggle dark mode"),
-        ("n", "shuffle_title", "Shuffle title"),
-        ("t", "reset_title", "Reset title"),
-        ("a", "previous_theme", "Previous theme"),
-        ("s", "next_theme", "Next theme"),
-        ("m", "toggle_messages", "Toggle message display"),
-        ("1", "toggle_v1", "Toggle v1 display"),
-        ("2", "toggle_v2", "Toggle v2 display"),
+        Binding("d", "toggle_dark", "Toggle dark mode"),
+        Binding("[", "previous_theme", " <- Theme ->"),
+        Binding("]", "next_theme", " "),
+        Binding("m", "toggle_messages", "Toggle message display"),
         Binding("q", "quit", "Quit", show=True, priority=True),
+        Binding("ctrl+c", "quit", "Quit", show=False),
     ]
     CSS_PATH = "relay_app.tcss"
 
@@ -67,11 +61,11 @@ class RelaysApp(App):
         self._theme_names = [
             theme for theme in self.available_themes if theme != "textual-ansi"
         ]
+        self.set_reactive(RelaysApp.sub_title, self.settings.target_gnode)
 
     def compose(self) -> ComposeResult:
-        """Create child widgets for the app."""
         yield Header(show_clock=True)
-        relays = Relays(logger=logger)
+        relays = Relays(logger=logger, id="relays")
         self._relay_client.set_callbacks(relays.relay_client_callbacks())
         yield relays
         yield Footer()
@@ -79,30 +73,19 @@ class RelaysApp(App):
     def on_mount(self) -> None:
         self._admin_client.start()
 
-    def on_relay1_relay_switch_changed(self, message: Relay1.RelaySwitchChanged):
+    def on_relay_toggle_button_pressed(self, message: RelayToggleButton.Pressed):
         self._relay_client.set_relay(
             message.about_node_name,
-            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
-        )
-
-    def on_relay_control_buttons_pressed(self, message: RelayControlButtons.Pressed):
-        self._relay_client.set_relay(
-            message.about_node_name,
-            RelayEnergized.energized if message.energize else RelayEnergized.deenergized
+            RelayEnergized.energized if message.energize else RelayEnergized.deenergized,
+            message.timeout_seconds
         )
 
     def action_toggle_dark(self) -> None:
         self.theme = (
-            "textual-dark" if self.theme == "textual-light" else "textual-light"
+            "textual-dark" if "light" in self.theme else "textual-light"
         )
-
-    def action_shuffle_title(self) -> None:
-        lst = list(self.title)
-        random.shuffle(lst)
-        self.title = "".join(lst)
-
-    def action_reset_title(self) -> None:
-        self.title = self.TITLE
+        self.clear_notifications()
+        self.notify(f"Theme is {self.current_theme.name}")
 
     async def action_quit(self) -> None:
         self._admin_client.stop()
@@ -122,14 +105,15 @@ class RelaysApp(App):
     def action_previous_theme(self) -> None:
         self._change_theme(-1)
 
-    def action_toggle_v1(self) -> None:
-        self.query(Relay1).toggle_class("undisplayed")
-
-    def action_toggle_v2(self) -> None:
-        self.query(Relay2).toggle_class("undisplayed")
-
     def action_toggle_messages(self) -> None:
         self.query("#message_table").toggle_class("undisplayed")
+
+    def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
+        self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
+        self._relay_client.send_keepalive(_.timeout_seconds)
+
+    def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
+        self._relay_client.send_release_control()
 
 if __name__ == "__main__":
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013

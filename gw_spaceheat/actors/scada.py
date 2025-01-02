@@ -54,7 +54,7 @@ from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
 from named_types import (DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, 
                         FsmEvent, GoDormant, LayoutLite, PicoMissing, ScadaParams, 
-                        SendLayout, WakeUp)
+                        SendLayout, WakeUp, AdminKeepAlive, AdminReleaseControl)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -162,6 +162,7 @@ class Scada(ScadaInterface, Proactor):
     top_transitions = [
         {"trigger": "AdminWakesUp", "source": "Auto", "dest": "Admin"},
         {"trigger": "AdminTimesOut", "source": "Admin", "dest": "Auto"},
+        {"trigger": "AdminReleasesControl", "source": "Admin", "dest": "Auto"}
     ]
 
     main_auto_states = ["Atn", "HomeAlone", "Dormant"]
@@ -666,8 +667,6 @@ class Scada(ScadaInterface, Proactor):
                     if self.top_state != TopState.Admin:
                         # change control
                         self.admin_wakes_up()
-                    # start or extend the admin timeout
-                    self._renew_admin_timeout()
                     if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
                         path_dbg |= 0x00000010
                         communicator.process_message(
@@ -680,20 +679,34 @@ class Scada(ScadaInterface, Proactor):
                                 Payload=decoded.Payload
                             )
                         )
+                case AdminKeepAlive():
+                    path_dbg |= 0x00000020
+                    self._renew_admin_timeout(timeout_seconds=decoded.Payload.AdminTimeoutSeconds)
+                    self.log(f'Admin timeout renewed: {decoded.Payload.AdminTimeoutSeconds} seconds')
+                    if not self.top_state == TopState.Admin:
+                        self.admin_wakes_up()
+                        self.log('Admin Wakes Up')
+                case AdminReleaseControl():
+                    path_dbg |= 0x00000040
+                    if self.top_state == TopState.Admin:
+                        self.admin_releases_control()
                 case _:
                     # Intentionally ignore this for forward compatibility
-                    path_dbg |= 0x00000020
+                    path_dbg |= 0x00000080
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
     
-    async def _timeout_admin(self) -> None:
-        await asyncio.sleep(self.settings.admin.timeout_seconds)
+    async def _timeout_admin(self, timeout_seconds: Optional[int] = None) -> None:
+        if timeout_seconds is None:
+            await asyncio.sleep(self.settings.admin.timeout_seconds)
+        else:
+            await asyncio.sleep(timeout_seconds)
         if self.top_state == TopState.Admin:
             self.admin_times_out()
     
-    def _renew_admin_timeout(self):
+    def _renew_admin_timeout(self, timeout_seconds: Optional[int] = None):
         if self._admin_timeout_task is not None:
             self._admin_timeout_task.cancel()
-        self._admin_timeout_task = asyncio.create_task(self._timeout_admin())
+        self._admin_timeout_task = asyncio.create_task(self._timeout_admin(timeout_seconds))
 
     def update_env_variable(self, variable, new_value) -> None:
         """
@@ -899,14 +912,13 @@ class Scada(ScadaInterface, Proactor):
     #####################################################################
 
     # Top States: Admin, Auto
-    # Top Events: AdminWakesUp, AdminTimesOut
+    # Top Events: AdminWakesUp, AdminTimesOut, AdminReleasesControl
 
     def admin_wakes_up(self) -> None:
         if self.top_state == TopState.Admin:
             self.log("Ignoring AdminWakesUp, TopState already Admin")
             return
         # Trigger the AdminWakesUp event for top state:  Auto => Admin 
-        
         self.AdminWakesUp()
         self.log(f"Message from Admin! top_state {self.top_state}")
         if self.auto_state == MainAutoState.Dormant:
@@ -914,13 +926,29 @@ class Scada(ScadaInterface, Proactor):
             return
         # This will set auto_state and update the actuator forest to Admin
         self.auto_goes_dormant()
-        
+
+    def admin_releases_control(self) -> None:
+        if self.top_state != TopState.Admin:
+            self.log("Ignoring AdminWakesUp, TopState not Admin")
+            return
+        # AdminReleasesControl:  Admin => Auto
+        self.AdminReleasesControl()
+        self.log(f"Admin releases control: {self.top_state}")
+            # cancel the timeout
+        if self._admin_timeout_task is not None:
+            if not self._admin_timeout_task.cancelled():
+                self._admin_timeout_task.cancel()
+            self._admin_timeout_task = None
+            # wake up auto state, which has been dormant. This will set
+        # the actuator forest to HomeAlone
+        self.auto_wakes_up()
+
     def admin_times_out(self) -> None:
         if self.top_state == TopState.Auto:
             self.log("Ignoring AdminTimesOut, TopState already Auto")
             return
         
-        # Trigger the AdminTimesOut event for top state:  Admin => Auto
+        # AdminTimesOut: Admin => Auto
         self.AdminTimesOut()
         self.log(f"Admin timed out! {self.top_state}")
         # cancel the timeout
@@ -953,7 +981,6 @@ class Scada(ScadaInterface, Proactor):
         if self.auto_state == MainAutoState.Dormant:
             self.log("Ignoring AutoGoesDormant ... auto state is already dormant")
             return
-        
         # Trigger AutoGoesDormant for auto state: Atn OR HomeAlone -> Dormant 
         self.AutoGoesDormant()
         self.log(f"auto_state {self.auto_state}")
