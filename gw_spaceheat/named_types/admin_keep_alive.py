@@ -1,6 +1,7 @@
 """Type admin.keep.alive, version 000"""
 
 from typing import Literal, Optional
+
 from pydantic import BaseModel
 
 
