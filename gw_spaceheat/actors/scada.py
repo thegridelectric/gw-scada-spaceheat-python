@@ -41,7 +41,7 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from actors.synth_generator import RemainingElec, WeatherForecast
+from actors.synth_generator import WeatherForecast
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -54,7 +54,8 @@ from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
 from named_types import (DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, 
                         FsmEvent, GoDormant, LayoutLite, PicoMissing, ScadaParams, 
-                        SendLayout, WakeUp, AdminKeepAlive, AdminReleaseControl)
+                        SendLayout, WakeUp, AdminKeepAlive, AdminReleaseControl, 
+                        RemainingElec, RemainingElecEvent, ScadaInit)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -466,9 +467,18 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
+            case ScadaInit():
+                try:
+                    self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+                    self.log("Sent ScadaInit to ATN")
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
+                    self.generate_event(RemainingElecEvent(Remaining=message.Payload))
+                    self._publish_to_local(self._node, message.Payload)
+                    self.log("Sent remaining elec to ATN")
                 except Exception as e:
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case PowerWatts():

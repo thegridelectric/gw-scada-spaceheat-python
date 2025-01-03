@@ -19,7 +19,8 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from actors.synth_generator import RemainingElec, WeatherForecast
+from actors.synth_generator import WeatherForecast
+from named_types import RemainingElec
 
 
 class AtomicAllyState(GwStrEnum): 
