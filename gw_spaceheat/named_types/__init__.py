@@ -13,6 +13,7 @@ from named_types.go_dormant import GoDormant
 from named_types.ha1_params import Ha1Params
 from named_types.latest_price import LatestPrice
 from named_types.layout_lite import LayoutLite
+from named_types.new_command_tree import NewCommandTree
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from named_types.scada_params import ScadaParams
@@ -34,6 +35,7 @@ __all__ = [
     "Ha1Params",
     "LatestPrice",
     "LayoutLite",
+    "NewCommandTree",
     "PicoMissing",
     "PriceQuantityUnitless",
     "ScadaParams",
