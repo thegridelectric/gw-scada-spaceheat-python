@@ -307,8 +307,6 @@ class HomeAlone(ScadaActor):
             if self.is_onpeak():
                 self.storage_declared_ready = False
                 self.full_storage_energy = None
-            else:
-                self.hp_on_during_onpeak = False
 
             time_now = datetime.now(self.timezone) 
             if (((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
@@ -339,12 +337,10 @@ class HomeAlone(ScadaActor):
                                     self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
 
                 elif self.state==HomeAloneState.HpOnStoreOff:
-                    if self.is_onpeak() and not self.hp_on_during_onpeak:
+                    if self.is_onpeak():
                         self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
                     elif self.is_buffer_full():
-                        if self.hp_on_during_onpeak:
-                            self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
-                        elif self.is_storage_ready():
+                        if self.is_storage_ready():
                             self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
                         else:
                             usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
