@@ -307,7 +307,6 @@ class HomeAlone(ScadaActor):
             if self.is_onpeak():
                 self.storage_declared_ready = False
                 self.full_storage_energy = None
-
             time_now = datetime.now(self.timezone) 
             if (((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
                 or self.zone_setpoints == {}):
@@ -316,9 +315,12 @@ class HomeAlone(ScadaActor):
             # Require weather to move out of initializing state
             # TODO: synth_gen sends message that triggers check_normal_state
             # when weather arrives
-            if self.weather: 
-                self.get_latest_temperatures()
+            self.get_latest_temperatures()
 
+            if not (self.weather and self.temperatures_available):
+                ...
+                # if its been too long kick us into a higher level backup state like ScadaBlind
+            else:
                 if self.state==HomeAloneState.Initializing:
                     if self.temperatures_available:
                         if self.is_onpeak():
