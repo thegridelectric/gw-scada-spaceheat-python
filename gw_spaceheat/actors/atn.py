@@ -17,7 +17,7 @@ from actors.flo import DGraph
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
-from named_types import RemainingElecEvent
+from named_types import RemainingElecEvent, ScadaInit
 
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
@@ -123,6 +123,7 @@ class Atn(ActorInterface, Proactor):
         hardware_layout: House0Layout,
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
+        self.latest_remaining_elec = None
         self._web_manager.disable()
         self.data = AtnData(hardware_layout)
         self._links.add_mqtt_link(
@@ -277,6 +278,11 @@ class Atn(ActorInterface, Proactor):
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000010
                 self._process_snapshot(decoded.Payload)
+            case ScadaInit():
+                self.log("Scada is on!")
+                if self.latest_remaining_elec is not None:
+                    self.log("Sending energy instruction with the latest remaining electricity")
+                    self.send_energy_instr(self.latest_remaining_elec)
             case EventBase():
                 path_dbg |= 0x00000020
                 self._process_event(decoded.Payload)
@@ -298,6 +304,7 @@ class Atn(ActorInterface, Proactor):
                 ):
                     path_dbg |= 0x00000120
                     self.log(f"Received remaining electricity {decoded.Payload.Remaining.RemainingWattHours} Wh")
+                    self.latest_remaining_elec = decoded.Payload.Remaining.RemainingWattHours
             case _:
                 path_dbg |= 0x00000100
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
@@ -359,7 +366,6 @@ class Atn(ActorInterface, Proactor):
             for x in layout.DataChannels
             if "depth" in x.Name and "micro-v" not in x.Name
         ]
-        self.log(self.temperature_channel_names)
 
     def _process_report(self, report: Report) -> None:
         self.data.latest_report = report

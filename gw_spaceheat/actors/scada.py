@@ -55,7 +55,7 @@ from enums import MainAutoState, TopState
 from named_types import (DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, 
                         FsmEvent, GoDormant, LayoutLite, PicoMissing, ScadaParams, 
                         SendLayout, WakeUp, AdminKeepAlive, AdminReleaseControl, 
-                        RemainingElec, RemainingElecEvent)
+                        RemainingElec, RemainingElecEvent, ScadaInit)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -467,6 +467,12 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
+            case ScadaInit():
+                try:
+                    self._publish_to_local(self._node, message.Payload)
+                    self.log("Sent ScadaInit to ATN")
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
