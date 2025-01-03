@@ -714,7 +714,7 @@ class ScadaActor(Actor):
     def _send_to(self, dst: ShNode, payload: Any) -> None:
         if dst is None:
             return
-        message = Message(Src=self.name, Dst=dst.name, Payload=payload)
+        message = Message(Src=self.node.name, Dst=dst.name, Payload=payload)
         if dst.name in set(self.services._communicators.keys()) | {
             self.services.name
         }:  # noqa: SLF001

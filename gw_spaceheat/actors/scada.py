@@ -836,7 +836,7 @@ class Scada(ScadaInterface, Proactor):
         self._forward_single_reading(payload)
 
     def single_machine_state_received(self, payload: SingleMachineState) -> None:
-        if payload.MachineHandle not in self._data.recent_machine_states:
+        if payload.MachineHandle in self._data.recent_machine_states:
             prev: MachineStates = self._data.recent_machine_states[payload.MachineHandle]
             if payload.StateEnum != prev.StateEnum:
                 raise Exception(f"{payload.MachineHandle} has conflicting state machines!"

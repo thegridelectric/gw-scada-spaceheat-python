@@ -160,12 +160,19 @@ class HomeAlone(ScadaActor):
         self.zone_setpoints = {}
     
     @property
-    def normal_node(self) -> ShNode:
+    def node(self) -> ShNode:
+        """
+        Overwrite the standard 
+        """
+        return self.layout.node(H0N.home_alone_normal)
+
+    @property
+    def top_node(self) -> ShNode:
         """ 
         The node / state machine responsible
         for normal home alone operations
         """
-        return self.layout.node(H0N.home_alone_normal)
+        return self.layout.node(H0N.home_alone)
     
     @property
     def onpeak_backup_node(self) -> ShNode:
@@ -192,7 +199,7 @@ class HomeAlone(ScadaActor):
         self._send_to(
             self.primary_scada,
             SingleMachineState(
-                MachineHandle=self.normal_node.handle,
+                MachineHandle=self.node.handle,
                 StateEnum=HomeAloneState.enum_name(),
                 State=self.state,
                 UnixMs=now_ms,
@@ -232,7 +239,7 @@ class HomeAlone(ScadaActor):
         self._send_to(
             self.primary_scada,
             SingleMachineState(
-                MachineHandle=self.node.handle,
+                MachineHandle=self.top_node.handle,
                 StateEnum=HomeAloneTopState.enum_name(),
                 State=self.top_state,
                 UnixMsList=now_ms,
@@ -248,8 +255,6 @@ class HomeAlone(ScadaActor):
     async def main(self):
 
         await asyncio.sleep(5)
-        self.log("INITIALIZING RELAYS")
-        self.initialize_relays()
         was_onpeak: bool = self.is_onpeak()
         just_offpeak: bool = False
         while not self._stop_requested:
@@ -296,11 +301,16 @@ class HomeAlone(ScadaActor):
                     if self.state == HomeAloneState.Dormant:
                         self.trigger_normal_event(HomeAloneEvent.WakeUp)
                                            
-            await self.check_normal_state()
+            self.engage_brain()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    async def check_normal_state(self) -> None:
+    def engage_brain(self) -> None:
+        self.log(f"Top State: {self.top_state}")
+        if self.state == HomeAloneState.Initializing:
+            self.log(f"State: {self.state}")
+            self.initialize_relays()
+
         if self.state != HomeAloneState.Dormant:                
             previous_state = self.state
 
@@ -313,8 +323,6 @@ class HomeAlone(ScadaActor):
                 self.get_zone_setpoints()
             
             # Require weather to move out of initializing state
-            # TODO: synth_gen sends message that triggers check_normal_state
-            # when weather arrives
             self.get_latest_temperatures()
 
             if not (self.weather and self.temperatures_available):
@@ -395,10 +403,8 @@ class HomeAlone(ScadaActor):
                     # we should keep discharging the store as long as it is warmer than the buffer
                     # elif self.is_buffer_empty() and self.is_storage_empty():
                     #     self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
-
-            if self.state == HomeAloneState.Initializing:
-                self.initialize_relays()
-            elif (self.state != previous_state):                    
+            self.log(f"state: {self.state}")
+            if (self.state != previous_state):
                 self.update_relays(previous_state)
 
 
@@ -574,6 +580,9 @@ class HomeAlone(ScadaActor):
                     'avg_power': message.Payload.AvgPowerForecast,
                     'required_swt_deltaT': message.Payload.RswtDeltaTForecast,
                     }
+                # Only engage_brain if we were waiting for weather data
+                if self.state == HomeAloneState.Initializing:
+                    self.engage_brain()
         return Ok(True)
     
     def change_all_temps(self, temp_c) -> None:
@@ -622,10 +631,8 @@ class HomeAlone(ScadaActor):
                 self.latest_temperatures[channel_name] = 20 * 1000
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
-            print('Temperatures available')
         else:
             self.temperatures_available = False
-            print('Some temperatures are missing')
             all_buffer = [x for x in self.temperature_channel_names if 'buffer-depth' in x]
             available_buffer = [x for x in list(self.latest_temperatures.keys()) if 'buffer-depth' in x]
             if all_buffer == available_buffer:
@@ -639,10 +646,12 @@ class HomeAlone(ScadaActor):
             self.temperatures_available = False
     
     def initialize_relays(self):
-        self.log("INITIALIZING RELAYS")
+        if self.state == HomeAloneState.Dormant:
+            self.log("Not initializing relays! Dormant!")
+        self.log("Initializing relays")
         my_relays =  {
             relay
-            for relay in self.layout.nodes.values()
+            for relay in self.my_actuators()
             if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
         }
         for relay in my_relays - {
@@ -673,10 +682,8 @@ class HomeAlone(ScadaActor):
         peak_hours = [7,8,9,10,11] + [16,17,18,19]
         if (time_now.hour in peak_hours or time_in_2min.hour in peak_hours):
             # and time_now.weekday() < 5):
-            self.log("On-peak")
             return True
         else:
-            self.log("Not on-peak")
             return False
 
     def is_buffer_empty(self, really_empty=False) -> bool:
