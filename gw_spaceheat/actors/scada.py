@@ -469,7 +469,7 @@ class Scada(ScadaInterface, Proactor):
         match message.Payload:
             case ScadaInit():
                 try:
-                    self._publish_to_local(self._node, message.Payload)
+                    self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
                     self.log("Sent ScadaInit to ATN")
                 except Exception as e:
                     self.logger.error(f"Problem with {message.Header}: {e}")
