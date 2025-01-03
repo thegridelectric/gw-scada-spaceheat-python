@@ -314,6 +314,8 @@ class HomeAlone(ScadaActor):
                 self.get_zone_setpoints()
             
             # Require weather to move out of initializing state
+            # TODO: synth_gen sends message that triggers check_normal_state
+            # when weather arrives
             if self.weather: 
                 self.get_latest_temperatures()
 
@@ -654,6 +656,14 @@ class HomeAlone(ScadaActor):
         if self.is_onpeak():
             self.log("is on peak so turning off HP")
             self.turn_off_HP()
+        # TODO: ADDRESS backup gap. If temperatures_available is never true
+        # say if wifi is down -  then the heat pump will never go on.
+        #
+        # Proposal: if initializing_relays lasts for more than 10 minutes
+        # then it times out and goes to a new high-level state called
+        # ScadaBlind ... which is something like a timer (if oil boiler exists)
+        # alternating between heat pump and oil boiler running on aquastat control
+        # or is just running the heat pump alone on aquastat (if oil boiler does not exist)
 
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
