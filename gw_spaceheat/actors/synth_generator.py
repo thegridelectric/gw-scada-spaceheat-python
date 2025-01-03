@@ -16,18 +16,12 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, Ha1Params
+from named_types import EnergyInstruction, Ha1Params, RemainingElec
+from pydantic import Field
 
 # -------------- TODO: move to named_types -------------
 from typing import Literal
 from pydantic import BaseModel
-from gwproto.property_format import LeftRightDotStr
-
-class RemainingElec(BaseModel):
-    FromGNodeAlias: LeftRightDotStr
-    RemainingWattHours: int
-    TypeName: Literal["remaining.elec"] = "remaining.elec"
-    Version: Literal["000"] = "000"
 
 class WeatherForecast(BaseModel):
     Time: List[datetime]

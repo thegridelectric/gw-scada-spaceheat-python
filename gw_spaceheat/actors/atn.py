@@ -17,6 +17,7 @@ from actors.flo import DGraph
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
+from named_types import RemainingElecEvent
 
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
@@ -291,6 +292,12 @@ class Atn(ActorInterface, Proactor):
                 ):
                     path_dbg |= 0x00000080
                     self._process_snapshot(decoded.Payload)
+                elif (
+                    decoded.Payload.TypeName 
+                    == RemainingElecEvent.model_fields['TypeName'].default
+                ):
+                    path_dbg |= 0x00000120
+                    self.log(f"Received remaining electricity {decoded.Payload.Remaining.RemainingWattHours} Wh")
             case _:
                 path_dbg |= 0x00000100
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)

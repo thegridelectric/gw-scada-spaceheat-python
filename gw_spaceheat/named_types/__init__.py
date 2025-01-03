@@ -17,6 +17,8 @@ from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from named_types.scada_params import ScadaParams
 from named_types.send_layout import SendLayout
+from named_types.events import RemainingElecEvent
+from named_types.remaining_elec import RemainingElec
 from named_types.wake_up import WakeUp
 
 __all__ = [
@@ -35,6 +37,8 @@ __all__ = [
     "LayoutLite",
     "PicoMissing",
     "PriceQuantityUnitless",
+    "RemainingElec",
+    "RemainingElecEvent",
     "ScadaParams",
     "SendLayout",
     "WakeUp",
