@@ -9,7 +9,7 @@ venv
 CodeGenerationTools/GridworksCore/.ssotme/**/*.zfs
 CodeGenerationTools/GridworksCore/SassyMQ/
 CodeGenerationTools/GridworksCore/SSoT/Airtable.xml
-
+claude/
 gw_spaceheat/scratch.ipynb
 gw_spaceheat/w_isone_nh*
 gw_spaceheat/dw1_isone_nh*

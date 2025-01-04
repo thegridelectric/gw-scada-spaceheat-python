@@ -1,6 +1,6 @@
 import time
 import uuid
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 from actors.config import ScadaSettings
 from data_classes.house_0_layout import House0Layout
@@ -61,6 +61,15 @@ class ScadaActor(Actor):
     @property
     def synth_generator(self) -> ShNode:
         return self.layout.node(H0N.synth_generator)
+
+    def my_actuators(self) -> List[ShNode]:
+        """Get all actuator nodes that are descendants of this node in the handle hierarchy"""
+        my_handle_prefix = f"{self.node.handle}."
+        return [
+            node for node in self.layout.actuators
+            if node.handle.startswith(my_handle_prefix)
+        ]
+
 
     ################################
     # Relays
@@ -705,7 +714,7 @@ class ScadaActor(Actor):
     def _send_to(self, dst: ShNode, payload: Any) -> None:
         if dst is None:
             return
-        message = Message(Src=self.name, Dst=dst.name, Payload=payload)
+        message = Message(Src=self.node.name, Dst=dst.name, Payload=payload)
         if dst.name in set(self.services._communicators.keys()) | {
             self.services.name
         }:  # noqa: SLF001
