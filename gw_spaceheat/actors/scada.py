@@ -696,8 +696,8 @@ class Scada(ScadaInterface, Proactor):
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
     
     async def _timeout_admin(self, timeout_seconds: Optional[int] = None) -> None:
-        if timeout_seconds is None:
-            await asyncio.sleep(self.settings.admin.timeout_seconds)
+        if timeout_seconds is None or timeout_seconds>self.settings.admin.max_timeout_seconds:
+            await asyncio.sleep(self.settings.admin.max_timeout_seconds)
         else:
             await asyncio.sleep(timeout_seconds)
         if self.top_state == TopState.Admin:
