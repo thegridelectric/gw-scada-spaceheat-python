@@ -1038,7 +1038,7 @@ class Scada(ScadaInterface, Proactor):
         self.set_home_alone_command_tree()
         # Let home alone know its in charge
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-        self._send_to(self.layout.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+        self._send_to(self.layout.atomic_ally, GoDormant(FromName=H0N.primary_scada, ToName=H0N.atomic_ally))
         # Pico Cycler shouldn't change
 
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:
