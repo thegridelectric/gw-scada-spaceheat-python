@@ -230,7 +230,7 @@ class ScadaActor(Actor):
                 TriggerId=trigger_id,
             )
             self._send_to(self.vdc_relay, event)
-            self.log(f"CloseRelay to {self.vdc_relay.name}")
+            # self.log(f"CloseRelay to {self.vdc_relay.name}")
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -252,7 +252,7 @@ class ScadaActor(Actor):
                 TriggerId=trigger_id,
             )
             self._send_to(self.vdc_relay, event)
-            self.log(f"OpenRelay to {self.vdc_relay.name}")
+            # self.log(f"OpenRelay to {self.vdc_relay.name}")
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -273,7 +273,7 @@ class ScadaActor(Actor):
                 TriggerId=trigger_id,
             )
             self._send_to(self.tstat_common_relay, event)
-            self.log(f"CloseRelay to {self.tstat_common_relay.name}")
+            # self.log(f"CloseRelay to {self.tstat_common_relay.name}")
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -294,7 +294,7 @@ class ScadaActor(Actor):
                 TriggerId=trigger_id,
             )
             self._send_to(self.tstat_common_relay, event)
-            self.log(f"OpenRelay to {self.tstat_common_relay.name}")
+            # self.log(f"OpenRelay to {self.tstat_common_relay.name}")
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -313,9 +313,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.store_charge_discharge_relay, event)
-            self.log(
-                f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending DischargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -334,9 +334,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.store_charge_discharge_relay, event)
-            self.log(
-                f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending ChargeStore to Store ChargeDischarge {H0N.store_charge_discharge_relay}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -355,9 +355,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.hp_failsafe_relay, event)
-            self.log(
-                f"{self.node.handle} sending SwitchToTankAquastat to Hp Failsafe {H0N.hp_failsafe_relay}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending SwitchToTankAquastat to Hp Failsafe {H0N.hp_failsafe_relay}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -376,9 +376,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.hp_failsafe_relay, event)
-            self.log(
-                f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending SwitchToScada to Hp Failsafe {H0N.hp_failsafe_relay}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -397,9 +397,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.hp_scada_ops_relay, event)
-            self.log(
-                f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -419,9 +419,9 @@ class ScadaActor(Actor):
             )
 
             self._send_to(self.hp_scada_ops_relay, event)
-            self.log(
-                f"{self.node.handle} sending OpenRelay to Hp Scada Ops {H0N.hp_scada_ops_relay}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending OpenRelay to Hp Scada Ops {H0N.hp_scada_ops_relay}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -440,9 +440,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.aquastat_control_relay, event)
-            self.log(
-                f"{self.node.handle} sending SwitchToScada to Boiler Ctrl {H0N.aquastat_ctrl_relay}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending SwitchToScada to Boiler Ctrl {H0N.aquastat_ctrl_relay}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -461,9 +461,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.aquastat_control_relay, event)
-            self.log(
-                f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending SwitchToScada to Aquastat Ctrl {H0N.aquastat_ctrl_relay}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -482,9 +482,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.store_pump_failsafe, event)
-            self.log(
-                f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending OpenRelay to StorePump OnOff {H0N.store_pump_failsafe}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -503,9 +503,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.store_pump_failsafe, event)
-            self.log(
-                f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending CloseRelay to StorePump OnOff {H0N.store_pump_failsafe}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -525,9 +525,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.primary_pump_failsafe, event)
-            self.log(
-                f"{self.node.handle} sending SwitchToHeatPump to {H0N.primary_pump_failsafe}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending SwitchToHeatPump to {H0N.primary_pump_failsafe}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -547,9 +547,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.primary_pump_failsafe, event)
-            self.log(
-                f"{self.node.handle} sending SwitchToHeatPump to {H0N.primary_pump_failsafe}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending SwitchToHeatPump to {H0N.primary_pump_failsafe}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -569,9 +569,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.primary_pump_scada_ops, event)
-            self.log(
-                f"{self.node.handle} sending OpenRelay to {H0N.primary_pump_scada_ops}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending OpenRelay to {H0N.primary_pump_scada_ops}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -591,9 +591,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.primary_pump_scada_ops, event)
-            self.log(
-                f"{self.node.handle} sending CloseRelay to {H0N.primary_pump_scada_ops}"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending CloseRelay to {H0N.primary_pump_scada_ops}"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -616,9 +616,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.stat_failsafe_relay(zone), event)
-            self.log(
-                f"{self.node.handle} sending SwitchToScada to {self.stat_failsafe_relay(zone).name} (zone {zone})"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending SwitchToScada to {self.stat_failsafe_relay(zone).name} (zone {zone})"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -641,9 +641,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.stat_failsafe_relay(zone), event)
-            self.log(
-                f"{self.node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(zone).name} (zone {zone})"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending SwitchToWallThermostat to {self.stat_failsafe_relay(zone).name} (zone {zone})"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -666,9 +666,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.stat_ops_relay(zone), event)
-            self.log(
-                f"{self.node.handle} sending CloseRelay to {self.stat_ops_relay(zone).name} (zone {zone})"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending CloseRelay to {self.stat_ops_relay(zone).name} (zone {zone})"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
@@ -691,9 +691,9 @@ class ScadaActor(Actor):
                 TriggerId=str(uuid.uuid4()),
             )
             self._send_to(self.stat_ops_relay(zone), event)
-            self.log(
-                f"{self.node.handle} sending OpenRelay to {self.stat_ops_relay(zone).name} (zone {zone})"
-            )
+            # self.log(
+            #     f"{self.node.handle} sending OpenRelay to {self.stat_ops_relay(zone).name} (zone {zone})"
+            # )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
