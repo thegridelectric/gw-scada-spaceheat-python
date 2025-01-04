@@ -12,7 +12,7 @@ from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from admin.watch.widgets.timer import TimerDigits
 from admin.watch.widgets.time_input import TimeInput
 from admin.watch.widgets.keepalive import KeepAliveButton
-from actors.config import AdminLinkSettings
+from admin.watch.widgets.keepalive import DEFAULT_TIMEOUT_SECONDS
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -38,8 +38,7 @@ class RelayToggleButton(Button, can_focus=True):
             variant=self.variant_from_state(energized),
             **kwargs
         )
-        self.default_timeout_seconds = AdminLinkSettings().timeout_seconds
-        self.default_timeout_seconds = self.default_timeout_seconds if self.default_timeout_seconds else 5*60
+        self.default_timeout_seconds = DEFAULT_TIMEOUT_SECONDS
         self.set_reactive(RelayToggleButton.energized, energized)
         self.set_reactive(RelayToggleButton.config, config or RelayWidgetConfig())
         self.update_title()
