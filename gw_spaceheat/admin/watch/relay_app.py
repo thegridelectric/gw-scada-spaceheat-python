@@ -114,11 +114,12 @@ class RelaysApp(App):
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
         if _.timeout_seconds is not None:
             self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
+            self._relay_client.send_keepalive(_.timeout_seconds)
         else:
             self.notify(f"Keeping admin alive for maximum timeout ({int(AdminLinkSettings().max_timeout_seconds/60)} min)")
-        self._relay_client.send_keepalive(_.timeout_seconds)
-        timer_display = self.app.query_one(TimerDigits)
-        timer_display.restart(AdminLinkSettings().max_timeout_seconds)
+            self._relay_client.send_keepalive(_.timeout_seconds)
+            timer_display = self.app.query_one(TimerDigits)
+            timer_display.restart(AdminLinkSettings().max_timeout_seconds)
 
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
         self._relay_client.send_release_control()
