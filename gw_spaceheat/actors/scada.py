@@ -52,10 +52,10 @@ from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
-from named_types import (DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, 
-                        FsmEvent, GoDormant, LayoutLite, PicoMissing, ScadaParams, 
-                        SendLayout, WakeUp, AdminKeepAlive, AdminReleaseControl, 
-                        RemainingElec, RemainingElecEvent, ScadaInit)
+from named_types import (AdminKeepAlive, AdminReleaseControl, DispatchContractGoDormant,
+                        DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
+                        LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
+                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -533,13 +533,16 @@ class Scada(ScadaInterface, Proactor):
             case MicroVolts():
                 path_dbg |= 0x00000400
                 self.get_communicator(message.Header.Dst).process_message(message)
+            case NewCommandTree():
+                self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case PicoMissing():
                 path_dbg |= 0x00000800
                 self.get_communicator(message.Header.Dst).process_message(message)
+            case SingleMachineState():
+                self.single_machine_state_received(message.Payload)
             case SingleReading():
                 path_dbg |= 0x00001000
                 self.single_reading_received(message.Payload)
-                self.layout.atn_g_node_alias
             case SyncedReadings():
                 if message.Header.Dst == self.name:
                     path_dbg |= 0x00002000
@@ -841,6 +844,26 @@ class Scada(ScadaInterface, Proactor):
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
         self._forward_single_reading(payload)
 
+    def single_machine_state_received(self, payload: SingleMachineState) -> None:
+        if payload.MachineHandle in self._data.recent_machine_states:
+            prev: MachineStates = self._data.recent_machine_states[payload.MachineHandle]
+            if payload.StateEnum != prev.StateEnum:
+                raise Exception(f"{payload.MachineHandle} has conflicting state machines!"
+                                f"{payload.StateEnum} and {prev.StateEnum}")
+            self._data.recent_machine_states[payload.MachineHandle] =  MachineStates(
+                MachineHandle=payload.MachineHandle,
+                StateEnum=payload.StateEnum,
+                UnixMsList=prev.UnixMsList + [payload.UnixMs],
+                StateList=prev.StateList + [payload.State]
+            )
+        else:
+            self._data.recent_machine_states[payload.MachineHandle] = MachineStates(
+                MachineHandle=payload.MachineHandle,
+                StateEnum=payload.StateEnum,
+                StateList=[payload.State],
+                UnixMsList=[payload.UnixMs]
+            )
+
     def synced_readings_received(
         self, from_node: ShNode, payload: SyncedReadings
     ):
@@ -1098,12 +1121,26 @@ class Scada(ScadaInterface, Proactor):
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             else:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
+        self._links.publish_upstream(
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            )
+        )
 
     def set_admin_command_tree(self) -> None:
         # ADMIN CONTROL FOREST. All actuators report directly to admin
         for node in self.layout.actuators:
             node.Handle = f"{H0N.admin}.{node.Name}"
+        self._links.publish_upstream(
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            )
+        )
     
     def set_atn_command_tree(self) -> None:
         for node in self.layout.actuators:
@@ -1111,6 +1148,13 @@ class Scada(ScadaInterface, Proactor):
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             else:
                 node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
+        self._links.publish_upstream(
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            )
+        )
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report

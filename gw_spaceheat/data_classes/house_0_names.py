@@ -69,6 +69,8 @@ class H0N:
     primary_scada = "s"
     secondary_scada = "s2"
     home_alone = "h"
+    home_alone_normal = "n"
+    home_alone_onpeak_backup = "onpeak-backup"
     primary_power_meter = "power-meter"
     admin = "admin"  # used when starter scripts take control
     auto = "auto"  # Finite State Machine responsible for homealone <-> atn transition

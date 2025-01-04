@@ -255,12 +255,12 @@ class I2cRelayMultiplexer(ScadaActor):
                     values.append(RelayEnergizationState.Energized.value)
                     if not first_time:
                         self.krida_relay_pin[idx].value = KridaPinState.Energized.value
-                        print(f"[{ft}] {relay.name}: Make sure Energized")
+                        # print(f"[{ft}] {relay.name}: Make sure Energized")
                 else:
                     values.append(RelayEnergizationState.DeEnergized.value)
                     if not first_time:
                         self.krida_relay_pin[idx].value = KridaPinState.DeEnergized.value
-                        print(f"[{ft}] {relay.name}: Make sure DeEnergized")
+                        # print(f"[{ft}] {relay.name}: Make sure DeEnergized")
             readings = SyncedReadings(
                 ChannelNameList=channel_names,
                 ValueList=values,
