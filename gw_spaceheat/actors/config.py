@@ -14,7 +14,7 @@ class PersisterSettings(BaseModel):
 class AdminLinkSettings(MQTTClient):
     enabled: bool = False
     name: str = H0N.admin
-    timeout_seconds: float = 60 * 5
+    max_timeout_seconds: float = 60 * 60 * 24
 
 class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""
@@ -41,7 +41,7 @@ class ScadaSettings(ProactorSettings):
     dd_delta_t: float = 20
     is_simulated: bool = False
     max_ewt_f: int = 170
-    oil_boiler_during_onpeak: bool = False 
+    oil_boiler_for_onpeak_backup: bool = True
 
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 
