@@ -1,6 +1,6 @@
 from textual.widgets import Input
 from textual.validation import Number
-from admin.watch.widgets.keepalive import DEFAULT_TIMEOUT_SECONDS
+from constants import DEFAULT_TIMEOUT_SECONDS
 
 class TimeInput(Input):
     def __init__(self, **kwargs):

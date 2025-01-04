@@ -4,7 +4,7 @@ from textual.logging import TextualHandler
 from textual.widgets import Digits
 from textual.reactive import reactive
 from admin.watch.widgets.time_input import TimeInput
-from admin.watch.widgets.keepalive import DEFAULT_TIMEOUT_SECONDS
+from constants import DEFAULT_TIMEOUT_SECONDS
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())

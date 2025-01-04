@@ -12,7 +12,7 @@ from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from admin.watch.widgets.timer import TimerDigits
 from admin.watch.widgets.time_input import TimeInput
 from admin.watch.widgets.keepalive import KeepAliveButton
-from admin.watch.widgets.keepalive import DEFAULT_TIMEOUT_SECONDS
+from constants import DEFAULT_TIMEOUT_SECONDS
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())

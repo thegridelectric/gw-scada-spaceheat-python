@@ -5,11 +5,10 @@ from textual.widgets import Button
 from admin.watch.widgets.timer import TimerDigits
 from admin.watch.widgets.time_input import TimeInput
 from actors.config import AdminLinkSettings
+from constants import DEFAULT_TIMEOUT_SECONDS
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
-
-DEFAULT_TIMEOUT_SECONDS = int(5*60)
 
 class KeepAliveButton(Button):
     def __init__(
