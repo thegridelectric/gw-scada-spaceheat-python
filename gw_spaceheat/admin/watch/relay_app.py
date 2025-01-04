@@ -16,6 +16,7 @@ from admin.watch.widgets.relays import Relays
 from admin.watch.widgets.relay_toggle_button import RelayToggleButton
 from admin.watch.widgets.timer import TimerDigits
 from admin.settings import AdminClientSettings
+from actors.config import AdminLinkSettings
 
 __version__: str = "0.2.3"
 
@@ -114,10 +115,10 @@ class RelaysApp(App):
         if _.timeout_seconds is not None:
             self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
         else:
-            self.notify(f"Keeping admin alive for default timeout ({int(AdminClientSettings().default_timeout_seconds/60)} min)")
+            self.notify(f"Keeping admin alive for maximum timeout ({int(AdminLinkSettings().max_timeout_seconds/60)} min)")
         self._relay_client.send_keepalive(_.timeout_seconds)
         timer_display = self.app.query_one(TimerDigits)
-        timer_display.restart(AdminClientSettings().default_timeout_seconds)
+        timer_display.restart(AdminLinkSettings().max_timeout_seconds)
 
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
         self._relay_client.send_release_control()
