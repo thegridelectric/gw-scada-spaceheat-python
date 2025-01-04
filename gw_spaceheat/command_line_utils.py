@@ -230,6 +230,7 @@ def get_scada(
                 hardware_layout=layout,
             )
         if args.paho_logging:
+            logger.info("enabling MQTT loggers")
             scada.links.enable_mqtt_loggers(scada.logger.message_summary_logger)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
