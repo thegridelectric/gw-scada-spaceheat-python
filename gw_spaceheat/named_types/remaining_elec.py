@@ -1,7 +1,9 @@
 import uuid
 from typing import Literal
-from pydantic import BaseModel, Field
+
 from gwproto.property_format import LeftRightDotStr, UUID4Str
+from pydantic import BaseModel, Field
+
 
 class RemainingElec(BaseModel):
     FromGNodeAlias: LeftRightDotStr

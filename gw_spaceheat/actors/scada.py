@@ -52,7 +52,7 @@ from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
-from named_types import (AdminKeepAlive, AdminReleaseControl, DispatchContractGoDormant,
+from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, DispatchContractGoDormant,
                         DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
                         LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
                         ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp)
@@ -669,12 +669,34 @@ class Scada(ScadaInterface, Proactor):
         if self.settings.admin.enabled:
             path_dbg |= 0x00000001
             match decoded.Payload:
+                case AdminDispatch():
+                    path_dbg |= 0x00000001
+                    if not self.top_state == TopState.Admin:
+                        self.admin_wakes_up()
+                        self.log('Admin Wakes Up')
+                    self._renew_admin_timeout(timeout_seconds=decoded.Payload.TimeoutSeconds)
+                    event = decoded.Payload.DispatchTrigger
+                    if event.TypeName != FsmEvent.TypeName:
+                        raise Exception("AdminDispatch DispatchTrigger is FsmEvent!")
+                    if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
+                        path_dbg |= 0x00000010
+                        communicator.process_message(
+                            Message(
+                                header=Header(
+                                    Src=H0N.admin,
+                                    Dst=communicator.name,
+                                    MessageType=FsmEvent.TypeName,
+                                ),
+                                Payload=event
+                            )
+                        )
                 case SendLayout():
                     path_dbg |= 0x00000002
                     self._publish_to_link(self.ADMIN_MQTT, self._layout_lite)
                 case SendSnap():
                     path_dbg |= 0x00000004
                     self._publish_to_link(self.ADMIN_MQTT, self._data.make_snapshot())
+                # TODO: remove when not maintaining backwards compatability for this
                 case FsmEvent() as event:
                     path_dbg |= 0x00000008
                     if self.top_state != TopState.Admin:
