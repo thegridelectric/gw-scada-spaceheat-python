@@ -29,7 +29,7 @@ class KeepAliveButton(Button):
     class Pressed(Message):
         def __init__(self, timeout_seconds):
             self.timeout_seconds = timeout_seconds
-            if timeout_seconds > int(AdminLinkSettings().max_timeout_seconds*60):
+            if timeout_seconds > AdminLinkSettings().max_timeout_seconds:
                 self.timeout_seconds = None
             super().__init__()
 

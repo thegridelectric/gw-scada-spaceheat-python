@@ -5,6 +5,7 @@ from textual.widgets import Digits
 from textual.reactive import reactive
 from admin.watch.widgets.time_input import TimeInput
 from admin.settings import AdminClientSettings
+from actors.config import AdminLinkSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -51,6 +52,8 @@ class TimerDigits(Digits):
         input_value = self.app.query_one(TimeInput).value
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
+            if input_value > int(AdminLinkSettings().max_timeout_seconds/60):
+                time_in_minutes = int(AdminLinkSettings().max_timeout_seconds/60)
         except ValueError:
             time_in_minutes = int(self.default_timeout_seconds/60)
         self.time_remaining = time_in_minutes * 60

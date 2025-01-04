@@ -117,7 +117,7 @@ class RelaysApp(App):
             self.notify(f"Keeping admin alive for default timeout ({int(AdminClientSettings().default_timeout_seconds/60)} min)")
         self._relay_client.send_keepalive(_.timeout_seconds)
         timer_display = self.app.query_one(TimerDigits)
-        timer_display.restart(int(AdminClientSettings().default_timeout_seconds/60))
+        timer_display.restart(AdminClientSettings().default_timeout_seconds)
 
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
         self._relay_client.send_release_control()
