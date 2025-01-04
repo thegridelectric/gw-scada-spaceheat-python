@@ -14,6 +14,7 @@ from admin.watch.widgets.keepalive import KeepAliveButton
 from admin.watch.widgets.keepalive import ReleaseControlButton
 from admin.watch.widgets.relays import Relays
 from admin.watch.widgets.relay_toggle_button import RelayToggleButton
+from admin.settings import AdminClientSettings
 
 __version__: str = "0.2.3"
 
@@ -109,7 +110,10 @@ class RelaysApp(App):
         self.query("#message_table").toggle_class("undisplayed")
 
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
-        self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
+        if _.timeout_seconds is not None:
+            self.notify(f"Keeping admin alive for {int(_.timeout_seconds/60)} minutes")
+        else:
+            self.notify(f"Keeping admin alive for maximum time ({int(AdminClientSettings.default_timeout_seconds)} min)")
         self._relay_client.send_keepalive(_.timeout_seconds)
 
     def on_release_control_button_pressed(self, _: ReleaseControlButton.Pressed):
