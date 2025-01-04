@@ -60,7 +60,7 @@ class ReleaseControlButton(Button):
             **kwargs
         )
         self.logger = logger
-        self.default_timeout_seconds = DEFAULT_TIMEOUT_SECONDS
+        self.default_timeout_seconds = AdminClientSettings().default_timeout_seconds
         self.timeout_seconds = self.default_timeout_seconds
 
     class Pressed(Message):
