@@ -853,8 +853,8 @@ class Scada(ScadaInterface, Proactor):
             self._data.recent_machine_states[payload.MachineHandle] =  MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
-                UnixMsList=prev.UnixMsList.append(payload.UnixMs),
-                StateList=prev.StateList.append(payload.State)
+                UnixMsList=prev.UnixMsList + [payload.UnixMs],
+                StateList=prev.StateList + [payload.State]
             )
         else:
             self._data.recent_machine_states[payload.MachineHandle] = MachineStates(
@@ -1125,7 +1125,7 @@ class Scada(ScadaInterface, Proactor):
         self._links.publish_upstream(
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=List(self.layout.nodes.values()),
+                ShNodes=list(self.layout.nodes.values()),
                 UnixMs=int(time.time() * 1000),
             )
         )
@@ -1137,7 +1137,7 @@ class Scada(ScadaInterface, Proactor):
         self._links.publish_upstream(
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=List(self.layout.nodes.values()),
+                ShNodes=list(self.layout.nodes.values()),
                 UnixMs=int(time.time() * 1000),
             )
         )
@@ -1151,7 +1151,7 @@ class Scada(ScadaInterface, Proactor):
         self._links.publish_upstream(
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=List(self.layout.nodes.values()),
+                ShNodes=list(self.layout.nodes.values()),
                 UnixMs=int(time.time() * 1000),
             )
         )

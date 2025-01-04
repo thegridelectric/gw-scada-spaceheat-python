@@ -118,7 +118,8 @@ class Relay(ScadaActor):
         orig_state = self.state
         self.trigger(message.EventName)
         if self.state == orig_state:
-            print(f"{message.EventName} did not change state {self.state}")
+            ...
+            # print(f"{message.EventName} did not change state {self.state}")
         else:
             # state changed
             if message.EventName == self.de_energizing_event:
@@ -244,7 +245,7 @@ class Relay(ScadaActor):
     def send_state(self, now_ms: Optional[int] = None) -> None:
         if now_ms is None:
             now_ms = int(time.time() * 1000)
-        self.services.logger.error(f"[{self.my_channel().Name}] {self.state}")
+        # self.log(f"[{self.my_channel().Name}] {self.state}")
         self._send_to(
             self.primary_scada,
             MachineStates(

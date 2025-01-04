@@ -14,3 +14,15 @@ def test_home_alone():
     # same as above but with atn:
     # relay3 has handle a.aa.relay3
 
+def test_top_state_switches():
+    ...
+    # When a relay is changed by admin, a
+    # new.command.tree is published with all actuators as direct
+    # reports of relay  (result of set_admin_command_tree)
+    # 
+    # TopGoDormant: UsingBackupOnpeak -> Dormant works
+    # h.state stays in Dormant
+    # h.top_state goes to Dormant
+    #
+    # TopWakeUp: Dormant -> Normal
+
