@@ -41,7 +41,7 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from actors.synth_generator import RemainingElec, WeatherForecast
+from actors.synth_generator import WeatherForecast
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -54,8 +54,8 @@ from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
 from named_types import (AdminKeepAlive, AdminReleaseControl, DispatchContractGoDormant,
                         DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
-                        LayoutLite, NewCommandTree, PicoMissing, ScadaParams, 
-                        SendLayout, SingleMachineState, WakeUp)
+                        LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
+                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -467,9 +467,18 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
+            case ScadaInit():
+                try:
+                    self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+                    self.log("Sent ScadaInit to ATN")
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
             case RemainingElec():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
+                    self.generate_event(RemainingElecEvent(Remaining=message.Payload))
+                    self._publish_to_local(self._node, message.Payload)
+                    self.log("Sent remaining elec to ATN")
                 except Exception as e:
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case PowerWatts():
@@ -700,8 +709,8 @@ class Scada(ScadaInterface, Proactor):
         self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
     
     async def _timeout_admin(self, timeout_seconds: Optional[int] = None) -> None:
-        if timeout_seconds is None:
-            await asyncio.sleep(self.settings.admin.timeout_seconds)
+        if timeout_seconds is None or timeout_seconds>self.settings.admin.max_timeout_seconds:
+            await asyncio.sleep(self.settings.admin.max_timeout_seconds)
         else:
             await asyncio.sleep(timeout_seconds)
         if self.top_state == TopState.Admin:
@@ -1062,6 +1071,7 @@ class Scada(ScadaInterface, Proactor):
         self.set_home_alone_command_tree()
         # Let home alone know its in charge
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self._send_to(self.layout.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
         # Pico Cycler shouldn't change
 
     def _derived_recv_deactivated(self, transition: LinkManagerTransition) -> Result[bool, BaseException]:

@@ -509,8 +509,7 @@ def add_relays(
                 CapturedByNodeName=H0N.relay_multiplexer,
                 TelemetryName=TelemetryName.RelayState,
                 TerminalAssetAlias=db.terminal_asset_alias,
-                Id=db.make_channel_id(failsafe_ch_name),
+                Id=db.make_channel_id(ops_ch_name),
             ),
         ]
-
     db.add_data_channels(data_channels)

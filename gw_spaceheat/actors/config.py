@@ -14,7 +14,7 @@ class PersisterSettings(BaseModel):
 class AdminLinkSettings(MQTTClient):
     enabled: bool = False
     name: str = H0N.admin
-    timeout_seconds: float = 60 * 5
+    max_timeout_seconds: float = 60 * 60 * 24
 
 class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""

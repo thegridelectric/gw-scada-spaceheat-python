@@ -3,8 +3,9 @@ from time import monotonic
 from textual.logging import TextualHandler
 from textual.widgets import Digits
 from textual.reactive import reactive
-from actors.config import AdminLinkSettings
 from admin.watch.widgets.time_input import TimeInput
+from admin.settings import AdminClientSettings
+from actors.config import AdminLinkSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -17,12 +18,11 @@ class TimerDigits(Digits):
     ) -> None:
         super().__init__(**kwargs)
         self.logger = logger
-        default_timeout_seconds = AdminLinkSettings().timeout_seconds # TODO: instead read timeout from the client
-        self.countdown_seconds = default_timeout_seconds if default_timeout_seconds else 5*60
+        self.default_timeout_seconds = AdminClientSettings().default_timeout_seconds
+        self.countdown_seconds = self.default_timeout_seconds
 
     start_time = reactive(monotonic)
-    default_timeout_seconds = AdminLinkSettings().timeout_seconds
-    time_remaining = reactive(default_timeout_seconds if default_timeout_seconds else 5*60)
+    time_remaining = reactive(AdminClientSettings().default_timeout_seconds)
 
     def on_mount(self) -> None:
         self.update_timer = self.set_interval(1 / 60, self.update_time, pause=True)
@@ -52,6 +52,8 @@ class TimerDigits(Digits):
         input_value = self.app.query_one(TimeInput).value
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
+            if time_in_minutes > int(AdminLinkSettings().max_timeout_seconds/60):
+                time_in_minutes = int(AdminLinkSettings().max_timeout_seconds/60)
         except ValueError:
             time_in_minutes = int(self.default_timeout_seconds/60)
         self.time_remaining = time_in_minutes * 60

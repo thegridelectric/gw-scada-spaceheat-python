@@ -198,18 +198,23 @@ def get_scada(
         logger.info("Settings:")
         logger.info(settings.model_dump_json(indent=2))
         rich.print(settings)
+        logger.info("Checking tls_paths_present")
         check_tls_paths_present(settings)
+        logger.info("Getting requested_names")
         requested_names = get_requested_names(args)
+        logger.info("Loading layout")
         layout = House0Layout.load(
             settings.paths.hardware_layout, 
             included_node_names=requested_names
         )
+        logger.info("Getting nodes run by scada")
         scada_node, actor_nodes = get_nodes_run_by_scada(
             requested_names, 
             layout, 
             actors_package_name,
             scada_actor_class=scada_actor_class,
         )
+        logger.info("Done")
         print(f"actor nodes run by scada: {actor_nodes}")
         if scada_actor_class == ActorClass.Scada:
             scada = Scada(
@@ -225,6 +230,7 @@ def get_scada(
                 hardware_layout=layout,
             )
         if args.paho_logging:
+            logger.info("enabling MQTT loggers")
             scada.links.enable_mqtt_loggers(scada.logger.message_summary_logger)
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
