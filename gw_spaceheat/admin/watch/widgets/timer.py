@@ -52,7 +52,7 @@ class TimerDigits(Digits):
         input_value = self.app.query_one(TimeInput).value
         try:
             time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
-            if input_value > int(AdminLinkSettings().max_timeout_seconds/60):
+            if time_in_minutes > int(AdminLinkSettings().max_timeout_seconds/60):
                 time_in_minutes = int(AdminLinkSettings().max_timeout_seconds/60)
         except ValueError:
             time_in_minutes = int(self.default_timeout_seconds/60)
