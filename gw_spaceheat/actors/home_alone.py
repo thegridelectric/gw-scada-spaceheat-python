@@ -251,6 +251,39 @@ class HomeAlone(ScadaActor):
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
+    
+    def house_is_cold_onpeak(self) -> bool:
+        if self.is_onpeak() and self.is_house_cold():
+            return True
+        return False
+    
+    def trigger_house_cold_onpeak_event(self) -> None:
+        """
+        Called to change top state from Normal to HouseColdOnpeak. Only acts if
+          (a) house is actually cold onpeak and (b) top state is Normal
+        What it does: 
+          - changes command tree (all relays will be direct reports of auto.h.onpeak-backup)
+          - triggers HouseColdOnpeak
+          - takes necessary actuator actions to go onpeak
+          - updates the normal state to Dormant if needed
+          - reports top state change
+
+        """
+        if not self.house_is_cold_onpeak():
+            self.log("Not triggering HouseColdOnpeak top event -  house is not cold onpeak!")
+        if not self.top_state == HomeAloneTopState.Normal:
+            self.log("Not triggering HouseColdOnpeak top event - not in top state Normal!")
+        # implement the change in command tree. Boss: h.n -> h.onpeak-backup
+        self.set_onpeak_backup_command_tree()
+        # and let the normal homealone know its dormant until further notice
+        if self.state != HomeAloneState.Dormant:
+            self.trigger_normal_event(HomeAloneEvent.GoDormant)
+        # trigger state change:
+        self.HouseColdOnpeak()
+        # take the required actions
+        self.onpeak_backup_actuator_actions()
+        # Report state change to scada
+        self.top_state_update(cause=TopStateEvent.HouseColdOnpeak)    
 
     async def main(self):
 
@@ -279,28 +312,14 @@ class HomeAlone(ScadaActor):
 
             # Update top state
             if self.top_state == HomeAloneTopState.Normal:
-                if self.is_onpeak() and self.is_house_cold():
-                    # implement the change in command tree. Boss: h.n -> h.onpeak-backup
-                    self.set_onpeak_backup_command_tree()
-                    # and let the normal homealone know its dormant until further notice
-                    if self.state != HomeAloneState.Dormant:
-                        self.trigger_normal_event(HomeAloneEvent.GoDormant)
-                    # trigger state change: this will also take the required actions
-                    self.enter_onpeak_backup()
-                    # Report state change to scada
-                    self.top_state_update(cause=TopStateEvent.HouseColdOnpeak)        
+                    if self.house_is_cold_onpeak():
+                        self.trigger_house_cold_onpeak_event()
+                        
             elif self.top_state == HomeAloneTopState.UsingBackupOnpeak:
                 if just_offpeak:
                     # trigger state change: this will also take the required actions
-                    self.leave_onpeak_backup()
-                    # Report state change to scada
-                    self.top_state_update()
-                      # implement the change in command tree. Boss: h.onpeak-backup -> h.n
-                    self.set_normal_command_tree()
-                     # and let the normal homealone know its alive 
-                    if self.state == HomeAloneState.Dormant:
-                        self.trigger_normal_event(HomeAloneEvent.WakeUp)
-                                           
+                    self.trigger_just_offpeak()
+                    
             self.engage_brain()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
@@ -422,7 +441,29 @@ class HomeAlone(ScadaActor):
         if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
             self.valved_to_discharge_store()
     
-    def leave_onpeak_backup(self):
+    def trigger_just_offpeak(self):
+        """
+        Called to change top state from HouseColdOnpeak to Normal
+        What it does:
+            - flip relays as needed
+            - trigger the top state change
+            - change 
+        """
+        # HouseColdOnpeak: Normal -> UsingBackupOnpeak
+        if self.top_state != HomeAloneTopState. UsingBackupOnpeak:
+            raise Exception("Should only call leave_onpeak_backup in transition from UsingBackupOnpeak to Normal!")
+        self.leaving_onpeak_backup_actuator_actions()
+        # JustOffpeak: UsingBackupOnpeak -> Normal
+        self.JustOffpeak()
+        # Report state change to scada
+        self.top_state_update(cause=TopStateEvent.JustOffpeak)
+        # implement the change in command tree. Boss: h.onpeak-backup -> h.n
+        self.set_normal_command_tree()
+        # and let the normal homealone know its alive 
+        if self.state == HomeAloneState.Dormant:
+            self.trigger_normal_event(HomeAloneEvent.WakeUp)
+
+    def leaving_onpeak_backup_actuator_actions(self) -> None:
         """
         If using oil boiler for onpeak backup, hp_failsafe_relay deos the following
             - hp_failsafe_switch_to_scada 
@@ -430,10 +471,9 @@ class HomeAlone(ScadaActor):
         Otherwise:
             - do nothing (heat pump will likely stay on during offpeak)
         """
-        # HouseColdOnpeak: Normal -> UsingBackupOnpeak
-        if self.top_state != HomeAloneTopState. UsingBackupOnpeak:
-            raise Exception("Should only call leave_onpeak_backup in transition from UsingBackupOnpeak to Normal!")
-        
+        if not self.top_state == HomeAloneTopState.UsingBackupOnpeak:
+            raise Exception("SHould only call leaving_onpeak_backup_actuator_actions in transition"
+                            "from top state UsingBackupOnpeak to Normal")
         if self.settings.oil_boiler_for_onpeak_backup:
             try:
                 event = FsmEvent(
@@ -466,11 +506,8 @@ class HomeAlone(ScadaActor):
                 )
             except ValidationError as e:
                 self.log(f"Tried to switch AquastatCtrl relay to Boiler but didn't have the rights: {e}")
-        
-        # JustOffpeak: UsingBackupOnpeak -> Normal
-        self.JustOffpeak()
 
-    def enter_onpeak_backup(self):
+    def onpeak_backup_actuator_actions(self) -> None:
         """
         If using oil boiler for onpeak backup, hp_failsafe_relay deos the following:
            - hp failsafe (relay 5) switch to aquastat
@@ -482,10 +519,8 @@ class HomeAlone(ScadaActor):
         """
         
         if self.top_state != HomeAloneTopState.Normal:
-            raise Exception(f"Should only call  enter_onpeak_backup in transition from normal operating to UsingBackupOnpeak!")
+            raise Exception("Should only call enter_onpeak_backup in transition from normal operating to UsingBackupOnpeak!")
         
-        # HouseColdOnpeak: Normal -> UsingBackupOnpeak
-        self.HouseColdOnpeak()
         if self.settings.oil_boiler_for_onpeak_backup:
             
             # hp failsafe (relay 5) switch to aquastat
@@ -560,6 +595,8 @@ class HomeAlone(ScadaActor):
                     self.trigger_normal_event(HomeAloneEvent.GoDormant)
                     # TopGoDormant: Normal/UsingBackupOnpeak -> Dormant
                     self.TopGoDormant()
+                    if len(self.my_actuators()) > 0:
+                        raise Exception("Home Alone only gets GoDormant message if it no longer has any actuators!")
                     self.top_state_update(cause=TopStateEvent.TopGoDormant)
             case WakeUp():
                 if self.top_state == HomeAloneState.Dormant:
