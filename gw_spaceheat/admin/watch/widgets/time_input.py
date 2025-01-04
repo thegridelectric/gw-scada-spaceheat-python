@@ -1,10 +1,10 @@
 from textual.widgets import Input
 from textual.validation import Number
-from constants import DEFAULT_TIMEOUT_SECONDS
+from admin.settings import AdminClientSettings
 
 class TimeInput(Input):
     def __init__(self, **kwargs):
-        default_value = int(DEFAULT_TIMEOUT_SECONDS/60)
+        default_value = int(AdminClientSettings().default_timeout_seconds/60)
         super().__init__(
             placeholder=f"Timeout minutes (default {default_value})",
             id="time_input",

@@ -4,7 +4,7 @@ from textual.logging import TextualHandler
 from textual.widgets import Digits
 from textual.reactive import reactive
 from admin.watch.widgets.time_input import TimeInput
-from constants import DEFAULT_TIMEOUT_SECONDS
+from admin.settings import AdminClientSettings
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())
@@ -17,11 +17,11 @@ class TimerDigits(Digits):
     ) -> None:
         super().__init__(**kwargs)
         self.logger = logger
-        self.default_timeout_seconds = DEFAULT_TIMEOUT_SECONDS
+        self.default_timeout_seconds = AdminClientSettings().default_timeout_seconds
         self.countdown_seconds = self.default_timeout_seconds
 
     start_time = reactive(monotonic)
-    time_remaining = reactive(DEFAULT_TIMEOUT_SECONDS)
+    time_remaining = reactive(AdminClientSettings().default_timeout_seconds)
 
     def on_mount(self) -> None:
         self.update_timer = self.set_interval(1 / 60, self.update_time, pause=True)

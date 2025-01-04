@@ -12,6 +12,7 @@ from data_classes.house_0_names import H0N
 
 class AdminClientSettings(ProactorSettings):
     target_gnode: str = ""
+    default_timeout_seconds: int = int(5*60)
     link: MQTTClient = MQTTClient()
     verbosity: int = logging.WARN
     paho_verbosity: Optional[int] = None
