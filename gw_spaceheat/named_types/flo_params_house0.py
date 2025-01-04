@@ -1,12 +1,12 @@
 """Type flo.params.house0, version 000"""
-import uuid
 import time
+import uuid
 from typing import List, Literal, Optional
 
-from gwproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
-from pydantic import BaseModel, PositiveInt, StrictInt, Field
-
 from enums import MarketPriceUnit
+from gwproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
+from pydantic import BaseModel, Field, PositiveInt, StrictInt
+
 
 class FloParamsHouse0(BaseModel):
     GNodeAlias: LeftRightDotStr
@@ -24,7 +24,7 @@ class FloParamsHouse0(BaseModel):
     CopOatCoeff: float = 0
     CopLwtCoeff: float = 0
     # Initial state
-    InitialTopTempF: StrictInt 
+    InitialTopTempF: StrictInt
     InitialThermocline: StrictInt
     # Forecasts
     LmpForecast: Optional[List[float]] = None

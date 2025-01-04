@@ -1,5 +1,6 @@
 """ List of all the types """
 
+from named_types.admin_dispatch import AdminDispatch
 from named_types.admin_keep_alive import AdminKeepAlive
 from named_types.admin_release_control import AdminReleaseControl
 from named_types.atn_bid import AtnBid
@@ -16,15 +17,16 @@ from named_types.layout_lite import LayoutLite
 from named_types.new_command_tree import NewCommandTree
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
-from named_types.events import RemainingElecEvent
 from named_types.remaining_elec import RemainingElec
-from named_types.scada_params import ScadaParams
+from named_types.events import RemainingElecEvent
 from named_types.scada_init import ScadaInit
+from named_types.scada_params import ScadaParams
 from named_types.send_layout import SendLayout
 from named_types.single_machine_state import SingleMachineState
 from named_types.wake_up import WakeUp
 
 __all__ = [
+    "AdminDispatch",
     "AdminKeepAlive",
     "AdminReleaseControl",
     "AtnBid",
@@ -43,8 +45,8 @@ __all__ = [
     "PriceQuantityUnitless",
     "RemainingElec",
     "RemainingElecEvent",
-    "ScadaParams",
     "ScadaInit",
+    "ScadaParams",
     "SendLayout",
     "SingleMachineState",
     "WakeUp",
