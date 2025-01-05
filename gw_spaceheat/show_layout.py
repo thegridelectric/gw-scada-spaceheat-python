@@ -344,7 +344,12 @@ def try_scada_load(requested_names: Optional[set[str]], layout: House0Layout, se
         if isinstance(v, MQTTClient):
             v.tls.use_tls = False
     try:
-        scada = Scada(name=scada_node.Name, settings=settings, hardware_layout=layout, actor_nodes=actor_nodes)
+        scada = Scada(
+            name=scada_node.Name,
+            settings=settings,
+            hardware_layout=layout,
+            actor_nodes=actor_nodes
+        )
     except (
             DcError,
             KeyError,
@@ -388,7 +393,12 @@ def show_layout(
 def main(argv: Optional[Sequence[str]] = None) -> list[LoadError]:
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
-    print(f"Using .env file {dotenv_file}, exists: {Path(dotenv_file).exists()}")
+    print(
+        f"Using .env file <{dotenv_file}>, found looking for <{args.env_file}>, exists: "
+        f"{bool(dotenv_file) and Path(dotenv_file).exists()}"
+    )
+    # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
+    # noinspection PyArgumentList
     settings = ScadaSettings(_env_file=dotenv_file)
     if args.layout_file:
         layout_path = Path(args.layout_file)
@@ -398,7 +408,10 @@ def main(argv: Optional[Sequence[str]] = None) -> list[LoadError]:
             layout_path = layout_path.with_suffix(".json")
         settings.paths.hardware_layout = layout_path
     requested_names = get_requested_names(args)
-    print(f"Using layout file: <{settings.paths.hardware_layout}>, exists: {settings.paths.hardware_layout.exists()}")
+    print(
+        f"Using layout file: <{settings.paths.hardware_layout}>, "
+        f"exists: {settings.paths.hardware_layout.exists()}"
+    )
     errors = []
     layout = House0Layout.load(
         settings.paths.hardware_layout,

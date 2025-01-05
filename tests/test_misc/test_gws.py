@@ -1,4 +1,6 @@
 import json
+import os
+
 from typer.testing import CliRunner
 
 import cli as gws
@@ -49,10 +51,11 @@ def test_gws_config(tmp_path, monkeypatch):
 
 def test_gws_layout_show():
     """Test that 'gws layout show' runs and produces some expected output"""
-    result = runner.invoke(gws.app, ["layout", "show"])
+    import rich
+    result = runner.invoke(gws.app, ["layout", "show", "--env-file" ,""])
     assert result.exit_code == 0
     # simple test that a tiny part of the expected output is present
-    assert "Dummy Power Meter Component" in result.output
+    assert "Power Meter for Simulated" in result.output
 
 def test_gws_layout_mktest():
     """Test that 'gws mktest --no-write does not crash"""
