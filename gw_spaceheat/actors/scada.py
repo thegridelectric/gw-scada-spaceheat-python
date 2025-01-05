@@ -792,6 +792,7 @@ class Scada(ScadaInterface, Proactor):
             if new.DdDeltaTF != old.DdDeltaTF:
                 self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF)
 
+
             response = ScadaParams(
                     FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
                     FromName=self.name,
