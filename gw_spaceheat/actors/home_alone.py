@@ -425,25 +425,38 @@ class HomeAlone(ScadaActor):
                     # elif self.is_buffer_empty() and self.is_storage_empty():
                     #     self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
             self.log(f"state: {self.state}")
-            if (self.state != previous_state):
-                self.update_relays(previous_state)
+            if (self.state != previous_state) or self.state == HomeAloneState.Initializing:
+                self.update_relays()
 
 
-    def update_relays(self, previous_state) -> None:
-        if self.state==HomeAloneState.Dormant.value or self.state==HomeAloneState.Initializing.value:
-            return
-        if "HpOn" not in previous_state and "HpOn" in self.state:
-            self.turn_on_HP()
-        if "HpOff" not in previous_state and "HpOff" in self.state:
-            self.turn_off_HP()
-        if "StoreDischarge" in self.state:
-            self.turn_on_store_pump()
-        else:
-            self.turn_off_store_pump()         
-        if "StoreCharge" in self.state:
-            self.valved_to_charge_store()
-        else:
+    def update_relays(self) -> None:
+        if self.state == HomeAloneState.HpOnStoreOff:
             self.valved_to_discharge_store()
+            self.turn_on_HP()
+            self.turn_off_store_pump()
+        elif self.state == HomeAloneState.HpOnStoreCharge:
+            self.valved_to_charge_store()
+            self.turn_on_HP()
+            self.turn_off_store_pump()
+        elif self.state == HomeAloneState.HpOffStoreOff:
+            self.valved_to_discharge_store()
+            self.turn_off_HP()
+            self.turn_off_store_pump()
+        elif self.state == HomeAloneState.HpOffStoreDischarge:
+            self.valved_to_discharge_store()
+            self.turn_off_HP()
+            self.turn_on_store_pump()
+        elif self.state == HomeAloneState.Initializing:
+            if self.is_onpeak():
+                self.turn_off_HP()
+            else:
+                self.turn_on_HP()
+        elif self.state == HomeAloneState.Dormant:
+            # Do nothing .. not boss of any actuators
+            ...
+        else:
+            raise Exception(f"Unknown HomeAloneState {self.state}!")
+
     
     def trigger_just_offpeak(self):
         """
