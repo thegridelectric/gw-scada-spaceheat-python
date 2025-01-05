@@ -430,6 +430,8 @@ class HomeAlone(ScadaActor):
 
 
     def update_relays(self, previous_state) -> None:
+        if self.state==HomeAloneState.Dormant.value or self.state==HomeAloneState.Initializing.value:
+            return
         if "HpOn" not in previous_state and "HpOn" in self.state:
             self.turn_on_HP()
         if "HpOff" not in previous_state and "HpOff" in self.state:
