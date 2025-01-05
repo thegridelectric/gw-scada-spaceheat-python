@@ -51,7 +51,8 @@ class ScadaData:
             DdRswtF=int(self.settings.dd_rswt),
             DdDeltaTF=int(self.settings.dd_delta_t),
             HpMaxKwTh=self.settings.hp_max_kw_th,
-            MaxEwtF=self.settings.max_ewt_f
+            MaxEwtF=self.settings.max_ewt_f,
+            LoadOverestimationPercent=self.settings.load_overestimation_percent
         )
         self.my_data_channels = self.get_my_data_channels()
         self.my_synth_channels = self.get_my_synth_channels()

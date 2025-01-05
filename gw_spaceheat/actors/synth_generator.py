@@ -400,8 +400,13 @@ class SynthGenerator(ScadaActor):
                     'ws': [0]*48,
                     }
 
+        if self.params.LoadOverestimationPercent < 0 or self.params.LoadOverestimationPercent > 100:
+            self.log("INCORRECT PARAMETER: LoadOverestimationPercent must be an int between 0 and 100")
+            load_increase_factor = 1
+        else:
+            load_increase_factor = (1+self.params.LoadOverestimationPercent/100)
         self.weather['avg_power'] = [
-            self.required_heating_power(oat, ws) 
+            self.required_heating_power(oat, ws) * load_increase_factor
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
             ]
         self.weather['required_swt'] = [
