@@ -405,6 +405,7 @@ class SynthGenerator(ScadaActor):
             load_increase_factor = 1
         else:
             load_increase_factor = (1+self.params.LoadOverestimationPercent/100)
+        self.log(f"Load increase factor: {load_increase_factor}")
         self.weather['avg_power'] = [
             self.required_heating_power(oat, ws) * load_increase_factor
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
