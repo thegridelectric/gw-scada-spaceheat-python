@@ -772,7 +772,7 @@ class Atn(ActorInterface, Proactor):
 
         # Generate bid
         t = time.time()
-        slot_start_s = int(t - (t % 3600))
+        slot_start_s = int(t - (t % 3600)) + 3600
         mtn = MarketTypeName.rt60gate5.value
         market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
         bid = AtnBid(

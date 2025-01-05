@@ -58,11 +58,18 @@ class RelayToggleButton(Button, can_focus=True):
         return "error"
 
     def action_toggle_relay(self) -> None:
+        input_value = self.app.query_one(TimeInput).value
+        try:
+            time_in_minutes = float(input_value) if input_value else int(self.default_timeout_seconds/60)
+            self.timeout_seconds = int(time_in_minutes * 60)
+        except:
+            self.timeout_seconds = self.default_timeout_seconds
         if self.energized is not None:
             self.post_message(
                 RelayToggleButton.Pressed(
                     self.config.about_node_name,
                     not self.energized,
+                    self.timeout_seconds
                 )
             )
 
