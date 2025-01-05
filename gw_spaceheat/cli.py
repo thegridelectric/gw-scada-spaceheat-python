@@ -1,3 +1,4 @@
+import textwrap
 from pathlib import Path
 from typing import Annotated
 from typing import Optional
@@ -25,18 +26,40 @@ app.add_typer(admin_cli, name="admin", help="Admin commands.")
 app.add_typer(layout_cli, name="layout", help="Layout commands")
 
 @app.command()
-def config(env_file: str = ".env"):
+def config(
+    env_file: str = ".env",
+    use_json: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help=(
+                "Output json format containing a dict with keys 'env_file'"
+                " (the pased env file name), 'env_file_exists' (whether the "
+                "env_file exists) and 'config', the result of "
+                "ScadaSettings().model_dump_json()."
+            ),
+        )
+    ] = False,
+) -> None:
     """Show ScadaSettings."""
-
     dotenv_file = dotenv.find_dotenv(env_file)
     dotenv_file_exists = Path(dotenv_file).exists() if dotenv_file else False
-    rich.print("[cyan bold]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-    rich.print(f"Env file: <{dotenv_file}>  exists:{dotenv_file_exists}")
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
     # noinspection PyArgumentList
     settings = ScadaSettings(_env_file=dotenv_file)
-    rich.print(settings)
-    rich.print("[cyan bold]-----------------------------------------------------------------------------------------------------------\n")
+    if not use_json:
+        rich.print("[cyan bold]+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+        rich.print(f"Env file: <{dotenv_file}>  exists:{dotenv_file_exists}")
+        rich.print(settings)
+        rich.print("[cyan bold]-----------------------------------------------------------------------------------------------------------\n")
+    else:
+        print('{')
+        print(f'  "env_file": "{dotenv_file}",')
+        print(f'  "env_file_exists": {str(dotenv_file_exists).lower()},')
+        print(f'  "config": {{')
+        print(textwrap.indent(settings.model_dump_json(indent=2)[2:], "    "))
+        print('}')
+
 
 @app.command()
 def commands(ctx: typer.Context) -> None:
