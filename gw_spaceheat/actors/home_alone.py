@@ -314,7 +314,7 @@ class HomeAlone(ScadaActor):
 
             # Update top state
             if self.top_state == HomeAloneTopState.Normal:
-                if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty:
+                if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
                     self.trigger_house_cold_onpeak_event()
                         
             elif self.top_state == HomeAloneTopState.UsingBackupOnpeak:
