@@ -151,6 +151,7 @@ class AtomicAlly(ScadaActor):
         match message.Payload:
             case EnergyInstruction():
                 self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
+                self.remaining_elec_wh = message.Payload.AvgPowerWatts
                 self.check_and_update_state()
 
             case GoDormant():
