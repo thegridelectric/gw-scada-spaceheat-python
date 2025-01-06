@@ -1,5 +1,6 @@
 """Scada implementation"""
 
+import os
 import asyncio
 import enum
 import uuid
@@ -742,15 +743,21 @@ class Scada(ScadaInterface, Proactor):
             self._admin_timeout_task.cancel()
         self._admin_timeout_task = asyncio.create_task(self._timeout_admin(timeout_seconds))
 
-    def update_env_variable(self, variable, new_value) -> None:
+    def update_env_variable(self, variable, new_value, testing:bool=False) -> None:
         """
         Updates .env with new Scada Params. 
         TODO: move this somewhere else, like a local sqlite db
         """
-        dotenv_filepath = dotenv.find_dotenv(usecwd=True)
-        if not dotenv_filepath:
-            self.logger.error("Couldn't find a .env file - perhaps because in CI?")
-            return
+        if testing:
+            dotenv_filepath = dotenv.find_dotenv(usecwd=True)
+            if not dotenv_filepath:
+                self.logger.error("Couldn't find a .env file - perhaps because in CI?")
+                return
+        else:
+            dotenv_filepath = "/home/pi/gw-scada-spaceheat-python/.env"
+            if not os.path.isfile(dotenv_filepath):
+                self.log("Did not find .env file")
+                return
         with open(dotenv_filepath, 'r') as file:
             lines = file.readlines()
         with open(dotenv_filepath, 'w') as file:
@@ -764,7 +771,7 @@ class Scada(ScadaInterface, Proactor):
             if not line_exists:
                 file.write(f"\n{variable}={new_value}\n")
 
-    def _scada_params_received(self, message: ScadaParams) -> None:
+    def _scada_params_received(self, message: ScadaParams, testing:bool=False) -> None:
         if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
             return
         new = message.NewParams
@@ -772,21 +779,21 @@ class Scada(ScadaInterface, Proactor):
             old = self.data.ha1_params
             self.data.ha1_params = new
             if new.AlphaTimes10 != old.AlphaTimes10:          
-                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10)
+                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10, testing)
             if new.BetaTimes100 != old.BetaTimes100:
-                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100)
+                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100, testing)
             if new.GammaEx6 != old.GammaEx6:
-                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6)
+                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6, testing)
             if new.IntermediatePowerKw != old.IntermediatePowerKw:
-                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw)
+                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw, testing)
             if new.IntermediateRswtF != old.IntermediateRswtF:
-                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF)
+                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF, testing)
             if new.DdPowerKw != old.DdPowerKw:
-                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw)
+                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw, testing)
             if new.DdRswtF != old.DdRswtF:
-                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF)
+                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF, testing)
             if new.DdDeltaTF != old.DdDeltaTF:
-                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF)
+                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF, testing)
 
             response = ScadaParams(
                     FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
