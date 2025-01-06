@@ -3,6 +3,7 @@ import time
 import uuid
 from enum import auto
 from typing import Sequence
+from datetime import datetime
 
 import pytz
 from data_classes.house_0_names import H0CN, H0N
@@ -268,14 +269,14 @@ class AtomicAlly(ScadaActor):
 
             # 1
             elif self.state == AtomicAllyState.HpOnStoreOff.value:
-                if self.no_more_elec():
+                if self.no_more_elec() and datetime.now(self.timezone).minute<55:
                     self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
                 elif self.is_buffer_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
 
             # 2
             elif self.state == AtomicAllyState.HpOnStoreCharge.value:
-                if self.no_more_elec():
+                if self.no_more_elec() and datetime.now(self.timezone).minute<55:
                     self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
                 elif self.is_buffer_empty() or self.is_storage_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
