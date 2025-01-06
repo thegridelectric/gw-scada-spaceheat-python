@@ -18,6 +18,7 @@ from named_types.new_command_tree import NewCommandTree
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from named_types.remaining_elec import RemainingElec
+from named_types.request_energy_instruction import RequestEnergyInstruction
 from named_types.events import RemainingElecEvent
 from named_types.scada_init import ScadaInit
 from named_types.scada_params import ScadaParams
@@ -45,6 +46,7 @@ __all__ = [
     "PriceQuantityUnitless",
     "RemainingElec",
     "RemainingElecEvent",
+    "RequestEnergyInstruction",
     "ScadaInit",
     "ScadaParams",
     "SendLayout",

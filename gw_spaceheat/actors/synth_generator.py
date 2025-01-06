@@ -16,7 +16,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, Ha1Params, RemainingElec, ScadaInit
+from named_types import EnergyInstruction, Ha1Params, RemainingElec, ScadaInit, GoDormant, WakeUp, RequestEnergyInstruction
 from pydantic import Field
 
 # -------------- TODO: move to named_types -------------
@@ -57,7 +57,9 @@ class SynthGenerator(ScadaActor):
         ]
         self.elec_assigned_amount = None
         self.previous_time = None
+        self.energy_instruction_expiration_utc = None
         self.temperatures_available = False
+        self.asked_atn_for_energyinstruction = False
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -141,6 +143,22 @@ class SynthGenerator(ScadaActor):
             if self.temperatures_available:
                 self.update_energy()
 
+            if self.energy_instruction_expiration_utc is not None:
+                if time.time() >= self.energy_instruction_expiration_utc + 60:
+                    self.log("EnergyInstruction has expired since at least a minute!")
+                    if not self.asked_atn_for_energyinstruction:
+                        self.log("Asking ATN for an EnergyInstruction")
+                        self.asked_atn_for_energyinstruction = True
+                        self._send_to(self.primary_scada, RequestEnergyInstruction())
+                    else:
+                        self.log("ATN has failed to provide an EnergyInstruction. Giving control to HomeAlone")
+                        self._send_to(self.atomic_ally, GoDormant(FromName=self.name, ToName=self.atomic_ally))
+                        self._send_to(self.home_alone, WakeUp(ToName=self.home_alone))
+                        self.energy_instruction_expiration_utc = None
+                        self.elec_assigned_amount = None
+                        self.previous_time = None
+                        self.asked_atn_for_energyinstruction = False
+
             self.update_remaining_elec()
 
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
@@ -203,6 +221,7 @@ class SynthGenerator(ScadaActor):
                 self.temperatures_available = True
 
     def process_energy_instruction(self, payload: EnergyInstruction) -> None:
+        self.energy_instruction_expiration_utc = payload.SlotStartS + payload.SlotDurationMinutes*60
         self.elec_assigned_amount = payload.AvgPowerWatts * payload.SlotDurationMinutes/60
         self.elec_used_since_assigned_time = 0
         self.log(f"Received an EnergyInstruction for {self.elec_assigned_amount} Watts average power")
@@ -221,7 +240,11 @@ class SynthGenerator(ScadaActor):
         self.log(f"This corresponds to an additional {round(elec_watthours,1)} Wh of electricity used")
         self.elec_used_since_assigned_time += elec_watthours
         self.log(f"Electricity used since EnergyInstruction: {round(self.elec_used_since_assigned_time,1)} Wh")
-        remaining_wh = int(self.elec_assigned_amount - self.elec_used_since_assigned_time)
+        if self.energy_instruction_expiration_utc is not None and time.time() > self.energy_instruction_expiration_utc:
+            self.log("Energy instruction has expired!")
+            remaining_wh=0
+        else:
+            remaining_wh = int(self.elec_assigned_amount - self.elec_used_since_assigned_time)
         self.log(f"Remaining electricity to be used from EnergyInstruction: {remaining_wh} Wh")
         remaining = RemainingElec(
             FromGNodeAlias=self.layout.atn_g_node_alias,

@@ -55,7 +55,7 @@ from enums import MainAutoState, TopState
 from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, DispatchContractGoDormant,
                         DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
                         LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
-                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp)
+                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp, RequestEnergyInstruction)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -538,6 +538,12 @@ class Scada(ScadaInterface, Proactor):
             case PicoMissing():
                 path_dbg |= 0x00000800
                 self.get_communicator(message.Header.Dst).process_message(message)
+            case RequestEnergyInstruction():
+                try:
+                    self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+                    self.log("Sent RequestEnergyInstruction to ATN")
+                except Exception as e:
+                    self.logger.error(f"Problem with {message.Header}: {e}")
             case SingleMachineState():
                 self.single_machine_state_received(message.Payload)
             case SingleReading():
