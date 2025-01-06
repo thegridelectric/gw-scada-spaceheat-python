@@ -676,8 +676,7 @@ class Scada(ScadaInterface, Proactor):
                         self.log('Admin Wakes Up')
                     self._renew_admin_timeout(timeout_seconds=decoded.Payload.TimeoutSeconds)
                     event = decoded.Payload.DispatchTrigger
-                    if event.TypeName != FsmEvent.TypeName:
-                        raise Exception("AdminDispatch DispatchTrigger is FsmEvent!")
+                    self.log(f"AdminDispatch event toype name is {event.TypeName}")
                     if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
                         path_dbg |= 0x00000010
                         communicator.process_message(
@@ -685,7 +684,7 @@ class Scada(ScadaInterface, Proactor):
                                 header=Header(
                                     Src=H0N.admin,
                                     Dst=communicator.name,
-                                    MessageType=FsmEvent.TypeName,
+                                    MessageType=event.TypeName,
                                 ),
                                 Payload=event
                             )
