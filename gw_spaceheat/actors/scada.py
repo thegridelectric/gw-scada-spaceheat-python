@@ -756,7 +756,7 @@ class Scada(ScadaInterface, Proactor):
         with open(dotenv_filepath, 'w') as file:
             line_exists = False
             for line in lines:
-                if line.strip().startswith(f"{variable}="):
+                if line.replace(' ','').startswith(f"{variable}="):
                     file.write(f"{variable}={new_value}\n")
                     line_exists = True      
                 else:
