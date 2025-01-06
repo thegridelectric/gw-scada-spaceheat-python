@@ -3,6 +3,7 @@ import time
 import uuid
 from enum import auto
 from typing import Sequence
+from datetime import datetime
 
 import pytz
 from data_classes.house_0_names import H0CN, H0N
@@ -150,6 +151,7 @@ class AtomicAlly(ScadaActor):
         match message.Payload:
             case EnergyInstruction():
                 self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
+                self.remaining_elec_wh = message.Payload.AvgPowerWatts
                 self.check_and_update_state()
 
             case GoDormant():
@@ -268,14 +270,14 @@ class AtomicAlly(ScadaActor):
 
             # 1
             elif self.state == AtomicAllyState.HpOnStoreOff.value:
-                if self.no_more_elec():
+                if self.no_more_elec() and datetime.now(self.timezone).minute<55:
                     self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
                 elif self.is_buffer_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
 
             # 2
             elif self.state == AtomicAllyState.HpOnStoreCharge.value:
-                if self.no_more_elec():
+                if self.no_more_elec() and datetime.now(self.timezone).minute<55:
                     self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
                 elif self.is_buffer_empty() or self.is_storage_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
@@ -480,7 +482,7 @@ class AtomicAlly(ScadaActor):
         else:
             self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the storage is warmer than the top of the buffer!")
             return False
-        if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top]:
+        if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top] + 3:
             self.log("Storage top colder than buffer top")
             return True
         else:
