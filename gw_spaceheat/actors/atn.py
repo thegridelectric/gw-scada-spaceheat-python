@@ -34,7 +34,7 @@ from gwproto.named_types import AnalogDispatch, SendSnap
 from named_types import (AtnBid, DispatchContractGoDormant,
                          DispatchContractGoLive, EnergyInstruction, FloParamsHouse0,
                          Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
-                         ScadaParams, SendLayout)
+                         ScadaParams, SendLayout, RequestEnergyInstruction)
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
@@ -151,6 +151,7 @@ class Atn(ActorInterface, Proactor):
         self.longitude = self.settings.longitude
         self.sent_bid = False
         self.latest_bid = None
+        self.latest_energy_instruction = None
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast = None
@@ -272,6 +273,17 @@ class Atn(ActorInterface, Proactor):
             case Report():
                 path_dbg |= 0x00000004
                 self._process_report(decoded.Payload)
+            case RequestEnergyInstruction():
+                self.log("Scada requested an EnergyInstruction")
+                if self.latest_energy_instruction is not None:
+                    expriation_time = self.latest_energy_instruction.SlotStartS + self.latest_energy_instruction.SlotDurationMinutes*60
+                    if time.time() < expriation_time:
+                        self.log("Sending latest EnergyInstruction")
+                        self.send_energy_instr(self.latest_energy_instruction.AvgPowerWatts, scada_initializing=True)
+                    else:
+                        self.log("Latest EnergyInstruction is expired")
+                else:
+                    self.log("No EnergyInstruction in memory")
             case ScadaParams():
                 path_dbg |= 0x00000008
                 self._process_scada_params(decoded.Payload)
@@ -282,7 +294,7 @@ class Atn(ActorInterface, Proactor):
                 self.log("Scada is on!")
                 if self.latest_remaining_elec is not None:
                     self.log("Sending energy instruction with the latest remaining electricity")
-                    self.send_energy_instr(self.latest_remaining_elec)
+                    self.send_energy_instr(self.latest_remaining_elec, scada_initializing=True)
             case EventBase():
                 path_dbg |= 0x00000020
                 self._process_event(decoded.Payload)
@@ -955,19 +967,22 @@ class Atn(ActorInterface, Proactor):
         # TODO: post top_centroid, thermocline, bottom_centroid as synthetic channels
         return top_centroid_f, thermocline
 
-    def send_energy_instr(self, watthours: int, slot_minutes: int = 60):
+    def send_energy_instr(self, watthours: int, slot_minutes: int = 60, scada_initializing: bool = False):
         t = int(time.time())
         slot_start_s = int(t - (t % 300))
-        # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
-        if t - slot_start_s < 10:
+        if scada_initializing and slot_minutes==60:
+            slot_minutes = 60 - datetime.fromtimestamp(slot_start_s).minute
+        # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes, unless the scada is initializing
+        if t - slot_start_s < 10 or scada_initializing:
             payload = EnergyInstruction(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 SlotStartS=slot_start_s,
                 SlotDurationMinutes=slot_minutes,
-                SendTimeMs=int(time.time() * 1000),
+                SendTimeMs=int((slot_start_s if scada_initializing else time.time()) * 1000),
                 AvgPowerWatts=int(watthours),
             )
             self.payload = payload
+            self.latest_energy_instruction = payload
             self.log(f"Sent EnergyInstruction: {payload}")
             self.send_threadsafe(
                 Message(
