@@ -21,6 +21,6 @@ pyModbusTCP
 # cli tools
 rich
 typer
-trogon
+trogon>=0.6.0
 textual>=1.0.0
 textual-dev
