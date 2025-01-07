@@ -16,8 +16,9 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, Ha1Params, RemainingElec
+from named_types import EnergyInstruction, Ha1Params, RemainingElec, PicoMissing
 from pydantic import Field
+from gwproto.enums import ActorClass
 
 # -------------- TODO: move to named_types -------------
 from typing import Literal
@@ -58,6 +59,13 @@ class SynthGenerator(ScadaActor):
         self.elec_assigned_amount = None
         self.previous_time = None
         self.temperatures_available = False
+
+        self.pico_tanks = [node for node in self.layout.nodes.values() if node.ActorClass==ActorClass.ApiTankModule]
+        self.ab_by_pico = {}
+        for node in self.pico_tanks:
+            self.ab_by_pico[node.component.gt.PicoAHwUid] = 'a'
+            self.ab_by_pico[node.component.gt.PicoBHwUid] = 'b'
+        print(self.ab_by_pico)
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -157,6 +165,17 @@ class SynthGenerator(ScadaActor):
             case PowerWatts():
                 self.update_remaining_elec()
                 self.previous_watts = message.Payload.Watts
+            case PicoMissing():
+                self.log(f"Pico missing: {message.Payload.ActorName}-{self.ab_by_pico[message.Payload.PicoHwUid]}")
+                channel_names = []
+                if self.ab_by_pico[message.Payload.PicoHwUid]=='a':
+                    channel_names = [f'{message.Payload.ActorName}-depth1',f'{message.Payload.ActorName}-depth2']
+                elif self.ab_by_pico[message.Payload.PicoHwUid]=='b':
+                    channel_names = [f'{message.Payload.ActorName}-depth3',f'{message.Payload.ActorName}-depth4']
+                for channel_name in channel_names:
+                    if channel_name in self.data.latest_channel_values:
+                        self.log(f"Deleting the latest value for {channel_name} in latest_channel_values")
+                        self.data.latest_channel_values[channel_name] = None
         return Ok(True)
     
     def fill_missing_store_temps(self):

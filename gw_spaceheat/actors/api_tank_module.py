@@ -301,11 +301,19 @@ class ApiTankModule(ScadaActor):
                         self.pico_cycler,
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_a_uid),
                     )
+                    self._send_to(
+                        self.synth_generator,
+                        PicoMissing(ActorName=self.name, PicoHwUid=self.pico_a_uid),
+                    )
                     # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_a_uid} down"]).problem_event(summary=self.name))
                     self.last_error_report = time.time()
                 if self.b_missing():
                     self._send_to(
                         self.pico_cycler,
+                        PicoMissing(ActorName=self.name, PicoHwUid=self.pico_b_uid),
+                    )
+                    self._send_to(
+                        self.synth_generator,
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_b_uid),
                     )
                     # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_b_uid} down"]).problem_event(summary=self.name))
