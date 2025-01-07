@@ -68,7 +68,6 @@ class TopStateEvent(GwStrEnum):
 
 class HomeAlone(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
-    TOP_STATE_SLEEP_SECONDS = 57
     states = [
         "Dormant",
         "Initializing",
@@ -301,14 +300,10 @@ class HomeAlone(ScadaActor):
         #     return
         # implement the change in command tree. Boss: h.n -> h.onpeak-backup
         self.set_onpeak_backup_command_tree()
-        # and let the normal homealone know its dormant until further notice
         if self.state != HomeAloneState.Dormant:
             self.trigger_normal_event(HomeAloneEvent.GoDormant)
-        # trigger state change:
         self.HouseColdOnpeak()
-        # take the required actions
         self.onpeak_backup_actuator_actions()
-        # Report state change to scada
         self.top_state_update(cause=TopStateEvent.HouseColdOnpeak)    
 
     async def main(self):
@@ -317,6 +312,10 @@ class HomeAlone(ScadaActor):
             self._send(PatInternalWatchdogMessage(src=self.name))
             self.log(f"Top state: {self.top_state}")
             self.log(f"State: {self.state}")
+
+            if self.state == HomeAloneState.Initializing:
+                self.initialize_relays()
+                await asyncio.sleep(3)
             
             # Update top state
             if self.top_state == HomeAloneTopState.Normal:
@@ -333,112 +332,108 @@ class HomeAlone(ScadaActor):
                     self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
             
             # Update state
-            self.engage_brain()
+            if self.state != HomeAloneState.Dormant:
+                self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def engage_brain(self) -> None:
+        previous_state = self.state
 
-        if self.state == HomeAloneState.Initializing:
-            self.initialize_relays()
+        if self.is_onpeak():
+            self.storage_declared_ready = False
+            self.full_storage_energy = None
 
-        if self.state != HomeAloneState.Dormant:                
-            previous_state = self.state
+        time_now = datetime.now(self.timezone)
+        if ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57) or self.zone_setpoints=={}:
+            self.get_zone_setpoints()
+        
+        self.get_latest_temperatures()
 
-            if self.is_onpeak():
-                self.storage_declared_ready = False
-                self.full_storage_energy = None
-
-            time_now = datetime.now(self.timezone)
-            if ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57) or self.zone_setpoints=={}:
-                self.get_zone_setpoints()
-            
-            self.get_latest_temperatures()
-
-            if not (self.weather and self.temperatures_available):
-                if self.time_since_blind is not None:
-                    self.log(f"Time since blind: {int((time.time()-self.time_since_blind)/60)} min")
-                if self.time_since_blind is None:
-                    self.time_since_blind = time.time()
-                elif time.time() - self.time_since_blind > 2*60 and self.top_state==HomeAloneTopState.Normal:
-                    self.trigger_missing_data()
-            else:
-                if self.time_since_blind is not None:
-                    self.time_since_blind = None
-                if self.state==HomeAloneState.Initializing:
-                    if self.temperatures_available:
-                        if self.is_onpeak():
-                            if self.is_buffer_empty():
-                                if self.is_storage_colder_than_buffer():
-                                    self.trigger_normal_event(HomeAloneEvent.OnPeakStorageColderThanBuffer)
-                                else:
-                                    self.trigger_normal_event(HomeAloneEvent.OnPeakBufferEmpty)
+        if not (self.weather and self.temperatures_available):
+            if self.time_since_blind is None:
+                self.time_since_blind = time.time()
+            elif time.time() - self.time_since_blind > 5*60 and self.top_state==HomeAloneTopState.Normal:
+                self.log("Scada is missing weather and/or critical temperatures since at least 5 min.")
+                self.log("Moving into ScadaBlind top state")
+                self.trigger_missing_data()
+        else:
+            if self.time_since_blind is not None:
+                self.time_since_blind = None
+            if self.state==HomeAloneState.Initializing:
+                if self.temperatures_available:
+                    if self.is_onpeak():
+                        if self.is_buffer_empty():
+                            if self.is_storage_colder_than_buffer():
+                                self.trigger_normal_event(HomeAloneEvent.OnPeakStorageColderThanBuffer)
                             else:
-                                self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
+                                self.trigger_normal_event(HomeAloneEvent.OnPeakBufferEmpty)
                         else:
-                            if self.is_buffer_empty():
-                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
-                            else:
-                                if self.is_storage_ready():
-                                    self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
-                                else:
-                                    self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
-
-                elif self.state==HomeAloneState.HpOnStoreOff:
-                    if self.is_onpeak():
-                        self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
-                    elif self.is_buffer_full():
-                        if self.is_storage_ready():
-                            self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
-                        else:
-                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
-                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
-                            if usable < required:
-                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
-                            else:
-                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
-                    
-                elif self.state==HomeAloneState.HpOnStoreCharge:
-                    if self.is_onpeak():
-                        self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
-                    elif self.is_buffer_empty():
-                        self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
-                    elif self.is_storage_ready():
-                        self.trigger_normal_event(HomeAloneEvent.OffPeakStorageReady)
-                    
-                elif self.state==HomeAloneState.HpOffStoreOff:
-                    if self.is_onpeak():
-                        if self.is_buffer_empty() and not self.is_storage_colder_than_buffer():
-                            self.trigger_normal_event(HomeAloneEvent.OnPeakBufferEmpty)
+                            self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
                     else:
                         if self.is_buffer_empty():
                             self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
-                        elif not self.is_storage_ready():
-                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
-                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
-                            if self.storage_declared_ready:
-                                if self.full_storage_energy is None:
-                                    if usable > 0.9*required:
-                                        self.log("The storage was already declared ready during this off-peak period")
-                                    else:
-                                        self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
-                                else:
-                                    if usable > 0.9*self.full_storage_energy:
-                                        self.log("The storage was already declared full during this off-peak period")
-                                    else:
-                                        self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+                        else:
+                            if self.is_storage_ready():
+                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
                             else:
-                                self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
 
-                elif self.state==HomeAloneState.HpOffStoreDischarge:
-                    if not self.is_onpeak():
-                        self.trigger_normal_event(HomeAloneEvent.OffPeakStart)
-                    elif self.is_buffer_full():
-                        self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
-                    elif self.is_storage_colder_than_buffer():
-                        self.trigger_normal_event(HomeAloneEvent.OnPeakStorageColderThanBuffer)
+            elif self.state==HomeAloneState.HpOnStoreOff:
+                if self.is_onpeak():
+                    self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
+                elif self.is_buffer_full():
+                    if self.is_storage_ready():
+                        self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                    else:
+                        usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                        required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                        if usable < required:
+                            self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
+                        else:
+                            self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                
+            elif self.state==HomeAloneState.HpOnStoreCharge:
+                if self.is_onpeak():
+                    self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
+                elif self.is_buffer_empty():
+                    self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
+                elif self.is_storage_ready():
+                    self.trigger_normal_event(HomeAloneEvent.OffPeakStorageReady)
+                
+            elif self.state==HomeAloneState.HpOffStoreOff:
+                if self.is_onpeak():
+                    if self.is_buffer_empty() and not self.is_storage_colder_than_buffer():
+                        self.trigger_normal_event(HomeAloneEvent.OnPeakBufferEmpty)
+                else:
+                    if self.is_buffer_empty():
+                        self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
+                    elif not self.is_storage_ready():
+                        usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                        required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                        if self.storage_declared_ready:
+                            if self.full_storage_energy is None:
+                                if usable > 0.9*required:
+                                    self.log("The storage was already declared ready during this off-peak period")
+                                else:
+                                    self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+                            else:
+                                if usable > 0.9*self.full_storage_energy:
+                                    self.log("The storage was already declared full during this off-peak period")
+                                else:
+                                    self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+                        else:
+                            self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
 
-            if (self.state != previous_state):
-                self.update_relays(previous_state)
+            elif self.state==HomeAloneState.HpOffStoreDischarge:
+                if not self.is_onpeak():
+                    self.trigger_normal_event(HomeAloneEvent.OffPeakStart)
+                elif self.is_buffer_full():
+                    self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
+                elif self.is_storage_colder_than_buffer():
+                    self.trigger_normal_event(HomeAloneEvent.OnPeakStorageColderThanBuffer)
+
+        if (self.state != previous_state):
+            self.update_relays(previous_state)
 
 
     def update_relays(self, previous_state) -> None:
