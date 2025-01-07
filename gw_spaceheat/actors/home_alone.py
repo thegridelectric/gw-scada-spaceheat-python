@@ -609,8 +609,8 @@ class HomeAlone(ScadaActor):
         else:
             self.log("IN SIMULATION - set all temperatures to 20 degC")
             self.latest_temperatures = {}
-            # for channel_name in self.temperature_channel_names:
-            #     self.latest_temperatures[channel_name] = 20 * 1000
+            for channel_name in self.temperature_channel_names:
+                self.latest_temperatures[channel_name] = 20 * 1000
         if list(self.latest_temperatures.keys()) == self.temperature_channel_names:
             self.temperatures_available = True
         else:
