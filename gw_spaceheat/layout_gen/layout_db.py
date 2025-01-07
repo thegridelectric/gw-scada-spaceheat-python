@@ -670,6 +670,13 @@ class LayoutDb:
                     ActorClass=ActorClass.NoActor,
                     DisplayName="HomeAlone Onpeak Backup",
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.home_alone_scada_blind),
+                    Name=H0N.home_alone_scada_blind,
+                    Handle="auto.h.scada-blind",
+                    ActorClass=ActorClass.NoActor,
+                    DisplayName="HomeAlone Scada Blind",
+                ),
             ]
         )
     
