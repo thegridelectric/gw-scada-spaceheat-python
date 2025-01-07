@@ -20,10 +20,7 @@ from gwproto.enums import ChangeAquastatControl, ChangeHeatPumpControl, ChangeRe
 from gwproto.named_types import Alert
 
 from actors.scada_actor import ScadaActor
-from named_types import(
-    FsmEvent, GoDormant, Ha1Params,
-    NewCommandTree, SingleMachineState, WakeUp
-)   
+from named_types import GoDormant, Ha1Params, NewCommandTree, SingleMachineState, WakeUp
 from enums import HomeAloneTopState
 from pydantic import ValidationError
 
@@ -321,14 +318,21 @@ class HomeAlone(ScadaActor):
             self.log(f"Top state: {self.top_state}")
             self.log(f"State: {self.state}")
             
+            # Update top state
             if self.top_state == HomeAloneTopState.Normal:
                 if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
                     self.trigger_house_cold_onpeak_event()
             elif self.top_state == HomeAloneTopState.UsingBackupOnpeak and not self.is_onpeak():
                 self.trigger_just_offpeak()
-            elif self.top_state == HomeAloneTopState.ScadaBlind and self.weather and self.temperatures_available:
-                self.trigger_data_available()
+            elif self.top_state == HomeAloneTopState.ScadaBlind:
+                if self.weather and self.temperatures_available:
+                    self.trigger_data_available()
+                elif self.is_onpeak():
+                    self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
+                else:
+                    self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
             
+            # Update state
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -336,12 +340,6 @@ class HomeAlone(ScadaActor):
 
         if self.state == HomeAloneState.Initializing:
             self.initialize_relays()
-
-        if self.top_state==HomeAloneTopState.ScadaBlind and self.state==HomeAloneState.Dormant:
-            if self.is_onpeak():
-                self.aquastat_ctrl_switch_to_boiler(from_handle=self.scada_blind_node.handle)
-            else:
-                self.aquastat_ctrl_switch_to_scada(from_handle=self.scada_blind_node.handle)
 
         if self.state != HomeAloneState.Dormant:                
             previous_state = self.state
@@ -502,132 +500,27 @@ class HomeAlone(ScadaActor):
             self.trigger_normal_event(HomeAloneEvent.WakeUp)
 
     def scada_blind_actuator_actions(self) -> None:
-        self.hp_failsafe_switch_to_aquastat(from_handle=self.scada_blind_node.handle)
+        self.hp_failsafe_switch_to_aquastat(from_node=self.scada_blind_node)
     
     def leaving_scada_blind_actuator_actions(self) -> None:
-        self.hp_failsafe_switch_to_scada(from_handle=self.scada_blind_node.handle)
+        self.hp_failsafe_switch_to_scada(from_node=self.scada_blind_node)
         
     def leaving_onpeak_backup_actuator_actions(self) -> None:
-        """
-        If using oil boiler for onpeak backup, hp_failsafe_relay deos the following
-            - hp_failsafe_switch_to_scada 
-            - aquastat_ctrl_switch_to_scada
-        Otherwise:
-            - do nothing (heat pump will likely stay on during offpeak)
-        """
         if self.settings.oil_boiler_for_onpeak_backup:
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.hp_failsafe_relay.handle,
-                    EventType=ChangeHeatPumpControl.enum_name(),
-                    EventName=ChangeHeatPumpControl.SwitchToScada,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self.services.send(Message(Src=self.onpeak_backup_node.name,
-                                           Dst=self.hp_failsafe_relay.name,
-                                           Payload=event))
-
-                self.log(
-                    f"{self.onpeak_backup_node.handle} sending SwitchToTankAquastat to Hp Failsafe {H0N.hp_failsafe_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to change HpFailsafe relay to TankAquastat but did not have authority: {e}")
-
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.aquastat_control_relay.handle,
-                    EventType=ChangeAquastatControl.enum_name(),
-                    EventName=ChangeAquastatControl.SwitchToScada,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self.services.send(Message(Src=self.onpeak_backup_node.name,
-                                           Dst=self.hp_failsafe_relay.name,
-                                           Payload=event))
-
-                self.log(
-                    f"{self.node.handle} sending SwitchToScada to Boiler Ctrl {H0N.aquastat_ctrl_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to switch AquastatCtrl relay to Boiler but didn't have the rights: {e}")
+            self.hp_failsafe_switch_to_scada(from_node=self.onpeak_backup_node)
+            self.aquastat_ctrl_switch_to_scada(from_node=self.onpeak_backup_node)
 
     def onpeak_backup_actuator_actions(self) -> None:
         """
-        If using oil boiler for onpeak backup, hp_failsafe_relay deos the following:
-           - hp failsafe (relay 5) switch to aquastat
-           - aquastat ctrl (relay 8) switch to boiler
-        Otherwise:
-           -  turn on heat pump
-
         Expects set_onpeak_backup_command_tree already called, with self.onpeak_backup_node as boss
         WEAKNESS: SENDS MESSAGES TO RELAY ONLY VIA INTERNAL python QUEUE. WILL FAIL
         IF HOME ALONE IS PUT IN A DIFFERENT PROCESS THAN THE ACTUATORS
         """
-        
         if self.settings.oil_boiler_for_onpeak_backup:
-            
-            # hp failsafe (relay 5) switch to aquastat
-            # then aquastat ctrl (relay 8) switch to boiler
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.hp_failsafe_relay.handle,
-                    EventType=ChangeHeatPumpControl.enum_name(),
-                    EventName=ChangeHeatPumpControl.SwitchToTankAquastat,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                # CANNOT USE _send_to because that sends a message from the actor's node
-                # and this message needs to come from onpeak_backup_node
-                # NOTE: THIS ASSUMES THE RELAY IS IN THE SAME CODEBASE AS
-                # HOMEALONE.
-                self.services.send(Message(Src=self.onpeak_backup_node.name,
-                                           Dst=self.hp_failsafe_relay.name,
-                                           Payload=event))
-
-                self.log(
-                    f"{self.onpeak_backup_node.handle} sending SwitchToTankAquastat to Hp Failsafe {H0N.hp_failsafe_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to change HpFailsafe relay to TankAquastat but did not have authority: {e}")
-
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.aquastat_control_relay.handle,
-                    EventType=ChangeAquastatControl.enum_name(),
-                    EventName=ChangeAquastatControl.SwitchToBoiler,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self.services.send(Message(Src=self.onpeak_backup_node.name,
-                                           Dst=self.aquastat_control_relay.name,
-                                           Payload=event))
-                self.log(
-                    f"{self.onpeak_backup_node.handle} sending SwitchToBoiler to Boiler Ctrl {H0N.aquastat_ctrl_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to switch AquastatCtrl relay to Boiler but didn't have the rights: {e}")
+            self.hp_failsafe_switch_to_aquastat(from_node=self.onpeak_backup_node)
+            self.aquastat_ctrl_switch_to_boiler(from_node=self.onpeak_backup_node)
         else:
-            #  self.settings.oil_boiler_for_onpeak_backup -> turn on heat pump
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.hp_scada_ops_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_scada_ops_relay, event)
-                self.log(
-                    f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to change a relay but didn't have the rights: {e}")
+            self.turn_on_HP(from_node=self.onpeak_backup_node)
 
     def start(self) -> None:
         self.services.add_task(
