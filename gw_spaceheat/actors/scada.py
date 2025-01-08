@@ -499,6 +499,7 @@ class Scada(ScadaInterface, Proactor):
                 except Exception as e:
                     self.logger.error(f"Problem with  {message.Header}: {e}")
             case ChannelFlatlined():
+                self.logger.error(f"Channel {message.Payload.Channel.Name} flatlined - flusing from latest!")
                 self.data.flush_channel_from_latest(message.Payload.Channel.Name)
             case ChannelReadings():
                 if message.Header.Dst == self.name:
