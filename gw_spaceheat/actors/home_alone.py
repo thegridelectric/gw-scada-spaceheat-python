@@ -1,7 +1,6 @@
 import asyncio
-from typing import List, Sequence
+from typing import Sequence
 from enum import auto
-import uuid
 import time
 from datetime import datetime, timedelta
 import pytz
@@ -16,13 +15,11 @@ from actors.synth_generator import WeatherForecast
 from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
-from gwproto.enums import ChangeAquastatControl, ChangeHeatPumpControl, ChangeRelayState
 from gwproto.named_types import Alert
 
 from actors.scada_actor import ScadaActor
 from named_types import GoDormant, Ha1Params, NewCommandTree, SingleMachineState, WakeUp
 from enums import HomeAloneTopState
-from pydantic import ValidationError
 
 
 class HomeAloneState(GwStrEnum):
