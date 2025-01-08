@@ -633,6 +633,7 @@ class Scada(ScadaInterface, Proactor):
             case ScadaParams():
                 path_dbg |= 0x00000010
                 self._scada_params_received(decoded.Payload)
+                self.get_communicator(H0N.synth_generator).process_message(decoded)
             case _:
                 # Intentionally ignore this for forward compatibility
                 path_dbg |= 0x00000020
@@ -794,6 +795,7 @@ class Scada(ScadaInterface, Proactor):
                 self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF, testing)
             if new.DdDeltaTF != old.DdDeltaTF:
                 self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF, testing)
+
 
             response = ScadaParams(
                     FromGNodeAlias=self.hardware_layout.scada_g_node_alias,

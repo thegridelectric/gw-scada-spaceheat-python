@@ -16,7 +16,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, Ha1Params, RemainingElec
+from named_types import EnergyInstruction, Ha1Params, RemainingElec, ScadaParams
 from pydantic import Field
 
 # -------------- TODO: move to named_types -------------
@@ -157,6 +157,9 @@ class SynthGenerator(ScadaActor):
             case PowerWatts():
                 self.update_remaining_elec()
                 self.previous_watts = message.Payload.Watts
+            case ScadaParams():
+                self.log("Received new parameters, time to recompute forecasts!")
+                self.get_weather()
         return Ok(True)
     
     def fill_missing_store_temps(self):
@@ -399,8 +402,14 @@ class SynthGenerator(ScadaActor):
                     'ws': [0]*48,
                     }
 
+        if self.params.LoadOverestimationPercent < 0 or self.params.LoadOverestimationPercent > 100:
+            self.log("INCORRECT PARAMETER: LoadOverestimationPercent must be an int between 0 and 100")
+            load_increase_factor = 1
+        else:
+            load_increase_factor = (1+self.params.LoadOverestimationPercent/100)
+        self.log(f"Load increase factor: {load_increase_factor}")
         self.weather['avg_power'] = [
-            self.required_heating_power(oat, ws) 
+            self.required_heating_power(oat, ws) * load_increase_factor
             for oat, ws in zip(self.weather['oat'], self.weather['ws'])
             ]
         self.weather['required_swt'] = [
