@@ -245,7 +245,7 @@ class Scada(ScadaInterface, Proactor):
         self._dispatch_live_hack = False
         self.pending_dispatch: Optional[AnalogDispatch] = None
         if actor_nodes is not None:
-            for actor_node in [x for x in actor_nodes if x != self.layout.node(H0N.pico_cycler)]:
+            for actor_node in actor_nodes:
                 self.add_communicator(
                     ActorInterface.load(
                         actor_node.Name,

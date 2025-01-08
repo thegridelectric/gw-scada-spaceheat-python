@@ -131,6 +131,9 @@ class HomeAlone(ScadaActor):
         self.storage_declared_ready = False
         self.full_storage_energy = None
         self.time_since_blind = None
+        self.initialized_relays = False
+        self.scadablind_scada = False
+        self.scadablind_boiler = False
         
         self.state: HomeAloneState = HomeAloneState.Initializing  
         self.machine = Machine(
@@ -160,12 +163,22 @@ class HomeAlone(ScadaActor):
         self.zone_setpoints = {}
     
     @property
-    def node(self) -> ShNode:
+    def normal_node(self) -> ShNode:
         """
         Overwrite the standard 
         """
         return self.layout.node(H0N.home_alone_normal)
 
+
+    @property
+    def top_node(self) -> ShNode:
+        """ 
+        The node / state machine responsible
+        for normal home alone operations
+        """
+        return self.layout.node(H0N.home_alone)
+    
+    
     @property
     def top_node(self) -> ShNode:
         """ 
@@ -207,7 +220,7 @@ class HomeAlone(ScadaActor):
         self._send_to(
             self.primary_scada,
             SingleMachineState(
-                MachineHandle=self.node.handle,
+                MachineHandle=self.normal_node.handle,
                 StateEnum=HomeAloneState.enum_name(),
                 State=self.state,
                 UnixMs=now_ms,
@@ -259,7 +272,7 @@ class HomeAlone(ScadaActor):
         self._send_to(
             self.primary_scada,
             SingleMachineState(
-                MachineHandle=self.top_node.handle,
+                MachineHandle=self.normal_node.handle,
                 StateEnum=HomeAloneTopState.enum_name(),
                 State=self.top_state,
                 UnixMs=now_ms,
@@ -310,6 +323,8 @@ class HomeAlone(ScadaActor):
             self.log(f"Top state: {self.top_state}")
             self.log(f"State: {self.state}")
 
+            self.get_latest_temperatures()
+
             # Update top state
             if self.top_state == HomeAloneTopState.Normal:
                 if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
@@ -318,11 +333,18 @@ class HomeAlone(ScadaActor):
                 self.trigger_just_offpeak()
             elif self.top_state == HomeAloneTopState.ScadaBlind:
                 if self.forecasts and self.temperatures_available:
+                    self.log("Forecasts and temperatures are both available again!")
                     self.trigger_data_available()
                 elif self.is_onpeak() and self.settings.oil_boiler_for_onpeak_backup:
-                    self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
+                    if not self.scadablind_boiler:
+                        self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
+                        self.scadablind_boiler = True
+                        self.scadablind_scada = False
                 else:
-                    self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
+                    if not self.scadablind_scada:
+                        self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
+                        self.scadablind_boiler = False
+                        self.scadablind_scada = True
             
             # Update state
             if self.state != HomeAloneState.Dormant:
@@ -339,8 +361,11 @@ class HomeAlone(ScadaActor):
         if waking_up:
             if self.state == HomeAloneState.Dormant:
                 self.trigger_normal_event(HomeAloneEvent.WakeUp)
-            self.initialize_relays()
-            self.time_since_blind = None
+                self.time_since_blind = None
+                self.initialized_relays = False
+            if not self.initialized_relays:
+                self.initialize_relays()
+                self.initialized_relays = True
         
         previous_state = self.state
 
@@ -352,12 +377,10 @@ class HomeAlone(ScadaActor):
         if ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57) or self.zone_setpoints=={}:
             self.get_zone_setpoints()
         
-        self.get_latest_temperatures()
-
         if not (self.forecasts and self.temperatures_available):
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
-            elif time.time() - self.time_since_blind > 2*60 and self.top_state==HomeAloneTopState.Normal:
+            elif time.time() - self.time_since_blind > 5*60 and self.top_state==HomeAloneTopState.Normal:
                 self.log("Scada is missing forecasts and/or critical temperatures since at least 5 min.")
                 self.log("Moving into ScadaBlind top state")
                 self.trigger_missing_data()
@@ -439,29 +462,31 @@ class HomeAlone(ScadaActor):
                 elif self.is_storage_colder_than_buffer():
                     self.trigger_normal_event(HomeAloneEvent.OnPeakStorageColderThanBuffer)
 
-        if (self.state != previous_state):
+        if (self.state != previous_state) and self.top_state == HomeAloneTopState.Normal:
             self.update_relays(previous_state)
 
 
     def update_relays(self, previous_state) -> None:
+        if self.top_state != HomeAloneTopState.Normal:
+            raise Exception("Can not go into update_relays if top state is not Normal")
         if self.state == HomeAloneState.Dormant or self.state == HomeAloneState.Initializing:
             return
         if "HpOn" not in previous_state and "HpOn" in self.state:
-            self.turn_on_HP()
+            self.turn_on_HP(from_node=self.normal_node)
         if "HpOff" not in previous_state and "HpOff" in self.state:
-            self.turn_off_HP()
+            self.turn_off_HP(from_node=self.normal_node)
         if "StoreDischarge" in self.state:
-            self.turn_on_store_pump()
+            self.turn_on_store_pump(from_node=self.normal_node)
         else:
-            self.turn_off_store_pump()         
+            self.turn_off_store_pump(from_node=self.normal_node)         
         if "StoreCharge" in self.state:
-            self.valved_to_charge_store()
+            self.valved_to_charge_store(from_node=self.normal_node)
         else:
-            self.valved_to_discharge_store()
+            self.valved_to_discharge_store(from_node=self.normal_node)
 
     def initialize_relays(self):
-        if self.state == HomeAloneState.Dormant:
-            self.log("Not initializing relays! Dormant!")
+        if self.top_state != HomeAloneTopState.Normal:
+            raise Exception("Can not go into initialize relays if top state is not Normal")
         self.log("Initializing relays")
         my_relays =  {
             relay
@@ -474,13 +499,13 @@ class HomeAlone(ScadaActor):
             self.hp_scada_ops_relay, # keep as it was unless on peak
             self.aquastat_control_relay 
         }:
-            self.de_energize(relay)
-        self.hp_failsafe_switch_to_scada()
-        self.aquastat_ctrl_switch_to_scada()
+            self.de_energize(relay, from_node=self.normal_node)
+        self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
+        self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
 
         if self.is_onpeak():
             self.log("Is on peak: turning off HP")
-            self.turn_off_HP()
+            self.turn_off_HP(from_node=self.normal_node)
     
     def trigger_just_offpeak(self):
         """
@@ -513,6 +538,8 @@ class HomeAlone(ScadaActor):
         self.MissingData()
         self.scada_blind_actuator_actions()
         self.top_state_update(cause=TopStateEvent.MissingData)
+        self.scadablind_boiler = False
+        self.scadablind_scada = False
 
     def trigger_data_available(self):
         if self.top_state != HomeAloneTopState.ScadaBlind:
@@ -806,7 +833,7 @@ class HomeAlone(ScadaActor):
         alert_str = f"[ALERT] {msg}"
         self._services._links.publish_upstream(payload=Alert(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            AboutNode=self.node,
+            AboutNode=self.normal_node,
             OpsGenieAlias=alias,
             UnixS=int(time.time()),
             Summary=msg
