@@ -326,7 +326,7 @@ class HomeAlone(ScadaActor):
             elif self.top_state == HomeAloneTopState.ScadaBlind:
                 if self.weather and self.temperatures_available:
                     self.trigger_data_available()
-                elif self.is_onpeak():
+                elif self.is_onpeak() and self.settings.oil_boiler_for_onpeak_backup:
                     self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
                 else:
                     self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
