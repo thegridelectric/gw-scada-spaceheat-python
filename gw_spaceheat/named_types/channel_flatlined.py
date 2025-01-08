@@ -11,7 +11,6 @@ from typing_extensions import Self
 class ChannelFlatlined(BaseModel):
     FromName: SpaceheatName
     Channel: DataChannelGt
-    FlatlinedSeconds: int
     TypeName: Literal["channel.flatlined"] = "channel.flatlined"
     Version: Literal["000"] = "000"
 
