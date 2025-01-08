@@ -70,7 +70,7 @@ class ScadaData:
             ch.Name: [] for ch in self.my_channels
         }
         self.recent_fsm_reports = {}
-        self.flush_latest_readings()
+        self.flush_recent_readings()
 
     def get_my_data_channels(self) -> List[DataChannel]:
         return list(self.layout.data_channels.values())
@@ -78,7 +78,14 @@ class ScadaData:
     def get_my_synth_channels(self) -> List[SynthChannel]:
         return list(self.layout.synth_channels.values())
 
-    def flush_latest_readings(self):
+    def flush_channel_from_latest(self, channel_name: str) -> None:
+        """
+        A data channel has flatlined; set its dict value to None
+        """
+        self.latest_channel_values[channel_name] = None
+        self.latest_channel_unix_ms[channel_name] = None
+
+    def flush_recent_readings(self):
         self.recent_channel_values = {ch.Name: [] for ch in self.my_channels}
         self.recent_channel_unix_ms = {ch.Name: [] for ch in self.my_channels}
         self.recent_fsm_reports = {}

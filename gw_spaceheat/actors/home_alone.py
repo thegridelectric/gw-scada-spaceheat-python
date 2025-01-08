@@ -1,7 +1,6 @@
 import asyncio
-from typing import List, Sequence
+from typing import Sequence
 from enum import auto
-import uuid
 import time
 from datetime import datetime, timedelta
 import pytz
@@ -15,13 +14,11 @@ from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
-from gwproto.enums import ChangeAquastatControl, ChangeHeatPumpControl, ChangeRelayState
 from gwproto.named_types import Alert
 
 from actors.scada_actor import ScadaActor
 from named_types import GoDormant, Ha1Params, NewCommandTree, SingleMachineState, WakeUp, HeatingForecast
 from enums import HomeAloneTopState
-from pydantic import ValidationError
 
 
 class HomeAloneState(GwStrEnum):
@@ -312,10 +309,6 @@ class HomeAlone(ScadaActor):
             self.log(f"Top state: {self.top_state}")
             self.log(f"State: {self.state}")
 
-            if self.state == HomeAloneState.Initializing:
-                self.initialize_relays()
-                await asyncio.sleep(3)
-            
             # Update top state
             if self.top_state == HomeAloneTopState.Normal:
                 if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
@@ -332,10 +325,22 @@ class HomeAlone(ScadaActor):
             
             # Update state
             if self.state != HomeAloneState.Dormant:
-                self.engage_brain()
+                self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    def engage_brain(self) -> None:
+    def engage_brain(self, waking_up: bool = False) -> None:
+        """
+        Manages the logic for the Normal top state, (ie. self.state)
+        """
+        if self.top_state != HomeAloneTopState.Normal:
+            raise Exception(f"brain is only for Normal top state, not {self.top_state}")
+
+        if waking_up:
+            if self.state == HomeAloneState.Dormant:
+                self.trigger_normal_event(HomeAloneEvent.WakeUp)
+            self.initialize_relays()
+            self.time_since_blind = None
+        
         previous_state = self.state
 
         if self.is_onpeak():
@@ -355,6 +360,8 @@ class HomeAlone(ScadaActor):
                 self.log("Scada is missing forecasts and/or critical temperatures since at least 5 min.")
                 self.log("Moving into ScadaBlind top state")
                 self.trigger_missing_data()
+            elif self.time_since_blind is not None and self.top_state==HomeAloneTopState.Normal:
+                self.log(f"Blind since {int(time.time() - self.time_since_blind)} seconds")
         else:
             if self.time_since_blind is not None:
                 self.time_since_blind = None
@@ -436,7 +443,7 @@ class HomeAlone(ScadaActor):
 
 
     def update_relays(self, previous_state) -> None:
-        if self.state==HomeAloneState.Dormant.value or self.state==HomeAloneState.Initializing.value:
+        if self.state == HomeAloneState.Dormant or self.state == HomeAloneState.Initializing:
             return
         if "HpOn" not in previous_state and "HpOn" in self.state:
             self.turn_on_HP()
@@ -450,6 +457,29 @@ class HomeAlone(ScadaActor):
             self.valved_to_charge_store()
         else:
             self.valved_to_discharge_store()
+
+    def initialize_relays(self):
+        if self.state == HomeAloneState.Dormant:
+            self.log("Not initializing relays! Dormant!")
+        self.log("Initializing relays")
+        my_relays =  {
+            relay
+            for relay in self.my_actuators()
+            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
+        }
+        for relay in my_relays - {
+            self.store_charge_discharge_relay, # keep as it was
+            self.hp_failsafe_relay,
+            self.hp_scada_ops_relay, # keep as it was unless on peak
+            self.aquastat_control_relay 
+        }:
+            self.de_energize(relay)
+        self.hp_failsafe_switch_to_scada()
+        self.aquastat_ctrl_switch_to_scada()
+
+        if self.is_onpeak():
+            self.log("Is on peak: turning off HP")
+            self.turn_off_HP()
     
     def trigger_just_offpeak(self):
         """
@@ -546,9 +576,10 @@ class HomeAlone(ScadaActor):
                     self.TopWakeUp()
                     # Command tree should already be set. No trouble doing it again
                     self.set_normal_command_tree() 
-                    # WakeUp: Dormant -> Initializing, but rename that ..
-                    self.trigger_normal_event(HomeAloneEvent.WakeUp)
-                    self.initialize_relays()
+                    # engage brain will WakeUp: Dormant -> Initializing
+                    # run the appropriate relay initialization and then
+                    # evaluate if it can move into a known state
+                    self.engage_brain(waking_up = True)
             case HeatingForecast():
                 self.log("Received heating forecast")
                 self.forecasts: HeatingForecast = message.Payload
@@ -617,29 +648,6 @@ class HomeAlone(ScadaActor):
         required_storage = self.data.latest_channel_values[H0N.required_energy]
         if total_usable_kwh is None or required_storage is None:
             self.temperatures_available = False
-    
-    def initialize_relays(self):
-        if self.state == HomeAloneState.Dormant:
-            self.log("Not initializing relays! Dormant!")
-        self.log("Initializing relays")
-        my_relays =  {
-            relay
-            for relay in self.my_actuators()
-            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
-        }
-        for relay in my_relays - {
-            self.store_charge_discharge_relay, # keep as it was
-            self.hp_failsafe_relay,
-            self.hp_scada_ops_relay, # keep as it was unless on peak
-            self.aquastat_control_relay 
-        }:
-            self.de_energize(relay)
-        self.hp_failsafe_switch_to_scada()
-        self.aquastat_ctrl_switch_to_scada()
-
-        if self.is_onpeak():
-            self.log("Is on peak: turning off HP")
-            self.turn_off_HP()
 
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)

@@ -6,7 +6,7 @@ import aiohttp
 import numpy as np
 from typing import Optional, Sequence
 from result import Ok, Result
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from actors.scada_data import ScadaData
 from gwproto import Message
 
@@ -16,9 +16,8 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import (EnergyInstruction, Ha1Params, RemainingElec, PicoMissing, 
+from named_types import (EnergyInstruction, Ha1Params, RemainingElec, 
                          WeatherForecast, HeatingForecast, PriceForecast, ScadaParams)
-from gwproto.enums import ActorClass
 
 
 class SynthGenerator(ScadaActor):
@@ -38,12 +37,6 @@ class SynthGenerator(ScadaActor):
         self.elec_assigned_amount = None
         self.previous_time = None
         self.temperatures_available = False
-
-        self.pico_tanks = [node for node in self.layout.nodes.values() if node.ActorClass==ActorClass.ApiTankModule]
-        self.ab_by_pico = {}
-        for node in self.pico_tanks:
-            self.ab_by_pico[node.component.gt.PicoAHwUid] = 'a'
-            self.ab_by_pico[node.component.gt.PicoBHwUid] = 'b'
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -144,17 +137,6 @@ class SynthGenerator(ScadaActor):
             case PowerWatts():
                 self.update_remaining_elec()
                 self.previous_watts = message.Payload.Watts
-            case PicoMissing():
-                self.log(f"Pico missing: {message.Payload.ActorName}-{self.ab_by_pico[message.Payload.PicoHwUid]}")
-                channel_names = []
-                if self.ab_by_pico[message.Payload.PicoHwUid]=='a':
-                    channel_names = [f'{message.Payload.ActorName}-depth1',f'{message.Payload.ActorName}-depth2']
-                elif self.ab_by_pico[message.Payload.PicoHwUid]=='b':
-                    channel_names = [f'{message.Payload.ActorName}-depth3',f'{message.Payload.ActorName}-depth4']
-                for channel_name in channel_names:
-                    if channel_name in self.data.latest_channel_values:
-                        self.log(f"Deleting the latest value for {channel_name} in latest_channel_values")
-                        self.data.latest_channel_values[channel_name] = None
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
                 self.get_weather()
@@ -359,7 +341,7 @@ class SynthGenerator(ScadaActor):
             }
             forecasts_48h = dict(list(forecasts_all.items())[:48])
             weather = {
-                'time': list(forecasts_48h.keys()),
+                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_all.keys())],
                 'oat': list(forecasts_48h.values()),
                 'ws': [0]*len(forecasts_48h)
                 }
@@ -368,7 +350,7 @@ class SynthGenerator(ScadaActor):
             # Save 96h weather forecast to a local file
             forecasts_96h = dict(list(forecasts_all.items())[:96])
             weather_96h = {
-                'time': [x.timestamp() for x in list(forecasts_96h.keys())],
+                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_96h.keys())],
                 'oat': list(forecasts_96h.values()),
                 'ws': [0]*len(forecasts_96h)
                 }
@@ -381,11 +363,13 @@ class SynthGenerator(ScadaActor):
                 # Try reading an old forecast from local file
                 with open(weather_file, 'r') as f:
                     weather_96h = json.load(f)
+                    weather_96h_time_backup = weather_96h['time'].copy()
                     weather_96h['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_96h['time']]
                 if weather_96h['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=48):
                     self.log("A valid weather forecast is available locally.")
                     time_late = weather_96h['time'][0] - datetime.now(self.timezone)
                     hours_late = int(time_late.total_seconds()/3600)
+                    weather_96h['time'] = weather_96h_time_backup
                     weather = weather_96h
                     for key in weather:
                         weather[key] = weather[key][hours_late:hours_late+48]
@@ -393,7 +377,7 @@ class SynthGenerator(ScadaActor):
                     self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                     current_month = datetime.now().month-1
                     weather = {
-                        'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+                        'time': [int(time.time()+(1+x)*3600) for x in range(48)],
                         'oat': [self.coldest_oat_by_month[current_month]]*48,
                         'ws': [0]*48,
                         }
@@ -401,7 +385,7 @@ class SynthGenerator(ScadaActor):
                 self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                 current_month = datetime.now().month-1
                 weather = {
-                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+                    'time': [int(time.time()+(1+x)*3600) for x in range(48)],
                     'oat': [self.coldest_oat_by_month[current_month]]*48,
                     'ws': [0]*48,
                     }
