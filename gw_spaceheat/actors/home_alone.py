@@ -310,10 +310,6 @@ class HomeAlone(ScadaActor):
             self.log(f"Top state: {self.top_state}")
             self.log(f"State: {self.state}")
 
-            if self.state == HomeAloneState.Initializing:
-                self.initialize_relays()
-                await asyncio.sleep(3)
-            
             # Update top state
             if self.top_state == HomeAloneTopState.Normal:
                 if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
@@ -333,9 +329,15 @@ class HomeAlone(ScadaActor):
                 self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    def engage_brain(self) -> None:
-        previous_state = self.state
+    def engage_brain(self, waking_up: bool = False) -> None:
 
+        if waking_up and self.state == HomeAloneState.Dormant:
+            # WakeUp: Dormant -> Initializing
+            self.trigger_normal_event(HomeAloneEvent.WakeUp)
+            self.initialize_relays()
+
+        previous_state = self.state
+  
         if self.is_onpeak():
             self.storage_declared_ready = False
             self.full_storage_energy = None
@@ -431,10 +433,13 @@ class HomeAlone(ScadaActor):
 
         if (self.state != previous_state):
             self.update_relays(previous_state)
+        
+        if self.state == HomeAloneState.Initializing and self.temperatures_available:
+            self.engage_brain()
 
 
     def update_relays(self, previous_state) -> None:
-        if self.state==HomeAloneState.Dormant.value or self.state==HomeAloneState.Initializing.value:
+        if self.state == HomeAloneState.Dormant or self.state == HomeAloneState.Initializing:
             return
         if "HpOn" not in previous_state and "HpOn" in self.state:
             self.turn_on_HP()
@@ -448,6 +453,40 @@ class HomeAlone(ScadaActor):
             self.valved_to_charge_store()
         else:
             self.valved_to_discharge_store()
+
+    def initialize_relays(self):
+        """
+         - De-energizes all relays outside of core relays used in home alone.
+         - Switches Hp Failsafe relay to Scada
+         - Switches aquastat control to Scada
+         - does not cjhange store charge/discharge relay or store pump failsafe
+         - turns off HP if offpeak
+        """
+        if self.state != HomeAloneState.Initializing:
+            self.log(f"Only initializes relays in state Initializing, not {self.state}")
+            return
+        self.log("Initializing relays")
+        my_relays =  {
+            relay
+            for relay in self.my_actuators()
+            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
+        }
+        for relay in my_relays - {
+            # addressing here
+            self.store_charge_discharge_relay,
+            self.aquastat_control_relay, 
+            self.hp_scada_ops_relay,
+            # addressed in update relays
+            self.store_charge_discharge_relay,
+            self.store_pump_failsafe,
+        }:
+            self.de_energize(relay)
+        self.hp_failsafe_switch_to_scada()
+        self.aquastat_ctrl_switch_to_scada()
+
+        if self.is_onpeak():
+            self.log("is on peak so turning off HP")
+            self.turn_off_HP()
     
     def trigger_just_offpeak(self):
         """
@@ -544,9 +583,10 @@ class HomeAlone(ScadaActor):
                     self.TopWakeUp()
                     # Command tree should already be set. No trouble doing it again
                     self.set_normal_command_tree() 
-                    # WakeUp: Dormant -> Initializing, but rename that ..
-                    self.trigger_normal_event(HomeAloneEvent.WakeUp)
-                    self.initialize_relays()
+                    # engage brain will WakeUp: Dormant -> Initializing
+                    # run the appropriate relay initialization and then
+                    # evaluate if it can move into a known state
+                    self.engage_brain(waking_up = True)
             case WeatherForecast():
                 self.log("Received weather forecast")
                 self.weather = {
@@ -624,37 +664,6 @@ class HomeAlone(ScadaActor):
         if total_usable_kwh is None or required_storage is None:
             self.temperatures_available = False
     
-    def initialize_relays(self):
-        if self.state == HomeAloneState.Dormant:
-            self.log("Not initializing relays! Dormant!")
-        self.log("Initializing relays")
-        my_relays =  {
-            relay
-            for relay in self.my_actuators()
-            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
-        }
-        for relay in my_relays - {
-            self.store_charge_discharge_relay, # keep as it was
-            self.hp_failsafe_relay,
-            self.hp_scada_ops_relay, # keep as it was unless on peak
-            self.aquastat_control_relay 
-        }:
-            self.de_energize(relay)
-        self.hp_failsafe_switch_to_scada()
-        self.aquastat_ctrl_switch_to_scada()
-
-        if self.is_onpeak():
-            self.log("is on peak so turning off HP")
-            self.turn_off_HP()
-        # TODO: ADDRESS backup gap. If temperatures_available is never true
-        # say if wifi is down -  then the heat pump will never go on.
-        #
-        # Proposal: if initializing_relays lasts for more than 10 minutes
-        # then it times out and goes to a new high-level state called
-        # ScadaBlind ... which is something like a timer (if oil boiler exists)
-        # alternating between heat pump and oil boiler running on aquastat control
-        # or is just running the heat pump alone on aquastat (if oil boiler does not exist)
-
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
         time_in_2min = time_now + timedelta(minutes=2)
