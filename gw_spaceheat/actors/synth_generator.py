@@ -120,7 +120,7 @@ class SynthGenerator(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.forecasts is None or datetime.now(self.timezone)>self.forecasts.Time[0]:
+            if self.forecasts is None or time.time()>self.forecasts.Time[0]:
                 await self.get_forecasts(session)
 
             self.get_latest_temperatures()
@@ -268,16 +268,17 @@ class SynthGenerator(ScadaActor):
             )
         
     def get_required_storage(self, time_now: datetime) -> float:
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
         morning_kWh = sum(
-            [kwh for t, kwh in zip(list(self.forecasts.Time), list(self.forecasts.AvgPower)) 
+            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw) 
              if 7<=t.hour<=11]
             )
         midday_kWh = sum(
-            [kwh for t, kwh in zip(list(self.forecasts.Time), list(self.forecasts.AvgPower)) 
+            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
              if 12<=t.hour<=15]
             )
         afternoon_kWh = sum(
-            [kwh for t, kwh in zip(list(self.forecasts.Time), list(self.forecasts.AvgPower)) 
+            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
              if 16<=t.hour<=19]
             )
         # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
@@ -408,8 +409,8 @@ class SynthGenerator(ScadaActor):
         # TODO: broadcast weather forecast for ability to analyze HomeAlone actions
         self.weather_forecast = WeatherForecast(
             Time = weather['time'],
-            Oat = weather['oat'],
-            WindSpeed= weather['ws']
+            OatF = weather['oat'],
+            WindSpeedMph= weather['ws']
         )
 
     async def get_forecasts(self, session: aiohttp.ClientSession):
@@ -423,44 +424,45 @@ class SynthGenerator(ScadaActor):
         forecasts['time'] = self.weather_forecast.Time
         forecasts['avg_power'] = [
             self.required_heating_power(oat, ws) 
-            for oat, ws in zip(self.weather_forecast.Oat, self.weather_forecast.WindSpeed)]
+            for oat, ws in zip(self.weather_forecast.OatF, self.weather_forecast.WindSpeedMph)]
         forecasts['required_swt'] = [self.required_swt(x) for x in forecasts['avg_power']]
         forecasts['required_swt_delta_T'] = [round(self.delta_T(x),2) for x in forecasts['required_swt']]
 
         # Send full forecast to relevant scada actors
         hf = HeatingForecast(
             Time = forecasts['time'],
-            AvgPower = forecasts['avg_power'],
-            Rswt = forecasts['required_swt'],
-            RswtDeltaT = forecasts['required_swt_delta_T']
+            AvgPowerKw = forecasts['avg_power'],
+            RswtF = forecasts['required_swt'],
+            RswtDeltaTF = forecasts['required_swt_delta_T']
         )
         self._send_to(self.home_alone, hf)
         
         # Crop to use only 24 hours of forecast in this code
         self.forecasts = HeatingForecast(
             Time = forecasts['time'][:24],
-            AvgPower = forecasts['avg_power'][:24],
-            Rswt = forecasts['required_swt'][:24],
-            RswtDeltaT = forecasts['required_swt_delta_T'][:24]
+            AvgPowerKw = forecasts['avg_power'][:24],
+            RswtF = forecasts['required_swt'][:24],
+            RswtDeltaTF = forecasts['required_swt_delta_T'][:24]
         )
-        self.log(f"OAT = {self.weather_forecast.Oat[:24]}")
-        self.log(f"Average Power = {self.forecasts.AvgPower}")
-        self.log(f"RSWT = {self.forecasts.Rswt}")
-        self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.forecasts.Rswt]}")
+        self.log(f"OAT = {self.weather_forecast.OatF[:24]}")
+        self.log(f"Average Power = {self.forecasts.AvgPowerKw}")
+        self.log(f"RSWT = {self.forecasts.RswtF}")
+        self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.forecasts.RswtF]}")
 
     def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
         if self.forecasts is None:
             self.log("Forecasts are not available, can not find RWT")
             return
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
         timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 12:
             required_swt = max(
-                [rswt for t, rswt in zip(self.forecasts.Time, self.forecasts.Rswt)
+                [rswt for t, rswt in zip(forecasts_times_tz, self.forecasts.RswtF)
                 if t.hour in [7,8,9,10,11,16,17,18,19]]
                 )
         else:
             required_swt = max(
-                [rswt for t, rswt in zip(self.forecasts.Time, self.forecasts.Rswt)
+                [rswt for t, rswt in zip(forecasts_times_tz, self.forecasts.RswtF)
                 if t.hour in [16,17,18,19]]
                 )
         if return_rswt_onpeak:

@@ -1,11 +1,11 @@
 from typing import Literal, List
 from pydantic import BaseModel
-from datetime import datetime
+from gwproto.property_format import UTCSeconds
 
 class HeatingForecast(BaseModel):
-    Time: List[datetime]
-    AvgPower: List[float]
-    Rswt: List[float]
-    RswtDeltaT: List[float]
+    Time: List[UTCSeconds]
+    AvgPowerKw: List[float]
+    RswtF: List[float]
+    RswtDeltaTF: List[float]
     TypeName: Literal["heating.forecast"] = "heating.forecast"
     Version: Literal["000"] = "000"
