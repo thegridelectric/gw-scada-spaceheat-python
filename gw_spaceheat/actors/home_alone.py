@@ -356,7 +356,7 @@ class HomeAlone(ScadaActor):
         if not (self.forecasts and self.temperatures_available):
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
-            elif time.time() - self.time_since_blind > 5*60 and self.top_state==HomeAloneTopState.Normal:
+            elif time.time() - self.time_since_blind > 2*60 and self.top_state==HomeAloneTopState.Normal:
                 self.log("Scada is missing forecasts and/or critical temperatures since at least 5 min.")
                 self.log("Moving into ScadaBlind top state")
                 self.trigger_missing_data()
