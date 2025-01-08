@@ -314,8 +314,8 @@ class HomeAlone(ScadaActor):
 
             # Update top state
             if self.top_state == HomeAloneTopState.Normal:
-                    if self.house_is_cold_onpeak():
-                        self.trigger_house_cold_onpeak_event()
+                if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
+                    self.trigger_house_cold_onpeak_event()
                         
             elif self.top_state == HomeAloneTopState.UsingBackupOnpeak:
                 if just_offpeak:
@@ -430,17 +430,19 @@ class HomeAlone(ScadaActor):
 
 
     def update_relays(self, previous_state) -> None:
+        if self.state==HomeAloneState.Dormant.value or self.state==HomeAloneState.Initializing.value:
+            return
         if "HpOn" not in previous_state and "HpOn" in self.state:
             self.turn_on_HP()
         if "HpOff" not in previous_state and "HpOff" in self.state:
             self.turn_off_HP()
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump()
-        if "StoreDischarge" not in self.state:
-            self.turn_off_store_pump()
-        if "StoreCharge" not in previous_state and "StoreCharge" in self.state:
+        else:
+            self.turn_off_store_pump()         
+        if "StoreCharge" in self.state:
             self.valved_to_charge_store()
-        if "StoreCharge" in previous_state and "StoreCharge" not in self.state:
+        else:
             self.valved_to_discharge_store()
     
     def trigger_just_offpeak(self):

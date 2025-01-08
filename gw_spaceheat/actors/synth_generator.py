@@ -16,7 +16,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, Ha1Params, RemainingElec, ScadaInit, ScadaParams
+from named_types import EnergyInstruction, Ha1Params, RemainingElec, ScadaParams
 from pydantic import Field
 
 # -------------- TODO: move to named_types -------------
@@ -130,7 +130,6 @@ class SynthGenerator(ScadaActor):
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
         await self.get_weather(session)
         await asyncio.sleep(2)
-        self._send_to(self.primary_scada, ScadaInit(FromGNodeAlias=self.layout.atn_g_node_alias))
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
