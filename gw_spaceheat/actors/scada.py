@@ -42,7 +42,6 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from actors.synth_generator import WeatherForecast
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -54,7 +53,7 @@ from gwproactor.proactor_implementation import Proactor
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
 from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, DispatchContractGoDormant,
-                        DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
+                        DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, HeatingForecast,
                         LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
                         ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp)
 
@@ -570,7 +569,7 @@ class Scada(ScadaInterface, Proactor):
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case WakeUp():
                 self.get_communicator(message.Header.Dst).process_message(message)
-            case WeatherForecast():
+            case HeatingForecast():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
                     self.get_communicator(H0N.home_alone).process_message(message)

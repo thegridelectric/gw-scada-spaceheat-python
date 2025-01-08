@@ -12,7 +12,6 @@ from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass
 from actors.scada_data import ScadaData
-from actors.synth_generator import WeatherForecast
 from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
@@ -20,7 +19,7 @@ from gwproto.enums import ChangeAquastatControl, ChangeHeatPumpControl, ChangeRe
 from gwproto.named_types import Alert
 
 from actors.scada_actor import ScadaActor
-from named_types import GoDormant, Ha1Params, NewCommandTree, SingleMachineState, WakeUp
+from named_types import GoDormant, Ha1Params, NewCommandTree, SingleMachineState, WakeUp, HeatingForecast
 from enums import HomeAloneTopState
 from pydantic import ValidationError
 
@@ -159,7 +158,7 @@ class HomeAlone(ScadaActor):
         self.oil_boiler_during_onpeak = self.settings.oil_boiler_for_onpeak_backup
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        self.weather = None
+        self.forecasts: HeatingForecast = None
         self.zone_setpoints = {}
     
     @property
@@ -189,7 +188,7 @@ class HomeAlone(ScadaActor):
     def scada_blind_node(self) -> ShNode:
         """
         THe node / state machine responsible
-        for when the scada has missing data (weather / temperatures)
+        for when the scada has missing data (forecasts / temperatures)
         """
         return self.layout.node(H0N.home_alone_scada_blind)
 
@@ -324,7 +323,7 @@ class HomeAlone(ScadaActor):
             elif self.top_state == HomeAloneTopState.UsingBackupOnpeak and not self.is_onpeak():
                 self.trigger_just_offpeak()
             elif self.top_state == HomeAloneTopState.ScadaBlind:
-                if self.weather and self.temperatures_available:
+                if self.forecasts and self.temperatures_available:
                     self.trigger_data_available()
                 elif self.is_onpeak() and self.settings.oil_boiler_for_onpeak_backup:
                     self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
@@ -349,11 +348,11 @@ class HomeAlone(ScadaActor):
         
         self.get_latest_temperatures()
 
-        if not (self.weather and self.temperatures_available):
+        if not (self.forecasts and self.temperatures_available):
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
             elif time.time() - self.time_since_blind > 5*60 and self.top_state==HomeAloneTopState.Normal:
-                self.log("Scada is missing weather and/or critical temperatures since at least 5 min.")
+                self.log("Scada is missing forecasts and/or critical temperatures since at least 5 min.")
                 self.log("Moving into ScadaBlind top state")
                 self.trigger_missing_data()
         else:
@@ -550,17 +549,9 @@ class HomeAlone(ScadaActor):
                     # WakeUp: Dormant -> Initializing, but rename that ..
                     self.trigger_normal_event(HomeAloneEvent.WakeUp)
                     self.initialize_relays()
-            case WeatherForecast():
-                self.log("Received weather forecast")
-                self.weather = {
-                    'time': message.Payload.Time,
-                    'oat': message.Payload.OatForecast, 
-                    'ws': message.Payload.WsForecast,
-                    'required_swt': message.Payload.RswtForecast,
-                    'avg_power': message.Payload.AvgPowerForecast,
-                    'required_swt_deltaT': message.Payload.RswtDeltaTForecast,
-                    }
-                # Only engage_brain if we were waiting for weather data
+            case HeatingForecast():
+                self.log("Received heating forecast")
+                self.forecasts: HeatingForecast = message.Payload
                 if self.state == HomeAloneState.Initializing:
                     self.log(f"Top state: {self.top_state}")
                     self.log(f"State: {self.state}")
@@ -647,16 +638,8 @@ class HomeAlone(ScadaActor):
         self.aquastat_ctrl_switch_to_scada()
 
         if self.is_onpeak():
-            self.log("is on peak so turning off HP")
+            self.log("Is on peak: turning off HP")
             self.turn_off_HP()
-        # TODO: ADDRESS backup gap. If temperatures_available is never true
-        # say if wifi is down -  then the heat pump will never go on.
-        #
-        # Proposal: if initializing_relays lasts for more than 10 minutes
-        # then it times out and goes to a new high-level state called
-        # ScadaBlind ... which is something like a timer (if oil boiler exists)
-        # alternating between heat pump and oil boiler running on aquastat control
-        # or is just running the heat pump alone on aquastat (if oil boiler does not exist)
 
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
@@ -679,34 +662,36 @@ class HomeAlone(ScadaActor):
         else:
             self.alert(alias="buffer_empty_fail", msg="Impossible to know if the buffer is empty!")
             return False
-        max_rswt_next_3hours = max(self.weather['required_swt'][:3])
-        max_deltaT_rswt_next_3_hours = max(self.weather['required_swt_deltaT'][:3])
+        max_rswt_next_3hours = max(self.forecasts.Rswt[:3])
+        max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaT[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
-        if self.latest_temperatures[buffer_empty_ch]/1000*9/5+32 < min_buffer: # TODO use to_fahrenheit()
-            self.log(f"Buffer empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch]/1000*9/5+32,1)} < {min_buffer} F)")
+        buffer_empty_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch]/1000),1)
+        if buffer_empty_ch_temp < min_buffer:
+            self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch]/1000*9/5+32,1)} >= {min_buffer} F)")
+            self.log(f"Buffer not empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
             return False            
     
     def is_buffer_full(self) -> bool:
         if H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_full_temp = H0CN.buffer.depth4
+            buffer_full_ch = H0CN.buffer.depth4
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
-            buffer_full_temp = H0CN.buffer_cold_pipe
+            buffer_full_ch = H0CN.buffer_cold_pipe
         elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:
-            buffer_full_temp = H0CN.store_cold_pipe
+            buffer_full_ch = H0CN.store_cold_pipe
         elif 'hp-ewt' in self.latest_temperatures:
-            buffer_full_temp = 'hp-ewt'
+            buffer_full_ch = 'hp-ewt'
         else:
             self.alert(alias="buffer_full_fail", msg="Impossible to know if the buffer is full!")
             return False
-        max_buffer = round(max(self.weather['required_swt'][:3]),1)
-        if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > max_buffer: # TODO use to_fahrenheit()
-            self.log(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} > {max_buffer} F)")
+        max_buffer = round(max(self.forecasts.Rswt[:3]),1)
+        buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
+        if buffer_full_ch_temp > max_buffer:
+            self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} <= {max_buffer} F)")
+            self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
             return False
 
     def is_storage_ready(self, return_missing=False) -> bool:

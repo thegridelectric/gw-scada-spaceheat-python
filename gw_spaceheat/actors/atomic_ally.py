@@ -14,13 +14,12 @@ from gwproto import Message
 from gwproto.enums import FsmReportType
 from gwproto.named_types import (Alert, FsmAtomicReport, FsmFullReport,
                                  MachineStates)
-from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp
+from named_types import EnergyInstruction, GoDormant, Ha1Params, WakeUp, HeatingForecast
 from result import Ok, Result
 from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from actors.synth_generator import WeatherForecast
 from named_types import RemainingElec, ScadaInit
 
 
@@ -125,7 +124,7 @@ class AtomicAlly(ScadaActor):
         self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        self.weather = None
+        self.forecasts: HeatingForecast = None
         self.remaining_elec_wh = None
     
     @property
@@ -153,7 +152,6 @@ class AtomicAlly(ScadaActor):
                 self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
                 self.remaining_elec_wh = message.Payload.AvgPowerWatts
                 self.check_and_update_state()
-
             case GoDormant():
                 if self.state != AtomicAllyState.Dormant.value:
                     # GoDormant: AnyOther -> Dormant ...
@@ -173,16 +171,9 @@ class AtomicAlly(ScadaActor):
                     # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
                     self.trigger_event(AtomicAllyEvent.WakeUp)
                     self.check_and_update_state()
-            case WeatherForecast():
-                self.log("Received weather forecast")
-                self.weather = {
-                    'time': message.Payload.Time,
-                    'oat': message.Payload.OatForecast, 
-                    'ws': message.Payload.WsForecast,
-                    'required_swt': message.Payload.RswtForecast,
-                    'avg_power': message.Payload.AvgPowerForecast,
-                    'required_swt_deltaT': message.Payload.RswtDeltaTForecast,
-                    }
+            case HeatingForecast():
+                self.log("Received forecast")
+                self.forecasts: HeatingForecast = message.Payload
 
         return Ok(True)
     
@@ -231,8 +222,8 @@ class AtomicAlly(ScadaActor):
 
     def check_and_update_state(self) -> None:
         self.log(f"State: {self.state}")
-        if not self.weather:
-            self.log("Strange ... Do not have weather yet! Not updating state since can't check buffer state")
+        if not self.forecasts:
+            self.log("Strange ... Do not have forecasts yet! Not updating state since can't check buffer state")
             return
         if self.state != AtomicAllyState.Dormant:
             previous_state = self.state
@@ -316,12 +307,12 @@ class AtomicAlly(ScadaActor):
     async def main(self):
         await asyncio.sleep(2)
         self._send_to(self.primary_scada, ScadaInit(FromGNodeAlias=self.layout.atn_g_node_alias))
-        # SynthGenerator gets weather ASAP on boot, including various fallbacks
+        # SynthGenerator gets forecasts ASAP on boot, including various fallbacks
         # if the request does not work. So wait a bit if 
-        if self.weather is None:
+        if self.forecasts is None:
             await asyncio.sleep(5)
-        if self.weather is None:
-            raise Exception("No access to weather! Won't be able to heat the buffer")
+        if self.forecasts is None:
+            raise Exception("No access to forecasts! Won't be able to heat the buffer")
             
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
@@ -414,42 +405,47 @@ class AtomicAlly(ScadaActor):
             self.log(f"Electricity available: {self.remaining_elec_wh} Wh")
             return False
     
-    def is_buffer_empty(self) -> bool:
+    def is_buffer_empty(self, really_empty=False) -> bool:
         if H0CN.buffer.depth2 in self.latest_temperatures:
-            buffer_empty_ch = H0CN.buffer.depth2
+            if really_empty:
+                buffer_empty_ch = H0CN.buffer.depth1
+            else:
+                buffer_empty_ch = H0CN.buffer.depth2
         elif H0CN.dist_swt in self.latest_temperatures:
             buffer_empty_ch = H0CN.dist_swt
         else:
             self.alert(alias="buffer_empty_fail", msg="Impossible to know if the buffer is empty!")
             return False
-        max_rswt_next_3hours = max(self.weather['required_swt'][:3])
-        max_deltaT_rswt_next_3_hours = max(self.weather['required_swt_deltaT'][:3])
+        max_rswt_next_3hours = max(self.forecasts.Rswt[:3])
+        max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaT[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
-        if self.latest_temperatures[buffer_empty_ch] < min_buffer:
-            self.log(f"Buffer empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch],1)} < {min_buffer} F)")
+        buffer_empty_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch]/1000),1)
+        if buffer_empty_ch_temp < min_buffer:
+            self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch],1)} >= {min_buffer} F)")
+            self.log(f"Buffer not empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
             return False            
     
     def is_buffer_full(self) -> bool:
         if H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_full_temp = H0CN.buffer.depth4
+            buffer_full_ch = H0CN.buffer.depth4
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
-            buffer_full_temp = H0CN.buffer_cold_pipe
+            buffer_full_ch = H0CN.buffer_cold_pipe
         elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:
-            buffer_full_temp = H0CN.store_cold_pipe
+            buffer_full_ch = H0CN.store_cold_pipe
         elif 'hp-ewt' in self.latest_temperatures:
-            buffer_full_temp = 'hp-ewt'
+            buffer_full_ch = 'hp-ewt'
         else:
             self.alert(alias="buffer_full_fail", msg="Impossible to know if the buffer is full!")
             return False
-        max_buffer = round(max(self.weather['required_swt'][:3]),1)
-        if self.latest_temperatures[buffer_full_temp] > max_buffer:
-            self.log(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp],1)} > {max_buffer} F)")
+        max_buffer = round(max(self.forecasts.Rswt[:3]),1)
+        buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
+        if buffer_full_ch_temp > max_buffer:
+            self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp],1)} <= {max_buffer} F)")
+            self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
             return False
         
     def is_storage_full(self) -> bool:
