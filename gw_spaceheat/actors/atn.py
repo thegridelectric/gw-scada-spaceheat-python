@@ -573,7 +573,7 @@ class Atn(ActorInterface, Proactor):
                 self.logger.error(f"Failed to set DdDeltaTF! {e}")
 
     def set_load_overestimation_percent(self, load_overestimation_percent: float) -> None:
-        if load_overestimation_percent < 0 or load_overestimation_percent > 0:
+        if load_overestimation_percent < 0 or load_overestimation_percent > 100:
             self.log("Invalid entry, load_overestimation_percent should be a value between 0 and 100")
             return
         if self.ha1_params is None:
