@@ -286,7 +286,7 @@ class ApiTankModule(ScadaActor):
             for cfg in self._component.gt.ConfigList
             if cfg.ChannelName == f"{self.name}-depth1"
         )
-        return cfg.CapturePeriodS * 2.1
+        return cfg.CapturePeriodS
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
@@ -333,7 +333,7 @@ class ApiTankModule(ScadaActor):
                     )
                     # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_b_uid} down"]).problem_event(summary=self.name))
                     self.last_error_report = time.time()
-            await asyncio.sleep(self.flatline_seconds())
+            await asyncio.sleep(10)
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
         """
