@@ -26,7 +26,7 @@ from gwproto.message import Message
 from gwproto.messages import PowerWatts
 from gwproto.messages import SendSnap
 
-from gwproto.named_types import (AnalogDispatch,  ChannelReadings, MachineStates,
+from gwproto.named_types import (AnalogDispatch, ChannelReadings, MachineStates,
                                 SingleReading, SyncedReadings,
                                 TicklistReedReport, TicklistHallReport)
 

@@ -81,7 +81,7 @@ class ApiTankModule(ScadaActor):
         self.last_error_report = time.time()
         try:
             self.depth1_channel = self.layout.data_channels[f"{self.name}-depth1"]
-            self.depth2_channel = self.layout.data_channels["{self.name}-depth2"]
+            self.depth2_channel = self.layout.data_channels[f"{self.name}-depth2"]
             self.depth3_channel = self.layout.data_channels[f"{self.name}-depth3"]
             self.depth4_channel = self.layout.data_channels[f"{self.name}-depth4"]
         except KeyError as e:
@@ -325,11 +325,11 @@ class ApiTankModule(ScadaActor):
                     )
                     self._send_to(
                         self.synth_generator,
-                        ChannelFlatlined(FromName=self.name, Channel=self.depth1_channel)
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
                     )
                     self._send_to(
                         self.synth_generator,
-                        ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth4_channel)
                     )
                     # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_b_uid} down"]).problem_event(summary=self.name))
                     self.last_error_report = time.time()

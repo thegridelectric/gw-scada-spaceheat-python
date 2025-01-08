@@ -326,15 +326,21 @@ class HomeAlone(ScadaActor):
             
             # Update state
             if self.state != HomeAloneState.Dormant:
-                self.engage_brain()
+                self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def engage_brain(self, waking_up: bool = False) -> None:
+        """
+        Manages the logic for the Normal top state, (ie. self.state)
+        """
+        if self.top_state != HomeAloneTopState.Normal:
+            raise Exception(f"brain is only for Normal top state, not {self.top_state}")
 
-        if waking_up and self.state == HomeAloneState.Dormant:
-            # WakeUp: Dormant -> Initializing
-            self.trigger_normal_event(HomeAloneEvent.WakeUp)
+        if waking_up:
+            if self.state == HomeAloneState.Dormant:
+                self.trigger_normal_event(HomeAloneEvent.WakeUp)
             self.initialize_relays()
+            self.time_since_blind = None
 
         previous_state = self.state
   
@@ -433,9 +439,6 @@ class HomeAlone(ScadaActor):
 
         if (self.state != previous_state):
             self.update_relays(previous_state)
-        
-        if self.state == HomeAloneState.Initializing and self.temperatures_available:
-            self.engage_brain()
 
 
     def update_relays(self, previous_state) -> None:
