@@ -110,6 +110,7 @@ class HomeAlone(ScadaActor):
         {"trigger": "TopGoDormant", "source": "UsingBackupOnpeak", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
         {"trigger": "JustOffpeak", "source": "UsingBackupOnpeak", "dest": "Normal"},
+        {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
     ]
