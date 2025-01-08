@@ -16,7 +16,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, Ha1Params, RemainingElec, ScadaInit
+from named_types import EnergyInstruction, Ha1Params, RemainingElec, ScadaInit, ScadaParams
 from pydantic import Field
 
 # -------------- TODO: move to named_types -------------
@@ -158,6 +158,9 @@ class SynthGenerator(ScadaActor):
             case PowerWatts():
                 self.update_remaining_elec()
                 self.previous_watts = message.Payload.Watts
+            case ScadaParams():
+                self.log("Received new parameters, time to recompute forecasts!")
+                self.get_weather()
         return Ok(True)
     
     def fill_missing_store_temps(self):

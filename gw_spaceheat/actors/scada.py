@@ -632,6 +632,7 @@ class Scada(ScadaInterface, Proactor):
             case ScadaParams():
                 path_dbg |= 0x00000010
                 self._scada_params_received(decoded.Payload)
+                self.get_communicator(H0N.synth_generator).process_message(decoded)
             case _:
                 # Intentionally ignore this for forward compatibility
                 path_dbg |= 0x00000020
