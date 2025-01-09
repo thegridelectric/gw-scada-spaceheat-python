@@ -162,6 +162,8 @@ class HomeAlone(ScadaActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.forecasts: HeatingForecast = None
         self.zone_setpoints = {}
+        if H0N.home_alone_normal not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.home_alone_normal} node!!")
         if H0N.home_alone_scada_blind not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_scada_blind} node!!")
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
