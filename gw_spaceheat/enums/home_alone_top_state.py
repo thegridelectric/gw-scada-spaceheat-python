@@ -11,6 +11,7 @@ class HomeAloneTopState(GwStrEnum):
       - Dormant
       - Normal
       - UsingBackupOnpeak
+      - ScadaBlind
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
@@ -20,6 +21,7 @@ class HomeAloneTopState(GwStrEnum):
     Dormant = auto()
     Normal = auto()
     UsingBackupOnpeak = auto()
+    ScadaBlind = auto()
 
     @classmethod
     def default(cls) -> "HomeAloneTopState":

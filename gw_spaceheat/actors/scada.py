@@ -42,7 +42,6 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from actors.synth_generator import WeatherForecast
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -53,10 +52,10 @@ from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
-from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, DispatchContractGoDormant,
+from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, ChannelFlatlined, DispatchContractGoDormant,
                         DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
                         LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
-                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp)
+                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp, HeatingForecast)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -414,7 +413,7 @@ class Scada(ScadaInterface, Proactor):
         self._data.reports_to_store[report.Id] = report
         self.generate_event(ReportEvent(Report=report))
         self._publish_to_local(self._node, report)
-        self._data.flush_latest_readings()
+        self._data.flush_recent_readings()
     
     def send_snap(self):
         snapshot = self._data.make_snapshot()
@@ -498,6 +497,8 @@ class Scada(ScadaInterface, Proactor):
                     self.get_communicator(message.Header.Dst).process_message(message)
                 except Exception as e:
                     self.logger.error(f"Problem with  {message.Header}: {e}")
+            case ChannelFlatlined():
+                self.data.flush_channel_from_latest(message.Payload.Channel.Name)
             case ChannelReadings():
                 if message.Header.Dst == self.name:
                     path_dbg |= 0x00000004
@@ -570,7 +571,7 @@ class Scada(ScadaInterface, Proactor):
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case WakeUp():
                 self.get_communicator(message.Header.Dst).process_message(message)
-            case WeatherForecast():
+            case HeatingForecast():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
                     self.get_communicator(H0N.home_alone).process_message(message)

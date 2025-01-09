@@ -587,6 +587,21 @@ class Atn(ActorInterface, Proactor):
             except Exception as e:
                 self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
 
+    def set_load_overestimation_percent(self, load_overestimation_percent: float) -> None:
+        if load_overestimation_percent < 0 or load_overestimation_percent > 100:
+            self.log("Invalid entry, load_overestimation_percent should be a value between 0 and 100")
+            return
+        if self.ha1_params is None:
+            self.send_layout()
+        else:
+            try:
+                new = Ha1Params.model_validate(
+                    {**self.ha1_params.model_dump(), "LoadOverestimationPercent": load_overestimation_percent}
+                )
+                self.send_new_params(new)
+            except Exception as e:
+                self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
+
     def set_dist_010(self, val: int = 30) -> None:
         self.send_threadsafe(
             Message(

@@ -1,7 +1,6 @@
 import asyncio
-from typing import List, Sequence
+from typing import Sequence
 from enum import auto
-import uuid
 import time
 from datetime import datetime, timedelta
 import pytz
@@ -12,20 +11,14 @@ from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass
 from actors.scada_data import ScadaData
-from actors.synth_generator import WeatherForecast
 from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
-from gwproto.enums import ChangeAquastatControl, ChangeHeatPumpControl, ChangeRelayState
 from gwproto.named_types import Alert
 
 from actors.scada_actor import ScadaActor
-from named_types import(
-    FsmEvent, GoDormant, Ha1Params,
-    NewCommandTree, SingleMachineState, WakeUp
-)   
+from named_types import GoDormant, Ha1Params, NewCommandTree, SingleMachineState, WakeUp, HeatingForecast
 from enums import HomeAloneTopState
-from pydantic import ValidationError
 
 
 class HomeAloneState(GwStrEnum):
@@ -52,6 +45,7 @@ class HomeAloneEvent(GwStrEnum):
     OffPeakStorageReady = auto()
     OffPeakStorageNotReady = auto()
     OnPeakHouseCold = auto()
+    OnPeakStorageColderThanBuffer = auto()
     TemperaturesAvailable = auto()
     GoDormant = auto()
     WakeUp = auto()
@@ -65,10 +59,12 @@ class TopStateEvent(GwStrEnum):
     TopGoDormant = auto()
     TopWakeUp = auto()
     JustOffpeak = auto()
+    MissingData = auto()
+    DataAvailable = auto()
 
 class HomeAlone(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
-    TOP_STATE_SLEEP_SECONDS = 57
+    BLIND_MINUTES = 5
     states = [
         "Dormant",
         "Initializing",
@@ -100,19 +96,23 @@ class HomeAlone(ScadaActor):
         {"trigger": "OffPeakStorageNotReady", "source": "HpOffStoreOff", "dest": "HpOnStoreCharge"},
         # Starting at: Hp off, Store discharging ==== Storage -> buffer
         {"trigger": "OnPeakBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
+        {"trigger": "OnPeakStorageColderThanBuffer", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "OffPeakStart", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
     ] + [
             {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
             for state in states if state != "Dormant"
     ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "Initializing"}]
     
-    top_states = ["Normal", "UsingBackupOnpeak", "Dormant"]
+    top_states = ["Normal", "UsingBackupOnpeak", "Dormant", "ScadaBlind"]
     top_transitions = [
         {"trigger": "HouseColdOnpeak", "source": "Normal", "dest": "UsingBackupOnpeak"},
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
         {"trigger": "TopGoDormant", "source": "UsingBackupOnpeak", "dest": "Dormant"},
+        {"trigger": "TopGoDormant", "source": "ScadaBlind", "dest": "Dormant"},
         {"trigger": "TopWakeUp", "source": "Dormant", "dest": "Normal"},
         {"trigger": "JustOffpeak", "source": "UsingBackupOnpeak", "dest": "Normal"},
+        {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
+        {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
     ]
 
     def __init__(self, name: str, services: ServicesInterface):
@@ -131,6 +131,10 @@ class HomeAlone(ScadaActor):
         self.temperatures_available = False
         self.storage_declared_ready = False
         self.full_storage_energy = None
+        self.time_since_blind = None
+        self.initialized_relays = False
+        self.scadablind_scada = False
+        self.scadablind_boiler = False
         
         self.state: HomeAloneState = HomeAloneState.Initializing  
         self.machine = Machine(
@@ -156,24 +160,22 @@ class HomeAlone(ScadaActor):
         self.oil_boiler_during_onpeak = self.settings.oil_boiler_for_onpeak_backup
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        self.weather = None
+        self.forecasts: HeatingForecast = None
         self.zone_setpoints = {}
-    
+        if H0N.home_alone_normal not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.home_alone_normal} node!!")
+        if H0N.home_alone_scada_blind not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.home_alone_scada_blind} node!!")
+        if H0N.home_alone_onpeak_backup not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
+
     @property
-    def node(self) -> ShNode:
+    def normal_node(self) -> ShNode:
         """
         Overwrite the standard 
         """
         return self.layout.node(H0N.home_alone_normal)
 
-    @property
-    def top_node(self) -> ShNode:
-        """ 
-        The node / state machine responsible
-        for normal home alone operations
-        """
-        return self.layout.node(H0N.home_alone)
-    
     @property
     def onpeak_backup_node(self) -> ShNode:
         """ 
@@ -182,11 +184,18 @@ class HomeAlone(ScadaActor):
         """
         return self.layout.node(H0N.home_alone_onpeak_backup)
 
+    @property
+    def scada_blind_node(self) -> ShNode:
+        """
+        THe node / state machine responsible
+        for when the scada has missing data (forecasts / temperatures)
+        """
+        return self.layout.node(H0N.home_alone_scada_blind)
 
     @property
     def data(self) -> ScadaData:
         return self._services.data
-    
+
     @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
@@ -199,7 +208,7 @@ class HomeAlone(ScadaActor):
         self._send_to(
             self.primary_scada,
             SingleMachineState(
-                MachineHandle=self.node.handle,
+                MachineHandle=self.normal_node.handle,
                 StateEnum=HomeAloneState.enum_name(),
                 State=self.state,
                 UnixMs=now_ms,
@@ -231,15 +240,27 @@ class HomeAlone(ScadaActor):
             ),
         )
 
+    def set_scadablind_command_tree(self) -> None:
+        for node in self.my_actuators():
+            node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_scada_blind}.{node.Name}"
+        self._send_to(
+            self.primary_scada,
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+
     def top_state_update(self, cause: TopStateEvent) -> None:
         """
-        Report top state and command tree to Scada
+        Report top state associated to node "h"
         """
         now_ms = int(time.time() * 1000)
         self._send_to(
             self.primary_scada,
             SingleMachineState(
-                MachineHandle=self.top_node.handle,
+                MachineHandle=self.node.handle,
                 StateEnum=HomeAloneTopState.enum_name(),
                 State=self.top_state,
                 UnixMs=now_ms,
@@ -277,173 +298,203 @@ class HomeAlone(ScadaActor):
         #     return
         # implement the change in command tree. Boss: h.n -> h.onpeak-backup
         self.set_onpeak_backup_command_tree()
-        # and let the normal homealone know its dormant until further notice
         if self.state != HomeAloneState.Dormant:
             self.trigger_normal_event(HomeAloneEvent.GoDormant)
-        # trigger state change:
         self.HouseColdOnpeak()
-        # take the required actions
         self.onpeak_backup_actuator_actions()
-        # Report state change to scada
         self.top_state_update(cause=TopStateEvent.HouseColdOnpeak)    
 
     async def main(self):
-
         await asyncio.sleep(5)
-        was_onpeak: bool = self.is_onpeak()
-        just_offpeak: bool = False
         while not self._stop_requested:
-            #self.log("PATTING HOME ALONE WATCHDOG")
             self._send(PatInternalWatchdogMessage(src=self.name))
             self.log(f"Top state: {self.top_state}")
             self.log(f"State: {self.state}")
-            
-            #############################
-            # Logic for top state machine
-            ############################
 
-            # update just_offpeak
-            offpeak: bool = not self.is_onpeak()
-            if offpeak and was_onpeak:
-                just_offpeak = True
-                self.log("Just offpeak")
-            else:
-                just_offpeak = False
-            # and now update was_onpeak for next time
-            was_onpeak = self.is_onpeak()
+            # update temperatures_available
+            self.get_latest_temperatures()
 
             # Update top state
             if self.top_state == HomeAloneTopState.Normal:
                 if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
                     self.trigger_house_cold_onpeak_event()
-                        
-            elif self.top_state == HomeAloneTopState.UsingBackupOnpeak:
-                if just_offpeak:
-                    # trigger state change: this will also take the required actions
-                    self.trigger_just_offpeak()
-                    
-            self.engage_brain()
-
+            elif self.top_state == HomeAloneTopState.UsingBackupOnpeak and not self.is_onpeak():
+                self.trigger_just_offpeak()
+            elif self.top_state == HomeAloneTopState.ScadaBlind:
+                if self.forecasts and self.temperatures_available:
+                    self.log("Forecasts and temperatures are both available again!")
+                    self.trigger_data_available()
+                elif self.is_onpeak() and self.settings.oil_boiler_for_onpeak_backup:
+                    if not self.scadablind_boiler:
+                        self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
+                        self.scadablind_boiler = True
+                        self.scadablind_scada = False
+                else:
+                    if not self.scadablind_scada:
+                        self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
+                        self.scadablind_boiler = False
+                        self.scadablind_scada = True
+            
+            # Update state
+            if self.top_state == HomeAloneTopState.Normal:
+                self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    def engage_brain(self) -> None:
-        self.log(f"Top State: {self.top_state}")
-        if self.state == HomeAloneState.Initializing:
-            self.log(f"State: {self.state}")
-            self.initialize_relays()
+    def engage_brain(self, waking_up: bool = False) -> None:
+        """
+        Manages the logic for the Normal top state, (ie. self.state)
+        """
+        if self.top_state != HomeAloneTopState.Normal:
+            raise Exception(f"brain is only for Normal top state, not {self.top_state}")
 
-        if self.state != HomeAloneState.Dormant:                
-            previous_state = self.state
+        if waking_up:
+            if self.state == HomeAloneState.Dormant:
+                self.trigger_normal_event(HomeAloneEvent.WakeUp)
+                self.time_since_blind = None
+                self.initialized_relays = False
+            if not self.initialized_relays:
+                self.initialize_relays()
+                self.initialized_relays = True
+        
+        previous_state = self.state
 
-            if self.is_onpeak():
-                self.storage_declared_ready = False
-                self.full_storage_energy = None
-            time_now = datetime.now(self.timezone) 
-            if (((time_now.hour==6 or time_now.hour==16) and time_now.minute>57)
-                or self.zone_setpoints == {}):
-                self.get_zone_setpoints()
-            
-            # Require weather to move out of initializing state
-            self.get_latest_temperatures()
+        if self.is_onpeak():
+            self.storage_declared_ready = False
+            self.full_storage_energy = None
 
-            if not (self.weather and self.temperatures_available):
-                ...
-                # if its been too long kick us into a higher level backup state like ScadaBlind
-            else:
-                if self.state==HomeAloneState.Initializing:
-                    if self.temperatures_available:
-                        if self.is_onpeak():
-                            if self.is_buffer_empty():
-                                if self.is_storage_colder_than_buffer():
-                                    self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
-                                else:
-                                    self.trigger_normal_event(HomeAloneEvent.OnPeakBufferEmpty)
-                            else:
-                                self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
-                        else:
-                            if self.is_buffer_empty():
-                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
-                            else:
-                                if self.is_storage_ready():
-                                    self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
-                                else:
-                                    self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
-
-                elif self.state==HomeAloneState.HpOnStoreOff:
+        time_now = datetime.now(self.timezone)
+        if ((time_now.hour==6 or time_now.hour==16) and time_now.minute>57) or self.zone_setpoints=={}:
+            self.get_zone_setpoints()
+        
+        if not (self.forecasts and self.temperatures_available):
+            if self.time_since_blind is None:
+                self.time_since_blind = time.time()
+            elif time.time() - self.time_since_blind > self.BLIND_MINUTES*60:
+                self.log("Scada is missing forecasts and/or critical temperatures since at least 5 min.")
+                self.log("Moving into ScadaBlind top state")
+                self.trigger_missing_data()
+            elif self.time_since_blind is not None:
+                self.log(f"Blind since {int(time.time() - self.time_since_blind)} seconds")
+        else:
+            if self.time_since_blind is not None:
+                self.time_since_blind = None
+            if self.state==HomeAloneState.Initializing:
+                if self.temperatures_available:
                     if self.is_onpeak():
-                        self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
-                    elif self.is_buffer_full():
-                        if self.is_storage_ready():
-                            self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
-                        else:
-                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
-                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
-                            if usable < required:
-                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
+                        if self.is_buffer_empty():
+                            if self.is_storage_colder_than_buffer():
+                                self.trigger_normal_event(HomeAloneEvent.OnPeakStorageColderThanBuffer)
                             else:
-                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
-                    
-                elif self.state==HomeAloneState.HpOnStoreCharge:
-                    if self.is_onpeak():
-                        self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
-                    elif self.is_buffer_empty():
-                        self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
-                    elif self.is_storage_ready():
-                        self.trigger_normal_event(HomeAloneEvent.OffPeakStorageReady)
-                    
-                elif self.state==HomeAloneState.HpOffStoreOff:
-                    if self.is_onpeak():
-                        if self.is_buffer_empty() and not self.is_storage_colder_than_buffer():
                                 self.trigger_normal_event(HomeAloneEvent.OnPeakBufferEmpty)
+                        else:
+                            self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
                     else:
                         if self.is_buffer_empty():
                             self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
-                        elif not self.is_storage_ready():
-                            usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
-                            required = self.data.latest_channel_values[H0N.required_energy] / 1000
-                            if self.storage_declared_ready:
-                                if self.full_storage_energy is None:
-                                    if usable > 0.9*required:
-                                        self.log("The storage was already declared ready during this off-peak period")
-                                    else:
-                                        self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
-                                else:
-                                    if usable > 0.9*self.full_storage_energy:
-                                        self.log("The storage was already declared full during this off-peak period")
-                                    else:
-                                        self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+                        else:
+                            if self.is_storage_ready():
+                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
                             else:
-                                self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+                                self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
 
-                elif self.state==HomeAloneState.HpOffStoreDischarge:
-                    if not self.is_onpeak():
-                        self.trigger_normal_event(HomeAloneEvent.OffPeakStart)
-                    # TODO: make StorageColderThanBuffer another trigger to HpOffStoreOff
-                    elif self.is_buffer_full() or self.is_storage_colder_than_buffer():
-                        self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
-                    # we should keep discharging the store as long as it is warmer than the buffer
-                    # elif self.is_buffer_empty() and self.is_storage_empty():
-                    #     self.trigger_event(HomeAloneEvent.OnPeakBufferFull.value)
-            self.log(f"state: {self.state}")
-            if (self.state != previous_state):
-                self.update_relays(previous_state)
+            elif self.state==HomeAloneState.HpOnStoreOff:
+                if self.is_onpeak():
+                    self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
+                elif self.is_buffer_full():
+                    if self.is_storage_ready():
+                        self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                    else:
+                        usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                        required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                        if usable < required:
+                            self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
+                        else:
+                            self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
+                
+            elif self.state==HomeAloneState.HpOnStoreCharge:
+                if self.is_onpeak():
+                    self.trigger_normal_event(HomeAloneEvent.OnPeakStart)
+                elif self.is_buffer_empty():
+                    self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
+                elif self.is_storage_ready():
+                    self.trigger_normal_event(HomeAloneEvent.OffPeakStorageReady)
+                
+            elif self.state==HomeAloneState.HpOffStoreOff:
+                if self.is_onpeak():
+                    if self.is_buffer_empty() and not self.is_storage_colder_than_buffer():
+                        self.trigger_normal_event(HomeAloneEvent.OnPeakBufferEmpty)
+                else:
+                    if self.is_buffer_empty():
+                        self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
+                    elif not self.is_storage_ready():
+                        usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
+                        required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                        if self.storage_declared_ready:
+                            if self.full_storage_energy is None:
+                                if usable > 0.9*required:
+                                    self.log("The storage was already declared ready during this off-peak period")
+                                else:
+                                    self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+                            else:
+                                if usable > 0.9*self.full_storage_energy:
+                                    self.log("The storage was already declared full during this off-peak period")
+                                else:
+                                    self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+                        else:
+                            self.trigger_normal_event(HomeAloneEvent.OffPeakStorageNotReady)
+
+            elif self.state==HomeAloneState.HpOffStoreDischarge:
+                if not self.is_onpeak():
+                    self.trigger_normal_event(HomeAloneEvent.OffPeakStart)
+                elif self.is_buffer_full():
+                    self.trigger_normal_event(HomeAloneEvent.OnPeakBufferFull)
+                elif self.is_storage_colder_than_buffer():
+                    self.trigger_normal_event(HomeAloneEvent.OnPeakStorageColderThanBuffer)
+
+        if (self.state != previous_state) and self.top_state == HomeAloneTopState.Normal:
+            self.update_relays(previous_state)
 
 
     def update_relays(self, previous_state) -> None:
-        if self.state==HomeAloneState.Dormant.value or self.state==HomeAloneState.Initializing.value:
+        if self.top_state != HomeAloneTopState.Normal:
+            raise Exception("Can not go into update_relays if top state is not Normal")
+        if self.state == HomeAloneState.Dormant or self.state == HomeAloneState.Initializing:
             return
         if "HpOn" not in previous_state and "HpOn" in self.state:
-            self.turn_on_HP()
+            self.turn_on_HP(from_node=self.normal_node)
         if "HpOff" not in previous_state and "HpOff" in self.state:
-            self.turn_off_HP()
+            self.turn_off_HP(from_node=self.normal_node)
         if "StoreDischarge" in self.state:
-            self.turn_on_store_pump()
+            self.turn_on_store_pump(from_node=self.normal_node)
         else:
-            self.turn_off_store_pump()         
+            self.turn_off_store_pump(from_node=self.normal_node)         
         if "StoreCharge" in self.state:
-            self.valved_to_charge_store()
+            self.valved_to_charge_store(from_node=self.normal_node)
         else:
-            self.valved_to_discharge_store()
+            self.valved_to_discharge_store(from_node=self.normal_node)
+
+    def initialize_relays(self):
+        if self.top_state != HomeAloneTopState.Normal:
+            raise Exception("Can not go into initialize relays if top state is not Normal")
+        self.log("Initializing relays")
+        my_relays =  {
+            relay
+            for relay in self.my_actuators()
+            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
+        }
+        for relay in my_relays - {
+            self.store_charge_discharge_relay, # keep as it was
+            self.hp_failsafe_relay,
+            self.hp_scada_ops_relay, # keep as it was unless on peak
+            self.aquastat_control_relay 
+        }:
+            self.de_energize(relay, from_node=self.normal_node)
+        self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
+        self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
+
+        if self.is_onpeak():
+            self.log("Is on peak: turning off HP")
+            self.turn_off_HP(from_node=self.normal_node)
     
     def trigger_just_offpeak(self):
         """
@@ -454,7 +505,7 @@ class HomeAlone(ScadaActor):
             - change 
         """
         # HouseColdOnpeak: Normal -> UsingBackupOnpeak
-        if self.top_state != HomeAloneTopState. UsingBackupOnpeak:
+        if self.top_state != HomeAloneTopState.UsingBackupOnpeak:
             raise Exception("Should only call leave_onpeak_backup in transition from UsingBackupOnpeak to Normal!")
         self.leaving_onpeak_backup_actuator_actions()
         # JustOffpeak: UsingBackupOnpeak -> Normal
@@ -467,127 +518,64 @@ class HomeAlone(ScadaActor):
         if self.state == HomeAloneState.Dormant:
             self.trigger_normal_event(HomeAloneEvent.WakeUp)
 
+    def trigger_missing_data(self):
+        if self.top_state != HomeAloneTopState.Normal:
+            raise Exception("Should only call trigger_missing_data in transition from Normal to ScadaBlind!")
+        self.set_scadablind_command_tree()
+        if self.state != HomeAloneState.Dormant:
+            self.trigger_normal_event(HomeAloneEvent.GoDormant)
+        self.MissingData()
+        self.scada_blind_actuator_actions()
+        self.top_state_update(cause=TopStateEvent.MissingData)
+        self.scadablind_boiler = False
+        self.scadablind_scada = False
+
+    def trigger_data_available(self):
+        if self.top_state != HomeAloneTopState.ScadaBlind:
+            raise Exception("Should only call trigger_data_available in transition from ScadaBlind to Normal!")
+        self.leaving_scada_blind_actuator_actions()
+        self.DataAvailable()
+        self.top_state_update(cause=TopStateEvent.DataAvailable)
+        self.set_normal_command_tree()
+        if self.state == HomeAloneState.Dormant:
+            self.trigger_normal_event(HomeAloneEvent.WakeUp)
+
+    def scada_blind_actuator_actions(self) -> None:
+        """
+        Expects self.scada_blind_node as boss.  Heats with heat pump:
+          - turns off store pump
+          - iso valve open (valved to discharge)
+          - turn hp failsafe to aquastat
+        """
+        self.turn_off_store_pump(from_node=self.scada_blind_node)
+        self.valved_to_discharge_store(from_node=self.scada_blind_node)
+        self.hp_failsafe_switch_to_aquastat(from_node=self.scada_blind_node)
+    
+    def leaving_scada_blind_actuator_actions(self) -> None:
+        self.hp_failsafe_switch_to_scada(from_node=self.scada_blind_node)
+        
     def leaving_onpeak_backup_actuator_actions(self) -> None:
-        """
-        If using oil boiler for onpeak backup, hp_failsafe_relay deos the following
-            - hp_failsafe_switch_to_scada 
-            - aquastat_ctrl_switch_to_scada
-        Otherwise:
-            - do nothing (heat pump will likely stay on during offpeak)
-        """
         if self.settings.oil_boiler_for_onpeak_backup:
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.hp_failsafe_relay.handle,
-                    EventType=ChangeHeatPumpControl.enum_name(),
-                    EventName=ChangeHeatPumpControl.SwitchToScada,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self.services.send(Message(Src=self.onpeak_backup_node.name,
-                                           Dst=self.hp_failsafe_relay.name,
-                                           Payload=event))
-
-                self.log(
-                    f"{self.onpeak_backup_node.handle} sending SwitchToTankAquastat to Hp Failsafe {H0N.hp_failsafe_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to change HpFailsafe relay to TankAquastat but did not have authority: {e}")
-
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.aquastat_control_relay.handle,
-                    EventType=ChangeAquastatControl.enum_name(),
-                    EventName=ChangeAquastatControl.SwitchToScada,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self.services.send(Message(Src=self.onpeak_backup_node.name,
-                                           Dst=self.hp_failsafe_relay.name,
-                                           Payload=event))
-
-                self.log(
-                    f"{self.node.handle} sending SwitchToScada to Boiler Ctrl {H0N.aquastat_ctrl_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to switch AquastatCtrl relay to Boiler but didn't have the rights: {e}")
+            self.hp_failsafe_switch_to_scada(from_node=self.onpeak_backup_node)
+            self.aquastat_ctrl_switch_to_scada(from_node=self.onpeak_backup_node)
 
     def onpeak_backup_actuator_actions(self) -> None:
         """
-        If using oil boiler for onpeak backup, hp_failsafe_relay deos the following:
-           - hp failsafe (relay 5) switch to aquastat
-           - aquastat ctrl (relay 8) switch to boiler
-        Otherwise:
-           -  turn on heat pump
+        Expects set_onpeak_backup_command_tree already called, 
+        with self.onpeak_backup_node as boss
+          - turns off store pump
+          - iso valve open (valved to discharge)
+          - if using oil boiler, turns hp failsafe to aquastat and aquastat ctrl to boiler
+          - if not using oil boiler, turns on heat pump
 
-        Expects set_onpeak_backup_command_tree already called, with self.onpeak_backup_node as boss
-        WEAKNESS: SENDS MESSAGES TO RELAY ONLY VIA INTERNAL python QUEUE. WILL FAIL
-        IF HOME ALONE IS PUT IN A DIFFERENT PROCESS THAN THE ACTUATORS
         """
-        
+        self.turn_off_store_pump(from_node=self.onpeak_backup_node)
+        self.valved_to_discharge_store(from_node=self.onpeak_backup_node)
         if self.settings.oil_boiler_for_onpeak_backup:
-            
-            # hp failsafe (relay 5) switch to aquastat
-            # then aquastat ctrl (relay 8) switch to boiler
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.hp_failsafe_relay.handle,
-                    EventType=ChangeHeatPumpControl.enum_name(),
-                    EventName=ChangeHeatPumpControl.SwitchToTankAquastat,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                # CANNOT USE _send_to because that sends a message from the actor's node
-                # and this message needs to come from onpeak_backup_node
-                # NOTE: THIS ASSUMES THE RELAY IS IN THE SAME CODEBASE AS
-                # HOMEALONE.
-                self.services.send(Message(Src=self.onpeak_backup_node.name,
-                                           Dst=self.hp_failsafe_relay.name,
-                                           Payload=event))
-
-                self.log(
-                    f"{self.onpeak_backup_node.handle} sending SwitchToTankAquastat to Hp Failsafe {H0N.hp_failsafe_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to change HpFailsafe relay to TankAquastat but did not have authority: {e}")
-
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.aquastat_control_relay.handle,
-                    EventType=ChangeAquastatControl.enum_name(),
-                    EventName=ChangeAquastatControl.SwitchToBoiler,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self.services.send(Message(Src=self.onpeak_backup_node.name,
-                                           Dst=self.aquastat_control_relay.name,
-                                           Payload=event))
-                self.log(
-                    f"{self.onpeak_backup_node.handle} sending SwitchToScada to Boiler Ctrl {H0N.aquastat_ctrl_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to switch AquastatCtrl relay to Boiler but didn't have the rights: {e}")
+            self.hp_failsafe_switch_to_aquastat(from_node=self.onpeak_backup_node)
+            self.aquastat_ctrl_switch_to_boiler(from_node=self.onpeak_backup_node)
         else:
-            #  self.settings.oil_boiler_for_onpeak_backup -> turn on heat pump
-            try:
-                event = FsmEvent(
-                    FromHandle=self.onpeak_backup_node.handle,
-                    ToHandle=self.hp_scada_ops_relay.handle,
-                    EventType=ChangeRelayState.enum_name(),
-                    EventName=ChangeRelayState.CloseRelay,
-                    SendTimeUnixMs=int(time.time() * 1000),
-                    TriggerId=str(uuid.uuid4()),
-                )
-                self._send_to(self.hp_scada_ops_relay, event)
-                self.log(
-                    f"{self.node.handle} sending CloseRelay to Hp ScadaOps {H0N.hp_scada_ops_relay}"
-                )
-            except ValidationError as e:
-                self.log(f"Tried to change a relay but didn't have the rights: {e}")
+            self.turn_on_HP(from_node=self.onpeak_backup_node)
 
     def start(self) -> None:
         self.services.add_task(
@@ -619,21 +607,16 @@ class HomeAlone(ScadaActor):
                     self.TopWakeUp()
                     # Command tree should already be set. No trouble doing it again
                     self.set_normal_command_tree() 
-                    # WakeUp: Dormant -> Initializing, but rename that ..
-                    self.trigger_normal_event(HomeAloneEvent.WakeUp)
-                    self.initialize_relays()
-            case WeatherForecast():
-                self.log("Received weather forecast")
-                self.weather = {
-                    'time': message.Payload.Time,
-                    'oat': message.Payload.OatForecast, 
-                    'ws': message.Payload.WsForecast,
-                    'required_swt': message.Payload.RswtForecast,
-                    'avg_power': message.Payload.AvgPowerForecast,
-                    'required_swt_deltaT': message.Payload.RswtDeltaTForecast,
-                    }
-                # Only engage_brain if we were waiting for weather data
+                    # engage brain will WakeUp: Dormant -> Initializing
+                    # run the appropriate relay initialization and then
+                    # evaluate if it can move into a known state
+                    self.engage_brain(waking_up = True)
+            case HeatingForecast():
+                self.log("Received heating forecast")
+                self.forecasts: HeatingForecast = message.Payload
                 if self.state == HomeAloneState.Initializing:
+                    self.log(f"Top state: {self.top_state}")
+                    self.log(f"State: {self.state}")
                     self.engage_brain()
         return Ok(True)
     
@@ -696,37 +679,6 @@ class HomeAlone(ScadaActor):
         required_storage = self.data.latest_channel_values[H0N.required_energy]
         if total_usable_kwh is None or required_storage is None:
             self.temperatures_available = False
-    
-    def initialize_relays(self):
-        if self.state == HomeAloneState.Dormant:
-            self.log("Not initializing relays! Dormant!")
-        self.log("Initializing relays")
-        my_relays =  {
-            relay
-            for relay in self.my_actuators()
-            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
-        }
-        for relay in my_relays - {
-            self.store_charge_discharge_relay, # keep as it was
-            self.hp_failsafe_relay,
-            self.hp_scada_ops_relay, # keep as it was unless on peak
-            self.aquastat_control_relay 
-        }:
-            self.de_energize(relay)
-        self.hp_failsafe_switch_to_scada()
-        self.aquastat_ctrl_switch_to_scada()
-
-        if self.is_onpeak():
-            self.log("is on peak so turning off HP")
-            self.turn_off_HP()
-        # TODO: ADDRESS backup gap. If temperatures_available is never true
-        # say if wifi is down -  then the heat pump will never go on.
-        #
-        # Proposal: if initializing_relays lasts for more than 10 minutes
-        # then it times out and goes to a new high-level state called
-        # ScadaBlind ... which is something like a timer (if oil boiler exists)
-        # alternating between heat pump and oil boiler running on aquastat control
-        # or is just running the heat pump alone on aquastat (if oil boiler does not exist)
 
     def is_onpeak(self) -> bool:
         time_now = datetime.now(self.timezone)
@@ -749,34 +701,36 @@ class HomeAlone(ScadaActor):
         else:
             self.alert(alias="buffer_empty_fail", msg="Impossible to know if the buffer is empty!")
             return False
-        max_rswt_next_3hours = max(self.weather['required_swt'][:3])
-        max_deltaT_rswt_next_3_hours = max(self.weather['required_swt_deltaT'][:3])
+        max_rswt_next_3hours = max(self.forecasts.RswtF[:3])
+        max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
-        if self.latest_temperatures[buffer_empty_ch]/1000*9/5+32 < min_buffer: # TODO use to_fahrenheit()
-            self.log(f"Buffer empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch]/1000*9/5+32,1)} < {min_buffer} F)")
+        buffer_empty_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch]/1000),1)
+        if buffer_empty_ch_temp < min_buffer:
+            self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not empty ({buffer_empty_ch}: {round(self.latest_temperatures[buffer_empty_ch]/1000*9/5+32,1)} >= {min_buffer} F)")
+            self.log(f"Buffer not empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
             return False            
     
     def is_buffer_full(self) -> bool:
         if H0CN.buffer.depth4 in self.latest_temperatures:
-            buffer_full_temp = H0CN.buffer.depth4
+            buffer_full_ch = H0CN.buffer.depth4
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
-            buffer_full_temp = H0CN.buffer_cold_pipe
+            buffer_full_ch = H0CN.buffer_cold_pipe
         elif "StoreDischarge" in self.state and H0CN.store_cold_pipe in self.latest_temperatures:
-            buffer_full_temp = H0CN.store_cold_pipe
+            buffer_full_ch = H0CN.store_cold_pipe
         elif 'hp-ewt' in self.latest_temperatures:
-            buffer_full_temp = 'hp-ewt'
+            buffer_full_ch = 'hp-ewt'
         else:
             self.alert(alias="buffer_full_fail", msg="Impossible to know if the buffer is full!")
             return False
-        max_buffer = round(max(self.weather['required_swt'][:3]),1)
-        if self.latest_temperatures[buffer_full_temp]/1000*9/5+32 > max_buffer: # TODO use to_fahrenheit()
-            self.log(f"Buffer full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} > {max_buffer} F)")
+        max_buffer = round(max(self.forecasts.RswtF[:3]),1)
+        buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
+        if buffer_full_ch_temp > max_buffer:
+            self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
         else:
-            self.log(f"Buffer not full (layer 4: {round(self.latest_temperatures[buffer_full_temp]/1000*9/5+32,1)} <= {max_buffer} F)")
+            self.log(f"Buffer not full ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
             return False
 
     def is_storage_ready(self, return_missing=False) -> bool:
@@ -882,7 +836,7 @@ class HomeAlone(ScadaActor):
         alert_str = f"[ALERT] {msg}"
         self._services._links.publish_upstream(payload=Alert(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            AboutNode=self.node,
+            AboutNode=self.normal_node,
             OpsGenieAlias=alias,
             UnixS=int(time.time()),
             Summary=msg

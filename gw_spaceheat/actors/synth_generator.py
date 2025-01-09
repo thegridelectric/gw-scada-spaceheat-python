@@ -4,9 +4,9 @@ import pytz
 import asyncio
 import aiohttp
 import numpy as np
-from typing import Optional, Sequence, List
+from typing import Optional, Sequence
 from result import Ok, Result
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from actors.scada_data import ScadaData
 from gwproto import Message
 
@@ -16,29 +16,8 @@ from gwproactor.message import PatInternalWatchdogMessage
 
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
-from named_types import EnergyInstruction, Ha1Params, RemainingElec, ScadaParams
-from pydantic import Field
-
-# -------------- TODO: move to named_types -------------
-from typing import Literal
-from pydantic import BaseModel
-
-class WeatherForecast(BaseModel):
-    Time: List[datetime]
-    OatForecast: List[float]
-    WsForecast: List[float]
-    AvgPowerForecast: List[float]
-    RswtForecast: List[float]
-    RswtDeltaTForecast: List[float]
-    TypeName: Literal["weather.forecast"] = "weather.forecast"
-    Version: Literal["000"] = "000"
-
-class PriceForecast(BaseModel):
-    DpForecast: List[float]
-    LmpForecsat: List[float]
-    TypeName: Literal["price.forecast"] = "price.forecast"
-    Version: Literal["000"] = "000"
-# -------------- TODO: move to named_types -------------
+from named_types import (EnergyInstruction, Ha1Params, RemainingElec, 
+                         WeatherForecast, HeatingForecast, PriceForecast, ScadaParams)
 
 
 class SynthGenerator(ScadaActor):
@@ -77,7 +56,8 @@ class SynthGenerator(ScadaActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
 
         # For the weather forecast
-        self.weather = None
+        self.forecasts: HeatingForecast = None
+        self.weather_forecast: WeatherForecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
     
     @property
@@ -129,14 +109,13 @@ class SynthGenerator(ScadaActor):
             await self.main_loop(session)
 
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
-        await self.get_weather(session)
+        await self.get_forecasts(session)
         await asyncio.sleep(2)
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if datetime.now(self.timezone)>self.weather['time'][0] or self.need_to_get_weather:
-                await self.get_weather(session)
-                self.need_to_get_weather = False
+            if self.forecasts is None or time.time()>self.forecasts.Time[0]:
+                await self.get_forecasts(session)
 
             self.get_latest_temperatures()
             if self.temperatures_available:
@@ -161,7 +140,7 @@ class SynthGenerator(ScadaActor):
                 self.previous_watts = message.Payload.Watts
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
-                self.need_to_get_weather = True
+                self.get_weather()
         return Ok(True)
     
     def fill_missing_store_temps(self):
@@ -248,7 +227,7 @@ class SynthGenerator(ScadaActor):
                     break
             self.usable_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
             simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]          
-        self.required_kwh = self.get_required_storage(time_now) # TODO
+        self.required_kwh = self.get_required_storage(time_now)
         self.log(f"Usable energy: {round(self.usable_kwh,1)} kWh")
         self.log(f"Required energy: {round(self.required_kwh,1)} kWh")
 
@@ -272,16 +251,17 @@ class SynthGenerator(ScadaActor):
             )
         
     def get_required_storage(self, time_now: datetime) -> float:
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
         morning_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw) 
              if 7<=t.hour<=11]
             )
         midday_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
              if 12<=t.hour<=15]
             )
         afternoon_kWh = sum(
-            [kwh for t, kwh in zip(list(self.weather['time']), list(self.weather['avg_power'])) 
+            [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
              if 16<=t.hour<=19]
             )
         # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
@@ -343,110 +323,131 @@ class SynthGenerator(ScadaActor):
             url = f"https://api.weather.gov/points/{self.latitude},{self.longitude}"
             response = await session.get(url)
             if response.status != 200:
-                self.log(f"Error fetching weather data: {response.status}")
-                return None
+                self.log(f"Error fetching weather forecast url: {response.status}")
+                raise Exception()
+            
             data = await response.json()
             forecast_hourly_url = data['properties']['forecastHourly']
             forecast_response = await session.get(forecast_hourly_url)
             if forecast_response.status != 200:
                 self.log(f"Error fetching hourly weather forecast: {forecast_response.status}")
-                return None
+                raise Exception()
+            
             forecast_data = await forecast_response.json()
-            forecasts = {}
-            periods = forecast_data['properties']['periods']
-            for period in periods:
-                if ('temperature' in period and 'startTime' in period 
-                    and datetime.fromisoformat(period['startTime'])>datetime.now(tz=self.timezone)):
-                    forecasts[datetime.fromisoformat(period['startTime'])] = period['temperature']
-            forecasts = dict(list(forecasts.items())[:96])
-            cropped_forecast = dict(list(forecasts.items())[:48])
-            self.weather = {
-                'time': list(cropped_forecast.keys()),
-                'oat': list(cropped_forecast.values()),
-                'ws': [0]*len(cropped_forecast)
+            forecasts_all = {
+                datetime.fromisoformat(period['startTime']): period['temperature']
+                for period in forecast_data['properties']['periods']
+                if 'temperature' in period and 'startTime' in period 
+                and datetime.fromisoformat(period['startTime']) > datetime.now(tz=self.timezone)
+            }
+            forecasts_48h = dict(list(forecasts_all.items())[:48])
+            weather = {
+                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_all.keys())],
+                'oat': list(forecasts_48h.values()),
+                'ws': [0]*len(forecasts_48h)
                 }
-            self.log(f"Obtained a {len(forecasts)}-hour weather forecast starting at {self.weather['time'][0]}")
-            weather_long = {
-                'time': [x.timestamp() for x in list(forecasts.keys())],
-                'oat': list(forecasts.values()),
-                'ws': [0]*len(forecasts)
+            self.log(f"Obtained a {len(forecasts_all)}-hour weather forecast starting at {weather['time'][0]}")
+
+            # Save 96h weather forecast to a local file
+            forecasts_96h = dict(list(forecasts_all.items())[:96])
+            weather_96h = {
+                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_96h.keys())],
+                'oat': list(forecasts_96h.values()),
+                'ws': [0]*len(forecasts_96h)
                 }
             with open(weather_file, 'w') as f:
-                json.dump(weather_long, f, indent=4) 
+                json.dump(weather_96h, f, indent=4) 
         
         except Exception as e:
             self.log(f"[!] Unable to get weather forecast from API: {e}")
             try:
+                # Try reading an old forecast from local file
                 with open(weather_file, 'r') as f:
-                    weather_long = json.load(f)
-                    weather_long['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_long['time']]
-                if weather_long['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=48):
+                    weather_96h = json.load(f)
+                    weather_96h_time_backup = weather_96h['time'].copy()
+                    weather_96h['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_96h['time']]
+                if weather_96h['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=48):
                     self.log("A valid weather forecast is available locally.")
-                    time_late = weather_long['time'][0] - datetime.now(self.timezone)
+                    time_late = weather_96h['time'][0] - datetime.now(self.timezone)
                     hours_late = int(time_late.total_seconds()/3600)
-                    self.weather = weather_long
-                    for key in self.weather:
-                        self.weather[key] = self.weather[key][hours_late:hours_late+48]
+                    weather_96h['time'] = weather_96h_time_backup
+                    weather = weather_96h
+                    for key in weather:
+                        weather[key] = weather[key][hours_late:hours_late+48]
                 else:
                     self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                     current_month = datetime.now().month-1
-                    self.weather = {
-                        'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+                    weather = {
+                        'time': [int(time.time()+(1+x)*3600) for x in range(48)],
                         'oat': [self.coldest_oat_by_month[current_month]]*48,
                         'ws': [0]*48,
                         }
             except Exception as e:
                 self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                 current_month = datetime.now().month-1
-                self.weather = {
-                    'time': [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
+                weather = {
+                    'time': [int(time.time()+(1+x)*3600) for x in range(48)],
                     'oat': [self.coldest_oat_by_month[current_month]]*48,
                     'ws': [0]*48,
                     }
-
-        if self.params.LoadOverestimationPercent < 0 or self.params.LoadOverestimationPercent > 100:
-            self.log("INCORRECT PARAMETER: LoadOverestimationPercent must be an int between 0 and 100")
-            load_increase_factor = 1
-        else:
-            load_increase_factor = (1+self.params.LoadOverestimationPercent/100)
-        self.log(f"Load increase factor: {load_increase_factor}")
-        self.weather['avg_power'] = [
-            self.required_heating_power(oat, ws) * load_increase_factor
-            for oat, ws in zip(self.weather['oat'], self.weather['ws'])
-            ]
-        self.weather['required_swt'] = [
-            self.required_swt(x) 
-            for x in self.weather['avg_power']
-            ]
-        # Send weather forecast to relevant scada actors
-        wf = WeatherForecast(
-            Time = self.weather['time'],
-            OatForecast = self.weather['oat'],
-            WsForecast = self.weather['ws'],
-            AvgPowerForecast = self.weather['avg_power'],
-            RswtForecast = self.weather['required_swt'],
-            RswtDeltaTForecast = [round(self.delta_T(x),2) for x in self.weather['required_swt']]
+        
+        # TODO: broadcast weather forecast for ability to analyze HomeAlone actions
+        self.weather_forecast = WeatherForecast(
+            Time = weather['time'],
+            OatF = weather['oat'],
+            WindSpeedMph= weather['ws']
         )
-        self._send_to(self.home_alone, wf)
-        # Todo: broadcast weather forecast for ability to analyze HomeAlone actions
+
+    async def get_forecasts(self, session: aiohttp.ClientSession):
+    
+        await self.get_weather(session)
+        if self.weather_forecast is None:
+            self.log("No weather forecast available. Could not compute heating forecasts.")
+            return
+        
+        forecasts = {}
+        forecasts['time'] = self.weather_forecast.Time
+        forecasts['avg_power'] = [
+            self.required_heating_power(oat, ws) 
+            for oat, ws in zip(self.weather_forecast.OatF, self.weather_forecast.WindSpeedMph)]
+        forecasts['required_swt'] = [self.required_swt(x) for x in forecasts['avg_power']]
+        forecasts['required_swt_delta_T'] = [round(self.delta_T(x),2) for x in forecasts['required_swt']]
+
+        # Send full forecast to relevant scada actors
+        hf = HeatingForecast(
+            Time = forecasts['time'],
+            AvgPowerKw = forecasts['avg_power'],
+            RswtF = forecasts['required_swt'],
+            RswtDeltaTF = forecasts['required_swt_delta_T']
+        )
+        self._send_to(self.home_alone, hf)
+        
         # Crop to use only 24 hours of forecast in this code
-        for key in self.weather:
-            self.weather[key] = self.weather[key][:24]
-        self.log(f"OAT = {self.weather['oat']}")
-        self.log(f"Average Power = {self.weather['avg_power']}")
-        self.log(f"RSWT = {self.weather['required_swt']}")
-        self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.weather['required_swt']]}")
+        self.forecasts = HeatingForecast(
+            Time = forecasts['time'][:24],
+            AvgPowerKw = forecasts['avg_power'][:24],
+            RswtF = forecasts['required_swt'][:24],
+            RswtDeltaTF = forecasts['required_swt_delta_T'][:24]
+        )
+        self.log(f"OAT = {self.weather_forecast.OatF[:24]}")
+        self.log(f"Average Power = {self.forecasts.AvgPowerKw}")
+        self.log(f"RSWT = {self.forecasts.RswtF}")
+        self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.forecasts.RswtF]}")
 
     def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
+        if self.forecasts is None:
+            self.log("Forecasts are not available, can not find RWT")
+            return
+        forecasts_times_tz = [datetime.fromtimestamp(x, tz=self.timezone) for x in self.forecasts.Time]
         timenow = datetime.now(self.timezone)
         if timenow.hour > 19 or timenow.hour < 12:
             required_swt = max(
-                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                [rswt for t, rswt in zip(forecasts_times_tz, self.forecasts.RswtF)
                 if t.hour in [7,8,9,10,11,16,17,18,19]]
                 )
         else:
             required_swt = max(
-                [rswt for t, rswt in zip(self.weather['time'], self.weather['required_swt'])
+                [rswt for t, rswt in zip(forecasts_times_tz, self.forecasts.RswtF)
                 if t.hour in [16,17,18,19]]
                 )
         if return_rswt_onpeak:

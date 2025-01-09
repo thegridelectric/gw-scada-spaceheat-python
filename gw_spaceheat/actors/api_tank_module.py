@@ -20,7 +20,7 @@ from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from pydantic import BaseModel
 from result import Ok, Result
 from actors.scada_actor import ScadaActor
-from named_types import PicoMissing
+from named_types import PicoMissing, ChannelFlatlined
 
 R_FIXED_KOHMS = 5.65  # The voltage divider resistors in the TankModule
 THERMISTOR_T0 = 298  # i.e. 25 degrees
@@ -79,6 +79,13 @@ class ApiTankModule(ScadaActor):
         self.last_heard_a = time.time()
         self.last_heard_b = time.time()
         self.last_error_report = time.time()
+        try:
+            self.depth1_channel = self.layout.data_channels[f"{self.name}-depth1"]
+            self.depth2_channel = self.layout.data_channels[f"{self.name}-depth2"]
+            self.depth3_channel = self.layout.data_channels[f"{self.name}-depth3"]
+            self.depth4_channel = self.layout.data_channels[f"{self.name}-depth4"]
+        except KeyError as e:
+            raise Exception(f"Problem setting up ApiTankModule channels! {e}")
 
     @cached_property
     def microvolts_path(self) -> str:
@@ -279,7 +286,7 @@ class ApiTankModule(ScadaActor):
             for cfg in self._component.gt.ConfigList
             if cfg.ChannelName == f"{self.name}-depth1"
         )
-        return cfg.CapturePeriodS * 2.1
+        return cfg.CapturePeriodS
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
@@ -301,6 +308,14 @@ class ApiTankModule(ScadaActor):
                         self.pico_cycler,
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_a_uid),
                     )
+                    self._send_to(
+                        self.synth_generator,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth1_channel)
+                    )
+                    self._send_to(
+                        self.synth_generator,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
+                    )
                     # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_a_uid} down"]).problem_event(summary=self.name))
                     self.last_error_report = time.time()
                 if self.b_missing():
@@ -308,9 +323,17 @@ class ApiTankModule(ScadaActor):
                         self.pico_cycler,
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_b_uid),
                     )
+                    self._send_to(
+                        self.synth_generator,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
+                    )
+                    self._send_to(
+                        self.synth_generator,
+                        ChannelFlatlined(FromName=self.name, Channel=self.depth4_channel)
+                    )
                     # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_b_uid} down"]).problem_event(summary=self.name))
                     self.last_error_report = time.time()
-            await asyncio.sleep(self.flatline_seconds())
+            await asyncio.sleep(10)
 
     def simple_beta_for_pico(self, volts: float, fahrenheit=False) -> float:
         """
