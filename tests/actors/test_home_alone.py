@@ -25,4 +25,10 @@ def test_top_state_switches():
     # h.top_state goes to Dormant
     #
     # TopWakeUp: Dormant -> Normal
+    # with scadablind commmand tree, can set scada_blind_actuator_actions
+    # and leaving_scada_blind_actuator_actions() without error
+    # h.set_scadablind_command_tree()
+    # h.scada_blind_actuator_actions()
+    # h.leaving_scada_blind_actuator_actions()
+    # todo: similar for onpeak_backup_actuator_actions
 

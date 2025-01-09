@@ -64,6 +64,7 @@ class TopStateEvent(GwStrEnum):
 
 class HomeAlone(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
+    BLIND_MINUTES = 5
     states = [
         "Dormant",
         "Initializing",
@@ -161,7 +162,11 @@ class HomeAlone(ScadaActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.forecasts: HeatingForecast = None
         self.zone_setpoints = {}
-    
+        if H0N.home_alone_scada_blind not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.home_alone_scada_blind} node!!")
+        if H0N.home_alone_onpeak_backup not in self.layout.nodes:
+            raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
+
     @property
     def normal_node(self) -> ShNode:
         """
@@ -169,24 +174,6 @@ class HomeAlone(ScadaActor):
         """
         return self.layout.node(H0N.home_alone_normal)
 
-
-    @property
-    def top_node(self) -> ShNode:
-        """ 
-        The node / state machine responsible
-        for normal home alone operations
-        """
-        return self.layout.node(H0N.home_alone)
-    
-    
-    @property
-    def top_node(self) -> ShNode:
-        """ 
-        The node / state machine responsible
-        for normal home alone operations
-        """
-        return self.layout.node(H0N.home_alone)
-    
     @property
     def onpeak_backup_node(self) -> ShNode:
         """ 
@@ -194,7 +181,7 @@ class HomeAlone(ScadaActor):
         for onpeak backup operations
         """
         return self.layout.node(H0N.home_alone_onpeak_backup)
-    
+
     @property
     def scada_blind_node(self) -> ShNode:
         """
@@ -203,11 +190,10 @@ class HomeAlone(ScadaActor):
         """
         return self.layout.node(H0N.home_alone_scada_blind)
 
-
     @property
     def data(self) -> ScadaData:
         return self._services.data
-    
+
     @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
@@ -266,13 +252,13 @@ class HomeAlone(ScadaActor):
 
     def top_state_update(self, cause: TopStateEvent) -> None:
         """
-        Report top state and command tree to Scada
+        Report top state associated to node "h"
         """
         now_ms = int(time.time() * 1000)
         self._send_to(
             self.primary_scada,
             SingleMachineState(
-                MachineHandle=self.normal_node.handle,
+                MachineHandle=self.node.handle,
                 StateEnum=HomeAloneTopState.enum_name(),
                 State=self.top_state,
                 UnixMs=now_ms,
@@ -323,6 +309,7 @@ class HomeAlone(ScadaActor):
             self.log(f"Top state: {self.top_state}")
             self.log(f"State: {self.state}")
 
+            # update temperatures_available
             self.get_latest_temperatures()
 
             # Update top state
@@ -347,7 +334,7 @@ class HomeAlone(ScadaActor):
                         self.scadablind_scada = True
             
             # Update state
-            if self.state != HomeAloneState.Dormant:
+            if self.top_state == HomeAloneTopState.Normal:
                 self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -380,11 +367,11 @@ class HomeAlone(ScadaActor):
         if not (self.forecasts and self.temperatures_available):
             if self.time_since_blind is None:
                 self.time_since_blind = time.time()
-            elif time.time() - self.time_since_blind > 5*60 and self.top_state==HomeAloneTopState.Normal:
+            elif time.time() - self.time_since_blind > self.BLIND_MINUTES*60:
                 self.log("Scada is missing forecasts and/or critical temperatures since at least 5 min.")
                 self.log("Moving into ScadaBlind top state")
                 self.trigger_missing_data()
-            elif self.time_since_blind is not None and self.top_state==HomeAloneTopState.Normal:
+            elif self.time_since_blind is not None:
                 self.log(f"Blind since {int(time.time() - self.time_since_blind)} seconds")
         else:
             if self.time_since_blind is not None:
@@ -552,6 +539,14 @@ class HomeAlone(ScadaActor):
             self.trigger_normal_event(HomeAloneEvent.WakeUp)
 
     def scada_blind_actuator_actions(self) -> None:
+        """
+        Expects self.scada_blind_node as boss.  Heats with heat pump:
+          - turns off store pump
+          - iso valve open (valved to discharge)
+          - turn hp failsafe to aquastat
+        """
+        self.turn_off_store_pump(from_node=self.scada_blind_node)
+        self.valved_to_discharge_store(from_node=self.scada_blind_node)
         self.hp_failsafe_switch_to_aquastat(from_node=self.scada_blind_node)
     
     def leaving_scada_blind_actuator_actions(self) -> None:
@@ -564,10 +559,16 @@ class HomeAlone(ScadaActor):
 
     def onpeak_backup_actuator_actions(self) -> None:
         """
-        Expects set_onpeak_backup_command_tree already called, with self.onpeak_backup_node as boss
-        WEAKNESS: SENDS MESSAGES TO RELAY ONLY VIA INTERNAL python QUEUE. WILL FAIL
-        IF HOME ALONE IS PUT IN A DIFFERENT PROCESS THAN THE ACTUATORS
+        Expects set_onpeak_backup_command_tree already called, 
+        with self.onpeak_backup_node as boss
+          - turns off store pump
+          - iso valve open (valved to discharge)
+          - if using oil boiler, turns hp failsafe to aquastat and aquastat ctrl to boiler
+          - if not using oil boiler, turns on heat pump
+
         """
+        self.turn_off_store_pump(from_node=self.onpeak_backup_node)
+        self.valved_to_discharge_store(from_node=self.onpeak_backup_node)
         if self.settings.oil_boiler_for_onpeak_backup:
             self.hp_failsafe_switch_to_aquastat(from_node=self.onpeak_backup_node)
             self.aquastat_ctrl_switch_to_boiler(from_node=self.onpeak_backup_node)
