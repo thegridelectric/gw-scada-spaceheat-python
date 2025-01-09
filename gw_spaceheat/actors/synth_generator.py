@@ -297,7 +297,7 @@ class SynthGenerator(ScadaActor):
         alpha = self.params.AlphaTimes10 / 10
         beta = self.params.BetaTimes100 / 100
         gamma = self.params.GammaEx6 / 1e6
-        r = alpha + beta*oat + gamma*ws
+        r = alpha + beta*oat + gamma*((55-oat)*ws)
         return round(r,2) if r>0 else 0
 
     def required_swt(self, required_kw_thermal: float) -> float:
@@ -335,25 +335,35 @@ class SynthGenerator(ScadaActor):
             
             forecast_data = await forecast_response.json()
             forecasts_all = {
-                datetime.fromisoformat(period['startTime']): period['temperature']
+                datetime.fromisoformat(period['startTime']): 
+                period['temperature']
                 for period in forecast_data['properties']['periods']
                 if 'temperature' in period and 'startTime' in period 
                 and datetime.fromisoformat(period['startTime']) > datetime.now(tz=self.timezone)
             }
+            ws_forecasts_all = {
+                datetime.fromisoformat(period['startTime']): 
+                int(period['windSpeed'].replace(' mph',''))
+                for period in forecast_data['properties']['periods']
+                if 'windSpeed' in period and 'startTime' in period 
+                and datetime.fromisoformat(period['startTime']) > datetime.now(tz=self.timezone)
+            }
             forecasts_48h = dict(list(forecasts_all.items())[:48])
+            ws_forecasts_48h = dict(list(ws_forecasts_all.items())[:48])
             weather = {
                 'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_all.keys())],
                 'oat': list(forecasts_48h.values()),
-                'ws': [0]*len(forecasts_48h)
+                'ws': list(ws_forecasts_48h.values())
                 }
             self.log(f"Obtained a {len(forecasts_all)}-hour weather forecast starting at {weather['time'][0]}")
 
             # Save 96h weather forecast to a local file
             forecasts_96h = dict(list(forecasts_all.items())[:96])
+            ws_forecasts_96h = dict(list(ws_forecasts_all.items())[:96])
             weather_96h = {
                 'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_96h.keys())],
                 'oat': list(forecasts_96h.values()),
-                'ws': [0]*len(forecasts_96h)
+                'ws': list(ws_forecasts_96h.values()),
                 }
             with open(weather_file, 'w') as f:
                 json.dump(weather_96h, f, indent=4) 
@@ -374,6 +384,8 @@ class SynthGenerator(ScadaActor):
                     weather = weather_96h
                     for key in weather:
                         weather[key] = weather[key][hours_late:hours_late+48]
+                    if weather['oat'] == []:
+                        raise Exception()
                 else:
                     self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                     current_month = datetime.now().month-1
@@ -430,6 +442,7 @@ class SynthGenerator(ScadaActor):
             RswtDeltaTF = forecasts['required_swt_delta_T'][:24]
         )
         self.log(f"OAT = {self.weather_forecast.OatF[:24]}")
+        self.log(f"WS = {self.weather_forecast.WindSpeedMph[:24]}")
         self.log(f"Average Power = {self.forecasts.AvgPowerKw}")
         self.log(f"RSWT = {self.forecasts.RswtF}")
         self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.forecasts.RswtF]}")
