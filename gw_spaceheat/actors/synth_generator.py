@@ -37,6 +37,7 @@ class SynthGenerator(ScadaActor):
         self.elec_assigned_amount = None
         self.previous_time = None
         self.temperatures_available = False
+        self.need_to_get_weather = False
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated

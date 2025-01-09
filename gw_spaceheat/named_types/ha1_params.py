@@ -16,5 +16,6 @@ class Ha1Params(BaseModel):
     DdDeltaTF: StrictInt
     HpMaxKwTh: float
     MaxEwtF: StrictInt
+    LoadOverestimationPercent: StrictInt
     TypeName: Literal["ha1.params"] = "ha1.params"
-    Version: Literal["001"] = "001"
+    Version: Literal["002"] = "002"

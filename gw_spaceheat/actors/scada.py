@@ -796,6 +796,9 @@ class Scada(ScadaInterface, Proactor):
                 self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF, testing)
             if new.DdDeltaTF != old.DdDeltaTF:
                 self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF, testing)
+            if new.LoadOverestimationPercent != old.LoadOverestimationPercent:
+                self.update_env_variable('SCADA_LOAD_OVERESTIMATION_PERCENT', new.LoadOverestimationPercent, testing)
+
 
             response = ScadaParams(
                     FromGNodeAlias=self.hardware_layout.scada_g_node_alias,

@@ -15,8 +15,9 @@ def test_ha1_params_generated() -> None:
         "DdDeltaTF": 20,
         "HpMaxKwTh": 6,
         "MaxEwtF": 170,
+        "LoadOverestimationPercent": 10,
         "TypeName": "ha1.params",
-        "Version": "001",
+        "Version": "002",
     }
 
     d2 = Ha1Params.model_validate(d).model_dump(exclude_none=True)
