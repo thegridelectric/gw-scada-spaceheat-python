@@ -101,6 +101,7 @@ class PicoCycler(ScadaActor):
             for node in self.layout.nodes.values()
             if node.ActorClass in [ActorClass.ApiFlowModule, ActorClass.ApiTankModule]
         ]
+        self.last_open_time = time.time() # used to track how long since the VDC relay was cycled
         self._stop_requested = False
         self.actor_by_pico = {}
         self.ab_by_pico = {}
@@ -182,6 +183,8 @@ class PicoCycler(ScadaActor):
 
     def process_pico_missing(self, actor: ShNode, payload: PicoMissing) -> None:
         # ignore messages from other actors unless currently live
+        if time.time() - self.last_open_time < 60:
+            return
         pico = payload.PicoHwUid
         if actor not in self.pico_actors:
             return
@@ -362,6 +365,7 @@ class PicoCycler(ScadaActor):
                 asyncio.create_task(self._wait_and_close_relay())
 
     def confirm_closed(self) -> None:
+        self.last_open_time = time.time()
         if self.state == PicoCyclerState.RelayClosing.value:
             # ConfirmClosed: RelayClosing -> PicosRebooting
             if self.trigger_event(PicoCyclerEvent.ConfirmClosed):
