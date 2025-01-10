@@ -79,12 +79,14 @@ class PowerChannels(ReadMixin):
     hp_indoor: PowerChannel
     hp_outdoor: PowerChannel
     pumps: PumpPowerChannels
+    oil_boiler: PowerChannel
 
     def __init__(self, channels: dict[str, DataChannel]) -> None:
         self.hp_indoor = PowerChannel("hp-idu-pwr", channels)
         self.hp_outdoor = PowerChannel("hp-odu-pwr", channels)
         self.hp_total = MissingReading()
         self.pumps = PumpPowerChannels(channels)
+        self.oil_boiler = PowerChannel("oil-boiler-pwr", channels)
 
 class Thermostat(ReadMixin):
     name: str

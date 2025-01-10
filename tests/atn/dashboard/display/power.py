@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Deque
-from typing import Self
+from typing import Self, Optional
 
 from rich.console import Console
 from rich.console import ConsoleOptions
@@ -24,10 +24,12 @@ class PowerDisplay:
             *,
             print_hack_hp: bool = False,
             hack_hp_state_q: Deque[HackHpStateCapture],
+            hack_oil_boiler_w: Optional[float]
     ) -> None:
         self.channels = channels
         self.print_hack_hp = print_hack_hp
         self.hack_hp_state_q = hack_hp_state_q
+        self.hack_oil_boiler_w = hack_oil_boiler_w
         self.update()
 
     def update(self) -> Self:
@@ -59,6 +61,10 @@ class PowerDisplay:
         else:
             idu_pwr_w_str = f"{round(self.hack_hp_state_q[0].idu_pwr_w / 1000, 2)}"
             odu_pwr_w_str = f"{round(self.hack_hp_state_q[0].odu_pwr_w / 1000, 2)}"
+        if self.hack_oil_boiler_w is None:
+            oil_boiler_pwr_w_str = none_text
+        else:
+            oil_boiler_pwr_w_str = f"{round(self.hack_oil_boiler_w/1000, 2)}"
 
         row_1 = [
             "Hp Total", hp_pwr_w_str,
@@ -78,10 +84,17 @@ class PowerDisplay:
             "Store", str(self.channels.flows.store_flow),
             str(self.channels.power.pumps.store),
         ]
+        row_4 = [
+            "Oil boiler", oil_boiler_pwr_w_str,
+            "x",
+            "x", 'x',
+            'x',
+        ]
         if self.print_hack_hp:
             row_1.append("Started")
             row_2.append("Tries")
             row_3.append("PumpPwr")
+            row_3.append("")
             for i in range(extra_cols):
                 row_1.append(
                     datetime.fromtimestamp(
@@ -94,10 +107,12 @@ class PowerDisplay:
                 else:
                     row_2.append(f"")
                 row_3.append(f"{self.hack_hp_state_q[i].primary_pump_pwr_w} W")
+                row_4.append(f"")
 
         self.table.add_row(*row_1)
         self.table.add_row(*row_2)
         self.table.add_row(*row_3)
+        self.table.add_row(*row_4)
         return self
 
     def __rich_console__(self, _console: Console, _options: ConsoleOptions) -> RenderResult:

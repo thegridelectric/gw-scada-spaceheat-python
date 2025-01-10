@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Deque
-from typing import Self
+from typing import Self, Optional
 
 import pytz
 from rich.console import Console
@@ -33,7 +33,8 @@ class Displays:
             settings: DashboardSettings,
             short_name: str,
             channels: Channels,
-            hack_hp_state_q: Deque[HackHpStateCapture]
+            hack_hp_state_q: Deque[HackHpStateCapture],
+            hack_oil_boiler_w: Optional[float],
     ) -> None:
         self.short_name = short_name
         self.title = Text()
@@ -43,6 +44,7 @@ class Displays:
             channels,
             print_hack_hp=settings.print_hack_hp,
             hack_hp_state_q=hack_hp_state_q,
+            hack_oil_boiler_w=hack_oil_boiler_w,
         )
         self.picture = AsciiPicture(
             short_name,

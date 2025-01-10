@@ -51,11 +51,14 @@ class Dashboard:
             channels=data_channels,
             thermostat_names=thermostat_names
         )
+        if self.channels.power.oil_boiler.reading:
+            oil_boiler_w = self.channels.power.oil_boiler.reading.raw
         self.displays = Displays(
             self.settings,
             self.short_name,
             self.channels,
-            self.hack_hp.state_q
+            self.hack_hp.state_q,
+            oil_boiler_w
         )
 
     def update(
