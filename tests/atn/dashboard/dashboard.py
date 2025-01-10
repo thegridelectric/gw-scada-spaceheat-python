@@ -53,6 +53,8 @@ class Dashboard:
         )
         if self.channels.power.oil_boiler.reading:
             oil_boiler_w = self.channels.power.oil_boiler.reading.raw
+        else:
+            oil_boiler_w = None
         self.displays = Displays(
             self.settings,
             self.short_name,
