@@ -140,7 +140,7 @@ class SynthGenerator(ScadaActor):
                 self.previous_watts = message.Payload.Watts
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
-                self.get_weather()
+                self.get_forecasts()
         return Ok(True)
     
     def fill_missing_store_temps(self):
@@ -411,6 +411,9 @@ class SynthGenerator(ScadaActor):
         )
 
     async def get_forecasts(self, session: aiohttp.ClientSession):
+
+        self.log("HACKED! Volontarily turned off forecasts so that scada would be blind...")
+        return
     
         await self.get_weather(session)
         if self.weather_forecast is None:
