@@ -1,5 +1,6 @@
 """Scada implementation"""
 
+import os
 import asyncio
 import enum
 import uuid
@@ -41,7 +42,6 @@ from actors.api_tank_module import MicroVolts
 from actors.scada_data import ScadaData
 from actors.scada_interface import ScadaInterface
 from actors.config import ScadaSettings
-from actors.synth_generator import WeatherForecast
 from gwproto.data_classes.sh_node import ShNode
 from gwproactor import QOS
 
@@ -52,10 +52,10 @@ from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
-from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, DispatchContractGoDormant,
+from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, ChannelFlatlined, DispatchContractGoDormant,
                         DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
                         LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
-                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp)
+                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp, HeatingForecast)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -413,7 +413,7 @@ class Scada(ScadaInterface, Proactor):
         self._data.reports_to_store[report.Id] = report
         self.generate_event(ReportEvent(Report=report))
         self._publish_to_local(self._node, report)
-        self._data.flush_latest_readings()
+        self._data.flush_recent_readings()
     
     def send_snap(self):
         snapshot = self._data.make_snapshot()
@@ -497,6 +497,8 @@ class Scada(ScadaInterface, Proactor):
                     self.get_communicator(message.Header.Dst).process_message(message)
                 except Exception as e:
                     self.logger.error(f"Problem with  {message.Header}: {e}")
+            case ChannelFlatlined():
+                self.data.flush_channel_from_latest(message.Payload.Channel.Name)
             case ChannelReadings():
                 if message.Header.Dst == self.name:
                     path_dbg |= 0x00000004
@@ -569,7 +571,7 @@ class Scada(ScadaInterface, Proactor):
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case WakeUp():
                 self.get_communicator(message.Header.Dst).process_message(message)
-            case WeatherForecast():
+            case HeatingForecast():
                 try:
                     self.get_communicator(H0N.atomic_ally).process_message(message)
                     self.get_communicator(H0N.home_alone).process_message(message)
@@ -632,6 +634,7 @@ class Scada(ScadaInterface, Proactor):
             case ScadaParams():
                 path_dbg |= 0x00000010
                 self._scada_params_received(decoded.Payload)
+                self.get_communicator(H0N.synth_generator).process_message(decoded)
             case _:
                 # Intentionally ignore this for forward compatibility
                 path_dbg |= 0x00000020
@@ -742,24 +745,27 @@ class Scada(ScadaInterface, Proactor):
             self._admin_timeout_task.cancel()
         self._admin_timeout_task = asyncio.create_task(self._timeout_admin(timeout_seconds))
 
-    def update_env_variable(self, variable, new_value) -> None:
+    def update_env_variable(self, variable, new_value, testing:bool=False) -> None:
         """
         Updates .env with new Scada Params. 
         TODO: move this somewhere else, like a local sqlite db
         """
-        dotenv_filepath = dotenv.find_dotenv(usecwd=True)
-        if not dotenv_filepath:
-            self.logger.error("Couldn't find a .env file - perhaps because in CI?")
-            return
+        if testing:
+            dotenv_filepath = dotenv.find_dotenv(usecwd=True)
+            if not dotenv_filepath:
+                self.logger.error("Couldn't find a .env file - perhaps because in CI?")
+                return
+        else:
+            dotenv_filepath = "/home/pi/gw-scada-spaceheat-python/.env"
+            if not os.path.isfile(dotenv_filepath):
+                self.log("Did not find .env file")
+                return
         with open(dotenv_filepath, 'r') as file:
             lines = file.readlines()
         with open(dotenv_filepath, 'w') as file:
             line_exists = False
             for line in lines:
-                if (line.startswith(f"{variable}=") 
-                    or line.startswith(f"{variable}= ")
-                    or line.startswith(f"{variable} =")
-                    or line.startswith(f"{variable} = ")):
+                if line.replace(' ','').startswith(f"{variable}="):
                     file.write(f"{variable}={new_value}\n")
                     line_exists = True      
                 else:
@@ -767,7 +773,7 @@ class Scada(ScadaInterface, Proactor):
             if not line_exists:
                 file.write(f"\n{variable}={new_value}\n")
 
-    def _scada_params_received(self, message: ScadaParams) -> None:
+    def _scada_params_received(self, message: ScadaParams, testing:bool=False) -> None:
         if message.FromGNodeAlias != self.hardware_layout.atn_g_node_alias:
             return
         new = message.NewParams
@@ -775,21 +781,24 @@ class Scada(ScadaInterface, Proactor):
             old = self.data.ha1_params
             self.data.ha1_params = new
             if new.AlphaTimes10 != old.AlphaTimes10:          
-                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10)
+                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10, testing)
             if new.BetaTimes100 != old.BetaTimes100:
-                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100)
+                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100, testing)
             if new.GammaEx6 != old.GammaEx6:
-                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6)
+                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6, testing)
             if new.IntermediatePowerKw != old.IntermediatePowerKw:
-                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw)
+                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw, testing)
             if new.IntermediateRswtF != old.IntermediateRswtF:
-                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF)
+                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF, testing)
             if new.DdPowerKw != old.DdPowerKw:
-                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw)
+                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw, testing)
             if new.DdRswtF != old.DdRswtF:
-                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF)
+                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF, testing)
             if new.DdDeltaTF != old.DdDeltaTF:
-                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF)
+                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF, testing)
+            if new.LoadOverestimationPercent != old.LoadOverestimationPercent:
+                self.update_env_variable('SCADA_LOAD_OVERESTIMATION_PERCENT', new.LoadOverestimationPercent, testing)
+
 
             response = ScadaParams(
                     FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
