@@ -614,11 +614,12 @@ class HomeAlone(ScadaActor):
                     self.engage_brain(waking_up = True)
             case HeatingForecast():
                 self.log("Received heating forecast")
-                self.forecasts: HeatingForecast = message.Payload
-                if self.state == HomeAloneState.Initializing:
-                    self.log(f"Top state: {self.top_state}")
-                    self.log(f"State: {self.state}")
-                    self.engage_brain()
+                self.log("BUT HACKED - will not do anything with it to force ScadaBlind to come on")
+                # self.forecasts: HeatingForecast = message.Payload
+                # if self.state == HomeAloneState.Initializing:
+                #     self.log(f"Top state: {self.top_state}")
+                #     self.log(f"State: {self.state}")
+                #     self.engage_brain()
         return Ok(True)
     
     def change_all_temps(self, temp_c) -> None:
