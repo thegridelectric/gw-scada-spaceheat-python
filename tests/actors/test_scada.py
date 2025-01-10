@@ -299,6 +299,12 @@ async def test_scada_snaphot_request_delivery(tmp_path, monkeypatch, request):
 
     monkeypatch.chdir(tmp_path)
     settings = ScadaSettings(seconds_per_report=2)
+    if uses_tls(settings):
+        copy_keys("scada", settings)
+    atn_settings = AtnSettings()
+    if uses_tls(atn_settings):
+        copy_keys("atn", atn_settings)
+    atn_settings.paths.mkdirs()
 
     class Fragment(ProtocolFragment):
 
@@ -332,6 +338,11 @@ async def test_scada_report_content_dynamics(tmp_path, monkeypatch, request):
     if uses_tls(settings):
         copy_keys("scada", settings)
     settings.paths.mkdirs(parents=True)
+    atn_settings = AtnSettings()
+    if uses_tls(atn_settings):
+        copy_keys("atn", atn_settings)
+    atn_settings.paths.mkdirs()
+
     layout = House0Layout.load(settings.paths.hardware_layout)
     actors = Actors(
         settings,
