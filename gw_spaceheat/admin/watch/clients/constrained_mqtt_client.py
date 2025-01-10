@@ -189,7 +189,8 @@ class ConstrainedMQTTClient:
                 self._stop_requested = False
                 self._thread = threading.Thread(
                     target=self._client_thread,
-                    name=f"admin-MQTT-client-thread"
+                    name=f"admin-MQTT-client-thread",
+                    daemon=True,
                 )
                 self._thread.start()
 
