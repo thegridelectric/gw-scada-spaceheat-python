@@ -68,7 +68,7 @@ class DParams():
         return self.config.CopIntercept + self.config.CopOatCoeff*oat + self.config.CopLwtCoeff*lwt      
 
     def required_heating_power(self, oat, ws):
-        r = self.alpha + self.beta*oat + self.gamma*ws
+        r = self.alpha + self.beta*oat + self.gamma*((55-oat)*ws)
         return r if r>0 else 0
 
     def delivered_heating_power(self, swt):

@@ -37,6 +37,7 @@ class SynthGenerator(ScadaActor):
         self.elec_assigned_amount = None
         self.previous_time = None
         self.temperatures_available = False
+        self.received_new_params: bool = False
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -113,8 +114,9 @@ class SynthGenerator(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.forecasts is None or time.time()>self.forecasts.Time[0]:
+            if self.forecasts is None or time.time()>self.forecasts.Time[0] or self.received_new_params:
                 await self.get_forecasts(session)
+                self.received_new_params = False
 
             self.get_latest_temperatures()
             if self.temperatures_available:
@@ -139,7 +141,7 @@ class SynthGenerator(ScadaActor):
                 self.previous_watts = message.Payload.Watts
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
-                self.get_forecasts()
+                self.received_new_params = True
         return Ok(True)
     
     def fill_missing_store_temps(self):
