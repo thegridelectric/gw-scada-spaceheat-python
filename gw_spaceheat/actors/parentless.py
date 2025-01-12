@@ -10,7 +10,7 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproto.message import Header
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
-from gwproto.named_types import Report, SyncedReadings
+from gwproto.named_types import PowerWatts, Report, SyncedReadings
 from gwproto.named_types import SnapshotSpaceheat
 from data_classes.house_0_names import H0N
 from data_classes.house_0_layout import House0Layout
@@ -137,8 +137,18 @@ class Parentless(ScadaInterface, Proactor):
         self._logger.path("++Parentless._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         match message.Payload:
+            case PowerWatts():
+                new_msg = Message(
+                    Header=Header(
+                        Src=message.Header.Src, 
+                        Dst=H0N.primary_scada,
+                        MessageType=message.Payload.TypeName,
+                        ),
+                    Payload=message.Payload
+                )
+                self._links.publish_message(Parentless.LOCAL_MQTT, new_msg, QOS.AtMostOnce)
             case SyncedReadings():
-                path_dbg |= 0x00000001
+                path_dbg |= 0x00000004
                 new_msg = Message(
                     Header=Header(
                         Src=message.Header.Src, 
