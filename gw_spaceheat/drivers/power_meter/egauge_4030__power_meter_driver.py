@@ -255,7 +255,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
 
     def validate_config(self, config: ElectricMeterChannelConfig) -> None:
         egauge_config = config.EgaugeRegisterConfig
-        if egauge_config:
+        if egauge_config is None:
             raise ValueError("Misconfigured eGaugeConfig for power. eGaugeConfig is None.")
         if egauge_config.Type != 'f32':
             raise ValueError(f"Misconfigured eGaugeConfig for power. Type must be f32: {egauge_config}")
