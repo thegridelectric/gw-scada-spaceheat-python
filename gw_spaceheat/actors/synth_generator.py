@@ -17,7 +17,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
 from named_types import (EnergyInstruction, Ha1Params, RemainingElec, 
-                         WeatherForecast, HeatingForecast, PriceForecast, ScadaParams)
+                         WeatherForecast, HeatingForecast, ScadaParams)
 
 
 class SynthGenerator(ScadaActor):
@@ -55,9 +55,8 @@ class SynthGenerator(ScadaActor):
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
 
-        # For the weather forecast
-        self.forecasts: HeatingForecast = None
-        self.weather_forecast: WeatherForecast = None
+        self.forecasts: Optional[HeatingForecast]= None
+        self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
     
     @property
@@ -306,17 +305,6 @@ class SynthGenerator(ScadaActor):
         c2 = c - required_kw_thermal
         return round((-b + (b**2-4*a*c2)**0.5)/(2*a), 2)
     
-    def get_price_forecast(self) -> None:
-        daily_dp = [50.13]*7 + [487.63]*5 + [54.98]*4 + [487.63]*4 + [50.13]*4
-        dp_forecast_usd_per_mwh = (daily_dp[datetime.now(tz=self.timezone).hour+1:] + daily_dp[:datetime.now(tz=self.timezone).hour+1])*2
-        lmp_forecast_usd_per_mwh = [102]*48
-        pf = PriceForecast(
-            Time = [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
-            DpForecast = dp_forecast_usd_per_mwh,
-            LmpForecsat = lmp_forecast_usd_per_mwh,
-        )
-        self._send_to(self.atomic_ally, pf)
-
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
         weather_file = config_dir / "weather.json"
@@ -403,9 +391,13 @@ class SynthGenerator(ScadaActor):
                     'oat': [self.coldest_oat_by_month[current_month]]*48,
                     'ws': [0]*48,
                     }
-        
-        # TODO: broadcast weather forecast for ability to analyze HomeAlone actions
+        # International Civil Aviation Organization: 4-char alphanumeric code
+        # assigned to airports and weather observation stations
+        ICAO_CODE = "KMLT"
+        WEATHER_CHANNEL = f"weather-gov.{ICAO_CODE}".lower()
         self.weather_forecast = WeatherForecast(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            WeatherChannelName=WEATHER_CHANNEL,
             Time = weather['time'],
             OatF = weather['oat'],
             WindSpeedMph= weather['ws']
