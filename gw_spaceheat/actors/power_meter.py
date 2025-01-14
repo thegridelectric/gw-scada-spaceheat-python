@@ -1,12 +1,15 @@
 """Implements PowerMeter via SyncThreadActor and PowerMeterDriverThread. A helper class, DriverThreadSetupHelper,
 isolates code used only in PowerMeterDriverThread constructor. """
-
+import logging
 import time
 import typing
 from typing import Dict
 from typing import List
 from typing import Optional
+
+from gwproactor.logger import LoggerOrAdapter
 from gwproto import Message
+from gwproto.enums import TelemetryName
 
 from actors.message import PowerWattsMessage
 from actors.message import SyncedReadingsMessage
@@ -74,12 +77,14 @@ class DriverThreadSetupHelper:
     settings: ScadaSettings
     hardware_layout: HardwareLayout
     component: ElectricMeterComponent
+    logger: LoggerOrAdapter
 
     def __init__(
         self,
         node: ShNode,
         settings: ScadaSettings,
         hardware_layout: HardwareLayout,
+        logger: LoggerOrAdapter,
     ):
         if not isinstance(node.component, ElectricMeterComponent):
             raise ValueError(
@@ -90,6 +95,7 @@ class DriverThreadSetupHelper:
         self.settings = settings
         self.hardware_layout = hardware_layout
         self.component = typing.cast(ElectricMeterComponent, node.component)
+        self.logger = logger
 
     def make_power_meter_driver(self) -> PowerMeterDriver:
         cac = self.component.cac
@@ -104,7 +110,11 @@ class DriverThreadSetupHelper:
                 component=self.component, settings=self.settings
             )
         elif cac.MakeModel == MakeModel.EGAUGE__4030:
-            driver = EGuage4030_PowerMeterDriver(component=self.component, settings=self.settings)
+            driver = EGuage4030_PowerMeterDriver(
+                component=self.component,
+                settings=self.settings,
+                logger=self.logger,
+            )
         else:
             raise NotImplementedError(
                 f"No ElectricMeter driver yet for {cac.MakeModel}"
@@ -148,22 +158,30 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         telemetry_destination: str,
         responsive_sleep_step_seconds=0.01,
         daemon: bool = True,
+        logger: Optional[LoggerOrAdapter] = None,
     ):
         super().__init__(
             name=node.Name,
             responsive_sleep_step_seconds=responsive_sleep_step_seconds,
             daemon=daemon,
+            logger=logger,
         )
         self._hardware_layout = hardware_layout
         self._telemetry_destination = telemetry_destination
-        setup_helper = DriverThreadSetupHelper(node, settings, hardware_layout)
+        setup_helper = DriverThreadSetupHelper(
+            node,
+            settings,
+            hardware_layout,
+            logger=logger
+        )
         self.eq_reporting_config = setup_helper.make_eq_reporting_config()
         self.driver = setup_helper.make_power_meter_driver()
         self.transactive_nameplate_watts = setup_helper.get_transactive_nameplate_watts()
         self.last_reported_agg_power_w: Optional[int] = None
-        component: ElectricMeterComponent = node.component
+        component: ElectricMeterComponent = typing.cast(ElectricMeterComponent, node.component)
         my_channel_names = [cfg.ChannelName for cfg in component.gt.ConfigList]
         self.my_channels = [hardware_layout.data_channels[name] for name in my_channel_names]
+        self._validate_channels_with_component(component)
         self.last_reported_telemetry_value = {
             ch: None for ch in self.my_channels
         }
@@ -174,6 +192,15 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
             ch: None for ch in self.my_channels
         }
         self.async_power_reporting_threshold = settings.async_power_reporting_threshold
+
+    def _validate_channels_with_component(self, component: ElectricMeterComponent) -> None:
+        for channel in self.my_channels:
+            if channel.TelemetryName != TelemetryName.PowerW:
+                raise ValueError(f"read_power_w got a channel with {channel.TelemetryName}")
+            channel_config = next((cfg for cfg in component.gt.ConfigList if cfg.ChannelName == channel.Name), None)
+            if channel_config is None:
+                raise Exception(f"Reading power for channel {channel.Name} but this is not in the ConfigList!")
+            self.driver.validate_config(channel_config)
 
     def _report_problems(self, problems: Problems, tag: str):
         self._put_to_async_queue(
@@ -202,8 +229,8 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                 if hw_uid_read_result.value.value:
                     self._hw_uid = hw_uid_read_result.value.value.strip("\u0000")
                     if (
-                            self.driver.component.gt.HwUid
-                            and self._hw_uid != self.driver.component.gt.HwUid
+                        self.driver.component.gt.HwUid
+                        and self._hw_uid != self.driver.component.gt.HwUid
                     ):
                         self._report_problems(
                             Problems(
@@ -351,20 +378,26 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
 
 
 class PowerMeter(SyncThreadActor):
+    POWER_METER_LOGGER_NAME: str = "PowerMeter"
+
     def __init__(
         self,
         name: str,
         services: ScadaInterface,
         settings: Optional[ScadaSettings] = None,
     ):
-
+        settings = settings or services.settings
         super().__init__(
             name=name,
             services=services,
             sync_thread=PowerMeterDriverThread(
                 node=services.hardware_layout.node(name),
-                settings=services.settings if settings is None else settings,
+                settings=settings,
                 hardware_layout=services.hardware_layout,
                 telemetry_destination=services.name,
+                logger=services.logger.add_category_logger(
+                    self.POWER_METER_LOGGER_NAME,
+                    level=settings.power_meter_logging_level,
+                )
             ),
         )

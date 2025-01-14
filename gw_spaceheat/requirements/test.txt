@@ -43,9 +43,9 @@ gridworks==1.2.0
     # via gridworks-protocol
 gridworks-cert==0.4.3
     # via gridworks-proactor
-gridworks-proactor[tests]==1.1.1
+gridworks-proactor[tests]==1.1.5
     # via -r gw_spaceheat/requirements/test.in
-gridworks-protocol==1.2.0
+gridworks-protocol==1.2.1
     # via gridworks-proactor
 idna==2.10
     # via yarl

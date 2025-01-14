@@ -93,6 +93,16 @@ def parse_args(
         action="store_true",
         help="Whether to enable paho mqtt logging. Requires --verbose to be useful."
     )
+    parser.add_argument(
+        "--power-meter-logging",
+        action="store_true",
+        help="Enable extra power meter logging."
+    )
+    parser.add_argument(
+        "--power-meter-logging-verbose",
+        action="store_true",
+        help="Enable even more extra power meter logging."
+    )
     return parser.parse_args(sys.argv[1:] if argv is None else argv, namespace=args)
 
 def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
@@ -176,11 +186,19 @@ def get_scada(
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
+    # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
+    # noinspection PyArgumentList
     settings = ScadaSettings(_env_file=dotenv_file)
     if args.s2:
         scada_actor_class = ActorClass.Parentless
     else:
         scada_actor_class = ActorClass.Scada
+    if args.power_meter_logging:
+        if settings.power_meter_logging_level > logging.INFO:
+            settings.power_meter_logging_level = logging.INFO
+    if args.power_meter_logging_verbose:
+        if settings.power_meter_logging_level > logging.DEBUG:
+            settings.power_meter_logging_level = logging.DEBUG
     if args.dry_run:
         rich.print(dotenv_file_debug_str)
         rich.print(settings)
