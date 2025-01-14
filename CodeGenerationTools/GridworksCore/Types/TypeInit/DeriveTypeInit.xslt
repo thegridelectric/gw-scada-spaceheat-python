@@ -45,6 +45,7 @@
 </xsl:variable>
 
 <xsl:text>
+from named_types.events import RemainingElecEvent
 from named_types.</xsl:text>
 <xsl:value-of select="translate(TypeName,'.','_')"/>
 <xsl:text> import </xsl:text>
@@ -54,7 +55,8 @@ from named_types.</xsl:text>
 <xsl:text>
 
 
-__all__ = [</xsl:text>
+__all__ = [
+    "RemainingElecEvent",</xsl:text>
 
 
 <xsl:for-each select="$airtable//VersionedTypes/VersionedType[

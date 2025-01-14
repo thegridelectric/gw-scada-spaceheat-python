@@ -4,26 +4,30 @@ from typing import List
 from gw.enums import GwStrEnum
 
 
-class HomeAloneTopState(GwStrEnum):
+class LogLevel(GwStrEnum):
     """
     
     Values:
-      - Dormant
-      - Normal
-      - UsingBackupOnpeak
+      - Critical
+      - Error
+      - Warning
+      - Info
+      - Debug
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
-      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
+      - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#loglevel)
     """
 
-    Dormant = auto()
-    Normal = auto()
-    UsingBackupOnpeak = auto()
+    Critical = auto()
+    Error = auto()
+    Warning = auto()
+    Info = auto()
+    Debug = auto()
 
     @classmethod
-    def default(cls) -> "HomeAloneTopState":
-        return cls.Normal
+    def default(cls) -> "LogLevel":
+        return cls.Info
 
     @classmethod
     def values(cls) -> List[str]:
@@ -31,7 +35,7 @@ class HomeAloneTopState(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "home.alone.top.state"
+        return "log.level"
 
     @classmethod
     def enum_version(cls) -> str:

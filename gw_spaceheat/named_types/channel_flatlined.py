@@ -2,8 +2,8 @@
 
 from typing import Literal
 
-from gwproto.property_format import SpaceheatName
 from gwproto.named_types import DataChannelGt
+from gwproto.property_format import SpaceheatName
 from pydantic import BaseModel, model_validator
 from typing_extensions import Self
 
@@ -20,6 +20,8 @@ class ChannelFlatlined(BaseModel):
         Axiom 1:FromName must be Channel.CapturedByNodeName
         """
         if self.Channel.CapturedByNodeName != self.FromName:
-            raise ValueError("Axiom 1: FromName must be Channel.CapturedByNodeName"
-                             f" FromName {self.FromName} != Channel.CapturedByName {self.Channel.CapturedByNodeName}")
+            raise ValueError(
+                "Axiom 1: FromName must be Channel.CapturedByNodeName"
+                f" FromName {self.FromName} != Channel.CapturedByName {self.Channel.CapturedByNodeName}"
+            )
         return self

@@ -10,7 +10,6 @@ def test_home_alone_top_state() -> None:
         "Dormant",
         "Normal",
         "UsingBackupOnpeak",
-        "ScadaBlind",
     }
 
     assert HomeAloneTopState.default() == HomeAloneTopState.Normal

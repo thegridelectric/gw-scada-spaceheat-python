@@ -20,7 +20,7 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from named_types import RemainingElec, ScadaInit
+from named_types import RemainingElec, GameOn
 
 
 class AtomicAllyState(GwStrEnum): 
@@ -306,7 +306,7 @@ class AtomicAlly(ScadaActor):
 
     async def main(self):
         await asyncio.sleep(2)
-        self._send_to(self.primary_scada, ScadaInit(FromGNodeAlias=self.layout.atn_g_node_alias))
+        self._send_to(self.primary_scada, GameOn(FromGNodeAlias=self.layout.atn_g_node_alias))
         # SynthGenerator gets forecasts ASAP on boot, including various fallbacks
         # if the request does not work. So wait a bit if 
         if self.forecasts is None:

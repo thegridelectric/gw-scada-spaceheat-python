@@ -17,6 +17,7 @@ on these ideas:
 
 from gw.enums import MarketTypeName
 from enums.home_alone_top_state import HomeAloneTopState
+from enums.log_level import LogLevel
 from enums.main_auto_event import MainAutoEvent
 from enums.main_auto_state import MainAutoState
 from enums.market_price_unit import MarketPriceUnit
@@ -30,6 +31,7 @@ from enums.top_state import TopState
 __all__ = [
     "MarketTypeName",
     "HomeAloneTopState",  # [home.alone.top.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
+    "LogLevel",  # [log.level.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#loglevel)
     "MainAutoEvent",  # [main.auto.event.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautoevent)
     "MainAutoState",  # [main.auto.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautostate)
     "MarketPriceUnit",  # [market.price.unit.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#marketpriceunit)
