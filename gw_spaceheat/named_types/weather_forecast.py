@@ -33,8 +33,8 @@ class WeatherForecast(BaseModel):
         """
         if len(self.OatF) != len(self.Time):
             raise ValueError(f"self.OatFshould be a list of length {len(self.Time)}!")
-        if len(self.WindSpeedMph) != len(self.WindSpeedMph):
-            raise ValueError(f"self.OatFshould be a list of length {len(self.Time)}!")
+        if len(self.WindSpeedMph) != len(self.Time):
+            raise ValueError(f"self.OatF should be a list of length {len(self.Time)}!")
 
         return self
 

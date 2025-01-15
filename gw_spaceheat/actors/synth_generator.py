@@ -340,7 +340,7 @@ class SynthGenerator(ScadaActor):
             forecasts_48h = dict(list(forecasts_all.items())[:48])
             ws_forecasts_48h = dict(list(ws_forecasts_all.items())[:48])
             weather = {
-                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_all.keys())],
+                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_48h.keys())],
                 'oat': list(forecasts_48h.values()),
                 'ws': list(ws_forecasts_48h.values())
                 }
