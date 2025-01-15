@@ -17,7 +17,7 @@ from actors.flo import DGraph
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
-from named_types import RemainingElecEvent, ScadaInit
+from named_types import RemainingElecEvent, GameOn
 
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
@@ -278,8 +278,8 @@ class Atn(ActorInterface, Proactor):
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000010
                 self._process_snapshot(decoded.Payload)
-            case ScadaInit():
-                self.log("Scada is on!")
+            case GameOn():
+                self.log("Scada: Game On!")
                 if self.latest_remaining_elec is not None:
                     self.log("Sending energy instruction with the latest remaining electricity")
                     self.send_energy_instr(self.latest_remaining_elec)

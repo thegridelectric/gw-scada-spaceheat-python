@@ -53,9 +53,9 @@ from gwproactor.proactor_implementation import Proactor
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
 from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, ChannelFlatlined, DispatchContractGoDormant,
-                        DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
+                        DispatchContractGoLive, EnergyInstruction, FsmEvent, GameOn, Glitch, GoDormant, 
                         LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
-                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp, HeatingForecast)
+                        ScadaParams, SendLayout, SingleMachineState, WakeUp, HeatingForecast)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -471,10 +471,11 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case ScadaInit():
+            case Glitch():
+                self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+            case GameOn():
                 try:
                     self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
-                    self.log("Sent ScadaInit to ATN")
                 except Exception as e:
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case RemainingElec():
