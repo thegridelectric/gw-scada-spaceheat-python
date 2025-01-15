@@ -1,5 +1,4 @@
 """Scada implementation"""
-
 import os
 import asyncio
 import enum
@@ -19,6 +18,7 @@ from gwproto import create_message_model
 from gwproto import MQTTTopic
 from gwproto.enums import ActorClass
 
+from actors.power_meter import PowerMeter
 from data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmAtomicReport, FsmFullReport
 from gwproto.messages import EventBase
@@ -244,6 +244,10 @@ class Scada(ScadaInterface, Proactor):
         self._last_sync_snap_s = int(now)
         self._dispatch_live_hack = False
         self.pending_dispatch: Optional[AnalogDispatch] = None
+        self.logger.add_category_logger(
+            PowerMeter.POWER_METER_LOGGER_NAME,
+            level=settings.power_meter_logging_level,
+        )
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(

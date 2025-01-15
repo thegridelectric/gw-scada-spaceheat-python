@@ -44,7 +44,7 @@ def test_power_meter_small():
     assert isinstance(meter._sync_thread, PowerMeterDriverThread)
     driver_thread: PowerMeterDriverThread = meter._sync_thread
     driver_thread.set_async_loop(asyncio.new_event_loop(), asyncio.Queue())
-    setup_helper = DriverThreadSetupHelper(meter.node, settings, layout)
+    DriverThreadSetupHelper(meter.node, settings, layout, scada.logger)
 
     meter_node = layout.node(H0N.primary_power_meter)
     pwr_meter_channel_names = [cfg.ChannelName for cfg in meter_node.component.gt.ConfigList]
