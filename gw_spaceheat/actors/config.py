@@ -1,3 +1,5 @@
+import logging
+
 from gwproactor.config.mqtt import TLSInfo
 from pydantic import model_validator, BaseModel
 from data_classes.house_0_names import H0N
@@ -20,6 +22,7 @@ class ScadaSettings(ProactorSettings):
     """Settings for the GridWorks scada."""
     #logging related (temporary)
     pico_cycler_state_logging: bool = False
+    power_meter_logging_level: int = logging.WARNING
     local_mqtt: MQTTClient = MQTTClient()
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300
