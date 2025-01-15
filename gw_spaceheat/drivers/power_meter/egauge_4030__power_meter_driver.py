@@ -140,16 +140,23 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
         path_dbg = 0
         if self._modbus_client is None or not self._modbus_client.is_open:
             path_dbg |= 0x00000001
-            if not first_time and self._modbus_client is not None:
+            if (
+                self._curr_connect_delay <= 0.0
+                and not first_time
+                and self._modbus_client is not None
+            ):
                 path_dbg |= 0x00000002
                 comm_warnings.append(EGaugeHadDisconnect())
             skip_for_backoff = (now - self._last_connect_time) <= self._curr_connect_delay
             if not skip_for_backoff:
                 path_dbg |= 0x00000004
-                self._curr_connect_delay = min(
-                    self._curr_connect_delay * 2,
-                    self.MAX_RECONNECT_DELAY_SECONDS
-                )
+                if self._curr_connect_delay <= 0.0:
+                    self._curr_connect_delay = 0.5
+                else:
+                    self._curr_connect_delay = min(
+                        self._curr_connect_delay * 2,
+                        self.MAX_RECONNECT_DELAY_SECONDS
+                    )
                 if self._modbus_client is None:
                     path_dbg |= 0x00000008
                     self._last_connect_time = now
