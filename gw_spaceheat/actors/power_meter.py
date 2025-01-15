@@ -202,14 +202,21 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
                 raise Exception(f"Reading power for channel {channel.Name} but this is not in the ConfigList!")
             self.driver.validate_config(channel_config)
 
-    def _report_problems(self, problems: Problems, tag: str):
-        self._put_to_async_queue(
-            Message(
-                Payload=problems.problem_event(
-                    summary=f"Driver problems: {tag} for {self.driver.component}",
-                )
-            )
+    def _report_problems(self, problems: Problems, tag: str, log_event: bool = False):
+        event = problems.problem_event(
+            summary=f"Driver problems: {tag} for {self.driver.component}",
         )
+        message = Message(Payload=event)
+        if log_event and self._logger.isEnabledFor(logging.DEBUG):
+            self._logger.info(
+                "PowerMeter event:\n"
+                f"{event}"
+            )
+            self._logger.info(
+                "PowerMeter message\n"
+                f"{message.model_dump_json(indent=2)}"
+            )
+        self._put_to_async_queue(message)
 
     def _preiterate(self) -> None:
         result = self.driver.start()
@@ -266,13 +273,25 @@ class PowerMeterDriverThread(SyncAsyncInteractionThread):
         self._iterate_sleep_seconds = sleep_time_ms / 1000
 
     def update_latest_value_dicts(self):
+        logged_one = False
         for ch in self.my_channels:
             read = self.driver.read_telemetry_value(ch)
             if read.is_ok():
                 if read.value.value is not None:
                     self.latest_telemetry_value[ch] = read.value.value
                 if read.value.warnings:
-                    self._report_problems(Problems(warnings=read.value.warnings), "read warnings")
+                    log_event = False
+                    if not logged_one and self._logger.isEnabledFor(logging.DEBUG):
+                        logged_one = True
+                        log_event = True
+                        self._logger.info(f"PowerMeter: TryConnectResult:\n{read.value}")
+                        problems = Problems(warnings=read.value.warnings)
+                        self._logger.info(f"PowerMeter: Problems:\n{problems}")
+                    self._report_problems(
+                        problems=Problems(warnings=read.value.warnings),
+                        tag="read warnings",
+                        log_event=log_event
+                    )
             else:
                 raise read.value
 

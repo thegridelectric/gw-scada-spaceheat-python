@@ -105,6 +105,16 @@ class TryConnectResult(DriverResult[bool | None]):
     def had_disconnect(self) -> bool:
         return any(type(warning) == EGaugeHadDisconnect for warning in self.warnings)
 
+    def __str__(self) -> str:
+        s = (
+            f"TryConnectResult connected: {self.connected}  "
+            f"had_disconnected: {self.had_disconnect}  "
+            f"skipped: {self.skipped_for_backoff}  warnings: {len(self.warnings)}"
+        )
+        for warning in self.warnings:
+            s += f"\n  type: <{type(warning)}>  warning: <{warning}>"
+        return s
+
 class EGuage4030_PowerMeterDriver(PowerMeterDriver):
     MAX_RECONNECT_DELAY_SECONDS: float = 10
     MODBUS_HW_UID_REGISTER: int = 100
@@ -171,11 +181,13 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             )
         )
         if not result.value.connected or result.value.warnings:
-            log_path = False
-            if result.value.warnings and self.logger.isEnabledFor(logging.INFO):
+            if self.logger.isEnabledFor(logging.DEBUG):
+                self.logger.info(f"TryConnectResult:\n{result.value}")
                 log_path = True
-            elif result.value.skipped_for_backoff and self.logger.isEnabledFor(logging.DEBUG):
+            elif self.logger.isEnabledFor(logging.INFO) and result.value.warnings:
                 log_path = True
+            else:
+                log_path = False
             if log_path:
                 self.logger.info(f"--eGauge.try_connect  path:0x{path_dbg:08x}")
         return result
