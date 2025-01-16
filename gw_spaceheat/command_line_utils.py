@@ -84,6 +84,11 @@ def parse_args(
         help="Whether to run Parentless ('scada 2') instead of Scada."
     )
     parser.add_argument(
+        "--s2-paths",
+        action="store_true",
+        help="Run parentless ('scada 2') but with .config/.local paths with name 'scada2' rather than 'scada'"
+    )
+    parser.add_argument(
         "--aiohttp-logging",
         action="store_true",
         help="Whether to enable aiohttp logging"
@@ -111,7 +116,7 @@ def get_requested_names(args: argparse.Namespace) -> Optional[set[str]]:
     else:
         requested = set(args.nodes)
         requested.add(H0N.home_alone)
-        if args.s2:
+        if args.s2 or args.s2_paths:
             requested.add(H0N.secondary_scada)
         else:
             requested.add(H0N.primary_scada)
@@ -189,8 +194,15 @@ def get_scada(
     # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
     # noinspection PyArgumentList
     settings = ScadaSettings(_env_file=dotenv_file)
-    if args.s2:
+    if args.s2 or args.s2_paths:
         scada_actor_class = ActorClass.Parentless
+        if args.s2_paths:
+            # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
+            # noinspection PyArgumentList
+            settings = ScadaSettings(
+                _env_file=dotenv_file,
+                paths=settings.paths.copy(name="scada2")
+            )
     else:
         scada_actor_class = ActorClass.Scada
     if args.power_meter_logging:
@@ -269,7 +281,16 @@ def get_scada2(
     args = parse_args(argv)
     dotenv_file = dotenv.find_dotenv(args.env_file)
     dotenv_file_debug_str = f"Env file: <{dotenv_file}>  exists:{Path(dotenv_file).exists()}"
+    # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
+    # noinspection PyArgumentList
     settings = ScadaSettings(_env_file=dotenv_file)
+    if args.s2_paths:
+        # https://github.com/koxudaxi/pydantic-pycharm-plugin/issues/1013
+        # noinspection PyArgumentList
+        settings = ScadaSettings(
+            _env_file=dotenv_file,
+            paths=settings.paths.copy(name="scada2")
+        )
     if args.dry_run:
         rich.print(dotenv_file_debug_str)
         rich.print(settings)
