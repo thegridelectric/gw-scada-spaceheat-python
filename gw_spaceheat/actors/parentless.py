@@ -52,12 +52,12 @@ class Parentless(ScadaInterface, Proactor):
         self._links.add_mqtt_link(
             LinkSettings(
                 client_name=Parentless.LOCAL_MQTT,
-                gnode_name=H0N.primary_scada,
+                gnode_name=self._layout.scada_g_node_alias,
                 spaceheat_name=H0N.primary_scada,
                 mqtt=self.settings.local_mqtt,
                 codec=LocalMQTTCodec(
                     primary_scada=False,
-                    remote_node_names=set(),
+                    remote_node_names=set([self._layout.scada_g_node_alias.replace(".", "-")]),
                 ),
                 upstream=True,
             )
@@ -112,6 +112,10 @@ class Parentless(ScadaInterface, Proactor):
     @property
     def name(self):
         return self._name
+
+    @property
+    def subscription_name(self) -> str:
+        return H0N.secondary_scada
 
     @property
     def node(self) -> ShNode:
