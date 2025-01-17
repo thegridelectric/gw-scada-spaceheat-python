@@ -161,7 +161,12 @@ class Parentless(ScadaInterface, Proactor):
                         ),
                     Payload=message.Payload
                 )
-                self._links.publish_message(Parentless.LOCAL_MQTT, new_msg, QOS.AtMostOnce)
+                self._links.publish_message(
+                    Parentless.LOCAL_MQTT,
+                    new_msg,
+                    QOS.AtMostOnce,
+                    use_link_topic=True,
+                )
             case SyncedReadings():
                 path_dbg |= 0x00000004
                 new_msg = Message(
@@ -172,7 +177,12 @@ class Parentless(ScadaInterface, Proactor):
                         ),
                     Payload=message.Payload
                 )
-                self._links.publish_message(Parentless.LOCAL_MQTT, new_msg, QOS.AtMostOnce)
+                self._links.publish_message(
+                    Parentless.LOCAL_MQTT,
+                    new_msg,
+                    QOS.AtMostOnce,
+                    use_link_topic=True,
+                )
             case _:
                 raise ValueError(
                     f"There is no handler for message payload type [{type(message.Payload)}]"
