@@ -36,6 +36,8 @@ class DParams():
         self.dd_power = config.DdPowerKw
         self.dd_rswt = config.DdRswtF
         self.dd_delta_t = config.DdDeltaTF
+        self.hp_is_off = config.HpIsOff
+        self.hp_turn_on_minutes = config.HpTurnOnMinutes
         self.quadratic_coefficients = self.get_quadratic_coeffs()
         self.available_top_temps, self.energy_between_nodes = self.get_available_top_temps()
         self.load_forecast = [self.required_heating_power(oat,ws) for oat,ws in zip(self.oat_forecast,self.ws_forecast)]
@@ -51,6 +53,10 @@ class DParams():
         else:
             self.fraction_of_hour_remaining: float = 1
         self.load_forecast[0] = self.load_forecast[0]*self.fraction_of_hour_remaining
+        # Find the first top temperature above RSWT for each hour
+        self.rswt_plus = {}
+        for rswt in self.rswt_forecast:
+            self.rswt_plus[rswt] = self.first_top_temp_above_rswt(rswt)
         
     def check_hp_sizing(self):
         max_load_elec = max(self.load_forecast) / self.COP(min(self.oat_forecast), max(self.rswt_forecast))
@@ -63,12 +69,13 @@ class DParams():
             print(error_text)
         
     def COP(self, oat, lwt):
-        oat = to_celcius(oat)
-        lwt = to_celcius(lwt)
-        return self.config.CopIntercept + self.config.CopOatCoeff*oat + self.config.CopLwtCoeff*lwt      
+        if oat < self.config.CopMinOatF: 
+            return self.config.CopMin
+        else:
+            return self.config.CopIntercept + self.config.CopOatCoeff * oat
 
     def required_heating_power(self, oat, ws):
-        r = self.alpha + self.beta*oat + self.gamma*((55-oat)*ws)
+        r = self.alpha + self.beta*oat + self.gamma*ws
         return r if r>0 else 0
 
     def delivered_heating_power(self, swt):
@@ -126,7 +133,11 @@ class DParams():
             temp_drop_f = available_temps[i] - available_temps[i-1]
             energy_between_nodes[available_temps[i]] = round(m_layer * 4.187/3600 * temp_drop_f*5/9,3)
         return available_temps, energy_between_nodes
-    
+
+    def first_top_temp_above_rswt(self, rswt):
+        for x in sorted(self.available_top_temps):
+            if x > rswt:
+                return x
 
 class DNode():
     def __init__(self, time_slice:int, top_temp:float, thermocline:float, parameters:DParams):
@@ -195,34 +206,35 @@ class DGraph():
             for node_now in self.nodes[h]:
                 self.edges[node_now] = []
                 
-                for node_next in self.nodes[h+1]:
+                # The losses might be lower than energy between two nodes
+                losses = self.params.storage_losses_percent/100 * (node_now.energy-self.bottom_node.energy)
+                if self.params.load_forecast[h]==0 and losses>0 and losses<self.params.energy_between_nodes[node_now.top_temp]:
+                    losses = self.params.energy_between_nodes[node_now.top_temp] + 1/1e9
 
-                    # The losses might be lower than energy between two nodes
-                    losses = self.params.storage_losses_percent/100 * (node_now.energy-self.bottom_node.energy)
-                    if h==0:
-                        losses = losses * self.params.fraction_of_hour_remaining
-                    if self.params.load_forecast[h]==0 and losses>0 and losses<self.params.energy_between_nodes[node_now.top_temp]:
-                        losses = self.params.energy_between_nodes[node_now.top_temp] + 1/1e9
+                # If the current top temperature is the first one available above RSWT
+                # If it exists, add an edge from the current node that drains the storage further than RSWT
+                RSWT_plus = self.params.rswt_plus[self.params.rswt_forecast[h]]
+                if node_now.top_temp == RSWT_plus and h < self.params.horizon-1:
+                    self.add_rswt_minus_edge(node_now, h, losses)
+                
+                for node_next in self.nodes[h+1]:
 
                     store_heat_in = node_next.energy - node_now.energy
                     hp_heat_out = store_heat_in + self.params.load_forecast[h] + losses
-
-                    # The first time step is not necessarily a full hour
-                    if h==0:
-                        min_hp_elec_in = self.params.min_hp_elec_in * self.params.fraction_of_hour_remaining
-                        max_hp_elec_in = self.params.max_hp_elec_in * self.params.fraction_of_hour_remaining
-                    else:
-                        min_hp_elec_in = self.params.min_hp_elec_in
-                        max_hp_elec_in = self.params.max_hp_elec_in
+                    
+                    # Adjust the max elec the HP can use in the first time step
+                    # (Duration of time step + turn-on effects)
+                    max_hp_elec_in = self.params.max_hp_elec_in * (self.params.fraction_of_hour_remaining if h==0 else 1)
+                    max_hp_elec_in = (((1-self.params.hp_turn_on_minutes/60) if self.params.hp_is_off else 1) * max_hp_elec_in)
                     
                     # This condition reduces the amount of times we need to compute the COP
                     if (hp_heat_out/self.params.max_cop <= max_hp_elec_in and
-                        hp_heat_out/self.params.min_cop >= min_hp_elec_in):
+                        hp_heat_out/self.params.min_cop >= self.params.min_hp_elec_in):
                     
                         cop = self.params.COP(oat=self.params.oat_forecast[h], lwt=node_next.top_temp)
 
                         if (hp_heat_out/cop <= max_hp_elec_in and 
-                            hp_heat_out/cop >= min_hp_elec_in):
+                            hp_heat_out/cop >= self.params.min_hp_elec_in):
 
                             cost = self.params.elec_price_forecast[h]/100 * hp_heat_out/cop
 
@@ -234,13 +246,48 @@ class DGraph():
                                      and
                                     (node_now.top_temp < self.params.rswt_forecast[h] or 
                                      node_next.top_temp < self.params.rswt_forecast[h])):
-                                    if self.params.soft_constraint:
-                                        # TODO: make cost punishment proportional to constraint violation
+                                    if self.params.soft_constraint and not [x for x in self.edges[node_now] if x.head==node_next]:
                                         cost += 1e5
                                     else:
                                         continue
                             
                             self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
+
+    def add_rswt_minus_edge(self, node: DNode, time_slice, Q_losses):
+        # In these calculations the load is both the heating requirement and the losses
+        Q_load = self.params.load_forecast[time_slice] + Q_losses
+        # Find the heat stored in the water that is hotter than RSWT
+        Q_plus = 0
+        RSWT_minus = node.top_temp
+        if node.top_temp > self.params.rswt_forecast[time_slice]:
+            m_layer_kg = self.params.storage_volume*3.785 / self.params.num_layers
+            m_plus = (node.thermocline-0.5) * m_layer_kg
+            Q_plus = m_plus * 4.187/3600 * (to_kelvin(node.top_temp)-to_kelvin(node.bottom_temp))
+            RSWT_minus = node.bottom_temp
+        # The hot part of the storage alone can not provide the load and the losses
+        if Q_plus <= Q_load:
+            RSWT = self.params.rswt_forecast[time_slice]
+            RSWT_min_DT = RSWT - self.params.delta_T(RSWT)
+            m_chc = Q_load / (4.187/3600 * (to_kelvin(RSWT)-to_kelvin(RSWT_min_DT)))
+            m_minus_max = (1 - Q_plus/Q_load) * m_chc
+            if m_minus_max > self.params.storage_volume*3.785:
+                print("m_minus_max > total storage mass!")
+                m_minus_max = self.params.storage_volume*3.785
+            Q_minus_max = m_minus_max * 4.187/3600 * (self.params.delta_T(RSWT_minus)*5/9)
+            Q_missing = Q_load - Q_plus - Q_minus_max
+            if Q_missing < 0:
+                print(f"Isn't this impossible? Q_load - Q_plus - Q_minus_max = {round(Q_missing,2)} kWh")
+            Q_missing = 0 if Q_missing < 0 else Q_missing
+            if Q_missing > 0 and not self.params.soft_constraint:
+                return
+            # Find the next node that would be the closest to matching the energy
+            next_node_energy = node.energy - (Q_plus + Q_minus_max)
+            next_nodes = [x for x in self.nodes[time_slice+1] if x.energy <= node.energy and x.energy >= next_node_energy]
+            next_node = sorted(next_nodes, key=lambda x: x.energy)[0]
+            # Penalty is slightly more expensive than the cost of producing Q_missing in the next hour
+            cop = self.params.COP(oat=self.params.oat_forecast[time_slice+1], lwt=next_node.top_temp)
+            penalty = (Q_missing+1)/cop * self.params.elec_price_forecast[time_slice+1]/100
+            self.edges[node].append(DEdge(node, next_node, penalty, 0))
 
     def solve_dijkstra(self):
         for time_slice in range(self.params.horizon-1, -1, -1):

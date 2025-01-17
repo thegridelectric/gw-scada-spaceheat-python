@@ -282,7 +282,7 @@ class Atn(ActorInterface, Proactor):
                 self.log("Scada: Game On!")
                 if self.latest_remaining_elec is not None:
                     self.log("Sending energy instruction with the latest remaining electricity")
-                    self.send_energy_instr(self.latest_remaining_elec)
+                    self.send_energy_instr(self.latest_remaining_elec, game_on=True)
             case EventBase():
                 path_dbg |= 0x00000020
                 self._process_event(decoded.Payload)
@@ -756,6 +756,23 @@ class Atn(ActorInterface, Proactor):
             self.release_control()
             return
         initial_toptemp, initial_thermocline = result
+
+        current_hp_power = {
+                x: self.latest_channel_values[x]
+                for x in [H0CN.hp_idu_pwr, H0CN.hp_odu_pwr]
+                if x in self.latest_channel_values
+                and self.latest_channel_values[x] is not None
+            }
+        hp_is_on = False
+        if H0CN.hp_idu_pwr in current_hp_power:
+            if current_hp_power[H0CN.hp_idu_pwr] > 1000:
+                hp_is_on = True
+        if H0CN.hp_odu_pwr in current_hp_power:
+            if current_hp_power[H0CN.hp_odu_pwr] > 1000:
+                hp_is_on = True
+        hp_is_off = not hp_is_on
+        self.log(f"HP off: {hp_is_off}")
+        
         flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
@@ -776,7 +793,7 @@ class Atn(ActorInterface, Proactor):
             DdRswtF=self.ha1_params.DdRswtF,
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
-
+            HpIsOff=hp_is_off,
         )
         self._links.publish_message(
             self.SCADA_MQTT, 
@@ -838,12 +855,11 @@ class Atn(ActorInterface, Proactor):
         pq_pairs = [
             (x.PriceTimes1000, x.QuantityTimes1000) for x in self.latest_bid.PqPairs
         ]
-        sorted_pq_pairs = sorted(pq_pairs, key=lambda pair: pair[0], reverse=True)
+        sorted_pq_pairs = sorted(pq_pairs, key=lambda pair: pair[0])
         # Quantity is AvgkW, so QuantityTimes1000 is avg_w
         assert self.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
-        avg_w = None
         for pair in sorted_pq_pairs:
-            if pair[0] < payload.PriceTimes1000 and avg_w is None:
+            if pair[0] < payload.PriceTimes1000:
                 avg_w = pair[1] # WattHours
 
         # 1 hour
@@ -986,7 +1002,7 @@ class Atn(ActorInterface, Proactor):
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
-            oat = self.weather_forecast["oat"][0],
+            oat = self.weather_forecast["oat"][0]
             ws = self.weather_forecast["ws"][0]
             r = alpha + beta*oat + gamma*ws
             rhp= r if r>0 else 0
@@ -1015,11 +1031,11 @@ class Atn(ActorInterface, Proactor):
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
         return top_centroid_f, thermocline
 
-    def send_energy_instr(self, watthours: int, slot_minutes: int = 60):
+    def send_energy_instr(self, watthours: int, slot_minutes: int = 60, game_on: bool=False):
         t = int(time.time())
         slot_start_s = int(t - (t % 300))
         # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
-        if t - slot_start_s < 10:
+        if t - slot_start_s < 10 or game_on:
             payload = EnergyInstruction(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 SlotStartS=slot_start_s,
@@ -1140,6 +1156,9 @@ class Atn(ActorInterface, Proactor):
 
     def get_price_forecast(self) -> None:
         daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
+        daily_dp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_dp, list(range(24)))]
         dp_forecast_usd_per_mwh = (
             daily_dp[datetime.now(tz=self.timezone).hour + 1 :]
             + daily_dp[: datetime.now(tz=self.timezone).hour + 1]
@@ -1172,6 +1191,9 @@ class Atn(ActorInterface, Proactor):
     def get_price(self) -> float:
         # Daily price pattern for distribution (Versant TOU tariff)
         daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
+        daily_dp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_dp, list(range(24)))]
         daily_lmp = [102] * 24
         price_by_hr = [dp + lmp for dp, lmp in zip(daily_dp, daily_lmp)]
         current_hour = datetime.now(tz=self.timezone).hour

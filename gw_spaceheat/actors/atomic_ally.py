@@ -126,6 +126,8 @@ class AtomicAlly(ScadaActor):
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.forecasts: HeatingForecast = None
         self.remaining_elec_wh = None
+        self.storage_declared_full = False
+        self.storage_full_since = time.time()
     
     @property
     def data(self) -> ScadaData:
@@ -263,7 +265,9 @@ class AtomicAlly(ScadaActor):
             elif self.state == AtomicAllyState.HpOnStoreOff.value:
                 if self.no_more_elec() and datetime.now(self.timezone).minute<55:
                     self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
-                elif self.is_buffer_full():
+                elif self.is_buffer_full() and not self.is_storage_full():
+                    self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                elif self.is_buffer_full(really_full=True):
                     self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
 
             # 2
@@ -419,7 +423,7 @@ class AtomicAlly(ScadaActor):
         max_rswt_next_3hours = max(self.forecasts.RswtF[:3])
         max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
-        buffer_empty_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch]/1000),1)
+        buffer_empty_ch_temp = round(self.latest_temperatures[buffer_empty_ch],1)
         if buffer_empty_ch_temp < min_buffer:
             self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
@@ -427,7 +431,7 @@ class AtomicAlly(ScadaActor):
             self.log(f"Buffer not empty ({buffer_empty_ch}: {buffer_empty_ch_temp} >= {min_buffer} F)")
             return False            
     
-    def is_buffer_full(self) -> bool:
+    def is_buffer_full(self, really_full=False) -> bool:
         if H0CN.buffer.depth4 in self.latest_temperatures:
             buffer_full_ch = H0CN.buffer.depth4
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
@@ -440,7 +444,17 @@ class AtomicAlly(ScadaActor):
             self.alert(alias="buffer_full_fail", msg="Impossible to know if the buffer is full!")
             return False
         max_buffer = round(max(self.forecasts.RswtF[:3]),1)
-        buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
+        buffer_full_ch_temp = round(self.latest_temperatures[buffer_full_ch],1)
+
+        if really_full:
+            max_buffer = self.params.MaxEwtF
+            if buffer_full_ch_temp > max_buffer:
+                self.log(f"Buffer cannot be charged more ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
+                return True
+            else:
+                self.log(f"Buffer can be charged more ({buffer_full_ch}: {buffer_full_ch_temp} <= {max_buffer} F)")
+                return False
+            
         if buffer_full_ch_temp > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
@@ -449,11 +463,17 @@ class AtomicAlly(ScadaActor):
             return False
         
     def is_storage_full(self) -> bool:
-        if self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF:
+        # Storage was declared full in the last 15 min
+        if self.storage_declared_full and self.storage_full_since - time.time() < 15*60:
+            return True
+        if self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF: 
             self.log(f"Storage is full (store-cold-pipe > {self.params.MaxEwtF} F).")
+            self.storage_declared_full = True
+            self.storage_full_since = time.time()
             return True
         else:
             self.log(f"Storage is not full (store-cold-pipe <= {self.params.MaxEwtF} F).")
+            self.storage_declared_full = False
             return False
         
     def is_storage_colder_than_buffer(self) -> bool:
