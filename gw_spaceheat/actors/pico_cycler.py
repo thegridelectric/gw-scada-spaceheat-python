@@ -25,8 +25,8 @@ from result import Ok, Result
 from transitions import Machine
 import transitions
 from actors.scada_actor import ScadaActor
-from enums import PicoCyclerEvent, PicoCyclerState
-from named_types import GoDormant, PicoMissing, WakeUp
+from enums import LogLevel, PicoCyclerEvent, PicoCyclerState
+from named_types import Glitch, GoDormant, PicoMissing, WakeUp
 
 class PicoWarning(ValueError):
     pico_name: str
@@ -173,12 +173,16 @@ class PicoCycler(ScadaActor):
             raise Exception(
                 f"{pico} is not a zombie, should not be in raise_zombie_pico_warning!"
             )
-        actor = self.actor_by_pico[pico]
+
         self._send_to(
             self.primary_scada,
-            Problems(warnings=[
-                ZombiePicoWarning(pico_name=pico)
-            ]).problem_event(summary=actor.name),
+            Glitch(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                Node=self.actor_by_pico[pico].name,
+                Type=LogLevel.Info,
+                Summary="pico-just-zombied",
+                Details=f"Flatlined for more than {self.REBOOT_ATTEMPTS} VDC cycles"
+            )
         )
 
     def process_pico_missing(self, actor: ShNode, payload: PicoMissing) -> None:
@@ -548,10 +552,13 @@ class PicoCycler(ScadaActor):
                 self.log(f"Sending problem event for zombies {zombies}")
                 self._send_to(
                     self.primary_scada,
-                    Problems(warnings=[
-                        ZombiePicoWarning(pico_name=zombie_name) for
-                        zombie_name in zombies
-                    ]).problem_event(summary="pico-zombies"),
+                    Glitch(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        Node=self.node.name,
+                        Type=LogLevel.Info,
+                        Summary="pico-zombies",
+                        Details=",".join(zombies)
+                    )
                 )
                 self.last_zombie_problem_report_s = time.time()
 

@@ -1,5 +1,4 @@
 """Scada implementation"""
-
 import os
 import asyncio
 import enum
@@ -19,6 +18,7 @@ from gwproto import create_message_model
 from gwproto import MQTTTopic
 from gwproto.enums import ActorClass
 
+from actors.power_meter import PowerMeter
 from data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmAtomicReport, FsmFullReport
 from gwproto.messages import EventBase
@@ -53,9 +53,9 @@ from gwproactor.proactor_implementation import Proactor
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
 from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, ChannelFlatlined, DispatchContractGoDormant,
-                        DispatchContractGoLive, EnergyInstruction, FsmEvent, GoDormant, 
+                        DispatchContractGoLive, EnergyInstruction, FsmEvent, GameOn, Glitch, GoDormant, 
                         LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
-                        ScadaInit, ScadaParams, SendLayout, SingleMachineState, WakeUp, HeatingForecast)
+                        ScadaParams, SendLayout, SingleMachineState, WakeUp, HeatingForecast)
 
 ScadaMessageDecoder = create_message_model(
     "ScadaMessageDecoder", 
@@ -244,6 +244,10 @@ class Scada(ScadaInterface, Proactor):
         self._last_sync_snap_s = int(now)
         self._dispatch_live_hack = False
         self.pending_dispatch: Optional[AnalogDispatch] = None
+        self.logger.add_category_logger(
+            PowerMeter.POWER_METER_LOGGER_NAME,
+            level=settings.power_meter_logging_level,
+        )
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -467,10 +471,11 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
-            case ScadaInit():
+            case Glitch():
+                self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
+            case GameOn():
                 try:
                     self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
-                    self.log("Sent ScadaInit to ATN")
                 except Exception as e:
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case RemainingElec():

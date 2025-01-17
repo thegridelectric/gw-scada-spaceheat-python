@@ -17,7 +17,7 @@ from actors.flo import DGraph
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
-from named_types import RemainingElecEvent, ScadaInit
+from named_types import RemainingElecEvent, GameOn
 
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
@@ -278,8 +278,8 @@ class Atn(ActorInterface, Proactor):
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000010
                 self._process_snapshot(decoded.Payload)
-            case ScadaInit():
-                self.log("Scada is on!")
+            case GameOn():
+                self.log("Scada: Game On!")
                 if self.latest_remaining_elec is not None:
                     self.log("Sending energy instruction with the latest remaining electricity")
                     self.send_energy_instr(self.latest_remaining_elec)
@@ -979,10 +979,40 @@ class Atn(ActorInterface, Proactor):
             bottom_centroid_f = round(sum(cluster_bottom) / len(cluster_bottom), 3)
         else:
             bottom_centroid_f = min(cluster_top)
-        self.log(
-            f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F"
-        )
+        # Process clustering
+        # Find RSWT in first hour
+        self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
+        try:
+            alpha = self.ha1_params.AlphaTimes10 / 10
+            beta = self.ha1_params.BetaTimes100 / 100
+            gamma = self.ha1_params.GammaEx6 / 1e6
+            oat = self.weather_forecast["oat"][0],
+            ws = self.weather_forecast["ws"][0]
+            r = alpha + beta*oat + gamma*ws
+            rhp= r if r>0 else 0
+            intermediate_rswt = self.ha1_params.IntermediateRswtF
+            dd_rswt = self.ha1_params.DdRswtF
+            intermediate_power = self.ha1_params.IntermediatePowerKw
+            dd_power = self.ha1_params.DdPowerKw
+            no_power_rswt = -alpha/beta
+            x_rswt = np.array([no_power_rswt, intermediate_rswt, dd_rswt])
+            y_hpower = np.array([0, intermediate_power, dd_power])
+            A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
+            a, b, c = np.linalg.solve(A, y_hpower)
+            c2 = c - rhp
+            rswt = round((-b + (b**2-4*a*c2)**0.5)/(2*a),2)
+            self.log(f"RSWT = {rswt} F")
+            if top_centroid_f < rswt and max(processed_temps) >= rswt:
+                print("There is water available above RSWT, changing the clustering result")
+                top_cluster = [x for x in processed_temps if x>=rswt]
+                bottom_cluster = [x for x in processed_temps if x<rswt]
+                thermocline = len(top_cluster) #check this
+                top_centroid_f = round(sum(top_cluster)/len(top_cluster),3)
+                bottom_centroid_f = round(sum(bottom_cluster)/len(bottom_cluster),3)
+        except Exception as e:
+            self.log(f"Could not process clustering results! Error: {e}")
         # TODO: post top_centroid, thermocline, bottom_centroid as synthetic channels
+        self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
         return top_centroid_f, thermocline
 
     def send_energy_instr(self, watthours: int, slot_minutes: int = 60):

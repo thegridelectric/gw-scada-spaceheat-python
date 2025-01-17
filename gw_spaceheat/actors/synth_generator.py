@@ -17,7 +17,7 @@ from gwproactor.message import PatInternalWatchdogMessage
 from actors.scada_actor import ScadaActor
 from data_classes.house_0_names import H0CN
 from named_types import (EnergyInstruction, Ha1Params, RemainingElec, 
-                         WeatherForecast, HeatingForecast, PriceForecast, ScadaParams)
+                         WeatherForecast, HeatingForecast, ScadaParams)
 
 
 class SynthGenerator(ScadaActor):
@@ -37,7 +37,7 @@ class SynthGenerator(ScadaActor):
         self.elec_assigned_amount = None
         self.previous_time = None
         self.temperatures_available = False
-        self.need_to_get_weather = False
+        self.received_new_params: bool = False
 
         # House parameters in the .env file
         self.is_simulated = self.settings.is_simulated
@@ -55,9 +55,8 @@ class SynthGenerator(ScadaActor):
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
 
-        # For the weather forecast
-        self.forecasts: HeatingForecast = None
-        self.weather_forecast: WeatherForecast = None
+        self.forecasts: Optional[HeatingForecast]= None
+        self.weather_forecast: Optional[WeatherForecast] = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
     
     @property
@@ -114,8 +113,9 @@ class SynthGenerator(ScadaActor):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
 
-            if self.forecasts is None or time.time()>self.forecasts.Time[0]:
+            if self.forecasts is None or time.time()>self.forecasts.Time[0] or self.received_new_params:
                 await self.get_forecasts(session)
+                self.received_new_params = False
 
             self.get_latest_temperatures()
             if self.temperatures_available:
@@ -140,7 +140,7 @@ class SynthGenerator(ScadaActor):
                 self.previous_watts = message.Payload.Watts
             case ScadaParams():
                 self.log("Received new parameters, time to recompute forecasts!")
-                self.get_weather()
+                self.received_new_params = True
         return Ok(True)
     
     def fill_missing_store_temps(self):
@@ -297,7 +297,7 @@ class SynthGenerator(ScadaActor):
         alpha = self.params.AlphaTimes10 / 10
         beta = self.params.BetaTimes100 / 100
         gamma = self.params.GammaEx6 / 1e6
-        r = alpha + beta*oat + gamma*ws
+        r = alpha + beta*oat + gamma*((55-oat)*ws)
         return round(r,2) if r>0 else 0
 
     def required_swt(self, required_kw_thermal: float) -> float:
@@ -305,17 +305,6 @@ class SynthGenerator(ScadaActor):
         c2 = c - required_kw_thermal
         return round((-b + (b**2-4*a*c2)**0.5)/(2*a), 2)
     
-    def get_price_forecast(self) -> None:
-        daily_dp = [50.13]*7 + [487.63]*5 + [54.98]*4 + [487.63]*4 + [50.13]*4
-        dp_forecast_usd_per_mwh = (daily_dp[datetime.now(tz=self.timezone).hour+1:] + daily_dp[:datetime.now(tz=self.timezone).hour+1])*2
-        lmp_forecast_usd_per_mwh = [102]*48
-        pf = PriceForecast(
-            Time = [datetime.now(tz=self.timezone)+timedelta(hours=1+x) for x in range(48)],
-            DpForecast = dp_forecast_usd_per_mwh,
-            LmpForecsat = lmp_forecast_usd_per_mwh,
-        )
-        self._send_to(self.atomic_ally, pf)
-
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
         weather_file = config_dir / "weather.json"
@@ -335,25 +324,35 @@ class SynthGenerator(ScadaActor):
             
             forecast_data = await forecast_response.json()
             forecasts_all = {
-                datetime.fromisoformat(period['startTime']): period['temperature']
+                datetime.fromisoformat(period['startTime']): 
+                period['temperature']
                 for period in forecast_data['properties']['periods']
                 if 'temperature' in period and 'startTime' in period 
                 and datetime.fromisoformat(period['startTime']) > datetime.now(tz=self.timezone)
             }
+            ws_forecasts_all = {
+                datetime.fromisoformat(period['startTime']): 
+                int(period['windSpeed'].replace(' mph',''))
+                for period in forecast_data['properties']['periods']
+                if 'windSpeed' in period and 'startTime' in period 
+                and datetime.fromisoformat(period['startTime']) > datetime.now(tz=self.timezone)
+            }
             forecasts_48h = dict(list(forecasts_all.items())[:48])
+            ws_forecasts_48h = dict(list(ws_forecasts_all.items())[:48])
             weather = {
-                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_all.keys())],
+                'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_48h.keys())],
                 'oat': list(forecasts_48h.values()),
-                'ws': [0]*len(forecasts_48h)
+                'ws': list(ws_forecasts_48h.values())
                 }
             self.log(f"Obtained a {len(forecasts_all)}-hour weather forecast starting at {weather['time'][0]}")
 
             # Save 96h weather forecast to a local file
             forecasts_96h = dict(list(forecasts_all.items())[:96])
+            ws_forecasts_96h = dict(list(ws_forecasts_all.items())[:96])
             weather_96h = {
                 'time': [int(x.astimezone(timezone.utc).timestamp()) for x in list(forecasts_96h.keys())],
                 'oat': list(forecasts_96h.values()),
-                'ws': [0]*len(forecasts_96h)
+                'ws': list(ws_forecasts_96h.values()),
                 }
             with open(weather_file, 'w') as f:
                 json.dump(weather_96h, f, indent=4) 
@@ -374,6 +373,8 @@ class SynthGenerator(ScadaActor):
                     weather = weather_96h
                     for key in weather:
                         weather[key] = weather[key][hours_late:hours_late+48]
+                    if weather['oat'] == []:
+                        raise Exception()
                 else:
                     self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                     current_month = datetime.now().month-1
@@ -390,9 +391,13 @@ class SynthGenerator(ScadaActor):
                     'oat': [self.coldest_oat_by_month[current_month]]*48,
                     'ws': [0]*48,
                     }
-        
-        # TODO: broadcast weather forecast for ability to analyze HomeAlone actions
+        # International Civil Aviation Organization: 4-char alphanumeric code
+        # assigned to airports and weather observation stations
+        ICAO_CODE = "KMLT"
+        WEATHER_CHANNEL = f"weather-gov.{ICAO_CODE}".lower()
         self.weather_forecast = WeatherForecast(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
+            WeatherChannelName=WEATHER_CHANNEL,
             Time = weather['time'],
             OatF = weather['oat'],
             WindSpeedMph= weather['ws']
@@ -430,6 +435,7 @@ class SynthGenerator(ScadaActor):
             RswtDeltaTF = forecasts['required_swt_delta_T'][:24]
         )
         self.log(f"OAT = {self.weather_forecast.OatF[:24]}")
+        self.log(f"WS = {self.weather_forecast.WindSpeedMph[:24]}")
         self.log(f"Average Power = {self.forecasts.AvgPowerKw}")
         self.log(f"RSWT = {self.forecasts.RswtF}")
         self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.forecasts.RswtF]}")
