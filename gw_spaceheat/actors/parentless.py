@@ -38,6 +38,7 @@ class Parentless(ScadaInterface, Proactor):
     DEFAULT_ACTORS_MODULE = "actors"
     LOCAL_MQTT = "local"
     _data: Scada2Data
+    _publication_name: str
 
     def __init__(
         self,
@@ -48,16 +49,18 @@ class Parentless(ScadaInterface, Proactor):
     ):
         if type(hardware_layout) is not House0Layout:
             raise Exception(f"hardware_layout is of type {type(hardware_layout)}!!")
+        self._publication_name = f"{hardware_layout.scada_g_node_alias}.{name}"
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
+        remote_node_names: set[str] = {self._layout.scada_g_node_alias.replace(".", "-")}
         self._links.add_mqtt_link(
             LinkSettings(
                 client_name=Parentless.LOCAL_MQTT,
-                gnode_name=H0N.primary_scada,
+                gnode_name=self._layout.scada_g_node_alias,
                 spaceheat_name=H0N.primary_scada,
                 mqtt=self.settings.local_mqtt,
                 codec=LocalMQTTCodec(
                     primary_scada=False,
-                    remote_node_names=set(),
+                    remote_node_names=remote_node_names,
                 ),
                 upstream=True,
             )
@@ -114,6 +117,14 @@ class Parentless(ScadaInterface, Proactor):
         return self._name
 
     @property
+    def subscription_name(self) -> str:
+        return H0N.secondary_scada
+
+    @property
+    def publication_name(self) -> str:
+        return self._publication_name
+
+    @property
     def node(self) -> ShNode:
         return self._node
 
@@ -130,8 +141,12 @@ class Parentless(ScadaInterface, Proactor):
         return self._layout
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
-        message = Message(Src=from_node.Name, Payload=payload)
-        return self._links.publish_message(Parentless.LOCAL_MQTT, message, qos=qos)
+        return self._links.publish_message(
+            Parentless.LOCAL_MQTT,
+            Message(Src=from_node.Name, Payload=payload),
+            qos=qos,
+            use_link_topic=True
+        )
 
     def _derived_process_message(self, message: Message):
         self._logger.path("++Parentless._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
@@ -146,7 +161,12 @@ class Parentless(ScadaInterface, Proactor):
                         ),
                     Payload=message.Payload
                 )
-                self._links.publish_message(Parentless.LOCAL_MQTT, new_msg, QOS.AtMostOnce)
+                self._links.publish_message(
+                    Parentless.LOCAL_MQTT,
+                    new_msg,
+                    QOS.AtMostOnce,
+                    use_link_topic=True,
+                )
             case SyncedReadings():
                 path_dbg |= 0x00000004
                 new_msg = Message(
@@ -157,7 +177,12 @@ class Parentless(ScadaInterface, Proactor):
                         ),
                     Payload=message.Payload
                 )
-                self._links.publish_message(Parentless.LOCAL_MQTT, new_msg, QOS.AtMostOnce)
+                self._links.publish_message(
+                    Parentless.LOCAL_MQTT,
+                    new_msg,
+                    QOS.AtMostOnce,
+                    use_link_topic=True,
+                )
             case _:
                 raise ValueError(
                     f"There is no handler for message payload type [{type(message.Payload)}]"
