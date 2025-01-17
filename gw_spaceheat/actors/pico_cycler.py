@@ -90,7 +90,7 @@ class PicoCycler(ScadaActor):
     ] + [ 
         {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
         for state in states if state !="Dormant"
-    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "RelayOpening"}]
+    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "PicosLive"}]
     
 
     def __init__(self, name: str, services: ServicesInterface):
@@ -101,6 +101,7 @@ class PicoCycler(ScadaActor):
             for node in self.layout.nodes.values()
             if node.ActorClass in [ActorClass.ApiFlowModule, ActorClass.ApiTankModule]
         ]
+        self.last_open_time = time.time() # used to track how long since the VDC relay was cycled
         self._stop_requested = False
         self.actor_by_pico = {}
         self.ab_by_pico = {}
@@ -185,7 +186,11 @@ class PicoCycler(ScadaActor):
         )
 
     def process_pico_missing(self, actor: ShNode, payload: PicoMissing) -> None:
-        # ignore messages from other actors unless currently live
+        # picos can take 45 seconds to come back after power cycling.
+        # So ignore a pico missing message if we've opened the VDC relay 
+        # in the last minute
+        if time.time() - self.last_open_time < 60:
+            return
         pico = payload.PicoHwUid
         if actor not in self.pico_actors:
             return
@@ -352,10 +357,9 @@ class PicoCycler(ScadaActor):
     def WakeUp(self) -> None:
         if self.state == PicoCyclerState.Dormant:
             self.trigger(PicoCyclerEvent.WakeUp)
-            # WakeUp: Dormant -> RelayOpening
-            self.log("Waking up and rebooting!")
-            # Send action on to pico relay
-            self.open_vdc_relay()
+            # WakeUp: Dormant -> PicosLive
+            self.log("Waking up and making sure vdc relay is closed!")
+            self.close_vdc_relay()
         else:
             self.log(f"Got WakeUp message but ignoring since in state {self.state}")
 
@@ -366,6 +370,7 @@ class PicoCycler(ScadaActor):
                 asyncio.create_task(self._wait_and_close_relay())
 
     def confirm_closed(self) -> None:
+        self.last_open_time = time.time()
         if self.state == PicoCyclerState.RelayClosing.value:
             # ConfirmClosed: RelayClosing -> PicosRebooting
             if self.trigger_event(PicoCyclerEvent.ConfirmClosed):
@@ -407,11 +412,12 @@ class PicoCycler(ScadaActor):
             return
         zombies = []
         for pico in self.zombies:
-                zombies.append(f" {pico} [{self.actor_by_pico[pico].name}], reboots: {self.reboots[pico]}")
-        self.log(f"Shaking these zombies: {self.zombies}")
-        self.trigger_id = str(uuid.uuid4())
-        # ShakeZombies: AllZombies/PicosLive -> RelayOpening
-        if self.trigger_event(PicoCyclerEvent.ShakeZombies):
+            zombies.append(f" {pico} [{self.actor_by_pico[pico].name}], reboots: {self.reboots[pico]}")
+        if len(zombies) > 0:
+            self.log(f"Shaking these zombies: {self.zombies}")
+            self.trigger_id = str(uuid.uuid4())
+            # ShakeZombies: AllZombies/PicosLive -> RelayOpening
+            self.trigger_event(PicoCyclerEvent.ShakeZombies)
             self.open_vdc_relay(self.trigger_id)
 
     def start_closing(self) -> None:
