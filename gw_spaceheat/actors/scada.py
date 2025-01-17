@@ -216,17 +216,6 @@ class Scada(ScadaInterface, Proactor):
                 upstream=True,
             )
         )
-        for node_name in remote_actor_node_names:
-            self._links.subscribe(
-                client=self.LOCAL_MQTT,
-                topic=MQTTTopic.encode(
-                    envelope_type=Message.type_name(),
-                    src=node_name,
-                    dst=self.subscription_name,
-                    message_type="#",
-                ),
-                qos=QOS.AtMostOnce,
-            )
         if self.settings.admin.enabled:
             self._links.add_mqtt_link(
                 LinkSettings(
