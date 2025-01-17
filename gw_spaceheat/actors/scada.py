@@ -188,14 +188,15 @@ class Scada(ScadaInterface, Proactor):
         self._layout: House0Layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
+        scada2_gnode_name = f"{hardware_layout.scada_g_node_alias}.{H0N.secondary_scada}"
         remote_actor_node_names = {node.name for node in self._layout.nodes.values() if
                    self._layout.parent_node(node) != self._node and
                    node != self._node and
-                   node.has_actor}
+                   node.has_actor} | {scada2_gnode_name.replace(".", "-")}
         self._links.add_mqtt_link(
             LinkSettings(
                 client_name=self.LOCAL_MQTT,
-                gnode_name=H0N.secondary_scada,
+                gnode_name=scada2_gnode_name,
                 spaceheat_name=H0N.secondary_scada,
                 mqtt=self.settings.local_mqtt,
                 codec=LocalMQTTCodec(
@@ -415,7 +416,7 @@ class Scada(ScadaInterface, Proactor):
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
         self._data.reports_to_store[report.Id] = report
-        self.generate_event(ReportEvent(Report=report))
+        self.generate_event(ReportEvent(Report=report)) # noqa
         self._publish_to_local(self._node, report)
         self._data.flush_recent_readings()
     
@@ -463,8 +464,12 @@ class Scada(ScadaInterface, Proactor):
         )
 
     def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
-        message = Message(Src=from_node.Name, Payload=payload)
-        return self._links.publish_message(Scada.LOCAL_MQTT, message, qos=qos)
+        return self._links.publish_message(
+            Scada.LOCAL_MQTT,
+            Message(Src=from_node.Name, Payload=payload),
+            qos=qos,
+            use_link_topic=True,
+        )
 
     def _derived_process_message(self, message: Message):
         self._logger.path("++Scada._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
