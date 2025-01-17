@@ -186,7 +186,9 @@ class PicoCycler(ScadaActor):
         )
 
     def process_pico_missing(self, actor: ShNode, payload: PicoMissing) -> None:
-        # ignore messages from other actors unless currently live
+        # picos can take 45 seconds to come back after power cycling.
+        # So ignore a pico missing message if we've opened the VDC relay 
+        # in the last minute
         if time.time() - self.last_open_time < 60:
             return
         pico = payload.PicoHwUid
@@ -411,11 +413,12 @@ class PicoCycler(ScadaActor):
             return
         zombies = []
         for pico in self.zombies:
-                zombies.append(f" {pico} [{self.actor_by_pico[pico].name}], reboots: {self.reboots[pico]}")
-        self.log(f"Shaking these zombies: {self.zombies}")
-        self.trigger_id = str(uuid.uuid4())
-        # ShakeZombies: AllZombies/PicosLive -> RelayOpening
-        if self.trigger_event(PicoCyclerEvent.ShakeZombies):
+            zombies.append(f" {pico} [{self.actor_by_pico[pico].name}], reboots: {self.reboots[pico]}")
+        if len(zombies) > 0:
+            self.log(f"Shaking these zombies: {self.zombies}")
+            self.trigger_id = str(uuid.uuid4())
+            # ShakeZombies: AllZombies/PicosLive -> RelayOpening
+            self.trigger_event(PicoCyclerEvent.ShakeZombies)
             self.open_vdc_relay(self.trigger_id)
 
     def start_closing(self) -> None:
