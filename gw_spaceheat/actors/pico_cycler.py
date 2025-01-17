@@ -90,7 +90,7 @@ class PicoCycler(ScadaActor):
     ] + [ 
         {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
         for state in states if state !="Dormant"
-    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "RelayOpening"}]
+    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "PicosLive"}]
     
 
     def __init__(self, name: str, services: ServicesInterface):
@@ -357,10 +357,9 @@ class PicoCycler(ScadaActor):
     def WakeUp(self) -> None:
         if self.state == PicoCyclerState.Dormant:
             self.trigger(PicoCyclerEvent.WakeUp)
-            # WakeUp: Dormant -> RelayOpening
-            self.log("Waking up and rebooting!")
-            # Send action on to pico relay
-            self.open_vdc_relay()
+            # WakeUp: Dormant -> PicosLive
+            self.log("Waking up and making sure vdc relay is closed!")
+            self.close_vdc_relay()
         else:
             self.log(f"Got WakeUp message but ignoring since in state {self.state}")
 
