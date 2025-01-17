@@ -145,7 +145,7 @@ class Relay(ScadaActor):
             self.reports_by_trigger[message.TriggerId] = [report]
             self.boss_by_trigger[message.TriggerId] = from_node
             now_ms = int(time.time() * 1000)
-            self.log(f"sending {relay_pin_event} to multiplexer")
+            # self.log(f"sending {relay_pin_event} to multiplexer")
             #  To actually create an action, send to relay multiplexer
             pin_change_event = FsmEvent(
                 FromHandle=self.node.handle,
