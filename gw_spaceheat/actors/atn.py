@@ -771,6 +771,7 @@ class Atn(ActorInterface, Proactor):
             if current_hp_power[H0CN.hp_odu_pwr] > 1000:
                 hp_is_on = True
         hp_is_off = not hp_is_on
+        self.log(f"HP off: {hp_is_off}")
         
         flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
@@ -794,6 +795,8 @@ class Atn(ActorInterface, Proactor):
             MaxEwtF=self.ha1_params.MaxEwtF,
             HpIsOff=hp_is_off,
         )
+        for key in flo_params.to_dict().keys():
+            self.log(f"{key}={flo_params.to_dict[key]}")
         self._links.publish_message(
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)

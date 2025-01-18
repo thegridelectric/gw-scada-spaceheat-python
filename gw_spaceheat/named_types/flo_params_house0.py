@@ -52,3 +52,6 @@ class FloParamsHouse0(BaseModel):
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
     Version: Literal["001"] = "001"
+
+    def to_dict(self):
+        return vars(self)
