@@ -731,7 +731,6 @@ class Atn(ActorInterface, Proactor):
                 self.sent_bid = False
             else:
                 self.log(f"Minute {datetime.now().minute}")
-                result = await self.get_thermocline_and_centroids() # todo: remove this temporary check
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
@@ -796,7 +795,6 @@ class Atn(ActorInterface, Proactor):
             MaxEwtF=self.ha1_params.MaxEwtF,
             HpIsOff=hp_is_off,
         )
-        self.log(flo_params)
         self._links.publish_message(
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
@@ -1001,7 +999,6 @@ class Atn(ActorInterface, Proactor):
         # Find RSWT in first hour
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
         try:
-            self.log("Finding RSWT...")
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
@@ -1009,7 +1006,6 @@ class Atn(ActorInterface, Proactor):
             ws = self.weather_forecast["ws"][0]
             r = alpha + beta*oat + gamma*ws
             rhp= r if r>0 else 0
-            self.log(f"Required heating power: {round(rhp,2)}")
             intermediate_rswt = self.ha1_params.IntermediateRswtF
             dd_rswt = self.ha1_params.DdRswtF
             intermediate_power = self.ha1_params.IntermediatePowerKw
