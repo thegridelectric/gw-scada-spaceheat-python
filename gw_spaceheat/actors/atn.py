@@ -731,6 +731,7 @@ class Atn(ActorInterface, Proactor):
                 self.sent_bid = False
             else:
                 self.log(f"Minute {datetime.now().minute}")
+                result = await self.get_thermocline_and_centroids() # todo: remove this temporary check
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
@@ -1003,7 +1004,7 @@ class Atn(ActorInterface, Proactor):
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
-            oat = self.weather_forecast["oat"][0],
+            oat = self.weather_forecast["oat"][0]
             ws = self.weather_forecast["ws"][0]
             r = alpha + beta*oat + gamma*ws
             rhp= r if r>0 else 0
