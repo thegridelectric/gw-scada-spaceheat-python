@@ -756,6 +756,22 @@ class Atn(ActorInterface, Proactor):
             self.release_control()
             return
         initial_toptemp, initial_thermocline = result
+
+        current_hp_power = {
+                x: self.latest_channel_values[x]
+                for x in [H0CN.hp_idu_pwr, H0CN.hp_odu_pwr]
+                if x in self.latest_channel_values
+                and self.latest_channel_values[x] is not None
+            }
+        hp_is_on = False
+        if H0CN.hp_idu_pwr in current_hp_power:
+            if current_hp_power[H0CN.hp_idu_pwr] > 1000:
+                hp_is_on = True
+        if H0CN.hp_odu_pwr in current_hp_power:
+            if current_hp_power[H0CN.hp_odu_pwr] > 1000:
+                hp_is_on = True
+        hp_is_off = not hp_is_on
+        
         flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
@@ -776,7 +792,7 @@ class Atn(ActorInterface, Proactor):
             DdRswtF=self.ha1_params.DdRswtF,
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
-
+            HpIsOff=hp_is_off,
         )
         self._links.publish_message(
             self.SCADA_MQTT, 
@@ -1139,7 +1155,9 @@ class Atn(ActorInterface, Proactor):
 
     def get_price_forecast(self) -> None:
         daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        daily_dp = [price + i*1 for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_dp, list(range(24)))]
         dp_forecast_usd_per_mwh = (
             daily_dp[datetime.now(tz=self.timezone).hour + 1 :]
             + daily_dp[: datetime.now(tz=self.timezone).hour + 1]
@@ -1172,7 +1190,9 @@ class Atn(ActorInterface, Proactor):
     def get_price(self) -> float:
         # Daily price pattern for distribution (Versant TOU tariff)
         daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        daily_dp = [price + i*1 for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_dp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_dp, list(range(24)))]
         daily_lmp = [102] * 24
         price_by_hr = [dp + lmp for dp, lmp in zip(daily_dp, daily_lmp)]
         current_hour = datetime.now(tz=self.timezone).hour

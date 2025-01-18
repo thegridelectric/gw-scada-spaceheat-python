@@ -20,12 +20,16 @@ class FloParamsHouse0(BaseModel):
     StorageLossesPercent: float = 0.5
     HpMinElecKw: float = -0.5
     HpMaxElecKw: float = 11
-    CopIntercept: float = 1.8
-    CopOatCoeff: float = 0
+    CopIntercept: float = 1.02
+    CopOatCoeff: float = 0.0257
     CopLwtCoeff: float = 0
+    CopMin: float = 1.4
+    CopMinOatF: float = 15
     # Initial state
     InitialTopTempF: StrictInt
     InitialThermocline: StrictInt
+    HpIsOff: bool = False
+    HpTurnOnMinutes: int = 10
     # Forecasts
     LmpForecast: Optional[List[float]] = None
     DistPriceForecast: Optional[List[float]] = None
@@ -47,4 +51,4 @@ class FloParamsHouse0(BaseModel):
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
-    Version: Literal["000"] = "000"
+    Version: Literal["001"] = "001"
