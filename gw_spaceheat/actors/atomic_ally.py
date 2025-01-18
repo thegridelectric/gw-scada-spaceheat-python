@@ -419,7 +419,7 @@ class AtomicAlly(ScadaActor):
         max_rswt_next_3hours = max(self.forecasts.RswtF[:3])
         max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
-        buffer_empty_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_empty_ch]/1000),1)
+        buffer_empty_ch_temp = round(self.latest_temperatures[buffer_empty_ch],1)
         if buffer_empty_ch_temp < min_buffer:
             self.log(f"Buffer empty ({buffer_empty_ch}: {buffer_empty_ch_temp} < {min_buffer} F)")
             return True
@@ -440,7 +440,7 @@ class AtomicAlly(ScadaActor):
             self.alert(alias="buffer_full_fail", msg="Impossible to know if the buffer is full!")
             return False
         max_buffer = round(max(self.forecasts.RswtF[:3]),1)
-        buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
+        buffer_full_ch_temp = round(self.latest_temperatures[buffer_full_ch],1)
         if buffer_full_ch_temp > max_buffer:
             self.log(f"Buffer full ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
             return True
