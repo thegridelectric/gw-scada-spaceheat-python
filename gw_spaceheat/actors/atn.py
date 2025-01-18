@@ -742,11 +742,12 @@ class Atn(ActorInterface, Proactor):
             dijkstra_start_time = int(
                 datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
                 )
-        else:
-            dijkstra_start_time = int(datetime.timestamp(datetime.now()))
-            self.log("NOT RUNNING Dijkstra! Not in the last 5 minutes.")
-            # TODO: under some conditions we might want to run a FLO at another time
-            return
+        # TODO: REMOVE THIS
+        # else:
+        #     dijkstra_start_time = int(datetime.timestamp(datetime.now()))
+        #     self.log("NOT RUNNING Dijkstra! Not in the last 5 minutes.")
+        #     # TODO: under some conditions we might want to run a FLO at another time
+        #     return
         await self.get_weather(session)
         self.get_price_forecast()
 
