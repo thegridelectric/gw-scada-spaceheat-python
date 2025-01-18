@@ -718,7 +718,7 @@ class Atn(ActorInterface, Proactor):
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
         while not self._stop_requested:
             await asyncio.sleep(5)
-            if datetime.now().minute >= 35 and not self.sent_bid: #TODO: REMOVE THIS 
+            if datetime.now().minute >= 55 and not self.sent_bid:
                 if self.state == "DispatchLive":
                     # In the last 5 minutes of the hour: make a bid for the next hour
                     try:
@@ -742,12 +742,11 @@ class Atn(ActorInterface, Proactor):
             dijkstra_start_time = int(
                 datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
                 )
-        # TODO: REMOVE THIS
-        # else:
-        #     dijkstra_start_time = int(datetime.timestamp(datetime.now()))
-        #     self.log("NOT RUNNING Dijkstra! Not in the last 5 minutes.")
-        #     # TODO: under some conditions we might want to run a FLO at another time
-        #     return
+        else:
+            dijkstra_start_time = int(datetime.timestamp(datetime.now()))
+            self.log("NOT RUNNING Dijkstra! Not in the last 5 minutes.")
+            # TODO: under some conditions we might want to run a FLO at another time
+            return
         await self.get_weather(session)
         self.get_price_forecast()
 
