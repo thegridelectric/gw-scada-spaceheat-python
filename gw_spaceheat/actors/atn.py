@@ -795,8 +795,7 @@ class Atn(ActorInterface, Proactor):
             MaxEwtF=self.ha1_params.MaxEwtF,
             HpIsOff=hp_is_off,
         )
-        for key in flo_params.to_dict().keys():
-            self.log(f"{key}={flo_params.to_dict[key]}")
+        self.log(flo_params)
         self._links.publish_message(
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
