@@ -718,7 +718,7 @@ class Atn(ActorInterface, Proactor):
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
         while not self._stop_requested:
             await asyncio.sleep(5)
-            if datetime.now().minute >= 55 and not self.sent_bid:
+            if datetime.now().minute >= 35 and not self.sent_bid: #TODO: REMOVE THIS 
                 if self.state == "DispatchLive":
                     # In the last 5 minutes of the hour: make a bid for the next hour
                     try:
@@ -1001,6 +1001,7 @@ class Atn(ActorInterface, Proactor):
         # Find RSWT in first hour
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
         try:
+            self.log("Finding RSWT...")
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
             gamma = self.ha1_params.GammaEx6 / 1e6
@@ -1008,6 +1009,7 @@ class Atn(ActorInterface, Proactor):
             ws = self.weather_forecast["ws"][0]
             r = alpha + beta*oat + gamma*ws
             rhp= r if r>0 else 0
+            self.log(f"Required heating power: {round(rhp,2)}")
             intermediate_rswt = self.ha1_params.IntermediateRswtF
             dd_rswt = self.ha1_params.DdRswtF
             intermediate_power = self.ha1_params.IntermediatePowerKw
