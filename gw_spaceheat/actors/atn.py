@@ -282,7 +282,7 @@ class Atn(ActorInterface, Proactor):
                 self.log("Scada: Game On!")
                 if self.latest_remaining_elec is not None:
                     self.log("Sending energy instruction with the latest remaining electricity")
-                    self.send_energy_instr(self.latest_remaining_elec)
+                    self.send_energy_instr(self.latest_remaining_elec, game_on=True)
             case EventBase():
                 path_dbg |= 0x00000020
                 self._process_event(decoded.Payload)
@@ -1031,11 +1031,11 @@ class Atn(ActorInterface, Proactor):
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
         return top_centroid_f, thermocline
 
-    def send_energy_instr(self, watthours: int, slot_minutes: int = 60):
+    def send_energy_instr(self, watthours: int, slot_minutes: int = 60, game_on: bool=False):
         t = int(time.time())
         slot_start_s = int(t - (t % 300))
         # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
-        if t - slot_start_s < 10:
+        if t - slot_start_s < 10 or game_on:
             payload = EnergyInstruction(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 SlotStartS=slot_start_s,
