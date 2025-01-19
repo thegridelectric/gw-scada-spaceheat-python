@@ -3,6 +3,7 @@ import json
 import pytz
 import asyncio
 import aiohttp
+import math
 import numpy as np
 from typing import Optional, Sequence
 from result import Ok, Result
@@ -363,18 +364,19 @@ class SynthGenerator(ScadaActor):
                 # Try reading an old forecast from local file
                 with open(weather_file, 'r') as f:
                     weather_96h = json.load(f)
-                    weather_96h_time_backup = weather_96h['time'].copy()
-                    weather_96h['time'] = [datetime.fromtimestamp(x, tz=self.timezone) for x in weather_96h['time']]
-                if weather_96h['time'][-1] >= datetime.fromtimestamp(time.time(), tz=self.timezone)+timedelta(hours=48):
+                    self.weather_96h = weather_96h
+                if weather_96h['time'][-1] >= time.time()+ 48*3600:
                     self.log("A valid weather forecast is available locally.")
-                    time_late = weather_96h['time'][0] - datetime.now(self.timezone)
-                    hours_late = int(time_late.total_seconds()/3600)
-                    weather_96h['time'] = weather_96h_time_backup
-                    weather = weather_96h
-                    for key in weather:
-                        weather[key] = weather[key][hours_late:hours_late+48]
+                    seconds_late = time.time() - weather_96h['time'][0]
+                    hours_late = math.ceil(seconds_late/3600)
+                    weather = {}
+                    for key in weather_96h:
+                        weather[key] = weather_96h[key][hours_late:hours_late+48]
+                    self.first_time = weather['time'][0]
                     if weather['oat'] == []:
                         raise Exception()
+                    if weather['time'][0] < time.time():
+                        raise Exception(f"Weather forecast start of {weather['time'][0]} is in the past!! Check math")
                 else:
                     self.log("No valid weather forecasts available locally. Using coldest of the current month.")
                     current_month = datetime.now().month-1
@@ -384,7 +386,7 @@ class SynthGenerator(ScadaActor):
                         'ws': [0]*48,
                         }
             except Exception as e:
-                self.log("No valid weather forecasts available locally. Using coldest of the current month.")
+                self.log(f"Issue getting local weather forecast! Using coldest of the current month.\n Issue: {e}")
                 current_month = datetime.now().month-1
                 weather = {
                     'time': [int(time.time()+(1+x)*3600) for x in range(48)],
@@ -434,6 +436,8 @@ class SynthGenerator(ScadaActor):
             RswtF = forecasts['required_swt'][:24],
             RswtDeltaTF = forecasts['required_swt_delta_T'][:24]
         )
+        forecast_start = datetime.fromtimestamp(self.weather_forecast.Time[0], tz=self.timezone)
+        self.log(f"Forecast start: {forecast_start.strftime('%Y-%m-%d %H:%M:%S')}")
         self.log(f"OAT = {self.weather_forecast.OatF[:24]}")
         self.log(f"WS = {self.weather_forecast.WindSpeedMph[:24]}")
         self.log(f"Average Power = {self.forecasts.AvgPowerKw}")
