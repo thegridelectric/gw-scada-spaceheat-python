@@ -447,7 +447,7 @@ class AtomicAlly(ScadaActor):
         buffer_full_ch_temp = round(self.latest_temperatures[buffer_full_ch],1)
 
         if really_full:
-            max_buffer = self.params.MaxEwtF
+            max_buffer = self.params.MaxEwtF - 7
             if buffer_full_ch_temp > max_buffer:
                 self.log(f"Buffer cannot be charged more ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
                 return True
