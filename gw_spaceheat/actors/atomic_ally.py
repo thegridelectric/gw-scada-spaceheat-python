@@ -280,7 +280,12 @@ class AtomicAlly(ScadaActor):
                 elif self.is_buffer_full() and not self.is_storage_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
                 elif self.is_buffer_full(really_full=True):
-                    self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                    if not self.storage_declared_full or time.time()-self.storage_full_since>15*60:
+                        self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                    if self.storage_declared_full and time.time()-self.storage_full_since<15*60:
+                        self.log("Both storage and buffer are as full as can be")
+                        self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
+                        # TODO: send message to ATN saying the EnergyInstruction will be violated
 
             # 2
             elif self.state == AtomicAllyState.HpOnStoreCharge.value:
@@ -451,7 +456,9 @@ class AtomicAlly(ScadaActor):
         buffer_full_ch_temp = round(self.latest_temperatures[buffer_full_ch],1)
 
         if really_full:
-            max_buffer = self.params.MaxEwtF - 7
+            if H0CN.buffer_cold_pipe in self.latest_temperatures:
+                buffer_full_ch_temp = round(self.latest_temperatures[H0CN.buffer_cold_pipe],1)
+            max_buffer = self.params.MaxEwtF
             if buffer_full_ch_temp > max_buffer:
                 self.log(f"Buffer cannot be charged more ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
                 return True
