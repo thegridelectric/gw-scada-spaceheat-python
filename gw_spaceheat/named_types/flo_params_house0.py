@@ -5,7 +5,7 @@ from typing import List, Literal, Optional
 
 from enums import MarketPriceUnit
 from gwproto.property_format import LeftRightDotStr, UTCSeconds, UUID4Str
-from pydantic import BaseModel, Field, PositiveInt, StrictInt
+from pydantic import BaseModel, ConfigDict, Field, PositiveInt, StrictInt
 
 
 class FloParamsHouse0(BaseModel):
@@ -25,11 +25,13 @@ class FloParamsHouse0(BaseModel):
     CopLwtCoeff: float = 0
     CopMin: float = 1.4
     CopMinOatF: float = 15
+    HpTurnOnMinutes: int = 10
     # Initial state
     InitialTopTempF: StrictInt
     InitialThermocline: StrictInt
     HpIsOff: bool = False
-    HpTurnOnMinutes: int = 10
+    BufferAvailableKwh: float = 0
+    HouseAvailableKwh: float = 0
     # Forecasts
     LmpForecast: Optional[List[float]] = None
     DistPriceForecast: Optional[List[float]] = None
@@ -52,3 +54,5 @@ class FloParamsHouse0(BaseModel):
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
     Version: Literal["001"] = "001"
+
+    model_config = ConfigDict(extra="allow", use_enum_values=True)

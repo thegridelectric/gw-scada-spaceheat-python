@@ -42,6 +42,23 @@ class DParams():
         self.available_top_temps, self.energy_between_nodes = self.get_available_top_temps()
         self.load_forecast = [self.required_heating_power(oat,ws) for oat,ws in zip(self.oat_forecast,self.ws_forecast)]
         self.rswt_forecast = [self.required_swt(x) for x in self.load_forecast]
+        # Modify load forecast to include energy available in the buffer
+        available_buffer = config.BufferAvailableKwh
+        i = 0
+        while available_buffer > 0:
+            self.load_forecast[i] = self.load_forecast[i] - min(available_buffer, self.load_forecast[i])
+            available_buffer = available_buffer - min(available_buffer, self.load_forecast[i])
+            i += 1
+        # Modify load forecast to include energy available in the house (zones above thermostat)
+        available_house = config.HouseAvailableKwh
+        i = 0
+        if available_house < 0:
+            self.load_forecast[0] += -available_house
+        else:
+            while available_house > 0:
+                self.load_forecast[i] = self.load_forecast[i] - min(available_house, self.load_forecast[i])
+                available_house = available_house - min(available_house, self.load_forecast[i])
+                i += 1
         self.check_hp_sizing()
         # TODO: add to config
         self.min_cop = 1
@@ -301,7 +318,7 @@ class DGraph():
                 node.next_node = best_edge.head
     
     def generate_bid(self):
-        self.pq_pairs = []
+        self.pq_pairs: List[PriceQuantityUnitless] = []
         min_elec_ctskwh, max_elec_ctskwh = -10, 200
         for elec_price in range(min_elec_ctskwh*10, max_elec_ctskwh*10):
             elec_price = elec_price/10
