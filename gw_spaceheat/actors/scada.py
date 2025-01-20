@@ -647,12 +647,22 @@ class Scada(ScadaInterface, Proactor):
     ) -> None:
         self._logger.path("++_process_downstream_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
+        from_node = self._layout.node(decoded.Header.Src, None)
         match decoded.Payload:
             case EventBase():
                 path_dbg |= 0x00000001
                 self.generate_event(decoded.Payload)
+            case PowerWatts():
+                if from_node is self._layout.power_meter_node:
+                    path_dbg |= 0x00000002
+                    self.power_watts_received(decoded.Payload)
+                    self.get_communicator(H0N.synth_generator).process_message(decoded)
+                else:
+                    raise Exception(
+                        f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
+                    )
             case SyncedReadings():
-                path_dbg |= 0x00000002
+                path_dbg |= 0x00000004
                 try:
                     self.synced_readings_received(
                         self._layout.node(decoded.Header.Src),
@@ -663,7 +673,7 @@ class Scada(ScadaInterface, Proactor):
                     self.logger.error(f"Failed to process SyncedReading from scada2!: {e}")
             case _:
                 # Intentionally ignore this for forward compatibility
-                path_dbg |= 0x00000004
+                path_dbg |= 0x00000008
         self._logger.path("--_process_downstream_mqtt_message  path:0x%08X", path_dbg)
 
     def _process_admin_mqtt_message(
