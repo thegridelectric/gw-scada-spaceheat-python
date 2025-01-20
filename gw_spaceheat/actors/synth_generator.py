@@ -265,12 +265,27 @@ class SynthGenerator(ScadaActor):
             [kwh for t, kwh in zip(forecasts_times_tz, self.forecasts.AvgPowerKw)
              if 16<=t.hour<=19]
             )
+        # Find the maximum storage
+        simulated_layers = [self.params.MaxEwtF + 10] * 12
+        max_storage_kwh = 0
+        while True:
+            if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
+                simulated_layers = [sum(simulated_layers)/len(simulated_layers) for x in simulated_layers]
+                if round(self.rwt(simulated_layers[0])) == round(simulated_layers[0]):
+                    break
+            max_storage_kwh += 360/12*3.78541 * 4.187/3600 * (simulated_layers[0]-self.rwt(simulated_layers[0]))*5/9
+            simulated_layers = simulated_layers[1:] + [self.rwt(simulated_layers[0])]
         # if (((time_now.weekday()<4 or time_now.weekday()==6) and time_now.hour>=20)
         #     or (time_now.weekday()<5 and time_now.hour<=6)):
         if (time_now.hour>=20 or time_now.hour<=6):
             self.log('Preparing for a morning onpeak + afternoon onpeak')
             afternoon_missing_kWh = afternoon_kWh - (4*self.params.HpMaxKwTh - midday_kWh) # TODO make the kW_th a function of COP and kW_el
-            return morning_kWh if afternoon_missing_kWh<0 else morning_kWh + afternoon_missing_kWh
+            if afternoon_missing_kWh<0:
+                required = morning_kWh
+            else:
+                required = morning_kWh + afternoon_missing_kWh
+            required_kwh = min(required, max_storage_kwh)
+            return required_kwh
         # elif (time_now.weekday()<5 and time_now.hour>=12 and time_now.hour<16):
         elif (time_now.hour>=12 and time_now.hour<16):
             self.log('Preparing for an afternoon onpeak')
