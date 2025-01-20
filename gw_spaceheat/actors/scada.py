@@ -52,8 +52,9 @@ from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, TopState
-from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, ChannelFlatlined, DispatchContractGoDormant,
-                        DispatchContractGoLive, EnergyInstruction, FsmEvent, GameOn, Glitch, GoDormant, 
+from named_types import (AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined, 
+                        DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, FsmEvent, 
+                        GameOn, Glitch, GoDormant, 
                         LayoutLite, NewCommandTree, PicoMissing, RemainingElec,  RemainingElecEvent,
                         ScadaParams, SendLayout, SingleMachineState, WakeUp, HeatingForecast)
 
@@ -154,7 +155,6 @@ class Scada(ScadaInterface, Proactor):
     _data: ScadaData
     _last_report_second: int
     _last_sync_snap_s: int
-    _dispatch_live_hack: bool
     _channels_reported: bool
     _layout_lite: LayoutLite
     _admin_timeout_task: Optional[asyncio.Task] = None
@@ -173,7 +173,9 @@ class Scada(ScadaInterface, Proactor):
         {"trigger": "AutoGoesDormant", "source": "Atn", "dest": "Dormant"},
         {"trigger": "AutoGoesDormant", "source": "HomeAlone", "dest": "Dormant"},
         {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"},
-        {"trigger": "AtnReleasesControl", "source": "Atn", "dest": "HomeAlone"}
+        {"trigger": "AtnReleasesControl", "source": "Atn", "dest": "HomeAlone"},
+        {"trigger": "AllyGivesUp", "source": "Atn", "dest": "HomeAlone"}
+
     ]
     def __init__(
         self,
@@ -232,7 +234,6 @@ class Scada(ScadaInterface, Proactor):
         self._channels_reported = False
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_sync_snap_s = int(now)
-        self._dispatch_live_hack = False
         self.pending_dispatch: Optional[AnalogDispatch] = None
         self.logger.add_category_logger(
             PowerMeter.POWER_METER_LOGGER_NAME,
@@ -465,6 +466,8 @@ class Scada(ScadaInterface, Proactor):
         path_dbg = 0
         from_node = self._layout.node(message.Header.Src, None)
         match message.Payload:
+            case AllyGivesUp():
+                self.ally_gives_up(message.Payload)
             case Glitch():
                 self._links.publish_upstream(message.Payload, QOS.AtMostOnce)
             case GameOn():
@@ -1039,7 +1042,6 @@ class Scada(ScadaInterface, Proactor):
         self._send_to(self.layout.pico_cycler,WakeUp(ToName=H0N.pico_cycler) )
 
     def auto_goes_dormant(self) -> None:
-        self._dispatch_live_hack = False
         if self.auto_state == MainAutoState.Dormant:
             self.log("Ignoring AutoGoesDormant ... auto state is already dormant")
             return
@@ -1053,6 +1055,19 @@ class Scada(ScadaInterface, Proactor):
         for direct_report in [self.layout.atomic_ally, self.layout.home_alone , self.layout.pico_cycler]:
             self._send_to(direct_report, GoDormant(FromName=self.name, ToName=direct_report.Name))
     
+    def ally_gives_up(self, msg: AllyGivesUp) -> None:
+        if self.auto_state != MainAutoState.Atn:
+            self.log(f"Ignoring control request from atn, auto_state: {self.auto_state}")
+            return
+        # AutoState transition: AllyGivesUp: Atn -> HomeAlone
+        self.AllyGivesUp()
+        self.log(f"Atomic Ally giving up control: {msg.Reason}")
+        self.set_home_alone_command_tree()
+        # wake up home alone again. Ally will already be dormant
+        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        # Inform AtomicTNode
+        # TODO: send message like DispatchContractDeclined to Atn
+
     def atn_releases_control(self, t: DispatchContractGoDormant) -> None:
         if t.FromGNodeAlias != self.layout.atn_g_node_alias:
             self.log(f"HUH? Message from {t.FromGNodeAlias}")
@@ -1062,7 +1077,6 @@ class Scada(ScadaInterface, Proactor):
             return
         self.AtnReleasesControl()
         self.set_home_alone_command_tree()
-        self._dispatch_live_hack = False
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         self._send_to(self.layout.atomic_ally, GoDormant(FromName=self.name, ToName=H0N.atomic_ally))
         
@@ -1080,9 +1094,6 @@ class Scada(ScadaInterface, Proactor):
         # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
         # Ally which reports to atn.
         self.set_atn_command_tree()
-        
-        # Set the hack dispatch contract to True... will take this out shortly
-        self._dispatch_live_hack = True
         # Let homealone know its dormant:
         self._send_to(self.layout.home_alone, GoDormant(FromName=self.name, ToName=H0N.home_alone))
         # Let the atomic ally know its live
@@ -1096,7 +1107,6 @@ class Scada(ScadaInterface, Proactor):
         # Trigger AtnLinkDead auto state:  Atn -> HomeAlone
         self.AtnLinkDead()
         self.log(f"AtnLink id dead! Auto state {self.auto_state}")
-        self._dispatch_live_hack = False
         self.set_home_alone_command_tree()
         # Let home alone know its in charge
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
@@ -1247,12 +1257,8 @@ class Scada(ScadaInterface, Proactor):
            alive.
         """
         if self.auto_state == "Atn":
-            if not self._dispatch_live_hack:
-                raise Exception("WTF. _dispatch_live_hack False but auto_state is Atn ")
             return True
         else:
-            if self._dispatch_live_hack:
-                raise Exception(f"WTF. _dispatch_live_hack True but auto_state is {self._auto_state}")
             return False
     
     def log(self, note: str) ->None:

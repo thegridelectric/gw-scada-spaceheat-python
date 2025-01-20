@@ -4,6 +4,7 @@ from named_types.admin_dispatch import AdminDispatch
 from named_types.admin_keep_alive import AdminKeepAlive
 from named_types.admin_release_control import AdminReleaseControl
 from named_types.atn_bid import AtnBid
+from named_types.ally_gives_up import AllyGivesUp
 from named_types.channel_flatlined import ChannelFlatlined
 from named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from named_types.dispatch_contract_go_live import DispatchContractGoLive
@@ -34,6 +35,7 @@ __all__ = [
     "AdminDispatch",
     "AdminKeepAlive",
     "AdminReleaseControl",
+    "AllyGivesUp",
     "AtnBid",
     "ChannelFlatlined",
     "DispatchContractGoDormant",
