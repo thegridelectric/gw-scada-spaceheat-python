@@ -1156,14 +1156,19 @@ class Atn(ActorInterface, Proactor):
 
     def get_price_forecast(self) -> None:
         daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        daily_dp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_dp, list(range(24)))]
-        daily_dp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_dp, list(range(24)))]
-        daily_dp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_dp, list(range(24)))]
+        daily_lmp = [102] * 24
+        daily_lmp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_lmp, list(range(24)))]
+        daily_lmp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_lmp, list(range(24)))]
+        daily_lmp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_lmp, list(range(24)))]
+
         dp_forecast_usd_per_mwh = (
             daily_dp[datetime.now(tz=self.timezone).hour + 1 :]
             + daily_dp[: datetime.now(tz=self.timezone).hour + 1]
         ) * 2
-        lmp_forecast_usd_per_mwh = [102] * 48
+        lmp_forecast_usd_per_mwh = (
+            daily_lmp[datetime.now(tz=self.timezone).hour + 1 :]
+            + daily_lmp[: datetime.now(tz=self.timezone).hour + 1]
+        ) * 2
         reg_forecast_usd_per_mwh = [0] * 48
         self.price_forecast = {
             "dp": dp_forecast_usd_per_mwh,
@@ -1191,10 +1196,10 @@ class Atn(ActorInterface, Proactor):
     def get_price(self) -> float:
         # Daily price pattern for distribution (Versant TOU tariff)
         daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        daily_dp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_dp, list(range(24)))]
-        daily_dp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_dp, list(range(24)))]
-        daily_dp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_dp, list(range(24)))]
         daily_lmp = [102] * 24
+        daily_lmp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_lmp, list(range(24)))]
+        daily_lmp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_lmp, list(range(24)))]
+        daily_lmp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_lmp, list(range(24)))]
         price_by_hr = [dp + lmp for dp, lmp in zip(daily_dp, daily_lmp)]
         current_hour = datetime.now(tz=self.timezone).hour
         print(current_hour)
