@@ -1,4 +1,3 @@
-import logging
 import socket
 import time
 import struct
@@ -82,6 +81,10 @@ class EGaugeHadDisconnect(EGaugeCommWarning):
 class EGaugeConnectFailed(EGaugeCommWarning):
     ...
 
+class ModbusClientStale(EGaugeCommWarning):
+    """Connection appears open but cannot actually read data"""
+    pass
+
 class TryConnectResult(DriverResult[bool | None]):
     skipped_for_backoff: bool = False
 
@@ -133,71 +136,77 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             timeout=self.CLIENT_TIMEOUT
         )
 
-    def try_connect(self, first_time: bool = False) -> Result[TryConnectResult, Exception]:
+    def try_connect(self) -> Result[TryConnectResult, Exception]:
+        """Attempts to establish or verify Modbus connection to eGauge.
+        Returns Ok(TryConnectResult) if connection attempt succeeds or is properly delayed,
+        or Err(Exception) if there's an unrecoverable error.
+
+        Detects and handles three main failure modes:
+        1. ModbusClientStale: Connection appears open but can't read
+        2. EGaugeHadDisconnect: Connection is explicitly closed
+        3. EGaugeConnectFailed: Cannot establish new connection or read from it
+        """
+        
         now = time.time()
         comm_warnings = []
         skip_for_backoff = False
-        path_dbg = 0
-        if self._modbus_client is None or not self._modbus_client.is_open:
-            path_dbg |= 0x00000001
-            if (
-                self._curr_connect_delay <= 0.0
-                and not first_time
-                and self._modbus_client is not None
-            ):
-                path_dbg |= 0x00000002
+
+        def test_connection(client: ModbusClient) -> bool:
+            """Tests if a connection can actually read data"""
+            try:
+                registers = client.read_input_registers(100, 8)
+                return registers is not None
+            except Exception:
+                return False
+
+        # Check existing connection
+        if self._modbus_client is not None:
+            if not self._modbus_client.is_open:
                 comm_warnings.append(EGaugeHadDisconnect())
+                self._modbus_client = None
+            elif not test_connection(self._modbus_client):
+                comm_warnings.append(ModbusClientStale(
+                    "Connection appears open but cannot read registers"
+                ))
+                self._modbus_client = None
+
+        # Handle connection creation
+        if self._modbus_client is None:
             skip_for_backoff = (now - self._last_connect_time) <= self._curr_connect_delay
             if not skip_for_backoff:
-                path_dbg |= 0x00000004
-                if self._curr_connect_delay <= 0.0:
-                    self._curr_connect_delay = 0.5
-                else:
-                    self._curr_connect_delay = min(
-                        self._curr_connect_delay * 2,
-                        self.MAX_RECONNECT_DELAY_SECONDS
-                    )
-                if self._modbus_client is None:
-                    path_dbg |= 0x00000008
+                try:
+                    self._client_settings.host = socket.gethostbyname(self.component.gt.ModbusHost)
+                    new_client = ModbusClient(**self._client_settings.model_dump())
+                    new_client.open()
                     self._last_connect_time = now
-                    try:
-                        self._client_settings.host = socket.gethostbyname(self.component.gt.ModbusHost)
-                        self._modbus_client = ModbusClient(**self._client_settings.model_dump())
-                    except socket.gaierror as e:
-                        path_dbg |= 0x00000010
-                        comm_warnings.append(e)
-                    except Exception as e:
-                        path_dbg |= 0x00000020
-                        return Err(e)
-                if self._modbus_client is not None:
-                    path_dbg |= 0x00000040
-                    self._modbus_client.open()
-                    self._last_connect_time = now
-                    if not self._modbus_client.is_open:
-                        path_dbg |= 0x00000080
+
+                    if new_client.is_open and test_connection(new_client):
+                        self._modbus_client = new_client
+                        self._curr_connect_delay = 0.0
+                        self.logger.info("Successfully established new connection")
+                    else:
                         comm_warnings.append(EGaugeConnectFailed())
-        if self._modbus_client is not None and self._modbus_client.is_open:
-            path_dbg |= 0x00000100
-            self._last_connect_time = now
-            self._curr_connect_delay = 0.0
-        result = Ok(
-            TryConnectResult(
-                connected=self._modbus_client is not None and self._modbus_client.is_open,
-                warnings=comm_warnings,
-                skipped_for_backoff=skip_for_backoff
+                        self._curr_connect_delay = min(
+                            self._curr_connect_delay * 2 if self._curr_connect_delay > 0 else 0.5,
+                            self.MAX_RECONNECT_DELAY_SECONDS
+                        )
+                except socket.gaierror as e:
+                    comm_warnings.append(e)
+                except Exception as e:
+                    return Err(e)
+
+        # Log any warnings collected during connection attempt
+        if comm_warnings:
+            for warning in comm_warnings:
+                self.logger.warning(f"Connection warning: {warning}")
+
+            return Ok(
+                TryConnectResult(
+                    connected=self._modbus_client is not None and self._modbus_client.is_open,
+                    warnings=comm_warnings,
+                    skipped_for_backoff=skip_for_backoff
+                )
             )
-        )
-        if not result.value.connected or result.value.warnings:
-            if self.logger.isEnabledFor(logging.DEBUG):
-                self.logger.info(f"TryConnectResult:\n{result.value}")
-                log_path = True
-            elif self.logger.isEnabledFor(logging.INFO) and result.value.warnings:
-                log_path = True
-            else:
-                log_path = False
-            if log_path:
-                self.logger.info(f"--eGauge.try_connect  path:0x{path_dbg:08x}")
-        return result
 
     def start(self) -> Result[DriverResult[TryConnectResult], Exception]:
         return self.try_connect(first_time=True)
