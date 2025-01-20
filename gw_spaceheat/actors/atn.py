@@ -757,22 +757,6 @@ class Atn(ActorInterface, Proactor):
             return
         initial_toptemp, initial_thermocline = result
 
-        current_hp_power = {
-                x: self.latest_channel_values[x]
-                for x in [H0CN.hp_idu_pwr, H0CN.hp_odu_pwr]
-                if x in self.latest_channel_values
-                and self.latest_channel_values[x] is not None
-            }
-        hp_is_on = False
-        if H0CN.hp_idu_pwr in current_hp_power:
-            if current_hp_power[H0CN.hp_idu_pwr] > 1000:
-                hp_is_on = True
-        if H0CN.hp_odu_pwr in current_hp_power:
-            if current_hp_power[H0CN.hp_odu_pwr] > 1000:
-                hp_is_on = True
-        hp_is_off = not hp_is_on
-        self.log(f"HP off: {hp_is_off}")
-        
         flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
@@ -793,7 +777,7 @@ class Atn(ActorInterface, Proactor):
             DdRswtF=self.ha1_params.DdRswtF,
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
-            HpIsOff=hp_is_off,
+            HpIsOff=False if self.latest_remaining_elec>0 else True,
         )
         self._links.publish_message(
             self.SCADA_MQTT, 
