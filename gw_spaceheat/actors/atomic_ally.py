@@ -20,18 +20,17 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from named_types import RemainingElec, GameOn
+from named_types import AllyGivesUp, RemainingElec, GameOn
 
 
-class AtomicAllyState(GwStrEnum): 
+class AtomicAllyState(GwStrEnum):
+    Dormant = auto()
     WaitingElec = auto()
     WaitingNoElec = auto()
     HpOnStoreOff = auto()
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
-    Dormant = auto()
-
 
     @classmethod
     def enum_name(cls) -> str:
@@ -153,7 +152,7 @@ class AtomicAlly(ScadaActor):
             case EnergyInstruction():
                 self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
                 self.remaining_elec_wh = message.Payload.AvgPowerWatts
-                self.check_and_update_state()
+                self.engage_brain()()
             case GoDormant():
                 if self.state != AtomicAllyState.Dormant.value:
                     # GoDormant: AnyOther -> Dormant ...
@@ -167,12 +166,7 @@ class AtomicAlly(ScadaActor):
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
                 if self.state == AtomicAllyState.Dormant.value:
-                    # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
-                    # TODO: think through whether atomic ally also needs an init
-                    # state. Note it will always be coming from HomeAlone
-                    # WakeUp: Dormant -> WaitingNoElec ... will turn off heat pmp
-                    self.trigger_event(AtomicAllyEvent.WakeUp)
-                    self.check_and_update_state()
+                    self.suit_up()
             case HeatingForecast():
                 self.log("Received forecast")
                 self.forecasts: HeatingForecast = message.Payload
@@ -222,14 +216,32 @@ class AtomicAlly(ScadaActor):
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
-    def check_and_update_state(self) -> None:
-        self.log(f"State: {self.state}")
+    def suit_up(self) -> None:
+        """Checks prerequisites and initializes AtomicAlly for dispatch contract participation.
+    
+        Sends GameOn to Atn if ready, logs failure if prerequisites not met.
+        """
         if not self.forecasts:
-            self.log("Strange ... Do not have forecasts yet! Not updating state since can't check buffer state")
+            self.log("Cannot suit up - missing forecasts!")
+            self._send_to(
+                self.primary_scada,
+                AllyGivesUp(
+                        FromName=self.name,
+                        ToName=H0N.primary_scada,
+                        Reason="Missing forecasts required for operation"
+                    )
+                )
             return
+            
+        self.log("Suiting up and sending GameOn to Atn")
+        self._send_to(self.primary_scada, GameOn(FromGNodeAlias=self.layout.atn_g_node_alias))
+        self.trigger_event(AtomicAllyEvent.WakeUp)
+        self.engage_brain()
+
+    def engage_brain(self) -> None:
+        self.log(f"State: {self.state}")
         if self.state != AtomicAllyState.Dormant:
             previous_state = self.state
-
             self.get_latest_temperatures()
 
             if (
@@ -310,17 +322,9 @@ class AtomicAlly(ScadaActor):
 
     async def main(self):
         await asyncio.sleep(2)
-        self._send_to(self.primary_scada, GameOn(FromGNodeAlias=self.layout.atn_g_node_alias))
-        # SynthGenerator gets forecasts ASAP on boot, including various fallbacks
-        # if the request does not work. So wait a bit if 
-        if self.forecasts is None:
-            await asyncio.sleep(5)
-        if self.forecasts is None:
-            raise Exception("No access to forecasts! Won't be able to heat the buffer")
-            
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            self.check_and_update_state()
+            self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def update_relays(self, previous_state: str) -> None:

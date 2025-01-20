@@ -11,6 +11,8 @@ def test_main_auto_event() -> None:
         "AtnWantsControl",
         "AutoGoesDormant",
         "AutoWakesUp",
+        "AtnReleasesControl",
+        "AllyGivesUp",
     }
 
     assert MainAutoEvent.default() == MainAutoEvent.AutoGoesDormant

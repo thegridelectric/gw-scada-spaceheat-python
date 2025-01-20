@@ -10,8 +10,10 @@ class MainAutoEvent(GwStrEnum):
     Values:
       - AtnLinkDead
       - AtnWantsControl
+      - AtnReleasesControl
       - AutoGoesDormant
       - AutoWakesUp
+      - AllyGivesUp
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
@@ -20,8 +22,10 @@ class MainAutoEvent(GwStrEnum):
 
     AtnLinkDead = auto()
     AtnWantsControl = auto()
+    AtnReleasesControl = auto()
     AutoGoesDormant = auto()
     AutoWakesUp = auto()
+    AllyGivesUp = auto()
 
     @classmethod
     def default(cls) -> "MainAutoEvent":
