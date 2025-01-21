@@ -47,6 +47,10 @@ class ScadaActor(Actor):
         return self.services.settings
 
     @property
+    def atn(self) -> ShNode:
+        return self.layout.node(H0N.atn)
+
+    @property
     def primary_scada(self) -> ShNode:
         return self.layout.node(H0N.primary_scada)
 

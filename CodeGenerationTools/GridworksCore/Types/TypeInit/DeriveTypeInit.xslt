@@ -25,7 +25,8 @@
                 <OverwriteMode>Always</OverwriteMode>
                 <xsl:element name="FileContents">
 <xsl:text>""" List of all the types """
-</xsl:text>
+
+from named_types.events import RemainingElecEvent</xsl:text>
 <xsl:for-each select="$airtable//VersionedTypes/VersionedType[
   count(Protocols[text()='scada']) > 0 and
   (Status = 'Active' or Status = 'Pending') and
@@ -45,7 +46,6 @@
 </xsl:variable>
 
 <xsl:text>
-from named_types.events import RemainingElecEvent
 from named_types.</xsl:text>
 <xsl:value-of select="translate(TypeName,'.','_')"/>
 <xsl:text> import </xsl:text>

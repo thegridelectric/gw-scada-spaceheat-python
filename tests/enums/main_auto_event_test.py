@@ -9,9 +9,9 @@ def test_main_auto_event() -> None:
     assert set(MainAutoEvent.values()) == {
         "AtnLinkDead",
         "AtnWantsControl",
+        "AtnReleasesControl",
         "AutoGoesDormant",
         "AutoWakesUp",
-        "AtnReleasesControl",
         "AllyGivesUp",
     }
 
