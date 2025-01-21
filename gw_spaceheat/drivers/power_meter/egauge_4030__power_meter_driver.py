@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import socket
 import time
@@ -8,7 +9,6 @@ from typing import Optional
 from gwproactor.logger import LoggerOrAdapter
 from gwproto.named_types import ElectricMeterChannelConfig
 from pyModbusTCP.client import ModbusClient
-from result import Err
 from result import Ok
 from result import Result
 
@@ -79,6 +79,9 @@ class EGaugeCommWarning(DriverWarning):
 class EGaugeHadDisconnect(EGaugeCommWarning):
     ...
 
+class EGaugeConstructionFailed(EGaugeCommWarning):
+    ...
+
 class EGaugeConnectFailed(EGaugeCommWarning):
     ...
 
@@ -133,12 +136,21 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             timeout=self.CLIENT_TIMEOUT
         )
 
+    def clean_client(self):
+        if self._modbus_client is not None:
+            with contextlib.suppress(Exception):
+                self._modbus_client.close()
+            self._modbus_client = None
+
+    def client_is_open(self) -> bool:
+        return self._modbus_client is not None and self._modbus_client.is_open
+
     def try_connect(self, first_time: bool = False) -> Result[TryConnectResult, Exception]:
         now = time.time()
         comm_warnings = []
         skip_for_backoff = False
         path_dbg = 0
-        if self._modbus_client is None or not self._modbus_client.is_open:
+        if not self.client_is_open():
             path_dbg |= 0x00000001
             if (
                 self._curr_connect_delay <= 0.0
@@ -147,37 +159,43 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             ):
                 path_dbg |= 0x00000002
                 comm_warnings.append(EGaugeHadDisconnect())
+            self.clean_client()
             skip_for_backoff = (now - self._last_connect_time) <= self._curr_connect_delay
             if not skip_for_backoff:
                 path_dbg |= 0x00000004
                 if self._curr_connect_delay <= 0.0:
+                    path_dbg |= 0x00000008
                     self._curr_connect_delay = 0.5
                 else:
+                    path_dbg |= 0x00000010
                     self._curr_connect_delay = min(
                         self._curr_connect_delay * 2,
                         self.MAX_RECONNECT_DELAY_SECONDS
                     )
-                if self._modbus_client is None:
-                    path_dbg |= 0x00000008
-                    self._last_connect_time = now
-                    try:
-                        self._client_settings.host = socket.gethostbyname(self.component.gt.ModbusHost)
-                        self._modbus_client = ModbusClient(**self._client_settings.model_dump())
-                    except socket.gaierror as e:
-                        path_dbg |= 0x00000010
-                        comm_warnings.append(e)
-                    except Exception as e:
-                        path_dbg |= 0x00000020
-                        return Err(e)
-                if self._modbus_client is not None:
+                self._last_connect_time = now
+                try:
+                    self._client_settings.host = socket.gethostbyname(self.component.gt.ModbusHost)
+                    self._modbus_client = ModbusClient(**self._client_settings.model_dump())
+                except Exception as e:
+                    path_dbg |= 0x00000020
+                    comm_warnings.append(e)
+                    comm_warnings.append(EGaugeConstructionFailed())
+                    self.clean_client()
+                else:
                     path_dbg |= 0x00000040
-                    self._modbus_client.open()
-                    self._last_connect_time = now
-                    if not self._modbus_client.is_open:
+                    open_error = None
+                    try:
+                        self._modbus_client.open()
+                    except Exception as e:
                         path_dbg |= 0x00000080
+                        open_error = e
+                    self._last_connect_time = now
+                    if open_error or not self.client_is_open():
+                        path_dbg |= 0x00000100
                         comm_warnings.append(EGaugeConnectFailed())
-        if self._modbus_client is not None and self._modbus_client.is_open:
-            path_dbg |= 0x00000100
+                        self.clean_client()
+        if self.client_is_open():
+            path_dbg |= 0x00000200
             self._last_connect_time = now
             self._curr_connect_delay = 0.0
         result = Ok(
