@@ -7,7 +7,7 @@ import math
 import numpy as np
 from typing import Optional, Sequence
 from result import Ok, Result
-from datetime import datetime, timedelta, timezone
+from datetime import datetime,  timezone
 from actors.scada_data import ScadaData
 from gwproto import Message
 
@@ -435,29 +435,24 @@ class SynthGenerator(ScadaActor):
         forecasts['required_swt'] = [self.required_swt(x) for x in forecasts['avg_power']]
         forecasts['required_swt_delta_T'] = [round(self.delta_T(x),2) for x in forecasts['required_swt']]
 
-        # Send full forecast to relevant scada actors
+        # Send cropped 24-hour heating  forecast to aa & ha for their own use
+        # and to atn for record-keeping
         hf = HeatingForecast(
-            Time = forecasts['time'],
-            AvgPowerKw = forecasts['avg_power'],
-            RswtF = forecasts['required_swt'],
-            RswtDeltaTF = forecasts['required_swt_delta_T']
-        )
-        self._send_to(self.home_alone, hf)
-        
-        # Crop to use only 24 hours of forecast in this code
-        self.forecasts = HeatingForecast(
+            FromGNodeAlias=self.layout.scada_g_node_alias,
             Time = forecasts['time'][:24],
             AvgPowerKw = forecasts['avg_power'][:24],
             RswtF = forecasts['required_swt'][:24],
-            RswtDeltaTF = forecasts['required_swt_delta_T'][:24]
+            RswtDeltaTF = forecasts['required_swt_delta_T'][:24],
+            WeatherUid=self.weather_forecast.WeatherUid
         )
+  
+        self._send_to(self.home_alone, hf)
+        self._send_to(self.atomic_ally, hf)
+        self._send_to(self.atn, hf)
+        self.forecasts = hf
         forecast_start = datetime.fromtimestamp(self.weather_forecast.Time[0], tz=self.timezone)
-        self.log(f"Forecast start: {forecast_start.strftime('%Y-%m-%d %H:%M:%S')}")
-        self.log(f"OAT = {self.weather_forecast.OatF[:24]}")
-        self.log(f"WS = {self.weather_forecast.WindSpeedMph[:24]}")
-        self.log(f"Average Power = {self.forecasts.AvgPowerKw}")
-        self.log(f"RSWT = {self.forecasts.RswtF}")
-        self.log(f"DeltaT at RSWT = {[round(self.delta_T(x),2) for x in self.forecasts.RswtF]}")
+        self.log(f"Got forecast starting {forecast_start.strftime('%Y-%m-%d %H:%M:%S')}")
+
 
     def rwt(self, swt: float, return_rswt_onpeak=False) -> float:
         if self.forecasts is None:

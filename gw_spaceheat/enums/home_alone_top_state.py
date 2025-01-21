@@ -9,8 +9,8 @@ class HomeAloneTopState(GwStrEnum):
     
     Values:
       - Dormant
-      - Normal
       - UsingBackupOnpeak
+      - Normal
       - ScadaBlind
 
     For more information:
@@ -19,13 +19,13 @@ class HomeAloneTopState(GwStrEnum):
     """
 
     Dormant = auto()
-    Normal = auto()
     UsingBackupOnpeak = auto()
+    Normal = auto()
     ScadaBlind = auto()
 
     @classmethod
     def default(cls) -> "HomeAloneTopState":
-        return cls.Normal
+        return cls.Dormant
 
     @classmethod
     def values(cls) -> List[str]:

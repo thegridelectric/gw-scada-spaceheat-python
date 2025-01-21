@@ -574,9 +574,13 @@ class Scada(ScadaInterface, Proactor):
             case WakeUp():
                 self.get_communicator(message.Header.Dst).process_message(message)
             case HeatingForecast():
+                # NOTE: if Dst actor is on local mqtt, need to do something
+                # different than get_communicator. E.g.
+                #self.services._links.publish_message(
+                #self.services.LOCAL_MQTT, message
+                #) 
                 try:
-                    self.get_communicator(H0N.atomic_ally).process_message(message)
-                    self.get_communicator(H0N.home_alone).process_message(message)
+                    self.get_communicator(message.Header.Dst).process_message(message)
                 except Exception as e:
                     self.logger.error(f"Problem with {message.Header}: {e}")
             case _:

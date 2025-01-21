@@ -226,8 +226,6 @@ class AtomicAlly(ScadaActor):
             self._send_to(
                 self.primary_scada,
                 AllyGivesUp(
-                        FromName=self.name,
-                        ToName=H0N.primary_scada,
                         Reason="Missing forecasts required for operation"
                     )
                 )

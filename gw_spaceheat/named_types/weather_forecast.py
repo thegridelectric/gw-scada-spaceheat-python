@@ -41,7 +41,7 @@ class WeatherForecast(BaseModel):
     @model_validator(mode="after")
     def check_axiom_2(self) -> Self:
         """
-        Axiom 1: ForecastCreatedS is less than the first second in Time
+        Axiom 2: ForecastCreatedS is less than the first second in Time
 
         """
         if len(self.Time) > 0:
