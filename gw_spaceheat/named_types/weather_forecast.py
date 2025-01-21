@@ -3,7 +3,7 @@ import time
 import uuid
 from typing import List, Literal
 
-from gwproto.property_format import HandleName, LeftRightDotStr, UTCSeconds, UUID4Str
+from gwproto.property_format import  LeftRightDotStr, UTCSeconds, UUID4Str
 from pydantic import BaseModel, Field, model_validator
 from typing_extensions import Self
 
@@ -16,7 +16,7 @@ class WeatherForecast(BaseModel):
     """
 
     FromGNodeAlias: LeftRightDotStr
-    WeatherChannelName: HandleName
+    WeatherChannelName: LeftRightDotStr
     Time: List[UTCSeconds]
     OatF: List[float]
     WindSpeedMph: List[float]

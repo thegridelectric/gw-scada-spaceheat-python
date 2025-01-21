@@ -5,8 +5,8 @@ from named_types import WeatherForecast
 
 def test_weather_forecast_generated() -> None:
     d = {
-        "FromGNodeAlias": "hw1.isone.ps",
-        "WeatherChannelName": "weather-gov.kmlt",
+        "FromGNodeAlias": "hw1.isone.ws",
+        "WeatherChannelName": "weather.gov.kmlt",
         "Time": [1735938000],
         "OatF": [13.5],
         "WindSpeedMph": [0],

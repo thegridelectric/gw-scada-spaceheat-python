@@ -411,13 +411,14 @@ class SynthGenerator(ScadaActor):
         # International Civil Aviation Organization: 4-char alphanumeric code
         # assigned to airports and weather observation stations
         ICAO_CODE = "KMLT"
-        WEATHER_CHANNEL = f"weather-gov.{ICAO_CODE}".lower()
+        WEATHER_CHANNEL = f"weather.gov.{ICAO_CODE}".lower()
+
         self.weather_forecast = WeatherForecast(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             WeatherChannelName=WEATHER_CHANNEL,
             Time = weather['time'],
             OatF = weather['oat'],
-            WindSpeedMph= weather['ws']
+            WindSpeedMph= weather['ws'],
         )
 
     async def get_forecasts(self, session: aiohttp.ClientSession):
@@ -436,7 +437,7 @@ class SynthGenerator(ScadaActor):
         forecasts['required_swt_delta_T'] = [round(self.delta_T(x),2) for x in forecasts['required_swt']]
 
         # Send cropped 24-hour heating  forecast to aa & ha for their own use
-        # and to atn for record-keeping
+        # and send both the 48-hour weather forecast and 24-hr heating forecast to atn for record-keeping
         hf = HeatingForecast(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             Time = forecasts['time'][:24],
@@ -448,6 +449,7 @@ class SynthGenerator(ScadaActor):
   
         self._send_to(self.home_alone, hf)
         self._send_to(self.atomic_ally, hf)
+        self._send_to(self.atn, self.weather_forecast)
         self._send_to(self.atn, hf)
         self.forecasts = hf
         forecast_start = datetime.fromtimestamp(self.weather_forecast.Time[0], tz=self.timezone)
