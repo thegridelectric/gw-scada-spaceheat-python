@@ -757,6 +757,9 @@ class Atn(ActorInterface, Proactor):
             return
         initial_toptemp, initial_thermocline = result
 
+        buffer_available_kwh = await self.get_buffer_available_kwh()
+        house_available_kwh = await self.get_house_available_kwh()
+
         flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
@@ -778,6 +781,8 @@ class Atn(ActorInterface, Proactor):
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
             HpIsOff=False if self.latest_remaining_elec>0 else True,
+            BufferAvailableKwh=buffer_available_kwh,
+            HouseAvailableKwh=house_available_kwh
         )
         self._links.publish_message(
             self.SCADA_MQTT, 
@@ -910,6 +915,31 @@ class Atn(ActorInterface, Proactor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
+    async def get_RSWT(self):
+        try:
+            alpha = self.ha1_params.AlphaTimes10 / 10
+            beta = self.ha1_params.BetaTimes100 / 100
+            gamma = self.ha1_params.GammaEx6 / 1e6
+            oat = self.weather_forecast["oat"][0]
+            ws = self.weather_forecast["ws"][0]
+            r = alpha + beta*oat + gamma*ws
+            rhp= r if r>0 else 0
+            intermediate_rswt = self.ha1_params.IntermediateRswtF
+            dd_rswt = self.ha1_params.DdRswtF
+            intermediate_power = self.ha1_params.IntermediatePowerKw
+            dd_power = self.ha1_params.DdPowerKw
+            no_power_rswt = -alpha/beta
+            x_rswt = np.array([no_power_rswt, intermediate_rswt, dd_rswt])
+            y_hpower = np.array([0, intermediate_power, dd_power])
+            A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
+            a, b, c = np.linalg.solve(A, y_hpower)
+            c2 = c - rhp
+            rswt = round((-b + (b**2-4*a*c2)**0.5)/(2*a),2)
+            return rswt
+        except:
+            self.log("Could not find RSWT!")
+            return None
+
     async def get_thermocline_and_centroids(self) -> Optional[Tuple[float, int]]:
         # Get all tank temperatures in a dict, if you can't abort
         if self.temperature_channel_names is None:
@@ -980,27 +1010,9 @@ class Atn(ActorInterface, Proactor):
         else:
             bottom_centroid_f = min(cluster_top)
         # Process clustering
-        # Find RSWT in first hour
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
         try:
-            alpha = self.ha1_params.AlphaTimes10 / 10
-            beta = self.ha1_params.BetaTimes100 / 100
-            gamma = self.ha1_params.GammaEx6 / 1e6
-            oat = self.weather_forecast["oat"][0]
-            ws = self.weather_forecast["ws"][0]
-            r = alpha + beta*oat + gamma*ws
-            rhp= r if r>0 else 0
-            intermediate_rswt = self.ha1_params.IntermediateRswtF
-            dd_rswt = self.ha1_params.DdRswtF
-            intermediate_power = self.ha1_params.IntermediatePowerKw
-            dd_power = self.ha1_params.DdPowerKw
-            no_power_rswt = -alpha/beta
-            x_rswt = np.array([no_power_rswt, intermediate_rswt, dd_rswt])
-            y_hpower = np.array([0, intermediate_power, dd_power])
-            A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
-            a, b, c = np.linalg.solve(A, y_hpower)
-            c2 = c - rhp
-            rswt = round((-b + (b**2-4*a*c2)**0.5)/(2*a),2)
+            rswt = await self.get_RSWT()
             self.log(f"RSWT = {rswt} F")
             if top_centroid_f < rswt and max(processed_temps) >= rswt:
                 print("There is water available above RSWT, changing the clustering result")
@@ -1014,6 +1026,35 @@ class Atn(ActorInterface, Proactor):
         # TODO: post top_centroid, thermocline, bottom_centroid as synthetic channels
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
         return top_centroid_f, thermocline
+    
+    async def get_buffer_available_kwh(self):
+        if self.temperature_channel_names is None:
+            self.send_layout()
+            await asyncio.sleep(5)
+        self.get_latest_temperatures()
+        buffer_temperatures = {k: self.to_fahrenheit(v/1000)
+                               for k,v in self.latest_temperatures.items() 
+                               if 'buffer' in k
+                               and v is not None}
+        if not buffer_temperatures:
+            self.log(f"Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
+            return 0
+        try:
+            rswt = await self.get_RSWT()
+            m_layer_kg = 120/4 * 3.785
+            buffer_available_energy = 0
+            for bl in buffer_temperatures:
+                if buffer_temperatures[bl] > rswt:
+                    buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt) * 5/9
+            return buffer_available_energy
+        except Exception as e:
+            self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
+            return 0
+        
+    async def get_house_available_kwh(self):
+        # Thermal mass of house? In kWh/degF
+        # How much thermal mass is one zone?
+        return 0
 
     def send_energy_instr(self, watthours: int, slot_minutes: int = 60, game_on: bool=False):
         t = int(time.time())
