@@ -780,7 +780,7 @@ class Atn(ActorInterface, Proactor):
             DdRswtF=self.ha1_params.DdRswtF,
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
-            HpIsOff=False if self.latest_remaining_elec>0 else True,
+            HpIsOff=False, #TODO
             BufferAvailableKwh=buffer_available_kwh,
             HouseAvailableKwh=house_available_kwh
         )
