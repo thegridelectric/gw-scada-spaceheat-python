@@ -18,6 +18,7 @@ from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
 from named_types import RemainingElecEvent, GameOn
+from data_classes.house_0_names import House0RelayIdx
 
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
@@ -27,10 +28,10 @@ from gwproactor.proactor_implementation import Proactor
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import TelemetryName
+from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent,
                               SnapshotSpaceheat)
-from gwproto.named_types import AnalogDispatch, SendSnap
+from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from named_types import (AtnBid, DispatchContractGoDormant,
                          DispatchContractGoLive, EnergyInstruction, FloParamsHouse0,
                          Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
@@ -151,6 +152,7 @@ class Atn(ActorInterface, Proactor):
         self.longitude = self.settings.longitude
         self.sent_bid = False
         self.latest_bid = None
+        self.hp_is_off = False
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast = None
@@ -369,6 +371,14 @@ class Atn(ActorInterface, Proactor):
 
     def _process_report(self, report: Report) -> None:
         self.data.latest_report = report
+        # Check if HP is on or off by looking at relay 6
+        for machine_state in report.StateList:
+            ms : MachineStates = machine_state
+            if f"relay{House0RelayIdx.hp_scada_ops}" in ms.MachineHandle:
+                if ms.StateList[-1] == RelayClosedOrOpen.RelayOpen:
+                    self.hp_is_off = True
+                else:
+                    self.hp_is_off = False
         if self.settings.save_events:
             report_file = (
                 self.report_output_dir / f"Report.{report.SlotStartUnixS}.json"
@@ -780,7 +790,7 @@ class Atn(ActorInterface, Proactor):
             DdRswtF=self.ha1_params.DdRswtF,
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
-            HpIsOff=False, #TODO
+            HpIsOff=self.hp_is_off,
             BufferAvailableKwh=buffer_available_kwh,
             HouseAvailableKwh=house_available_kwh
         )
@@ -1046,7 +1056,7 @@ class Atn(ActorInterface, Proactor):
             for bl in buffer_temperatures:
                 if buffer_temperatures[bl] > rswt:
                     buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt) * 5/9
-            return buffer_available_energy
+            return round(buffer_available_energy,2)
         except Exception as e:
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
             return 0
