@@ -520,7 +520,11 @@ class Scada(ScadaInterface, Proactor):
                 self.get_communicator(message.Header.Dst).process_message(message)
             case FsmEvent():
                 path_dbg |= 0x00000020
-                self.get_communicator(message.Header.Dst).process_message(message)
+                try:
+                    self.get_communicator(message.Header.Dst).process_message(message)
+                except Exception as e:
+                    self.log(f"Issue with {message.Payload}\n{e}")
+                    return
             case FsmFullReport():
                 path_dbg |= 0x00000040
                 if message.Header.Dst == self.name:
