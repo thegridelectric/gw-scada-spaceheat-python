@@ -1198,7 +1198,7 @@ class Atn(ActorInterface, Proactor):
         reg_usd_mwh = [0]*72
         try:
             house_alias = self.layout.scada_g_node_alias.split('.')[-2]
-            file_path = f"/home/ubuntu/{house_alias}-atn/gw-spada-spaceheat-python/price_forecast.csv"
+            file_path = f"/home/ubuntu/{house_alias}-atn/gw-scada-spaceheat-python/price_forecast.csv"
             with open(file_path, mode='r', newline='') as file:
                 reader = csv.reader(file)
                 header = next(reader)
