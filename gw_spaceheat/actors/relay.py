@@ -37,7 +37,8 @@ from result import Err, Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
-from named_types import FsmEvent
+from enums import LogLevel
+from named_types import FsmEvent, Glitch
 
 class Relay(ScadaActor):
     STATE_REPORT_S = 300
@@ -109,7 +110,15 @@ class Relay(ScadaActor):
 
         if message.ToHandle != self.node.Handle:
             # TODO: turn this into a report?
-            print(f"Handle is {self.node.Handle}; ignoring {message}")
+            self._send_to(self.atn,
+                          Glitch(
+                              FromGNodeAlias=self.layout.scada_g_node_alias,
+                              Node=self.name,
+                              Type=LogLevel.Warning,
+                              Summary="bad_boss",
+                              Details=f"{message.FromHandle} tried to command {self.node.Handle}. Ignoring!"
+                          ))
+            self.log(f"Handle is {self.node.Handle}; ignoring {message}")
             return
 
         if message.EventType != self.my_event_enum.enum_name():

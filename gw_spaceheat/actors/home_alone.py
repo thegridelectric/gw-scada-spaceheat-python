@@ -241,6 +241,7 @@ class HomeAlone(ScadaActor):
                 UnixMs=int(time.time() * 1000),
             ),
         )
+        self.log("Set normal command tree")
 
     def set_scadablind_command_tree(self) -> None:
         for node in self.my_actuators():
@@ -253,6 +254,7 @@ class HomeAlone(ScadaActor):
                 UnixMs=int(time.time() * 1000),
             ),
         )
+        self.log("Set scadablind command tree")
 
     def top_state_update(self, cause: TopStateEvent) -> None:
         """
@@ -269,6 +271,7 @@ class HomeAlone(ScadaActor):
                 Cause=cause.value,
             ),
         )
+        self.log("Set top state command tree")
 
 
     @property
