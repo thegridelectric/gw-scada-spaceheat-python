@@ -14,13 +14,14 @@ from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
-from gwproto.named_types import Alert
 
 from actors.scada_actor import ScadaActor
-from named_types import GoDormant, Ha1Params, NewCommandTree, SingleMachineState, WakeUp, HeatingForecast
-from enums import HomeAloneTopState
+from named_types import (
+            GoDormant, Glitch, Ha1Params, 
+            NewCommandTree, SingleMachineState, WakeUp, HeatingForecast)
+from enums import HomeAloneTopState, LogLevel
 
-
+ 
 class HomeAloneState(GwStrEnum):
     Initializing = auto()
     HpOnStoreOff = auto()
@@ -700,7 +701,7 @@ class HomeAlone(ScadaActor):
         elif H0CN.dist_swt in self.latest_temperatures:
             buffer_empty_ch = H0CN.dist_swt
         else:
-            self.alert(alias="buffer_empty_fail", msg="Impossible to know if the buffer is empty!")
+            self.alert(summary="buffer_empty_fail", details="Impossible to know if the buffer is empty!")
             return False
         max_rswt_next_3hours = max(self.forecasts.RswtF[:3])
         max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
@@ -723,7 +724,7 @@ class HomeAlone(ScadaActor):
         elif 'hp-ewt' in self.latest_temperatures:
             buffer_full_ch = 'hp-ewt'
         else:
-            self.alert(alias="buffer_full_fail", msg="Impossible to know if the buffer is full!")
+            self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
             return False
         max_buffer = round(max(self.forecasts.RswtF[:3]),1)
         buffer_full_ch_temp = round(self.to_fahrenheit(self.latest_temperatures[buffer_full_ch]/1000),1)
@@ -812,7 +813,7 @@ class HomeAlone(ScadaActor):
         elif H0CN.buffer_cold_pipe in self.latest_temperatures:
             buffer_top = H0CN.buffer_cold_pipe
         else:
-            self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the buffer is warmer than the top of the storage!")
+            self.alert(summary="store_v_buffer_fail", details="It is impossible to know if the top of the buffer is warmer than the top of the storage!")
             return False
         if self.cn.tank[1].depth1 in self.latest_temperatures:
             tank_top = self.cn.tank[1].depth1
@@ -833,13 +834,13 @@ class HomeAlone(ScadaActor):
     def to_fahrenheit(self, t:float) -> float:
         return t*9/5+32
 
-    def alert(self, alias: str, msg: str) -> None:
-        alert_str = f"[ALERT] {msg}"
-        self._services._links.publish_upstream(payload=Alert(
+    def alert(self, summary: str, details: str) -> None:
+        self._services._links.publish_upstream(payload=Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            AboutNode=self.normal_node,
-            OpsGenieAlias=alias,
-            UnixS=int(time.time()),
-            Summary=msg
+            Node=self.normal_node,
+            Type=LogLevel.Critical,
+            Summary=summary,
+            Details=details
         ))
-        self.log(alert_str)
+        self.log(f"CRITICAL GLITCH: {summary}")
+
