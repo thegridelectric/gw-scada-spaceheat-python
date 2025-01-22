@@ -2,6 +2,7 @@ import numpy as np
 from datetime import datetime
 from typing import Dict, List, Tuple
 from named_types import PriceQuantityUnitless, FloParamsHouse0
+from typing import Optional
 
 def to_kelvin(t):
     return (t-32)*5/9 + 273.15
@@ -128,7 +129,7 @@ class DParams():
     def get_available_top_temps(self) -> Tuple[Dict, Dict]:
         available_temps = [self.initial_top_temp]
         x = self.initial_top_temp
-        while round(x + self.delta_T_inverse(x),2) <= 185:
+        while round(x + self.delta_T_inverse(x),2) <= 175:
             x = round(x + self.delta_T_inverse(x),2)
             available_temps.append(int(x))
         while x+10 <= 185:
@@ -184,11 +185,13 @@ class DNode():
 
 
 class DEdge():
-    def __init__(self, tail:DNode, head:DNode, cost:float, hp_heat_out:float):
+    def __init__(self, tail:DNode, head:DNode, cost:float, hp_heat_out:float, rswt_minus_edge_elec:Optional[float]=None):
         self.tail: DNode = tail
         self.head: DNode = head
         self.cost = cost
         self.hp_heat_out = hp_heat_out
+        self.rswt_minus_edge_elec = rswt_minus_edge_elec
+        self.fake_cost: Optional[float] = None
 
     def __repr__(self):
         return f"Edge: {self.tail} --cost:{round(self.cost,3)}--> {self.head}"
@@ -304,7 +307,7 @@ class DGraph():
             # Penalty is slightly more expensive than the cost of producing Q_missing in the next hour
             cop = self.params.COP(oat=self.params.oat_forecast[time_slice+1], lwt=next_node.top_temp)
             penalty = (Q_missing+1)/cop * self.params.elec_price_forecast[time_slice+1]/100
-            self.edges[node].append(DEdge(node, next_node, penalty, 0))
+            self.edges[node].append(DEdge(node, next_node, penalty, 0, rswt_minus_edge_elec=(Q_missing+1)/cop))
 
     def solve_dijkstra(self):
         for time_slice in range(self.params.horizon-1, -1, -1):
@@ -319,30 +322,41 @@ class DGraph():
     
     def generate_bid(self):
         self.pq_pairs: List[PriceQuantityUnitless] = []
+        forecasted_price_usd_mwh = self.params.elec_price_forecast[0] * 10
+        # For every possible price
         min_elec_ctskwh, max_elec_ctskwh = -10, 200
-        for elec_price in range(min_elec_ctskwh*10, max_elec_ctskwh*10):
-            elec_price = elec_price/10
-            elec_to_nextnode = []
-            pathcost_from_nextnode = []
-            for e in self.edges[self.initial_node]:
-                cop = self.params.COP(oat=self.params.oat_forecast[0], lwt=e.head.top_temp)
-                elec_to_nextnode.append(e.hp_heat_out/cop if e.hp_heat_out/cop>0 else 0)
-                pathcost_from_nextnode.append(e.head.pathcost)
-            cost_to_nextnode = [x*elec_price/100 for x in elec_to_nextnode]
-            pathcost_from_current_node = [x+y for x,y in zip(cost_to_nextnode, pathcost_from_nextnode)]
-            min_pathcost_elec = elec_to_nextnode[pathcost_from_current_node.index(min(pathcost_from_current_node))]
-            if self.pq_pairs:
-                # Record a new pair if at least 0.01 kWh of difference in quantity with the previous one
-                if self.pq_pairs[-1].QuantityTimes1000 - int(min_pathcost_elec * 1000) > 10:
-                    self.pq_pairs.append(
-                        PriceQuantityUnitless(
-                            PriceTimes1000 = int(elec_price*10 * 1000),         # usd/mwh * 1000
-                            QuantityTimes1000 = int(min_pathcost_elec * 1000))  # kWh * 1000 = Wh
-                    )
-            else:
+        for elec_price_usd_mwh in sorted(list(range(min_elec_ctskwh*10, max_elec_ctskwh*10))+[forecasted_price_usd_mwh]):
+            # Update the fake cost of initial node edges with the selected price
+            for edge in self.edges[self.initial_node]:
+                if edge.cost >= 1e5: # penalized node
+                    edge.fake_cost = edge.cost
+                elif edge.rswt_minus_edge_elec is not None: # penalized node
+                    edge.fake_cost = edge.rswt_minus_edge_elec * elec_price_usd_mwh/1000
+                else:
+                    cop = self.params.COP(oat=self.params.oat_forecast[0], lwt=edge.head.top_temp)
+                    edge.fake_cost = edge.hp_heat_out / cop * elec_price_usd_mwh/1000
+            # Find the best edge with the given price
+            best_edge = min(self.edges[self.initial_node], key=lambda e: e.head.pathcost + e.fake_cost)
+            if best_edge.hp_heat_out < 0: 
+                best_edge_neg = max([e for e in self.edges[self.initial_node] if e.hp_heat_out<0], key=lambda e: e.hp_heat_out)
+                best_edge_pos = min([e for e in self.edges[self.initial_node] if e.hp_heat_out>=0], key=lambda e: e.hp_heat_out)
+                best_edge = best_edge_pos if (-best_edge_neg.hp_heat_out >= best_edge_pos.hp_heat_out) else best_edge_neg
+            # Find the associated quantity
+            cop = self.params.COP(oat=self.params.oat_forecast[0], lwt=best_edge.head.top_temp)
+            best_quantity_kwh = best_edge.hp_heat_out / cop
+            best_quantity_kwh = 0 if best_quantity_kwh<0 else best_quantity_kwh
+            if not self.pq_pairs:
                 self.pq_pairs.append(
                     PriceQuantityUnitless(
-                        PriceTimes1000 = int(elec_price*10 * 1000),         # usd/mwh * 1000
-                        QuantityTimes1000 = int(min_pathcost_elec * 1000))  # kWh * 1000
+                        PriceTimes1000 = int(elec_price_usd_mwh * 1000),
+                        QuantityTimes1000 = int(best_quantity_kwh * 1000))
                 )
+            else:
+                # Record a new pair if at least 0.01 kWh of difference in quantity with the previous one
+                if self.pq_pairs[-1].QuantityTimes1000 - int(best_quantity_kwh * 1000) > 10:
+                    self.pq_pairs.append(
+                        PriceQuantityUnitless(
+                            PriceTimes1000 = int(elec_price_usd_mwh * 1000),
+                            QuantityTimes1000 = int(best_quantity_kwh * 1000))
+                    )
         return self.pq_pairs
