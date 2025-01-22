@@ -1208,6 +1208,7 @@ class Atn(ActorInterface, Proactor):
                 if len(dist_usd_mwh)<72 or len(lmp_usd_mwh)<72:
                     raise Exception("Price forecasts must be at least 72 hours long")
         except Exception as e:
+            self.log("Error reading price forecast from csv")
             raise Exception(e)
         if current_hour:
             total_price = [dp+lmp+reg for dp,lmp,reg in zip(dist_usd_mwh, lmp_usd_mwh, reg_usd_mwh)]
@@ -1220,6 +1221,8 @@ class Atn(ActorInterface, Proactor):
             "lmp": lmp_forecast_usd_per_mwh,
             "reg": reg_forecast_usd_per_mwh,
         }
+        self.log("Succesfully read price forecast from local CSV")
+        self.log(self.price_forecast)
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
