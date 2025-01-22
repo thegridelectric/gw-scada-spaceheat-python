@@ -524,6 +524,7 @@ class Scada(ScadaInterface, Proactor):
                     self.get_communicator(message.Header.Dst).process_message(message)
                 except Exception as e:
                     self.log(f"Issue with {message.Payload}\n{e}")
+                    self.log(f"message.Header.Dst is {message.Header.Src}")
                     return
             case FsmFullReport():
                 path_dbg |= 0x00000040
