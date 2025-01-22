@@ -1,4 +1,5 @@
 """Scada implementation"""
+import csv
 import asyncio
 import json
 import threading
@@ -18,6 +19,7 @@ from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
 from named_types import RemainingElecEvent, GameOn
+from data_classes.house_0_names import House0RelayIdx
 
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
@@ -27,10 +29,10 @@ from gwproactor.proactor_implementation import Proactor
 from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import TelemetryName
+from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent,
                               SnapshotSpaceheat)
-from gwproto.named_types import AnalogDispatch, SendSnap
+from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from named_types import (AtnBid, DispatchContractGoDormant,
                          DispatchContractGoLive, EnergyInstruction, FloParamsHouse0,
                          Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
@@ -151,6 +153,7 @@ class Atn(ActorInterface, Proactor):
         self.longitude = self.settings.longitude
         self.sent_bid = False
         self.latest_bid = None
+        self.hp_is_off = False
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
         self.price_forecast = None
@@ -369,6 +372,14 @@ class Atn(ActorInterface, Proactor):
 
     def _process_report(self, report: Report) -> None:
         self.data.latest_report = report
+        # Check if HP is on or off by looking at relay 6
+        for machine_state in report.StateList:
+            ms : MachineStates = machine_state
+            if f"relay{House0RelayIdx.hp_scada_ops}" in ms.MachineHandle:
+                if ms.StateList[-1] == RelayClosedOrOpen.RelayOpen:
+                    self.hp_is_off = True
+                else:
+                    self.hp_is_off = False
         if self.settings.save_events:
             report_file = (
                 self.report_output_dir / f"Report.{report.SlotStartUnixS}.json"
@@ -780,7 +791,7 @@ class Atn(ActorInterface, Proactor):
             DdRswtF=self.ha1_params.DdRswtF,
             DdDeltaTF=self.ha1_params.DdDeltaTF,
             MaxEwtF=self.ha1_params.MaxEwtF,
-            HpIsOff=False, #TODO
+            HpIsOff=self.hp_is_off,
             BufferAvailableKwh=buffer_available_kwh,
             HouseAvailableKwh=house_available_kwh
         )
@@ -1046,7 +1057,7 @@ class Atn(ActorInterface, Proactor):
             for bl in buffer_temperatures:
                 if buffer_temperatures[bl] > rswt:
                     buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt) * 5/9
-            return buffer_available_energy
+            return round(buffer_available_energy,2)
         except Exception as e:
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
             return 0
@@ -1179,27 +1190,39 @@ class Atn(ActorInterface, Proactor):
             "ws": wf["ws"],
         }
 
-    def get_price_forecast(self) -> None:
-        daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        daily_lmp = [102] * 24
-        daily_lmp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        daily_lmp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        daily_lmp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_lmp, list(range(24)))]
-
-        dp_forecast_usd_per_mwh = (
-            daily_dp[datetime.now(tz=self.timezone).hour + 1 :]
-            + daily_dp[: datetime.now(tz=self.timezone).hour + 1]
-        ) * 2
-        lmp_forecast_usd_per_mwh = (
-            daily_lmp[datetime.now(tz=self.timezone).hour + 1 :]
-            + daily_lmp[: datetime.now(tz=self.timezone).hour + 1]
-        ) * 2
-        reg_forecast_usd_per_mwh = [0] * 48
+    def get_price_forecast(self, current_hour=False) -> None:
+        # Read the 72h electricity prices from local CSV file
+        # TODO: replace with a price service
+        dist_usd_mwh = []
+        lmp_usd_mwh = []
+        reg_usd_mwh = [0]*72
+        try:
+            house_alias = self.layout.scada_g_node_alias.split('.')[-2]
+            file_path = f"/home/ubuntu/{house_alias}-atn/gw-scada-spaceheat-python/price_forecast.csv"
+            with open(file_path, mode='r', newline='') as file:
+                reader = csv.reader(file)
+                header = next(reader)
+                for row in reader:
+                    dist_usd_mwh.append(float(row[0]))
+                    lmp_usd_mwh.append(float(row[1]))
+                if len(dist_usd_mwh)<72 or len(lmp_usd_mwh)<72:
+                    raise Exception("Price forecasts must be at least 72 hours long")
+        except Exception as e:
+            self.log("Error reading price forecast from csv")
+            raise Exception(e)
+        if current_hour:
+            total_price = [dp+lmp+reg for dp,lmp,reg in zip(dist_usd_mwh, lmp_usd_mwh, reg_usd_mwh)]
+            return total_price[datetime.now(tz=self.timezone).hour]
+        dp_forecast_usd_per_mwh = dist_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
+        lmp_forecast_usd_per_mwh = lmp_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
+        reg_forecast_usd_per_mwh = reg_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
         self.price_forecast = {
             "dp": dp_forecast_usd_per_mwh,
             "lmp": lmp_forecast_usd_per_mwh,
             "reg": reg_forecast_usd_per_mwh,
         }
+        self.log("Succesfully read price forecast from local CSV")
+        self.log(self.price_forecast)
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
@@ -1219,16 +1242,7 @@ class Atn(ActorInterface, Proactor):
         return labels
 
     def get_price(self) -> float:
-        # Daily price pattern for distribution (Versant TOU tariff)
-        daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        daily_lmp = [102] * 24
-        daily_lmp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        daily_lmp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        daily_lmp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        price_by_hr = [dp + lmp for dp, lmp in zip(daily_dp, daily_lmp)]
-        current_hour = datetime.now(tz=self.timezone).hour
-        print(current_hour)
-        return price_by_hr[(current_hour)]
+        return self.get_price_forecast(current_hour=True)
 
     async def fake_market_maker(self):
         while True:
