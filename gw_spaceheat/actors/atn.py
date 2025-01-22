@@ -1,4 +1,5 @@
 """Scada implementation"""
+import csv
 import asyncio
 import json
 import threading
@@ -1189,22 +1190,30 @@ class Atn(ActorInterface, Proactor):
             "ws": wf["ws"],
         }
 
-    def get_price_forecast(self) -> None:
-        daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        daily_lmp = [102] * 24
-        daily_lmp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        daily_lmp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        daily_lmp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_lmp, list(range(24)))]
-
-        dp_forecast_usd_per_mwh = (
-            daily_dp[datetime.now(tz=self.timezone).hour + 1 :]
-            + daily_dp[: datetime.now(tz=self.timezone).hour + 1]
-        ) * 2
-        lmp_forecast_usd_per_mwh = (
-            daily_lmp[datetime.now(tz=self.timezone).hour + 1 :]
-            + daily_lmp[: datetime.now(tz=self.timezone).hour + 1]
-        ) * 2
-        reg_forecast_usd_per_mwh = [0] * 48
+    def get_price_forecast(self, current_hour=False) -> None:
+        # Read the 72h electricity prices from local CSV file
+        # TODO: replace with a price service
+        dist_usd_mwh = []
+        lmp_usd_mwh = []
+        reg_usd_mwh = [0]*72
+        try:
+            file_path = "/home/pi/gw-scada-spaceheat-python/price_forecast.csv"
+            with open(file_path, mode='r', newline='') as file:
+                reader = csv.reader(file)
+                header = next(reader)
+                for row in reader:
+                    dist_usd_mwh.append(float(row[0]))
+                    lmp_usd_mwh.append(float(row[1]))
+                if len(dist_usd_mwh)<72 or len(lmp_usd_mwh)<72:
+                    raise Exception("Price forecasts must be at least 72 hours long")
+        except Exception as e:
+            raise Exception(e)
+        if current_hour:
+            total_price = [dp+lmp+reg for dp,lmp,reg in zip(dist_usd_mwh, lmp_usd_mwh, reg_usd_mwh)]
+            return total_price[datetime.now(tz=self.timezone).hour]
+        dp_forecast_usd_per_mwh = dist_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
+        lmp_forecast_usd_per_mwh = lmp_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
+        reg_forecast_usd_per_mwh = reg_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
         self.price_forecast = {
             "dp": dp_forecast_usd_per_mwh,
             "lmp": lmp_forecast_usd_per_mwh,
@@ -1229,16 +1238,7 @@ class Atn(ActorInterface, Proactor):
         return labels
 
     def get_price(self) -> float:
-        # Daily price pattern for distribution (Versant TOU tariff)
-        daily_dp = [50.13] * 7 + [487.63] * 5 + [54.98] * 4 + [487.63] * 4 + [50.13] * 4
-        daily_lmp = [102] * 24
-        daily_lmp = [price + i*(1 if i<7 else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        daily_lmp = [price + (i-11)*(1 if (i>11 and i<16) else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        daily_lmp = [price + (i-19)*(1 if (i>19) else 0) for price, i in zip(daily_lmp, list(range(24)))]
-        price_by_hr = [dp + lmp for dp, lmp in zip(daily_dp, daily_lmp)]
-        current_hour = datetime.now(tz=self.timezone).hour
-        print(current_hour)
-        return price_by_hr[(current_hour)]
+        return self.get_price_forecast(current_hour=True)
 
     async def fake_market_maker(self):
         while True:
