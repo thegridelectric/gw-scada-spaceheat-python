@@ -512,8 +512,6 @@ class HomeAlone(ScadaActor):
         # HouseColdOnpeak: Normal -> UsingBackupOnpeak
         if self.top_state != HomeAloneTopState.UsingBackupOnpeak:
             raise Exception("Should only call leave_onpeak_backup in transition from UsingBackupOnpeak to Normal!")
-        self.leaving_onpeak_backup_actuator_actions()
-        # JustOffpeak: UsingBackupOnpeak -> Normal
         self.JustOffpeak()
         # Report state change to scada
         self.top_state_update(cause=TopStateEvent.JustOffpeak)
@@ -521,7 +519,7 @@ class HomeAlone(ScadaActor):
         self.set_normal_command_tree()
         # and let the normal homealone know its alive 
         if self.state == HomeAloneState.Dormant:
-            self.trigger_normal_event(HomeAloneEvent.WakeUp)
+            self.engage_brain(waking_up=True)
 
     def trigger_missing_data(self):
         if self.top_state != HomeAloneTopState.Normal:
@@ -538,12 +536,11 @@ class HomeAlone(ScadaActor):
     def trigger_data_available(self):
         if self.top_state != HomeAloneTopState.ScadaBlind:
             raise Exception("Should only call trigger_data_available in transition from ScadaBlind to Normal!")
-        self.leaving_scada_blind_actuator_actions()
         self.DataAvailable()
         self.top_state_update(cause=TopStateEvent.DataAvailable)
         self.set_normal_command_tree()
         if self.state == HomeAloneState.Dormant:
-            self.trigger_normal_event(HomeAloneEvent.WakeUp)
+            self.engage_brain(waking_up=True)
 
     def scada_blind_actuator_actions(self) -> None:
         """
@@ -555,15 +552,7 @@ class HomeAlone(ScadaActor):
         self.turn_off_store_pump(from_node=self.scada_blind_node)
         self.valved_to_discharge_store(from_node=self.scada_blind_node)
         self.hp_failsafe_switch_to_aquastat(from_node=self.scada_blind_node)
-    
-    def leaving_scada_blind_actuator_actions(self) -> None:
-        self.hp_failsafe_switch_to_scada(from_node=self.scada_blind_node)
         
-    def leaving_onpeak_backup_actuator_actions(self) -> None:
-        if self.settings.oil_boiler_for_onpeak_backup:
-            self.hp_failsafe_switch_to_scada(from_node=self.onpeak_backup_node)
-            self.aquastat_ctrl_switch_to_scada(from_node=self.onpeak_backup_node)
-
     def onpeak_backup_actuator_actions(self) -> None:
         """
         Expects set_onpeak_backup_command_tree already called, 
