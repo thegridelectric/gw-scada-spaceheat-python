@@ -25,13 +25,7 @@ from drivers.power_meter.egauge_4030__power_meter_driver import EGuage4030_Power
 from drivers.power_meter.gridworks_sim_pm1__power_meter_driver import (
     GridworksSimPm1_PowerMeterDriver,
 )
-from drivers.power_meter.openenergy_emonpi__power_meter_driver import (
-    OpenenergyEmonpi_PowerMeterDriver,
-)
 from drivers.power_meter.power_meter_driver import PowerMeterDriver
-from drivers.power_meter.schneiderelectric_iem3455__power_meter_driver import (
-    SchneiderElectricIem3455_PowerMeterDriver,
-)
 from drivers.power_meter.unknown_power_meter_driver import UnknownPowerMeterDriver
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
@@ -101,14 +95,8 @@ class DriverThreadSetupHelper:
         cac = self.component.cac
         if cac.MakeModel == MakeModel.UNKNOWNMAKE__UNKNOWNMODEL:
             driver = UnknownPowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.MakeModel == MakeModel.SCHNEIDERELECTRIC__IEM3455:
-            driver = SchneiderElectricIem3455_PowerMeterDriver(component=self.component, settings=self.settings)
         elif cac.MakeModel == MakeModel.GRIDWORKS__SIMPM1:
             driver = GridworksSimPm1_PowerMeterDriver(component=self.component, settings=self.settings)
-        elif cac.MakeModel == MakeModel.OPENENERGY__EMONPI:
-            driver = OpenenergyEmonpi_PowerMeterDriver(
-                component=self.component, settings=self.settings
-            )
         elif cac.MakeModel == MakeModel.EGAUGE__4030:
             driver = EGuage4030_PowerMeterDriver(
                 component=self.component,

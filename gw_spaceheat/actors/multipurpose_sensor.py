@@ -15,12 +15,15 @@ from gwproactor import SyncThreadActor
 from gwproto.data_classes.components.ads111x_based_component import (
     Ads111xBasedComponent
 )
+
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
+from drivers.driver_result import DriverOutcome
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
 )
 from gwproto import Message
+from gwproto.message import Header
 
 from gwproactor.message import InternalShutdownMessage
 from gwproactor.sync_thread import SyncAsyncInteractionThread
@@ -28,6 +31,8 @@ from gwproactor import Problems
 from gwproto.enums import MakeModel
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.named_types import AdsChannelConfig
+from enums import LogLevel
+from named_types import Glitch
 
 UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
 UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"
@@ -135,29 +140,26 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         self.latest_telemetry_value = {ch.Name: None for ch in self.my_channels}
         self._last_sampled_s = {ch.Name: None for ch in self.my_channels}
     
-
-    def _report_problems(self, problems: Problems, tag: str):
-        self._put_to_async_queue(
-            Message(
-                Payload=problems.problem_event(
-                    summary=f"Driver problems: {tag} for {self.driver.component}",
-                )
-            )
-        )
-
     def _preiterate(self) -> None:
         result = self.driver.start()
-        if result.is_ok():
-            if result.value.warnings:
-                self._report_problems(
-                    Problems(warnings=result.value.warnings), "startup warning"
+        if not result.is_ok():
+            raise Exception("Multipurpose sensor driver should not return error on init!")
+        outcome = result.value
+        # There was a problem on initialization 
+        if len(outcome.comments) > 0:
+            payload = Glitch(
+                    FromGNodeAlias=self._hardware_layout.scada_g_node_alias,
+                    Node=self.name,
+                    Type=outcome.get_highest_level(),
+                    Summary="TSnapStartupWarning",
+                    Details=outcome.comments_to_details(),
                 )
-        else:
-            self.running = False
-            self._report_problems(Problems(errors=[result.err()]), "startup error")
-            self._put_to_async_queue(
-                InternalShutdownMessage(Src=self.name, Reason=f"Driver start error for {self.name}")
+            message = Message(
+                header=Header(Src=self.name, MessageType=payload.TypeName),
+                Payload=payload
             )
+            # TODO: add analog temp logging 
+            self._put_to_async_queue(message)
 
     def _iterate(self) -> None:
         start_s = time.time()
@@ -177,18 +179,28 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
 
     def poll_sensor(self):
         read = self.driver.read_telemetry_values(self.my_channels)
-        if read.is_ok():
-            reading_by_ch = read.value.value
-            for ch in self.my_channels:
-                if ch in reading_by_ch:
-                    self.latest_telemetry_value[ch.Name] = reading_by_ch[ch]
-            if read.value.warnings:
-                self._report_problems(
-                    Problems(warnings=read.value.warnings), "read warnings"
+        if not read.is_ok():
+            raise Exception("read_telemetry_value is not supposed to return an exception!")
+        outcome = read.value
+        read_by_ch_name = outcome.value
+        for ch in self.my_channels:
+            if ch.Name in read_by_ch_name:
+                self.latest_telemetry_value[ch.Name] = read_by_ch_name[ch.Name]
+        if len(outcome.comments) > 0:
+            self.outcome = outcome
+            payload = Glitch(
+                    FromGNodeAlias=self._hardware_layout.scada_g_node_alias,
+                    Node=self.name,
+                    Type=outcome.get_highest_level(),
+                    Summary="TSnapReadIssue",
+                    Details=outcome.comments_to_details(),
                 )
-        else:
-            raise read.value
-    
+            message = Message(
+                header=Header(Src=self.name, MessageType=payload.TypeName),
+                Payload=payload
+            )
+             # TODO: add analog temp logging 
+            self._put_to_async_queue(message)
 
     def report_sampled_telemetry_values(
         self, channel_list: List[DataChannel]

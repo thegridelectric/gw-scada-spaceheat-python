@@ -272,6 +272,7 @@ class Relay(ScadaActor):
         zone_names = self.layout.zone_list
         stat_failsafe_names = []
         stat_ops_names = []
+        # TODO: move the below into House0 Hardware Layout validation
         for i in range(len(zone_names)):
             failsafe_idx = House0RelayIdx.base_stat + 2*i
             ops_idx = House0RelayIdx.base_stat + 2*i + 1
@@ -286,28 +287,6 @@ class Relay(ScadaActor):
             H0N.primary_pump_scada_ops,
         } | set(stat_ops_names):
         
-            self.transitions = [
-                {
-                    "trigger": ChangeRelayState.CloseRelay,
-                    "source": RelayClosedOrOpen.RelayOpen,
-                    "dest": RelayClosedOrOpen.RelayClosed,
-                },
-                {
-                    "trigger": ChangeRelayState.CloseRelay,
-                    "source": RelayClosedOrOpen.RelayClosed,
-                    "dest": RelayClosedOrOpen.RelayClosed,
-                },
-                {
-                    "trigger": ChangeRelayState.OpenRelay,
-                    "source": RelayClosedOrOpen.RelayClosed,
-                    "dest": RelayClosedOrOpen.RelayOpen,
-                },
-                {
-                    "trigger": ChangeRelayState.OpenRelay,
-                    "source": RelayClosedOrOpen.RelayOpen,
-                    "dest": RelayClosedOrOpen.RelayOpen,
-                },
-            ]
             if self.name in {
                 H0N.vdc_relay,
                 H0N.tstat_common_relay,
@@ -317,182 +296,79 @@ class Relay(ScadaActor):
                     raise Exception(
                         f"Expect CloseRelay as de-energizing event for {self.name}; got {self.de_energizing_event}"
                     )
-                self.de_energized_state = RelayClosedOrOpen.RelayClosed
-                self.energized_state = RelayClosedOrOpen.RelayOpen
             else:
                 if self.de_energizing_event != ChangeRelayState.OpenRelay:
                     raise Exception(
                         f"Expect OpenRelay as de-energizing event for {self.name}; got {self.de_energizing_event}"
                     )
-                self.de_energized_state = RelayClosedOrOpen.RelayOpen
-                self.energized_state = RelayClosedOrOpen.RelayClosed
 
         elif self.name == H0N.store_charge_discharge_relay:
             self.my_state_enum = StoreFlowRelay
             self.my_event_enum = ChangeStoreFlowRelay
-            self.transitions = [
-                {
-                    "trigger": ChangeStoreFlowRelay.ChargeStore,
-                    "source": StoreFlowRelay.DischargingStore,
-                    "dest": StoreFlowRelay.ChargingStore,
-                },
-                {
-                    "trigger": ChangeStoreFlowRelay.ChargeStore,
-                    "source": StoreFlowRelay.ChargingStore,
-                    "dest": StoreFlowRelay.ChargingStore,
-                },
-                {
-                    "trigger": ChangeStoreFlowRelay.DischargeStore,
-                    "source": StoreFlowRelay.ChargingStore,
-                    "dest": StoreFlowRelay.DischargingStore,
-                },
-                {
-                    "trigger": ChangeStoreFlowRelay.DischargeStore,
-                    "source": StoreFlowRelay.DischargingStore,
-                    "dest": StoreFlowRelay.DischargingStore,
-                },
-            ]
             if self.de_energizing_event != ChangeStoreFlowRelay.DischargeStore:
                 raise Exception(
                     f"Expect DischargeStore as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-            self.de_energized_state = StoreFlowRelay.DischargingStore
-            self.energized_state = StoreFlowRelay.ChargingStore
 
         elif self.name == H0N.hp_failsafe_relay:
             self.my_state_enum = HeatPumpControl
             self.my_event_enum = ChangeHeatPumpControl
-            self.transitions = [
-                {
-                    "trigger": ChangeHeatPumpControl.SwitchToScada,
-                    "source": HeatPumpControl.BufferTankAquastat,
-                    "dest": HeatPumpControl.Scada,
-                },
-                {
-                    "trigger": ChangeHeatPumpControl.SwitchToScada,
-                    "source": HeatPumpControl.Scada,
-                    "dest": HeatPumpControl.Scada,
-                },
-                {
-                    "trigger": ChangeHeatPumpControl.SwitchToTankAquastat,
-                    "source": HeatPumpControl.Scada,
-                    "dest": HeatPumpControl.BufferTankAquastat,
-                },
-                {
-                    "trigger": ChangeHeatPumpControl.SwitchToTankAquastat,
-                    "source": HeatPumpControl.BufferTankAquastat,
-                    "dest": HeatPumpControl.BufferTankAquastat,
-                },
-            ]
             if self.de_energizing_event != ChangeHeatPumpControl.SwitchToTankAquastat:
                 raise Exception(
                     f"Expect SwitchToTankAquastat as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-            self.de_energized_state = HeatPumpControl.BufferTankAquastat
-            self.energized_state = HeatPumpControl.Scada
-
         elif self.name == H0N.aquastat_ctrl_relay:
             self.my_state_enum = AquastatControl
             self.my_event_enum = ChangeAquastatControl
-            self.transitions = [
-                {
-                    "trigger": ChangeAquastatControl.SwitchToScada,
-                    "source": AquastatControl.Boiler,
-                    "dest": AquastatControl.Scada,
-                },
-                {
-                    "trigger": ChangeAquastatControl.SwitchToScada,
-                    "source": AquastatControl.Scada,
-                    "dest": AquastatControl.Scada,
-                },
-                {
-                    "trigger": ChangeAquastatControl.SwitchToBoiler,
-                    "source": AquastatControl.Scada,
-                    "dest": AquastatControl.Boiler,
-                },
-                {
-                    "trigger": ChangeAquastatControl.SwitchToBoiler,
-                    "source": AquastatControl.Boiler,
-                    "dest": AquastatControl.Boiler,
-                },
-            ]
             if self.de_energizing_event != ChangeAquastatControl.SwitchToBoiler:
                 raise Exception(
                     f"Expect SwitchToBoiler as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-            self.de_energized_state = AquastatControl.Boiler
-            self.energized_state = AquastatControl.Scada
 
         elif self.name == H0N.primary_pump_failsafe:
             self.my_state_enum = PrimaryPumpControl
             self.my_event_enum = ChangePrimaryPumpControl
-            self.transitions = [
-                {
-                    "trigger": ChangePrimaryPumpControl.SwitchToScada,
-                    "source": PrimaryPumpControl.HeatPump,
-                    "dest": PrimaryPumpControl.Scada,
-                },
-                {
-                    "trigger": ChangePrimaryPumpControl.SwitchToScada,
-                    "source": PrimaryPumpControl.Scada,
-                    "dest": PrimaryPumpControl.Scada,
-                },
-                {
-                    "trigger": ChangePrimaryPumpControl.SwitchToHeatPump,
-                    "source": PrimaryPumpControl.Scada,
-                    "dest": PrimaryPumpControl.HeatPump,
-                },
-                {
-                    "trigger": ChangePrimaryPumpControl.SwitchToHeatPump,
-                    "source": PrimaryPumpControl.HeatPump,
-                    "dest": PrimaryPumpControl.HeatPump,
-                },
-            ]
             if self.de_energizing_event != ChangePrimaryPumpControl.SwitchToHeatPump:
                 raise Exception(
                     f"Expect SwitchToHeatPump as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-            self.de_energized_state = PrimaryPumpControl.HeatPump
-            self.energized_state = PrimaryPumpControl.Scada
         elif self.name in stat_failsafe_names:
             self.my_state_enum = HeatcallSource
             self.my_event_enum = ChangeHeatcallSource
-            self.transitions = [
-                {
-                    "trigger": ChangeHeatcallSource.SwitchToScada,
-                    "source": HeatcallSource.Scada,
-                    "dest": HeatcallSource.Scada
-                },
-                {
-                    "trigger": ChangeHeatcallSource.SwitchToScada,
-                    "source": HeatcallSource.WallThermostat,
-                    "dest": HeatcallSource.Scada
-                },
-                {
-                    "trigger": ChangeHeatcallSource.SwitchToWallThermostat,
-                    "source": HeatcallSource.Scada,
-                    "dest": HeatcallSource.WallThermostat
-                },
-                {
-                    "trigger": ChangeHeatcallSource.SwitchToWallThermostat,
-                    "source": HeatcallSource.WallThermostat,
-                    "dest": HeatcallSource.WallThermostat
-                }     
-            ]
             if self.de_energizing_event != ChangeHeatcallSource.SwitchToWallThermostat:
                 raise Exception(
                     f"Expect SwitchToWallThermostat as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-            self.de_energized_state = HeatcallSource.WallThermostat
-            self.energized_state = HeatcallSource.Scada
-        else:
-            raise Exception(f"Unknown relay {self.name}!")
+
+        
+        self.transitions = [
+                {
+                    "trigger": self.relay_actor_config.DeEnergizingEvent,
+                    "source": self.relay_actor_config.EnergizedState,
+                    "dest": self.relay_actor_config.DeEnergizedState,
+                },
+                {
+                    "trigger": self.relay_actor_config.DeEnergizingEvent,
+                    "source": self.relay_actor_config.DeEnergizedState,
+                    "dest": self.relay_actor_config.DeEnergizedState,
+                },
+                {
+                    "trigger": self.relay_actor_config.EnergizingEvent,
+                    "source":self.relay_actor_config.DeEnergizedState,
+                    "dest": self.relay_actor_config.EnergizedState,
+                },
+                {
+                    "trigger": self.relay_actor_config.EnergizingEvent,
+                    "source": self.relay_actor_config.EnergizedState,
+                    "dest":  self.relay_actor_config.EnergizedState,
+                },
+            ]
         try:
             self.machine = Machine(
                 model=self,
                 states=self.my_state_enum.values(),
                 transitions=self.transitions,
-                initial=self.de_energized_state,
+                initial=self.relay_actor_config.DeEnergizedState,
                 send_event=True,
             )
 

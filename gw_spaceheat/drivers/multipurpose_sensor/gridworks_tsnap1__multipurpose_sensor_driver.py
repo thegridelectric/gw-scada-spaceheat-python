@@ -1,11 +1,10 @@
 import math
-import sys
+import time
 from typing import Dict, List
-from typing import Optional
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.data_channel import DataChannel
-from drivers.driver_result import DriverResult
+from drivers.driver_result import DriverOutcome
 
 from result import Err, Ok, Result
 
@@ -20,7 +19,6 @@ import busio
 
 # noinspection PyUnresolvedReferences
 from adafruit_ads1x15.analog_in import AnalogIn
-from drivers.exceptions import DriverWarning
 from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
     MultipurposeSensorDriver,
 )
@@ -28,143 +26,13 @@ from gwproto.enums import MakeModel, TelemetryName
 from gwproto.data_classes.components.ads111x_based_component import (
     Ads111xBasedComponent
 )
-from gwproto.named_types import AdsChannelConfig
-DEFAULT_BAD_VALUE = -5
+from enums import LogLevel
 
-
-class SetCompareWarning(DriverWarning):
-    expected: set
-    got: set
-
-    def __init__(
-        self,
-        expected: set | list,
-        got: set | list,
-        msg: str = "",
-    ):
-        super().__init__(msg)
-        self.expected = set(expected)
-        self.got = set(got)
-
-    def __str__(self):
-        s = self.__class__.__name__
-        super_str = super().__str__()
-        if super_str:
-            s += f" <{super_str}>"
-        s += f"\n\texp: {sorted(self.expected)}" f"\n\tgot: {sorted(self.got)}"
-        return s
-
-
-class TSnap1WrongTelemetryList(SetCompareWarning):
-    ...
-
-
-class TSnap1BadChannelList(SetCompareWarning):
-    ...
-
-
-class TSnap1NoI2cBus(DriverWarning):
-    SCL: str
-    SDA: str
-
-    def __init__(
-        self,
-        scl: str,
-        sda: str,
-        msg: str = "",
-    ):
-        super().__init__(msg)
-        self.scl = scl
-        self.sda = sda
-
-    def __str__(self):
-        s = self.__class__.__name__
-        super_str = super().__str__()
-        if super_str:
-            s += f" <{super_str}>"
-        s += f"   SCL:{self.scl}  SDA:{self.sda}"
-        return s
-
-
-class TSnapI2cAddressMissing(DriverWarning):
-    address: int
-
-    def __init__(
-        self,
-        address: int,
-        msg: str = "",
-    ):
-        super().__init__(msg)
-        self.address = address
-
-    def __str__(self):
-        s = self.__class__.__name__
-        super_str = super().__str__()
-        if super_str:
-            s += f" <{super_str}>"
-        s += f"   address:0x{self.address:02X}"
-        return s
-
-
-class TSnapI2cReadWarning(DriverWarning):
-    idx: int
-    address: int
-    pin: int
-
-    def __init__(
-        self,
-        idx: int,
-        address: int,
-        pin: int,
-        msg: str = "",
-    ):
-        super().__init__(msg)
-        self.idx = idx
-        self.address = address
-        self.pin = pin
-
-    def __str__(self):
-        s = self.__class__.__name__
-        super_str = super().__str__()
-        if super_str:
-            s += f" <{super_str}>"
-        s += f"   idx:{self.idx}  address:0x{self.address:02X}  pin:{self.pin}"
-        return s
-
-
-class TSnap1ComponentMisconfigured(DriverWarning):
-    ...
-
-class TSnap1ConversionWarning(DriverWarning):
-    voltage: float
-    rt: Optional[float]
-    rt_exception: Optional[Exception]
-    c_exception: Optional[Exception]
-
-    def __init__(
-        self,
-        voltage: float,
-        rt: Optional[float] = None,
-        rt_exception: Optional[Exception] = None,
-        c_exception: Optional[Exception] = None,
-        msg: str = "",
-    ):
-        super().__init__(msg)
-        self.voltage = voltage
-        self.rt = rt
-        self.rt_exception = rt_exception
-        self.c_exception = c_exception
-
-    def __str__(self):
-        s = self.__class__.__name__
-        super_str = super().__str__()
-        if super_str:
-            s += f" <{super_str}>"
-        s += f"   voltage: {self.voltage}  rt: {self.rt}  exception from rt calcuation: {self.rt_exception}  exception from celcius calculation: {self.c_exception}"
-        return s
-
+# TODO: sense this and update it in synth channels
 PI_VOLTAGE = 4.85
-# 298 Kelvin is 25 Celcius
+
+# Anything below about -30 C will read incorrectly
+OPEN_VOLTAGE = PI_VOLTAGE - 0.15
 THERMISTOR_T0_DEGREES_KELVIN = 298
 # NTC THermistors are 10 kOhms at 25 deg C
 THERMISTOR_R0_OHMS = 10000
@@ -176,6 +44,8 @@ VOLTAGE_DIVIDER_R_OHMS = 10000
 
 class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
     # gives a range up to +/- 6.144V
+    MAX_BACKOFF_SECONDS: float = 60
+    ERROR_BACKOFF_SECONDS: float = 5
     ADS_GAIN = 0.6666666666666666
     SUPPORTED_TELEMETRIES = {
         TelemetryName.WaterTempCTimes1000,
@@ -184,7 +54,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
 
     ads: dict[int, ADS]
     i2c: busio.I2C
-
+    initialization_failed: Dict[int,bool]
 
     def __init__(self, component: Ads111xBasedComponent, settings: ScadaSettings):
         """
@@ -227,132 +97,209 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
 
         self.ads_address = {i: address for i, address in enumerate(component.cac.AdsI2cAddressList)}
         self.ads = {}
+        self.initialization_failed = {}
+        self._curr_connect_delay = 0
+        # Track last warning time per channel 
+        self._last_warning_time: Dict[str, float] = {} # data channel name as key
+        self._warning_delays: Dict[str, float] = {} # data channel name as key
 
-    def start(self) -> Result[DriverResult[bool], Exception]:
-        if set(self.telemetry_name_list) != self.SUPPORTED_TELEMETRIES:
-            return Err(
-                TSnap1WrongTelemetryList(
-                    self.SUPPORTED_TELEMETRIES, self.telemetry_name_list
-                )
-            )
 
-        # Channel List needs to be a subset of [1, .., 12]
-        # This is now validated in hardware layout.
-        # See https://github.com/thegridelectric/gridworks-protocol/commit/a22e8c90d7fb6dd26cd11e81bfb939c3d6558118
-        # readable_channel_list = list(filter(lambda x: 1 <= x <= 12, self.terminal_block_idx_list))
-        # if not set(self.terminal_block_idx_list) == set(readable_channel_list):
-        #     return Err(TSnap1BadChannelList(readable_channel_list, self.terminal_block_idx_list))
-        
+    def start(self) -> Result[DriverOutcome[bool], Exception]:
+        driver_init_outcome = DriverOutcome(True)
+
         try:
             self.i2c = busio.I2C(board.SCL, board.SDA)
         except BaseException as e:
-            return Err(
-                TSnap1NoI2cBus(
-                    str(board.SCL), str(board.SDA), msg=str(e)
-                ).with_traceback(sys.exc_info()[2])
+            for idx in self.ads_address:
+                self.initialization_failed[idx] = True
+            driver_init_outcome.value = False
+            driver_init_outcome.add_comment(
+                level=LogLevel.Critical,
+                msg=str(e)
             )
+            return Ok(driver_init_outcome)
 
-        driver_result = DriverResult(True)
         for idx, addr in self.ads_address.items():
+            self.initialization_failed[idx] = False
             try:
                 ads1115 = ADS.ADS1115(address=addr, i2c=self.i2c)
                 ads1115.gain = self.ADS_GAIN
             except BaseException as e:
-                driver_result.warnings.append(
-                    TSnapI2cAddressMissing(addr, msg=str(e)).with_traceback(
-                        sys.exc_info()[2]
-                    )
+                driver_init_outcome.add_comment(
+                    level=LogLevel.Critical,
+                    msg=f"TSnap Address {addr} (chip {idx}) is missing: {e}"
                 )
-                continue
+                driver_init_outcome.value = False
+                self.initialization_failed[idx] = True
+                continue # skip to next iteration
             self.ads[idx] = ads1115
-        return Ok(driver_result)
+        
+        return Ok(driver_init_outcome)
 
-    def read_voltage(
-        self, ch: DataChannel
-    ) -> Result[DriverResult[float | None], Exception]:
+    def _should_skip_for_backoff(self, channel_name: str, now: float) -> bool:
+        """
+        Check if we should skip reading this channel due to being in a backoff period.
+        Also initializes warning tracking for new channels.
+        """
+        # Initialize warning tracking for this channel if needed
+        if channel_name not in self._last_warning_time:
+            self._last_warning_time[channel_name] = 0
+            self._warning_delays[channel_name] = 0
+            return False
+        
+        # Only skip if we've had recent warnings and are within backoff period
+        if self._warning_delays[channel_name] > 0:  # Has had warnings
+            return (now - self._last_warning_time[channel_name]) <= self._warning_delays[channel_name]
+        
+        return False
+    
+    def read_voltage(self, ch: DataChannel) -> Result[DriverOutcome[float], Exception]:
+        """Read voltage from the specified channel.
+        
+        A None value with no comments indicates reading was skipped (e.g. during backoff).
+        A None value with comments indicates reading was attempted but failed.
+        A float value indicates successful reading, though there may still be comments.
+        """
+        output = DriverOutcome[float](None)
+        now = time.time()
+
+        if self._should_skip_for_backoff(ch.Name, now):
+            return Ok(output)
+                
         cfg = next((cfg for cfg in self.component.gt.ConfigList if cfg.ChannelName == ch.Name), None)
-        driver_result = DriverResult[float | None](None)
         i = int((cfg.TerminalBlockIdx - 1) / 4)
-        if i in self.ads:
-            pin = [ADS.P0, ADS.P1, ADS.P2, ADS.P3][(cfg.TerminalBlockIdx - 1) % 4]
-            try:
-                channel = AnalogIn(self.ads[i], pin)
-                voltage = channel.voltage
-            except OSError as e:
-                driver_result.warnings.append(e)
-                driver_result.warnings.append(
-                    TSnapI2cReadWarning(
-                        idx=i, address=self.ads[i].i2c_device.device_address, pin=pin
-                    )
-                )
-            else:
-                if voltage >= PI_VOLTAGE:
-                    driver_result.warnings.append(
-                        TSnapI2cReadWarning(
-                            idx=i,
-                            address=self.ads[i].i2c_device.device_address,
-                            pin=pin,
-                            msg=(
-                                f"Invalid voltage:{voltage:.2f};  must be less than: {PI_VOLTAGE}"
-                            ),
-                        )
-                    )
-                elif voltage == 0:
-                    driver_result.warnings.append(
-                        TSnapI2cReadWarning(
-                            idx=i,
-                            address=self.ads[i].i2c_device.device_address,
-                            pin=pin,
-                            msg=(
-                                f"Invalid voltage:{voltage:.2f}; must be greater than 0"
-                            ),
-                        )
-                    )
-                else:
-                    driver_result.value = voltage
-        return Ok(driver_result)
+
+        if self.initialization_failed[i]:
+            self._warning_delays[ch.Name] = self.ERROR_BACKOFF_SECONDS
+            output.add_comment(
+                level=LogLevel.Warning,
+                msg=f"Missing i2c addr {self.ads_address[i]} | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx}"
+            )
+            return Ok(output)
+
+        pin = [ADS.P0, ADS.P1, ADS.P2, ADS.P3][(cfg.TerminalBlockIdx - 1) % 4]
+        try:
+            channel = AnalogIn(self.ads[i], pin)
+            voltage = channel.voltage
+        except OSError as e:
+            output.add_comment(
+                level=LogLevel.Warning,
+                msg=f"I2C read failed | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx} | Error: {str(e)}"
+            )
+            self._handle_read_failure(ch.Name, now)
+            return Ok(output)
+        
+        if voltage >= PI_VOLTAGE:
+            output.add_comment(
+                level=LogLevel.Warning,
+                msg=f"Open Thermistor reading AND bad max voltage! | {ch.Name} (term {cfg.TerminalBlockIdx}) read {voltage:.3f}V | CODE PI MAX {PI_VOLTAGE}V"
+            )
+            self._handle_read_failure(ch.Name, now)
+        elif voltage >= OPEN_VOLTAGE:
+            output.add_comment(
+                level=LogLevel.Info,
+                msg=f"Open Thermistor reading! | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx} | "
+            )
+            self._handle_read_failure(ch.Name, now)
+        elif voltage == 0:
+            output.add_comment(
+                level=LogLevel.Warning,
+                msg=f"Thermistor short!| Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx}"
+            )
+            self._handle_read_failure(ch.Name, now)
+        else:
+            output.value = voltage
+            self._warning_delays[ch.Name] = 0
+
+        return Ok(output)
+
+    def _handle_read_failure(self, channel_name: str, now: float) -> None:
+        """Update warning tracking when a read fails"""
+        self._last_warning_time[channel_name] = now
+        if self._warning_delays[channel_name] == 0:
+            self._warning_delays[channel_name] = 1
+        else:
+            self._warning_delays[channel_name] = min(
+                self._warning_delays[channel_name] * 2,
+                self.MAX_BACKOFF_SECONDS
+            )
 
     def read_telemetry_values(
         self, data_channels: List[DataChannel]
-    ) -> Result[DriverResult[Dict[DataChannel, int]], Exception]:
-        for ch in data_channels:
-            if ch.TelemetryName not in self.my_telemetry_names:
-                return Err(TSnap1ComponentMisconfigured(str(ch)))
-        driver_result = DriverResult[Dict[DataChannel, int]]({})
-        for ch in data_channels:
-            read_voltage_result = self.read_voltage(ch)
-            if read_voltage_result.is_ok():
-                if read_voltage_result.value.warnings:
-                    driver_result.warnings.extend(read_voltage_result.value.warnings)
-                if read_voltage_result.value.value is not None:
-                    convert_voltage_result = self.voltage_to_c(read_voltage_result.value.value)
-                    if convert_voltage_result.is_ok():
-                        driver_result.value[ch] = int(convert_voltage_result.value * 1000)
-                    else:
-                        driver_result.warnings.append(convert_voltage_result.err())
-        return Ok(driver_result)
+    ) -> Result[DriverOutcome[Dict[str, int]], Exception]:  # DataChannel name
+        """Reads temperature values for specified channels.
+        If a data channel is in backoff, channel not included in the dict
+        
+        Returns DriverOutcome with:
+        - value as dict mapping channel names to their temperature readings in appropriate units
+        - comments for any issues encountered during reading
+        """
 
+        outcome = DriverOutcome[Dict[str, int]]({})
+
+        for ch in data_channels:
+            read_result = self.read_voltage(ch)
+            if read_result.is_ok():
+                read_outcome = read_result.value
+                # Pass through any comments from voltage reading
+                outcome.comments.extend(read_outcome.comments)
+                
+                if read_outcome.value is not None:
+                    if ch.TelemetryName not in {TelemetryName.AirTempCTimes1000, TelemetryName.AirTempFTimes1000,
+                                                TelemetryName.WaterTempCTimes1000, TelemetryName.WaterTempFTimes1000}:
+                        outcome.add_comment(
+                            level=LogLevel.Warning,
+                            msg=f"Unrecognized TelemetryName {ch.TelemetryName} for {ch.Name}!"
+                        )
+                        continue # go onto the next channel
+                    if ch.TelemetryName in {TelemetryName.AirTempCTimes1000, TelemetryName.WaterTempCTimes1000}:
+                        convert_voltage_result = self.voltage_to_c(read_outcome.value)
+                    elif ch.TelemetryName in {TelemetryName.AirTempFTimes1000, TelemetryName.WaterTempFTimes1000}:
+                        convert_voltage_result = self.voltage_to_f(read_outcome.value)
+                    if convert_voltage_result.is_ok():
+                        outcome.value[ch.Name] = int(convert_voltage_result.value * 1000)
+                    else:
+                        outcome.add_comment(
+                            level=LogLevel.Warning,
+                            msg=f"Temperature conversion failed | Channel {ch.Name} | Voltage {read_outcome.value:.3f}V | Error: {convert_voltage_result.err()}"
+                        )
+
+        return Ok(outcome)
+
+    @classmethod
+    def voltage_to_f(
+        cls,
+        voltage: float
+    ) -> Result[float, Exception]:
+        """Calculate resistance from Beta function
+
+        Thermistor data sheets typically provide the three parameters needed
+        for the beta formula (R0, beta, and T0) 
+        "Under the best conditions, the beta formula is accurate to approximately
+        +/- 1 C over the temperature range of 0 to 100C
+        """
+        temp_c = cls.voltage_to_c(voltage)
+        if temp_c.is_ok():
+            temp_f = 32 + 8*temp_c/5
+            return Ok(temp_f)
+        else:
+            return temp_c
+    
     @classmethod
     def voltage_to_c(
         cls,
         voltage: float
     ) -> Result[float, Exception]:
-        """We are using the beta formula instead of the Steinhart-Hart equation.
+        """Calculate resistance from Beta function
+
         Thermistor data sheets typically provide the three parameters needed
-        for the beta formula (R0, beta, and T0) and do not provide the
-        three parameters needed for the better beta function.
+        for the beta formula (R0, beta, and T0) 
         "Under the best conditions, the beta formula is accurate to approximately
         +/- 1 C over the temperature range of 0 to 100C
 
-        For more information go here:
+        Could consider upgrading to Steinhart-Hart:
         https://www.newport.com/medias/sys_master/images/images/hdb/hac/8797291479070/TN-STEIN-1-Thermistor-Constant-Conversions-Beta-to-Steinhart-Hart.pdf
 
-        Args:
-            voltage (float): The voltage measured between the thermistor and the
-            voltage divider resistor
-
-        Returns:
-            float: The temperature getting measured by the thermistor in degrees Celcius
         """
         rd: int = int(VOLTAGE_DIVIDER_R_OHMS)
         r0: int = int(THERMISTOR_R0_OHMS)
@@ -361,19 +308,15 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         # Calculate the resistance of the thermistor
         try:
             rt = rd * voltage / (PI_VOLTAGE - voltage)
-        except Exception as e_rt:
-            return Err(TSnap1ConversionWarning(voltage, rt_exception=e_rt))
+        except Exception as e:
+            return Err(Exception(f"Didn't get to therm resistance! {str(e)}"))
 
         # Calculate the temperature in degrees Celsius. Note that 273 is
         # 0 degrees Celcius as measured in Kelvin.
 
         try:
             temp_c = 1 / ((1 / t0) + (math.log(rt / r0) / beta)) - 273
-        except Exception as e_c:
-            return Err(
-                TSnap1ConversionWarning(
-                    voltage,
-                    rt=rt,
-                    c_exception=e_c
-                ))
-        return Ok(temp_c)
+            return Ok(temp_c)
+        except Exception as e:
+            return Err(Exception(f"Got to therm resistance={rt}: {str(e)}"))
+        

@@ -6,7 +6,7 @@ from actors.config import ScadaSettings
 from gwproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
 from gwproto.data_classes.data_channel import DataChannel
-from drivers.driver_result import DriverResult
+from drivers.driver_result import DriverOutcome
 from result import Ok, Result
 
 
@@ -22,11 +22,11 @@ class MultipurposeSensorDriver(ABC):
         self.settings: ScadaSettings = settings
         self.logger = logging.getLogger(settings.logging.base_log_name)
 
-    def start(self) -> Result[DriverResult, Exception]:
-        return Ok(DriverResult(True))
+    def start(self) -> Result[DriverOutcome[bool], Exception]:
+        return Ok(DriverOutcome(True))
 
     @abstractmethod
     def read_telemetry_values(
         self, data_channels: List[DataChannel]
-    ) -> Result[DriverResult[Dict[DataChannel, int]], Exception]:
+    ) -> Result[DriverOutcome[Dict[str, int]], Exception]: # names of DataChannels
         raise NotImplementedError
