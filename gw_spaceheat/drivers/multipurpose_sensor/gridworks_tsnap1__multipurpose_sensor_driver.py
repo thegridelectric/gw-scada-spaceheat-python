@@ -2,31 +2,24 @@ import math
 import time
 from typing import Dict, List
 
-from actors.config import ScadaSettings
-from gwproto.data_classes.data_channel import DataChannel
-from drivers.driver_result import DriverOutcome
-
-from result import Err, Ok, Result
-
 # noinspection PyUnresolvedReferences
 import adafruit_ads1x15.ads1115 as ADS
-
 # noinspection PyUnresolvedReferences
 import board
-
 # noinspection PyUnresolvedReferences
 import busio
-
+from actors.config import ScadaSettings
 # noinspection PyUnresolvedReferences
 from adafruit_ads1x15.analog_in import AnalogIn
-from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
-    MultipurposeSensorDriver,
-)
-from gwproto.enums import MakeModel, TelemetryName
-from gwproto.data_classes.components.ads111x_based_component import (
-    Ads111xBasedComponent
-)
+from drivers.driver_result import DriverOutcome
+from drivers.multipurpose_sensor.multipurpose_sensor_driver import \
+    MultipurposeSensorDriver
 from enums import LogLevel
+from gwproto.data_classes.components.ads111x_based_component import \
+    Ads111xBasedComponent
+from gwproto.data_classes.data_channel import DataChannel
+from gwproto.enums import MakeModel, TelemetryName
+from result import Err, Ok, Result
 
 # TODO: sense this and update it in synth channels
 PI_VOLTAGE = 4.85
@@ -49,17 +42,17 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
     ADS_GAIN = 0.6666666666666666
     SUPPORTED_TELEMETRIES = {
         TelemetryName.WaterTempCTimes1000,
-        TelemetryName.AirTempCTimes1000
+        TelemetryName.AirTempCTimes1000,
     }
 
     ads: dict[int, ADS]
     i2c: busio.I2C
-    initialization_failed: Dict[int,bool]
+    initialization_failed: Dict[int, bool]
 
     def __init__(self, component: Ads111xBasedComponent, settings: ScadaSettings):
         """
         Each Ads111xBasedCac is comprised of 1-4 4-channel Ads 1115 i2c devices, each
-        of which has a hex address 
+        of which has a hex address
         GridWorks TSnap1 has 12 terminal screwblocks, channels 1-12, that expect analog NTC
         Thermistors with R0= 10 kOhhms. These go to 3 4-channel Ads 1115 i2c devices:
         Ads1: channels 1-4
@@ -85,8 +78,8 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self.my_telemetry_names = component.cac.TelemetryNameList
         if set(self.my_telemetry_names) != {
             TelemetryName.WaterTempCTimes1000,
-            TelemetryName.AirTempCTimes1000
-            }:
+            TelemetryName.AirTempCTimes1000,
+        }:
             raise Exception(
                 "Expect AirTempCTimes1000 and AirTempFTimes1000 for AdsCac "
                 "TelemetryNameList!"
@@ -95,14 +88,15 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self.terminal_block_idx_list = [tc.TerminalBlockIdx for tc in c.ConfigList]
         self.telemetry_name_list = component.cac.TelemetryNameList
 
-        self.ads_address = {i: address for i, address in enumerate(component.cac.AdsI2cAddressList)}
+        self.ads_address = {
+            i: address for i, address in enumerate(component.cac.AdsI2cAddressList)
+        }
         self.ads = {}
         self.initialization_failed = {}
         self._curr_connect_delay = 0
-        # Track last warning time per channel 
-        self._last_warning_time: Dict[str, float] = {} # data channel name as key
-        self._warning_delays: Dict[str, float] = {} # data channel name as key
-
+        # Track last warning time per channel
+        self._last_warning_time: Dict[str, float] = {}  # data channel name as key
+        self._warning_delays: Dict[str, float] = {}  # data channel name as key
 
     def start(self) -> Result[DriverOutcome[bool], Exception]:
         driver_init_outcome = DriverOutcome(True)
@@ -113,10 +107,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             for idx in self.ads_address:
                 self.initialization_failed[idx] = True
             driver_init_outcome.value = False
-            driver_init_outcome.add_comment(
-                level=LogLevel.Critical,
-                msg=str(e)
-            )
+            driver_init_outcome.add_comment(level=LogLevel.Critical, msg=str(e))
             return Ok(driver_init_outcome)
 
         for idx, addr in self.ads_address.items():
@@ -127,13 +118,13 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             except BaseException as e:
                 driver_init_outcome.add_comment(
                     level=LogLevel.Critical,
-                    msg=f"TSnap Address {addr} (chip {idx}) is missing: {e}"
+                    msg=f"TSnap Address {addr} (chip {idx}) is missing: {e}",
                 )
                 driver_init_outcome.value = False
                 self.initialization_failed[idx] = True
-                continue # skip to next iteration
+                continue  # skip to next iteration
             self.ads[idx] = ads1115
-        
+
         return Ok(driver_init_outcome)
 
     def _should_skip_for_backoff(self, channel_name: str, now: float) -> bool:
@@ -146,16 +137,18 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             self._last_warning_time[channel_name] = 0
             self._warning_delays[channel_name] = 0
             return False
-        
+
         # Only skip if we've had recent warnings and are within backoff period
         if self._warning_delays[channel_name] > 0:  # Has had warnings
-            return (now - self._last_warning_time[channel_name]) <= self._warning_delays[channel_name]
-        
+            return (
+                now - self._last_warning_time[channel_name]
+            ) <= self._warning_delays[channel_name]
+
         return False
-    
+
     def read_voltage(self, ch: DataChannel) -> Result[DriverOutcome[float], Exception]:
         """Read voltage from the specified channel.
-        
+
         A None value with no comments indicates reading was skipped (e.g. during backoff).
         A None value with comments indicates reading was attempted but failed.
         A float value indicates successful reading, though there may still be comments.
@@ -165,15 +158,18 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
 
         if self._should_skip_for_backoff(ch.Name, now):
             return Ok(output)
-                
-        cfg = next((cfg for cfg in self.component.gt.ConfigList if cfg.ChannelName == ch.Name), None)
+
+        cfg = next(
+            (cfg for cfg in self.component.gt.ConfigList if cfg.ChannelName == ch.Name),
+            None,
+        )
         i = int((cfg.TerminalBlockIdx - 1) / 4)
 
         if self.initialization_failed[i]:
             self._warning_delays[ch.Name] = self.ERROR_BACKOFF_SECONDS
             output.add_comment(
                 level=LogLevel.Warning,
-                msg=f"Missing i2c addr {self.ads_address[i]} | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx}"
+                msg=f"Missing i2c addr {self.ads_address[i]} | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx}",
             )
             return Ok(output)
 
@@ -184,27 +180,27 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         except OSError as e:
             output.add_comment(
                 level=LogLevel.Warning,
-                msg=f"I2C read failed | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx} | Error: {str(e)}"
+                msg=f"I2C read failed | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx} | Error: {str(e)}",
             )
             self._handle_read_failure(ch.Name, now)
             return Ok(output)
-        
+
         if voltage >= PI_VOLTAGE:
             output.add_comment(
                 level=LogLevel.Warning,
-                msg=f"Open Thermistor reading AND bad max voltage! | {ch.Name} (term {cfg.TerminalBlockIdx}) read {voltage:.3f}V | CODE PI MAX {PI_VOLTAGE}V"
+                msg=f"Open Thermistor reading AND bad max voltage! | {ch.Name} (term {cfg.TerminalBlockIdx}) read {voltage:.3f}V | CODE PI MAX {PI_VOLTAGE}V",
             )
             self._handle_read_failure(ch.Name, now)
         elif voltage >= OPEN_VOLTAGE:
             output.add_comment(
                 level=LogLevel.Info,
-                msg=f"Open Thermistor reading! | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx} | "
+                msg=f"Open Thermistor reading! | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx} | ",
             )
             self._handle_read_failure(ch.Name, now)
         elif voltage == 0:
             output.add_comment(
                 level=LogLevel.Warning,
-                msg=f"Thermistor short!| Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx}"
+                msg=f"Thermistor short!| Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx}",
             )
             self._handle_read_failure(ch.Name, now)
         else:
@@ -220,8 +216,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             self._warning_delays[channel_name] = 1
         else:
             self._warning_delays[channel_name] = min(
-                self._warning_delays[channel_name] * 2,
-                self.MAX_BACKOFF_SECONDS
+                self._warning_delays[channel_name] * 2, self.MAX_BACKOFF_SECONDS
             )
 
     def read_telemetry_values(
@@ -229,7 +224,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
     ) -> Result[DriverOutcome[Dict[str, int]], Exception]:  # DataChannel name
         """Reads temperature values for specified channels.
         If a data channel is in backoff, channel not included in the dict
-        
+
         Returns DriverOutcome with:
         - value as dict mapping channel names to their temperature readings in appropriate units
         - comments for any issues encountered during reading
@@ -243,57 +238,63 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                 read_outcome = read_result.value
                 # Pass through any comments from voltage reading
                 outcome.comments.extend(read_outcome.comments)
-                
+
                 if read_outcome.value is not None:
-                    if ch.TelemetryName not in {TelemetryName.AirTempCTimes1000, TelemetryName.AirTempFTimes1000,
-                                                TelemetryName.WaterTempCTimes1000, TelemetryName.WaterTempFTimes1000}:
+                    if ch.TelemetryName not in {
+                        TelemetryName.AirTempCTimes1000,
+                        TelemetryName.AirTempFTimes1000,
+                        TelemetryName.WaterTempCTimes1000,
+                        TelemetryName.WaterTempFTimes1000,
+                    }:
                         outcome.add_comment(
                             level=LogLevel.Warning,
-                            msg=f"Unrecognized TelemetryName {ch.TelemetryName} for {ch.Name}!"
+                            msg=f"Unrecognized TelemetryName {ch.TelemetryName} for {ch.Name}!",
                         )
-                        continue # go onto the next channel
-                    if ch.TelemetryName in {TelemetryName.AirTempCTimes1000, TelemetryName.WaterTempCTimes1000}:
+                        continue  # go onto the next channel
+                    if ch.TelemetryName in {
+                        TelemetryName.AirTempCTimes1000,
+                        TelemetryName.WaterTempCTimes1000,
+                    }:
                         convert_voltage_result = self.voltage_to_c(read_outcome.value)
-                    elif ch.TelemetryName in {TelemetryName.AirTempFTimes1000, TelemetryName.WaterTempFTimes1000}:
+                    elif ch.TelemetryName in {
+                        TelemetryName.AirTempFTimes1000,
+                        TelemetryName.WaterTempFTimes1000,
+                    }:
                         convert_voltage_result = self.voltage_to_f(read_outcome.value)
                     if convert_voltage_result.is_ok():
-                        outcome.value[ch.Name] = int(convert_voltage_result.value * 1000)
+                        outcome.value[ch.Name] = int(
+                            convert_voltage_result.value * 1000
+                        )
                     else:
                         outcome.add_comment(
                             level=LogLevel.Warning,
-                            msg=f"Temperature conversion failed | Channel {ch.Name} | Voltage {read_outcome.value:.3f}V | Error: {convert_voltage_result.err()}"
+                            msg=f"Temperature conversion failed | Channel {ch.Name} | Voltage {read_outcome.value:.3f}V | Error: {convert_voltage_result.err()}",
                         )
 
         return Ok(outcome)
 
     @classmethod
-    def voltage_to_f(
-        cls,
-        voltage: float
-    ) -> Result[float, Exception]:
+    def voltage_to_f(cls, voltage: float) -> Result[float, Exception]:
         """Calculate resistance from Beta function
 
         Thermistor data sheets typically provide the three parameters needed
-        for the beta formula (R0, beta, and T0) 
+        for the beta formula (R0, beta, and T0)
         "Under the best conditions, the beta formula is accurate to approximately
         +/- 1 C over the temperature range of 0 to 100C
         """
         temp_c = cls.voltage_to_c(voltage)
         if temp_c.is_ok():
-            temp_f = 32 + 8*temp_c/5
+            temp_f = 32 + 8 * temp_c / 5
             return Ok(temp_f)
         else:
             return temp_c
-    
+
     @classmethod
-    def voltage_to_c(
-        cls,
-        voltage: float
-    ) -> Result[float, Exception]:
+    def voltage_to_c(cls, voltage: float) -> Result[float, Exception]:
         """Calculate resistance from Beta function
 
         Thermistor data sheets typically provide the three parameters needed
-        for the beta formula (R0, beta, and T0) 
+        for the beta formula (R0, beta, and T0)
         "Under the best conditions, the beta formula is accurate to approximately
         +/- 1 C over the temperature range of 0 to 100C
 
@@ -319,4 +320,3 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             return Ok(temp_c)
         except Exception as e:
             return Err(Exception(f"Got to therm resistance={rt}: {str(e)}"))
-        
