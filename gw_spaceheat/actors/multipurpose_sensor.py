@@ -185,7 +185,9 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         read_by_ch_name = outcome.value
         for ch in self.my_channels:
             if ch.Name in read_by_ch_name:
+                # Clears stale data when returns None
                 self.latest_telemetry_value[ch.Name] = read_by_ch_name[ch.Name]
+
         if len(outcome.comments) > 0:
             self.outcome = outcome
             payload = Glitch(
@@ -244,6 +246,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
 
     def should_report_telemetry_reading(self, ch: DataChannel) -> bool:
         if self.latest_telemetry_value[ch.Name] is None:
+            self.last_reported_telemetry_value[ch.Name] = None # so that when the driver reads again it reports
             return False
         if (
             self._last_sampled_s[ch.Name] is None

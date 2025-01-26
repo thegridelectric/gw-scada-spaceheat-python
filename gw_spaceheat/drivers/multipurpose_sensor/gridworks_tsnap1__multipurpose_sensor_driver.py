@@ -1,6 +1,6 @@
 import math
 import time
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # noinspection PyUnresolvedReferences
 import adafruit_ads1x15.ads1115 as ADS
@@ -44,6 +44,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         TelemetryName.WaterTempCTimes1000,
         TelemetryName.AirTempCTimes1000,
     }
+    MAX_READING_AGE_SEC = 30
 
     ads: dict[int, ADS]
     i2c: busio.I2C
@@ -97,6 +98,8 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         # Track last warning time per channel
         self._last_warning_time: Dict[str, float] = {}  # data channel name as key
         self._warning_delays: Dict[str, float] = {}  # data channel name as key
+        self._last_valid_reading_time: Dict[str, float] = {}  # channel name -> timestamp
+        self._last_valid_reading: Dict[str, float] = {}  # channel name -> reading
 
     def start(self) -> Result[DriverOutcome[bool], Exception]:
         driver_init_outcome = DriverOutcome(True)
@@ -174,6 +177,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             return Ok(output)
 
         pin = [ADS.P0, ADS.P1, ADS.P2, ADS.P3][(cfg.TerminalBlockIdx - 1) % 4]
+        use_stale = False
         try:
             channel = AnalogIn(self.ads[i], pin)
             voltage = channel.voltage
@@ -191,21 +195,38 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                 msg=f"Open Thermistor reading AND bad max voltage! | {ch.Name} (term {cfg.TerminalBlockIdx}) read {voltage:.3f}V | CODE PI MAX {PI_VOLTAGE}V",
             )
             self._handle_read_failure(ch.Name, now)
+            use_stale = True
         elif voltage >= OPEN_VOLTAGE:
             output.add_comment(
                 level=LogLevel.Info,
                 msg=f"Open Thermistor reading! | Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx} | ",
             )
             self._handle_read_failure(ch.Name, now)
+            use_stale = True
         elif voltage == 0:
             output.add_comment(
                 level=LogLevel.Warning,
                 msg=f"Thermistor short!| Channel {ch.Name} | Terminal {cfg.TerminalBlockIdx}",
             )
             self._handle_read_failure(ch.Name, now)
+            use_stale = True
         else:
             output.value = voltage
             self._warning_delays[ch.Name] = 0
+            self._last_valid_reading[ch.Name] = voltage  
+            self._last_valid_reading_time[ch.Name] = now 
+        
+        # if the ADS burped and we have a valid reading:
+        if use_stale and ch.Name in self._last_valid_reading:
+            # use it if it isn't too stale
+            if now - self._last_valid_reading_time[ch.Name] < self.MAX_READING_AGE_SEC:
+                    output.value = self._last_valid_reading[ch.Name]
+            # or add a warning that this channel has been out to lunch for a while
+            else:
+                output.add_comment(
+                    level=LogLevel.Warning,
+                    msg=f"Data too stale for {ch.Name} - last valid reading {(now - self._last_valid_reading_time[ch.Name])/60:.1f} minutes ago"
+                )
 
         return Ok(output)
 
@@ -221,7 +242,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
 
     def read_telemetry_values(
         self, data_channels: List[DataChannel]
-    ) -> Result[DriverOutcome[Dict[str, int]], Exception]:  # DataChannel name
+    ) -> Result[DriverOutcome[Dict[str, Optional[int]]], Exception]:  # DataChannel name
         """Reads temperature values for specified channels.
         If a data channel is in backoff, channel not included in the dict
 
@@ -230,7 +251,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         - comments for any issues encountered during reading
         """
 
-        outcome = DriverOutcome[Dict[str, int]]({})
+        outcome = DriverOutcome[Dict[str,Optional[int]]]({})
 
         for ch in data_channels:
             read_result = self.read_voltage(ch)
@@ -270,6 +291,8 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
                             level=LogLevel.Warning,
                             msg=f"Temperature conversion failed | Channel {ch.Name} | Voltage {read_outcome.value:.3f}V | Error: {convert_voltage_result.err()}",
                         )
+                else:
+                    outcome.value[ch.Name] = None
 
         return Ok(outcome)
 

@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from actors.config import ScadaSettings
 from gwproto.data_classes.components.ads111x_based_component import \
@@ -28,5 +28,5 @@ class MultipurposeSensorDriver(ABC):
     @abstractmethod
     def read_telemetry_values(
         self, data_channels: List[DataChannel]
-    ) -> Result[DriverOutcome[Dict[str, int]], Exception]: # names of DataChannels
+    ) -> Result[DriverOutcome[Dict[str, Optional[int]]], Exception]: # names of DataChannels
         raise NotImplementedError
