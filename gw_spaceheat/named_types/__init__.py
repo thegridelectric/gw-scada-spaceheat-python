@@ -27,6 +27,7 @@ from named_types.remaining_elec import RemainingElec
 from named_types.scada_params import ScadaParams
 from named_types.send_layout import SendLayout
 from named_types.single_machine_state import SingleMachineState
+from named_types.suit_up import SuitUp
 from named_types.wake_up import WakeUp
 from named_types.weather_forecast import WeatherForecast
 
@@ -58,6 +59,7 @@ __all__ = [
     "ScadaParams",
     "SendLayout",
     "SingleMachineState",
+    "SuitUp",
     "WakeUp",
     "WeatherForecast",
 ]

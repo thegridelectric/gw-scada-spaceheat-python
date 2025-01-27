@@ -508,7 +508,7 @@ class ApiFlowModule(ScadaActor):
         self.update_timestamps_for_reed(data)
         if self._component.gt.SendTickLists:
             self._send_to(
-                self.primary_scada,
+                self.atn,
                 TicklistReedReport(
                     TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                     ChannelName=self.name,
@@ -578,7 +578,7 @@ class ApiFlowModule(ScadaActor):
         else:
             if self._component.gt.SendTickLists:
                 self._send_to(
-                    self.primary_scada,
+                    self.atn,
                     TicklistHallReport(
                         TerminalAssetAlias=self.services.hardware_layout.terminal_asset_g_node_alias,
                         ChannelName=self._component.gt.FlowNodeName,
