@@ -32,7 +32,7 @@ else
     echo ".env file not found" >> $LOG_FILE
 fi
 
-
+# This doesn't work ... doesn't find files in the correct place
 # Start the Python process
 exec /home/pi/gw-scada-spaceheat-python/gw_spaceheat/venv/bin/python \
     /home/pi/gw-scada-spaceheat-python/gw_spaceheat/run_scada.py

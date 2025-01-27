@@ -7,7 +7,7 @@ sudo systemctl start sysstat
 # Install scada service
 $HOME/gw-scada-spaceheat-python/service/uninstall > /dev/null 2>&1
 sudo cp $HOME/gw-scada-spaceheat-python/service/wrapper.sh /usr/local/bin/gw-spaceheat-wrapper.sh
-sudo chmod +x usr/local/bin/gw-spaceheat-wrapper.sh
+sudo chmod +x /usr/local/bin/gw-spaceheat-wrapper.sh
 sudo ln -s $HOME/gw-scada-spaceheat-python/service/gwspaceheat.service /lib/systemd/system
 sudo ln -s $HOME/gw-scada-spaceheat-python/service/gwspaceheat-restart.service /lib/systemd/system
 sudo ln -s $HOME/gw-scada-spaceheat-python/service/gwspaceheat-restart.timer /lib/systemd/system
