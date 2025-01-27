@@ -657,10 +657,17 @@ class Scada(ScadaInterface, Proactor):
         self._logger.path("++_process_downstream_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         from_node = self._layout.node(decoded.Header.Src, None)
+        self.decoded = decoded
+        
         match decoded.Payload:
             case EventBase():
                 path_dbg |= 0x00000001
                 self.generate_event(decoded.Payload)
+            case Glitch():
+                try:
+                    self._links.publish_upstream(decoded.Payload, QOS.AtMostOnce)
+                except Exception as e:
+                    self.log(e)
             case PowerWatts():
                 if from_node is self._layout.power_meter_node:
                     path_dbg |= 0x00000002

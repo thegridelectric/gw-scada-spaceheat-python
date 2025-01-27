@@ -25,6 +25,7 @@ from gwproactor.proactor_implementation import Proactor
 from actors.scada import (
     LocalMQTTCodec,
 )
+from named_types import Glitch
 
 class Scada2Data:
     latest_snap: Optional[SnapshotSpaceheat]
@@ -152,6 +153,21 @@ class Parentless(ScadaInterface, Proactor):
         self._logger.path("++Parentless._derived_process_message %s/%s", message.Header.Src, message.Header.MessageType)
         path_dbg = 0
         match message.Payload:
+            case Glitch():
+                new_msg = Message(
+                    Header=Header(
+                        Src=message.Header.Src, 
+                        Dst=H0N.primary_scada,
+                        MessageType=message.Payload.TypeName,
+                        ),
+                    Payload=message.Payload
+                )
+                self._links.publish_message(
+                    Parentless.LOCAL_MQTT,
+                    new_msg,
+                    QOS.AtMostOnce,
+                    use_link_topic=True,
+                )
             case PowerWatts():
                 new_msg = Message(
                     Header=Header(

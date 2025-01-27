@@ -1,6 +1,5 @@
 from enum import auto
-from typing import List
-
+from typing import List, Optional
 from gw.enums import GwStrEnum
 
 
@@ -42,3 +41,13 @@ class LogLevel(GwStrEnum):
     @classmethod
     def enum_version(cls) -> str:
         return "000"
+
+    @classmethod
+    def highest_level(cls, levels: List["LogLevel"]) -> Optional["LogLevel"]:
+        """
+        Returns the highest level from a list of LogLevels.
+        If the list is empty, returns None.
+        """
+        if not levels:
+            return None
+        return min(levels, key=lambda level: list(cls).index(level))

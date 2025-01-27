@@ -8,28 +8,28 @@ import time
 import typing
 from typing import Dict, List, Optional
 
+from drivers.multipurpose_sensor.multipurpose_sensor_driver import \
+    MultipurposeSensorDriver
+from gwproactor import SyncThreadActor
+from gwproactor.sync_thread import SyncAsyncInteractionThread
+from gwproto import Message
+from gwproto.data_classes.components.ads111x_based_component import \
+    Ads111xBasedComponent
+from gwproto.data_classes.data_channel import DataChannel
+from gwproto.data_classes.hardware_layout import HardwareLayout
+from gwproto.data_classes.sh_node import ShNode
+from gwproto.enums import MakeModel
+from gwproto.message import Header
+from gwproto.named_types import AdsChannelConfig
+from named_types import Glitch
+
 from actors.config import ScadaSettings
 from actors.message import SyncedReadingsMessage
 from actors.scada_interface import ScadaInterface
-from gwproactor import SyncThreadActor
-from gwproto.data_classes.components.ads111x_based_component import (
-    Ads111xBasedComponent
-)
-from gwproto.data_classes.hardware_layout import HardwareLayout
-from gwproto.data_classes.sh_node import ShNode
-from drivers.multipurpose_sensor.multipurpose_sensor_driver import (
-    MultipurposeSensorDriver,
-)
-from gwproto import Message
 
-from gwproactor.message import InternalShutdownMessage
-from gwproactor.sync_thread import SyncAsyncInteractionThread
-from gwproactor import Problems
-from gwproto.enums import MakeModel
-from gwproto.data_classes.data_channel import DataChannel
-from gwproto.named_types import AdsChannelConfig
-
-UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
+UNKNOWNMAKE__UNKNOWNMODEL__MODULE_NAME = (
+    "drivers.multipurpose_sensor.unknown_multipurpose_sensor_driver"
+)
 UNKNOWNMAKE__UNKNOWNMODEL__CLASS_NAME = "UnknownMultipurposeSensorDriver"
 
 
@@ -56,7 +56,6 @@ class MpDriverThreadSetupHelper:
         self.settings = settings
         self.hardware_layout = hardware_layout
         self.component = typing.cast(Ads111xBasedComponent, node.component)
-
 
     def make_driver(self) -> MultipurposeSensorDriver:
         driver_module_name = ""
@@ -96,7 +95,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
     driver: MultipurposeSensorDriver
     cfg_by_ch: Dict[DataChannel, AdsChannelConfig]
     my_channels: List[DataChannel]
-    last_reported_telemetry_value: Dict[str, Optional[int]] # channel name to value
+    last_reported_telemetry_value: Dict[str, Optional[int]]  # channel name to value
     latest_telemetry_value: Dict[str, Optional[int]]
     _last_sampled_s: Dict[str, Optional[int]]
     _telemetry_destination: str
@@ -124,7 +123,11 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         )
         self._telemetry_destination = telemetry_destination
         my_channel_names = {x.ChannelName for x in self.component.gt.ConfigList}
-        self.my_channels = [ch for ch in self._hardware_layout.data_channels.values() if ch.AboutNodeName in my_channel_names]
+        self.my_channels = [
+            ch
+            for ch in self._hardware_layout.data_channels.values()
+            if ch.AboutNodeName in my_channel_names
+        ]
         setup_helper = MpDriverThreadSetupHelper(node, settings, hardware_layout)
         self.cfg_by_ch = {
             self._hardware_layout.data_channels[cfg.ChannelName]: cfg
@@ -134,38 +137,35 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         self.last_reported_telemetry_value = {ch.Name: None for ch in self.my_channels}
         self.latest_telemetry_value = {ch.Name: None for ch in self.my_channels}
         self._last_sampled_s = {ch.Name: None for ch in self.my_channels}
-    
-
-    def _report_problems(self, problems: Problems, tag: str):
-        self._put_to_async_queue(
-            Message(
-                Payload=problems.problem_event(
-                    summary=f"Driver problems: {tag} for {self.driver.component}",
-                )
-            )
-        )
 
     def _preiterate(self) -> None:
         result = self.driver.start()
-        if result.is_ok():
-            if result.value.warnings:
-                self._report_problems(
-                    Problems(warnings=result.value.warnings), "startup warning"
-                )
-        else:
-            self.running = False
-            self._report_problems(Problems(errors=[result.err()]), "startup error")
-            self._put_to_async_queue(
-                InternalShutdownMessage(Src=self.name, Reason=f"Driver start error for {self.name}")
+        if not result.is_ok():
+            raise Exception(
+                "Multipurpose sensor driver should not return error on init!"
             )
+        outcome = result.value
+        # There was a problem on initialization
+        if len(outcome.comments) > 0:
+            payload = Glitch(
+                FromGNodeAlias=self._hardware_layout.scada_g_node_alias,
+                Node=self.name,
+                Type=outcome.get_highest_level(),
+                Summary="TSnapStartupWarning",
+                Details=outcome.comments_to_details(),
+            )
+            message = Message(
+                header=Header(Src=self.name, MessageType=payload.TypeName),
+                Payload=payload,
+            )
+            # TODO: add analog temp logging
+            self._put_to_async_queue(message)
 
     def _iterate(self) -> None:
         start_s = time.time()
         self.poll_sensor()
         report_list = [
-            ch
-            for ch in self.my_channels
-            if self.should_report_telemetry_reading(ch)
+            ch for ch in self.my_channels if self.should_report_telemetry_reading(ch)
         ]
         if report_list:
             self.report_sampled_telemetry_values(report_list)
@@ -177,23 +177,35 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
 
     def poll_sensor(self):
         read = self.driver.read_telemetry_values(self.my_channels)
-        if read.is_ok():
-            reading_by_ch = read.value.value
-            for ch in self.my_channels:
-                if ch in reading_by_ch:
-                    self.latest_telemetry_value[ch.Name] = reading_by_ch[ch]
-            if read.value.warnings:
-                self._report_problems(
-                    Problems(warnings=read.value.warnings), "read warnings"
-                )
-        else:
-            raise read.value
-    
+        if not read.is_ok():
+            raise Exception(
+                "read_telemetry_value is not supposed to return an exception!"
+            )
+        outcome = read.value
+        read_by_ch_name = outcome.value
+        for ch in self.my_channels:
+            if ch.Name in read_by_ch_name:
+                # Clears stale data when returns None
+                self.latest_telemetry_value[ch.Name] = read_by_ch_name[ch.Name]
 
-    def report_sampled_telemetry_values(
-        self, channel_list: List[DataChannel]
-    ):
-        
+        if len(outcome.comments) > 0:
+            self.outcome = outcome
+            payload = Glitch(
+                FromGNodeAlias=self._hardware_layout.scada_g_node_alias,
+                Node=self.name,
+                Type=outcome.get_highest_level(),
+                Summary="TSnapReadIssue",
+                Details=outcome.comments_to_details(),
+            )
+            message = Message(
+                header=Header(Src=self.name, MessageType=payload.TypeName),
+                Payload=payload,
+            )
+            # TODO: add analog temp logging
+            self._put_to_async_queue(message)
+
+    def report_sampled_telemetry_values(self, channel_list: List[DataChannel]):
+
         self._put_to_async_queue(
             SyncedReadingsMessage(
                 src=self.name,
@@ -209,33 +221,39 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
         )
         for ch in channel_list:
             self._last_sampled_s[ch.Name] = int(time.time())
-            self.last_reported_telemetry_value[ch.Name] = self.latest_telemetry_value[ch.Name]
+            self.last_reported_telemetry_value[ch.Name] = self.latest_telemetry_value[
+                ch.Name
+            ]
 
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def value_exceeds_async_threshold(
-        self, ch: DataChannel
-    ) -> bool:
+    def value_exceeds_async_threshold(self, ch: DataChannel) -> bool:
         """This telemetry tuple is supposed to report asynchronously on change, with
         the amount of change required (as a function of the absolute max value) determined
         in the Config.
         """
         telemetry_config = self.cfg_by_ch[ch]
         if (
-                telemetry_config.AsyncCapture and
-                telemetry_config.AsyncCaptureDelta is not None
+            telemetry_config.AsyncCapture
+            and telemetry_config.AsyncCaptureDelta is not None
         ):
             abs_telemetry_delta = abs(
-                self.latest_telemetry_value[ch.Name] -
-                self.last_reported_telemetry_value[ch.Name]
+                self.latest_telemetry_value[ch.Name]
+                - self.last_reported_telemetry_value[ch.Name]
             )
+            #new = self.latest_telemetry_value[ch.Name]
+            # if ch.Name == 'dist-swt':   
+            #     print(f"dist-swt {round(new / 1000, 3)} C" )
             if abs_telemetry_delta > telemetry_config.AsyncCaptureDelta:
+                # if ch.Name == 'dist-swt':
+                #     print("#####################")
+                #     print("SENDING!")
+                #     print("#####################")
                 return True
         return False
 
-    def should_report_telemetry_reading(
-        self, ch: DataChannel
-    ) -> bool:
+    def should_report_telemetry_reading(self, ch: DataChannel) -> bool:
         if self.latest_telemetry_value[ch.Name] is None:
+            self.last_reported_telemetry_value[ch.Name] = None # so that when the driver reads again it reports
             return False
         if (
             self._last_sampled_s[ch.Name] is None

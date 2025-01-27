@@ -200,7 +200,7 @@ class EGuage4030_PowerMeterDriver(PowerMeterDriver):
             self._curr_connect_delay = 0.0
         result = Ok(
             TryConnectResult(
-                connected=self._modbus_client is not None and self._modbus_client.is_open,
+                connected=self.client_is_open(),
                 warnings=comm_warnings,
                 skipped_for_backoff=skip_for_backoff
             )
