@@ -19,6 +19,7 @@ from gwproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import MakeModel, TelemetryName
+from gwproto.enums import ThermistorDataMethod
 from result import Err, Ok, Result
 
 # TODO: sense this and update it in synth channels
@@ -34,7 +35,8 @@ THERMISTOR_BETA = 3977
 # Then, there is our pull-up resistor
 VOLTAGE_DIVIDER_R_OHMS = 10000
 
-
+# TODO: add to component
+EXP_ALPHA = 0.2
 class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
     # gives a range up to +/- 6.144V
     MAX_BACKOFF_SECONDS: float = 60
@@ -101,6 +103,21 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
         self._last_valid_reading_time: Dict[str, float] = {}  # channel name -> timestamp
         self._last_valid_reading: Dict[str, float] = {}  # channel name -> reading
 
+        # In GridworksTsnap1_MultipurposeSensorDriver.__init__
+        self.data_processing_method: Dict[str, ThermistorDataMethod] = {
+            config.ChannelName: config.DataProcessingMethod 
+            for config in component.gt.ConfigList
+        }
+
+
+        # Track the exponential moving average state
+        self.exp_avg_state: Dict[str, Optional[float]] = {
+            config.ChannelName: None 
+            for config in component.gt.ConfigList
+        }
+        # Standard alpha value for EMA - could make configurable
+        self.exp_avg_alpha = EXP_ALPHA # Higher alpha = more weight to recent values
+
     def start(self) -> Result[DriverOutcome[bool], Exception]:
         driver_init_outcome = DriverOutcome(True)
 
@@ -148,6 +165,21 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             ) <= self._warning_delays[channel_name]
 
         return False
+
+    def apply_exp_weighted_avg(self, channel_name: str, new_voltage: float) -> float:
+        """Apply exponential weighted moving average to voltage reading"""
+        if self.data_processing_method[channel_name] != ThermistorDataMethod.BetaWithExponentialAveraging:
+            return new_voltage
+
+        if self.exp_avg_state[channel_name] is None:
+            self.exp_avg_state[channel_name] = new_voltage
+            return new_voltage
+
+        # EMA formula: new_avg = alpha * new_value + (1-alpha) * old_avg
+        avg = (self.exp_avg_alpha * new_voltage + 
+            (1 - self.exp_avg_alpha) * self.exp_avg_state[channel_name])
+        self.exp_avg_state[channel_name] = avg
+        return avg
 
     def read_voltage(self, ch: DataChannel) -> Result[DriverOutcome[float], Exception]:
         """Read voltage from the specified channel.
@@ -211,7 +243,12 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             self._handle_read_failure(ch.Name, now)
             use_stale = True
         else:
-            output.value = voltage
+            if self.data_processing_method[ch.Name] == ThermistorDataMethod.BetaWithExponentialAveraging:
+                output.value = self.apply_exp_weighted_avg(ch.Name, voltage)
+            elif self.data_processing_method[ch.Name] == ThermistorDataMethod.SimpleBeta:
+                output.value = voltage
+            else:
+                output.value = voltage # SimpleBeta is the fallback. TODO: let this be known
             self._warning_delays[ch.Name] = 0
             self._last_valid_reading[ch.Name] = voltage  
             self._last_valid_reading_time[ch.Name] = now 

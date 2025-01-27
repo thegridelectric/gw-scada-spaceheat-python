@@ -240,7 +240,14 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 self.latest_telemetry_value[ch.Name]
                 - self.last_reported_telemetry_value[ch.Name]
             )
+            #new = self.latest_telemetry_value[ch.Name]
+            # if ch.Name == 'dist-swt':   
+            #     print(f"dist-swt {round(new / 1000, 3)} C" )
             if abs_telemetry_delta > telemetry_config.AsyncCaptureDelta:
+                # if ch.Name == 'dist-swt':
+                #     print("#####################")
+                #     print("SENDING!")
+                #     print("#####################")
                 return True
         return False
 
