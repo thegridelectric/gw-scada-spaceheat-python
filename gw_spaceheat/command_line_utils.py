@@ -225,9 +225,9 @@ def get_scada(
         logger = logging.getLogger(settings.logging.qualified_logger_names()["lifecycle"])
         logger.info("")
         logger.info(dotenv_file_debug_str)
-        logger.info("Settings:")
-        logger.info(settings.model_dump_json(indent=2))
-        rich.print(settings)
+        # logger.info("Settings:")
+        # logger.info(settings.model_dump_json(indent=2))
+        # rich.print(settings)
         logger.info("Checking tls_paths_present")
         check_tls_paths_present(settings)
         logger.info("Getting requested_names")
@@ -265,11 +265,7 @@ def get_scada(
         if run_in_thread:
             logger.info("run_async_actors_main() starting")
             scada.run_in_thread()
-        # # NOTE: THIS DOES NOT WORK
-        # scada = Parentless(name=name, settings=settings, hardware_layout=layout, actors_package_name=actors_package_name)
-        # if run_in_thread:
-        #     logger.info("run_async_actors_main() starting")
-        #     scada.run_in_thread()
+
     return scada
 
 def get_scada2(
