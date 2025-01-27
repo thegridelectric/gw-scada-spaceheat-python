@@ -221,7 +221,7 @@ class GridworksTsnap1_MultipurposeSensorDriver(MultipurposeSensorDriver):
             self._handle_read_failure(ch.Name, now)
             return Ok(output)
 
-        if voltage >= PI_VOLTAGE:
+        if voltage >= PI_VOLTAGE - 0.1: # sometimes it'll be be high from random noise
             output.add_comment(
                 level=LogLevel.Warning,
                 msg=f"Open Thermistor reading AND bad max voltage! | {ch.Name} (term {cfg.TerminalBlockIdx}) read {voltage:.3f}V | CODE PI MAX {PI_VOLTAGE}V",
