@@ -804,14 +804,15 @@ class Scada(ScadaInterface, Proactor):
     ) -> None:
         """ Plumbing: messages received from one of the MQTT brokers
         """
+        
         from_node = self._layout.node(decoded.Header.Src, None)
         to_node = self._layout.node(message.Header.Dst, None) 
         payload = decoded.Payload
+        print(f"Just got {payload.TypeName} from {from_node.Name}")
         if message.Payload.client_name == self.GRIDWORKS_MQTT:
             to_node = self.node
 
         elif message.Payload.client_name == self.ADMIN_MQTT:
-            print(f"Just got {payload.TypeName} from {from_node.Name}")
             if not self.settings.admin.enabled:
                 return
             from_node = self.admin
