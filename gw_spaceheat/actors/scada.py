@@ -320,6 +320,27 @@ class Scada(ScadaInterface, Proactor):
     def data(self) -> ScadaData:
         return self._data
 
+    @property
+    def layout_lite(self) -> LayoutLite:
+        tank_nodes = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
+        flow_nodes = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
+        return LayoutLite(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                FromGNodeInstanceId=self.layout.scada_g_node_id,
+                Strategy=self.layout.strategy,
+                ZoneList=self.layout.zone_list,
+                TotalStoreTanks=self.layout.total_store_tanks,
+                TankModuleComponents=[node.component.gt for node in tank_nodes],
+                FlowModuleComponents=[node.component.gt for node in flow_nodes],
+                ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
+                DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
+                SynthChannels=[ch.to_gt() for ch in self.layout.synth_channels.values()],
+                Ha1Params=self.data.ha1_params,
+                I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
+                MessageCreatedMs=int(time.time() * 1000),
+                MessageId=str(uuid.uuid4()),
+            )
+
     def _start_derived_tasks(self):
         self._tasks.append(
             asyncio.create_task(self.report_sending_task(), name="report_sender")
@@ -343,12 +364,37 @@ class Scada(ScadaInterface, Proactor):
         )
         return last_report_second_nominal + self.settings.seconds_per_report
 
+    def next_snap_second(self) -> int:
+        last_snap_nominal = int(
+            self._last_snap_s
+            - (self._last_snap_s % self.settings.seconds_per_snapshot)
+        )
+        return last_snap_nominal + self.settings.seconds_per_snapshot
+
     def seconds_til_next_report(self) -> float:
         return self.next_report_second() - time.time()
+
+    def seconds_til_next_snap(self) -> float:
+        return self.next_snap_second() - time.time()
 
     def time_to_send_report(self) -> bool:
         return time.time() > self.next_report_second()
 
+    def time_to_send_snap(self) -> bool:
+        return time.time() > self.next_snap_second()
+
+    def send_report(self):
+        report = self._data.make_report(self._last_report_second)
+        self._data.reports_to_store[report.Id] = report
+        self.generate_event(ReportEvent(Report=report)) # noqa
+        self._data.flush_recent_readings()
+
+    def send_snap(self):
+        snapshot = self._data.make_snapshot()
+        self._send_to(self.atn, snapshot)
+        if self.settings.admin.enabled:
+            self._send_to(self.admin, snapshot)
+    
     async def report_sending_task(self):
         while not self._stop_requested:
             try:
@@ -358,26 +404,6 @@ class Scada(ScadaInterface, Proactor):
                 await asyncio.sleep(self.seconds_til_next_report())
             except Exception as e:
                 self.log(e)
-    
-    def send_report(self):
-        report = self._data.make_report(self._last_report_second)
-        self._data.reports_to_store[report.Id] = report
-        self.generate_event(ReportEvent(Report=report)) # noqa
-        self._data.flush_recent_readings()
-
-    def next_snap_second(self) -> int:
-        last_snap_s = int(
-            self._last_snap_s
-            - (self._last_snap_s % self.settings.seconds_per_snapshot)
-        )
-        return last_snap_s + self.settings.seconds_per_snapshot
-
-    def seconds_til_next_snap(self) -> float:
-        return self.next_snap_second() - time.time()
-
-    def time_to_send_snap(self) -> bool:
-        if time.time() > self.next_snap_second():
-            return True
     
     async def snap_sending_task(self):
         while not self._stop_requested:
@@ -389,117 +415,86 @@ class Scada(ScadaInterface, Proactor):
             except Exception as e:
                 self.log(e)
 
-    def send_snap(self):
-        snapshot = self._data.make_snapshot()
-        self._send_to(self.atn, snapshot)
-        if self.settings.admin.enabled:
-            self._send_to(self.admin, snapshot)
 
-    @property
-    def layout_lite(self) -> LayoutLite:
-        tank_nodes = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
-        flow_nodes = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
-        return LayoutLite(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                FromGNodeInstanceId=self.layout.scada_g_node_id,
-                Strategy=self.layout.strategy,
-                ZoneList=self.layout.zone_list,
-                TotalStoreTanks=self.layout.total_store_tanks,
-                TankModuleComponents=[node.component.gt for node in tank_nodes],
-                FlowModuleComponents=[node.component.gt for node in flow_nodes],
-                ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
-                DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
-                SynthChannels=[ch.to_gt() for ch in self.layout.synth_channels.values()],
-                Ha1Params=self.data.ha1_params,
-                I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
-                MessageCreatedMs=int(time.time() * 1000),
-                MessageId=str(uuid.uuid4()),
-            )
-
-
-    def _process_my_message(self, from_node: ShNode, msg: Any) -> None:
+    def _process_my_message(self, from_node: ShNode, payload: Any) -> None:
         """Process NamedTypes sent to primary scada
         """
         # Todo: turn msg into GwBase
-        match msg:
+        print(f"got {payload.TypeName} from {from_node.Name}")
+        match payload:
             case AdminDispatch():
                 try:
-                    self.admin_dispatch_received(from_node, msg)
+                    self.admin_dispatch_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with admin_dispatch_received: \n {e}")
             case AdminKeepAlive():
                 try:
-                    self.admin_keep_alive_received(from_node, msg)
+                    self.admin_keep_alive_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with admin_keep_alive_received: \n {e}")
             case AdminReleaseControl():
                 try:
-                    self.admin_release_control_received(from_node, msg)
+                    self.admin_release_control_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with admin_release_control: \n {e}")
             case AllyGivesUp():
                 try:
-                    self.ally_gives_up_received(from_node, msg)
+                    self.ally_gives_up_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with ally_gives_up_received: \n {e}")
             case AnalogDispatch():
                 try:
-                    self.analog_dispatch_received(msg)
+                    self.analog_dispatch_received(payload)
                 except Exception as e:
                     self.log(f"Trouble with analog_dispatch_received: \n {e}")
             case ChannelFlatlined():
                 try:
-                    self.data.flush_channel_from_latest(msg.Channel.Name)
+                    self.data.flush_channel_from_latest(payload.Channel.Name)
                 except Exception as e:
                     self.log(f"Trouble with ChannelFlatlined Received: \n {e}")
             case ChannelReadings():
                 try:
-                    self.channel_readings_received(from_node, msg)
+                    self.channel_readings_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with channel_readings_received: \n {e}")
             case DispatchContractGoDormant():
                 try:
-                    self.dispatch_contract_go_dormant_received(from_node, msg)
+                    self.dispatch_contract_go_dormant_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with dispatch_contract_go_dormant_received: \n {e}")
             case DispatchContractGoLive():
                 try:
-                    self.dispatch_contract_go_live_received(msg)
+                    self.dispatch_contract_go_live_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with dispatch_contract_go_live_received: \n {e}")
             case EnergyInstruction():
                 try:
-                    self.energy_instruction_received(msg)
+                    self.energy_instruction_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with .energy_instruction_received: \n {e}")
-            case FsmEvent():
-                try:
-                    self.fsm_event_received(msg)
-                except Exception as e:
-                    self.logger.error(f"problem with fsm_event_received: {e}")
             case FsmFullReport():
                 try:
-                    self.fsm_full_report_received(msg)
+                    self.fsm_full_report_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with fsm_full_report_received: \n {e}")
             case MachineStates():
                 try:
-                    self.machine_states_received(msg)
+                    self.machine_states_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with machine_states_received: \n {e}")
             case PowerWatts():
                 try:
-                    self.power_watts_received(msg)
+                    self.power_watts_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with remaining_elec_received: \n {e}")
             case RemainingElec():
                 try:
-                    self.remaining_elec_received(from_node, msg)
+                    self.remaining_elec_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with remaining_elec_received: \n {e}")
             case ScadaParams():
                 try:
-                    self.scada_params_received(msg)
+                    self.scada_params_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with scada_params_received: \n {e}")
             case SendLayout():
@@ -514,27 +509,27 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with SendSnap: {e}")
             case SingleMachineState():
                 try:
-                    self.single_machine_state_received(msg)
+                    self.single_machine_state_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with single_machine_state_received: \n {e}")
             case SingleReading():
                 try:
-                    self.single_reading_received(msg)
+                    self.single_reading_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with single_reading_received: \n {e}")
             case SuitUp():
                 try:
-                    self.suit_up_received(from_node, msg)
+                    self.suit_up_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"Trouble with suit_up_received: \n {e}")
             case SyncedReadings():
                 try:
-                    self.synced_readings_received(msg)
+                    self.synced_readings_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with synced_reading_received: \n {e}")
             case _:
                 raise ValueError(
-                    f"Scada does not expect to receive[{type(msg)}!]"
+                    f"Scada does not expect to receive[{type(payload)}!]"
                 )
 
     def admin_dispatch_received(
@@ -596,16 +591,12 @@ class Scada(ScadaInterface, Proactor):
             self._data.latest_channel_values[ch.Name] = payload.ValueList[-1]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMsList[-1]
 
-    def energy_instruction_received(self, payload: EnergyInstruction) -> None:
+    def energy_instruction_received(self, from_node: ShNode, payload: EnergyInstruction) -> None:
             self._send_to(self.synth_generator, payload)
             if self.auto_state == MainAutoState.Atn:
                 self._send_to(self.atomic_ally, payload)
 
-    def fsm_event_received(self, from_node: ShNode, payload: FsmEvent) -> None:
-        if from_node != self.admin:
-            self.log("scada does not respond to FsmEvents except from Admin")
-
-    def fsm_full_report_received(self, payload: FsmFullReport) -> None:
+    def fsm_full_report_received(self, from_node: ShNode, payload: FsmFullReport) -> None:
         self._data.recent_fsm_reports[payload.TriggerId] = payload
 
     def params_authorized(self, msg: ScadaParams) -> bool:
@@ -617,7 +608,7 @@ class Scada(ScadaInterface, Proactor):
             return False
         return True
 
-    def scada_params_received(self, message: ScadaParams, testing:bool=False) -> None:
+    def scada_params_received(self, from_node: ShNode, message: ScadaParams) -> None:
         """ 
         Verify params come from AtomicTNode, update params both in memory and 
         permanent store, forward params to synth_generator and respond to Atn with 
@@ -631,23 +622,23 @@ class Scada(ScadaInterface, Proactor):
             old = self.data.ha1_params
             self.data.ha1_params = new
             if new.AlphaTimes10 != old.AlphaTimes10:          
-                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10, testing)
+                self.update_env_variable('SCADA_ALPHA', new.AlphaTimes10 / 10)
             if new.BetaTimes100 != old.BetaTimes100:
-                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100, testing)
+                self.update_env_variable('SCADA_BETA', new.BetaTimes100 / 100)
             if new.GammaEx6 != old.GammaEx6:
-                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6, testing)
+                self.update_env_variable('SCADA_GAMMA', new.GammaEx6 / 1e6)
             if new.IntermediatePowerKw != old.IntermediatePowerKw:
-                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw, testing)
+                self.update_env_variable('SCADA_INTERMEDIATE_POWER', new.IntermediatePowerKw)
             if new.IntermediateRswtF != old.IntermediateRswtF:
-                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF, testing)
+                self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF)
             if new.DdPowerKw != old.DdPowerKw:
-                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw, testing)
+                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw)
             if new.DdRswtF != old.DdRswtF:
-                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF, testing)
+                self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF)
             if new.DdDeltaTF != old.DdDeltaTF:
-                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF, testing)
+                self.update_env_variable('SCADA_DD_DELTA_T', new.DdDeltaTF)
             if new.LoadOverestimationPercent != old.LoadOverestimationPercent:
-                self.update_env_variable('SCADA_LOAD_OVERESTIMATION_PERCENT', new.LoadOverestimationPercent, testing)
+                self.update_env_variable('SCADA_LOAD_OVERESTIMATION_PERCENT', new.LoadOverestimationPercent)
 
             self._send_to(self.synth_generator, message)
 
@@ -662,16 +653,16 @@ class Scada(ScadaInterface, Proactor):
                 )
             self._send_to(self.atn, response)
 
-    def power_watts_received(self, from_node: ShNode, msg: PowerWatts):
+    def power_watts_received(self, from_node: ShNode, payload: PowerWatts):
         """Highest priority of scada is to pass this on to Atn
         
         also update scada_data.power_watts, and send to synth gen
         """
-        self._send_to(self.atn, msg)
-        self._data.latest_total_power_w = msg.Watts
-        self._send_to(self.synth_generator, msg)
+        self._send_to(self.atn, payload)
+        self._data.latest_total_power_w = payload.Watts
+        self._send_to(self.synth_generator, payload)
     
-    def machine_states_received(self, payload: MachineStates) -> None:
+    def machine_states_received(self, from_node: ShNode, payload: MachineStates) -> None:
         if payload.MachineHandle in self._data.recent_machine_states:
             prev: MachineStates = self._data.recent_machine_states[payload.MachineHandle]
             if payload.StateEnum != prev.StateEnum:
@@ -699,7 +690,7 @@ class Scada(ScadaInterface, Proactor):
         self.generate_event(RemainingElecEvent(Remaining=msg))
         self.log("Sent remaining elec to ATN and atomic ally")
 
-    def single_machine_state_received(self, payload: SingleMachineState) -> None:
+    def single_machine_state_received(self, from_node: ShNode, payload: SingleMachineState) -> None:
         if payload.MachineHandle in self._data.recent_machine_states:
             prev: MachineStates = self._data.recent_machine_states[payload.MachineHandle]
             if payload.StateEnum != prev.StateEnum:
@@ -719,7 +710,7 @@ class Scada(ScadaInterface, Proactor):
                 UnixMsList=[payload.UnixMs]
             )
 
-    def single_reading_received(self, payload: SingleReading) -> None:
+    def single_reading_received(self, from_node: ShNode, payload: SingleReading) -> None:
         if payload.ChannelName in self._layout.data_channels:
             ch = self._layout.data_channels[payload.ChannelName]
         elif payload.ChannelName in self._layout.synth_channels:
@@ -733,7 +724,7 @@ class Scada(ScadaInterface, Proactor):
         self._forward_single_reading(payload)
 
     def synced_readings_received(
-        self, payload: SyncedReadings
+        self, from_node: ShNode, payload: SyncedReadings
     ):
         for idx, channel_name in enumerate(payload.ChannelNameList):
             if channel_name not in self._layout.data_channels:
@@ -754,21 +745,23 @@ class Scada(ScadaInterface, Proactor):
     # PLUMBING
     #####################################################################
 
-    def _send_to(self, dst: ShNode, payload: Any) -> None:
+    def _send_to(self, to_node: ShNode, payload: Any, from_node: ShNode = None) -> None:
         """Use this for primary_scada to send messages"""
-        if dst is None:
+        if to_node is None:
             return
-        message = Message(Src=self.name, Dst=dst.name,Payload=payload)
-        if dst.name in set(self._communicators.keys()):
+        if from_node is None:
+            from_node = self.node
+        message = Message(Src=from_node.name, Dst=to_node.name,Payload=payload)
+        if to_node.name in set(self._communicators.keys()):
             # use native python queue
             self.send(message)
-        elif dst.Name == H0N.admin:
+        elif to_node.Name == H0N.admin:
             # Add Dst = H0N.admin?
             self._links.publish_message(
                 link_name=self.ADMIN_MQTT, 
-                message=Message(Src=self.publication_name,Payload=payload),
+                message=Message(Src=self.publication_name, Payload=payload),
                 qos=QOS.AtMostOnce)
-        elif dst.Name == H0N.atn:
+        elif to_node.Name == H0N.atn:
             self._links.publish_message(
                 link_name=self._links._mqtt_clients.upstream_client,
                 message = Message(
@@ -781,7 +774,7 @@ class Scada(ScadaInterface, Proactor):
         else:
             self._links.publish_message(
                 link_name=Scada.LOCAL_MQTT,
-                message=Message(Src=self.name, Dst=dst.Name, Payload=payload),
+                message=Message(Src=self.name, Dst=to_node.Name, Payload=payload),
                 qos=QOS.AtMostOnce,
                 use_link_topic=True,
         )
@@ -796,10 +789,16 @@ class Scada(ScadaInterface, Proactor):
         to_node = self._layout.node(message.Header.Dst, None) 
 
         if to_node is not None and to_node != self.node:
-            self._send_to(to_node, message.Payload)
+            try:
+                self._send_to(to_node, message.Payload, from_node)
+            except Exception as e:
+                print(f"Problem with mesage to {to_node.name}")
+                print(f"message {message}")
+                print(f"payload {message.Payload}")
+                raise e
         else:
-            self._process_my_message(self, from_node=from_node, msg=message.Payload)
-
+            self._process_my_message(from_node=from_node, payload=message.Payload)
+            
     def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
@@ -807,20 +806,26 @@ class Scada(ScadaInterface, Proactor):
         """
         from_node = self._layout.node(decoded.Header.Src, None)
         to_node = self._layout.node(message.Header.Dst, None) 
-
+        payload = decoded.Payload
         if message.Payload.client_name == self.GRIDWORKS_MQTT:
             to_node = self.node
 
         elif message.Payload.client_name == self.ADMIN_MQTT:
+            print(f"Just got {payload.TypeName} from {from_node.Name}")
             if not self.settings.admin.enabled:
                 return
             from_node = self.admin
             to_node = self.node
-
+        
+        elif message.Payload.client_name == self.LOCAL_MQTT:
+            # store and pass on all the events from scada2
+            if isinstance(decoded.Payload, EventBase):
+                self.generate_event(decoded.Payload)
+                return
         if to_node is not None and to_node != self.node:
-            self._send_to(to_node, decoded.Payload)
+            self._send_to(to_node, payload)
         else:
-            self._process_my_message(self, from_node=from_node, msg=decoded.Payload)
+            self._process_my_message(from_node=from_node, payload=payload)
 
     #####################################################################
     # Start and go
@@ -964,9 +969,9 @@ class Scada(ScadaInterface, Proactor):
         # tell the atomic transactive node that game is on
         self._send_to(self.atn, GameOn(FromGNodeAlias = self.layout.scada_g_node_alias))
 
-    def dispatch_contract_go_dormant_received(self, t: DispatchContractGoDormant) -> None:
-        if t.FromGNodeAlias != self.layout.atn_g_node_alias:
-            self.log(f"HUH? Message from {t.FromGNodeAlias}")
+    def dispatch_contract_go_dormant_received(self, from_node: ShNode, payload: DispatchContractGoDormant) -> None:
+        if payload.FromGNodeAlias != self.layout.atn_g_node_alias:
+            self.log(f"HUH? Message from {payload.FromGNodeAlias}")
             return
         if self.auto_state != MainAutoState.Atn:
             self.log(f"Ignoring control request from atn, auto_state: {self.auto_state}")
@@ -976,9 +981,9 @@ class Scada(ScadaInterface, Proactor):
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         self._send_to(self.atomic_ally, GoDormant(FromName=self.name, ToName=H0N.atomic_ally))
         
-    def dispatch_contract_go_live_received(self, t: DispatchContractGoLive) -> None:
-        if t.FromGNodeAlias != self.layout.atn_g_node_alias:
-            self.log(f"HUH? Message from {t.FromGNodeAlias}")
+    def dispatch_contract_go_live_received(self, from_node: ShNode, payload: DispatchContractGoLive) -> None:
+        if payload.FromGNodeAlias != self.layout.atn_g_node_alias:
+            self.log(f"HUH? Message from {payload.FromGNodeAlias}")
             return
         if self.auto_state != MainAutoState.HomeAlone:
             self.log(f"Ignoring control request from atn, auto_state: {self.auto_state}")
@@ -1113,14 +1118,14 @@ class Scada(ScadaInterface, Proactor):
     #################################################
     # Hacky stuff
     #################################################
-    def analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
+    def analog_dispatch_received(self, from_node: ShNode, payload: AnalogDispatch) -> None:
         self.logger.error("Got Analog Dispatch in SCADA!")
-        if dispatch.FromGNodeAlias != self._layout.atn_g_node_alias:
+        if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
             self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
             return
-        to_node = self.layout.node_by_handle(dispatch.ToHandle)
+        to_node = self.layout.node_by_handle(payload.ToHandle)
         if to_node:
-            self._send_to(to_node.Name, dispatch)
+            self._send_to(to_node.Name, payload)
     
     def update_env_variable(self, variable, new_value, testing:bool=False) -> None:
         """
