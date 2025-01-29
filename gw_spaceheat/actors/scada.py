@@ -99,7 +99,7 @@ class LocalMQTTCodec(MQTTCodec):
         ##   Since spaceheat names now contain '-', the encoding/decoding by
         ##   MQTTCodec  is not what we we want: "-" ends up as  "." 
         src = src.replace(".", "-")
-
+        self.log(f"AdminCodec validating src={src}, dst={dst}")
         if dst != self.exp_dst or src not in self.exp_srcs:
             raise ValueError(
                 "ERROR validating src and/or dst\n"
@@ -216,6 +216,7 @@ class Scada(ScadaInterface, Proactor):
                     codec=AdminCodec(self.publication_name),
                 ),
             )
+            self.log(f"Added admin MQTT link with subscription_name {self.publication_name}")
         self._links.log_subscriptions("construction")
         now = int(time.time())
         self._channels_reported = False
@@ -804,7 +805,7 @@ class Scada(ScadaInterface, Proactor):
     ) -> None:
         """ Plumbing: messages received from one of the MQTT brokers
         """
-        
+        self.log(f"Got mqtt message with client name {message.Payload.client_name}")
         from_node = self._layout.node(decoded.Header.Src, None)
         to_node = self._layout.node(message.Header.Dst, None) 
         payload = decoded.Payload
