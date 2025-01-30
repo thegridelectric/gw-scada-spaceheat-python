@@ -64,6 +64,7 @@ ScadaMessageDecoder = create_message_model(
     ]
 )
 
+
 class GridworksMQTTCodec(MQTTCodec):
     exp_src: str
     exp_dst: str = H0N.primary_scada
@@ -263,8 +264,6 @@ class Scada(ScadaInterface, Proactor):
             send_event=False,
             model_attribute="auto_state",
         )
-
-
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
@@ -489,31 +488,10 @@ class Scada(ScadaInterface, Proactor):
             use_link_topic=True,
         )
 
-    def _derived_process_message(self, message: Message):
-        """ Plumbing: messages received on the internal proactor queue
-        
-        Replaces proactor _derived_process_message. Either routes to the appropriate
-        node or - if message is intended for primary scada - sends on to _process_my_message
-        """
-        from_node = self._layout.node(message.Header.Src, None)
-        to_node = self._layout.node(message.Header.Dst, None) 
-    
-        if to_node is not None and to_node != self.node:
-            try:
-                self._send_to(to_node, message.Payload, from_node)
-            except Exception as e:
-                print(f"Problem with mesage to {to_node.name}")
-                print(f"message {message}")
-                print(f"payload {message.Payload}")
-                raise e
-        else:
-            self._process_my_message(from_node=from_node, payload=message.Payload)
-
-    def _process_my_message(self, from_node: ShNode, payload: Any) -> None:
+    def process_scada_message(self, from_node: ShNode, payload: Any) -> None:
         """Process NamedTypes sent to primary scada
         """
         # Todo: turn msg into GwBase
-        print(f"got {payload.TypeName} from {from_node.Name}")
         match payload:
             case AdminDispatch():
                 try:
@@ -624,6 +602,10 @@ class Scada(ScadaInterface, Proactor):
                 raise ValueError(
                     f"Scada does not expect to receive[{type(payload)}!]"
                 )
+
+    #####################################################################
+    # Process Messages
+    #####################################################################
 
     def admin_dispatch_received(
             self, from_node: ShNode, payload: AdminDispatch
@@ -752,7 +734,7 @@ class Scada(ScadaInterface, Proactor):
     def fsm_full_report_received(self, from_node: ShNode, payload: FsmFullReport) -> None:
         self._data.recent_fsm_reports[payload.TriggerId] = payload
 
-    def machine_states_received(self, payload: MachineStates) -> None:
+    def machine_states_received(self, from_node: ShNode, payload: MachineStates) -> None:
         if payload.MachineHandle in self._data.recent_machine_states:
             prev: MachineStates = self._data.recent_machine_states[payload.MachineHandle]
             if payload.StateEnum != prev.StateEnum:
@@ -832,7 +814,7 @@ class Scada(ScadaInterface, Proactor):
             self.logger.error(f"Sending back {response}")
             self._links.publish_upstream(response)
 
-    def single_machine_state_received(self, from_node, payload: SingleMachineState) -> None:
+    def single_machine_state_received(self, from_node: ShNode, payload: SingleMachineState) -> None:
         # TODO: compare MachineHandle last word with from_node.Name
         if payload.MachineHandle in self._data.recent_machine_states:
             prev: MachineStates = self._data.recent_machine_states[payload.MachineHandle]
@@ -853,7 +835,7 @@ class Scada(ScadaInterface, Proactor):
                 UnixMsList=[payload.UnixMs]
             )
 
-    def single_reading_received(self, payload: SingleReading) -> None:
+    def single_reading_received(self, from_node: ShNode, payload: SingleReading) -> None:
         if payload.ChannelName in self._layout.data_channels:
             ch = self._layout.data_channels[payload.ChannelName]
         elif payload.ChannelName in self._layout.synth_channels:
@@ -905,6 +887,7 @@ class Scada(ScadaInterface, Proactor):
     def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
+        print("IN _derived_process_mqtt_message")
         self._logger.path("++Scada._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if message.Payload.client_name == self.LOCAL_MQTT:
@@ -995,6 +978,7 @@ class Scada(ScadaInterface, Proactor):
     def _process_admin_mqtt_message(
             self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
+        print("GOT HERE IN PROCESS_ADMIN")
         self._logger.path("++_process_admin_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if self.settings.admin.enabled:
@@ -1110,6 +1094,10 @@ class Scada(ScadaInterface, Proactor):
             ).ActorClass== ActorClass.Relay:
                 self._publish_to_link(self.ADMIN_MQTT, reading)
 
+    #####################################################################
+    # PLUMBING
+    #####################################################################
+
     def _send_to(self, to_node: ShNode, payload: Any, from_node: ShNode = None) -> None:
         """Use this for primary_scada to send messages"""
         if to_node is None:
@@ -1117,14 +1105,36 @@ class Scada(ScadaInterface, Proactor):
         if from_node is None:
             from_node = self.node
         message = Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
-        if to_node.name in set(self._communicators.keys()) | {self.name}:
-            self.send(message)
+        if to_node.name == self.name:
+            self.process_scada_message(from_node, payload)
+        elif to_node.name in set(self._communicators.keys()):
+            self.get_communicator(to_node.Name).process_message(message)
         elif to_node.Name == H0N.admin:
             self._links.publish_message(self.ADMIN_MQTT, message)
         elif to_node.Name == H0N.atn:
             self._links.publish_upstream(payload)
         else:
             self._links.publish_message(self.LOCAL_MQTT, message)
+
+    def _derived_process_message(self, message: Message):
+        """ Plumbing: messages received on the internal proactor queue
+
+        Replaces proactor _derived_process_message. Either routes to the appropriate
+        node or - if message is intended for primary scada - sends on to _process_my_message
+        """
+        from_node = self._layout.node(message.Header.Src, None)
+        to_node = self._layout.node(message.Header.Dst, None)
+
+        if to_node is not None and to_node != self.node:
+            try:
+                self._send_to(to_node, message.Payload, from_node)
+            except Exception as e:
+                print(f"Problem with mesage to {to_node.name}")
+                print(f"message {message}")
+                print(f"payload {message.Payload}")
+                raise e
+        else:
+            self.process_scada_message(from_node=from_node, payload=message.Payload)
           
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():
@@ -1295,7 +1305,7 @@ class Scada(ScadaInterface, Proactor):
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             else:
                 node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
-        self._links.publish_upstream(
+        self._send_to(self.atn,
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ShNodes=list(self.layout.nodes.values()),
@@ -1307,7 +1317,7 @@ class Scada(ScadaInterface, Proactor):
         # ADMIN CONTROL FOREST. All actuators report directly to admin
         for node in self.layout.actuators:
             node.Handle = f"{H0N.admin}.{node.Name}"
-        self._links.publish_upstream(
+        self._send_to(self.atn,
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ShNodes=list(self.layout.nodes.values()),
@@ -1321,7 +1331,7 @@ class Scada(ScadaInterface, Proactor):
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             else:
                 node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
-        self._links.publish_upstream(
+        self._send_to(self.atn,
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ShNodes=list(self.layout.nodes.values()),

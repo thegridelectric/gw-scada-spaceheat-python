@@ -226,7 +226,7 @@ class I2cDfrMultiplexer(ScadaActor):
         try:
             self.initialize_board()
         except Exception as e:
-            raise Exception("FAIL FAIL FAIL")
+            raise Exception(f"Failure initializing board! {e}")
         self.services.add_task(
             asyncio.create_task(
                 self.maintain_dfr_states(), name="maintain_dfr_states"

@@ -222,7 +222,7 @@ class HomeAlone(ScadaActor):
         for node in self.my_actuators():
             node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_onpeak_backup}.{node.Name}"
         self._send_to(
-            self.primary_scada,
+            self.atn,
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ShNodes=list(self.layout.nodes.values()),
@@ -234,7 +234,7 @@ class HomeAlone(ScadaActor):
         for node in self.my_actuators():
             node.Handle =  f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
         self._send_to(
-            self.primary_scada,
+            self.atn,
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ShNodes=list(self.layout.nodes.values()),
@@ -247,7 +247,7 @@ class HomeAlone(ScadaActor):
         for node in self.my_actuators():
             node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_scada_blind}.{node.Name}"
         self._send_to(
-            self.primary_scada,
+            self.atn,
             NewCommandTree(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 ShNodes=list(self.layout.nodes.values()),
