@@ -124,6 +124,8 @@ class AdminCodec(MQTTCodec):
         super().__init__(ScadaMessageDecoder)
 
     def validate_source_and_destination(self, src: str, dst: str) -> None:
+        print(f"AdminCodec validating src: {src} dst: {dst}")
+        print(f"Expected scada_gnode: {self.scada_gnode}")
         if dst != self.scada_gnode or src != H0N.admin:
             raise ValueError(
                 "ERROR validating src and/or dst\n"
@@ -263,8 +265,6 @@ class Scada(ScadaInterface, Proactor):
             send_event=False,
             model_attribute="auto_state",
         )
-
-
 
     def init(self) -> None:
         """Called after constructor so derived functions can be used in setup."""
@@ -905,6 +905,7 @@ class Scada(ScadaInterface, Proactor):
     def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
+        print("IN _derived_process_mqtt_message")
         self._logger.path("++Scada._derived_process_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if message.Payload.client_name == self.LOCAL_MQTT:
@@ -995,6 +996,7 @@ class Scada(ScadaInterface, Proactor):
     def _process_admin_mqtt_message(
             self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
+        print("GOT HERE IN PROCESS_ADMIN")
         self._logger.path("++_process_admin_mqtt_message %s", message.Payload.message.topic)
         path_dbg = 0
         if self.settings.admin.enabled:
