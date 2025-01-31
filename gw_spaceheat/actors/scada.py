@@ -884,25 +884,6 @@ class Scada(ScadaInterface, Proactor):
             "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
         )
 
-    def _derived_process_mqtt_message(
-        self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
-    ) -> None:
-        print("IN _derived_process_mqtt_message")
-        self._logger.path("++Scada._derived_process_mqtt_message %s", message.Payload.message.topic)
-        path_dbg = 0
-        if message.Payload.client_name == self.LOCAL_MQTT:
-            path_dbg |= 0x00000001
-            self._process_downstream_mqtt_message(message, decoded)
-        elif message.Payload.client_name == self.GRIDWORKS_MQTT:
-            path_dbg |= 0x00000002
-            self._process_upstream_mqtt_message(message, decoded)
-        elif message.Payload.client_name == self.ADMIN_MQTT:
-            path_dbg |= 0x00000004
-            self._process_admin_mqtt_message(message, decoded)
-        else:
-            raise ValueError("ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name)
-        self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
-
     def _process_upstream_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
@@ -974,75 +955,6 @@ class Scada(ScadaInterface, Proactor):
                 # Intentionally ignore this for forward compatibility
                 path_dbg |= 0x00000008
         self._logger.path("--_process_downstream_mqtt_message  path:0x%08X", path_dbg)
-
-    def _process_admin_mqtt_message(
-            self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
-    ) -> None:
-        print("GOT HERE IN PROCESS_ADMIN")
-        self._logger.path("++_process_admin_mqtt_message %s", message.Payload.message.topic)
-        path_dbg = 0
-        if self.settings.admin.enabled:
-            path_dbg |= 0x00000001
-            match decoded.Payload:
-                case AdminDispatch():
-                    path_dbg |= 0x00000001
-                    if not self.top_state == TopState.Admin:
-                        self.admin_wakes_up()
-                        self.log('Admin Wakes Up')
-                    self._renew_admin_timeout(timeout_seconds=decoded.Payload.TimeoutSeconds)
-                    event = decoded.Payload.DispatchTrigger
-                    self.log(f"AdminDispatch event toype name is {event.TypeName}")
-                    if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
-                        path_dbg |= 0x00000010
-                        communicator.process_message(
-                            Message(
-                                header=Header(
-                                    Src=H0N.admin,
-                                    Dst=communicator.name,
-                                    MessageType=event.TypeName,
-                                ),
-                                Payload=event
-                            )
-                        )
-                case SendLayout():
-                    path_dbg |= 0x00000002
-                    self._publish_to_link(self.ADMIN_MQTT, self._layout_lite)
-                case SendSnap():
-                    path_dbg |= 0x00000004
-                    self._publish_to_link(self.ADMIN_MQTT, self._data.make_snapshot())
-                # TODO: remove when not maintaining backwards compatability for this
-                case FsmEvent() as event:
-                    path_dbg |= 0x00000008
-                    if self.top_state != TopState.Admin:
-                        # change control
-                        self.admin_wakes_up()
-                    if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
-                        path_dbg |= 0x00000010
-                        communicator.process_message(
-                            Message(
-                                header=Header(
-                                    Src=H0N.admin,
-                                    Dst=communicator.name,
-                                    MessageType=decoded.Payload.TypeName,
-                                ),
-                                Payload=decoded.Payload
-                            )
-                        )
-                case AdminKeepAlive():
-                    path_dbg |= 0x00000020
-                    self._renew_admin_timeout(timeout_seconds=decoded.Payload.AdminTimeoutSeconds)
-                    self.log(f'Admin timeout renewed: {decoded.Payload.AdminTimeoutSeconds} seconds')
-                    if not self.top_state == TopState.Admin:
-                        self.admin_wakes_up()
-                        self.log('Admin Wakes Up')
-                case AdminReleaseControl():
-                    path_dbg |= 0x00000040
-                    if self.top_state == TopState.Admin:
-                        self.admin_releases_control()
-                case _:
-                    # Intentionally ignore this for forward compatibility
-                    path_dbg |= 0x00000080
-        self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
     
     async def _timeout_admin(self, timeout_seconds: Optional[int] = None) -> None:
         if timeout_seconds is None or timeout_seconds>self.settings.admin.max_timeout_seconds:
@@ -1104,16 +1016,19 @@ class Scada(ScadaInterface, Proactor):
             return
         if from_node is None:
             from_node = self.node
+        if from_node is not None:
+            print(f"_send_to: {payload.TypeName} from {from_node.Name} to {to_node.Name}")
         message = Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
         if to_node.name == self.name:
             self.process_scada_message(from_node, payload)
         elif to_node.name in set(self._communicators.keys()):
             self.get_communicator(to_node.Name).process_message(message)
         elif to_node.Name == H0N.admin:
+            print(f"Trying to publish {payload.TypeName} on local mqtt")
             self._links.publish_message(self.ADMIN_MQTT, message)
         elif to_node.Name == H0N.atn:
             self._links.publish_upstream(payload)
-        else:
+        else: 
             self._links.publish_message(self.LOCAL_MQTT, message)
 
     def _derived_process_message(self, message: Message):
@@ -1124,7 +1039,10 @@ class Scada(ScadaInterface, Proactor):
         """
         from_node = self._layout.node(message.Header.Src, None)
         to_node = self._layout.node(message.Header.Dst, None)
-
+        print_str = f"{message.Payload.TypeName} from {from_node.Name} "
+        if from_node is not None:
+            print_str = f"{message.Payload.TypeName} from {from_node.Name} to {to_node.Name} "
+        print(print_str)
         if to_node is not None and to_node != self.node:
             try:
                 self._send_to(to_node, message.Payload, from_node)
@@ -1135,7 +1053,108 @@ class Scada(ScadaInterface, Proactor):
                 raise e
         else:
             self.process_scada_message(from_node=from_node, payload=message.Payload)
-          
+
+    def _derived_process_mqtt_message(
+        self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
+    ) -> None:
+        print("IN _derived_process_mqtt_message")
+        self._logger.path("++Scada._derived_process_mqtt_message %s", message.Payload.message.topic)
+        path_dbg = 0
+        from_node = self._layout.node(decoded.Header.Src, None)
+        to_node = self._layout.node(message.Header.Dst, None) 
+        payload = decoded.Payload
+        if message.Payload.client_name == self.LOCAL_MQTT:
+            path_dbg |= 0x00000001
+            self._process_downstream_mqtt_message(message, decoded)
+        elif message.Payload.client_name == self.GRIDWORKS_MQTT:
+            path_dbg |= 0x00000002
+            self._process_upstream_mqtt_message(message, decoded)
+        elif message.Payload.client_name == self.ADMIN_MQTT:
+            path_dbg |= 0x00000004
+            self._process_admin_mqtt_message(message, decoded)
+        else:
+            raise ValueError("ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name)
+        self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
+
+    def _process_admin_mqtt_message(
+            self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
+    ) -> None:
+        print("GOT HERE IN PROCESS_ADMIN")
+        self._logger.path("++_process_admin_mqtt_message %s", message.Payload.message.topic)
+        path_dbg = 0
+        from_node = self._layout.node(decoded.Header.Src, None)
+        if from_node is None:
+            self.log(f"Got a message from unrecognized {decoded.Header.Src} - ignoring")
+            return
+        to_node = self._layout.node(message.Header.Dst, None)
+        if to_node is None:
+            to_node = self.node
+        payload = decoded.Payload
+        if self.settings.admin.enabled:
+                self._send_to(to_node, payload, from_node)
+        #     path_dbg |= 0x00000001
+        #     match decoded.Payload:
+        #         case AdminDispatch():
+                    
+        #             path_dbg |= 0x00000001
+        #             if not self.top_state == TopState.Admin:
+        #                 self.admin_wakes_up()
+        #                 self.log('Admin Wakes Up')
+        #             self._renew_admin_timeout(timeout_seconds=decoded.Payload.TimeoutSeconds)
+        #             event = decoded.Payload.DispatchTrigger
+        #             self.log(f"AdminDispatch event toype name is {event.TypeName}")
+        #             if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
+        #                 path_dbg |= 0x00000010
+        #                 communicator.process_message(
+        #                     Message(
+        #                         header=Header(
+        #                             Src=H0N.admin,
+        #                             Dst=communicator.name,
+        #                             MessageType=event.TypeName,
+        #                         ),
+        #                         Payload=event
+        #                     )
+        #                 )
+        #         case SendLayout():
+        #             path_dbg |= 0x00000002
+        #             self._publish_to_link(self.ADMIN_MQTT, self._layout_lite)
+        #         case SendSnap():
+        #             path_dbg |= 0x00000004
+        #             self._publish_to_link(self.ADMIN_MQTT, self._data.make_snapshot())
+        #         # TODO: remove when not maintaining backwards compatability for this
+        #         case FsmEvent() as event:
+        #             path_dbg |= 0x00000008
+        #             if self.top_state != TopState.Admin:
+        #                 # change control
+        #                 self.admin_wakes_up()
+        #             if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
+        #                 path_dbg |= 0x00000010
+        #                 communicator.process_message(
+        #                     Message(
+        #                         header=Header(
+        #                             Src=H0N.admin,
+        #                             Dst=communicator.name,
+        #                             MessageType=decoded.Payload.TypeName,
+        #                         ),
+        #                         Payload=decoded.Payload
+        #                     )
+        #                 )
+        #         case AdminKeepAlive():
+        #             path_dbg |= 0x00000020
+        #             self._renew_admin_timeout(timeout_seconds=decoded.Payload.AdminTimeoutSeconds)
+        #             self.log(f'Admin timeout renewed: {decoded.Payload.AdminTimeoutSeconds} seconds')
+        #             if not self.top_state == TopState.Admin:
+        #                 self.admin_wakes_up()
+        #                 self.log('Admin Wakes Up')
+        #         case AdminReleaseControl():
+        #             path_dbg |= 0x00000040
+        #             if self.top_state == TopState.Admin:
+        #                 self.admin_releases_control()
+        #         case _:
+        #             # Intentionally ignore this for forward compatibility
+        #             path_dbg |= 0x00000080
+        # self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
+
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():
             try:
