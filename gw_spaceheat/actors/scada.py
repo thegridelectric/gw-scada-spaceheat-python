@@ -771,7 +771,7 @@ class Scada(ScadaInterface, Proactor):
         self.generate_event(RemainingElecEvent(Remaining=payload))
         self.log("Sent remaining elec to ATN and atomic ally")
 
-    def scada_params_received(self, from_node: ShNode, payload: ScadaParams) -> None:
+    def scada_params_received(self, from_node: ShNode, payload: ScadaParams, testing: bool = False) -> None:
         if from_node != self.atn:
             self.log(f"ScadaParams from {from_node.Name}; expect Atn!")
             return
@@ -793,7 +793,7 @@ class Scada(ScadaInterface, Proactor):
             if new.IntermediateRswtF != old.IntermediateRswtF:
                 self.update_env_variable('SCADA_INTERMEDIATE_RSWT', new.IntermediateRswtF)
             if new.DdPowerKw != old.DdPowerKw:
-                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw)
+                self.update_env_variable('SCADA_DD_POWER', new.DdPowerKw, testing=testing)
             if new.DdRswtF != old.DdRswtF:
                 self.update_env_variable('SCADA_DD_RSWT', new.DdRswtF)
             if new.DdDeltaTF != old.DdDeltaTF:

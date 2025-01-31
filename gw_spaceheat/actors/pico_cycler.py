@@ -175,7 +175,7 @@ class PicoCycler(ScadaActor):
             )
 
         self._send_to(
-            self.primary_scada,
+            self.atn,
             Glitch(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
                 Node=self.actor_by_pico[pico].name,
@@ -553,7 +553,7 @@ class PicoCycler(ScadaActor):
             if time.time() > next_zombie_problem and len(zombies) > 0:
                 self.log(f"Sending problem event for zombies {zombies}")
                 self._send_to(
-                    self.primary_scada,
+                    self.atn,
                     Glitch(
                         FromGNodeAlias=self.layout.scada_g_node_alias,
                         Node=self.node.name,

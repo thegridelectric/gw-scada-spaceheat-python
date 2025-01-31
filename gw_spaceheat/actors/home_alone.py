@@ -827,12 +827,12 @@ class HomeAlone(ScadaActor):
         return t*9/5+32
 
     def alert(self, summary: str, details: str) -> None:
-        self._services._links.publish_upstream(payload=Glitch(
+        msg =Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.normal_node,
+            Node=self.node,
             Type=LogLevel.Critical,
             Summary=summary,
             Details=details
-        ))
+        )
+        self._send_to(H0N.atn, msg)
         self.log(f"CRITICAL GLITCH: {summary}")
-
