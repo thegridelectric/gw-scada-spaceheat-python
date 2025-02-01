@@ -84,7 +84,6 @@ def add_tsnap_multipurpose(
                     ConfigList=[
                         AdsChannelConfig(
                             ChannelName=sensor_cfg.ChannelName,
-                            PollPeriodMs=200,
                             CapturePeriodS=sensor_cfg.CapturePeriodS,
                             AsyncCapture=sensor_cfg.AsyncCapture,
                             AsyncCaptureDelta=sensor_cfg.AsyncCaptureDelta,
@@ -92,7 +91,7 @@ def add_tsnap_multipurpose(
                             Unit=Unit.Celcius,
                             TerminalBlockIdx=sensor_cfg.TerminalBlockIdx,
                             ThermistorMakeModel=sensor_cfg.ThermistorMakeModel,
-                            DataProcessingMethod=ThermistorDataMethod.SimpleBeta,
+                            DataProcessingMethod=ThermistorDataMethod.BetaWithExponentialAveraging,
                         )
                         for sensor_cfg in tsnap.SensorCfgs
                     ],
