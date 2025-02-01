@@ -211,7 +211,8 @@ class SynthGenerator(ScadaActor):
             FromGNodeAlias=self.layout.atn_g_node_alias,
             RemainingWattHours=remaining_wh
         )
-        self._send_to(self.atomic_ally, remaining)
+        # primary scada will pass on to atomic ally
+        self._send_to(self.primary_scada, remaining)
         self.previous_time = time_now
 
     # Compute usable and required energy

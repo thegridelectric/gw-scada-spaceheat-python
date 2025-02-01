@@ -21,8 +21,8 @@ from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
 from enums import LogLevel
 from named_types import (
-    AllyGivesUp, EnergyInstruction, GameOn, Glitch, GoDormant,
-    Ha1Params, HeatingForecast, RemainingElec, WakeUp, 
+    AllyGivesUp, EnergyInstruction, Glitch, GoDormant,
+    Ha1Params, HeatingForecast, RemainingElec, SuitUp, WakeUp, 
 )
 
 
@@ -234,8 +234,8 @@ class AtomicAlly(ScadaActor):
                 )
             return
             
-        self.log("Suiting up and sending GameOn to Atn")
-        self._send_to(self.primary_scada, GameOn(FromGNodeAlias=self.layout.atn_g_node_alias))
+        self.log("Suiting up")
+        self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
         self.trigger_event(AtomicAllyEvent.WakeUp)
         self.engage_brain()
 
@@ -522,11 +522,12 @@ class AtomicAlly(ScadaActor):
         return t*9/5+32
 
     def alert(self, summary: str, details: str) -> None:
-        self._services._links.publish_upstream(payload=Glitch(
+        msg =Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.normal_node,
+            Node=self.node,
             Type=LogLevel.Critical,
             Summary=summary,
             Details=details
-        ))
-        self.log(f"CRITICAL GLITCH: {summary}")
+        )
+        self._send_to(H0N.atn, msg)
+        self.log(f"Glitch: {summary}")

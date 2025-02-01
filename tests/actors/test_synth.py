@@ -71,7 +71,8 @@ def test_ha1(monkeypatch, tmp_path):
         NewParams=new
 
     )
-    s._scada_params_received(params_from_atn, testing=True)
+
+    s.scada_params_received(s.atn, params_from_atn, testing=True)
     assert synth.params.DdPowerKw == 10
 
     # wrote the new parameter to .env

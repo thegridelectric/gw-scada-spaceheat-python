@@ -15,6 +15,7 @@ from gwproactor.sync_thread import SyncAsyncInteractionThread
 from gwproto import Message
 from gwproto.data_classes.components.ads111x_based_component import \
     Ads111xBasedComponent
+from data_classes.house_0_names import H0N
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.hardware_layout import HardwareLayout
 from gwproto.data_classes.sh_node import ShNode
@@ -155,7 +156,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 Details=outcome.comments_to_details(),
             )
             message = Message(
-                header=Header(Src=self.name, MessageType=payload.TypeName),
+                header=Header(Src=self.name, Dst=H0N.atn,  MessageType=payload.TypeName),
                 Payload=payload,
             )
             # TODO: add analog temp logging
@@ -198,7 +199,7 @@ class MultipurposeSensorDriverThread(SyncAsyncInteractionThread):
                 Details=outcome.comments_to_details(),
             )
             message = Message(
-                header=Header(Src=self.name, MessageType=payload.TypeName),
+                header=Header(Src=self.name, Dst=H0N.atn, MessageType=payload.TypeName),
                 Payload=payload,
             )
             # TODO: add analog temp logging

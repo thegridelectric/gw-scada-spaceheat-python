@@ -301,7 +301,6 @@ class ApiTankModule(ScadaActor):
     async def main(self):
         while not self._stop_requested:
             self._send(PatInternalWatchdogMessage(src=self.name))
-            # check if flatlined, if so send a complaint every minute
             if self.last_error_report > FLATLINE_REPORT_S:
                 if self.a_missing():
                     self._send_to(
@@ -309,14 +308,13 @@ class ApiTankModule(ScadaActor):
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_a_uid),
                     )
                     self._send_to(
-                        self.synth_generator,
+                        self.primary_scada,
                         ChannelFlatlined(FromName=self.name, Channel=self.depth1_channel)
                     )
                     self._send_to(
-                        self.synth_generator,
+                        self.primary_scada,
                         ChannelFlatlined(FromName=self.name, Channel=self.depth2_channel)
                     )
-                    # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_a_uid} down"]).problem_event(summary=self.name))
                     self.last_error_report = time.time()
                 if self.b_missing():
                     self._send_to(
@@ -324,14 +322,13 @@ class ApiTankModule(ScadaActor):
                         PicoMissing(ActorName=self.name, PicoHwUid=self.pico_b_uid),
                     )
                     self._send_to(
-                        self.synth_generator,
+                        self.primary_scada,
                         ChannelFlatlined(FromName=self.name, Channel=self.depth3_channel)
                     )
                     self._send_to(
-                        self.synth_generator,
+                        self.primary_scada,
                         ChannelFlatlined(FromName=self.name, Channel=self.depth4_channel)
                     )
-                    # self._send_to(self.primary_scada, Problems(warnings=[f"{self.pico_b_uid} down"]).problem_event(summary=self.name))
                     self.last_error_report = time.time()
             await asyncio.sleep(10)
 
