@@ -1213,9 +1213,9 @@ class Atn(ActorInterface, Proactor):
         if current_hour:
             total_price = [dp+lmp+reg for dp,lmp,reg in zip(dist_usd_mwh, lmp_usd_mwh, reg_usd_mwh)]
             return total_price[datetime.now(tz=self.timezone).hour]
-        dp_forecast_usd_per_mwh = dist_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
-        lmp_forecast_usd_per_mwh = lmp_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
-        reg_forecast_usd_per_mwh = reg_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+48]
+        dp_forecast_usd_per_mwh = dist_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
+        lmp_forecast_usd_per_mwh = lmp_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
+        reg_forecast_usd_per_mwh = reg_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
         self.price_forecast = {
             "dp": dp_forecast_usd_per_mwh,
             "lmp": lmp_forecast_usd_per_mwh,
