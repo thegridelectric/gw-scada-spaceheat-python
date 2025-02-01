@@ -145,7 +145,7 @@ class ScadaCmdDiagnostic(enum.Enum):
 class Scada(ScadaInterface, Proactor):
     ASYNC_POWER_REPORT_THRESHOLD = 0.05
     DEFAULT_ACTORS_MODULE = "actors"
-    GRIDWORKS_MQTT = "gridworks"
+    ATN_MQTT = "gridworks"
     LOCAL_MQTT = "local"
     ADMIN_MQTT = "admin"
 
@@ -153,7 +153,6 @@ class Scada(ScadaInterface, Proactor):
     _last_report_second: int
     _last_sync_snap_s: int
     _channels_reported: bool
-    _layout_lite: LayoutLite
     _admin_timeout_task: Optional[asyncio.Task] = None
 
     top_states = ["Auto", "Admin"]
@@ -207,7 +206,7 @@ class Scada(ScadaInterface, Proactor):
         )
         self._links.add_mqtt_link(
             LinkSettings(
-                client_name=self.GRIDWORKS_MQTT,
+                client_name=self.ATN_MQTT,
                 gnode_name=self._layout.atn_g_node_alias,
                 spaceheat_name=H0N.atn,
                 mqtt=self.settings.gridworks_mqtt,
@@ -408,41 +407,17 @@ class Scada(ScadaInterface, Proactor):
                 finally:
                     break
 
-    @property
-    def _layout_lite(self) -> LayoutLite:
-        tank_nodes = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ApiTankModule]
-        flow_nodes = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ApiFlowModule]
-        return LayoutLite(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                FromGNodeInstanceId=self.layout.scada_g_node_id,
-                Strategy=self.layout.strategy,
-                ZoneList=self.layout.zone_list,
-                TotalStoreTanks=self.layout.total_store_tanks,
-                TankModuleComponents=[node.component.gt for node in tank_nodes],
-                FlowModuleComponents=[node.component.gt for node in flow_nodes],
-                ShNodes=[node.to_gt() for node in self.layout.nodes.values()],
-                DataChannels=[ch.to_gt() for ch in self.layout.data_channels.values()],
-                SynthChannels=[ch.to_gt() for ch in self.layout.synth_channels.values()],
-                Ha1Params=self.data.ha1_params,
-                I2cRelayComponent=self.layout.node(H0N.relay_multiplexer).component.gt,
-                
-                MessageCreatedMs=int(time.time() * 1000),
-                MessageId=str(uuid.uuid4()),
-            )
-
     def send_report(self):
         report = self._data.make_report(self._last_report_second)
         self._data.reports_to_store[report.Id] = report
         self.generate_event(ReportEvent(Report=report)) # noqa
-        self._publish_to_local(self._node, report)
         self._data.flush_recent_readings()
     
     def send_snap(self):
         snapshot = self._data.make_snapshot()
-        self._publish_to_local(self._node, snapshot)
-        self._links.publish_upstream(snapshot)
+        self._send_to(self.atn, snapshot)
         if self.settings.admin.enabled:
-            self._publish_to_link(self.ADMIN_MQTT, snapshot)
+            self._send_to(self.admin, snapshot)
 
     def next_report_second(self) -> int:
         last_report_second_nominal = int(
@@ -469,24 +444,6 @@ class Scada(ScadaInterface, Proactor):
             self._last_sync_snap_s = int(time.time())
             return True
         #TODO: add sending on change.
-
-    def _publish_to_link(self, link_name: str, payload: Any, qos: QOS = QOS.AtMostOnce):
-        return self.publish_message(
-            link_name,
-            Message(
-                Src=self.publication_name,
-                Payload=payload
-            ),
-            qos=qos
-        )
-
-    def _publish_to_local(self, from_node: ShNode, payload, qos: QOS = QOS.AtMostOnce):
-        return self._links.publish_message(
-            Scada.LOCAL_MQTT,
-            Message(Src=from_node.Name, Payload=payload),
-            qos=qos,
-            use_link_topic=True,
-        )
 
     def process_scada_message(self, from_node: ShNode, payload: Any) -> None:
         """Process NamedTypes sent to primary scada
@@ -566,6 +523,7 @@ class Scada(ScadaInterface, Proactor):
             case ScadaParams():
                 try:
                     self.scada_params_received(from_node, payload)
+                    self._send_to(self.synth_generator, payload)
                 except Exception as e:
                     self.log(f"Trouble with scada_params_received: \n {e}")
             case SendLayout():
@@ -634,7 +592,7 @@ class Scada(ScadaInterface, Proactor):
             )
 
     def admin_release_control_received(self, from_node: ShNode, payload: AdminReleaseControl) -> None:
-        if from_node != H0N.admin:
+        if from_node != self.admin:
             self.log(f"Ignoring AdminReleaseControl from {from_node.Name} - expected admin")
             return
         if self.top_state != TopState.Admin:
@@ -801,7 +759,6 @@ class Scada(ScadaInterface, Proactor):
             if new.LoadOverestimationPercent != old.LoadOverestimationPercent:
                 self.update_env_variable('SCADA_LOAD_OVERESTIMATION_PERCENT', new.LoadOverestimationPercent)
 
-
             response = ScadaParams(
                     FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
                     FromName=self.name,
@@ -812,7 +769,7 @@ class Scada(ScadaInterface, Proactor):
                     OldParams=old,
                 )
             self.logger.error(f"Sending back {response}")
-            self._links.publish_upstream(response)
+            self._send_to(self.atn, response)
 
     def single_machine_state_received(self, from_node: ShNode, payload: SingleMachineState) -> None:
         # TODO: compare MachineHandle last word with from_node.Name
@@ -884,78 +841,6 @@ class Scada(ScadaInterface, Proactor):
             "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
         )
 
-    def _process_upstream_mqtt_message(
-        self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
-    ) -> None:
-        self._logger.path("++_process_upstream_mqtt_message %s", message.Payload.message.topic)
-        path_dbg = 0
-        from_node = self.atn
-        match decoded.Payload:
-            case AnalogDispatch():
-                path_dbg |= 0x00000001
-                self.analog_dispatch_received(from_node, decoded.Payload)
-            case DispatchContractGoDormant():
-                self.dispatch_contract_go_dormant_received(from_node, decoded.Payload)
-            case DispatchContractGoLive():
-                self.dispatch_contract_go_live_received(from_node, decoded.Payload)
-            case EnergyInstruction():
-                self.energy_instruction_received(from_node, decoded.Payload)
-            case SendLayout():
-                path_dbg |= 0x00000004
-                self._send_to(self.atn, self.layout_lite)
-            case SendSnap():
-                path_dbg |= 0x00000008
-                self._send_to(from_node, self._data.make_snapshot())
-            case ScadaParams():
-                path_dbg |= 0x00000010
-                self.scada_params_received(from_node, decoded.Payload)
-                self.get_communicator(H0N.synth_generator).process_message(decoded)
-            case _:
-                # Intentionally ignore this for forward compatibility
-                path_dbg |= 0x00000020
-        self._logger.path("--_process_upstream_mqtt_message  path:0x%08X", path_dbg)
-
-    def _process_downstream_mqtt_message(
-            self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
-    ) -> None:
-        self._logger.path("++_process_downstream_mqtt_message %s", message.Payload.message.topic)
-        path_dbg = 0
-        from_node = self._layout.node(decoded.Header.Src, None)
-        self.decoded = decoded
-        
-        match decoded.Payload:
-            case EventBase():
-                path_dbg |= 0x00000001
-                self.generate_event(decoded.Payload)
-            case Glitch():
-                try:
-                    self._links.publish_upstream(decoded.Payload, QOS.AtMostOnce)
-                except Exception as e:
-                    self.log(e)
-            case PowerWatts():
-                if from_node is self._layout.power_meter_node:
-                    path_dbg |= 0x00000002
-                    self.power_watts_received(from_node, decoded.Payload)
-                    self.get_communicator(H0N.synth_generator).process_message(decoded)
-                else:
-                    raise Exception(
-                        f"message.Header.Src {message.Header.Src} must be from {self._layout.power_meter_node} for PowerWatts message"
-                    )
-            case SyncedReadings():
-                path_dbg |= 0x00000004
-                try:
-                    self.synced_readings_received(
-                        self._layout.node(decoded.Header.Src),
-                        decoded.Payload
-                    )
-                except Exception as e:
-                    #TODO - consider sending an Alert or ProbemEvent
-                    self.logger.error(f"Failed to process SyncedReading from scada2!: {e}")
-            case _:
-                # Intentionally ignore this for forward compatibility
-                path_dbg |= 0x00000008
-        self._logger.path("--_process_downstream_mqtt_message  path:0x%08X", path_dbg)
-    
     async def _timeout_admin(self, timeout_seconds: Optional[int] = None) -> None:
         if timeout_seconds is None or timeout_seconds>self.settings.admin.max_timeout_seconds:
             await asyncio.sleep(self.settings.admin.max_timeout_seconds)
@@ -1004,7 +889,7 @@ class Scada(ScadaInterface, Proactor):
             if self._layout.node(
                 self._layout.data_channels[reading.ChannelName].AboutNodeName
             ).ActorClass== ActorClass.Relay:
-                self._publish_to_link(self.ADMIN_MQTT, reading)
+                self._send_to(self.admin, reading)
 
     #####################################################################
     # PLUMBING
@@ -1016,20 +901,34 @@ class Scada(ScadaInterface, Proactor):
             return
         if from_node is None:
             from_node = self.node
-        if from_node is not None:
-            print(f"_send_to: {payload.TypeName} from {from_node.Name} to {to_node.Name}")
-        message = Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
+        # if the message is meant for primary_scada, process here
         if to_node.name == self.name:
             self.process_scada_message(from_node, payload)
-        elif to_node.name in set(self._communicators.keys()):
-            self.get_communicator(to_node.Name).process_message(message)
+        # if its meant for an actor spawned by primary_scada (aka communicator)
+        # call its process_message
+        elif to_node.name in set(self._communicators.keys()): 
+            self.get_communicator(to_node.Name).process_message(
+                Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
+            )
         elif to_node.Name == H0N.admin:
-            print(f"Trying to publish {payload.TypeName} on local mqtt")
-            self._links.publish_message(self.ADMIN_MQTT, message)
+            self._links.publish_message(
+                    link_name=self.ADMIN_MQTT,
+                    message=Message(Src=self.publication_name, Dst=to_node.Name, Payload=payload),
+                    qos=QOS.AtMostOnce)
         elif to_node.Name == H0N.atn:
             self._links.publish_upstream(payload)
-        else: 
-            self._links.publish_message(self.LOCAL_MQTT, message)
+            self._links.publish_message(
+                link_name=self.ATN_MQTT,
+                message = Message(Src=self.publication_name, Dst=to_node.Name, Payload=payload),
+                qos=QOS.AtMostOnce
+            )
+        else:  # publish to local for actors on LAN not run by primary_scada
+            self._links.publish_message(
+                link_name=Scada.LOCAL_MQTT,
+                message=Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload),
+                qos=QOS.AtMostOnce,
+                use_link_topic=True,
+        )
 
     def _derived_process_message(self, message: Message):
         """ Plumbing: messages received on the internal proactor queue
@@ -1039,10 +938,7 @@ class Scada(ScadaInterface, Proactor):
         """
         from_node = self._layout.node(message.Header.Src, None)
         to_node = self._layout.node(message.Header.Dst, None)
-        print_str = f"{message.Payload.TypeName} from {from_node.Name} "
-        if from_node is not None:
-            print_str = f"{message.Payload.TypeName} from {from_node.Name} to {to_node.Name} "
-        print(print_str)
+
         if to_node is not None and to_node != self.node:
             try:
                 self._send_to(to_node, message.Payload, from_node)
@@ -1057,103 +953,36 @@ class Scada(ScadaInterface, Proactor):
     def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
     ) -> None:
-        print("IN _derived_process_mqtt_message")
-        self._logger.path("++Scada._derived_process_mqtt_message %s", message.Payload.message.topic)
-        path_dbg = 0
-        from_node = self._layout.node(decoded.Header.Src, None)
-        to_node = self._layout.node(message.Header.Dst, None) 
-        payload = decoded.Payload
-        if message.Payload.client_name == self.LOCAL_MQTT:
-            path_dbg |= 0x00000001
-            self._process_downstream_mqtt_message(message, decoded)
-        elif message.Payload.client_name == self.GRIDWORKS_MQTT:
-            path_dbg |= 0x00000002
-            self._process_upstream_mqtt_message(message, decoded)
-        elif message.Payload.client_name == self.ADMIN_MQTT:
-            path_dbg |= 0x00000004
-            self._process_admin_mqtt_message(message, decoded)
-        else:
-            raise ValueError("ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name)
-        self._logger.path("--Scada._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-    def _process_admin_mqtt_message(
-            self, message: Message[MQTTReceiptPayload], decoded: Message[Any]
-    ) -> None:
-        print("GOT HERE IN PROCESS_ADMIN")
-        self._logger.path("++_process_admin_mqtt_message %s", message.Payload.message.topic)
-        path_dbg = 0
-        from_node = self._layout.node(decoded.Header.Src, None)
-        if from_node is None:
-            self.log(f"Got a message from unrecognized {decoded.Header.Src} - ignoring")
-            return
-        to_node = self._layout.node(message.Header.Dst, None)
+        to_node = self._layout.node(message.Header.Dst, None) 
         if to_node is None:
             to_node = self.node
         payload = decoded.Payload
-        if self.settings.admin.enabled:
-                self._send_to(to_node, payload, from_node)
-        #     path_dbg |= 0x00000001
-        #     match decoded.Payload:
-        #         case AdminDispatch():
-                    
-        #             path_dbg |= 0x00000001
-        #             if not self.top_state == TopState.Admin:
-        #                 self.admin_wakes_up()
-        #                 self.log('Admin Wakes Up')
-        #             self._renew_admin_timeout(timeout_seconds=decoded.Payload.TimeoutSeconds)
-        #             event = decoded.Payload.DispatchTrigger
-        #             self.log(f"AdminDispatch event toype name is {event.TypeName}")
-        #             if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
-        #                 path_dbg |= 0x00000010
-        #                 communicator.process_message(
-        #                     Message(
-        #                         header=Header(
-        #                             Src=H0N.admin,
-        #                             Dst=communicator.name,
-        #                             MessageType=event.TypeName,
-        #                         ),
-        #                         Payload=event
-        #                     )
-        #                 )
-        #         case SendLayout():
-        #             path_dbg |= 0x00000002
-        #             self._publish_to_link(self.ADMIN_MQTT, self._layout_lite)
-        #         case SendSnap():
-        #             path_dbg |= 0x00000004
-        #             self._publish_to_link(self.ADMIN_MQTT, self._data.make_snapshot())
-        #         # TODO: remove when not maintaining backwards compatability for this
-        #         case FsmEvent() as event:
-        #             path_dbg |= 0x00000008
-        #             if self.top_state != TopState.Admin:
-        #                 # change control
-        #                 self.admin_wakes_up()
-        #             if communicator := self.get_communicator(event.ToHandle.split('.')[-1]):
-        #                 path_dbg |= 0x00000010
-        #                 communicator.process_message(
-        #                     Message(
-        #                         header=Header(
-        #                             Src=H0N.admin,
-        #                             Dst=communicator.name,
-        #                             MessageType=decoded.Payload.TypeName,
-        #                         ),
-        #                         Payload=decoded.Payload
-        #                     )
-        #                 )
-        #         case AdminKeepAlive():
-        #             path_dbg |= 0x00000020
-        #             self._renew_admin_timeout(timeout_seconds=decoded.Payload.AdminTimeoutSeconds)
-        #             self.log(f'Admin timeout renewed: {decoded.Payload.AdminTimeoutSeconds} seconds')
-        #             if not self.top_state == TopState.Admin:
-        #                 self.admin_wakes_up()
-        #                 self.log('Admin Wakes Up')
-        #         case AdminReleaseControl():
-        #             path_dbg |= 0x00000040
-        #             if self.top_state == TopState.Admin:
-        #                 self.admin_releases_control()
-        #         case _:
-        #             # Intentionally ignore this for forward compatibility
-        #             path_dbg |= 0x00000080
-        # self._logger.path("--_process_admin_mqtt_message  path:0x%08X", path_dbg)
+        src = decoded.Header.Src
+        if message.Payload.client_name == self.LOCAL_MQTT:
+            # store and pass on all the events from scada2
+            if isinstance(decoded.Payload, EventBase):
+                self.generate_event(decoded.Payload)
+                return
+        elif message.Payload.client_name == self.ATN_MQTT:
+            if src != self.layout.atn_g_node_alias:
+                self.log(f"IGNORING message from upstream. Expected {self.layout.atn_g_node_alias} but got {src}")
+                return
+            src = H0N.atn
+        elif message.Payload.client_name == self.ADMIN_MQTT:
+            if not self.settings.admin.enabled:
+                return
+            src = H0N.admin
+        else:
+            raise ValueError("ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name)
+        from_node = self._layout.node(src, None)
+
+        if from_node is None:
+            self.log(f"Got a message from unrecognized {decoded.Header.Src} - ignoring")
+            self.decoded = decoded
+            return
+
+        self._send_to(to_node, payload, from_node)
 
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
         async def _async_run_forever():
