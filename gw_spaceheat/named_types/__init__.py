@@ -17,6 +17,8 @@ from named_types.game_on import GameOn
 from named_types.glitch import Glitch
 from named_types.go_dormant import GoDormant
 from named_types.ha1_params import Ha1Params
+from named_types.hack_oil_off import HackOilOff
+from named_types.hack_oil_on import HackOilOn
 from named_types.heating_forecast import HeatingForecast
 from named_types.latest_price import LatestPrice
 from named_types.layout_lite import LayoutLite
@@ -49,6 +51,8 @@ __all__ = [
     "Glitch",
     "GoDormant",
     "Ha1Params",
+    "HackOilOff",
+    "HackOilOn",
     "HeatingForecast",
     "LatestPrice",
     "LayoutLite",
