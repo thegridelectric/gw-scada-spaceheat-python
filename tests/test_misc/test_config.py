@@ -14,7 +14,7 @@ from actors.config import PersisterSettings
 from gwproactor.config import LoggingSettings
 from gwproactor.config import MQTTClient
 from actors.config import ScadaSettings
-
+from enums import HpModel
 from gwproactor.config.proactor_settings import MQTT_LINK_POLL_SECONDS
 
 
@@ -71,7 +71,8 @@ def test_scada_settings_defaults(clean_scada_env):
             )
         ).model_dump(),
         timezone_str="America/New_York",
-        is_simulated=False
+        is_simulated=False,
+        hp_model=HpModel.SamsungHighTempHydroKitPlusMultiV
     )
     assert settings.model_dump() == exp
     assert settings.local_mqtt == exp_local_mqtt

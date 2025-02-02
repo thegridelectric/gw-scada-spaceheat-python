@@ -1,5 +1,5 @@
 import asyncio
-from typing import Sequence
+from typing import Optional, Sequence
 from enum import auto
 import time
 from datetime import datetime, timedelta
@@ -10,16 +10,16 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass
-from actors.scada_data import ScadaData
 from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
 
 from actors.scada_actor import ScadaActor
 from named_types import (
-            GoDormant, Glitch, Ha1Params, 
-            NewCommandTree, SingleMachineState, WakeUp, HeatingForecast)
-from enums import HomeAloneTopState, LogLevel
+            GoDormant, Glitch, Ha1Params, HeatingForecast,
+            NewCommandTree, SingleMachineState, StratBossTrigger, 
+            WakeUp )
+from enums import HomeAloneTopState, LogLevel, StratBossState, StratBossEvent
 
  
 class HomeAloneState(GwStrEnum):
@@ -28,6 +28,7 @@ class HomeAloneState(GwStrEnum):
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
+    StratBoss = auto()
     Dormant = auto()
 
     @classmethod
@@ -48,6 +49,8 @@ class HomeAloneEvent(GwStrEnum):
     OnPeakHouseCold = auto()
     OnPeakStorageColderThanBuffer = auto()
     TemperaturesAvailable = auto()
+    StartStratSaving = auto()
+    StopStratSaving = auto()
     GoDormant = auto()
     WakeUp = auto()
 
@@ -73,9 +76,11 @@ class HomeAlone(ScadaActor):
         "HpOnStoreCharge",
         "HpOffStoreOff",
         "HpOffStoreDischarge",
+        "StratBoss",
     ]
 
-    transitions = [
+    transitions = (
+        [
         # Initializing
         {"trigger": "OnPeakBufferEmpty", "source": "Initializing", "dest": "HpOffStoreDischarge"},
         {"trigger": "OnPeakBufferFull", "source": "Initializing", "dest": "HpOffStoreOff"},
@@ -103,8 +108,14 @@ class HomeAlone(ScadaActor):
     ] + [
             {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
             for state in states if state != "Dormant"
-    ] + [{"trigger":"WakeUp","source": "Dormant", "dest": "Initializing"}]
-    
+    ] + [
+            {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"}
+            for state in states if state not in ["Dormant", "StratBoss"]
+    ]  
+    + [{"trigger":"StopStratSaving", "source": "StratBoss", "dest": "Initializing"}]
+    + [{"trigger":"WakeUp", "source": "Dormant", "dest": "Initializing"}]
+    )
+
     top_states = ["Normal", "UsingBackupOnpeak", "Dormant", "ScadaBlind"]
     top_transitions = [
         {"trigger": "HouseColdOnpeak", "source": "Normal", "dest": "UsingBackupOnpeak"},
@@ -116,6 +127,7 @@ class HomeAlone(ScadaActor):
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
     ]
+    
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
@@ -134,7 +146,7 @@ class HomeAlone(ScadaActor):
         self.storage_declared_ready = False
         self.full_storage_energy = None
         self.time_since_blind = None
-        self.initialized_relays = False
+        self.relays_initialized = False
         self.scadablind_scada = False
         self.scadablind_boiler = False
         
@@ -170,6 +182,7 @@ class HomeAlone(ScadaActor):
             raise Exception(f"HomeAlone requires {H0N.home_alone_scada_blind} node!!")
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
+        self.set_normal_command_tree()
 
     @property
     def normal_node(self) -> ShNode:
@@ -195,18 +208,16 @@ class HomeAlone(ScadaActor):
         return self.layout.node(H0N.home_alone_scada_blind)
 
     @property
-    def data(self) -> ScadaData:
-        return self._services.data
-
-    @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
 
     def trigger_normal_event(self, event: HomeAloneEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
+        
         self.trigger(event)
         self.log(f"{event}: {orig_state} -> {self.state}")
+        self.relays_initialized = False
         self._send_to(
             self.primary_scada,
             SingleMachineState(
@@ -219,8 +230,21 @@ class HomeAlone(ScadaActor):
         )
 
     def set_onpeak_backup_command_tree(self) -> None:
+        """
+        Not in command of HpScadaOps relay
+        """
+
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = hp_relay_boss.Name # out of chain of command
+        
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = strat_boss.Name # out of chain of command
+
         for node in self.my_actuators():
-            node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_onpeak_backup}.{node.Name}"
+            if node.Name == H0N.hp_scada_ops_relay:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
+            else:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_onpeak_backup}.{node.Name}"
         self._send_to(
             self.atn,
             NewCommandTree(
@@ -229,10 +253,23 @@ class HomeAlone(ScadaActor):
                 UnixMs=int(time.time() * 1000),
             ),
         )
+        self.log("Set backup command tree")
+        
 
     def set_normal_command_tree(self) -> None:
+
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{hp_relay_boss.Name}"
+        
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{strat_boss.Name}"
+
+
         for node in self.my_actuators():
-            node.Handle =  f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
+            if node.Name == H0N.hp_scada_ops_relay:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{hp_relay_boss.Name}.{node.Name}"
+            else:
+                node.Handle =  f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
         self._send_to(
             self.atn,
             NewCommandTree(
@@ -243,9 +280,47 @@ class HomeAlone(ScadaActor):
         )
         self.log("Set normal command tree")
 
+    def set_strat_saver_command_tree(self) -> None:
+        
+        # charge discharge relay reports to strat boss
+        chg_dschg_node = self.layout.node(H0N.store_charge_discharge_relay)
+        chg_dschg_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{chg_dschg_node.Name}"
+
+        # Thermostat relays report to strat boss
+        for zone in self.layout.zone_list:
+            failsafe_node = self.stat_failsafe_relay(zone)
+            failsafe_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{failsafe_node.Name}"
+            stat_ops_node = self.stat_ops_relay(zone)
+            stat_ops_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{stat_ops_node.Name}"
+
+        # dist pump and primary pump dfrs reports to strat boss
+        dist_010_node = self.layout.node(H0N.dist_010v)
+        primary_010_node = self.layout.node(H0N.primary_010v)
+        dist_010_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{dist_010_node.Name}"
+        primary_010_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{primary_010_node.Name}"
+
+        self._send_to(
+            self.atn,
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+        self.log(f"Set strat saver command tree. E.g. charge/discharge is now {chg_dschg_node.handle}")
+
     def set_scadablind_command_tree(self) -> None:
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = hp_relay_boss.Name # out of chain of command
+        
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = strat_boss.Name # out of chain of command
+
         for node in self.my_actuators():
-            node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_scada_blind}.{node.Name}"
+            if node.Name == H0N.hp_scada_ops_relay:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
+            else:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_scada_blind}.{node.Name}"
         self._send_to(
             self.atn,
             NewCommandTree(
@@ -356,11 +431,10 @@ class HomeAlone(ScadaActor):
             if self.state == HomeAloneState.Dormant:
                 self.trigger_normal_event(HomeAloneEvent.WakeUp)
                 self.time_since_blind = None
-                self.initialized_relays = False
-            if not self.initialized_relays:
+            if not self.relays_initialized:
                 self.initialize_relays()
-                self.initialized_relays = True
-        
+            else:
+                self.log("RELAYS ALLEGEDLY ALREADY INITIALIZED")        
         previous_state = self.state
 
         if self.is_onpeak():
@@ -479,13 +553,14 @@ class HomeAlone(ScadaActor):
             self.valved_to_discharge_store(from_node=self.normal_node)
 
     def initialize_relays(self):
+        self.log("Initializing relays WOOHOO WOOHOO")
         if self.top_state != HomeAloneTopState.Normal:
             raise Exception("Can not go into initialize relays if top state is not Normal")
-        self.log("Initializing relays")
+        
         my_relays =  {
             relay
             for relay in self.my_actuators()
-            if relay.ActorClass == ActorClass.Relay and self.is_boss_of(relay)
+            if relay.ActorClass == ActorClass.Relay and self.the_boss_of(relay) == self.normal_node
         }
         for relay in my_relays - {
             self.store_charge_discharge_relay, # keep as it was
@@ -500,6 +575,7 @@ class HomeAlone(ScadaActor):
         if self.is_onpeak():
             self.log("Is on peak: turning off HP")
             self.turn_off_HP(from_node=self.normal_node)
+        self.relays_initialized = True
     
     def trigger_just_offpeak(self):
         """
@@ -583,6 +659,7 @@ class HomeAlone(ScadaActor):
         ...
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
+        from_node = self.layout.node(message.Header.Src, None)
         match message.Payload:
             case GoDormant():
                 if len(self.my_actuators()) > 0:
@@ -612,8 +689,36 @@ class HomeAlone(ScadaActor):
                     self.log(f"Top state: {self.top_state}")
                     self.log(f"State: {self.state}")
                     self.engage_brain()
+            case StratBossTrigger():
+                try:
+                    self.strat_boss_trigger_received(from_node, message.Payload)
+                except Exception as e:
+                    self.log(f"Problem strat_bss_trigger_received: {e}")
         return Ok(True)
-    
+
+    def strat_boss_trigger_received(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
+        self.log("Strat boss trigger received!")
+        if self.state == HomeAloneState.Dormant:
+            self.log(f"top state is {self.top_state} and state is {self.state}")
+            self.log("strat boss should be sidelined and NOT sending messages but strat_boss_trigger_received. IGNORING")
+            return
+        
+        if payload.FromState == StratBossState.Dormant:
+            if self.state == HomeAloneState.StratBoss:
+                raise Exception("Inconsistency! StratBoss thinks its Dormant but HA is in StratBoss State")
+            self.set_strat_saver_command_tree()
+            self.trigger_normal_event(HomeAloneEvent.StartStratSaving)
+            # confirm change of command tree by returning payload to strat boss
+            self._send_to(dst=self.strat_boss, payload=payload, src=self.normal_node)
+        else: 
+            if self.state != HomeAloneState.StratBoss:
+                raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
+            self.set_normal_command_tree()
+            self.trigger_normal_event(HomeAloneEvent.StopStratSaving)
+            self.engage_brain(waking_up=True)
+            # confirm change of command tree by returning payload to strat boss
+            self._send_to(dst=self.strat_boss, payload=payload, src=self.normal_node)
+
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
             for channel_name in self.temperature_channel_names:

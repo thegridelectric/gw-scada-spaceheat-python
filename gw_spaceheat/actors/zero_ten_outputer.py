@@ -6,7 +6,7 @@ from gwproactor import ServicesInterface
 from gwproactor.message import Message
 from data_classes.house_0_names import H0N
 from gwproto.named_types import AnalogDispatch
-from result import Err, Result
+from result import Ok, Result
 from actors.scada_actor import ScadaActor
 
 class ZeroTenOutputer(ScadaActor):
@@ -19,7 +19,7 @@ class ZeroTenOutputer(ScadaActor):
         self.node
         self.dfr_multiplexer = self.layout.node(H0N.zero_ten_out_multiplexer)
 
-    def _process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
+    def analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
         from_node = self.layout.node_by_handle(dispatch.FromHandle)
         if not from_node:
             self.log(f"Ignoring dispatch from  handle {dispatch.FromHandle} - not in layout!!")
@@ -33,7 +33,6 @@ class ZeroTenOutputer(ScadaActor):
             self.log(
                 f"Igonring dispatch {dispatch} - range out of value. Should be 0-100"
             )
-        self.log(f"Got AnalogDispatch from {from_node.name}")
         # self.log(f"Sending {dispatch.Value} to dfr multiplexer")
         self._send_to(
             self.dfr_multiplexer,
@@ -48,13 +47,14 @@ class ZeroTenOutputer(ScadaActor):
         )
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
-        if isinstance(message, AnalogDispatch):
-            return self._process_analog_dispatch(
-               message
-            )
-        return Err(
-            ValueError(f"{self.name} receieved unexpected message: {message.Header}")
-        )
+        self.log(f"Got {message.Payload.TypeName} from {message.Header.Src}")
+        payload = message.Payload
+        if isinstance(payload, AnalogDispatch):
+            try:
+                self.analog_dispatch_received(payload)
+            except Exception as e:
+                self.log(f"Trouble with analog_dispatch_received: {e}")
+        return Ok(True)
 
     def start(self) -> None:
         ...
