@@ -363,6 +363,9 @@ class AtomicAlly(ScadaActor):
     def update_relays(self, previous_state: str) -> None:
         if self.state == AtomicAllyState.WaitingNoElec.value:
             self.turn_off_HP()
+        if previous_state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
+            self.hp_failsafe_switch_to_scada()
+            self.aquastat_ctrl_switch_to_scada()
         if (self.state == AtomicAllyState.Dormant.value 
             or self.state==AtomicAllyState.WaitingElec.value
             or self.state==AtomicAllyState.WaitingNoElec.value):
