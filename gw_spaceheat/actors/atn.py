@@ -190,6 +190,10 @@ class Atn(ActorInterface, Proactor):
         return self._node
 
     @property
+    def scada(self) -> ShNode:
+        return self.layout.node(H0N.primary_scada)
+
+    @property
     def publication_name(self) -> str:
         return self.layout.atn_g_node_alias
 
@@ -219,40 +223,21 @@ class Atn(ActorInterface, Proactor):
             message.Header.Src,
             message.Header.MessageType,
         )
-        self._publish_to_scada(message.Payload)
-        # path_dbg = 0
-        # match message.Payload:
-        #     case AnalogDispatch():
-        #         path_dbg |= 0x00000001
-        #         self._publish_to_scada(message.Payload)
-        #     case DispatchContractGoDormant():
-        #         path_dbg |= 0x00000002
-        #         self._publish_to_scada(message.Payload)
-        #     case DispatchContractGoLive():
-        #         path_dbg |= 0x00000002
-        #         self._publish_to_scada(message.Payload)
-        #     case EnergyInstruction():
-        #         path_dbg |= 0x00000080
-        #         self._publish_to_scada(message.Payload)
-        #     case LatestPrice():
-        #         path_dbg |= 0x00000100
-        #         self.latest_price_received(message.Payload)
-        #     case ScadaParams():
-        #         path_dbg |= 0x00000004
-        #         self._publish_to_scada(message.Payload)
-        #     case SendLayout():
-        #         path_dbg |= 0x00000008
-        #         self._publish_to_scada(message.Payload)
-        #     case SendSnap():
-        #         path_dbg |= 0x00000010
-        #         self._publish_to_scada(message.Payload)
-        #     case DBGPayload():
-        #         path_dbg |= 0x00000020
-        #         self._publish_to_scada(message.Payload)
-        #     case _:
-        #         path_dbg |= 0x00000040
+        if message.Header.Dst == self.scada.name:
+            self._publish_to_scada(message.Payload)
+        else:
+            self.process_atn_message(message)
+    
+    def process_atn_message(self, message: Message):
+        path_dbg = 0
+        match message.Payload:
+            case LatestPrice():
+                path_dbg |= 0x00000100
+                self.latest_price_received(message.Payload)
+            case _:
+                path_dbg |= 0x00000040
 
-        # self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
+        self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
 
     def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
@@ -404,7 +389,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=SendSnap(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                 ),
@@ -415,7 +400,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=ScadaParams(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromName=H0N.atn,
@@ -431,7 +416,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=SendLayout(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromName=H0N.atn,
@@ -457,7 +442,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=DispatchContractGoLive(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     BlockchainSig="bogus_algo_sig",
@@ -475,7 +460,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=DispatchContractGoDormant(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     BlockchainSig="bogus_algo_sig",
@@ -488,7 +473,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=HackOilOn(),
             )
         )
@@ -498,7 +483,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=HackOilOff(),
             )
         )
@@ -639,7 +624,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromHandle="auto",
@@ -656,7 +641,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromHandle="auto",
@@ -673,7 +658,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromHandle="auto",
@@ -712,7 +697,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=DBGPayload(
                     Levels=LoggerLevels(
                         message_summary=message_summary,
@@ -1116,7 +1101,7 @@ class Atn(ActorInterface, Proactor):
             self.send_threadsafe(
                 Message(
                     Src=self.name,
-                    Dst=self.name,
+                    Dst=self.scada.name,
                     Payload=payload,
                 )
             )

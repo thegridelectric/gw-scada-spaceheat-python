@@ -174,16 +174,20 @@ class AtomicAlly(ScadaActor):
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
             case HackOilOn():
-                self.log("Received Hack oil on")
-                if self.state != AtomicAllyState.HpOffOilBoilerTankAquastat:
+                if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
+                    self.log("Acting on hack.oil.on message")
                     previous_state = self.state
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
                     self.update_relays(previous_state)
+                else:
+                    self.log(f"Received hack.oil.on. In state {self.state} so ignoring")
             case HackOilOff():
-                self.log("Received Hack oil off")
                 if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
+                    self.log("Acting on hack.oil.off message")
                     self.trigger_event(AtomicAllyEvent.StopHackOil)
                     self.update_relays(AtomicAllyState.HpOffOilBoilerTankAquastat)
+                else:
+                    self.log(f"Received hack.oil.off. In state {self.state} so ignoring ")
             case RemainingElec():
                 # TODO: perhaps 1 Wh is not the best number here
                 if message.Payload.RemainingWattHours <= 1:
