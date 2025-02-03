@@ -47,8 +47,9 @@ class DParams():
         available_buffer = config.BufferAvailableKwh
         i = 0
         while available_buffer > 0:
+            load_backup = self.load_forecast[i]
             self.load_forecast[i] = self.load_forecast[i] - min(available_buffer, self.load_forecast[i])
-            available_buffer = available_buffer - min(available_buffer, self.load_forecast[i])
+            available_buffer = available_buffer - min(available_buffer, load_backup)
             i += 1
         # Modify load forecast to include energy available in the house (zones above thermostat)
         available_house = config.HouseAvailableKwh
