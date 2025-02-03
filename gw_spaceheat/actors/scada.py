@@ -52,7 +52,7 @@ from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, GameOn, GoDormant,
     LayoutLite, NewCommandTree, RemainingElec, RemainingElecEvent, ScadaParams, SendLayout,
-    SingleMachineState, SuitUp, WakeUp,
+    SingleMachineState, SuitUp, WakeUp, HackOilOn, HackOilOff
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -347,6 +347,10 @@ class Scada(ScadaInterface, Proactor):
                     self.fsm_full_report_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with fsm_full_report_received: \n {e}")
+            case HackOilOn():
+                self._send_to(self.layout.atomic_ally, payload)
+            case HackOilOff():
+                self._send_to(self.layout.atomic_ally, payload)
             case MachineStates():
                 try:
                     self.machine_states_received(from_node, payload)

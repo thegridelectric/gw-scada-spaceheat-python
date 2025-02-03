@@ -19,6 +19,7 @@ from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
 from named_types import RemainingElecEvent, GameOn
+from named_types import HackOilOn, HackOilOff
 from data_classes.house_0_names import House0RelayIdx
 
 from gwproactor import QOS, ActorInterface
@@ -481,6 +482,26 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
+    def hack_oil_on(self) -> None:
+        self.log("Sending HackOilOn to scada")
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=HackOilOn(),
+            )
+        )
+
+    def hack_oil_off(self) -> None:
+        self.log("Sending HackOilOff to scada")
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.name,
+                Payload=HackOilOff(),
+            )
+        )
+        
     def set_alpha(self, alpha: float) -> None:
         if self.ha1_params is None:
             self.send_layout()
@@ -1066,8 +1087,18 @@ class Atn(ActorInterface, Proactor):
         # Thermal mass of house? In kWh/degF
         # How much thermal mass is one zone?
         return 0
+    
+    def is_onpeak(self):
+        if datetime.now(tz=pytz.timezone(self.settings.timezone_str)).hour in [7,8,9,10,11,16,17,18,19]:
+            return True
+        return False
 
     def send_energy_instr(self, watthours: int, slot_minutes: int = 60, game_on: bool=False):
+        if watthours > 0 and self.is_onpeak():
+            self.hack_oil_on()
+            watthours = 0
+        else:
+            self.hack_oil_off()
         t = int(time.time())
         slot_start_s = int(t - (t % 300))
         # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
