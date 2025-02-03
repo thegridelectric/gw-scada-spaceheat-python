@@ -174,11 +174,13 @@ class AtomicAlly(ScadaActor):
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
             case HackOilOn():
+                self.log("Received Hack oil on")
                 if self.state != AtomicAllyState.HpOffOilBoilerTankAquastat:
                     previous_state = self.state
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
                     self.update_relays(previous_state)
             case HackOilOff():
+                self.log("Received Hack oil off")
                 if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
                     self.trigger_event(AtomicAllyEvent.StopHackOil)
                     self.update_relays(AtomicAllyState.HpOffOilBoilerTankAquastat)

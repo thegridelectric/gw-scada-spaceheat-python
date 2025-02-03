@@ -348,8 +348,10 @@ class Scada(ScadaInterface, Proactor):
                 except Exception as e:
                     self.logger.error(f"problem with fsm_full_report_received: \n {e}")
             case HackOilOn():
+                self.log("Received hack oil on")
                 self._send_to(self.layout.atomic_ally, payload)
             case HackOilOff():
+                self.log("Received hack oil off")
                 self._send_to(self.layout.atomic_ally, payload)
             case MachineStates():
                 try:
