@@ -219,39 +219,40 @@ class Atn(ActorInterface, Proactor):
             message.Header.Src,
             message.Header.MessageType,
         )
-        path_dbg = 0
-        match message.Payload:
-            case AnalogDispatch():
-                path_dbg |= 0x00000001
-                self._publish_to_scada(message.Payload)
-            case DispatchContractGoDormant():
-                path_dbg |= 0x00000002
-                self._publish_to_scada(message.Payload)
-            case DispatchContractGoLive():
-                path_dbg |= 0x00000002
-                self._publish_to_scada(message.Payload)
-            case EnergyInstruction():
-                path_dbg |= 0x00000080
-                self._publish_to_scada(message.Payload)
-            case LatestPrice():
-                path_dbg |= 0x00000100
-                self.latest_price_received(message.Payload)
-            case ScadaParams():
-                path_dbg |= 0x00000004
-                self._publish_to_scada(message.Payload)
-            case SendLayout():
-                path_dbg |= 0x00000008
-                self._publish_to_scada(message.Payload)
-            case SendSnap():
-                path_dbg |= 0x00000010
-                self._publish_to_scada(message.Payload)
-            case DBGPayload():
-                path_dbg |= 0x00000020
-                self._publish_to_scada(message.Payload)
-            case _:
-                path_dbg |= 0x00000040
+        self._publish_to_scada(message.Payload)
+        # path_dbg = 0
+        # match message.Payload:
+        #     case AnalogDispatch():
+        #         path_dbg |= 0x00000001
+        #         self._publish_to_scada(message.Payload)
+        #     case DispatchContractGoDormant():
+        #         path_dbg |= 0x00000002
+        #         self._publish_to_scada(message.Payload)
+        #     case DispatchContractGoLive():
+        #         path_dbg |= 0x00000002
+        #         self._publish_to_scada(message.Payload)
+        #     case EnergyInstruction():
+        #         path_dbg |= 0x00000080
+        #         self._publish_to_scada(message.Payload)
+        #     case LatestPrice():
+        #         path_dbg |= 0x00000100
+        #         self.latest_price_received(message.Payload)
+        #     case ScadaParams():
+        #         path_dbg |= 0x00000004
+        #         self._publish_to_scada(message.Payload)
+        #     case SendLayout():
+        #         path_dbg |= 0x00000008
+        #         self._publish_to_scada(message.Payload)
+        #     case SendSnap():
+        #         path_dbg |= 0x00000010
+        #         self._publish_to_scada(message.Payload)
+        #     case DBGPayload():
+        #         path_dbg |= 0x00000020
+        #         self._publish_to_scada(message.Payload)
+        #     case _:
+        #         path_dbg |= 0x00000040
 
-        self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
+        # self._logger.path("--Atn._derived_process_message  path:0x%08X", path_dbg)
 
     def _derived_process_mqtt_message(
         self, message: Message[MQTTReceiptPayload], decoded: Any
