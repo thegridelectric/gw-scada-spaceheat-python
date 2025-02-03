@@ -551,6 +551,7 @@ class Scada(ScadaInterface, Proactor):
                 f"Ignoring control request from atn, auto_state: {self.auto_state}"
             )
             return
+        self.atn_wants_control(t=payload)
 
     def energy_instruction_received(
         self, from_node: ShNode, payload: EnergyInstruction
