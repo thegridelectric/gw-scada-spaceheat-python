@@ -4,7 +4,7 @@ import uuid
 from collections import deque
 from typing import Optional,  Sequence
 from data_classes.house_0_names import H0CN, H0N
-from gwproactor.message import Message
+from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproactor import MonitoredName, ServicesInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
@@ -63,6 +63,7 @@ class StratBoss(ScadaActor):
     DEFROST_DETECT_SLEEP_S = 2 # for the strat watcher as it tracks
     LIFT_DETECT_SLEEP_S = 5
     HP_LIFT_DEG_F = 4
+    WATCHDOG_PAT_S = 60
 
     states = StratBossState.values()
 
@@ -299,16 +300,19 @@ class StratBoss(ScadaActor):
     
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
-        return [MonitoredName(self.name, 60)]
+        return [MonitoredName(self.name, self.WATCHDOG_PAT_S * 2.1)]
 
     async def defrost_watcher(self) -> None:
         """
         Responsible for helping to detect and triggering the defrost state change
         """
+        self.last_pat_s = 0
         odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
         idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
         assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
         while not self._stop_requested:
+            if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
+                self._send(PatInternalWatchdogMessage(src=self.name))
             if odu_pwr_channel in self.data.latest_channel_values and idu_pwr_channel in self.data.latest_channel_values:
                 odu_pwr = self.data.latest_channel_values[odu_pwr_channel]
                 idu_pwr = self.data.latest_channel_values[idu_pwr_channel]
