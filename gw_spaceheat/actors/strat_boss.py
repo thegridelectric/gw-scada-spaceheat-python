@@ -166,7 +166,7 @@ class StratBoss(ScadaActor):
             let_boss_know = False
             if payload.EventName == TurnHpOnOff.TurnOn \
                 and self.state == StratBossState.Dormant:
-                if self.hp_relay_closed and not self.scada_just_started:
+                if self.hp_relay_closed() and not self.scada_just_started:
                     self.log("NOT TRIGGERING HpOn because HpRelay already closed and scada didn't just start")
                 else:
                     let_boss_know = True
