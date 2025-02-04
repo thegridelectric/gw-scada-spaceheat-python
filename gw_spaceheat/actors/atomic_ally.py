@@ -193,7 +193,7 @@ class AtomicAlly(ScadaActor):
             case RemainingElec():
                 # TODO: perhaps 1 Wh is not the best number here
                 if message.Payload.RemainingWattHours <= 1:
-                    if "HpOn" in self.state:
+                    if "HpOn" in self.state and datetime.now(self.timezone).minute<55:
                         self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
