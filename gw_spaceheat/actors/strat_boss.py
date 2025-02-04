@@ -80,6 +80,7 @@ class StratBoss(ScadaActor):
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
+        self._stop_requested: bool = False
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.primary_pump_delay_seconds: int = self.get_primary_pump_delay_seconds()
         self.state: StratBossState = StratBossState.Dormant
@@ -134,7 +135,6 @@ class StratBoss(ScadaActor):
         return max(self.DIST_PUMP_ON_SECONDS, self.VALVED_TO_DISCHARGE_SECONDS)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
-        self.log(f"GOT MESSAGE FROM {message.Header.Src}")
         if self.sidelined():
             self.log(f"Sidelined so ignoring messages! Handle: {self.node.handle}")
             return
@@ -252,6 +252,9 @@ class StratBoss(ScadaActor):
             max_strat_prep_seconds = max(self.DIST_PUMP_ON_SECONDS, self.VALVED_TO_DISCHARGE_SECONDS)
             wait_s = self.primary_pump_delay_seconds - max_strat_prep_seconds # could be ~75 s for LG
             if wait_s > 5:
+                wait_s = wait_s - 5
+                self.log(f"primary on in {self.primary_pump_delay_seconds} and my max prep is {max_strat_prep_seconds}")
+                self.log(f"Waiting {wait_s} before changing relays")
                 await asyncio.sleep(wait_s)
         asyncio.create_task(self._lift_timer())
         #Make sure we're still active before proceeding in case we waited.
@@ -306,13 +309,16 @@ class StratBoss(ScadaActor):
         """
         Responsible for helping to detect and triggering the defrost state change
         """
+        self.log("RUNNING THE DEFROST WATCHER HERE ")
         self.last_pat_s = 0
         odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
         idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
         assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
         while not self._stop_requested:
             if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
+                self.log("patting watchdog")
                 self._send(PatInternalWatchdogMessage(src=self.name))
+                self.last_pat_s = time.time()
             if odu_pwr_channel in self.data.latest_channel_values and idu_pwr_channel in self.data.latest_channel_values:
                 odu_pwr = self.data.latest_channel_values[odu_pwr_channel]
                 idu_pwr = self.data.latest_channel_values[idu_pwr_channel]
