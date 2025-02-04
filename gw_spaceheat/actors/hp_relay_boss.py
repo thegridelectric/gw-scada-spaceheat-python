@@ -76,7 +76,6 @@ class HpRelayBoss(ScadaActor):
         if payload.EventType !=  TurnHpOnOff.enum_name():
             self.log(f"Only listens to {TurnHpOnOff.enum_name()}")
             return
-        
         if payload.EventName == TurnHpOnOff.TurnOn:
             if self.strat_boss_sidelined():
                 self.waiting_for_strat_boss = False

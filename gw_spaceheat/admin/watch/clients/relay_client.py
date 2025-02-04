@@ -312,7 +312,7 @@ class RelayWatchClient(AdminSubClient):
             if trigger == ChangeRelayPin.DeEnergize:
                 event_name = TurnHpOnOff.TurnOn
             else:
-                raise Exception(f"Wtf. state is NOT energized: {trigger}")
+                event_name = TurnHpOnOff.TurnOff
 
         event = FsmEvent(
             FromHandle=H0N.admin,

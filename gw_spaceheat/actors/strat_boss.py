@@ -93,6 +93,7 @@ class StratBoss(ScadaActor):
         )
         self.idu_w_readings = deque(maxlen=5)
         self.odu_w_readings = deque(maxlen=5)
+        self.scada_just_started = True
 
     def start(self) -> None:
         self.services.add_task(
@@ -137,12 +138,11 @@ class StratBoss(ScadaActor):
         if self.sidelined():
             self.log(f"Sidelined so ignoring messages! Handle: {self.node.handle}")
             return
-
+        payload = message.Payload
+        
         from_node = self.layout.node(message.Header.Src, None)
         if from_node is None:
             return
-
-        payload = message.Payload
         match payload:
             case FsmEvent():
                 try:
@@ -165,14 +165,16 @@ class StratBoss(ScadaActor):
         if payload.EventType == TurnHpOnOff.enum_name():
             let_boss_know = False
             if payload.EventName == TurnHpOnOff.TurnOn \
-                and self.state == StratBossState.Dormant \
-                and not self.hp_relay_closed:
-                let_boss_know = True
-                trigger = StratBossTrigger(
-                    FromState=StratBossState.Dormant,
-                    ToState=StratBossState.Active,
-                    Trigger=StratBossEvent.HpTurnOnReceived
-                )
+                and self.state == StratBossState.Dormant:
+                if self.hp_relay_closed and not self.scada_just_started:
+                    self.log("NOT TRIGGERING HpOn because HpRelay already closed and scada didn't just start")
+                else:
+                    let_boss_know = True
+                    trigger = StratBossTrigger(
+                        FromState=StratBossState.Dormant,
+                        ToState=StratBossState.Active,
+                        Trigger=StratBossEvent.HpTurnOnReceived
+                    )
             elif payload.EventName == TurnHpOnOff.TurnOff \
                 and self.state == StratBossState.Active:
                 let_boss_know = True
@@ -182,14 +184,17 @@ class StratBoss(ScadaActor):
                     Trigger=StratBossEvent.HpTurnOffReceived,
                 )
             if let_boss_know:
+                self.log(f"Sending {trigger.Trigger} to {self.boss.Handle}")
                 self._send_to(self.boss, trigger)
+            else:
+                self.log(f"Got {payload.EventName} but its not triggering a state change from {self.state}")
+        self.scada_just_started = False
     
 
     def strat_boss_trigger_received(self, from_node: ShNode, payload: StratBossTrigger):
         """
         Receiving this message from the boss means the command tree reflects ToState
         """
-        self.log("Got StratBossTrigger")
         if self.boss != from_node:
             self.log(f"Ignoring trigger from {from_node.handle}. My handle is {self.node.handle}") # todo: send glitch
             return
@@ -200,8 +205,6 @@ class StratBoss(ScadaActor):
         
         if payload.Trigger == StratBossEvent.HpTurnOnReceived:
             asyncio.create_task(self._ungate_hp_relay_boss())
-        else:
-            self.log(f"payload.Trigger {payload.Trigger} is NOT  {StratBossEvent.HpTurnOnReceived}")
 
     def pull_trigger(self, trigger: StratBossTrigger):
         if trigger.FromState != self.state:
@@ -272,7 +275,7 @@ class StratBoss(ScadaActor):
         wait_seconds = max(0, self.strat_prep_seconds() - self.primary_pump_delay_seconds)
         self.log(f"Pump delay seconds {self.primary_pump_delay_seconds} and strat prep seconds {self.strat_prep_seconds()}")
         if wait_seconds > 0:
-            self.log(f"Waiting {wait_seconds} before ungating ho relay boss")
+            self.log(f"Waiting {wait_seconds} s before ungating HpRelayBoss")
             await asyncio.sleep(wait_seconds)
         self.log("StratBossReady to Hp RelayBoss!")
         self._send_to(self.hp_relay_boss, StratBossReady())

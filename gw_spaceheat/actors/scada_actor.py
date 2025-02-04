@@ -7,7 +7,7 @@ from actors.scada_data import ScadaData
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N, House0RelayIdx
 from gw.errors import DcError
-from gwproactor import Actor, ServicesInterface
+from gwproactor import Actor, ServicesInterface, QOS
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
@@ -880,8 +880,12 @@ class ScadaActor(Actor):
             self.services.send(message)
         elif dst.Name == H0N.admin:
             self.services._links.publish_message(
-                self.services.ADMIN_MQTT, message
-            )  # noqa: SLF001
+                link_name=self.services.ADMIN_MQTT,
+                message=Message(
+                    Src=self.services.publication_name, Dst=dst.Name, Payload=payload
+                ),
+                qos=QOS.AtMostOnce,
+            ) # noqa: SLF001
         elif dst.Name == H0N.atn:
             self.services._links.publish_upstream(payload)  # noqa: SLF001
         else:

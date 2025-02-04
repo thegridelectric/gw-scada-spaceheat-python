@@ -1220,6 +1220,9 @@ class Scada(ScadaInterface, Proactor):
             if not self.settings.admin.enabled:
                 return
             src = H0N.admin
+            # TODO: make admin conversation less hacky?
+            if decoded.Payload.TypeName == "strat.boss.trigger":
+                to_node = self.layout.node(H0N.strat_boss)
         else:
             raise ValueError(
                 "ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name
