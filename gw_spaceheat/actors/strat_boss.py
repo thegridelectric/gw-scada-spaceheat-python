@@ -323,8 +323,13 @@ class StratBoss(ScadaActor):
         while not self._stop_requested:
             if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
                 self._send(PatInternalWatchdogMessage(src=self.name))
+                self.log("Patting watchdog)")
                 self.last_pat_s = time.time()
-            if self.update_power_readings():
+            try: 
+                good_readings = self.update_power_readings()
+            except Exception as e:
+                self.log("Trouble with update_power_readings: {e}")
+            if good_readings:
                 if self.state == StratBossState.Dormant:
                     if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
                         if self.lg_high_temp_hydrokit_entering_defrost():
