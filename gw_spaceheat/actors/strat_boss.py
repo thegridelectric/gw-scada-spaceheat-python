@@ -405,8 +405,8 @@ class StratBoss(ScadaActor):
             return False
         if idu_pwr_channel.Name not in self.data.latest_channel_values:
             return False
-        odu_pwr = self.data.latest_channel_values[odu_pwr_channel]
-        idu_pwr = self.data.latest_channel_values[idu_pwr_channel]
+        odu_pwr = self.data.latest_channel_values[odu_pwr_channel.Name]
+        idu_pwr = self.data.latest_channel_values[idu_pwr_channel.Name]
         self.hp_power_w = odu_pwr + idu_pwr
         self.odu_w_readings.append(odu_pwr)
         self.idu_w_readings.append(idu_pwr)
