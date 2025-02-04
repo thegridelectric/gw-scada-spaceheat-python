@@ -136,7 +136,7 @@ class DParams():
         while round(x + self.delta_T_inverse(x),2) <= 175:
             x = round(x + self.delta_T_inverse(x),2)
             available_temps.append(int(x))
-        while x+10 <= 185:
+        while x+10 <= 175:
             x += 10
             available_temps.append(int(x))
         x = self.initial_top_temp
