@@ -288,11 +288,12 @@ class StratBoss(ScadaActor):
             if self.latest_lift_f() is not None:
                 self.log(f"Latest lift is {round(self.latest_lift_f(),1)}")
                 if self.latest_lift_f() > self.HP_LIFT_DEG_F:
-                    self._send_to(self.boss,StratBossTrigger(
-                        FromState=StratBossState.Active,
-                        ToState=StratBossState.Dormant,
-                        Trigger=StratBossEvent.LiftDetected
-                    ))
+                    if self.hp_power_w > 4000:
+                        self._send_to(self.boss,StratBossTrigger(
+                            FromState=StratBossState.Active,
+                            ToState=StratBossState.Dormant,
+                            Trigger=StratBossEvent.LiftDetected
+                        ))
             else:
                 self.log("No data from ewt and/or lwt! So no lift detected")
             await asyncio.sleep(self.LIFT_DETECT_SLEEP_S)
