@@ -174,7 +174,9 @@ class AtomicAlly(ScadaActor):
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
             case HackOilOn():
-                if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
+                if not self.settings.fuel_substitution:
+                    self.log("Ignoring HackOilOn message since fuel substitution is not activated")
+                elif self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
                     self.log("Acting on hack.oil.on message")
                     previous_state = self.state
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
