@@ -285,7 +285,7 @@ class StratBoss(ScadaActor):
         self.log("sleeping for 2 minutes before attempting to detect lift")
         await asyncio.sleep(2*60)
         while self.state == StratBossState.Active:
-            if self.latest_lift_f():
+            if self.latest_lift_f() is not None:
                 self.log(f"Latest lift is {self.latest_lift_f()}")
                 if self.latest_lift_f() > self.HP_LIFT_DEG_F:
                     self._send_to(self.boss,StratBossTrigger(
@@ -400,7 +400,7 @@ class StratBoss(ScadaActor):
         if lwt_channel.Name not in self.data.latest_channel_values:
             return None
         ewt_f = c_to_f(self.data.latest_channel_values[ewt_channel.Name] / 1000)
-        lwt_f = c_to_f(self.data.latest_channel_values[ewt_channel.Name] / 1000)
+        lwt_f = c_to_f(self.data.latest_channel_values[lwt_channel.Name] / 1000)
         return lwt_f - ewt_f
 
 
