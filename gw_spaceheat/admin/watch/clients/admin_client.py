@@ -13,7 +13,6 @@ from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
 from data_classes.house_0_names import H0N
 from gwproto.named_types import SendSnap
-from gwproto.named_types import SnapshotSpaceheat
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 from result import Result
@@ -23,7 +22,7 @@ from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from admin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
 from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
-from named_types import LayoutLite, SendLayout
+from named_types import LayoutLite, SendLayout, SnapshotSpaceheat
 
 module_logger = logging.getLogger(__name__)
 

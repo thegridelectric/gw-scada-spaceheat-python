@@ -418,7 +418,8 @@ class Scada(ScadaInterface, Proactor):
             self.log("Admin Wakes Up")
         self._renew_admin_timeout(timeout_seconds=payload.TimeoutSeconds)
         event = payload.DispatchTrigger
-        self.log(f"AdminDispatch event type name is {event.TypeName}")
+        self.log(f"AdminDispatch event is {event.EventName}")
+
         to_name = event.ToHandle.split(".")[-1]
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
@@ -575,9 +576,10 @@ class Scada(ScadaInterface, Proactor):
     def machine_states_received(
         self, from_node: ShNode, payload: MachineStates
     ) -> None:
-        if payload.MachineHandle in self._data.recent_machine_states:
+        node_name = payload.MachineHandle.split('.')[-1]
+        if node_name in self._data.recent_machine_states:
             prev: MachineStates = self._data.recent_machine_states[
-                payload.MachineHandle
+                node_name
             ]
             if payload.StateEnum != prev.StateEnum:
                 raise Exception(
@@ -585,14 +587,22 @@ class Scada(ScadaInterface, Proactor):
                     f"{payload.StateEnum} and {prev.StateEnum}"
                 )
 
-            self._data.recent_machine_states[payload.MachineHandle] = MachineStates(
+            self._data.recent_machine_states[node_name] = MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
                 UnixMsList=prev.UnixMsList + payload.UnixMsList,
                 StateList=prev.StateList + payload.StateList,
             )
         else:
-            self._data.recent_machine_states[payload.MachineHandle] = payload
+            self._data.recent_machine_states[node_name] = payload
+       
+        self._data.latest_machine_state[node_name] = SingleMachineState(
+            MachineHandle=payload.MachineHandle,
+            StateEnum=payload.StateEnum,
+            State=payload.StateList[-1],
+            UnixMs=payload.UnixMsList[-1]
+        )
+
 
     def power_watts_received(self, from_node: ShNode, payload: PowerWatts):
         """Highest priority of scada is to pass this on to Atn
@@ -699,6 +709,8 @@ class Scada(ScadaInterface, Proactor):
                 StateList=[payload.State],
                 UnixMsList=[payload.UnixMs],
             )
+        node_name = payload.MachineHandle.split('.')[-1]
+        self._data.latest_machine_state[node_name] = payload
 
     def single_reading_received(
         self, from_node: ShNode, payload: SingleReading
@@ -769,16 +781,16 @@ class Scada(ScadaInterface, Proactor):
         # This will set auto_state and update the actuator forest to Admin
         self.auto_goes_dormant()
         
-        # 
-        strat_boss = self.layout.node(H0N.strat_boss)
-        admin = self.layout.node(H0N.admin)
-        self._send_to(strat_boss,
-                      StratBossTrigger(
-                          FromState=StratBossState.Active,
-                          ToState=StratBossState.Dormant,
-                          Trigger=StratBossEvent.BossCancels,
-                      ),
-                      admin)
+        # Uncomment if we want strat boss to stop when switching to admin
+        # strat_boss = self.layout.node(H0N.strat_boss)
+        # admin = self.layout.node(H0N.admin)
+        # self._send_to(strat_boss,
+        #               StratBossTrigger(
+        #                   FromState=StratBossState.Active,
+        #                   ToState=StratBossState.Dormant,
+        #                   Trigger=StratBossEvent.BossCancels,
+        #               ),
+        #               admin)
 
     def admin_releases_control(self) -> None:
         if self.top_state != TopState.Admin:

@@ -30,13 +30,12 @@ from gwproto import Message, MQTTCodec, create_message_model
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName, RelayClosedOrOpen
-from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent,
-                              SnapshotSpaceheat)
+from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from named_types import (AtnBid, DispatchContractGoDormant,
                          DispatchContractGoLive, EnergyInstruction, FloParamsHouse0,
                          Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
-                         ScadaParams, SendLayout)
+                         ScadaParams, SendLayout, SnapshotSpaceheat)
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel

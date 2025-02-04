@@ -9,7 +9,7 @@ from gwproto.enums import ChangeRelayState
 from result import Ok, Result
 
 from actors.scada_actor import ScadaActor
-from enums import LogLevel, HpOnOff
+from enums import LogLevel, TurnHpOnOff
 from named_types import FsmEvent, Glitch, StratBossReady
     
 
@@ -18,7 +18,6 @@ class HpRelayBoss(ScadaActor):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.waiting_for_strat_boss: bool = False
-        self.log("HP RELAY BOSS DONE INITIALIZING")
 
     def start(self) -> None:
         """ Required method, used for starting long-lived tasks. Noop."""
@@ -74,11 +73,11 @@ class HpRelayBoss(ScadaActor):
             )
             # TODO: probably send glitch here as well
 
-        if payload.EventType !=  HpOnOff.enum_name():
-            self.log(f"Only listens to {HpOnOff.enum_name()}")
+        if payload.EventType !=  TurnHpOnOff.enum_name():
+            self.log(f"Only listens to {TurnHpOnOff.enum_name()}")
             return
         
-        if payload.EventName == HpOnOff.TurnOn:
+        if payload.EventName == TurnHpOnOff.TurnOn:
             if self.strat_boss_sidelined():
                 self.waiting_for_strat_boss = False
                 self.close_hp_scada_ops_relay()
@@ -96,8 +95,11 @@ class HpRelayBoss(ScadaActor):
 
     def strat_boss_ready_received(self, from_node: ShNode, payload: StratBossReady) -> None:
         if self.waiting_for_strat_boss:
+            self.log("Strat boss ready received! Closing relay")
             self.close_hp_scada_ops_relay()
             self.waiting_for_strat_boss = False
+        else:
+            self.log(" That's funny ... StratBossReady received but not waiting for strat boss. Ignoring")
 
     def open_hp_scada_ops_relay(self) -> None:
         try:

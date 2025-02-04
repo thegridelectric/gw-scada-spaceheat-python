@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Sequence
+from typing import List, Optional, Sequence
 from enum import auto
 import time
 from datetime import datetime, timedelta
@@ -19,7 +19,7 @@ from named_types import (
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, StratBossTrigger, 
             WakeUp )
-from enums import HomeAloneTopState, LogLevel, StratBossState, StratBossEvent
+from enums import HomeAloneTopState, LogLevel, StratBossState
 
  
 class HomeAloneState(GwStrEnum):
@@ -433,8 +433,7 @@ class HomeAlone(ScadaActor):
                 self.time_since_blind = None
             if not self.relays_initialized:
                 self.initialize_relays()
-            else:
-                self.log("RELAYS ALLEGEDLY ALREADY INITIALIZED")        
+
         previous_state = self.state
 
         if self.is_onpeak():
@@ -553,7 +552,7 @@ class HomeAlone(ScadaActor):
             self.valved_to_discharge_store(from_node=self.normal_node)
 
     def initialize_relays(self):
-        self.log("Initializing relays WOOHOO WOOHOO")
+        self.log("Initializing relays")
         if self.top_state != HomeAloneTopState.Normal:
             raise Exception("Can not go into initialize relays if top state is not Normal")
         
@@ -562,13 +561,19 @@ class HomeAlone(ScadaActor):
             for relay in self.my_actuators()
             if relay.ActorClass == ActorClass.Relay and self.the_boss_of(relay) == self.normal_node
         }
-        for relay in my_relays - {
-            self.store_charge_discharge_relay, # keep as it was
-            self.hp_failsafe_relay,
-            self.hp_scada_ops_relay, # keep as it was unless on peak
-            self.aquastat_control_relay 
-        }:
+
+        target_relays: List[ShNode] = list(my_relays - {
+                self.store_charge_discharge_relay, # keep as it was
+                self.hp_failsafe_relay,
+                self.hp_scada_ops_relay, # keep as it was unless on peak
+                self.aquastat_control_relay
+            }
+        )
+        target_relays.sort(key=lambda x: x.Name)
+        self.log("de-energizing most relays")
+        for relay in target_relays:
             self.de_energize(relay, from_node=self.normal_node)
+        self.log("Taking care of critical relays")
         self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
         self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
 

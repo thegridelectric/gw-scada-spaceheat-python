@@ -19,7 +19,7 @@ from gwproto.enums import (
     ChangeRelayState,
     ChangeStoreFlowRelay,
 )
-from enums import HpOnOff
+from enums import TurnHpOnOff
 from named_types import FsmEvent
 from pydantic import ValidationError
 
@@ -456,8 +456,8 @@ class ScadaActor(Actor):
             event = FsmEvent(
                 FromHandle=self.node.handle if from_node is None else from_node.handle,
                 ToHandle=self.hp_relay_boss.handle,
-                EventType= HpOnOff.enum_name(),
-                EventName=HpOnOff.TurnOn,
+                EventType= TurnHpOnOff.enum_name(),
+                EventName=TurnHpOnOff.TurnOn,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
@@ -484,8 +484,8 @@ class ScadaActor(Actor):
             event = FsmEvent(
                 FromHandle=self.node.handle if from_node is None else from_node.handle,
                 ToHandle=self.hp_relay_boss.handle,
-                EventType=HpOnOff.enum_name(),
-                EventName=HpOnOff.TurnOff,
+                EventType=TurnHpOnOff.enum_name(),
+                EventName=TurnHpOnOff.TurnOff,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )

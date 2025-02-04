@@ -7,12 +7,12 @@ from data_classes.house_0_names import H0CN, H0N
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproactor import MonitoredName, ServicesInterface
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import TelemetryName
+from gwproto.enums import RelayClosedOrOpen, TelemetryName
 from gwproto.named_types import AnalogDispatch, FsmFullReport
 from result import Result
 
 from actors.scada_actor import ScadaActor
-from enums import HpOnOff, HpModel, StratBossEvent, StratBossState
+from enums import TurnHpOnOff, HpModel, StratBossEvent, StratBossState
 from named_types import FsmEvent, StratBossReady, StratBossTrigger
 from transitions import Machine
 
@@ -54,7 +54,7 @@ class StratBoss(ScadaActor):
         parent_node (ShNode): Current parent node (home_alone or atomic_ally)
         my_relays (List[ShNode]): Relays under control when Active
     """
-    TIMEOUT_MINUTES = 3
+    TIMEOUT_MINUTES = 12
     
     DIST_PUMP_ON_SECONDS = 45 # time it takes to get the distributin pump on when its off
     VALVED_TO_DISCHARGE_SECONDS = 30 # time it takes to go from valve in charge -> valve in discharge
@@ -93,7 +93,6 @@ class StratBoss(ScadaActor):
         )
         self.idu_w_readings = deque(maxlen=5)
         self.odu_w_readings = deque(maxlen=5)
-        self.log("STRAT BOSS DONE INITIALIZING")
 
     def start(self) -> None:
         self.services.add_task(
@@ -163,16 +162,19 @@ class StratBoss(ScadaActor):
             self.log(f"Rejecting FsmEvent. Expected from_node hp_relay_boss but got {from_node.Name}")
         if payload.ToHandle != self.hp_relay_boss.Handle:
             self.log(f"Rejecting FsmEvent. Excected ToHandle {self.hp_relay_boss.Handle:} but got {payload.ToHandle}")
-        if payload.EventType == HpOnOff.enum_name():
+        if payload.EventType == TurnHpOnOff.enum_name():
             let_boss_know = False
-            if payload.EventName == HpOnOff.TurnOn and self.state == StratBossState.Dormant:
+            if payload.EventName == TurnHpOnOff.TurnOn \
+                and self.state == StratBossState.Dormant \
+                and not self.hp_relay_closed:
                 let_boss_know = True
                 trigger = StratBossTrigger(
                     FromState=StratBossState.Dormant,
                     ToState=StratBossState.Active,
                     Trigger=StratBossEvent.HpTurnOnReceived
                 )
-            elif payload.EventName == HpOnOff.TurnOff and self.state == StratBossState.Active:
+            elif payload.EventName == TurnHpOnOff.TurnOff \
+                and self.state == StratBossState.Active:
                 let_boss_know = True
                 trigger = StratBossTrigger(
                     FromState=StratBossState.Active,
@@ -181,6 +183,7 @@ class StratBoss(ScadaActor):
                 )
             if let_boss_know:
                 self._send_to(self.boss, trigger)
+    
 
     def strat_boss_trigger_received(self, from_node: ShNode, payload: StratBossTrigger):
         """
@@ -196,8 +199,9 @@ class StratBoss(ScadaActor):
         self.pull_trigger(payload)
         
         if payload.Trigger == StratBossEvent.HpTurnOnReceived:
-            if self.strat_prep_seconds() > self.primary_pump_delay_seconds:
-                asyncio.create_task(self._wait_to_close_hp_relay())
+            asyncio.create_task(self._ungate_hp_relay_boss())
+        else:
+            self.log(f"payload.Trigger {payload.Trigger} is NOT  {StratBossEvent.HpTurnOnReceived}")
 
     def pull_trigger(self, trigger: StratBossTrigger):
         if trigger.FromState != self.state:
@@ -264,10 +268,13 @@ class StratBoss(ScadaActor):
             # while self.state == StratBossState.Active:
             #     await asyncio.sleep(self.SLEEP_LOOP_S) # Add PID control of dist pump 010 to match dist flow to primary flow
 
-    async def _wait_to_close_hp_relay(self) -> None:
-        wait_seconds = max(0, self.primary_pump_delay_seconds - self.strat_prep_seconds())
-        self.log(f"Pump delay seconds {self.primary_pump_delay_seconds} and strat prep seconds {self.strat_prep_seconds()}. Sleeping {wait_seconds}")
-        await asyncio.sleep(wait_seconds)
+    async def _ungate_hp_relay_boss(self) -> None:
+        wait_seconds = max(0, self.strat_prep_seconds() - self.primary_pump_delay_seconds)
+        self.log(f"Pump delay seconds {self.primary_pump_delay_seconds} and strat prep seconds {self.strat_prep_seconds()}")
+        if wait_seconds > 0:
+            self.log(f"Waiting {wait_seconds} before ungating ho relay boss")
+            await asyncio.sleep(wait_seconds)
+        self.log("StratBossReady to Hp RelayBoss!")
         self._send_to(self.hp_relay_boss, StratBossReady())
 
     async def _lift_timer(self) -> None:
@@ -293,7 +300,7 @@ class StratBoss(ScadaActor):
         self.log(f"Waiting {self.TIMEOUT_MINUTES} minutes and then timing out if still active")
         await asyncio.sleep(self.TIMEOUT_MINUTES * 60)
         if self.state == StratBossState.Active:
-            self.log("Letting boss know its time to go dormant")
+            self.log(f"Letting boss know its time to go dormant: Timeout event after {self.TIMEOUT_MINUTES}")
             self._send_to(self.boss, StratBossTrigger(
                 FromState=StratBossState.Active,
                 ToState=StratBossState.Dormant,
@@ -309,14 +316,12 @@ class StratBoss(ScadaActor):
         """
         Responsible for helping to detect and triggering the defrost state change
         """
-        self.log("RUNNING THE DEFROST WATCHER HERE ")
         self.last_pat_s = 0
         odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
         idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
         assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
         while not self._stop_requested:
             if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
-                self.log("patting watchdog")
                 self._send(PatInternalWatchdogMessage(src=self.name))
                 self.last_pat_s = time.time()
             if odu_pwr_channel in self.data.latest_channel_values and idu_pwr_channel in self.data.latest_channel_values:
@@ -342,6 +347,13 @@ class StratBoss(ScadaActor):
                                 )
                             )
             await asyncio.sleep(self.DEFROST_DETECT_SLEEP_S)
+
+    def hp_relay_closed(self) -> bool:
+        if self.hp_scada_ops_relay.Name not in self.data.latest_machine_state:
+            raise Exception("We should know the state of the hp ops relay!")
+        if self.data.latest_machine_state[self.hp_scada_ops_relay.Name].State == RelayClosedOrOpen.RelayClosed:
+            return True
+        return False
 
     def lg_high_temp_hydrokit_entering_defrost(self) -> bool:
         """
