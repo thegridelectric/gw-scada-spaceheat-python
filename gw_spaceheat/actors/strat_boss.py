@@ -91,8 +91,8 @@ class StratBoss(ScadaActor):
             initial=StratBossState.Dormant,
             send_event=False
         )
-        self.idu_w_readings = deque(maxlen=5)
-        self.odu_w_readings = deque(maxlen=5)
+        self.idu_w_readings = deque(maxlen=15)
+        self.odu_w_readings = deque(maxlen=15)
         self.hp_power_w: float = 0
         self.scada_just_started = True
 
@@ -365,11 +365,11 @@ class StratBoss(ScadaActor):
           - ODU power going down
         """
         entering_defrost = True
-        if self.odu_w_readings[-1] > self.idu_w_readings[-1]:
+        if self.odu_w_readings[-1] > self.idu_w_readings[0]:
             entering_defrost = False
-        elif self.idu_w_readings[-1] < self.idu_w_readings[0]: # idu going down
+        elif self.idu_w_readings[-1] <= self.idu_w_readings[0]: # idu not going up
             entering_defrost = False
-        elif self.odu_w_readings[-1] > self.odu_w_readings[0]: # odu going up
+        elif self.odu_w_readings[-1] >= self.odu_w_readings[0]: # odu not going down
             entering_defrost = False
         return entering_defrost
     

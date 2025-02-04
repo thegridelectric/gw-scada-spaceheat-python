@@ -1180,9 +1180,6 @@ class Scada(ScadaInterface, Proactor):
         """
         from_node = self._layout.node(message.Header.Src, None)
         to_node = self._layout.node(message.Header.Dst, None)
-        dist_010v_node = self.layout.node(H0N.dist_010v)
-        if to_node == dist_010v_node:
-            self.log("Got dispatch for dist_010v in _derived_process_messages!")
 
         if to_node is not None and to_node != self.node:
             try:
