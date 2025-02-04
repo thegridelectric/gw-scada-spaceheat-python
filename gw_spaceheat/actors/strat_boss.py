@@ -401,9 +401,9 @@ class StratBoss(ScadaActor):
         odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
         idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
         assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
-        if odu_pwr_channel not in self.data.latest_channel_values:
+        if odu_pwr_channel.Name not in self.data.latest_channel_values:
             return False
-        if idu_pwr_channel not in self.data.latest_channel_values:
+        if idu_pwr_channel.Name not in self.data.latest_channel_values:
             return False
         odu_pwr = self.data.latest_channel_values[odu_pwr_channel]
         idu_pwr = self.data.latest_channel_values[idu_pwr_channel]
