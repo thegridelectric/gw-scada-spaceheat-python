@@ -85,7 +85,7 @@ class ScadaData:
         A data channel has flatlined; set its dict value to None
         """
         if channel_name in self.latest_channel_values and self.latest_channel_values[channel_name] is not None:
-            print(f"Channel {channel_name} flatlined - flusing from latest!")
+            print(f"Channel {channel_name} flatlined - removing from snapshots!")
         self.latest_channel_values[channel_name] = None
         self.latest_channel_unix_ms[channel_name] = None
 

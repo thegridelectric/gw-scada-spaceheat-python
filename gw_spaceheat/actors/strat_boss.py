@@ -93,6 +93,7 @@ class StratBoss(ScadaActor):
         )
         self.idu_w_readings = deque(maxlen=5)
         self.odu_w_readings = deque(maxlen=5)
+        self.hp_power_w: float = 0
         self.scada_just_started = True
 
     def start(self) -> None:
@@ -260,7 +261,6 @@ class StratBoss(ScadaActor):
             wait_s = self.primary_pump_delay_seconds - max_strat_prep_seconds # could be ~75 s for LG
             if wait_s > 5:
                 wait_s = wait_s - 5
-                self.log(f"primary on in {self.primary_pump_delay_seconds} and my max prep is {max_strat_prep_seconds}")
                 self.log(f"Waiting {wait_s} before changing relays")
                 await asyncio.sleep(wait_s)
         asyncio.create_task(self._lift_timer())
@@ -281,12 +281,12 @@ class StratBoss(ScadaActor):
         self._send_to(self.hp_relay_boss, StratBossReady())
 
     async def _lift_timer(self) -> None:
-        """ Wait 2 minutes. Then if LWT - EWT > 4 F, send trigger"""
+        """ Wait 2 minutes. Then if LWT - EWT > 4 F AND HP Power > 5 kW, send trigger"""
         self.log("sleeping for 2 minutes before attempting to detect lift")
         await asyncio.sleep(2*60)
         while self.state == StratBossState.Active:
             if self.latest_lift_f() is not None:
-                self.log(f"Latest lift is {self.latest_lift_f()}")
+                self.log(f"Latest lift is {round(self.latest_lift_f(),1)}")
                 if self.latest_lift_f() > self.HP_LIFT_DEG_F:
                     self._send_to(self.boss,StratBossTrigger(
                         FromState=StratBossState.Active,
@@ -320,18 +320,11 @@ class StratBoss(ScadaActor):
         Responsible for helping to detect and triggering the defrost state change
         """
         self.last_pat_s = 0
-        odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
-        idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
-        assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
         while not self._stop_requested:
             if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
                 self._send(PatInternalWatchdogMessage(src=self.name))
                 self.last_pat_s = time.time()
-            if odu_pwr_channel in self.data.latest_channel_values and idu_pwr_channel in self.data.latest_channel_values:
-                odu_pwr = self.data.latest_channel_values[odu_pwr_channel]
-                idu_pwr = self.data.latest_channel_values[idu_pwr_channel]
-                self.odu_w_readings.append(odu_pwr)
-                self.idu_w_readings.append(idu_pwr)
+            if self.update_power_readings():
                 if self.state == StratBossState.Dormant:
                     if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
                         if self.lg_high_temp_hydrokit_entering_defrost():
@@ -350,6 +343,7 @@ class StratBoss(ScadaActor):
                                 )
                             )
             await asyncio.sleep(self.DEFROST_DETECT_SLEEP_S)
+
 
     def hp_relay_closed(self) -> bool:
         if self.hp_scada_ops_relay.Name not in self.data.latest_machine_state:
@@ -383,7 +377,7 @@ class StratBoss(ScadaActor):
         entering_defrost = True
         if self.idu_w_readings[-1] - self.odu_w_readings[-1] < 1500:
             entering_defrost = False
-        elif self.odu_w_readings > 500:
+        elif self.odu_w_readings[-1] > 500:
             entering_defrost = False
         return entering_defrost
 
@@ -403,6 +397,20 @@ class StratBoss(ScadaActor):
         lwt_f = c_to_f(self.data.latest_channel_values[lwt_channel.Name] / 1000)
         return lwt_f - ewt_f
 
+    def update_power_readings(self) -> bool:
+        odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
+        idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
+        assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
+        if odu_pwr_channel not in self.data.latest_channel_values:
+            return False
+        if idu_pwr_channel not in self.data.latest_channel_values:
+            return False
+        odu_pwr = self.data.latest_channel_values[odu_pwr_channel]
+        idu_pwr = self.data.latest_channel_values[idu_pwr_channel]
+        self.hp_power_w = odu_pwr + idu_pwr
+        self.odu_w_readings.append(odu_pwr)
+        self.idu_w_readings.append(idu_pwr)
+        return True
 
 def c_to_f(temp_c: float) -> float:
     return 32 + 8*temp_c/5
