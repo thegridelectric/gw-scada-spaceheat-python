@@ -313,7 +313,7 @@ class StratBoss(ScadaActor):
     
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
-        return [MonitoredName(self.name, self.WATCHDOG_PAT_S * 2.1)]
+        return [MonitoredName(self.name, self.WATCHDOG_PAT_S * 10)]
 
     async def defrost_watcher(self) -> None:
         """
@@ -328,7 +328,7 @@ class StratBoss(ScadaActor):
             try: 
                 good_readings = self.update_power_readings()
             except Exception as e:
-                self.log("Trouble with update_power_readings: {e}")
+                self.log(f"Trouble with update_power_readings: {e}")
             if good_readings:
                 if self.state == StratBossState.Dormant:
                     if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
