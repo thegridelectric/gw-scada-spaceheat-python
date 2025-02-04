@@ -129,7 +129,7 @@ class DParams():
     
     def get_available_top_temps(self) -> Tuple[Dict, Dict]:
         self.max_thermocline = self.num_layers
-        if self.initial_top_temp > 175:
+        if self.initial_top_temp > 170:
             self.max_thermocline = self.initial_thermocline
         available_temps = [self.initial_top_temp]
         x = self.initial_top_temp
