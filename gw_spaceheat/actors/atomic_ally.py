@@ -218,17 +218,17 @@ class AtomicAlly(ScadaActor):
     def set_normal_command_tree(self) -> None:
 
         hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
+        hp_relay_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
         
         strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{strat_boss.Name}"
+        strat_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{strat_boss.Name}"
 
 
         for node in self.my_actuators():
             if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
+                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
             else:
-                node.Handle =  f"{H0N.auto}.{H0N.atomic_ally}.{node.Name}"
+                node.Handle =  f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
         self._send_to(
             self.atn,
             NewCommandTree(
@@ -243,20 +243,20 @@ class AtomicAlly(ScadaActor):
         
         # charge discharge relay reports to strat boss
         chg_dschg_node = self.layout.node(H0N.store_charge_discharge_relay)
-        chg_dschg_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{chg_dschg_node.Name}"
+        chg_dschg_node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{H0N.strat_boss}.{chg_dschg_node.Name}"
 
         # Thermostat relays report to strat boss
         for zone in self.layout.zone_list:
             failsafe_node = self.stat_failsafe_relay(zone)
-            failsafe_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{failsafe_node.Name}"
+            failsafe_node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{H0N.strat_boss}.{failsafe_node.Name}"
             stat_ops_node = self.stat_ops_relay(zone)
-            stat_ops_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{stat_ops_node.Name}"
+            stat_ops_node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{H0N.strat_boss}.{stat_ops_node.Name}"
 
         # dist pump and primary pump dfrs reports to strat boss
         dist_010_node = self.layout.node(H0N.dist_010v)
         primary_010_node = self.layout.node(H0N.primary_010v)
-        dist_010_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{dist_010_node.Name}"
-        primary_010_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{primary_010_node.Name}"
+        dist_010_node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{H0N.strat_boss}.{dist_010_node.Name}"
+        primary_010_node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{H0N.strat_boss}.{primary_010_node.Name}"
 
         self._send_to(
             self.atn,
