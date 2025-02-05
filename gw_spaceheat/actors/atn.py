@@ -1093,8 +1093,8 @@ class Atn(ActorInterface, Proactor):
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 SlotStartS=slot_start_s,
                 SlotDurationMinutes=slot_minutes,
-                SendTimeMs=int(time.time() * 1000),
-                AvgPowerWatts=int(watthours),
+                SendTimeMs=int(time.time() * 1000) if not game_on else int(slot_start_s * 1000),
+                AvgPowerWatts=int(watthours) if watthours>=0 else 0,
             )
             self.payload = payload
             self.log(f"Sent EnergyInstruction: {payload}")
