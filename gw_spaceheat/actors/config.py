@@ -45,8 +45,9 @@ class ScadaSettings(ProactorSettings):
     dd_delta_t: float = 20
     is_simulated: bool = False
     max_ewt_f: int = 170
-    load_overestimation_percent: int = 10
+    load_overestimation_percent: int = 0
     oil_boiler_for_onpeak_backup: bool = True
+    fuel_substitution: bool = True
     hp_model: HpModel = HpModel.SamsungHighTempHydroKitPlusMultiV # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 
