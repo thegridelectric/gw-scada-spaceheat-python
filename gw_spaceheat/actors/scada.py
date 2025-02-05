@@ -1016,16 +1016,16 @@ class Scada(ScadaInterface, Proactor):
          TODO: Add ascii representation 
         """
         hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
+        hp_relay_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
         
         strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{strat_boss.Name}"
+        strat_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{strat_boss.Name}"
 
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             elif node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
+                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
             else:
                 node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
         self._send_to(
