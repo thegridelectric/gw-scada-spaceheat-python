@@ -6,7 +6,7 @@ from logging import Logger
 from typing import Optional
 
 from gwproto import MQTTTopic
-from gwproto.named_types import SnapshotSpaceheat
+
 from textual.app import ComposeResult
 from textual.containers import HorizontalGroup
 from textual.containers import Vertical
@@ -34,7 +34,7 @@ from admin.watch.widgets.relay_toggle_button import RelayToggleButton
 from admin.watch.widgets.relay_widget_info import RelayWidgetConfig
 from admin.watch.widgets.relay_widget_info import RelayWidgetInfo
 
-from named_types import LayoutLite
+from named_types import LayoutLite, SnapshotSpaceheat
 
 module_logger = logging.getLogger(__name__)
 module_logger.addHandler(TextualHandler())

@@ -13,7 +13,6 @@ from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
 from data_classes.house_0_names import H0N
 from gwproto.named_types import SendSnap
-from gwproto.named_types import SnapshotSpaceheat
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
 from result import Result
@@ -23,7 +22,7 @@ from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from admin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
 from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
-from named_types import LayoutLite, SendLayout
+from named_types import LayoutLite, SendLayout, SnapshotSpaceheat, StratBossTrigger
 
 module_logger = logging.getLogger(__name__)
 
@@ -54,6 +53,9 @@ class AdminSubClient:
         ...
 
     def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
+        ...
+
+    def strat_boss_trigger_received(self, payload: StratBossTrigger) -> None:
         ...
 
     def process_mqtt_state_changed(self, old_state: str, new_state: str) -> None:
@@ -196,6 +198,9 @@ class AdminClient:
                 f"<{type(e)}>: <{e}>",
             )
 
+    def _process_strat_boss_trigger(self, src: str, payload: StratBossTrigger) -> None:
+        self.publish(payload)
+
     def _process_layout_lite(self, payload: bytes) -> None:
         message = Message[LayoutLite].model_validate_json(payload)
         self._layout = message.Payload
@@ -229,6 +234,11 @@ class AdminClient:
             elif decoded_topic.message_type == type_name(SnapshotSpaceheat):
                 path_dbg |= 0x00000002
                 self._process_snapshot(payload)
+            elif decoded_topic.message_type == type_name(StratBossTrigger):
+                path_dbg |= 0x00000040
+                message = Message[StratBossTrigger].model_validate_json(payload)
+                src = message.Header.Src
+                self._process_strat_boss_trigger(src, message.Payload)
             else:
                 path_dbg |= 0x00000004
                 for subclient in self.subclients():

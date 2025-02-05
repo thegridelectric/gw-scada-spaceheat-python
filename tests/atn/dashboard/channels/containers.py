@@ -9,7 +9,8 @@ from typing import Optional
 from cryptography.utils import cached_property
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import TelemetryName
-from gwproto.named_types import SnapshotSpaceheat
+
+from named_types import SnapshotSpaceheat
 
 from tests.atn.dashboard.channels.channel import HoneywellThermostatStateChannel
 from tests.atn.dashboard.channels.channel import TankChannel

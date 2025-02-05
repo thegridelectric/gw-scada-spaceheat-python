@@ -6,7 +6,6 @@ from typing import Optional
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import TelemetryName
 from gwproto.named_types import SingleReading
-from gwproto.named_types import SnapshotSpaceheat
 from rich.console import Console
 from rich.console import ConsoleOptions
 from rich.console import RenderResult
@@ -14,6 +13,7 @@ from rich.style import Style
 from rich.text import Text
 
 from actors.honeywell_thermostat import HoneywellThermostatOperatingState
+from named_types import SnapshotSpaceheat
 from tests.atn.dashboard.display.styles import fahrenheit_style
 from tests.atn.dashboard.display.styles import tank_style
 from tests.atn.dashboard.channels.reading import MissingReading

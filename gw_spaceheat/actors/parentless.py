@@ -11,7 +11,6 @@ from gwproto.message import Header
 from gwproactor.links.link_settings import LinkSettings
 from gwproto.message import Message
 from gwproto.named_types import PowerWatts, Report, SyncedReadings
-from gwproto.named_types import SnapshotSpaceheat
 from data_classes.house_0_names import H0N
 from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
@@ -25,7 +24,7 @@ from gwproactor.proactor_implementation import Proactor
 from actors.scada import (
     LocalMQTTCodec,
 )
-from named_types import Glitch
+from named_types import Glitch, SnapshotSpaceheat
 
 class Scada2Data:
     latest_snap: Optional[SnapshotSpaceheat]

@@ -15,11 +15,10 @@ from typing import Sequence
 from gwproto import Message as GWMessage
 from gwproto import MQTTTopic
 from data_classes.house_0_names import H0N
-from gwproto.enums import ActorClass
+from gwproto.enums import ActorClass, ChangeRelayPin
 
 
 from gwproto.named_types import SingleReading
-from gwproto.named_types import SnapshotSpaceheat
 from pydantic import BaseModel
 from pydantic import model_validator
 
@@ -28,7 +27,9 @@ from admin.watch.clients.admin_client import AdminClient
 from admin.watch.clients.admin_client import AdminSubClient
 from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
-from named_types import AdminDispatch, FsmEvent, LayoutLite, AdminKeepAlive, AdminReleaseControl
+from named_types import (AdminDispatch,  AdminKeepAlive, AdminReleaseControl,
+                         FsmEvent, LayoutLite, SnapshotSpaceheat)
+from enums import TurnHpOnOff
 
 module_logger = logging.getLogger(__name__)
 
@@ -36,8 +37,8 @@ class RelayConfig(BaseModel):
     about_node_name: str = ""
     channel_name: str = ""
     event_type: str = ""
-    energized_description: str = ""
-    deenergized_description: str = ""
+    energizing_event: str = ""
+    de_energizing_event: str = ""
     energized_state: str = ""
     deenergized_state: str = ""
 
@@ -159,8 +160,8 @@ class RelayWatchClient(AdminSubClient):
                 about_node_name=node_name,
                 channel_name=relay_channels[node_name].Name,
                 event_type=relay_actor_configs[node_name].EventType,
-                energized_description=relay_actor_configs[node_name].EnergizingEvent,
-                deenergized_description=relay_actor_configs[node_name].DeEnergizingEvent,
+                energizing_event=relay_actor_configs[node_name].EnergizingEvent,
+                de_energizing_event=relay_actor_configs[node_name].DeEnergizingEvent,
                 energized_state=relay_actor_configs[node_name].EnergizedState,
                 deenergized_state=relay_actor_configs[node_name].DeEnergizedState,
             ) for node_name in relay_node_names
@@ -281,28 +282,46 @@ class RelayWatchClient(AdminSubClient):
             self._callbacks.mqtt_message_received_callback(topic, payload)
 
     def set_relay(self, relay_node_name: str, new_state: RelayEnergized, timeout_seconds: Optional[int] = None):
-        self._send_set_command(relay_node_name, new_state, datetime.datetime.now(), timeout_seconds)
+        if new_state == RelayEnergized.energized:
+            trigger = ChangeRelayPin.Energize
+        else:
+            trigger = ChangeRelayPin.DeEnergize
+        self._send_set_command(relay_node_name, trigger, datetime.datetime.now(), timeout_seconds)
 
     def _send_set_command(
             self,
             relay_name: str,
-            state: RelayEnergized,
+            trigger: ChangeRelayPin,
             set_time: datetime.datetime,
             timeout_seconds: Optional[int] = None
     ) -> None:
+
         relay_config = self._relays[relay_name].config
+
+        to_handle = f"{H0N.admin}.{relay_name}"
+        event_type = relay_config.event_type
+        event_name = (
+                relay_config.energizing_event
+                if trigger == ChangeRelayPin.Energize
+                else relay_config.de_energizing_event
+        )
+
+        if relay_name == H0N.hp_scada_ops_relay:
+            to_handle = f"{H0N.admin}.{H0N.hp_relay_boss}"
+            event_type = TurnHpOnOff.enum_name()
+            if trigger == ChangeRelayPin.DeEnergize:
+                event_name = TurnHpOnOff.TurnOn
+            else:
+                event_name = TurnHpOnOff.TurnOff
+
         event = FsmEvent(
-                FromHandle=H0N.admin,
-                ToHandle=f"{H0N.admin}.{relay_name}",
-                EventType=relay_config.event_type,
-                EventName=(
-                      relay_config.energized_description
-                      if state == RelayEnergized.energized
-                      else relay_config.deenergized_description
-                ),
-                SendTimeUnixMs=int(set_time.timestamp() * 1000),
-                TriggerId=str(uuid.uuid4()),
-            )
+            FromHandle=H0N.admin,
+            ToHandle=to_handle,
+            EventType=event_type,
+            EventName=event_name,
+            SendTimeUnixMs=int(set_time.timestamp() * 1000),
+            TriggerId=str(uuid.uuid4()),
+        )
         self._admin_client.publish(
             AdminDispatch(
                 DispatchTrigger=event,

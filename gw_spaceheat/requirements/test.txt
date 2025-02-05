@@ -4,14 +4,14 @@
 #
 #    pip-compile --output-file=gw_spaceheat/requirements/test.txt gw_spaceheat/requirements/test.in
 #
-aiohttp==3.8.6
+aiohappyeyeballs==2.4.4
+    # via aiohttp
+aiohttp==3.11.11
     # via gridworks-proactor
 aiosignal==1.3.1
     # via aiohttp
 annotated-types==0.7.0
     # via pydantic
-async-timeout==4.0.2
-    # via aiohttp
 attrs==21.4.0
     # via
     #   aiohttp
@@ -20,8 +20,6 @@ black==22.3.0
     # via -r gw_spaceheat/requirements/test.in
 cffi==1.15.1
     # via cryptography
-charset-normalizer==3.1.0
-    # via aiohttp
 click==8.1.3
     # via
     #   black
@@ -43,9 +41,9 @@ gridworks==1.2.0
     # via gridworks-protocol
 gridworks-cert==0.4.3
     # via gridworks-proactor
-gridworks-proactor[tests]==1.1.6
+gridworks-proactor[tests]==1.1.9
     # via -r gw_spaceheat/requirements/test.in
-gridworks-protocol==1.2.1
+gridworks-protocol==1.2.3
     # via gridworks-proactor
 idna==2.10
     # via yarl
@@ -87,6 +85,10 @@ platformdirs==2.5.2
     # via black
 pluggy==1.0.0
     # via pytest
+propcache==0.2.1
+    # via
+    #   aiohttp
+    #   yarl
 pycparser==2.21
     # via cffi
 pydantic==2.8.2
@@ -156,7 +158,7 @@ xdg==6.0.0
     # via
     #   gridworks-cert
     #   gridworks-proactor
-yarl==1.9.2
+yarl==1.18.3
     # via
     #   aiohttp
     #   gridworks-proactor

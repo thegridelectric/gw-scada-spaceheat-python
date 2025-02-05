@@ -7,13 +7,14 @@ import rich
 from gwproto.data_classes.data_channel import DataChannel
 from gwproto.enums import TelemetryName
 from gwproto.named_types import PowerWatts
-from gwproto.named_types import SnapshotSpaceheat
+
 
 from tests.atn.dashboard.misc import UpdateSources
 from tests.atn.atn_config import DashboardSettings
 from tests.atn.dashboard.channels.containers import Channels
 from tests.atn.dashboard.display.displays import Displays
 from tests.atn.dashboard.hackhp import HackHp
+from named_types import SnapshotSpaceheat
 
 class Dashboard:
     short_name: str

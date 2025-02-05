@@ -80,10 +80,10 @@ class RelayWidgetConfig(RelayConfig):
             description = "?"
         elif energized:
             icon = self.energized_icon
-            description = self.energized_description
+            description = self.energizing_event
         else:
             icon = self.deenergized_icon
-            description = self.deenergized_description
+            description = self.de_energizing_event
         if (show_icon is None and self.show_icon) or show_icon is True:
             return f"{icon} {description}"
         return description
