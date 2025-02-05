@@ -34,14 +34,18 @@ class StratBoss(ScadaActor):
     1. Detection of heat pump defrost cycles through power and temperature patterns
     2. Receipt of HpTurningOn messages during heat pump startup
 
+    In fact, activation is 2-stage:
+      - the actor detects a stratification trigger and alerts its parent (StratBossTrigger) 
+      so that its parent can adjust its own state and change the command tree
+      - waits to get an ack back (StratBoss) 
+
     When activated, it:
-    1. Triggers its parent node to enter a stratification protection state 
-    2. Takes control of the store charge/discharge relay and thermostat relays
-    3. Configures the system to circulate through distribution rather than storage or buffer
-    4. Maintains this configuration until
+    1. Takes control of the store charge/discharge relay and thermostat relays
+    2. Configures the system to circulate through distribution rather than storage or buffer
+    43 Maintains this configuration until
         - heat pump normalizes (as detected by a reasonable lift), or
         - HpTurningOff message received, or
-        - the Distribution Pump fails (pump doctor takes over), or
+        - its boss tells it to turn off 
         - A longish timer times out (e.g. ~12 minutes)
 
     This helps prevent mixing of stratified layers during periods when the heat pump is 
