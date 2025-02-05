@@ -47,12 +47,12 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
 from data_classes.house_0_names import H0N
-from enums import MainAutoState, TopState
+from enums import MainAutoState, StratBossState, StratBossEvent, TopState
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, GameOn, GoDormant,
     LayoutLite, NewCommandTree, RemainingElec, RemainingElecEvent, ScadaParams, SendLayout,
-    SingleMachineState, SuitUp, WakeUp, HackOilOn, HackOilOff
+    SingleMachineState, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -242,6 +242,7 @@ class Scada(ScadaInterface, Proactor):
             PowerMeter.POWER_METER_LOGGER_NAME,
             level=settings.power_meter_logging_level,
         )
+        self.set_home_alone_command_tree()
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -270,6 +271,7 @@ class Scada(ScadaInterface, Proactor):
             send_event=False,
             model_attribute="auto_state",
         )
+        
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -422,7 +424,8 @@ class Scada(ScadaInterface, Proactor):
             self.log("Admin Wakes Up")
         self._renew_admin_timeout(timeout_seconds=payload.TimeoutSeconds)
         event = payload.DispatchTrigger
-        self.log(f"AdminDispatch event type name is {event.TypeName}")
+        self.log(f"AdminDispatch event is {event.EventName}")
+
         to_name = event.ToHandle.split(".")[-1]
         # TODO: change this to work if relays etc are NOT on primary scada
         if communicator := self.get_communicator(to_name):
@@ -480,7 +483,7 @@ class Scada(ScadaInterface, Proactor):
             return
         if self.auto_state != MainAutoState.Atn:
             self.log(
-                f"Ignoring control request from atn, auto_state: {self.auto_state}"
+                f"Ignoring AllyGivesUp from AtomicAlly, auto_state: {self.auto_state}"
             )
             return
         # AutoState transition: AllyGivesUp: Atn -> HomeAlone
@@ -495,13 +498,23 @@ class Scada(ScadaInterface, Proactor):
     def analog_dispatch_received(
         self, from_node: ShNode, payload: AnalogDispatch
     ) -> None:
-        self.logger.error("Got Analog Dispatch in SCADA!")
         if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
             self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
             return
-        to_node = self.layout.node_by_handle(payload.ToHandle)
-        if to_node:
-            self._send_to(to_node.Name, payload)
+        # HUGE HACK - 
+        to_node = self.layout.node(payload.AboutName)
+        boss_handle = '.'.join(to_node.handle.split('.')[:-1])
+        self._send_to(to_node, AnalogDispatch(FromGNodeAlias=payload.FromGNodeAlias,
+                                              FromHandle=boss_handle,
+                                              ToHandle=to_node.handle,
+                                              AboutName=to_node.name,
+                                              Value=payload.Value,
+                                              TriggerId=payload.TriggerId,
+                                              UnixTimeMs=payload.UnixTimeMs))
+        # to_node = self.layout.node_by_handle(payload.ToHandle)
+        # if to_node:
+        #     self.log(f"Sending to {to_node.Name}")
+        #     self._send_to(to_node.Name, payload)
 
     def channel_readings_received(
         self, from_node: ShNode, payload: ChannelReadings
@@ -532,7 +545,7 @@ class Scada(ScadaInterface, Proactor):
             return
         if self.auto_state != MainAutoState.Atn:
             self.log(
-                f"Ignoring control request from atn, auto_state: {self.auto_state}"
+                f"Ignoring DispatchContractGoDormant from atn, auto_state: {self.auto_state}"
             )
             return
         self.AtnReleasesControl()
@@ -570,9 +583,10 @@ class Scada(ScadaInterface, Proactor):
     def machine_states_received(
         self, from_node: ShNode, payload: MachineStates
     ) -> None:
-        if payload.MachineHandle in self._data.recent_machine_states:
+        node_name = payload.MachineHandle.split('.')[-1]
+        if node_name in self._data.recent_machine_states:
             prev: MachineStates = self._data.recent_machine_states[
-                payload.MachineHandle
+                node_name
             ]
             if payload.StateEnum != prev.StateEnum:
                 raise Exception(
@@ -580,14 +594,22 @@ class Scada(ScadaInterface, Proactor):
                     f"{payload.StateEnum} and {prev.StateEnum}"
                 )
 
-            self._data.recent_machine_states[payload.MachineHandle] = MachineStates(
+            self._data.recent_machine_states[node_name] = MachineStates(
                 MachineHandle=payload.MachineHandle,
                 StateEnum=payload.StateEnum,
                 UnixMsList=prev.UnixMsList + payload.UnixMsList,
                 StateList=prev.StateList + payload.StateList,
             )
         else:
-            self._data.recent_machine_states[payload.MachineHandle] = payload
+            self._data.recent_machine_states[node_name] = payload
+       
+        self._data.latest_machine_state[node_name] = SingleMachineState(
+            MachineHandle=payload.MachineHandle,
+            StateEnum=payload.StateEnum,
+            State=payload.StateList[-1],
+            UnixMs=payload.UnixMsList[-1]
+        )
+
 
     def power_watts_received(self, from_node: ShNode, payload: PowerWatts):
         """Highest priority of scada is to pass this on to Atn
@@ -694,6 +716,8 @@ class Scada(ScadaInterface, Proactor):
                 StateList=[payload.State],
                 UnixMsList=[payload.UnixMs],
             )
+        node_name = payload.MachineHandle.split('.')[-1]
+        self._data.latest_machine_state[node_name] = payload
 
     def single_reading_received(
         self, from_node: ShNode, payload: SingleReading
@@ -763,6 +787,17 @@ class Scada(ScadaInterface, Proactor):
             return
         # This will set auto_state and update the actuator forest to Admin
         self.auto_goes_dormant()
+        
+        # Uncomment if we want strat boss to stop when switching to admin
+        # strat_boss = self.layout.node(H0N.strat_boss)
+        # admin = self.layout.node(H0N.admin)
+        # self._send_to(strat_boss,
+        #               StratBossTrigger(
+        #                   FromState=StratBossState.Active,
+        #                   ToState=StratBossState.Dormant,
+        #                   Trigger=StratBossEvent.BossCancels,
+        #               ),
+        #               admin)
 
     def admin_releases_control(self) -> None:
         if self.top_state != TopState.Admin:
@@ -836,7 +871,7 @@ class Scada(ScadaInterface, Proactor):
     def ally_gives_up(self, msg: AllyGivesUp) -> None:
         if self.auto_state != MainAutoState.Atn:
             self.log(
-                f"Ignoring control request from atn, auto_state: {self.auto_state}"
+                f"Ignoring AllyGivesUp message, auto_state: {self.auto_state}"
             )
             return
         # AutoState transition: AllyGivesUp: Atn -> HomeAlone
@@ -912,10 +947,26 @@ class Scada(ScadaInterface, Proactor):
     ##########################################################
 
     def set_home_alone_command_tree(self) -> None:
-        # HOMEALONE CONTROL FOREST. Direct reports are pico cycler and home alone
+        """ HomeAlone Base Command Tree
+        
+         - All actuators except for HpScadaOps and PicoCycler report to AtomicAlly
+         - HpRelayBoss reports to Atomic Ally, 
+         - StratBoss reports to Atomic Ally
+        
+         TODO: Add ascii representation 
+        """
+
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{hp_relay_boss.Name}"
+        
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{strat_boss.Name}"
+
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+            elif node.Name == H0N.hp_scada_ops_relay:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{hp_relay_boss.Name}.{node.Name}"
             else:
                 node.Handle = (
                     f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
@@ -930,9 +981,23 @@ class Scada(ScadaInterface, Proactor):
         )
 
     def set_admin_command_tree(self) -> None:
-        # ADMIN CONTROL FOREST. All actuators report directly to admin
+        """ Admin Base Command Tree
+        
+         - All actuators except for HpScadaOps report directly to admin
+         - HpRelayBoss reports to admin
+         - StratBoss reports to admin
+        """
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = f"{H0N.admin}.{hp_relay_boss.Name}"
+        
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = f"{H0N.admin}.{strat_boss.Name}"
+
         for node in self.layout.actuators:
-            node.Handle = f"{H0N.admin}.{node.Name}"
+            if node.Name == H0N.hp_scada_ops_relay:
+                node.Handle = f"{H0N.admin}.{hp_relay_boss.Name}.{node.Name}"
+            else:
+                node.Handle = f"{H0N.admin}.{node.Name}"
         self._send_to(
             self.atn,
             NewCommandTree(
@@ -943,9 +1008,24 @@ class Scada(ScadaInterface, Proactor):
         )
 
     def set_atn_command_tree(self) -> None:
+        """ Atn Base Command Tree
+        
+         - All actuators except for HpScadaOps and PicoCycler report to AtomicAlly
+         - HpRelayBoss reports to Atomic Ally, 
+         - StratBoss reports to Atomic Ally
+         TODO: Add ascii representation 
+        """
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
+        
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{strat_boss.Name}"
+
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+            elif node.Name == H0N.hp_scada_ops_relay:
+                node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
             else:
                 node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
         self._send_to(
@@ -1059,13 +1139,19 @@ class Scada(ScadaInterface, Proactor):
             return
         if from_node is None:
             from_node = self.node
+
+        # HACK FOR nodes whose 'actors' are handled by their parent's communicator
+        communicator_by_name = {to_node.Name: to_node.Name}
+        communicator_by_name[H0N.home_alone_normal] = H0N.home_alone
+    
         # if the message is meant for primary_scada, process here
         if to_node.name == self.name:
             self.process_scada_message(from_node, payload)
+        
         # if its meant for an actor spawned by primary_scada (aka communicator)
         # call its process_message
-        elif to_node.name in set(self._communicators.keys()):
-            self.get_communicator(to_node.Name).process_message(
+        elif communicator_by_name[to_node.Name] in set(self._communicators.keys()):
+            self.get_communicator(communicator_by_name[to_node.Name]).process_message(
                 Message(Src=from_node.Name, Dst=to_node.Name, Payload=payload)
             )
         elif to_node.Name == H0N.admin:
@@ -1106,7 +1192,7 @@ class Scada(ScadaInterface, Proactor):
             try:
                 self._send_to(to_node, message.Payload, from_node)
             except Exception as e:
-                print(f"Problem with mesage to {to_node.name}")
+                print(f"Problem with message to {to_node.name}")
                 print(f"message {message}")
                 print(f"payload {message.Payload}")
                 raise e
@@ -1138,6 +1224,9 @@ class Scada(ScadaInterface, Proactor):
             if not self.settings.admin.enabled:
                 return
             src = H0N.admin
+            # TODO: make admin conversation less hacky?
+            if decoded.Payload.TypeName == "strat.boss.trigger":
+                to_node = self.layout.node(H0N.strat_boss)
         else:
             raise ValueError(
                 "ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name

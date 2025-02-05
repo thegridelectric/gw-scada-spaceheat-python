@@ -19,7 +19,7 @@ from gwproactor_test.certs import copy_keys
 import pytest
 from actors import Scada
 from actors.config import ScadaSettings
-from gwproto.messages import SnapshotSpaceheat
+from named_types import SnapshotSpaceheat
 from gwproto.messages import Report
 from data_classes.house_0_names import H0N, H0CN
 

@@ -777,6 +777,33 @@
       "Version": "200"
     },
     {
+      "ActorClass": "NoActor",
+      "DisplayName": "HomeAlone Normal mode",
+      "Name": "n",
+      "Handle": "auto.h.n",
+      "ShNodeId": "5d01b433-8731-483f-b8e8-641f725a1760",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "HomeAlone Normal mode",
+      "Name": "scada-blind",
+      "Handle": "auto.h.scada-blind",
+      "ShNodeId": "1bc33f7e-29cc-4702-9f9e-e7eac37500a2",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "HomeAlone Normal mode",
+      "Name": "onpeak-backup",
+      "Handle": "auto.h.onpeak-backup",
+      "ShNodeId": "7a47d30b-3a85-484e-a2b5-2da5c7ea4077",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
       "ActorClass": "I2cDfrMultiplexer",
       "ActorHierarchyName": "s.dfr-multiplexer",
       "ComponentId": "fa284939-65aa-4730-9610-7afe2721d6e6",
@@ -823,6 +850,26 @@
       "DisplayName": "I2c Relay Multiplexer",
       "Name": "relay-multiplexer",
       "ShNodeId": "fc81c64e-b04a-4b87-9861-0c9348b56f5b",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "HpRelayBoss",
+      "ActorHierarchyName": "s.hp-relay-boss",
+      "DisplayName": "Heatpump Relay Boss",
+      "Handle": "auto.h.n.hp-relay-boss",
+      "Name": "hp-relay-boss",
+      "ShNodeId": "406a023b-fe07-4ae3-99f2-682db5c19cb1",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "StratBoss",
+      "ActorHierarchyName": "s.strat-boss",
+      "DisplayName": "Stratification Boss",
+      "Handle": "auto.h.n.strat-boss",
+      "Name": "strat-boss",
+      "ShNodeId": "6d7fe5f4-dad2-47a0-812b-fdf76522df02",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },

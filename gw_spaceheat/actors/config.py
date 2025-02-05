@@ -6,6 +6,7 @@ from data_classes.house_0_names import H0N
 from gwproactor import ProactorSettings
 from gwproactor.config import MQTTClient
 from pydantic_settings import SettingsConfigDict
+from enums import HpModel
 
 DEFAULT_MAX_EVENT_BYTES: int = 500 * 1024 * 1024
 
@@ -47,8 +48,10 @@ class ScadaSettings(ProactorSettings):
     load_overestimation_percent: int = 0
     oil_boiler_for_onpeak_backup: bool = True
     fuel_substitution: bool = True
-
+    hp_model: HpModel = HpModel.SamsungHighTempHydroKitPlusMultiV # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
+
+    HpModel.LgHighTempHydroKitPlusMultiV
 
     @model_validator(mode="before")
     @classmethod

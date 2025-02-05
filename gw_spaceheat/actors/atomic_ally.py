@@ -2,7 +2,7 @@ import asyncio
 import time
 import uuid
 from enum import auto
-from typing import Sequence
+from typing import Sequence, Optional
 from datetime import datetime
 
 import pytz
@@ -11,6 +11,7 @@ from gw.enums import GwStrEnum
 from gwproactor import MonitoredName, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
+from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import FsmReportType
 from gwproto.named_types import (FsmAtomicReport, FsmFullReport,
                                  MachineStates)
@@ -19,10 +20,10 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import LogLevel
+from enums import LogLevel, StratBossState
 from named_types import (
     AllyGivesUp, EnergyInstruction, Glitch, GoDormant,
-    Ha1Params, HeatingForecast, RemainingElec, SuitUp, WakeUp, HackOilOn, HackOilOff 
+    Ha1Params, HeatingForecast, RemainingElec, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger, NewCommandTree
 )
 
 
@@ -35,6 +36,7 @@ class AtomicAllyState(GwStrEnum):
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
     HpOffOilBoilerTankAquastat = auto()
+    StratBoss = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -52,7 +54,8 @@ class AtomicAllyEvent(GwStrEnum):
     GoDormant = auto()
     StartHackOil = auto()
     StopHackOil = auto()
-    
+    StartStratSaving = auto()
+    StopStratSaving = auto()
 
     @classmethod
     def enum_name(cls) -> str:
@@ -73,7 +76,8 @@ class AtomicAlly(ScadaActor):
         AtomicAllyState.HpOffOilBoilerTankAquastat.value,
     ]
 
-    transitions = [
+    transitions = (
+        [
         # Waiting for temperatures, no electricity left
         {"trigger": "ElecAvailable", "source": "WaitingNoElec", "dest": "WaitingElec"},
         {"trigger": "NoElecBufferEmpty", "source": "WaitingNoElec", "dest": "HpOffStoreDischarge"},
@@ -111,7 +115,11 @@ class AtomicAlly(ScadaActor):
         {"trigger": "GoDormant", "source": state, "dest": "Dormant"} for state in states if state != "Dormant"
     ] + [
         {"trigger":"WakeUp", "source": "Dormant", "dest": "WaitingNoElec"}
-        ]
+    ] + [
+            {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"}
+            for state in states if state not in ["Dormant", "StratBoss"]
+    ]
+    )
 
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
@@ -163,6 +171,7 @@ class AtomicAlly(ScadaActor):
         ...
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
+        from_node = self.layout.node(message.Header.Src, None)
         match message.Payload:
             case EnergyInstruction():
                 self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
@@ -202,8 +211,89 @@ class AtomicAlly(ScadaActor):
             case HeatingForecast():
                 self.log("Received forecast")
                 self.forecasts: HeatingForecast = message.Payload
+            case StratBossTrigger():
+                try:
+                    self.strat_boss_trigger_received(from_node, message.Payload)
+                except Exception as e:
+                    self.log(f"Problem strat_bss_trigger_received: {e}")
 
         return Ok(True)
+    
+    def strat_boss_trigger_received(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
+        self.log("Strat boss trigger received!")
+        if self.state == AtomicAllyState.Dormant:
+            self.log(f"state is {self.state}")
+            self.log("strat boss should be sidelined and NOT sending messages but strat_boss_trigger_received. IGNORING")
+            return
+        
+        if payload.FromState == StratBossState.Dormant:
+            if self.state == AtomicAllyState.StratBoss:
+                raise Exception("Inconsistency! StratBoss thinks its Dormant but AA is in StratBoss State")
+            self.set_strat_saver_command_tree()
+            self.trigger_event(AtomicAllyEvent.StartStratSaving)
+            # confirm change of command tree by returning payload to strat boss
+            self._send_to(dst=self.strat_boss, payload=payload, src=self.atomic_ally)
+        else: 
+            if self.state != AtomicAllyState.StratBoss:
+                raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
+            self.set_normal_command_tree()
+            self.trigger_event(AtomicAllyEvent.StopStratSaving)
+            self.engage_brain(waking_up=True)
+            # confirm change of command tree by returning payload to strat boss
+            self._send_to(dst=self.strat_boss, payload=payload, src=self.atomic_ally)
+
+    def set_normal_command_tree(self) -> None:
+
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
+        
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{strat_boss.Name}"
+
+
+        for node in self.my_actuators():
+            if node.Name == H0N.hp_scada_ops_relay:
+                node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
+            else:
+                node.Handle =  f"{H0N.auto}.{H0N.atomic_ally}.{node.Name}"
+        self._send_to(
+            self.atn,
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+        self.log("Set normal command tree")
+
+    def set_strat_saver_command_tree(self) -> None:
+        
+        # charge discharge relay reports to strat boss
+        chg_dschg_node = self.layout.node(H0N.store_charge_discharge_relay)
+        chg_dschg_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{chg_dschg_node.Name}"
+
+        # Thermostat relays report to strat boss
+        for zone in self.layout.zone_list:
+            failsafe_node = self.stat_failsafe_relay(zone)
+            failsafe_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{failsafe_node.Name}"
+            stat_ops_node = self.stat_ops_relay(zone)
+            stat_ops_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{stat_ops_node.Name}"
+
+        # dist pump and primary pump dfrs reports to strat boss
+        dist_010_node = self.layout.node(H0N.dist_010v)
+        primary_010_node = self.layout.node(H0N.primary_010v)
+        dist_010_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{dist_010_node.Name}"
+        primary_010_node.Handle = f"{H0N.auto}.{H0N.atomic_ally}.{H0N.strat_boss}.{primary_010_node.Name}"
+
+        self._send_to(
+            self.atn,
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+        self.log(f"Set strat saver command tree. E.g. charge/discharge is now {chg_dschg_node.handle}")
     
     def trigger_event(self, event: AtomicAllyEvent) -> None:
         now_ms = int(time.time() * 1000)

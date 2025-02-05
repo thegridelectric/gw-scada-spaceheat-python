@@ -15,14 +15,14 @@ from gwproto.messages import (
     MachineStates,
     Report,
     SingleReading,
-    SnapshotSpaceheat,
 )
 
-from named_types import Ha1Params
+from named_types import Ha1Params, SingleMachineState, SnapshotSpaceheat
 class ScadaData:
     latest_total_power_w: Optional[int]
     reports_to_store: Dict[str, Report]
     recent_machine_states: Dict[str, MachineStates] # key is machine handle
+    latest_machine_state: Dict[str, SingleMachineState] # key is the node name
     latest_channel_unix_ms: Dict[str, int]
     latest_channel_values: Dict[str, int]
     recent_channel_values: Dict[str, List]
@@ -58,6 +58,7 @@ class ScadaData:
         self.my_synth_channels = self.get_my_synth_channels()
         self.my_channels: Union[DataChannel, SynthChannel] = self.my_data_channels + self.my_synth_channels
         self.recent_machine_states = {}
+        self.latest_machine_state = {}
         self.latest_channel_values: Dict[str, int] = {  # noqa
             ch.Name: None for ch in self.my_channels
         }
@@ -84,7 +85,7 @@ class ScadaData:
         A data channel has flatlined; set its dict value to None
         """
         if channel_name in self.latest_channel_values and self.latest_channel_values[channel_name] is not None:
-            print(f"Channel {channel_name} flatlined - flusing from latest!")
+            print(f"Channel {channel_name} flatlined - removing from snapshots!")
         self.latest_channel_values[channel_name] = None
         self.latest_channel_unix_ms[channel_name] = None
 
@@ -152,7 +153,7 @@ class ScadaData:
 
     def make_snapshot(self) -> SnapshotSpaceheat:
         latest_reading_list = []
-        latest_state_list= []
+
         for ch in self.my_channels:
             if not self.flatlined(ch):
                 latest_reading_list.append(
@@ -162,21 +163,10 @@ class ScadaData:
                         ScadaReadTimeUnixMs=self.latest_channel_unix_ms[ch.Name],
                     )
                 )
-        
-        for handle in self.recent_machine_states:
-            states = self.recent_machine_states[handle]
-            latest_state_list.append(MachineStates(
-                    MachineHandle=states.MachineHandle,
-                    StateEnum=states.StateEnum,
-                    StateList=[states.StateList[-1]],
-                    UnixMsList=[states.UnixMsList[-1]]
-                )
-            )
-
         return SnapshotSpaceheat(
             FromGNodeAlias=self.layout.scada_g_node_alias,
             FromGNodeInstanceId=self.layout.scada_g_node_id,
             SnapshotTimeUnixMs=int(time.time() * 1000),
             LatestReadingList=latest_reading_list,
-            LatestStateList=latest_state_list,
+            LatestStateList=list(self.latest_machine_state.values()),
         )
