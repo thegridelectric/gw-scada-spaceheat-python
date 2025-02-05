@@ -150,6 +150,9 @@ class AtomicAlly(ScadaActor):
         self.remaining_elec_wh = None
         self.storage_declared_full = False
         self.storage_full_since = time.time()
+        if H0N.atomic_ally not in self.layout.nodes:
+            raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
+        self.set_normal_command_tree()
     
     @property
     def data(self) -> ScadaData:
@@ -207,6 +210,7 @@ class AtomicAlly(ScadaActor):
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
                 if self.state == AtomicAllyState.Dormant.value:
+                    self.set_normal_command_tree() 
                     self.suit_up()
             case HeatingForecast():
                 self.log("Received forecast")
