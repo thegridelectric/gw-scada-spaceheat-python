@@ -477,7 +477,7 @@ class Scada(ScadaInterface, Proactor):
             return
         if self.auto_state != MainAutoState.Atn:
             self.log(
-                f"Ignoring control request from atn, auto_state: {self.auto_state}"
+                f"Ignoring AllyGivesUp from AtomicAlly, auto_state: {self.auto_state}"
             )
             return
         # AutoState transition: AllyGivesUp: Atn -> HomeAlone
@@ -539,7 +539,7 @@ class Scada(ScadaInterface, Proactor):
             return
         if self.auto_state != MainAutoState.Atn:
             self.log(
-                f"Ignoring control request from atn, auto_state: {self.auto_state}"
+                f"Ignoring DispatchContractGoDormant from atn, auto_state: {self.auto_state}"
             )
             return
         self.AtnReleasesControl()
@@ -864,7 +864,7 @@ class Scada(ScadaInterface, Proactor):
     def ally_gives_up(self, msg: AllyGivesUp) -> None:
         if self.auto_state != MainAutoState.Atn:
             self.log(
-                f"Ignoring control request from atn, auto_state: {self.auto_state}"
+                f"Ignoring AllyGivesUp message, auto_state: {self.auto_state}"
             )
             return
         # AutoState transition: AllyGivesUp: Atn -> HomeAlone
