@@ -2,12 +2,12 @@ import asyncio
 import time
 import uuid
 from collections import deque
-from typing import Optional,  Sequence
+from typing import  Sequence
 from data_classes.house_0_names import H0CN, H0N
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproactor import MonitoredName, ServicesInterface
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import RelayClosedOrOpen, TelemetryName
+from gwproto.enums import TelemetryName
 from gwproto.named_types import AnalogDispatch, FsmFullReport
 from result import Result
 
@@ -15,9 +15,6 @@ from actors.scada_actor import ScadaActor
 from enums import TurnHpOnOff, HpModel, StratBossEvent, StratBossState
 from named_types import FsmEvent, StratBossReady, StratBossTrigger
 from transitions import Machine
-
-
-
 
 
 class StratBoss(ScadaActor):
@@ -30,14 +27,15 @@ class StratBoss(ScadaActor):
     - Dormant: Default state when stratification protection is not needed
     - Active: Actively managing relays & 010V actuators to protect stratification
 
-    The actor is activated by either:
+    Activation is triggered by:
     1. Detection of heat pump defrost cycles through power and temperature patterns
     2. Receipt of HpTurningOn messages during heat pump startup
 
-    In fact, activation is 2-stage:
-      - the actor detects a stratification trigger and alerts its parent (StratBossTrigger) 
-      so that its parent can adjust its own state and change the command tree
-      - waits to get an ack back (StratBoss) 
+    The triggering activation is multi-stage:
+      - StratBoss detects a stratification trigger and alerts its boss via a StratBossTrigger
+      - The boss adjusts its command tree so that StratBoss has control over required relays and
+      0-10V actuators (and, if needed, adjusts its own state machine)
+      - The boss alerts StratBoss that its good to go, also via a StratBossTrigger.
 
     When activated, it:
     1. Takes control of the store charge/discharge relay and thermostat relays
@@ -53,10 +51,6 @@ class StratBoss(ScadaActor):
     not annoy residents the way blowing cold air does in defrost for air-to-air HPs - the
     circulating water is likely still above room temperature, just not enough to actively heat.
 
-    Attributes:
-        state (StratificationManagerState): Current state (Dormant or Active)
-        parent_node (ShNode): Current parent node (home_alone or atomic_ally)
-        my_relays (List[ShNode]): Relays under control when Active
     """
     TIMEOUT_MINUTES = 12
     
@@ -66,7 +60,8 @@ class StratBoss(ScadaActor):
     SAMSUNG_HYDROKIT_PRIMARY_PUMP_DELAY_SECONDS = 0
     DEFROST_DETECT_SLEEP_S = 2 # for the strat watcher as it tracks
     LIFT_DETECT_SLEEP_S = 5
-    HP_LIFT_DEG_F = 4
+    HP_LIFT_THRESHOLD_F = 15
+    HP_POWER_THRESHOLD_W = 7000
     WATCHDOG_PAT_S = 60
 
     states = StratBossState.values()
@@ -99,6 +94,8 @@ class StratBoss(ScadaActor):
         self.odu_w_readings = deque(maxlen=15)
         self.hp_power_w: float = 0
         self.scada_just_started = True
+        self.ewt_f: float = 0
+        self.lwt_f: float = 0
 
     def start(self) -> None:
         self.services.add_task(
@@ -114,7 +111,6 @@ class StratBoss(ScadaActor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
         ...
-
 
     def sidelined(self) -> bool:
         """ Sidelined if it is out of the chain of command; e.g boss is own ShNode"""
@@ -285,21 +281,22 @@ class StratBoss(ScadaActor):
         self._send_to(self.hp_relay_boss, StratBossReady())
 
     async def _lift_timer(self) -> None:
-        """ Wait 2 minutes. Then if LWT - EWT > 4 F AND HP Power > 5 kW, send trigger"""
+        """ Wait 2 minutes. Then if LWT - EWT > Lift Threshold AND HP Power > Power Threshold, send trigger"""
         self.log("sleeping for 2 minutes before attempting to detect lift")
         await asyncio.sleep(2*60)
         while self.state == StratBossState.Active:
-            if self.latest_lift_f() is not None:
-                self.log(f"Latest lift is {round(self.latest_lift_f(),1)}")
-                if self.latest_lift_f() > self.HP_LIFT_DEG_F:
-                    if self.hp_power_w > 4000:
+            if self.update_temp_readings() and self.update_power_readings():
+                lift = self.lwt_f-self.ewt_f
+                self.log(f"lwt {round(self.lwt_f, 2)} F, ewt {round(self.ewt_f, 2)} F, lift {round(lift)} F v {self.HP_LIFT_THRESHOLD_F} |  Power: {self.hp_power_w} (v {self.HP_POWER_THRESHOLD_W})")
+                if lift > self.HP_LIFT_THRESHOLD_F:
+                    if self.hp_power_w > self.HP_POWER_THRESHOLD_W:
                         self._send_to(self.boss,StratBossTrigger(
                             FromState=StratBossState.Active,
                             ToState=StratBossState.Dormant,
                             Trigger=StratBossEvent.LiftDetected
                         ))
             else:
-                self.log("No data from ewt and/or lwt! So no lift detected")
+                self.log("No data from ewt and/or lwt and/or ho_idu_pwr and/or hp_odu_pwr!")
             await asyncio.sleep(self.LIFT_DETECT_SLEEP_S)
                 
     
@@ -354,14 +351,6 @@ class StratBoss(ScadaActor):
                             )
             await asyncio.sleep(self.DEFROST_DETECT_SLEEP_S)
 
-
-    def hp_relay_closed(self) -> bool:
-        if self.hp_scada_ops_relay.Name not in self.data.latest_machine_state:
-            raise Exception("We should know the state of the hp ops relay!")
-        if self.data.latest_machine_state[self.hp_scada_ops_relay.Name].State == RelayClosedOrOpen.RelayClosed:
-            return True
-        return False
-
     def lg_high_temp_hydrokit_entering_defrost(self) -> bool:
         """
         The Lg High Temp Hydrokit is entering defrost if:  
@@ -391,21 +380,21 @@ class StratBoss(ScadaActor):
             entering_defrost = False
         return entering_defrost
 
-    def latest_lift_f(self) -> Optional[float]:
+    def update_temp_readings(self) -> bool:
         ewt_channel = self.layout.channel(H0CN.hp_ewt)
         lwt_channel = self.layout.channel(H0CN.hp_lwt)
          # TODO: add these channels to the test objects!
         if ewt_channel is None:
-            return None
+            return False
         assert ewt_channel.TelemetryName == TelemetryName.WaterTempCTimes1000
         assert lwt_channel.TelemetryName == TelemetryName.WaterTempCTimes1000
         if ewt_channel.Name not in self.data.latest_channel_values:
-            return None
+            return False
         if lwt_channel.Name not in self.data.latest_channel_values:
-            return None
-        ewt_f = c_to_f(self.data.latest_channel_values[ewt_channel.Name] / 1000)
-        lwt_f = c_to_f(self.data.latest_channel_values[lwt_channel.Name] / 1000)
-        return lwt_f - ewt_f
+            return False
+        self.ewt_f = c_to_f(self.data.latest_channel_values[ewt_channel.Name] / 1000)
+        self.lwt_f = c_to_f(self.data.latest_channel_values[lwt_channel.Name] / 1000)
+        return True
 
     def update_power_readings(self) -> bool:
         odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)

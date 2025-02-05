@@ -1,5 +1,6 @@
 import time
 import uuid
+import asyncio
 from data_classes.house_0_names import H0CN, H0N
 from gwproactor.message import Message
 from gwproactor import ServicesInterface
@@ -14,6 +15,7 @@ from named_types import FsmEvent, Glitch, StratBossReady
     
 
 class HpRelayBoss(ScadaActor):
+    TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
@@ -80,6 +82,7 @@ class HpRelayBoss(ScadaActor):
             if self.strat_boss_sidelined():
                 self.waiting_for_strat_boss = False
                 self.close_hp_scada_ops_relay()
+                asyncio.create_task(self._wait_and_turn_on_anyway())
             else:
                 self.waiting_for_strat_boss = True 
                 self._send_to(self.strat_boss, payload)
@@ -91,6 +94,11 @@ class HpRelayBoss(ScadaActor):
             self.open_hp_scada_ops_relay()
             if not self.strat_boss_sidelined():
                 self._send_to(self.strat_boss, payload)
+
+    async def _wait_and_turn_on_anyway(self) -> None:
+        await asyncio.sleep(self.TURN_ON_ANYWAY_S)
+        if not self.hp_relay_closed():
+            self.close_hp_scada_ops_relay()
 
     def strat_boss_ready_received(self, from_node: ShNode, payload: StratBossReady) -> None:
         if self.waiting_for_strat_boss:

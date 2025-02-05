@@ -18,6 +18,7 @@ from gwproto.enums import (
     ChangePrimaryPumpControl,
     ChangeRelayState,
     ChangeStoreFlowRelay,
+    RelayClosedOrOpen
 )
 from enums import TurnHpOnOff
 from named_types import FsmEvent
@@ -896,3 +897,14 @@ class ScadaActor(Actor):
     def log(self, note: str) -> None:
         log_str = f"[{self.name}] {note}"
         self.services.logger.error(log_str)
+
+    ##########################################
+    # Data related
+    ##########################################
+
+    def hp_relay_closed(self) -> bool:
+        if self.hp_scada_ops_relay.Name not in self.data.latest_machine_state:
+            raise Exception("We should know the state of the hp ops relay!")
+        if self.data.latest_machine_state[self.hp_scada_ops_relay.Name].State == RelayClosedOrOpen.RelayClosed:
+            return True
+        return False
