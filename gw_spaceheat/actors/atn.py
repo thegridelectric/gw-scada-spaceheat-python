@@ -19,6 +19,7 @@ from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
 from named_types import RemainingElecEvent, GameOn
+from named_types import HackOilOn, HackOilOff
 from data_classes.house_0_names import House0RelayIdx
 
 from gwproactor import QOS, ActorInterface
@@ -189,6 +190,10 @@ class Atn(ActorInterface, Proactor):
         return self._node
 
     @property
+    def scada(self) -> ShNode:
+        return self.layout.node(H0N.primary_scada)
+
+    @property
     def publication_name(self) -> str:
         return self.layout.atn_g_node_alias
 
@@ -218,35 +223,17 @@ class Atn(ActorInterface, Proactor):
             message.Header.Src,
             message.Header.MessageType,
         )
+        if message.Header.Dst == self.scada.name:
+            self._publish_to_scada(message.Payload)
+        else:
+            self.process_atn_message(message)
+    
+    def process_atn_message(self, message: Message):
         path_dbg = 0
         match message.Payload:
-            case AnalogDispatch():
-                path_dbg |= 0x00000001
-                self._publish_to_scada(message.Payload)
-            case DispatchContractGoDormant():
-                path_dbg |= 0x00000002
-                self._publish_to_scada(message.Payload)
-            case DispatchContractGoLive():
-                path_dbg |= 0x00000002
-                self._publish_to_scada(message.Payload)
-            case EnergyInstruction():
-                path_dbg |= 0x00000080
-                self._publish_to_scada(message.Payload)
             case LatestPrice():
                 path_dbg |= 0x00000100
                 self.latest_price_received(message.Payload)
-            case ScadaParams():
-                path_dbg |= 0x00000004
-                self._publish_to_scada(message.Payload)
-            case SendLayout():
-                path_dbg |= 0x00000008
-                self._publish_to_scada(message.Payload)
-            case SendSnap():
-                path_dbg |= 0x00000010
-                self._publish_to_scada(message.Payload)
-            case DBGPayload():
-                path_dbg |= 0x00000020
-                self._publish_to_scada(message.Payload)
             case _:
                 path_dbg |= 0x00000040
 
@@ -402,7 +389,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=SendSnap(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                 ),
@@ -413,7 +400,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=ScadaParams(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromName=H0N.atn,
@@ -429,7 +416,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=SendLayout(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromName=H0N.atn,
@@ -455,7 +442,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=DispatchContractGoLive(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     BlockchainSig="bogus_algo_sig",
@@ -473,7 +460,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=DispatchContractGoDormant(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     BlockchainSig="bogus_algo_sig",
@@ -481,6 +468,26 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
+    def hack_oil_on(self) -> None:
+        self.log("Sending HackOilOn to scada")
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=HackOilOn(),
+            )
+        )
+
+    def hack_oil_off(self) -> None:
+        self.log("Sending HackOilOff to scada")
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=HackOilOff(),
+            )
+        )
+        
     def set_alpha(self, alpha: float) -> None:
         if self.ha1_params is None:
             self.send_layout()
@@ -617,7 +624,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromHandle="auto",
@@ -634,7 +641,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromHandle="auto",
@@ -651,7 +658,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
                     FromHandle="auto",
@@ -690,7 +697,7 @@ class Atn(ActorInterface, Proactor):
         self.send_threadsafe(
             Message(
                 Src=self.name,
-                Dst=self.name,
+                Dst=self.scada.name,
                 Payload=DBGPayload(
                     Levels=LoggerLevels(
                         message_summary=message_summary,
@@ -1066,8 +1073,18 @@ class Atn(ActorInterface, Proactor):
         # Thermal mass of house? In kWh/degF
         # How much thermal mass is one zone?
         return 0
+    
+    def is_onpeak(self):
+        if datetime.now(tz=pytz.timezone(self.settings.timezone_str)).hour in [7,8,9,10,11,16,17,18,19]:
+            return True
+        return False
 
     def send_energy_instr(self, watthours: int, slot_minutes: int = 60, game_on: bool=False):
+        if watthours > 0 and self.is_onpeak():
+            self.hack_oil_on()
+            watthours = 0
+        else:
+            self.hack_oil_off()
         t = int(time.time())
         slot_start_s = int(t - (t % 300))
         # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
@@ -1076,15 +1093,15 @@ class Atn(ActorInterface, Proactor):
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 SlotStartS=slot_start_s,
                 SlotDurationMinutes=slot_minutes,
-                SendTimeMs=int(time.time() * 1000),
-                AvgPowerWatts=int(watthours),
+                SendTimeMs=int(time.time() * 1000) if not game_on else int(slot_start_s * 1000),
+                AvgPowerWatts=int(watthours) if watthours>=0 else 0,
             )
             self.payload = payload
             self.log(f"Sent EnergyInstruction: {payload}")
             self.send_threadsafe(
                 Message(
                     Src=self.name,
-                    Dst=self.name,
+                    Dst=self.scada.name,
                     Payload=payload,
                 )
             )

@@ -315,6 +315,7 @@ class SynthGenerator(ScadaActor):
         beta = self.params.BetaTimes100 / 100
         gamma = self.params.GammaEx6 / 1e6
         r = alpha + beta*oat + gamma*ws
+        r = r * (1 + self.settings.load_overestimation_percent/100)
         return round(r,2) if r>0 else 0
 
     def required_swt(self, required_kw_thermal: float) -> float:
