@@ -933,7 +933,7 @@ class Atn(ActorInterface, Proactor):
                 self.fill_missing_store_temps()
                 self.temperatures_available = True
 
-    async def get_RSWT(self):
+    async def get_RSWT(self, minus_deltaT=False):
         try:
             alpha = self.ha1_params.AlphaTimes10 / 10
             beta = self.ha1_params.BetaTimes100 / 100
@@ -953,6 +953,10 @@ class Atn(ActorInterface, Proactor):
             a, b, c = np.linalg.solve(A, y_hpower)
             c2 = c - rhp
             rswt = round((-b + (b**2-4*a*c2)**0.5)/(2*a),2)
+            deltaT = self.ha1_params.DdDeltaTF/self.ha1_params.DdPowerKw * (a*rswt**2 + b*rswt + c)
+            deltaT = deltaT if deltaT>0 else 0
+            if minus_deltaT:
+                return rswt - deltaT
             return rswt
         except:
             self.log("Could not find RSWT!")
@@ -1058,12 +1062,13 @@ class Atn(ActorInterface, Proactor):
             self.log(f"Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
             return 0
         try:
-            rswt = await self.get_RSWT()
+            rswt = await self.get_RSWT(minus_deltaT=False)
+            rswt_minus_deltaT = await self.get_RSWT(minus_deltaT=True)
             m_layer_kg = 120/4 * 3.785
             buffer_available_energy = 0
             for bl in buffer_temperatures:
                 if buffer_temperatures[bl] > rswt:
-                    buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt) * 5/9
+                    buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
             return round(buffer_available_energy,2)
         except Exception as e:
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
