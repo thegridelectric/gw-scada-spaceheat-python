@@ -23,7 +23,7 @@ from actors.scada_data import ScadaData
 from enums import LogLevel, StratBossState
 from named_types import (
     AllyGivesUp, EnergyInstruction, Glitch, GoDormant,
-    Ha1Params, HeatingForecast, RemainingElec, SuitUp, WakeUp, StratBossTrigger, NewCommandTree
+    Ha1Params, HeatingForecast, RemainingElec, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger, NewCommandTree
 )
 
 
@@ -35,6 +35,7 @@ class AtomicAllyState(GwStrEnum):
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
     HpOffStoreDischarge = auto()
+    HpOffOilBoilerTankAquastat = auto()
     StratBoss = auto()
 
     @classmethod
@@ -51,6 +52,8 @@ class AtomicAllyEvent(GwStrEnum):
     NoElecBufferEmpty = auto()
     WakeUp = auto()
     GoDormant = auto()
+    StartHackOil = auto()
+    StopHackOil = auto()
     StartStratSaving = auto()
     StopStratSaving = auto()
 
@@ -70,6 +73,7 @@ class AtomicAlly(ScadaActor):
         AtomicAllyState.HpOnStoreCharge.value,
         AtomicAllyState.HpOffStoreOff.value,
         AtomicAllyState.HpOffStoreDischarge.value,
+        AtomicAllyState.HpOffOilBoilerTankAquastat.value,
     ]
 
     transitions = (
@@ -100,15 +104,21 @@ class AtomicAlly(ScadaActor):
         {"trigger": "NoElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOffStoreOff"},
         {"trigger": "ElecBufferEmpty", "source": "HpOffStoreDischarge", "dest": "HpOnStoreOff"},
         {"trigger": "ElecBufferFull", "source": "HpOffStoreDischarge", "dest": "HpOnStoreCharge"},
-    ]+ [
-            {"trigger": "GoDormant", "source": state, "dest": "Dormant"}
-            for state in states if state != "Dormant"
+        # 5 Oil boiler on during onpeak
+    ] + [
+        {"trigger": "StartHackOil", "source": state, "dest": "HpOffOilBoilerTankAquastat"}
+        for state in states if state not in  ["Dormant", "HpOffOilBoilerTankAquastat"]
+    ] + [
+        {"trigger":"StopHackOil", "source": "HpOffOilBoilerTankAquastat", "dest": "WaitingNoElec"}
+        # Going dormant and waking up
+    ] + [
+        {"trigger": "GoDormant", "source": state, "dest": "Dormant"} for state in states if state != "Dormant"
+    ] + [
+        {"trigger":"WakeUp", "source": "Dormant", "dest": "WaitingNoElec"}
     ] + [
             {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"}
             for state in states if state not in ["Dormant", "StratBoss"]
-    ]  
-    + [{"trigger":"StopStratSaving", "source": "StratBoss", "dest": "Initializing"}]
-    + [{"trigger":"WakeUp", "source": "Dormant", "dest": "Initializing"}]
+    ]
     )
 
     def __init__(self, name: str, services: ServicesInterface):
@@ -166,17 +176,34 @@ class AtomicAlly(ScadaActor):
             case EnergyInstruction():
                 self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
                 self.remaining_elec_wh = message.Payload.AvgPowerWatts
-                self.engage_brain()()
+                self.engage_brain()
             case GoDormant():
                 if self.state != AtomicAllyState.Dormant.value:
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
+            case HackOilOn():
+                if not self.settings.fuel_substitution:
+                    self.log("Ignoring HackOilOn message since fuel substitution is not activated")
+                elif self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
+                    self.log("Acting on hack.oil.on message")
+                    previous_state = self.state
+                    self.trigger_event(AtomicAllyEvent.StartHackOil)
+                    self.update_relays(previous_state)
+                else:
+                    self.log(f"Received hack.oil.on. In state {self.state} so ignoring")
+            case HackOilOff():
+                if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
+                    self.log("Acting on hack.oil.off message")
+                    self.trigger_event(AtomicAllyEvent.StopHackOil)
+                    self.update_relays(AtomicAllyState.HpOffOilBoilerTankAquastat)
+                else:
+                    self.log(f"Received hack.oil.off. In state {self.state} so ignoring ")
             case RemainingElec():
                 # TODO: perhaps 1 Wh is not the best number here
                 if message.Payload.RemainingWattHours <= 1:
-                    if "HpOn" in self.state:
-                        self.turn_off_HP()
+                    if "HpOn" in self.state and datetime.now(self.timezone).minute<55:
+                        self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
                 if self.state == AtomicAllyState.Dormant.value:
@@ -333,7 +360,7 @@ class AtomicAlly(ScadaActor):
 
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
-        if self.state != AtomicAllyState.Dormant:
+        if self.state not in [AtomicAllyState.Dormant, AtomicAllyState.HpOffOilBoilerTankAquastat]:
             previous_state = self.state
             self.get_latest_temperatures()
 
@@ -428,6 +455,9 @@ class AtomicAlly(ScadaActor):
     def update_relays(self, previous_state: str) -> None:
         if self.state == AtomicAllyState.WaitingNoElec.value:
             self.turn_off_HP()
+        if previous_state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
+            self.hp_failsafe_switch_to_scada()
+            self.aquastat_ctrl_switch_to_scada()
         if (self.state == AtomicAllyState.Dormant.value 
             or self.state==AtomicAllyState.WaitingElec.value
             or self.state==AtomicAllyState.WaitingNoElec.value):
@@ -444,6 +474,12 @@ class AtomicAlly(ScadaActor):
             self.valved_to_charge_store()
         else:
             self.valved_to_discharge_store()
+        if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
+            self.hp_failsafe_switch_to_aquastat()
+            self.aquastat_ctrl_switch_to_boiler()
+        else:
+            self.hp_failsafe_switch_to_scada()
+            self.aquastat_ctrl_switch_to_scada()
 
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])

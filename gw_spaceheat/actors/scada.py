@@ -52,7 +52,7 @@ from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, GameOn, GoDormant,
     LayoutLite, NewCommandTree, RemainingElec, RemainingElecEvent, ScadaParams, SendLayout,
-    SingleMachineState, StratBossTrigger, SuitUp, WakeUp,
+    SingleMachineState, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -349,6 +349,12 @@ class Scada(ScadaInterface, Proactor):
                     self.fsm_full_report_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with fsm_full_report_received: \n {e}")
+            case HackOilOn():
+                self.log("Received hack oil on")
+                self._send_to(self.layout.atomic_ally, payload)
+            case HackOilOff():
+                self.log("Received hack oil off")
+                self._send_to(self.layout.atomic_ally, payload)
             case MachineStates():
                 try:
                     self.machine_states_received(from_node, payload)
@@ -560,6 +566,7 @@ class Scada(ScadaInterface, Proactor):
                 f"Ignoring control request from atn, auto_state: {self.auto_state}"
             )
             return
+        self.atn_wants_control(t=payload)
 
     def energy_instruction_received(
         self, from_node: ShNode, payload: EnergyInstruction
