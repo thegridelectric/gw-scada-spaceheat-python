@@ -82,11 +82,11 @@ class HpRelayBoss(ScadaActor):
             if self.strat_boss_sidelined():
                 self.waiting_for_strat_boss = False
                 self.close_hp_scada_ops_relay()
-                asyncio.create_task(self._wait_and_turn_on_anyway())
             else:
                 self.waiting_for_strat_boss = True 
                 self._send_to(self.strat_boss, payload)
                 self.log("Waiting for StratBossReady before closing relay!")
+                asyncio.create_task(self._wait_and_turn_on_anyway())
                 # TODO Add timer to raise concern if we haven't heard for a while (message dropped)
                 
         else:
