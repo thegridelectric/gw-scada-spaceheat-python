@@ -351,7 +351,7 @@ class DGraph():
         for elec_price_usd_mwh in sorted(list(range(min_elec_ctskwh*10, max_elec_ctskwh*10))+[forecasted_price_usd_mwh]):
             # Update the fake cost of initial node edges with the selected price
             for edge in self.edges[self.initial_node]:
-                if edge.cost >= 1e5: # penalized node
+                if edge.cost >= 1e4: # penalized node
                     edge.fake_cost = edge.cost
                 elif edge.rswt_minus_edge_elec is not None: # penalized node
                     edge.fake_cost = edge.rswt_minus_edge_elec * elec_price_usd_mwh/1000
