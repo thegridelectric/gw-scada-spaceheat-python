@@ -247,7 +247,7 @@ class AtomicAlly(ScadaActor):
                 raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
             self.set_normal_command_tree()
             self.trigger_event(AtomicAllyEvent.StopStratSaving)
-            self.engage_brain(waking_up=True)
+            self.engage_brain()
             # confirm change of command tree by returning payload to strat boss
             self._send_to(dst=self.strat_boss, payload=payload)
 

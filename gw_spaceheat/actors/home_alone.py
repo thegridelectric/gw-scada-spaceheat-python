@@ -1,7 +1,8 @@
 import asyncio
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, cast
 from enum import auto
 import time
+import uuid
 from datetime import datetime, timedelta
 import pytz
 from gw.enums import GwStrEnum
@@ -10,9 +11,11 @@ from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import ActorClass
+from gwproto.named_types import AnalogDispatch
 from result import Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
+from gwproto.data_classes.components.dfr_component import DfrComponent
 
 from actors.scada_actor import ScadaActor
 from named_types import (
@@ -581,6 +584,8 @@ class HomeAlone(ScadaActor):
             self.log("Is on peak: turning off HP")
             self.turn_off_HP(from_node=self.normal_node)
         self.relays_initialized = True
+
+        self.set_010_defaults()
     
     def trigger_just_offpeak(self):
         """
@@ -651,6 +656,65 @@ class HomeAlone(ScadaActor):
             self.aquastat_ctrl_switch_to_boiler(from_node=self.onpeak_backup_node)
         else:
             self.turn_on_HP(from_node=self.onpeak_backup_node)
+
+    def set_010_defaults(self) -> None:
+        self.component = cast(DfrComponent, self.node.component)
+        self.my_dfrs = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ZeroTenOutputer]
+        for dfr in self.my_dfrs:
+            dfr_config = next(
+                    config
+                    for config in self.component.gt.ConfigList
+                    if config.ChannelName == dfr.name
+                )
+            init = dfr_config.InitialVoltsTimes100
+            print(dfr_config.ChannelName)
+            self._send_to(
+                self.primary_scada,
+                AnalogDispatch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    FromHandle="auto",
+                    ToHandle=f"auto.{dfr_config.ChannelName}",
+                    AboutName=f"{dfr_config.ChannelName}",
+                    Value=init,
+                    TriggerId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                )
+            )
+
+
+    # def set_primary_010(self, val: int=None) -> None:
+    #     if val is None:
+    #         # find default
+    #         val = ...
+    #     self._send_to(
+    #         self.primary_scada,
+    #         AnalogDispatch(
+    #             FromGNodeAlias=self.layout.scada_g_node_alias,
+    #             FromHandle="auto",
+    #             ToHandle="auto.primary-010v",
+    #             AboutName="primary-010v",
+    #             Value=val,
+    #             TriggerId=str(uuid.uuid4()),
+    #             UnixTimeMs=int(time.time() * 1000),
+    #         )
+    #     )
+
+    # def set_store_010(self, val: int=None) -> None:
+    #     if val is None:
+    #         # find default
+    #         val = ...
+    #     self._send_to(
+    #         self.primary_scada,
+    #         AnalogDispatch(
+    #             FromGNodeAlias=self.layout.scada_g_node_alias,
+    #             FromHandle="auto",
+    #             ToHandle="auto.store-010v",
+    #             AboutName="store-010v",
+    #             Value=val,
+    #             TriggerId=str(uuid.uuid4()),
+    #             UnixTimeMs=int(time.time() * 1000),
+    #         )
+    #     )
 
     def start(self) -> None:
         self.services.add_task(
