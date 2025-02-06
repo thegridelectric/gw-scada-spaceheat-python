@@ -2,7 +2,7 @@ import asyncio
 import time
 import uuid
 from enum import auto
-from typing import Sequence, Optional
+from typing import cast, List, Sequence, Optional
 from datetime import datetime
 
 import pytz
@@ -12,8 +12,10 @@ from gwproactor import MonitoredName, ServicesInterface
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import FsmReportType
-from gwproto.named_types import (FsmAtomicReport, FsmFullReport,
+from gwproto.data_classes.components.dfr_component import DfrComponent
+
+from gwproto.enums import ActorClass, FsmReportType
+from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport,
                                  MachineStates)
 from result import Ok, Result
 from transitions import Machine
@@ -247,6 +249,7 @@ class AtomicAlly(ScadaActor):
                 raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
             self.set_normal_command_tree()
             self.trigger_event(AtomicAllyEvent.StopStratSaving)
+            self.initialize_actuators()
             self.engage_brain()
             # confirm change of command tree by returning payload to strat boss
             self._send_to(dst=self.strat_boss, payload=payload)
@@ -552,10 +555,57 @@ class AtomicAlly(ScadaActor):
             self.temperatures_available = False
 
     def initialize_actuators(self):
+        my_relays =  {
+            relay
+            for relay in self.my_actuators()
+            if relay.ActorClass == ActorClass.Relay and self.the_boss_of(relay) == self.node
+        }
+
+        target_relays: List[ShNode] = list(my_relays - {
+                self.store_charge_discharge_relay, # keep as it was
+                self.hp_failsafe_relay,
+                self.hp_scada_ops_relay, # keep as it was unless on peak
+                self.aquastat_control_relay
+            }
+        )
+        target_relays.sort(key=lambda x: x.Name)
+        self.log("de-energizing most relays")
+        for relay in target_relays:
+            self.de_energize(relay)
+
+        self.log("Taking care of critical relays")
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
         if self.no_more_elec():
             self.turn_off_HP()
+
+        try:
+            self.set_010_defaults()
+        except ValueError as e:
+            self.log(f"Trouble with set_010_defaults: {e}")
+
+    def set_010_defaults(self) -> None:
+        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
+        self.my_dfrs = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ZeroTenOutputer]
+        for dfr_node in self.my_dfrs:
+            dfr_config = next(
+                    config
+                    for config in dfr_component.gt.ConfigList
+                    if config.ChannelName == dfr_node.name
+                )
+            self._send_to(
+                dst=dfr_node,
+                payload=AnalogDispatch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    FromHandle=self.node.handle,
+                    ToHandle=dfr_node.handle,
+                    AboutName=dfr_node.Name,
+                    Value=dfr_config.InitialVoltsTimes100,
+                    TriggerId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                )
+            )
+            self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {self.node.handle} ")            
 
     def no_more_elec(self) -> bool:
         if self.remaining_elec_wh is None or self.remaining_elec_wh <= 1:
