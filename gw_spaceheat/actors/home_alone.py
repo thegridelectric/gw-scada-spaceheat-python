@@ -658,6 +658,7 @@ class HomeAlone(ScadaActor):
             self.turn_on_HP(from_node=self.onpeak_backup_node)
 
     def set_010_defaults(self) -> None:
+        self.layout.node(H0N.zero_ten_out_multiplexer).component
         self.component = cast(DfrComponent, self.node.component)
         self.my_dfrs = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ZeroTenOutputer]
         for dfr in self.my_dfrs:
