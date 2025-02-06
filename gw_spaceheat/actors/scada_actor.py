@@ -525,7 +525,7 @@ class ScadaActor(Actor):
                             Dst=self.aquastat_control_relay.name,
                             Payload=event))
             self.log(
-                f"{self.node.handle if from_node is None else from_node.handle} sending SwitchToScada to Boiler Ctrl {self.aquastat_control_relay.handle}"
+                f"{self.node.handle if from_node is None else from_node.handle} sending SwitchToBoiler to Boiler Ctrl {self.aquastat_control_relay.handle}"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")

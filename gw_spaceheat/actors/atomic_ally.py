@@ -20,7 +20,7 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import LogLevel, StratBossState
+from enums import LogLevel, StratBossState, StratBossEvent
 from named_types import (
     AllyGivesUp, EnergyInstruction, Glitch, GoDormant,
     Ha1Params, HeatingForecast, RemainingElec, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger, NewCommandTree
@@ -156,6 +156,7 @@ class AtomicAlly(ScadaActor):
         if H0N.atomic_ally not in self.layout.nodes:
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
         self.set_normal_command_tree()
+        self.cancel_strat_boss()
     
     @property
     def data(self) -> ScadaData:
@@ -214,6 +215,7 @@ class AtomicAlly(ScadaActor):
             case WakeUp():
                 if self.state == AtomicAllyState.Dormant.value:
                     self.set_normal_command_tree() 
+                    self.cancel_strat_boss()
                     self.suit_up()
             case HeatingForecast():
                 self.log("Received forecast")
@@ -364,6 +366,15 @@ class AtomicAlly(ScadaActor):
         self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
         self.trigger_event(AtomicAllyEvent.WakeUp)
         self.engage_brain()
+
+    def cancel_strat_boss(self):
+        self._send_to(self.layout.node(H0N.strat_boss),
+                      StratBossTrigger(
+                          FromState=StratBossState.Active,
+                          ToState=StratBossState.Dormant,
+                          Trigger=StratBossEvent.BossCancels,
+                      ),
+                      self.layout.node(H0N.atomic_ally))
 
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
@@ -540,7 +551,7 @@ class AtomicAlly(ScadaActor):
         if total_usable_kwh is None or required_storage is None:
             self.temperatures_available = False
 
-    def initialize_relays(self):
+    def initialize_actuators(self):
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
         if self.no_more_elec():

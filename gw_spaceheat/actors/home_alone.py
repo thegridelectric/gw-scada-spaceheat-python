@@ -19,7 +19,7 @@ from named_types import (
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, StratBossTrigger, 
             WakeUp )
-from enums import HomeAloneTopState, LogLevel, StratBossState
+from enums import HomeAloneTopState, LogLevel, StratBossState, StratBossEvent
 
  
 class HomeAloneState(GwStrEnum):
@@ -183,6 +183,7 @@ class HomeAlone(ScadaActor):
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
         self.set_normal_command_tree()
+        self.cancel_strat_boss()
 
     @property
     def normal_node(self) -> ShNode:
@@ -432,8 +433,7 @@ class HomeAlone(ScadaActor):
                 self.trigger_normal_event(HomeAloneEvent.WakeUp)
                 self.time_since_blind = None
             if not self.relays_initialized:
-                self.initialize_relays()
-
+                self.initialize_actuators()
         previous_state = self.state
 
         if self.is_onpeak():
@@ -551,7 +551,7 @@ class HomeAlone(ScadaActor):
         else:
             self.valved_to_discharge_store(from_node=self.normal_node)
 
-    def initialize_relays(self):
+    def initialize_actuators(self):
         self.log("Initializing relays")
         if self.top_state != HomeAloneTopState.Normal:
             raise Exception("Can not go into initialize relays if top state is not Normal")
@@ -686,6 +686,7 @@ class HomeAlone(ScadaActor):
                     # engage brain will WakeUp: Dormant -> Initializing
                     # run the appropriate relay initialization and then
                     # evaluate if it can move into a known state
+                    self.cancel_strat_boss()
                     self.engage_brain(waking_up = True)
             case HeatingForecast():
                 self.log("Received heating forecast")
@@ -723,6 +724,15 @@ class HomeAlone(ScadaActor):
             self.engage_brain(waking_up=True)
             # confirm change of command tree by returning payload to strat boss
             self._send_to(dst=self.strat_boss, payload=payload, src=self.normal_node)
+
+    def cancel_strat_boss(self):
+        self._send_to(self.layout.node(H0N.strat_boss),
+                      StratBossTrigger(
+                          FromState=StratBossState.Active,
+                          ToState=StratBossState.Dormant,
+                          Trigger=StratBossEvent.BossCancels,
+                      ),
+                      self.layout.node(H0N.home_alone))
 
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
