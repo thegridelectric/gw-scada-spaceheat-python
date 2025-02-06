@@ -584,8 +584,11 @@ class HomeAlone(ScadaActor):
             self.log("Is on peak: turning off HP")
             self.turn_off_HP(from_node=self.normal_node)
         self.relays_initialized = True
-
-        self.set_010_defaults()
+        try:
+            self.set_010_defaults()
+        except ValueError as e:
+            self.log(f"Trouble with set_010_defaults: {e}")
+            
     
     def trigger_just_offpeak(self):
         """
@@ -658,64 +661,29 @@ class HomeAlone(ScadaActor):
             self.turn_on_HP(from_node=self.onpeak_backup_node)
 
     def set_010_defaults(self) -> None:
-        self.layout.node(H0N.zero_ten_out_multiplexer).component
-        self.component = cast(DfrComponent, self.node.component)
+        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
         self.my_dfrs = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ZeroTenOutputer]
-        for dfr in self.my_dfrs:
+        for dfr_node in self.my_dfrs:
             dfr_config = next(
                     config
-                    for config in self.component.gt.ConfigList
-                    if config.ChannelName == dfr.name
+                    for config in dfr_component.gt.ConfigList
+                    if config.ChannelName == dfr_node.name
                 )
-            init = dfr_config.InitialVoltsTimes100
-            print(dfr_config.ChannelName)
             self._send_to(
-                self.primary_scada,
-                AnalogDispatch(
+                dst=dfr_node,
+                payload=AnalogDispatch(
                     FromGNodeAlias=self.layout.scada_g_node_alias,
-                    FromHandle="auto",
-                    ToHandle=f"auto.{dfr_config.ChannelName}",
-                    AboutName=f"{dfr_config.ChannelName}",
-                    Value=init,
+                    FromHandle=self.normal_node.handle,
+                    ToHandle=dfr_node.handle,
+                    AboutName=dfr_node.Name,
+                    Value=dfr_config.InitialVoltsTimes100,
                     TriggerId=str(uuid.uuid4()),
                     UnixTimeMs=int(time.time() * 1000),
-                )
+                ),
+                src=self.normal_node
             )
+            self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {self.normal_node.handle} ")
 
-
-    # def set_primary_010(self, val: int=None) -> None:
-    #     if val is None:
-    #         # find default
-    #         val = ...
-    #     self._send_to(
-    #         self.primary_scada,
-    #         AnalogDispatch(
-    #             FromGNodeAlias=self.layout.scada_g_node_alias,
-    #             FromHandle="auto",
-    #             ToHandle="auto.primary-010v",
-    #             AboutName="primary-010v",
-    #             Value=val,
-    #             TriggerId=str(uuid.uuid4()),
-    #             UnixTimeMs=int(time.time() * 1000),
-    #         )
-    #     )
-
-    # def set_store_010(self, val: int=None) -> None:
-    #     if val is None:
-    #         # find default
-    #         val = ...
-    #     self._send_to(
-    #         self.primary_scada,
-    #         AnalogDispatch(
-    #             FromGNodeAlias=self.layout.scada_g_node_alias,
-    #             FromHandle="auto",
-    #             ToHandle="auto.store-010v",
-    #             AboutName="store-010v",
-    #             Value=val,
-    #             TriggerId=str(uuid.uuid4()),
-    #             UnixTimeMs=int(time.time() * 1000),
-    #         )
-    #     )
 
     def start(self) -> None:
         self.services.add_task(
