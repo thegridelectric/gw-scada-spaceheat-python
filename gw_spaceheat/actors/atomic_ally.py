@@ -74,6 +74,9 @@ class AtomicAlly(ScadaActor):
         AtomicAllyState.HpOffStoreOff.value,
         AtomicAllyState.HpOffStoreDischarge.value,
         AtomicAllyState.HpOffOilBoilerTankAquastat.value,
+        AtomicAllyState.StratBoss.value,
+
+
     ]
 
     transitions = (
@@ -118,7 +121,7 @@ class AtomicAlly(ScadaActor):
     ] + [
             {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"}
             for state in states if state not in ["Dormant", "StratBoss"]
-    ]
+    ] + [{"trigger":"StopStratSaving", "source": "StratBoss", "dest": "WaitingNoElec"}]
     )
 
     def __init__(self, name: str, services: ServicesInterface):
@@ -236,7 +239,7 @@ class AtomicAlly(ScadaActor):
             self.set_strat_saver_command_tree()
             self.trigger_event(AtomicAllyEvent.StartStratSaving)
             # confirm change of command tree by returning payload to strat boss
-            self._send_to(dst=self.strat_boss, payload=payload, src=self.atomic_ally)
+            self._send_to(dst=self.strat_boss, payload=payload)
         else: 
             if self.state != AtomicAllyState.StratBoss:
                 raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
@@ -244,7 +247,7 @@ class AtomicAlly(ScadaActor):
             self.trigger_event(AtomicAllyEvent.StopStratSaving)
             self.engage_brain(waking_up=True)
             # confirm change of command tree by returning payload to strat boss
-            self._send_to(dst=self.strat_boss, payload=payload, src=self.atomic_ally)
+            self._send_to(dst=self.strat_boss, payload=payload)
 
     def set_normal_command_tree(self) -> None:
 
