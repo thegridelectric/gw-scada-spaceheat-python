@@ -492,6 +492,7 @@ class Scada(ScadaInterface, Proactor):
         self.set_home_alone_command_tree()
         # wake up home alone again. Ally will already be dormant
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self.boss_cancels_strat_boss(from_node=self.layout.node(H0N.home_alone))
         # Inform AtomicTNode
         # TODO: send message like DispatchContractDeclined to Atn
 
@@ -554,6 +555,7 @@ class Scada(ScadaInterface, Proactor):
         self._send_to(
             self.atomic_ally, GoDormant(FromName=self.name, ToName=H0N.atomic_ally)
         )
+        self.boss_cancels_strat_boss(from_node=self.layout.node(H0N.home_alone))
 
     def dispatch_contract_go_live_received(
         self, from_node: ShNode, payload: DispatchContractGoLive
@@ -847,6 +849,7 @@ class Scada(ScadaInterface, Proactor):
         # Let homealone and pico-cycler know they in charge again
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
+        self.boss_cancels_strat_boss(from_node=self.layout.node(H0N.home_alone))
 
     def auto_goes_dormant(self) -> None:
         if self.auto_state == MainAutoState.Dormant:
@@ -880,6 +883,7 @@ class Scada(ScadaInterface, Proactor):
         self.set_home_alone_command_tree()
         # wake up home alone again. Ally will already be dormant
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self.boss_cancels_strat_boss(from_node=self.layout.node(H0N.home_alone))
         # Inform AtomicTNode
         # TODO: send message like DispatchContractDeclined to Atn
 
@@ -905,6 +909,7 @@ class Scada(ScadaInterface, Proactor):
         )
         # Let the atomic ally know its live
         self._send_to(self.layout.atomic_ally, WakeUp(ToName=H0N.atomic_ally))
+        self.boss_cancels_strat_boss(from_node=self.layout.node(H0N.atomic_ally))
 
     def atn_link_dead(self) -> None:
         if self.auto_state != MainAutoState.Atn:
@@ -917,11 +922,22 @@ class Scada(ScadaInterface, Proactor):
         self.set_home_alone_command_tree()
         # Let home alone know its in charge
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self.boss_cancels_strat_boss(from_node=self.layout.node(H0N.home_alone))
         self._send_to(
             self.layout.atomic_ally,
             GoDormant(FromName=H0N.primary_scada, ToName=H0N.atomic_ally),
         )
         # Pico Cycler shouldn't change
+
+    def boss_cancels_strat_boss(self, from_node):
+        # Strat boss stops when switching to ATN
+        self._send_to(self.layout.node(H0N.strat_boss),
+                      StratBossTrigger(
+                          FromState=StratBossState.Active,
+                          ToState=StratBossState.Dormant,
+                          Trigger=StratBossEvent.BossCancels,
+                      ),
+                      from_node)
 
     def _derived_recv_deactivated(
         self, transition: LinkManagerTransition
