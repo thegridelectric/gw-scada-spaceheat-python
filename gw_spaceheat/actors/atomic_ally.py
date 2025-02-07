@@ -159,6 +159,11 @@ class AtomicAlly(ScadaActor):
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
         self.set_normal_command_tree()
         self.cancel_strat_boss()
+
+        self.log("--")
+        for relay in self.my_actuators():
+            self.log(f"Boss of relay {relay} is {self.the_boss_of(relay)}")
+        self.log("--")
     
     @property
     def data(self) -> ScadaData:
@@ -560,6 +565,11 @@ class AtomicAlly(ScadaActor):
             for relay in self.my_actuators()
             if relay.ActorClass == ActorClass.Relay and self.the_boss_of(relay) == self.node
         }
+
+        self.log("--")
+        for relay in self.my_actuators():
+            self.log(f"Boss of relay {relay} is {self.the_boss_of(relay)}")
+        self.log("--")
 
         target_relays: List[ShNode] = list(my_relays - {
                 self.store_charge_discharge_relay, # keep as it was
