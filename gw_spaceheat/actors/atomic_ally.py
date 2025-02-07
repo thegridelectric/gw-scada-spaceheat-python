@@ -161,6 +161,8 @@ class AtomicAlly(ScadaActor):
         self.cancel_strat_boss()
 
         self.log("--")
+        for relay in self.layout.actuators:
+            print(relay.handle)
         for relay in self.my_actuators():
             self.log(f"Boss of relay {relay} is {self.the_boss_of(relay)}")
         self.log("--")
