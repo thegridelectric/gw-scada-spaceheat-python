@@ -159,13 +159,6 @@ class AtomicAlly(ScadaActor):
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
         self.set_normal_command_tree()
         self.cancel_strat_boss()
-
-        self.log("--")
-        for relay in self.layout.actuators:
-            print(relay.handle)
-        for relay in self.my_actuators():
-            self.log(f"Boss of relay {relay} is {self.the_boss_of(relay)}")
-        self.log("--")
     
     @property
     def data(self) -> ScadaData:
@@ -476,6 +469,14 @@ class AtomicAlly(ScadaActor):
     async def main(self):
         await asyncio.sleep(2)
         while not self._stop_requested:
+
+            self.log("--")
+            for relay in self.layout.actuators:
+                print(relay.handle)
+            for relay in self.my_actuators():
+                self.log(f"Boss of relay {relay} is {self.the_boss_of(relay)}")
+            self.log("--")
+
             self._send(PatInternalWatchdogMessage(src=self.name))
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
