@@ -634,7 +634,7 @@ class Scada(ScadaInterface, Proactor):
             )
         self._send_to(self.atomic_ally, payload)
         self.generate_event(RemainingElecEvent(Remaining=payload))
-        self.log("Sent remaining elec to ATN and atomic ally")
+        #self.log("Sent remaining elec to ATN and atomic ally")
 
     def scada_params_received(
         self, from_node: ShNode, payload: ScadaParams, testing: bool = False

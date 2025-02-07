@@ -52,7 +52,7 @@ class StratBoss(ScadaActor):
     circulating water is likely still above room temperature, just not enough to actively heat.
 
     """
-    TIMEOUT_MINUTES = 12
+    TIMEOUT_MINUTES = 20
     
     DIST_PUMP_ON_SECONDS = 45 # time it takes to get the distributin pump on when its off
     VALVED_TO_DISCHARGE_SECONDS = 30 # time it takes to go from valve in charge -> valve in discharge
@@ -261,7 +261,7 @@ class StratBoss(ScadaActor):
             wait_s = self.primary_pump_delay_seconds - max_strat_prep_seconds # could be ~75 s for LG
             if wait_s > 5:
                 wait_s = wait_s - 5
-                self.log(f"Waiting {wait_s} before changing relays")
+                self.log(f"Waiting {wait_s} s before changing relays")
                 await asyncio.sleep(wait_s)
         asyncio.create_task(self._lift_timer())
         #Make sure we're still active before proceeding in case we waited.
@@ -302,7 +302,6 @@ class StratBoss(ScadaActor):
     
     async def _timeout_timer(self) -> None:
         """ Wait 12 minutes. If still active at the end then pull the ActiveTwelveMinutes Trigger"""
-        self.log(f"Waiting {self.TIMEOUT_MINUTES} minutes and then timing out if still active")
         await asyncio.sleep(self.TIMEOUT_MINUTES * 60)
         if self.state == StratBossState.Active:
             self.log(f"Letting boss know its time to go dormant: Timeout event after {self.TIMEOUT_MINUTES}")
@@ -325,7 +324,6 @@ class StratBoss(ScadaActor):
         while not self._stop_requested:
             if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
                 self._send(PatInternalWatchdogMessage(src=self.name))
-                self.log("Patting watchdog)")
                 self.last_pat_s = time.time()
             try: 
                 good_readings = self.update_power_readings()

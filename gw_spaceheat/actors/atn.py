@@ -176,6 +176,8 @@ class Atn(ActorInterface, Proactor):
         else:
             self.dashboard = None
 
+        self.latest_price: Optional[LatestPrice] = None
+
     @property
     def name(self) -> str:
         return self._name
@@ -271,7 +273,7 @@ class Atn(ActorInterface, Proactor):
                 self.log("Scada: Game On!")
                 if self.latest_remaining_elec is not None:
                     self.log("Sending energy instruction with the latest remaining electricity")
-                    self.send_energy_instr(self.latest_remaining_elec, game_on=True)
+                    self.send_energy_dispatches(self.latest_remaining_elec)
             case EventBase():
                 path_dbg |= 0x00000020
                 self._process_event(decoded.Payload)
@@ -764,7 +766,7 @@ class Atn(ActorInterface, Proactor):
             # TODO: under some conditions we might want to run a FLO at another time
             return
         await self.get_weather(session)
-        self.get_price_forecast()
+        self.get_price_update_forecast_usd_per_mwh()
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_thermocline_and_centroids()
@@ -846,6 +848,7 @@ class Atn(ActorInterface, Proactor):
         self.sent_bid = True
 
     def latest_price_received(self, payload: LatestPrice) -> None:
+        self.latest_price = payload
         self.log("Received latest price")
         if self.latest_bid is None:
             self.log("Ignoring - no bid exists")
@@ -872,7 +875,7 @@ class Atn(ActorInterface, Proactor):
         energy_wh = avg_w * 1
         if energy_wh < 1000:
             energy_wh = 0
-        self.send_energy_instr(watthours=energy_wh, slot_minutes=60)
+        self.send_energy_dispatches(watthours=energy_wh, slot_minutes=60)
 
     def to_fahrenheit(self, t: float) -> float:
         return t * 9 / 5 + 32
@@ -1078,30 +1081,71 @@ class Atn(ActorInterface, Proactor):
         # How much thermal mass is one zone?
         return 0
     
-    def is_onpeak(self):
-        if datetime.now(tz=pytz.timezone(self.settings.timezone_str)).hour in [7,8,9,10,11,16,17,18,19]:
+    def use_oil_as_fuel_substitute(self) -> False:
+        if self.latest_price is None:
+            return False
+        if self.latest_price.PriceUnit != MarketPriceUnit.USDPerMWh:
+            raise Exception(f"Stop being so parochial and assuming {MarketPriceUnit.USDPerMWh}")
+        price_usd_per_mwh = self.latest_price.PriceTimes1000 / 1000
+        self.log(f"Latest price is ${price_usd_per_mwh}/MWh. Fuel sub threshold ${self.settings.fuel_sub_usd_per_mwh}/MWh")
+        if price_usd_per_mwh > self.settings.fuel_sub_usd_per_mwh and self.settings.fuel_substitution:
             return True
+        elif not self.settings.fuel_substitution:
+            self.log("fuel_substation variable set to False! ")
+            return False
         return False
 
-    def send_energy_instr(self, watthours: int, slot_minutes: int = 60, game_on: bool=False):
-        if watthours > 0 and self.is_onpeak():
+    def send_energy_dispatches(self, watthours: int, slot_minutes: int = 60) -> None:
+        """ Sends an energy instructions  at the top of the next 5 minutes.
+
+         - EnergyInstruction for electricity. 
+         - HackOilOn and/or HackOilOff
+
+         If deciding to turn on oil, sends an EnergyInstruction of 0 instead of watthours
+        """
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(
+                self._wait_and_send_energy_dispatches(watthours, slot_minutes)
+            )
+        else:
+            loop.run_until_complete(self._wait_and_send_energy_dispatches(watthours, slot_minutes))
+    
+    async def _wait_and_send_energy_dispatches(self, watthours: int, slot_minutes: int=60) -> None:
+        """ Sends an energy instructions  at the top of the next 5 minutes.
+
+         - EnergyInstruction for electricity. 
+         - HackOilOn and/or HackOilOff
+
+         If deciding to turn on oil, sends an EnergyInstruction of 0 instead of watthours
+        """
+        if self.latest_price is None:
+            self.log("Don't have a latest price. Not sending energy instruction")
+            # TODO: ignore if latest price is stale (no longer in market slot)
+            return
+        after_top_s = (time.time() % 300)
+        # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
+        if after_top_s > 5:
+            wait_s = 300 - after_top_s
+            self.log(f"Sleeping {wait_s} seconds before sending EnergyInstruction")
+            await asyncio.sleep(300 - (time.time() % 300)) # wait until the top of 5 minutes
+
+        t = time.time()
+        slot_start_s = int(t - (t % 300))
+        if watthours > 0 and self.use_oil_as_fuel_substitute():
             self.hack_oil_on()
             watthours = 0
         else:
             self.hack_oil_off()
-        t = int(time.time())
-        slot_start_s = int(t - (t % 300))
-        # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
-        if t - slot_start_s < 10 or game_on:
+        try:
             payload = EnergyInstruction(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 SlotStartS=slot_start_s,
                 SlotDurationMinutes=slot_minutes,
-                SendTimeMs=int(time.time() * 1000) if not game_on else int(slot_start_s * 1000),
+                SendTimeMs=int(time.time() * 1000),
                 AvgPowerWatts=int(watthours) if watthours>=0 else 0,
             )
             self.payload = payload
-            self.log(f"Sent EnergyInstruction: {payload}")
             self.send_threadsafe(
                 Message(
                     Src=self.name,
@@ -1109,9 +1153,10 @@ class Atn(ActorInterface, Proactor):
                     Payload=payload,
                 )
             )
-        else:
-            self.log(f"Too late to send energy instruction! {t-slot_start_s} is more "
-                     "than 10 s after top of 5 minutes")
+            self.log(f"Sent EnergyInstruction: {payload}")
+
+        except Exception as e:
+            self.log(f"Missed the boat sending this energy instruction!:{e} ")
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
@@ -1211,7 +1256,11 @@ class Atn(ActorInterface, Proactor):
             "ws": wf["ws"],
         }
 
-    def get_price_forecast(self, current_hour=False) -> None:
+    def get_price_update_forecast_usd_per_mwh(self) -> float:
+        """ returns price this hour and updates self.price_forecast for the start of next hour
+
+        All in $/MWh
+        """
         # Read the 72h electricity prices from local CSV file
         # TODO: replace with a price service
         dist_usd_mwh = []
@@ -1231,9 +1280,7 @@ class Atn(ActorInterface, Proactor):
         except Exception as e:
             self.log("Error reading price forecast from csv")
             raise Exception(e)
-        if current_hour:
-            total_price = [dp+lmp+reg for dp,lmp,reg in zip(dist_usd_mwh, lmp_usd_mwh, reg_usd_mwh)]
-            return total_price[datetime.now(tz=self.timezone).hour]
+
         dp_forecast_usd_per_mwh = dist_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
         lmp_forecast_usd_per_mwh = lmp_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
         reg_forecast_usd_per_mwh = reg_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
@@ -1244,6 +1291,8 @@ class Atn(ActorInterface, Proactor):
         }
         self.log("Succesfully read price forecast from local CSV")
         self.log(self.price_forecast)
+        total_price = [dp+lmp+reg for dp,lmp,reg in zip(dist_usd_mwh, lmp_usd_mwh, reg_usd_mwh)]
+        return total_price[datetime.now(tz=self.timezone).hour]
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
@@ -1262,8 +1311,6 @@ class Atn(ActorInterface, Proactor):
             centroids = new_centroids
         return labels
 
-    def get_price(self) -> float:
-        return self.get_price_forecast(current_hour=True)
 
     async def fake_market_maker(self):
         while True:
@@ -1276,26 +1323,30 @@ class Atn(ActorInterface, Proactor):
 
             # Sleep until the top of the hour
             await asyncio.sleep(sleep_time)
-            now = time.time()
-            slot_start_s = int(now) - int(now) % 300
-            mtn = MarketTypeName.rt60gate5.value
-            market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-            pricex1000 = int(self.get_price() * 1000)
-            self.log(f"Trying to Broadcasting price(x1000) {pricex1000} at the top of the hour.")
-            try:
-                price = LatestPrice(
-                    FromGNodeAlias=Atn.P_NODE,
-                    PriceTimes1000=pricex1000,
-                    PriceUnit=MarketPriceUnit.USDPerMWh,
-                    MarketSlotName=market_slot_name,
-                    MessageId=str(uuid.uuid4()),
-                )
-                self.send_threadsafe(
-                    Message(Src=self.name, Dst=self.name, Payload=price)
-                )
-            except Exception as e:
-                self.log(f"Problem generating or sending a LatestPrice: {e}")
-            
+            self.send_latest_price()
+
+    def send_latest_price(self) -> float:
+        now = time.time()
+        slot_start_s = int(now) - int(now) % 3600
+        mtn = MarketTypeName.rt60gate5.value
+        market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
+        usd_per_mwh = self.get_price_update_forecast_usd_per_mwh()
+        price = LatestPrice(
+                FromGNodeAlias=Atn.P_NODE,
+                PriceTimes1000=int(usd_per_mwh * 1000),
+                PriceUnit=MarketPriceUnit.USDPerMWh,
+                MarketSlotName=market_slot_name,
+                MessageId=str(uuid.uuid4()),
+            )
+        self.log(f"Trying to Broadcasting price(x1000) {usd_per_mwh} at the top of the hour.")
+        try:
+            self.send_threadsafe(
+                Message(Src=self.name, Dst=self.name, Payload=price)
+            )
+        except Exception as e:
+            self.log(f"Problem generating or sending a LatestPrice: {e}")
+
+
 
     def log(self, note: str) -> None:
         log_str = f"[atn] {note}"

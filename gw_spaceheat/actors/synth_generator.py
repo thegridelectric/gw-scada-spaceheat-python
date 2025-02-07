@@ -200,13 +200,13 @@ class SynthGenerator(ScadaActor):
         if self.elec_assigned_amount is None or self.previous_time is None:
             return
         time_now = time.time() * 1000
-        self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")
+        # self.log(f"The HP power was {round(self.previous_watts,1)} Watts {round((time_now-self.previous_time)/1000,1)} seconds ago")
         elec_watthours = self.previous_watts * (time_now - self.previous_time)/1000/3600
-        self.log(f"This corresponds to an additional {round(elec_watthours,1)} Wh of electricity used")
+        #self.log(f"This corresponds to an additional {round(elec_watthours,1)} Wh of electricity used")
         self.elec_used_since_assigned_time += elec_watthours
-        self.log(f"Electricity used since EnergyInstruction: {round(self.elec_used_since_assigned_time,1)} Wh")
+        #self.log(f"Electricity used since EnergyInstruction: {round(self.elec_used_since_assigned_time,1)} Wh")
         remaining_wh = int(self.elec_assigned_amount - self.elec_used_since_assigned_time)
-        self.log(f"Remaining electricity to be used from EnergyInstruction: {remaining_wh} Wh")
+        #self.log(f"Remaining electricity to be used from EnergyInstruction: {remaining_wh} Wh")
         remaining = RemainingElec(
             FromGNodeAlias=self.layout.atn_g_node_alias,
             RemainingWattHours=remaining_wh

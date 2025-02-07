@@ -146,7 +146,8 @@ class AtomicAlly(ScadaActor):
             initial=AtomicAllyState.Dormant,
             send_event=True,
         )     
-        self.state: AtomicAllyState = AtomicAllyState.Dormant 
+        self.state: AtomicAllyState = AtomicAllyState.Dormant
+        self.prev_state: AtomicAllyState = AtomicAllyState.Dormant 
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
@@ -192,9 +193,7 @@ class AtomicAlly(ScadaActor):
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
             case HackOilOn():
-                if not self.settings.fuel_substitution:
-                    self.log("Ignoring HackOilOn message since fuel substitution is not activated")
-                elif self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
+                if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
                     self.log("Acting on hack.oil.on message")
                     previous_state = self.state
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
@@ -226,7 +225,7 @@ class AtomicAlly(ScadaActor):
                 try:
                     self.strat_boss_trigger_received(from_node, message.Payload)
                 except Exception as e:
-                    self.log(f"Problem strat_bss_trigger_received: {e}")
+                    self.log(f"Problem with strat_boss_trigger_received: {e}")
 
         return Ok(True)
     
@@ -246,10 +245,13 @@ class AtomicAlly(ScadaActor):
             self._send_to(dst=self.strat_boss, payload=payload)
         else: 
             if self.state != AtomicAllyState.StratBoss:
-                raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
+                self.log("Inconsistency! StratBoss thinks its Active but AA is not in StratBoss State")
             self.set_normal_command_tree()
             self.trigger_event(AtomicAllyEvent.StopStratSaving)
-            self.initialize_actuators()
+            try:
+                self.initialize_actuators()
+            except Exception as e:
+                self.log(f"Trouble initializing actuators! {e}")
             self.engage_brain()
             # confirm change of command tree by returning payload to strat boss
             self._send_to(dst=self.strat_boss, payload=payload)
@@ -309,9 +311,9 @@ class AtomicAlly(ScadaActor):
     
     def trigger_event(self, event: AtomicAllyEvent) -> None:
         now_ms = int(time.time() * 1000)
-        orig_state = self.state
+        self.prev_state = self.state
         self.trigger(event)
-        self.log(f"{event}: {orig_state} -> {self.state}")
+        self.log(f"{event}: {self.prev_state} -> {self.state}")
         self._send_to(
             self.primary_scada,
             MachineStates(
@@ -337,7 +339,7 @@ class AtomicAlly(ScadaActor):
                         ReportType=FsmReportType.Event,
                         EventEnum=AtomicAllyEvent.enum_name(),
                         Event=event,
-                        FromState=orig_state,
+                        FromState=self.prev_state,
                         ToState=self.state,
                         UnixTimeMs=now_ms,
                         TriggerId=trigger_id,
@@ -345,6 +347,7 @@ class AtomicAlly(ScadaActor):
                 ],
             ),
         )
+        self.update_relays()
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
@@ -382,7 +385,6 @@ class AtomicAlly(ScadaActor):
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
         if self.state not in [AtomicAllyState.Dormant, AtomicAllyState.HpOffOilBoilerTankAquastat]:
-            previous_state = self.state
             self.get_latest_temperatures()
 
             if (
@@ -431,6 +433,7 @@ class AtomicAlly(ScadaActor):
             # 2
             elif self.state == AtomicAllyState.HpOnStoreCharge.value:
                 if self.no_more_elec() and datetime.now(self.timezone).minute<55:
+                    self.log("Finished with energy instruction! Turning off")
                     self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
                 elif self.is_buffer_empty() or self.is_storage_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
@@ -463,52 +466,58 @@ class AtomicAlly(ScadaActor):
                     else:
                         self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
 
-            if self.state != previous_state:
-                self.update_relays(previous_state)
-
     async def main(self):
         await asyncio.sleep(2)
         while not self._stop_requested:
-
-            self.log("--")
-            for relay in self.layout.actuators:
-                print(relay.handle)
-            for relay in self.my_actuators():
-                self.log(f"Boss of relay {relay} is {self.the_boss_of(relay)}")
-            self.log("--")
 
             self._send(PatInternalWatchdogMessage(src=self.name))
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
-    def update_relays(self, previous_state: str) -> None:
-        if self.state == AtomicAllyState.WaitingNoElec.value:
-            self.turn_off_HP()
-        if previous_state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
-            self.hp_failsafe_switch_to_scada()
-            self.aquastat_ctrl_switch_to_scada()
+    def update_relays(self) -> None:
+        self.log(f"update_relays with previous_state {self.prev_state} and state {self.state}")
+        path_dbg = 0
         if (self.state == AtomicAllyState.Dormant.value 
             or self.state==AtomicAllyState.WaitingElec.value
             or self.state==AtomicAllyState.WaitingNoElec.value):
+            path_dbg |= 0x00000001
+            if self.state == AtomicAllyState.WaitingNoElec.value:
+                self.turn_off_HP()
+                path_dbg |= 0x00000002
+            self.log(f"update_relays path_dbg is {path_dbg}")
             return
-        if "HpOn" not in previous_state and "HpOn" in self.state:
+
+        if self.prev_state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
+            self.hp_failsafe_switch_to_scada()
+            self.aquastat_ctrl_switch_to_scada()
+            path_dbg |= 0x00000002
+        if "HpOn" not in self.prev_state and "HpOn" in self.state:
             self.turn_on_HP()
-        if "HpOff" not in previous_state and "HpOff" in self.state:
+            path_dbg |= 0x00000008
+        if "HpOff" not in self.prev_state and "HpOff" in self.state:
             self.turn_off_HP()
+            path_dbg |= 0x00000010
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump()
+            path_dbg |= 0x00000020
         else:
-            self.turn_off_store_pump()         
+            self.turn_off_store_pump()  
+            path_dbg |= 0x00000040       
         if "StoreCharge" in self.state:
             self.valved_to_charge_store()
+            path_dbg |= 0x00000080
         else:
             self.valved_to_discharge_store()
+            path_dbg |= 0x00000100
         if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
             self.hp_failsafe_switch_to_aquastat()
             self.aquastat_ctrl_switch_to_boiler()
+            path_dbg |= 0x00000200
         else:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
+            path_dbg |= 0x00000400
+        self.log(f"update_relays path_dbg is {path_dbg}")
 
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
@@ -571,7 +580,7 @@ class AtomicAlly(ScadaActor):
 
         self.log("--")
         for relay in self.my_actuators():
-            self.log(f"Boss of relay {relay} is {self.the_boss_of(relay)}")
+            self.log(f"Boss of relay {relay.name} is {self.the_boss_of(relay)}")
         self.log("--")
 
         target_relays: List[ShNode] = list(my_relays - {
@@ -584,7 +593,10 @@ class AtomicAlly(ScadaActor):
         target_relays.sort(key=lambda x: x.Name)
         self.log("de-energizing most relays")
         for relay in target_relays:
-            self.de_energize(relay)
+            try:
+                self.de_energize(relay)
+            except Exception as e:
+                self.log(f"Trouble de energizing {relay}")
 
         self.log("Taking care of critical relays")
         self.hp_failsafe_switch_to_scada()
@@ -622,10 +634,10 @@ class AtomicAlly(ScadaActor):
 
     def no_more_elec(self) -> bool:
         if self.remaining_elec_wh is None or self.remaining_elec_wh <= 1:
-            self.log("No electricity available")
+            #self.log("No electricity available")
             return True
         else:
-            self.log(f"Electricity available: {self.remaining_elec_wh} Wh")
+            #self.log(f"Electricity available: {self.remaining_elec_wh} Wh")
             return False
     
     def is_buffer_empty(self, really_empty=False) -> bool:
