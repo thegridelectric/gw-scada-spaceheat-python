@@ -412,5 +412,5 @@ class StratBoss(ScadaActor):
         return True
 
 def c_to_f(temp_c: float) -> float:
-    return 32 + 8*temp_c/5
+    return (9*temp_c/5) + 32
 
