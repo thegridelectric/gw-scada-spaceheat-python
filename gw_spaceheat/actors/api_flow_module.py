@@ -26,7 +26,8 @@ from gwproto.named_types import (
 )
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
 from actors.scada_actor import ScadaActor
-from named_types import PicoMissing
+from enums import LogLevel
+from named_types import Glitch, PicoMissing
 from pydantic import BaseModel
 from result import Ok, Result
 from drivers.pipe_flow_sensor.signal_processing import butter_lowpass, filtering
@@ -674,6 +675,22 @@ class ApiFlowModule(ScadaActor):
                         new_timestamps.append(timestamps[i] + add_step_ns)
                         new_frequencies.append(0.001)
                         add_step_ns += 20*1e6
+            if len(timestamps) == 0:
+                self._send_to(self.atn, 
+                            Glitch(
+                                FromGNodeAlias=self.layout.scada_g_node_alias,
+                                Node=self.node.name,
+                                LogLevel=LogLevel.Warning,
+                                Summary="filtering resulted in a list of length 0",
+                                Details=f"get_micro_hz_readings, timestamps was {timestamps}"
+                            )
+                )
+                return ChannelReadings(
+                            ChannelName=self.hz_channel.Name,
+                            ValueList=[],
+                            ScadaReadTimeUnixMsList=[],
+                        )
+            
             new_timestamps.append(timestamps[-1])
             new_frequencies.append(frequencies[-1])
             sorted_times_values = sorted(zip(new_timestamps, new_frequencies))
