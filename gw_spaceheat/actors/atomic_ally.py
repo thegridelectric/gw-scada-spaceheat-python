@@ -31,8 +31,7 @@ from named_types import (
 
 class AtomicAllyState(GwStrEnum):
     Dormant = auto()
-    WaitingElec = auto()
-    WaitingNoElec = auto()
+    Initializing = auto()
     HpOnStoreOff = auto()
     HpOnStoreCharge = auto()
     HpOffStoreOff = auto()
@@ -47,7 +46,6 @@ class AtomicAllyState(GwStrEnum):
 
 class AtomicAllyEvent(GwStrEnum):
     NoMoreElec = auto()
-    ElecAvailable = auto()
     ElecBufferFull = auto()
     ElecBufferEmpty = auto()
     NoElecBufferFull = auto()
@@ -69,8 +67,7 @@ class AtomicAlly(ScadaActor):
 
     states = [
         AtomicAllyState.Dormant.value,
-        AtomicAllyState.WaitingElec.value,
-        AtomicAllyState.WaitingNoElec.value,
+        AtomicAllyState.Initializing.value,
         AtomicAllyState.HpOnStoreOff.value,
         AtomicAllyState.HpOnStoreCharge.value,
         AtomicAllyState.HpOffStoreOff.value,
@@ -83,18 +80,11 @@ class AtomicAlly(ScadaActor):
 
     transitions = (
         [
-        # Waiting for temperatures, no electricity left
-        {"trigger": "ElecAvailable", "source": "WaitingNoElec", "dest": "WaitingElec"},
-        {"trigger": "NoElecBufferEmpty", "source": "WaitingNoElec", "dest": "HpOffStoreDischarge"},
-        {"trigger": "NoElecBufferFull", "source": "WaitingNoElec", "dest": "HpOffStoreOff"},
-        {"trigger": "ElecBufferEmpty", "source": "WaitingNoElec", "dest": "HpOnStoreOff"},
-        {"trigger": "ElecBufferFull", "source": "WaitingNoElec", "dest": "HpOnStoreCharge"},
-        # Waiting for temperatures, electricity available
-        {"trigger": "NoMoreElec", "source": "WaitingElec", "dest": "WaitingNoElec"},
-        {"trigger": "NoElecBufferEmpty", "source": "WaitingElec", "dest": "HpOffStoreDischarge"},
-        {"trigger": "NoElecBufferFull", "source": "WaitingElec", "dest": "HpOffStoreOff"},
-        {"trigger": "ElecBufferEmpty", "source": "WaitingElec", "dest": "HpOnStoreOff"},
-        {"trigger": "ElecBufferFull", "source": "WaitingElec", "dest": "HpOnStoreCharge"},
+        # Initializing
+        {"trigger": "NoElecBufferEmpty", "source": "Initializing", "dest": "HpOffStoreDischarge"},
+        {"trigger": "NoElecBufferFull", "source": "Initializing", "dest": "HpOffStoreOff"},
+        {"trigger": "ElecBufferEmpty", "source": "Initializing", "dest": "HpOnStoreOff"},
+        {"trigger": "ElecBufferFull", "source": "Initializing", "dest": "HpOnStoreCharge"},
         # 1 Starting at: HP on, Store off ============= HP -> buffer
         {"trigger": "ElecBufferFull", "source": "HpOnStoreOff", "dest": "HpOnStoreCharge"},
         {"trigger": "NoMoreElec", "source": "HpOnStoreOff", "dest": "HpOffStoreOff"},
@@ -114,16 +104,16 @@ class AtomicAlly(ScadaActor):
         {"trigger": "StartHackOil", "source": state, "dest": "HpOffOilBoilerTankAquastat"}
         for state in states if state not in  ["Dormant", "HpOffOilBoilerTankAquastat"]
     ] + [
-        {"trigger":"StopHackOil", "source": "HpOffOilBoilerTankAquastat", "dest": "WaitingNoElec"}
+        {"trigger":"StopHackOil", "source": "HpOffOilBoilerTankAquastat", "dest": "Initializing"}
         # Going dormant and waking up
     ] + [
         {"trigger": "GoDormant", "source": state, "dest": "Dormant"} for state in states if state != "Dormant"
     ] + [
-        {"trigger":"WakeUp", "source": "Dormant", "dest": "WaitingNoElec"}
+        {"trigger":"WakeUp", "source": "Dormant", "dest": "Initializing"}
     ] + [
             {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"}
             for state in states if state not in ["Dormant", "StratBoss"]
-    ] + [{"trigger":"StopStratSaving", "source": "StratBoss", "dest": "WaitingNoElec"}]
+    ] + [{"trigger":"StopStratSaving", "source": "StratBoss", "dest": "Initializing"}]
     )
 
     def __init__(self, name: str, services: ServicesInterface):
@@ -367,6 +357,16 @@ class AtomicAlly(ScadaActor):
                     )
                 )
             return
+        
+        if not self.temperatures_available:
+            self.log("Cannot suit up - missing temperatures!")
+            self._send_to(
+                self.primary_scada,
+                AllyGivesUp(
+                        Reason="Missing temperatures required for operation"
+                    )
+                )
+            return
             
         self.log("Suiting up")
         self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
@@ -387,10 +387,7 @@ class AtomicAlly(ScadaActor):
         if self.state not in [AtomicAllyState.Dormant, AtomicAllyState.HpOffOilBoilerTankAquastat]:
             self.get_latest_temperatures()
 
-            if (
-                self.state == AtomicAllyState.WaitingNoElec
-                or self.state == AtomicAllyState.WaitingElec
-            ):
+            if self.state == AtomicAllyState.Initializing:
                 if self.temperatures_available:
                     if self.no_more_elec():
                         if (
@@ -405,16 +402,8 @@ class AtomicAlly(ScadaActor):
                             self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
                         else:
                             self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
-                elif (
-                    self.state == AtomicAllyState.WaitingElec
-                    and self.no_more_elec()
-                ):
-                    self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
-                elif (
-                    self.state == AtomicAllyState.WaitingNoElec
-                    and not self.no_more_elec()
-                ):
-                    self.trigger_event(AtomicAllyEvent.ElecAvailable.value)
+                elif self.no_more_elec():
+                    self.turn_off_HP()
 
             # 1
             elif self.state == AtomicAllyState.HpOnStoreOff.value:
@@ -478,10 +467,9 @@ class AtomicAlly(ScadaActor):
         self.log(f"update_relays with previous_state {self.prev_state} and state {self.state}")
         path_dbg = 0
         if (self.state == AtomicAllyState.Dormant.value 
-            or self.state==AtomicAllyState.WaitingElec.value
-            or self.state==AtomicAllyState.WaitingNoElec.value):
+            or self.state==AtomicAllyState.Initializing.value):
             path_dbg |= 0x00000001
-            if self.state == AtomicAllyState.WaitingNoElec.value:
+            if self.state == AtomicAllyState.Initializing.value and self.no_more_elec():
                 self.turn_off_HP()
                 path_dbg |= 0x00000002
             self.log(f"update_relays path_dbg is {path_dbg}")
