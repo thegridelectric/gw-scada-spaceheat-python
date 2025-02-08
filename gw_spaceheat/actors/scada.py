@@ -50,7 +50,7 @@ from data_classes.house_0_names import H0N
 from enums import MainAutoState, StratBossState, StratBossEvent, TopState
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, GameOn, GoDormant,
+    DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, Glitch, GameOn, GoDormant,
     LayoutLite, NewCommandTree, RemainingElec, RemainingElecEvent, ScadaParams, SendLayout,
     SingleMachineState, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger
 )
@@ -349,6 +349,17 @@ class Scada(ScadaInterface, Proactor):
                     self.fsm_full_report_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with fsm_full_report_received: \n {e}")
+            case Glitch():
+                new_glitch = Glitch(
+                    FromGNodeAlias=payload.FromGNodeAlias,
+                    Node=payload.Node,
+                    Type=payload.Type,
+                    Summary=payload.Summary + " ...Went to Scada! Should go to Atn!",
+                    Details=payload.Details,
+                    CreatedMs=payload.CreatedMs
+                )
+                self._send_to(self.atn, new_glitch)
+                
             case HackOilOn():
                 self.log("Received hack oil on")
                 self._send_to(self.layout.atomic_ally, payload)
