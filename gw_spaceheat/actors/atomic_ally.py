@@ -358,15 +358,16 @@ class AtomicAlly(ScadaActor):
                 )
             return
         
-        if not self.temperatures_available:
-            self.log("Cannot suit up - missing temperatures!")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(
-                        Reason="Missing temperatures required for operation"
-                    )
-                )
-            return
+        # self.get_latest_temperatures()
+        # if not self.temperatures_available:
+        #     self.log("Cannot suit up - missing temperatures!")
+        #     self._send_to(
+        #         self.primary_scada,
+        #         AllyGivesUp(
+        #                 Reason="Missing temperatures required for operation"
+        #             )
+        #         )
+        #     return
             
         self.log("Suiting up")
         self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
