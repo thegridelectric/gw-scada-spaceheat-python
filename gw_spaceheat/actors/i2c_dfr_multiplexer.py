@@ -74,9 +74,10 @@ class I2cDfrMultiplexer(ScadaActor):
         if {node.name for node in dfr_nodes} != set(dfr_node_names):
             raise Exception("Mismatch between config channel names and dfr actors!")
         self.my_dfrs: List[ShNode] = dfr_nodes
-        self.dfr_val = {} 
+        self.dfr_val = {}  # from dfr.nmae to value 0-100
         self.check_channels()
         self._stop_requested = False
+        self.resend_dfr = {dfr.Name: False for dfr in self.my_dfrs}
 
     def initialize_board(self) -> None:
         self.log("INITILIZING I2C DFR MULTIPLEXER")
@@ -148,34 +149,38 @@ class I2cDfrMultiplexer(ScadaActor):
 
         node: (ShNode): the dfr node getting dispatched
         """
-        if not self.is_simulated:
-            GP8403_CONFIG_CURRENT_REG = 0x02
-            if dfr not in self.my_dfrs:
-                raise Exception(f"Only call for one of my dfr nodes: {self.my_dfrs}")
-            idx = self.get_idx(dfr)
-            data = int(float(4095 * value / 100)) << 4
-            if idx == 1:
-                self.bus.write_word_data(self.first_i2c_addr, GP8403_CONFIG_CURRENT_REG, data)
-            elif idx == 2:
-                self.bus.write_word_data(self.first_i2c_addr, GP8403_CONFIG_CURRENT_REG << 1, data)
-            elif idx == 3:
-                self.bus.write_word_data(self.second_i2c_addr, GP8403_CONFIG_CURRENT_REG, data)
-            elif idx == 4:
-                self.bus.write_word_data(self.second_i2c_addr, GP8403_CONFIG_CURRENT_REG << 1, data)
-            else:
-                raise Exception(f"idx must be 1,2,3 or 4. Got {idx}")
-
         self.dfr_val[dfr.name] = value
-        self.log(f"Setting {dfr.name} to {value}")
-        self._send_to(self.primary_scada, 
+        try:
+            if not self.is_simulated:
+                GP8403_CONFIG_CURRENT_REG = 0x02
+                if dfr not in self.my_dfrs:
+                    raise Exception(f"Only call for one of my dfr nodes: {self.my_dfrs}")
+                idx = self.get_idx(dfr)
+                data = int(float(4095 * value / 100)) << 4
+                if idx == 1:
+                    self.bus.write_word_data(self.first_i2c_addr, GP8403_CONFIG_CURRENT_REG, data)
+                elif idx == 2:
+                    self.bus.write_word_data(self.first_i2c_addr, GP8403_CONFIG_CURRENT_REG << 1, data)
+                elif idx == 3:
+                    self.bus.write_word_data(self.second_i2c_addr, GP8403_CONFIG_CURRENT_REG, data)
+                elif idx == 4:
+                    self.bus.write_word_data(self.second_i2c_addr, GP8403_CONFIG_CURRENT_REG << 1, data)
+                else:
+                    self.log(f"That's strange, got dfr idx {idx}")
+            self.resend_dfr[dfr.Name] = False
+            self.log(f"Set {dfr.name} to {value}")
+            self._send_to(self.primary_scada,
             SingleReading(
                     ChannelName=dfr.name,
                     Value=value,
                     ScadaReadTimeUnixMs=int(time.time() * 1000),
                 )    
-        )
+            )
+        except Exception as e:
+            self.resend_dfr[dfr.Name] = True
+            self.log(f"Trouble setting dfr level for {dfr.Name}!: {e}")
 
-    def _process_analog_dispatch(self, dispatch: AnalogDispatch) -> Result[bool, BaseException]:
+    def analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
         if not self.layout.node_by_handle(dispatch.FromHandle):
             self.log(f"Ignoring dispatch from  handle {dispatch.FromHandle} - not in layout!!")
             return
@@ -191,14 +196,16 @@ class I2cDfrMultiplexer(ScadaActor):
             self.log(f"Igonring dispatch {dispatch} - range out of value. Should be 0-100")
             return
         if dispatch.AboutName != dfr.name:
-            raise Exception("dispatch from dfr node: AboutHandle should match FromNode")
-        
+           self.log("dispatch from dfr node: AboutHandle should match FromNode")
+
         self.set_level(dfr, dispatch.Value)
-        return Ok()
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         if isinstance(message.Payload, AnalogDispatch):
-            return self._process_analog_dispatch(message.Payload)
+            try:
+                self.analog_dispatch_received(message.Payload)
+            except Exception as e:
+                self.log(f"Trouble with analog_dispatch_received: {e}")
         return Err(
             ValueError(
                 f"Error. Dfr Multiplexer {self.name} receieved unexpected message: {message.Header}"
@@ -211,16 +218,21 @@ class I2cDfrMultiplexer(ScadaActor):
 
     async def maintain_dfr_states(self):
         await asyncio.sleep(2)
+        for dfr in self.my_dfrs:
+            self.set_level(dfr, self.dfr_val[dfr.name])
+        last_set = time.time() 
+
         while not self._stop_requested:
-            hiccup = 1.2
-            sleep_s = max(
-                hiccup, self.LOOP_S - (time.time() % self.LOOP_S) - 2.5
-            )
-            await asyncio.sleep(sleep_s)
-            if sleep_s != hiccup:
+            if time.time() - last_set > self.LOOP_S:
                 for dfr in self.my_dfrs:
                     self.set_level(dfr, self.dfr_val[dfr.name])
                 self._send(PatInternalWatchdogMessage(src=self.name))
+                last_set = time.time()
+
+            for dfr in self.my_dfrs:
+                if self.resend_dfr[dfr.name]:
+                    self.set_level(dfr, self.dfr_val[dfr.name])
+            await asyncio.sleep(2) 
 
     def start(self) -> None:
         try:

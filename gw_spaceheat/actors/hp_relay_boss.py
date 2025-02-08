@@ -20,6 +20,7 @@ class HpRelayBoss(ScadaActor):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.waiting_for_strat_boss: bool = False
+        self.last_cmd_time = 0
 
     def start(self) -> None:
         """ Required method, used for starting long-lived tasks. Noop."""
@@ -74,7 +75,10 @@ class HpRelayBoss(ScadaActor):
                 f"from_node {from_node.name} has handle {from_node.handle}, not {payload.FromHandle}!"
             )
             # TODO: probably send glitch here as well
-
+        # TODO: add way for boss to realize its command was ignored before
+        # adding the following
+        # if time.time() - self.last_cmd_time < 0.5:
+        #     self.log("IGNORING COMMAND ")
         if payload.EventType !=  TurnHpOnOff.enum_name():
             self.log(f"Only listens to {TurnHpOnOff.enum_name()}")
             return

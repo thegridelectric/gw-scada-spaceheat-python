@@ -187,14 +187,12 @@ class AtomicAlly(ScadaActor):
                     self.log("Acting on hack.oil.on message")
                     previous_state = self.state
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
-                    self.update_relays(previous_state)
                 else:
                     self.log(f"Received hack.oil.on. In state {self.state} so ignoring")
             case HackOilOff():
                 if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
                     self.log("Acting on hack.oil.off message")
                     self.trigger_event(AtomicAllyEvent.StopHackOil)
-                    self.update_relays(AtomicAllyState.HpOffOilBoilerTankAquastat)
                 else:
                     self.log(f"Received hack.oil.off. In state {self.state} so ignoring ")
             case RemainingElec():
@@ -466,47 +464,36 @@ class AtomicAlly(ScadaActor):
 
     def update_relays(self) -> None:
         self.log(f"update_relays with previous_state {self.prev_state} and state {self.state}")
-        path_dbg = 0
-        if (self.state == AtomicAllyState.Dormant.value 
-            or self.state==AtomicAllyState.Initializing.value):
-            path_dbg |= 0x00000001
-            if self.state == AtomicAllyState.Initializing.value and self.no_more_elec():
+        if self.state == AtomicAllyState.Dormant.value:
+            return
+        if self.state == AtomicAllyState.Initializing.value:
+            if self.no_more_elec():
                 self.turn_off_HP()
-                path_dbg |= 0x00000002
-            self.log(f"update_relays path_dbg is {path_dbg}")
+            return
+        if self.state == AtomicAllyState.StratBoss.value:
             return
 
         if self.prev_state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
-            path_dbg |= 0x00000002
         if "HpOn" not in self.prev_state and "HpOn" in self.state:
             self.turn_on_HP()
-            path_dbg |= 0x00000008
         if "HpOff" not in self.prev_state and "HpOff" in self.state:
             self.turn_off_HP()
-            path_dbg |= 0x00000010
         if "StoreDischarge" in self.state:
             self.turn_on_store_pump()
-            path_dbg |= 0x00000020
         else:
             self.turn_off_store_pump()  
-            path_dbg |= 0x00000040       
         if "StoreCharge" in self.state:
             self.valved_to_charge_store()
-            path_dbg |= 0x00000080
         else:
             self.valved_to_discharge_store()
-            path_dbg |= 0x00000100
         if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
             self.hp_failsafe_switch_to_aquastat()
             self.aquastat_ctrl_switch_to_boiler()
-            path_dbg |= 0x00000200
         else:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
-            path_dbg |= 0x00000400
-        self.log(f"update_relays path_dbg is {path_dbg}")
 
     def fill_missing_store_temps(self):
         all_store_layers = sorted([x for x in self.temperature_channel_names if 'tank' in x])
@@ -567,11 +554,6 @@ class AtomicAlly(ScadaActor):
             if relay.ActorClass == ActorClass.Relay and self.the_boss_of(relay) == self.node
         }
 
-        self.log("--")
-        for relay in self.my_actuators():
-            self.log(f"Boss of relay {relay.name} is {self.the_boss_of(relay)}")
-        self.log("--")
-
         target_relays: List[ShNode] = list(my_relays - {
                 self.store_charge_discharge_relay, # keep as it was
                 self.hp_failsafe_relay,
@@ -580,6 +562,7 @@ class AtomicAlly(ScadaActor):
             }
         )
         target_relays.sort(key=lambda x: x.Name)
+        self.log("Initializing actuators")
         self.log("de-energizing most relays")
         for relay in target_relays:
             try:
@@ -592,7 +575,6 @@ class AtomicAlly(ScadaActor):
         self.aquastat_ctrl_switch_to_scada()
         if self.no_more_elec():
             self.turn_off_HP()
-
         try:
             self.set_010_defaults()
         except ValueError as e:
