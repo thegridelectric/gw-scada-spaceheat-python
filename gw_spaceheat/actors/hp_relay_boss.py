@@ -97,8 +97,12 @@ class HpRelayBoss(ScadaActor):
 
     async def _wait_and_turn_on_anyway(self) -> None:
         await asyncio.sleep(self.TURN_ON_ANYWAY_S)
-        if not self.hp_relay_closed():
-            self.close_hp_scada_ops_relay()
+        # This is not a good idea. If we transition from home alone
+        # to atomic ally, this will turn on the heat pump even if
+        # atomic ally doesn't want it.
+        # TODO: think more about this
+        # if not self.hp_relay_closed():
+        #     self.close_hp_scada_ops_relay()
 
     def strat_boss_ready_received(self, from_node: ShNode, payload: StratBossReady) -> None:
         if self.waiting_for_strat_boss:
