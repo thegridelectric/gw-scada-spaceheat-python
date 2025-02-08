@@ -46,7 +46,6 @@ def test_scada_settings_defaults(clean_scada_env):
         max_ewt_f=170,
         load_overestimation_percent=0,
         oil_boiler_for_onpeak_backup=True,
-        fuel_substitution=True,
         pico_cycler_state_logging=False,
         power_meter_logging_level=logging.WARNING,
         local_mqtt=exp_local_mqtt.model_dump(),
