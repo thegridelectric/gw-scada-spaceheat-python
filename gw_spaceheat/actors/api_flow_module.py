@@ -680,7 +680,7 @@ class ApiFlowModule(ScadaActor):
                             Glitch(
                                 FromGNodeAlias=self.layout.scada_g_node_alias,
                                 Node=self.node.name,
-                                LogLevel=LogLevel.Warning,
+                                Type=LogLevel.Warning,
                                 Summary="filtering resulted in a list of length 0",
                                 Details=f"get_micro_hz_readings, timestamps was {timestamps} and nano_timestamps were {self.nano_timestamps}"
                             )
