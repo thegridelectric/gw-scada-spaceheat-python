@@ -1133,8 +1133,11 @@ class Atn(ActorInterface, Proactor):
         t = time.time()
         slot_start_s = int(t - (t % 300))
         if watthours > 0 and self.use_oil_as_fuel_substitute():
-            self.hack_oil_on()
             watthours = 0
+            if watthours > 2500:
+                self.hack_oil_on()
+            else:
+                self.hack_oil_off() # Hack for right now. If more expensive than oil use the thermal store of house            
         else:
             self.hack_oil_off()
         try:
