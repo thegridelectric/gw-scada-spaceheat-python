@@ -44,7 +44,7 @@ class AtnSettings(ProactorSettings):
     latitude: float = 45.6573 
     longitude: float = -68.7098
     is_simulated: bool = False
-    fuel_substitution: bool = True
+    fuel_substitution: bool = False
     fuel_sub_usd_per_mwh: int = 250 # hack until we account for COP etc
     hp_model: HpModel = HpModel.SamsungHighTempHydroKitPlusMultiV # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
