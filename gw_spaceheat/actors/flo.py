@@ -20,6 +20,7 @@ class DParams():
         self.max_hp_elec_in = config.HpMaxElecKw
         self.min_hp_elec_in = config.HpMinElecKw
         self.initial_top_temp = config.InitialTopTempF
+        self.initial_bottom_temp = config.InitialBottomTempF
         self.initial_thermocline = config.InitialThermocline
         self.storage_losses_percent = config.StorageLossesPercent
         self.reg_forecast = [x/10 for x in config.RegPriceForecast[:self.horizon]]
@@ -40,7 +41,7 @@ class DParams():
         self.hp_is_off = config.HpIsOff
         self.hp_turn_on_minutes = config.HpTurnOnMinutes
         self.quadratic_coefficients = self.get_quadratic_coeffs()
-        self.available_top_temps, self.energy_between_nodes = self.get_available_top_temps()
+        self.temperature_stack = self.get_available_top_temps()
         self.load_forecast = [self.required_heating_power(oat,ws) for oat,ws in zip(self.oat_forecast,self.ws_forecast)]
         self.rswt_forecast = [self.required_swt(x) for x in self.load_forecast]
         # Modify load forecast to include energy available in the buffer
@@ -128,39 +129,86 @@ class DParams():
         return [float(x) for x in np.linalg.solve(A, y_hpower)] 
     
     def get_available_top_temps(self) -> Tuple[Dict, Dict]:
+        MIN_BOTTOM_TEMP, MAX_TOP_TEMP = 100, 175
+
+        if self.initial_bottom_temp < self.initial_top_temp - self.delta_T(self.initial_top_temp):
+            self.initial_bottom_temp = round(self.initial_top_temp - self.delta_T(self.initial_top_temp))
+
         self.max_thermocline = self.num_layers
-        if self.initial_top_temp > 175:
+        if self.initial_top_temp > MAX_TOP_TEMP:
             self.max_thermocline = self.initial_thermocline
-        available_temps = [self.initial_top_temp]
-        x = self.initial_top_temp
-        while round(x + self.delta_T_inverse(x),2) <= 175:
-            x = round(x + self.delta_T_inverse(x),2)
-            available_temps.append(int(x))
-        while x+10 <= 175:
-            x += 10
-            available_temps.append(int(x))
-        x = self.initial_top_temp
-        while self.delta_T(x) >= 3:
-            x = round(x - self.delta_T(x))
-            available_temps.append(int(x))
-        while x >= 70:
-            x += -10
-            available_temps.append(int(x))
-        available_temps = sorted(available_temps)
-        if max(available_temps) < 165:
-            available_temps = available_temps + [175]
-        # if there is more than 20 F between top and bottom, add an intermediate
-        extra_temps = []
-        for i in range(len(available_temps)-1):
-            if available_temps[i+1] - available_temps[i] > 20:
-                extra_temps.append(int((available_temps[i+1] + available_temps[i])/2))
-        available_temps = sorted(available_temps + extra_temps)
-        energy_between_nodes = {}
+
+        available_temps = []
+        height_top = self.initial_thermocline
+        height_bottom = self.num_layers - self.initial_thermocline
+
+        # Add temperatures above initial tank
+        t = self.initial_top_temp
+        b = self.initial_bottom_temp
+        while t < MAX_TOP_TEMP or b < MAX_TOP_TEMP:
+            if t > MAX_TOP_TEMP:
+                available_temps.append((b, height_bottom))
+                b = round(b + self.delta_T_inverse(b))
+            else:
+                available_temps.append((b, height_bottom))
+                available_temps.append((t, height_top))
+                t = round(t + self.delta_T_inverse(t))
+                b = round(b + self.delta_T_inverse(b))
+
+        # Add temperatures below initial tank
+        t = round(self.initial_top_temp - self.delta_T(self.initial_top_temp))
+        b = round(self.initial_bottom_temp - self.delta_T(self.initial_bottom_temp))
+        while b > MIN_BOTTOM_TEMP or t > MIN_BOTTOM_TEMP:
+            if b < MIN_BOTTOM_TEMP:
+                available_temps = [(t, height_top)] + available_temps
+                t = round(t - self.delta_T(t))
+            else:
+                available_temps = [(t, height_top)] + available_temps
+                available_temps = [(b, height_bottom)] + available_temps
+                t = round(t - self.delta_T(t))
+                b = round(b - self.delta_T(b))
+
+        available_temps_no_duplicates = []
+        skip_next_i = False
+        for i in range(len(available_temps)):
+            if i<len(available_temps)-1 and available_temps[i][0] == available_temps[i+1][0]:
+                print(f"Combining {available_temps[i]} with {available_temps[i+1]}")
+                available_temps_no_duplicates.append((available_temps[i][0], available_temps[i][1]+available_temps[i+1][1]))
+                skip_next_i = True
+            elif not skip_next_i:
+                available_temps_no_duplicates.append(available_temps[i])
+            else:
+                skip_next_i = False
+        available_temps = available_temps_no_duplicates.copy()
+            
+        self.available_top_temps = [x[0] for x in available_temps]
+        if self.available_top_temps != sorted(self.available_top_temps):
+            print("ERROR sorted is not the same")
+
+        heights = [x[1] for x in available_temps]
+        # fig, ax = plt.subplots(figsize=(8, 6))
+        # cmap = matplotlib.colormaps['Reds']
+        # norm = plt.Normalize(min(self.available_top_temps)-20, max(self.available_top_temps)+20)
+        # bottom = 0
+        # for i in range(len(available_temps)):
+        #     color = cmap(norm(self.available_top_temps[i]))
+        #     ax.bar(0, heights[i], bottom=bottom, color=color, width=1)
+        #     ax.text(0, bottom + heights[i]/2, str(self.available_top_temps[i]), ha='center', va='center', fontsize=10, color='white')
+        #     if i < len(available_temps)-1:
+        #         bottom += heights[i]
+        # ax.set_xticks([])
+        # ax.set_xlim([-2,2])
+        # plt.title(self.initial_top_temp)
+        # plt.tight_layout()
+        # plt.show()
+
+        self.energy_between_nodes = {}
         m_layer = self.storage_volume*3.785 / self.num_layers
-        for i in range(1,len(available_temps)):
-            temp_drop_f = available_temps[i] - available_temps[i-1]
-            energy_between_nodes[available_temps[i]] = round(m_layer * 4.187/3600 * temp_drop_f*5/9,3)
-        return available_temps, energy_between_nodes
+        for i in range(1,len(self.available_top_temps)):
+            temp_drop_f = self.available_top_temps[i] - self.available_top_temps[i-1]
+            self.energy_between_nodes[self.available_top_temps[i]] = round(m_layer * 4.187/3600 * temp_drop_f*5/9,3)
+
+        return available_temps
 
     def first_top_temp_above_rswt(self, rswt):
         for x in sorted(self.available_top_temps):
@@ -168,30 +216,50 @@ class DParams():
                 return x
 
 class DNode():
-    def __init__(self, time_slice:int, top_temp:float, thermocline:float, parameters:DParams):
+    def __init__(self, time_slice:int, top_temp:float, thermocline1:float, parameters:DParams):
         self.params = parameters
         # Position in graph
         self.time_slice = time_slice
         self.top_temp = top_temp
-        self.thermocline = thermocline
+        self.thermocline1 = thermocline1
+        temperatures = [x[0] for x in self.params.temperature_stack]
+        heights = [x[1] for x in self.params.temperature_stack]
+        toptemp_idx = temperatures.index(top_temp)
+        height_first_two_layers = thermocline1 + heights[toptemp_idx-1]
+        if height_first_two_layers >= self.params.num_layers or toptemp_idx < 2:
+            self.middle_temp = None
+            self.bottom_temp = temperatures[toptemp_idx-1]
+            self.thermocline2 = None
+        else:
+            self.middle_temp = temperatures[toptemp_idx-1]
+            self.bottom_temp = temperatures[toptemp_idx-2]
+            self.thermocline2 = height_first_two_layers
         # Dijkstra's algorithm
         self.pathcost = 0 if time_slice==parameters.horizon else 1e9
         self.next_node = None
         # Absolute energy level
-        tt_idx = parameters.available_top_temps.index(top_temp)
-        tt_idx = tt_idx-1 if tt_idx>0 else tt_idx
-        self.bottom_temp = parameters.available_top_temps[tt_idx]
         self.energy = self.get_energy()
         self.index = None
 
     def __repr__(self):
-        return f"Node[time_slice:{self.time_slice}, top_temp:{self.top_temp}, thermocline:{self.thermocline}]"
+        if self.thermocline2 is not None:
+            return f"{self.top_temp}({self.thermocline1}){self.middle_temp}({self.thermocline2}){self.bottom_temp}"
+            # return f"Node[top:{self.top_temp}, thermocline1:{self.thermocline1}, middle:{self.middle_temp}, thermocline2:{self.thermocline2}, bottom:{self.bottom_temp}]"
+        else:
+            return f"{self.top_temp}({self.thermocline1}){self.bottom_temp}"
+            # return f"Node[top:{self.top_temp}, thermocline1:{self.thermocline1}, bottom:{self.bottom_temp}]"
 
     def get_energy(self):
         m_layer_kg = self.params.storage_volume*3.785 / self.params.num_layers
-        kWh_above_thermocline = (self.thermocline-0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.top_temp)
-        kWh_below_thermocline = (self.params.num_layers-self.thermocline+0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.bottom_temp)
-        return kWh_above_thermocline + kWh_below_thermocline
+        if self.middle_temp is not None:
+            kWh_top = (self.thermocline1-0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.top_temp)
+            kWh_midlle = (self.thermocline2-self.thermocline1)*m_layer_kg * 4.187/3600 * to_kelvin(self.middle_temp)
+            kWh_bottom = (self.params.num_layers-self.thermocline2+0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.bottom_temp)
+        else:        
+            kWh_top = (self.thermocline1-0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.top_temp)
+            kWh_midlle = 0
+            kWh_bottom = (self.params.num_layers-self.thermocline1+0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.bottom_temp)
+        return kWh_top + kWh_midlle + kWh_bottom
 
 
 class DEdge():
@@ -224,25 +292,34 @@ class DGraph():
                     DNode(time_slice, top_temp, thermocline, self.params)
                     for top_temp in self.params.available_top_temps[1:-1]
                     for thermocline in range(1,self.params.num_layers+1)
-                    if (time_slice, top_temp, thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
+                    if thermocline <= self.params.temperature_stack[self.params.available_top_temps.index(top_temp)][1]
+                    and (time_slice, top_temp, thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
                 )
                 self.nodes[time_slice].extend(
                     DNode(time_slice, self.params.available_top_temps[-1], thermocline, self.params)
                     for thermocline in range(1,self.params.max_thermocline+1)
-                    if (time_slice, self.params.available_top_temps[-1], thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
+                    if thermocline <= self.params.temperature_stack[-1][1]
+                    and (time_slice, self.params.available_top_temps[-1], thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
                 )
             else:
                 self.nodes[time_slice].extend(
                     DNode(time_slice, top_temp, thermocline, self.params)
                     for top_temp in self.params.available_top_temps[1:]
                     for thermocline in range(1,self.params.num_layers+1)
-                    if (time_slice, top_temp, thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
+                    if thermocline <= self.params.temperature_stack[self.params.available_top_temps.index(top_temp)][1]
+                    and (time_slice, top_temp, thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
                 )
 
     def create_edges(self):
         
-        self.bottom_node = DNode(0, self.params.available_top_temps[1], 1, self.params)
-        self.top_node = DNode(0, self.params.available_top_temps[-1], self.params.num_layers, self.params)
+        self.bottom_node = DNode(0, 
+                                 self.params.available_top_temps[1],
+                                 self.params.num_layers - self.params.temperature_stack[self.params.available_top_temps.index(self.params.available_top_temps[0])][1],
+                                 self.params)
+        self.top_node = DNode(0, 
+                              self.params.available_top_temps[-1], 
+                              self.params.temperature_stack[self.params.available_top_temps.index(self.params.available_top_temps[-1])][1], 
+                              self.params)
         
         for h in range(self.params.horizon):
             
@@ -301,12 +378,17 @@ class DGraph():
         Q_load = self.params.load_forecast[time_slice] + Q_losses
         # Find the heat stored in the water that is hotter than RSWT
         Q_plus = 0
+        m_layer_kg = self.params.storage_volume*3.785 / self.params.num_layers
         RSWT_minus = node.top_temp
         if node.top_temp > self.params.rswt_forecast[time_slice]:
-            m_layer_kg = self.params.storage_volume*3.785 / self.params.num_layers
-            m_plus = (node.thermocline-0.5) * m_layer_kg
-            Q_plus = m_plus * 4.187/3600 * (to_kelvin(node.top_temp)-to_kelvin(node.bottom_temp))
-            RSWT_minus = node.bottom_temp
+            m_plus = (node.thermocline1-0.5) * m_layer_kg
+            Q_plus = m_plus * 4.187/3600 * self.params.delta_T(node.top_temp)*5/9
+            if node.middle_temp is not None:
+                RSWT_minus = node.middle_temp
+                RSWT_minus_minus = node.bottom_temp
+            else:
+                RSWT_minus = node.bottom_temp
+                RSWT_minus_minus = None
         # The hot part of the storage alone can not provide the load and the losses
         if Q_plus <= Q_load:
             RSWT = self.params.rswt_forecast[time_slice]
@@ -316,7 +398,17 @@ class DGraph():
             if m_minus_max > self.params.storage_volume*3.785:
                 print("m_minus_max > total storage mass!")
                 m_minus_max = self.params.storage_volume*3.785
-            Q_minus_max = m_minus_max * 4.187/3600 * (self.params.delta_T(RSWT_minus)*5/9)
+            if node.middle_temp is not None and RSWT_minus != node.top_temp:
+                m_minus = m_layer_kg * (node.thermocline2 - node.thermocline1)
+                if m_minus > m_minus_max:
+                    m_minus = m_minus_max
+                m_minus_minus = m_minus_max - m_minus
+                Q_minus_max = (
+                    m_minus * 4.187/3600 * (self.params.delta_T(RSWT_minus)*5/9)
+                    + m_minus_minus * 4.187/3600 * (self.params.delta_T(RSWT_minus_minus)*5/9)
+                    )
+            else:
+                Q_minus_max = m_minus_max * 4.187/3600 * (self.params.delta_T(RSWT_minus)*5/9)
             Q_missing = Q_load - Q_plus - Q_minus_max
             if Q_missing < 0:
                 print(f"Isn't this impossible? Q_load - Q_plus - Q_minus_max = {round(Q_missing,2)} kWh")
@@ -359,7 +451,7 @@ class DGraph():
                     cop = self.params.COP(oat=self.params.oat_forecast[0], lwt=edge.head.top_temp)
                     edge.fake_cost = edge.hp_heat_out / cop * elec_price_usd_mwh/1000
             # Find the best edge with the given price
-            best_edge = min(self.edges[self.initial_node], key=lambda e: e.head.pathcost + e.fake_cost)
+            best_edge: DEdge = min(self.edges[self.initial_node], key=lambda e: e.head.pathcost + e.fake_cost)
             if best_edge.hp_heat_out < 0: 
                 best_edge_neg = max([e for e in self.edges[self.initial_node] if e.hp_heat_out<0], key=lambda e: e.hp_heat_out)
                 best_edge_pos = min([e for e in self.edges[self.initial_node] if e.hp_heat_out>=0], key=lambda e: e.hp_heat_out)

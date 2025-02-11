@@ -20,6 +20,7 @@ def test_flo_params_house0_generated() -> None:
     #     "CopOatCoeff": ,
     #     "CopLwtCoeff": ,
     #     "InitialTopTempF": ,
+    #     "InitialBottomTempF",
     #     "InitialThermocline": ,
     #     "LmpForecast": ,
     #     "DistPriceForecast": ,
@@ -40,7 +41,7 @@ def test_flo_params_house0_generated() -> None:
     #     "MarketPriceUnit": "",
     #     "ParamsGeneratedS": ,
     #     "TypeName": "flo.params.house0",
-    #     "Version": "000",
+    #     "Version": "002",
     # }
 
     # d2 = FloParamsHouse0.model_validate(d).model_dump(exclude_none=True)

@@ -774,7 +774,7 @@ class Atn(ActorInterface, Proactor):
             self.log("Get thermocline and centroid failed! Releasing control of Scada!")
             self.release_control()
             return
-        initial_toptemp, initial_thermocline = result
+        initial_toptemp, initial_bottomtemp, initial_thermocline = result
 
         buffer_available_kwh = await self.get_buffer_available_kwh()
         house_available_kwh = await self.get_house_available_kwh()
@@ -783,6 +783,7 @@ class Atn(ActorInterface, Proactor):
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
             InitialTopTempF=int(initial_toptemp),
+            InitialBottomTempF=int(initial_bottomtemp),
             InitialThermocline=initial_thermocline * 2,
             # TODO: price and weather forecasts should include the current hour if we are running a partial hour
             LmpForecast=self.price_forecast["lmp"],
@@ -1049,7 +1050,7 @@ class Atn(ActorInterface, Proactor):
             self.log(f"Could not process clustering results! Error: {e}")
         # TODO: post top_centroid, thermocline, bottom_centroid as synthetic channels
         self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
-        return top_centroid_f, thermocline
+        return top_centroid_f, bottom_centroid_f, thermocline
     
     async def get_buffer_available_kwh(self):
         if self.temperature_channel_names is None:
