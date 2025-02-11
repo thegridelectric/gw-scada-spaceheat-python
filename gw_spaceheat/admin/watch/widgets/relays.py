@@ -114,10 +114,10 @@ class Relays(Widget):
             ("Energized", None),
         ]:
             data_table.add_column(column_name, key=column_name, width=width)
-        message_table = self.query_one("#message_table", DataTable)
-        message_table.add_columns(
-        "Time", "Type", "Payload",
-        )
+        # message_table = self.query_one("#message_table", DataTable)
+        # message_table.add_columns(
+        # "Time", "Type", "Payload",
+        # )
 
     def _get_relay_row_data(self, relay_name: str) -> dict[str, CellType]:
         if relay_name in self._relays:
@@ -205,22 +205,22 @@ class Relays(Widget):
     def on_relays_layout(self, message: Layout) -> None:
         self.query_one(MqttState).message_count += 1
         self.query_one(MqttState).layout_count += 1
-        self.query_one("#message_table", DataTable).add_row(
-            datetime.datetime.now(),
-            type_name(LayoutLite),
-            message.layout,
-        )
-        self.query_one("#message_table", DataTable).scroll_end()
+        # self.query_one("#message_table", DataTable).add_row(
+        #     datetime.datetime.now(),
+        #     type_name(LayoutLite),
+        #     message.layout,
+        # )
+        # self.query_one("#message_table", DataTable).scroll_end()
 
     def on_relays_snapshot(self, message: Snapshot) -> None:
         self.query_one(MqttState).message_count += 1
         self.query_one(MqttState).snapshot_count += 1
-        self.query_one("#message_table", DataTable).add_row(
-            datetime.datetime.now(),
-            type_name(SnapshotSpaceheat),
-            message.snapshot,
-        )
-        self.query_one("#message_table", DataTable).scroll_end()
+        # self.query_one("#message_table", DataTable).add_row(
+        #     datetime.datetime.now(),
+        #     type_name(SnapshotSpaceheat),
+        #     message.snapshot,
+        # )
+        # self.query_one("#message_table", DataTable).scroll_end()
     
     def on_mqtt_state_change(self, message: Mqtt.StateChange):
         self.query_one(MqttState).mqtt_state = message.new_state
@@ -228,12 +228,12 @@ class Relays(Widget):
     def on_mqtt_receipt(self, message: Mqtt.Receipt):
         self.query_one(MqttState).message_count += 1
         payload = json.loads(message.payload.decode("utf-8"))
-        self.query_one("#message_table", DataTable).add_row(
-            datetime.datetime.now(),
-            MQTTTopic.decode(message.topic).message_type,
-            str(payload.get("Payload", payload))
-        )
-        self.query_one("#message_table", DataTable).scroll_end()
+        # self.query_one("#message_table", DataTable).add_row(
+        #     datetime.datetime.now(),
+        #     MQTTTopic.decode(message.topic).message_type,
+        #     str(payload.get("Payload", payload))
+        # )
+        # self.query_one("#message_table", DataTable).scroll_end()
 
     def action_toggle_relay(self) -> None:
         self.query_one(

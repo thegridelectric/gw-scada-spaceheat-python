@@ -108,8 +108,8 @@ class RelaysApp(App):
     def action_previous_theme(self) -> None:
         self._change_theme(-1)
 
-    def action_toggle_messages(self) -> None:
-        self.query("#message_table").toggle_class("undisplayed")
+    # def action_toggle_messages(self) -> None:
+    #     self.query("#message_table").toggle_class("undisplayed")
 
     def on_keep_alive_button_pressed(self, _: KeepAliveButton.Pressed):
         if _.timeout_seconds is not None:
