@@ -670,7 +670,7 @@ class AtomicAlly(ScadaActor):
         # Storage was declared full in the last 15 min
         if self.storage_declared_full and self.storage_full_since - time.time() < 15*60:
             return True
-        if self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF: 
+        elif self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF: 
             self.log(f"Storage is full (store-cold-pipe > {self.params.MaxEwtF} F).")
             self.storage_declared_full = True
             self.storage_full_since = time.time()
