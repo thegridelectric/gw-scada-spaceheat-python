@@ -183,8 +183,15 @@ class DParams():
 
         if max([x[0] for x in available_temps]) < 170:
             available_temps.append((170, self.num_layers))
-            
+
         self.available_top_temps = [x[0] for x in available_temps]
+        print(self.available_top_temps)
+        if self.available_top_temps != sorted(self.available_top_temps):
+            for i in range(1, len(available_temps)):
+                available_temps[i] = (max(available_temps[i][0], available_temps[i-1][0] + 1), available_temps[i][1])
+            print(available_temps)
+            self.available_top_temps = [x[0] for x in available_temps]
+
         if self.available_top_temps != sorted(self.available_top_temps):
             print("ERROR sorted is not the same")
 
