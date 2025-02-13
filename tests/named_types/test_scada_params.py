@@ -24,7 +24,7 @@ def test_scada_params_generated() -> None:
             "LoadOverestimationPercent": 10,
             "StratBossDist010": 100,
             "TypeName": "ha1.params",
-            "Version": "002",
+            "Version": "003",
         },
         "TypeName": "scada.params",
         "Version": "002",
