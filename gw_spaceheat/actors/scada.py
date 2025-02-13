@@ -688,6 +688,8 @@ class Scada(ScadaInterface, Proactor):
                 self.update_env_variable(
                     "SCADA_LOAD_OVERESTIMATION_PERCENT", new.LoadOverestimationPercent
                 )
+            if new.StratBossDist010 != old.StratBossDist010:
+                self.update_env_variable("SCADA_STRATBOSS_DIST_010V", new.StratBossDist010)
 
             response = ScadaParams(
                 FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
