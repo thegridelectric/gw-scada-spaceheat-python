@@ -248,7 +248,7 @@ class StratBoss(ScadaActor):
                 FromHandle=self.node.handle,
                 ToHandle=dist_010v_node.handle,
                 AboutName=dist_010v_node.Name,
-                Value=self.settings.stratboss_dist_010v,
+                Value=self.data.ha1_params.StratBossDist010,
                 TriggerId=str(uuid.uuid4()),
                 UnixTimeMs=int(time.time() * 1000),
             )
