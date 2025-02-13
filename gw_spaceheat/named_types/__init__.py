@@ -6,6 +6,7 @@ from named_types.admin_release_control import AdminReleaseControl
 from named_types.ally_gives_up import AllyGivesUp
 from named_types.atn_bid import AtnBid
 from named_types.channel_flatlined import ChannelFlatlined
+from named_types.dispatch_contract import DispatchContract
 from named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from named_types.dispatch_contract_go_live import DispatchContractGoLive
 from named_types.energy_instruction import EnergyInstruction
@@ -22,6 +23,7 @@ from named_types.hack_oil_on import HackOilOn
 from named_types.heating_forecast import HeatingForecast
 from named_types.latest_price import LatestPrice
 from named_types.layout_lite import LayoutLite
+from named_types.market_maker_ack import MarketMakerAck
 from named_types.new_command_tree import NewCommandTree
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
@@ -44,6 +46,7 @@ __all__ = [
     "AllyGivesUp",
     "AtnBid",
     "ChannelFlatlined",
+    "DispatchContract",
     "DispatchContractGoDormant",
     "DispatchContractGoLive",
     "EnergyInstruction",
@@ -59,6 +62,7 @@ __all__ = [
     "HeatingForecast",
     "LatestPrice",
     "LayoutLite",
+    "MarketMakerAck",
     "NewCommandTree",
     "PicoMissing",
     "PriceQuantityUnitless",

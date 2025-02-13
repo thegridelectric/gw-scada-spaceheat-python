@@ -46,6 +46,7 @@ from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
+from actors import ContractManager
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, StratBossState, StratBossEvent, TopState
 from named_types import (
@@ -271,7 +272,7 @@ class Scada(ScadaInterface, Proactor):
             send_event=False,
             model_attribute="auto_state",
         )
-        
+        self.contract_manager: ContractManager = ContractManager(self.settings.paths.data_dir)
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -283,6 +284,46 @@ class Scada(ScadaInterface, Proactor):
         self._tasks.append(
             asyncio.create_task(self.state_tracker(), name="scada top_state_tracker")
         )
+
+    #######################################
+    # Contract management
+    #######################################
+
+    def initialize_contracts(self) -> None:
+        """Called during Scada startup to load any persisted contracts"""
+    
+        contract_mgr = ContractManager(self.settings.paths.data_dir)
+        result = contract_mgr.load_contracts()
+        
+        if result.is_err():
+            self.log(f"Error loading contracts: {result.err()}")
+            return
+            
+        live_contracts = result.value
+        if not live_contracts:
+            self.log("No live contracts found")
+            return
+
+        self.log(f"Found {len(live_contracts)} live contracts")
+        
+        # Example: Re-establish ATN mode if we have live contracts
+        if live_contracts and self.auto_state == MainAutoState.HomeAlone:
+            self.atn_wants_control()
+            for contract in live_contracts:
+                # Re-send energy instruction to atomic ally
+                instruction = EnergyInstruction(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    SlotStartS=contract.StartUnixS,
+                    SlotDurationMinutes=contract.DurationMinutes,
+                    SendTimeMs=int(time.time() * 1000),
+                    AvgPowerWatts=contract.AvgPowerWatts
+                )
+                self._send_to(self.atomic_ally, instruction)
+
+    #######################################
+    # Messages
+    #######################################
+
 
     def process_scada_message(self, from_node: ShNode, payload: Any) -> None:
         """Process NamedTypes sent to primary scada"""
