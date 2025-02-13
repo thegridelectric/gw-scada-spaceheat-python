@@ -185,8 +185,11 @@ class DParams():
                 skip_next_i = False
         available_temps = available_temps_no_duplicates.copy()
 
-        if max([x[0] for x in available_temps]) < 170:
-            available_temps.append((170, self.num_layers))
+        if max([x[0] for x in available_temps]) < MAX_TOP_TEMP-5:
+            available_temps.append((MAX_TOP_TEMP-5, self.num_layers))
+
+        if self.max_thermocline == self.num_layers and available_temps[-1][1] < self.num_layers:
+            available_temps[-1] = (available_temps[-1][0], self.num_layers)
 
         self.available_top_temps = [x[0] for x in available_temps]
         if self.available_top_temps != sorted(self.available_top_temps):
