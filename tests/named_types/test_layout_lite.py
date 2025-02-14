@@ -24,8 +24,9 @@ def test_layout_lite_generated() -> None:
             "HpMaxKwTh": 6,
             "MaxEwtF": 170,
             "LoadOverestimationPercent": 10,
+            "StratBossDist010": 100,
             "TypeName": "ha1.params",
-            "Version": "002",
+            "Version": "003",
         },
         "ShNodes": [
             {

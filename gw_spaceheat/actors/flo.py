@@ -168,11 +168,15 @@ class DParams():
                 t = round(t - self.delta_T(t))
                 b = round(b - self.delta_T(b))
 
+        self.available_top_temps = [x[0] for x in available_temps]
+        if self.available_top_temps != sorted(self.available_top_temps):
+            for i in range(1, len(available_temps)):
+                available_temps[i] = (max(available_temps[i][0], available_temps[i-1][0]), available_temps[i][1])
+
         available_temps_no_duplicates = []
         skip_next_i = False
         for i in range(len(available_temps)):
             if i<len(available_temps)-1 and available_temps[i][0] == available_temps[i+1][0]:
-                print(f"Combining {available_temps[i]} with {available_temps[i+1]}")
                 available_temps_no_duplicates.append((available_temps[i][0], available_temps[i][1]+available_temps[i+1][1]))
                 skip_next_i = True
             elif not skip_next_i:
@@ -180,12 +184,18 @@ class DParams():
             else:
                 skip_next_i = False
         available_temps = available_temps_no_duplicates.copy()
-            
+
+        if max([x[0] for x in available_temps]) < MAX_TOP_TEMP-5:
+            available_temps.append((MAX_TOP_TEMP-5, self.num_layers))
+
+        if self.max_thermocline == self.num_layers and available_temps[-1][1] < self.num_layers:
+            available_temps[-1] = (available_temps[-1][0], self.num_layers)
+
         self.available_top_temps = [x[0] for x in available_temps]
         if self.available_top_temps != sorted(self.available_top_temps):
             print("ERROR sorted is not the same")
 
-        heights = [x[1] for x in available_temps]
+        # heights = [x[1] for x in available_temps]
         # fig, ax = plt.subplots(figsize=(8, 6))
         # cmap = matplotlib.colormaps['Reds']
         # norm = plt.Normalize(min(self.available_top_temps)-20, max(self.available_top_temps)+20)
