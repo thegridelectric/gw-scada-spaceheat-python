@@ -6,7 +6,6 @@ from named_types.admin_release_control import AdminReleaseControl
 from named_types.ally_gives_up import AllyGivesUp
 from named_types.atn_bid import AtnBid
 from named_types.channel_flatlined import ChannelFlatlined
-from named_types.dispatch_contract import DispatchContract
 from named_types.dispatch_contract_go_dormant import DispatchContractGoDormant
 from named_types.dispatch_contract_go_live import DispatchContractGoLive
 from named_types.energy_instruction import EnergyInstruction
@@ -28,6 +27,7 @@ from named_types.new_command_tree import NewCommandTree
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from named_types.remaining_elec import RemainingElec
+from named_types.scada_dispatch_contract import ScadaDispatchContract
 from named_types.scada_params import ScadaParams
 from named_types.send_layout import SendLayout
 from named_types.single_machine_state import SingleMachineState
@@ -46,7 +46,6 @@ __all__ = [
     "AllyGivesUp",
     "AtnBid",
     "ChannelFlatlined",
-    "DispatchContract",
     "DispatchContractGoDormant",
     "DispatchContractGoLive",
     "EnergyInstruction",
@@ -67,6 +66,7 @@ __all__ = [
     "PicoMissing",
     "PriceQuantityUnitless",
     "RemainingElec",
+    "ScadaDispatchContract",
     "ScadaParams",
     "SendLayout",
     "SingleMachineState",

@@ -11,7 +11,7 @@ from gwproto.property_format import MarketSlotName
 from gwproactor import ServicesInterface
 from actors.scada_actor import ScadaActor
 from gw.enums import MarketTypeName
-from named_types import DispatchContract, EnergyInstruction, MarketMakerAck
+from named_types import ScadaDispatchContract, EnergyInstruction, MarketMakerAck
 from result import Err, Ok, Result
 
 
@@ -19,10 +19,10 @@ class MarketSlotContracts:
     """Manages all contracts for a specific market slot"""
     def __init__(self, market_slot_name: MarketSlotName):
         self.market_slot_name = market_slot_name
-        self.contracts: Dict[str, DispatchContract] = {}
-        self._aggregated: Optional[DispatchContract] = None
+        self.contracts: Dict[str, ScadaDispatchContract] = {}
+        self._aggregated: Optional[ScadaDispatchContract] = None
         
-    def add_contract(self, contract: DispatchContract) -> None:
+    def add_contract(self, contract: ScadaDispatchContract) -> None:
         """Add a new contract to this market slot"""
         if contract.MarketSlotName != self.market_slot_name:
             raise ValueError(f"Contract for wrong market slot {contract.MarketSlotName}")
@@ -36,7 +36,7 @@ class MarketSlotContracts:
            return True
        return False
 
-    def get_aggregated_contract(self) -> Optional[DispatchContract]:
+    def get_aggregated_contract(self) -> Optional[ScadaDispatchContract]:
         """Get the aggregated contract for this market slot.
         Only includes validated contracts."""
         if self._aggregated is not None:
@@ -51,7 +51,7 @@ class MarketSlotContracts:
         # Simple aggregation - sum the power
         total_power = sum(c.AvgPowerWatts for c in validated_contracts)
         sample = validated_contracts[0]
-        self._aggregated = DispatchContract(
+        self._aggregated = ScadaDispatchContract(
             ContractId=str(uuid.uuid4()),
             MarketSlotName=self.market_slot_name,
             BidderAlias=sample.BidderAlias,
@@ -82,14 +82,10 @@ class ContractManager(ScadaActor):
                 active_slots={}
             )
         }
-        self.contract_file = self.settings.paths.config_dir / "dispatch_contracts.json"
+        self.contract_file = f"{self.settings.paths.config_dir}/dispatch_contracts.json"
 
     def start(self) -> None:
-        self.services.add_task(
-            asyncio.create_task(
-                self.defrost_watcher(), name="defrost_watcher"
-            )
-        )
+        ...
 
     def stop(self) -> None:
         """ Required method, used for stopping tasks. Noop"""
@@ -98,7 +94,7 @@ class ContractManager(ScadaActor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
         ...
-    def load_contracts(self) -> Result[List[DispatchContract], Exception]:
+    def load_contracts(self) -> Result[List[ScadaDispatchContract], Exception]:
         """Load contracts from persistent storage.
         
         Returns Ok(contracts) if successful, Err(exception) if any problems occur.
@@ -114,7 +110,7 @@ class ContractManager(ScadaActor):
             contracts = []
             for item in contract_data:
                 try:
-                    contract = DispatchContract.model_validate(item)
+                    contract = ScadaDispatchContract.model_validate(item)
                     if contract.is_live():
                         self.live_contracts[contract.ContractId] = contract
                         contracts.append(contract)
@@ -128,7 +124,7 @@ class ContractManager(ScadaActor):
         except Exception as e:
             return Err(Exception(f"Failed to load contracts: {str(e)}"))
 
-    def save_contract(self, contract: DispatchContract) -> Result[bool, Exception]:
+    def save_contract(self, contract: ScadaDispatchContract) -> Result[bool, Exception]:
         """Save a new contract to persistent storage"""
         try:
             contracts = []
@@ -155,7 +151,7 @@ class ContractManager(ScadaActor):
         except Exception as e:
             return Err(Exception(f"Failed to save contract: {str(e)}"))
 
-    def add_contract(self, contract: DispatchContract) -> None:
+    def add_contract(self, contract: ScadaDispatchContract) -> None:
         """Add a new contract, ensuring market type is supported"""
         market_type_name = contract.market_type_name
         if market_type_name not in self.supported_markets:
