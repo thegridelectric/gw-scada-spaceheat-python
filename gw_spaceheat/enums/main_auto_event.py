@@ -26,6 +26,7 @@ class MainAutoEvent(GwStrEnum):
     AutoGoesDormant = auto()
     AutoWakesUp = auto()
     AllyGivesUp = auto()
+    NoLiveContract = auto()
 
     @classmethod
     def default(cls) -> "MainAutoEvent":

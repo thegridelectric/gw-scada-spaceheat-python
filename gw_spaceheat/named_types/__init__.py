@@ -27,7 +27,7 @@ from named_types.new_command_tree import NewCommandTree
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from named_types.remaining_elec import RemainingElec
-from named_types.scada_dispatch_contract import ScadaDispatchContract
+from named_types.slow_dispatch_contract import SlowDispatchContract
 from named_types.scada_params import ScadaParams
 from named_types.send_layout import SendLayout
 from named_types.single_machine_state import SingleMachineState
@@ -66,7 +66,7 @@ __all__ = [
     "PicoMissing",
     "PriceQuantityUnitless",
     "RemainingElec",
-    "ScadaDispatchContract",
+    "SlowDispatchContract",
     "ScadaParams",
     "SendLayout",
     "SingleMachineState",

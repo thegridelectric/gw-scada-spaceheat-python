@@ -166,7 +166,7 @@ class Scada(ScadaInterface, Proactor):
         {"trigger": "AdminReleasesControl", "source": "Admin", "dest": "Auto"},
     ]
 
-    main_auto_states = ["Atn", "HomeAlone", "Dormant"]
+    main_auto_states = MainAutoState.values()
     main_auto_transitions = [
         {"trigger": "AtnLinkDead", "source": "Atn", "dest": "HomeAlone"},
         {"trigger": "AtnWantsControl", "source": "HomeAlone", "dest": "Atn"},

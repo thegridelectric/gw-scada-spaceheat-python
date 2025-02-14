@@ -4,30 +4,27 @@ from typing import List
 from gw.enums import GwStrEnum
 
 
-class MainAutoState(GwStrEnum):
+class RepresentationStatus(GwStrEnum):
     """
-    
+    The possible states of a representation
+    contract between Atn and Scada
     Values:
-      - HomeAlone
-      - Atn
-      - Dormant
-      - Observe
-      - WakingUp
+      - Ready  # Scada ready to receive a dispatch
+      - Active # Currently operating under a live dispatch contract
+      - Dormant  # Not accepting dispatch contracts
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
       - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautostate)
     """
 
-    HomeAlone = auto()
-    Atn = auto()
+    Ready = auto()
+    Active = auto()
     Dormant = auto()
-    Observe = auto()
-    WakingUp = auto()
 
     @classmethod
-    def default(cls) -> "MainAutoState":
-        return cls.HomeAlone
+    def default(cls) -> "RepresentationStatus":
+        return cls.Dormant
 
     @classmethod
     def values(cls) -> List[str]:
@@ -35,7 +32,7 @@ class MainAutoState(GwStrEnum):
 
     @classmethod
     def enum_name(cls) -> str:
-        return "main.auto.state"
+        return "representation.status"
 
     @classmethod
     def enum_version(cls) -> str:
