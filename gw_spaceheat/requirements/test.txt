@@ -67,9 +67,9 @@ multidict==6.0.4
     #   aiohttp
     #   gridworks-proactor
     #   yarl
-mypy==0.961
+mypy==1.15.0
     # via -r gw_spaceheat/requirements/test.in
-mypy-extensions==0.4.3
+mypy-extensions==1.0.0
     # via
     #   black
     #   mypy
@@ -133,6 +133,8 @@ rich==13.6.0
     #   gridworks-cert
     #   textual
     #   typer
+ruff==0.9.6
+    # via -r gw_spaceheat/requirements/test.in
 shellingham==1.5.4
     # via typer
 six==1.16.0
