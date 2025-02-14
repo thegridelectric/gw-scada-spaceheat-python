@@ -115,7 +115,14 @@ for Visual Studio code must be installed. We recommend:
 2. Disabling it. 
 3. Enabling for workspaces in which you want to use it, such as this one. 
 
+### More static analysis
 
+More rigid ruff rules can be applied by modifying pyproject.toml. Gwproto, for
+example, uses [many more rules](https://github.com/thegridelectric/gridworks-protocol/blob/fb7e1a3d17073aad647c223730c41495e6238fd8/pyproject.toml#L124).
+
+Typechecking feedback can be applied in the IDE by enabling Pylance type checking
+inside [vscode](vscode://settings/python.analysis.typeCheckingMode). Change that
+in *user* not workspace settings since much of the code will currently fail. 
 
 #### TLS
 
