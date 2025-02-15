@@ -24,6 +24,7 @@ class ScadaSettings(ProactorSettings):
     #logging related (temporary)
     pico_cycler_state_logging: bool = False
     power_meter_logging_level: int = logging.WARNING
+    contract_rep_logging_level: int = logging.INFO
     local_mqtt: MQTTClient = MQTTClient()
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300

@@ -55,7 +55,7 @@ from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, Glitch, GameOn, GoDormant,
     LayoutLite, NewCommandTree, RemainingElec, RemainingElecEvent, ScadaParams, SendLayout,
-    SingleMachineState, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger
+    SingleMachineState, SuitUp, WakeUp, HackOilOn, HackOilOff, SetRepresentationStatus
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -1102,10 +1102,20 @@ class Scada(ScadaInterface, Proactor):
         and contracts with atn and providing contract heartbeats
         """
         now = datetime.now(self.timezone)
+        prev_status = self.atn_rep._status
         if (self.atn_rep.status == RepresentationStatus.Active and
             self.atn_rep._contract_end_time and 
             now > self.atn_rep._contract_end_time + timedelta(self.atn_rep.GRACE_PERIOD_MINUTES)):
-
+            # Grace period after contract is ended. rep status: Active -> Ready
+            self.atn_rep._status = RepresentationStatus.Ready
+            if prev_status != self.atn_rep._status:
+                contract = self.
+                self._send_to(self.atn,
+                    SetRepresentationStatus(
+                        Status=RepresentationStatus.Ready,
+                        Reason="Grace period after last active contract"
+                    )
+                )
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report

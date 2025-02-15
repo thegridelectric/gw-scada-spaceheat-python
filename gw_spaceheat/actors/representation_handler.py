@@ -46,7 +46,7 @@ class RepresentationHandler:
         self._status = RepresentationStatus.Dormant  # Start dormant until initialized
         self._active_contract: Optional[SlowDispatchContract] = None
         self._prev_contract: Optional[SlowDispatchContract] = None
-        self.contract_end_s: Optional[int] = None
+        self._contract_end_time: Optional[datetime] = None
         self._stop_requested = False
 
     @property 
@@ -90,7 +90,7 @@ class RepresentationHandler:
             self.logger.info("Starting in %s due to environment setting", self._status)
         else:
             if self.load_contract():
-
+                
             self._status = RepresentationStatus.Ready
             self.logger.info("Starting in %s state", self._status)
 
@@ -136,12 +136,12 @@ class RepresentationHandler:
         
         # Calculate when contract will end
         start = datetime.fromtimestamp(contract.StartS, self.timezone)
-        self.contract_end_s = start + timedelta(minutes=contract.DurationMinutes)
+        self._contract_end_time = start + timedelta(minutes=contract.DurationMinutes)
         
         self.logger.info(
             "Contract started - status now %s. Will end at %s",
             self._status,
-            self.contract_end_s
+            self._contract_end_time
         )
 
     def contract_ended(self) -> None:
@@ -164,11 +164,11 @@ class RepresentationHandler:
                 now = datetime.now(self.timezone)
                 
                 if (self._status == RepresentationStatus.Active and
-                    self.contract_end_s and 
-                    now > self.contract_end_s + timedelta(minutes=self.GRACE_PERIOD_MINUTES)):
+                    self._contract_end_time and 
+                    now > self._contract_end_time + timedelta(minutes=self.GRACE_PERIOD_MINUTES)):
                     # Grace period after contract ended - go to Ready
                     self._status = RepresentationStatus.Ready
-                    self.contract_end_s = None
+                    self._contract_end_time = None
                     self.logger.info("Grace period completed - status now %s", self._status)
 
                 await asyncio.sleep(60)  # Check every minute
