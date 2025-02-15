@@ -30,4 +30,4 @@ class SlowDispatchContract(BaseModel):
     def is_live(self) -> bool:
         now = time.time()
         return (now >= self.StartS and 
-                now < self.StartS + self.DurationMinutes * 60)
+            now < self.StartS + self.DurationMinutes * 60)

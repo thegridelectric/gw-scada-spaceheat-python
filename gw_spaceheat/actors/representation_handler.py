@@ -6,6 +6,8 @@ the relationship between contract state and representation status.
 """
 
 import asyncio
+import json
+from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
 import pytz
@@ -18,7 +20,7 @@ from gwproto.data_classes.sh_node import ShNode
 from named_types import (
     SetRepresentationStatus, SlowDispatchContract, Glitch
 )
-
+from result import Err, Ok, Result
 
 class RepresentationHandler:
     """Handles SCADA's representation status and related state transitions"""
@@ -39,9 +41,12 @@ class RepresentationHandler:
         self.timezone =  pytz.timezone(self.settings.timezone_str)
 
         self.logger = logger
+        self.contract_file = Path(f"{self.settings.paths.config_dir}/slow_dispatch_contract.json")
+        self.live_contract: Optional[SlowDispatchContract]
         self._status = RepresentationStatus.Dormant  # Start dormant until initialized
         self._active_contract: Optional[SlowDispatchContract] = None
-        self._contract_end_time: Optional[datetime] = None
+        self._prev_contract: Optional[SlowDispatchContract] = None
+        self.contract_end_s: Optional[int] = None
         self._stop_requested = False
 
     @property 
@@ -49,22 +54,46 @@ class RepresentationHandler:
         """Current representation status"""
         return self._status
 
-    def initialize_from_env(self) -> SetRepresentationStatus:
-        """Set initial status based on environment variables"""
+    def load_contract(self) -> bool:
+        """Loads existing SlowDispatchContract from persistent storage
+        
+        Returns True  if successful, False if the contract is 
+        no longer live or if there was a problem loading
+        Active contract stored in self._active_contract, if the contract
+        time period is past then loaded into self._prev_contract
+        """
+        result = False
+        if not self.contract_file.exists():
+            return result
+        with open(self.contract_file, "r") as f:
+            contract_data = json.load(f)
+
+        try:
+            contract = SlowDispatchContract.model_validate(contract_data)
+            if contract.is_live():
+                self._active_contract = contract
+                result = True
+            else:
+                self._prev_contract = contract
+                result = False
+        except Exception as e:
+            self.logger.warning(f"Issue loading contract! {e}")
+            result = False
+        return result
+
+    def intialize(self) -> None:
+        """Set initial status and contract state based on persistent store
+
+        """
         if self.settings.representation_dormant:
             self._status = RepresentationStatus.Dormant
             self.logger.info("Starting in %s due to environment setting", self._status)
-            return SetRepresentationStatus(
-                Status=RepresentationStatus.Dormant,
-                Reason="Scada just rebooted; initializing from env file"
-            )
         else:
+            if self.load_contract():
+
             self._status = RepresentationStatus.Ready
             self.logger.info("Starting in %s state", self._status)
-            return SetRepresentationStatus(
-                Status=RepresentationStatus.Ready,
-                Reason="Scada just rebooted; initializing from env file"
-            )
+
 
     def process_set_status(self, cmd: SetRepresentationStatus) -> Optional[Glitch]:
         """Handle SetRepresentationStatus command from ATN"""
@@ -107,12 +136,12 @@ class RepresentationHandler:
         
         # Calculate when contract will end
         start = datetime.fromtimestamp(contract.StartS, self.timezone)
-        self._contract_end_time = start + timedelta(minutes=contract.DurationMinutes)
+        self.contract_end_s = start + timedelta(minutes=contract.DurationMinutes)
         
         self.logger.info(
             "Contract started - status now %s. Will end at %s",
             self._status,
-            self._contract_end_time
+            self.contract_end_s
         )
 
     def contract_ended(self) -> None:
@@ -135,11 +164,11 @@ class RepresentationHandler:
                 now = datetime.now(self.timezone)
                 
                 if (self._status == RepresentationStatus.Active and
-                    self._contract_end_time and 
-                    now > self._contract_end_time + timedelta(minutes=self.GRACE_PERIOD_MINUTES)):
+                    self.contract_end_s and 
+                    now > self.contract_end_s + timedelta(minutes=self.GRACE_PERIOD_MINUTES)):
                     # Grace period after contract ended - go to Ready
                     self._status = RepresentationStatus.Ready
-                    self._contract_end_time = None
+                    self.contract_end_s = None
                     self.logger.info("Grace period completed - status now %s", self._status)
 
                 await asyncio.sleep(60)  # Check every minute

@@ -27,6 +27,7 @@ from named_types.new_command_tree import NewCommandTree
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from named_types.remaining_elec import RemainingElec
+from named_types.set_representation_status import SetRepresentationStatus
 from named_types.slow_dispatch_contract import SlowDispatchContract
 from named_types.scada_params import ScadaParams
 from named_types.send_layout import SendLayout
@@ -70,6 +71,7 @@ __all__ = [
     "SlowContractHeartbeat",
     "SlowDispatchContract",
     "ScadaParams",
+    "SetRepresentationStatus",
     "SendLayout",
     "SingleMachineState",
     "SnapshotSpaceheat",

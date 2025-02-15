@@ -4,6 +4,7 @@ import asyncio
 import enum
 import uuid
 import threading
+from datetime import datetime, timedelta
 import time
 import pytz
 from typing import Any, List, Optional, cast
@@ -49,7 +50,7 @@ from gwproactor.proactor_implementation import Proactor
 
 from actors.representation_handler import RepresentationHandler
 from data_classes.house_0_names import H0N
-from enums import MainAutoState, StratBossState, StratBossEvent, TopState
+from enums import MainAutoState, RepresentationStatus, TopState
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, Glitch, GameOn, GoDormant,
@@ -270,8 +271,8 @@ class Scada(ScadaInterface, Proactor):
             send_event=False,
             model_attribute="auto_state",
         )
-        
-        self._atn_rep: RepresentationHandler = RepresentationHandler(
+        self.timezone =  pytz.timezone(self.settings.timezone_str)
+        self.atn_rep: RepresentationHandler = RepresentationHandler(
             settings=self.settings,
             layout=self.layout,
             node=self.node,
@@ -1095,6 +1096,16 @@ class Scada(ScadaInterface, Proactor):
                 UnixMs=int(time.time() * 1000),
             ),
         )
+
+    async def contract_heartbeating(self) -> None:
+        """  Responsible for checking the state of representation
+        and contracts with atn and providing contract heartbeats
+        """
+        now = datetime.now(self.timezone)
+        if (self.atn_rep.status == RepresentationStatus.Active and
+            self.atn_rep._contract_end_time and 
+            now > self.atn_rep._contract_end_time + timedelta(self.atn_rep.GRACE_PERIOD_MINUTES)):
+
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
