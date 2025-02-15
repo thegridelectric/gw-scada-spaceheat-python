@@ -31,6 +31,7 @@ from named_types.slow_dispatch_contract import SlowDispatchContract
 from named_types.scada_params import ScadaParams
 from named_types.send_layout import SendLayout
 from named_types.single_machine_state import SingleMachineState
+from named_types.slow_contract_heartbeat import SlowContractHeartbeat
 from named_types.snapshot_spaceheat import SnapshotSpaceheat
 from named_types.strat_boss_ready import StratBossReady
 from named_types.strat_boss_trigger import StratBossTrigger
@@ -66,6 +67,7 @@ __all__ = [
     "PicoMissing",
     "PriceQuantityUnitless",
     "RemainingElec",
+    "SlowContractHeartbeat",
     "SlowDispatchContract",
     "ScadaParams",
     "SendLayout",

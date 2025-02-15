@@ -5,6 +5,7 @@ import enum
 import uuid
 import threading
 import time
+import pytz
 from typing import Any, List, Optional, cast
 
 import dotenv
@@ -46,7 +47,7 @@ from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
-from actors import ContractManager
+from actors.representation_handler import RepresentationHandler
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, StratBossState, StratBossEvent, TopState
 from named_types import (
@@ -239,10 +240,7 @@ class Scada(ScadaInterface, Proactor):
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
         self.pending_dispatch: Optional[AnalogDispatch] = None
-        self.logger.add_category_logger(
-            PowerMeter.POWER_METER_LOGGER_NAME,
-            level=settings.power_meter_logging_level,
-        )
+
         self.set_home_alone_command_tree()
         if actor_nodes is not None:
             for actor_node in actor_nodes:
@@ -272,7 +270,16 @@ class Scada(ScadaInterface, Proactor):
             send_event=False,
             model_attribute="auto_state",
         )
-        self.contract_manager: ContractManager = ContractManager(self.settings.paths.data_dir)
+        
+        self._atn_rep: RepresentationHandler = RepresentationHandler(
+            settings=self.settings,
+            layout=self.layout,
+            node=self.node,
+            logger=self.logger.add_category_logger(
+                RepresentationHandler.LOGGER_NAME,
+                level=settings.contract_rep_logging_level,
+            )
+        )
 
     def _start_derived_tasks(self):
         self._tasks.append(
