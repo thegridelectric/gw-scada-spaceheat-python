@@ -650,7 +650,7 @@ class AtomicAlly(ScadaActor):
 
         if really_full:
             if H0CN.buffer_cold_pipe in self.latest_temperatures:
-                buffer_full_ch_temp = round(self.latest_temperatures[H0CN.buffer_cold_pipe],1)
+                buffer_full_ch_temp = round(max(self.latest_temperatures[H0CN.buffer_cold_pipe], self.latest_temperatures[buffer_full_ch]),1)
             max_buffer = self.params.MaxEwtF
             if buffer_full_ch_temp > max_buffer:
                 self.log(f"Buffer cannot be charged more ({buffer_full_ch}: {buffer_full_ch_temp} > {max_buffer} F)")
@@ -667,8 +667,8 @@ class AtomicAlly(ScadaActor):
             return False
         
     def is_storage_full(self) -> bool:
-        # Storage was declared full in the last 15 min
-        if self.storage_declared_full and self.storage_full_since - time.time() < 15*60:
+        if self.storage_declared_full and time.time() - self.storage_full_since < 15*60:
+            self.log(f"Storage was declared full {round((time.time() - self.storage_full_since)/60)} minutes ago")
             return True
         elif self.latest_temperatures[H0N.store_cold_pipe] > self.params.MaxEwtF: 
             self.log(f"Storage is full (store-cold-pipe > {self.params.MaxEwtF} F).")
