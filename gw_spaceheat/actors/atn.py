@@ -5,6 +5,7 @@ import json
 import threading
 import time
 import uuid
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
@@ -47,14 +48,14 @@ from tests.atn.atn_config import AtnSettings, DashboardSettings
 from tests.atn.dashboard.dashboard import Dashboard
 
 class PriceForecast(BaseModel):
-    dp: List[float]
-    lmp: List[float]
-    reg: List[float]
+    dp_usd_per_mwh: List[float]
+    lmp_usd_per_mwh: List[float]
+    reg_usd_per_mwh: List[float]
 
     @property
     def total_energy(self) -> List[float]:
         """Calculate the total price forecast by summing dp, lmp, and reg components."""
-        return [dp + lmp for dp, lmp in zip(self.dp, self.lmp)]
+        return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
 
 class AtnMQTTCodec(MQTTCodec):
     exp_src: str
@@ -170,7 +171,7 @@ class Atn(ActorInterface, Proactor):
         self.temperature_channel_names = None
         self.ha1_params: Optional[Ha1Params] = None
         self.latest_report: Optional[Report] = None
-        self.report_output_dir = self.settings.paths.data_dir / "report"
+        self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
@@ -244,6 +245,7 @@ class Atn(ActorInterface, Proactor):
             case LatestPrice():
                 path_dbg |= 0x00000100
                 self.latest_price_received(message.Payload)
+                # self._publish_to_scada(message.Payload) # so we can record in database
             case _:
                 path_dbg |= 0x00000040
 
@@ -461,7 +463,7 @@ class Atn(ActorInterface, Proactor):
         )
         self.log(f"Wants control! State is now {self.state}")
 
-    def release_control(self) -> float:
+    def release_control(self) -> None:
         """
         If scada is in Atn mode, will go to Homealone
         """
@@ -775,7 +777,7 @@ class Atn(ActorInterface, Proactor):
             # TODO: under some conditions we might want to run a FLO at another time
             return
         await self.get_weather(session)
-        self.get_price_update_forecast_usd_per_mwh()
+        self.update_price_forecast()
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_thermocline_and_centroids()
@@ -800,9 +802,9 @@ class Atn(ActorInterface, Proactor):
             InitialBottomTempF=int(initial_bottomtemp),
             InitialThermocline=initial_thermocline * 2,
             # TODO: price and weather forecasts should include the current hour if we are running a partial hour
-            LmpForecast=self.price_forecast.lmp,
-            DistPriceForecast=self.price_forecast.dp,
-            RegPriceForecast=self.price_forecast.reg,
+            LmpForecast=self.price_forecast.lmp_usd_per_mwh,
+            DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
+            RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
             OatForecastF=self.weather_forecast["oat"],
             WindSpeedForecastMph=self.weather_forecast["ws"],
             AlphaTimes10=self.ha1_params.AlphaTimes10,
@@ -1277,19 +1279,30 @@ class Atn(ActorInterface, Proactor):
             "ws": wf["ws"],
         }
 
-    def get_price_update_forecast_usd_per_mwh(self) -> float:
-        """ returns price this hour and updates self.price_forecast for the start of next hour
-
-        All in $/MWh
+    def get_price(self) -> float:
+        """ returns price this hour (LMP plus Dist) in USD/MWh 
+        
+        Hack: perfect forecast - use price forecast 
         """
-        # Read the 72h electricity prices from local CSV file
-        # TODO: replace with a price service
+        if not self.price_forecast:
+            self.update_price_forecast()
+        if not self.price_forecast:
+            return 0
+        return self.price_forecast.dp_usd_per_mwh[0] + self.price_forecast.lmp_usd_per_mwh[0]
+
+    def update_price_forecast(self) -> None:
+        """ updates self.price_forecast for the start of next hour. All in USD/MWh
+
+        Reads the 72 hour electricity price from price_forecast.csv file in data 
+        directory. Uses the datetime day mod 3 to determine which day it is
+       
+        """
+
         dist_usd_mwh = []
         lmp_usd_mwh = []
         reg_usd_mwh = [0.0]*72
         try:
-            house_alias = self.layout.scada_g_node_alias.split('.')[-2]
-            file_path = f"/home/ubuntu/{house_alias}-atn/gw-scada-spaceheat-python/price_forecast.csv"
+            file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
             with open(file_path, mode='r', newline='') as file:
                 reader = csv.reader(file)
                 next(reader)
@@ -1317,14 +1330,13 @@ class Atn(ActorInterface, Proactor):
 
         # Update the price forecast
         self.price_forecast = PriceForecast(
-            dp=dp_forecast_usd_per_mwh,
-            lmp=lmp_forecast_usd_per_mwh,
-            reg=reg_forecast_usd_per_mwh,
+            dp_usd_per_mwh=dp_forecast_usd_per_mwh,
+            lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
+            reg_usd_per_mwh=reg_forecast_usd_per_mwh,
         )
         self.log("Successfully read price forecast from local CSV")
-        self.log(f"LMP is {self.price_forecast.lmp}")
-        self.log(f"total energy is {self.price_forecast.total_energy}")
-        return self.price_forecast.total_energy[current_hour]
+        self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
+        self.log(f"total energy USD/MWh {self.price_forecast.total_energy}")
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
@@ -1362,7 +1374,7 @@ class Atn(ActorInterface, Proactor):
         slot_start_s = int(now) - int(now) % 3600
         mtn = MarketTypeName.rt60gate5.value
         market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-        usd_per_mwh = self.get_price_update_forecast_usd_per_mwh()
+        usd_per_mwh = self.get_price()
         price = LatestPrice(
                 FromGNodeAlias=Atn.P_NODE,
                 PriceTimes1000=int(usd_per_mwh * 1000),
