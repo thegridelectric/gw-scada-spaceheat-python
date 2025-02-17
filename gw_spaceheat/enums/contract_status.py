@@ -10,9 +10,11 @@ class ContractStatus(GwStrEnum):
       - Received # Counter-party acknowledges receipt
       - Confirmed # Counter-party accepts terms
       - Active # Contract currently in force
-      - Terminated # Contract ended early 
+      - TerminatedByAtn # Contract ended early by Atn
+      - TerminatedByScada # Contract ended early by Scada
       - CompletedSuccess # Contract ran full duration and terms met
-      - CompletedFailure # Contract ran full duration but terms not met
+      - CompletedFailureByScada # Contract ran full duration, terms not met by Scada
+      - CompletedFailureByAtn # Contract ran full duration, terms not met by Atn
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
@@ -21,9 +23,11 @@ class ContractStatus(GwStrEnum):
     Received = auto() 
     Confirmed = auto()
     Active = auto()
-    Terminated = auto()
+    TerminatedByAtn = auto()
+    TerminatedByScada = auto()
     CompletedSuccess = auto()
-    CompletedFailure = auto()
+    CompletedFailureByScada = auto()
+    CompletedFailureByAtn = auto()
 
     @classmethod
     def default(cls) -> "ContractStatus":

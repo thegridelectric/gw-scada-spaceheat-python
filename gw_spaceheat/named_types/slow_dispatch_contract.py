@@ -1,5 +1,6 @@
 from typing import Literal
 import time
+
 from pydantic import BaseModel, field_validator, PositiveInt
 from gwproto.property_format import UUID4Str, UTCSeconds,  LeftRightDotStr
 
@@ -26,8 +27,7 @@ class SlowDispatchContract(BaseModel):
         return v
 
     
-    
-    def is_live(self) -> bool:
-        now = time.time()
-        return (now >= self.StartS and 
-            now < self.StartS + self.DurationMinutes * 60)
+    @property
+    def ContractEndS(self) -> int:
+        return self.StartS + self.DurationMinutes * 60
+

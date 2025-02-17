@@ -23,12 +23,13 @@ class SlowContractHeartbeat(BaseModel):
 
     @model_validator(mode="after")
     def _check_axiom_1(self) -> Self:
-        """Axiom 1: Contracts  created no later than 10 seconds after StartS"""
-        if self.Status == ContractStatus.Created:
+        """Axiom 1: Contracts must be created, received, and confirmed no later 
+        than 10 seconds after StartS"""
+        if self.Status in [ContractStatus.Created, ContractStatus.Received, ContractStatus.Confirmed]:
             time_s = self.MessageCreatedMs / 1000
             if time_s > self.Contract.StartS + 10:
                 raise ValueError(
-                    f"Axiom 2: Must be created within 10 seconds of Contract Start. Got {round(time_s - self.Contract.StartS, 2)}"
+                    f"Axiom 2: Must be {self.Status.value} within 10 seconds of Contract Start. Got {round(time_s - self.Contract.StartS, 2)}"
                 )
         return self
     
@@ -37,22 +38,23 @@ class SlowContractHeartbeat(BaseModel):
         """Axiom 2 Check authority: Validate authority for status changes"""
         
         # Only Atn can create or confirm
-        if self.Status in [ContractStatus.Created, ContractStatus.Confirmed]:
+        if self.Status in [ContractStatus.Created, ContractStatus.Confirmed, ContractStatus.TerminatedByAtn]:
             if self.FromNode != "a":
                 raise ValueError(f"Only Atn can set status {self.Status}")
             if not self.IsAuthoritative:
                 raise ValueError("Atn IsAuthoritative for Created and Confirmed!")
         # Only Scada can mark as received
-        if self.Status == ContractStatus.Received:
+        if self.Status in [ContractStatus.Received, ContractStatus.TerminatedByScada]:
             if self.FromNode != "s":
-                raise ValueError("Only Scada can set Received status")
+                raise ValueError(f"Only Scada can set status {self.Status}")
             if not self.IsAuthoritative:
                 raise ValueError("Scada IsAuthoritative for Received!")
         # Active/CompletedSuccess/CompletedFailure are for umpire only
         # For now, treat these as claims by participants
         if self.Status in [ContractStatus.Active, 
                           ContractStatus.CompletedSuccess,
-                          ContractStatus.CompletedFailure]:
+                          ContractStatus.CompletedFailureByAtn,
+                          ContractStatus.CompletedFailureByScada]:
             # Later the umpire will enforce these
             # For now just let participants publish their view
             if self.IsAuthoritative:
@@ -62,14 +64,18 @@ class SlowContractHeartbeat(BaseModel):
 
     @model_validator(mode='after')
     def check_axiom_3(self) -> Self:
-        """Axiom 3: Cause required for and limited to Terminated and CompletedFailure"""
-        needs_cause = self.Status in [ContractStatus.Terminated, ContractStatus.CompletedFailure]
+        """Axiom 3: Cause required for and limited to TerminatedByAtn, TerminatedByScada,
+         CompletedFailureByAtn and CompletedFailureByScada"""
+        needs_cause = self.Status in [ContractStatus.TerminatedByAtn,
+                                      ContractStatus.TerminatedByScada, 
+                                      ContractStatus.CompletedFailureByAtn,
+                                      ContractStatus.CompletedFailureByScada]
         has_cause = self.Cause is not None
 
         if needs_cause and not has_cause:
-            raise ValueError("Cause is required for Terminated and CompletedFailure status")
+            raise ValueError(f"Cause is required for {needs_cause}")
         if not needs_cause and has_cause:
-            raise ValueError("Cause only valid for Terminated and CompletedFailure status")
+            raise ValueError(f"Cause only valid for {needs_cause} status")
         return self
 
     @model_validator(mode='after')

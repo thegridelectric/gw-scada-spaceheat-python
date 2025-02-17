@@ -272,7 +272,7 @@ class Scada(ScadaInterface, Proactor):
             model_attribute="auto_state",
         )
         self.timezone =  pytz.timezone(self.settings.timezone_str)
-        self.atn_rep: RepresentationHandler = RepresentationHandler(
+        self.swimmer: RepresentationHandler = RepresentationHandler(
             settings=self.settings,
             layout=self.layout,
             node=self.node,
@@ -281,6 +281,7 @@ class Scada(ScadaInterface, Proactor):
                 level=settings.contract_rep_logging_level,
             )
         )
+        self.swimmer.initialize()
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -292,41 +293,6 @@ class Scada(ScadaInterface, Proactor):
         self._tasks.append(
             asyncio.create_task(self.state_tracker(), name="scada top_state_tracker")
         )
-
-    #######################################
-    # Contract management
-    #######################################
-
-    def initialize_contracts(self) -> None:
-        """Called during Scada startup to load any persisted contracts"""
-    
-        contract_mgr = ContractManager(self.settings.paths.data_dir)
-        result = contract_mgr.load_contracts()
-        
-        if result.is_err():
-            self.log(f"Error loading contracts: {result.err()}")
-            return
-            
-        live_contracts = result.value
-        if not live_contracts:
-            self.log("No live contracts found")
-            return
-
-        self.log(f"Found {len(live_contracts)} live contracts")
-        
-        # Example: Re-establish ATN mode if we have live contracts
-        if live_contracts and self.auto_state == MainAutoState.HomeAlone:
-            self.atn_wants_control()
-            for contract in live_contracts:
-                # Re-send energy instruction to atomic ally
-                instruction = EnergyInstruction(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    SlotStartS=contract.StartUnixS,
-                    SlotDurationMinutes=contract.DurationMinutes,
-                    SendTimeMs=int(time.time() * 1000),
-                    AvgPowerWatts=contract.AvgPowerWatts
-                )
-                self._send_to(self.atomic_ally, instruction)
 
     #######################################
     # Messages
@@ -1097,18 +1063,55 @@ class Scada(ScadaInterface, Proactor):
             ),
         )
 
+
+    #######################################
+    # Contract management
+    #######################################
+
+    def initialize_contracts(self) -> None:
+        """Called during Scada startup to load any persisted contracts"""
+    
+        contract_mgr = ContractManager(self.settings.paths.data_dir)
+        result = contract_mgr.load_contracts()
+        
+        if result.is_err():
+            self.log(f"Error loading contracts: {result.err()}")
+            return
+            
+        live_contracts = result.value
+        if not live_contracts:
+            self.log("No live contracts found")
+            return
+
+        self.log(f"Found {len(live_contracts)} live contracts")
+        
+        # Example: Re-establish ATN mode if we have live contracts
+        if live_contracts and self.auto_state == MainAutoState.HomeAlone:
+            self.atn_wants_control()
+            for contract in live_contracts:
+                # Re-send energy instruction to atomic ally
+                instruction = EnergyInstruction(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    SlotStartS=contract.StartUnixS,
+                    SlotDurationMinutes=contract.DurationMinutes,
+                    SendTimeMs=int(time.time() * 1000),
+                    AvgPowerWatts=contract.AvgPowerWatts
+                )
+                self._send_to(self.atomic_ally, instruction)
+
+
     async def contract_heartbeating(self) -> None:
         """  Responsible for checking the state of representation
         and contracts with atn and providing contract heartbeats
         """
         now = datetime.now(self.timezone)
-        prev_status = self.atn_rep._status
-        if (self.atn_rep.status == RepresentationStatus.Active and
-            self.atn_rep._contract_end_time and 
-            now > self.atn_rep._contract_end_time + timedelta(self.atn_rep.GRACE_PERIOD_MINUTES)):
+        prev_status = self.swimmer.status
+        if (self.swimmer.status == RepresentationStatus.Active and
+            self.swimmer._contract_end_time and 
+            now > self.swimmer._contract_end_time + timedelta(self.swimmer.GRACE_PERIOD_MINUTES)):
             # Grace period after contract is ended. rep status: Active -> Ready
-            self.atn_rep._status = RepresentationStatus.Ready
-            if prev_status != self.atn_rep._status:
+            self.swimmer.status = RepresentationStatus.Ready
+            if prev_status != self.swimmer.status:
                 contract = self.
                 self._send_to(self.atn,
                     SetRepresentationStatus(
