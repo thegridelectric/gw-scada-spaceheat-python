@@ -1097,9 +1097,26 @@ class Atn(ActorInterface, Proactor):
             return 0
         
     async def get_house_available_kwh(self):
-        # Thermal mass of house? In kWh/degF
-        # How much thermal mass is one zone?
-        return 0
+        setpoints = {}
+        temps = {}
+        zone_names = []
+        for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
+            zone_name = zone_setpoint.replace('-set','')
+            zone_names.append(zone_name)
+            if self.latest_channel_values[zone_setpoint] is not None:
+                setpoints[zone_name] = self.latest_channel_values[zone_setpoint]
+            if (zone_setpoint.replace('-set','-temp') in self.latest_channel_values
+                and self.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None):
+                temps[zone_name] = self.latest_channel_values[zone_setpoint.replace('-set','-temp')]
+        self.log(f"Found all zone setpoints: {setpoints}")
+        self.log(f"Found all zone temperatures: {temps}")
+        thermal_mass_kwh_per_degf = 1
+        house_availale_kwh = 0
+        for zone in zone_names:
+            if zone in temps and zone in setpoints:
+                house_availale_kwh += thermal_mass_kwh_per_degf * (temps[zone] - setpoints[zone])
+        self.log(f"House available kWh: {house_availale_kwh}")
+        return house_availale_kwh
     
     def use_oil_as_fuel_substitute(self) -> False:
         if self.latest_price is None:
