@@ -1104,10 +1104,10 @@ class Atn(ActorInterface, Proactor):
             zone_name = zone_setpoint.replace('-set','')
             zone_names.append(zone_name)
             if self.latest_channel_values[zone_setpoint] is not None:
-                setpoints[zone_name] = self.latest_channel_values[zone_setpoint]
+                setpoints[zone_name] = self.to_fahrenheit(self.latest_channel_values[zone_setpoint]/1000)
             if (zone_setpoint.replace('-set','-temp') in self.latest_channel_values
                 and self.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None):
-                temps[zone_name] = self.latest_channel_values[zone_setpoint.replace('-set','-temp')]
+                temps[zone_name] = self.to_fahrenheit(self.latest_channel_values[zone_setpoint.replace('-set','-temp')]/1000)
         self.log(f"Found all zone setpoints: {setpoints}")
         self.log(f"Found all zone temperatures: {temps}")
         thermal_mass_kwh_per_degf = 1
@@ -1125,10 +1125,10 @@ class Atn(ActorInterface, Proactor):
             zone_name = zone_setpoint.replace('-set','')
             zone_names.append(zone_name)
             if self.latest_channel_values[zone_setpoint] is not None:
-                setpoints[zone_name] = self.latest_channel_values[zone_setpoint]
+                setpoints[zone_name] = self.to_fahrenheit(self.latest_channel_values[zone_setpoint]/1000)
             if (zone_setpoint.replace('-set','-temp') in self.latest_channel_values
                 and self.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None):
-                temps[zone_name] = self.latest_channel_values[zone_setpoint.replace('-set','-temp')]
+                temps[zone_name] = self.to_fahrenheit(self.latest_channel_values[zone_setpoint.replace('-set','-temp')]/1000)
         self.log(f"Found all zone setpoints: {setpoints}")
         self.log(f"Found all zone temperatures: {temps}")
         thermal_mass_kwh_per_degf = 1
