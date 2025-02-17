@@ -1096,27 +1096,6 @@ class Atn(ActorInterface, Proactor):
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
             return 0
         
-    def test_house_available(self):
-        setpoints = {}
-        temps = {}
-        zone_names = []
-        for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
-            zone_name = zone_setpoint.replace('-set','')
-            zone_names.append(zone_name)
-            if self.latest_channel_values[zone_setpoint] is not None:
-                setpoints[zone_name] = self.to_fahrenheit(self.latest_channel_values[zone_setpoint]/1000)
-            if (zone_setpoint.replace('-set','-temp') in self.latest_channel_values
-                and self.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None):
-                temps[zone_name] = self.to_fahrenheit(self.latest_channel_values[zone_setpoint.replace('-set','-temp')]/1000)
-        self.log(f"Found all zone setpoints: {setpoints}")
-        self.log(f"Found all zone temperatures: {temps}")
-        thermal_mass_kwh_per_degf = 1
-        house_availale_kwh = 0
-        for zone in zone_names:
-            if zone in temps and zone in setpoints:
-                house_availale_kwh += thermal_mass_kwh_per_degf * (temps[zone] - setpoints[zone])
-        self.log(f"House available kWh: {house_availale_kwh}")
-    
     async def get_house_available_kwh(self):
         setpoints = {}
         temps = {}
@@ -1136,6 +1115,7 @@ class Atn(ActorInterface, Proactor):
         for zone in zone_names:
             if zone in temps and zone in setpoints:
                 house_availale_kwh += thermal_mass_kwh_per_degf * (temps[zone] - setpoints[zone])
+        house_availale_kwh = round(house_availale_kwh,2)
         self.log(f"House available kWh: {house_availale_kwh}")
         return house_availale_kwh
     
