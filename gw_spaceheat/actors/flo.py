@@ -135,7 +135,7 @@ class DParams():
             self.initial_bottom_temp = round(self.initial_top_temp - self.delta_T(self.initial_top_temp))
 
         self.max_thermocline = self.num_layers
-        if self.initial_top_temp > MAX_TOP_TEMP:
+        if self.initial_top_temp > MAX_TOP_TEMP-5:
             self.max_thermocline = self.initial_thermocline
 
         available_temps = []
