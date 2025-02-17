@@ -354,8 +354,10 @@ class DGraph():
                     
                     # Adjust the max elec the HP can use in the first time step
                     # (Duration of time step + turn-on effects)
-                    max_hp_elec_in = self.params.max_hp_elec_in * (self.params.fraction_of_hour_remaining if h==0 else 1)
-                    max_hp_elec_in = (((1-self.params.hp_turn_on_minutes/60) if self.params.hp_is_off else 1) * max_hp_elec_in)
+                    max_hp_elec_in = self.params.max_hp_elec_in
+                    if h==0:
+                        max_hp_elec_in = max_hp_elec_in * self.params.fraction_of_hour_remaining
+                        max_hp_elec_in = (((1-self.params.hp_turn_on_minutes/60) if self.params.hp_is_off else 1) * max_hp_elec_in)
                     
                     # This condition reduces the amount of times we need to compute the COP
                     if (hp_heat_out/self.params.max_cop <= max_hp_elec_in and
@@ -382,6 +384,14 @@ class DGraph():
                                         continue
                             
                             self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
+                    
+                if not self.edges[node_now]:
+                    print(f"No edge from node {node_now}, adding edge with penalty")
+                    cop = self.params.COP(oat=self.params.oat_forecast[h], lwt=node_next.top_temp)
+                    hp_heat_out = max_hp_elec_in * cop
+                    node_next = [n for n in self.nodes[h+1] if n.top_temp==node_now.top_temp and n.thermocline1==node_now.thermocline1][0]
+                    self.edges[node_now].append(DEdge(node_now, node_next, 1e5, hp_heat_out))
+                    print(DEdge(node_now, node_next, 1e5, hp_heat_out))
 
     def add_rswt_minus_edge(self, node: DNode, time_slice, Q_losses):
         # In these calculations the load is both the heating requirement and the losses
