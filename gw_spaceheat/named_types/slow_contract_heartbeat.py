@@ -1,4 +1,3 @@
-
 from typing import Optional, Literal
 from gwproto.property_format import  UTCMilliseconds, SpaceheatName
 from pydantic import BaseModel, field_validator, model_validator
@@ -12,14 +11,29 @@ class SlowContractHeartbeat(BaseModel):
     Contract: SlowDispatchContract
     PreviousStatus: Optional[ContractStatus] = None
     Status: ContractStatus
-    MessageCreatedMs: UTCMilliseconds  
+    MessageCreatedMs: UTCMilliseconds
     Cause: Optional[str] = None
     IsAuthoritative: bool = True
+    WattHoursUsed: Optional[int] = None
     MyDigit: int
     YourLastDigit: Optional[int]
     SignedProof: str = "algo_sig_dummy" # For blockchain validation
     TypeName: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
     Version: Literal["000"] = "000"
+
+
+    def contract_grace_period_minutes(self) -> Literal[5]:
+        return 5
+
+    def grace_period_end_s(self) -> int:
+        """ 5 minutes after the ContractEndS unless the contract
+        was terminated, in which case 5 minutes after termination
+        """
+        contract_done_s = self.Contract.ContractEndS
+        if self.Status in [ContractStatus.TerminatedByAtn, ContractStatus.TerminatedByScada]:
+            contract_done_s = int(self.MessageCreatedMs / 1000)
+        return contract_done_s + self.contract_grace_period_minutes() * 60
+        # TODO: Add a test for this logic
 
     @model_validator(mode="after")
     def _check_axiom_1(self) -> Self:
@@ -64,10 +78,10 @@ class SlowContractHeartbeat(BaseModel):
 
     @model_validator(mode='after')
     def check_axiom_3(self) -> Self:
-        """Axiom 3: Cause required for and limited to TerminatedByAtn, TerminatedByScada,
-         CompletedFailureByAtn and CompletedFailureByScada"""
+        """Axiom 3: Cause required for and limited to Terminated and CompletedFailure/Unknown status"""
         needs_cause = self.Status in [ContractStatus.TerminatedByAtn,
                                       ContractStatus.TerminatedByScada, 
+                                      ContractStatus.CompletedUnknownOutcome,
                                       ContractStatus.CompletedFailureByAtn,
                                       ContractStatus.CompletedFailureByScada]
         has_cause = self.Cause is not None
@@ -78,23 +92,11 @@ class SlowContractHeartbeat(BaseModel):
             raise ValueError(f"Cause only valid for {needs_cause} status")
         return self
 
-    @model_validator(mode='after')
-    def check_axiom_4(self) -> Self:
-        """Axiom 3: Cause required for and limited to Terminated and CompletedFailure"""
-        needs_cause = self.Status in [ContractStatus.Terminated, ContractStatus.CompletedFailure]
-        has_cause = self.Cause is not None
-
-        if needs_cause and not has_cause:
-            raise ValueError("Cause is required for Terminated and CompletedFailure status")
-        if not needs_cause and has_cause:
-            raise ValueError("Cause only valid for Terminated and CompletedFailure status")
-        return self
-
     @field_validator("FromNode")
     @classmethod
     def _check_from_node(cls, v: str) -> str:
         """
-        Axiom 5: FromNode should be 's' (Scada) or 'a' (AtomicTNode)
+        Axiom 4: FromNode should be 's' (Scada) or 'a' (AtomicTNode)
         """
         if v not in ['s', 'a']:
             raise ValueError(
@@ -103,7 +105,7 @@ class SlowContractHeartbeat(BaseModel):
         return v
 
     @model_validator(mode='after')
-    def check_axiom_6(self) -> Self:
+    def check_axiom_5(self) -> Self:
         """
         Future: Will validate Algorand smart contract transaction signature.
 
@@ -132,13 +134,24 @@ class SlowContractHeartbeat(BaseModel):
         return self
 
     @model_validator(mode='after')
-    def check_axiom_7(self) -> Self:
-        """Axiom 7: check digits"""
+    def check_axiom_6(self) -> Self:
+        """Axiom 6: check digits"""
         if self.MyDigit not in range(10):
             raise ValueError(f"MyDigit must be in range(10) not {self.MyDigit}")
         if self.YourLastDigit:
             if self.YourLastDigit not in range(10):
                 raise ValueError(f"YourLastDigit must be in range(10) not {self.YourLastDigit}")
+        return self
+
+    @model_validator(mode='after')
+    def check_axiom_7(self) -> Self:
+        """Axiom 7: Scada (and only Scada) sends WattHoursUsed"""
+        if self.FromNode == "s":
+            if self.WattHoursUsed is None:
+                raise ValueError("Scada sends WattHoursUsed")
+        else:
+            if self.WattHoursUsed:
+                raise ValueError("Only Scada sends WattHoursUsed")
         return self
 
 

@@ -24,8 +24,8 @@ from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
 from enums import LogLevel, StratBossState, StratBossEvent
 from named_types import (
-    AllyGivesUp, EnergyInstruction, Glitch, GoDormant,
-    Ha1Params, HeatingForecast, RemainingElec, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger, NewCommandTree
+    AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast, NewCommandTree, 
+    SlowContractHeartbeat, SuitUp, StratBossTrigger, WakeUp,
 )
 
 
@@ -142,7 +142,7 @@ class AtomicAlly(ScadaActor):
         self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        self.forecasts: HeatingForecast = None
+        self.forecasts: Optional[HeatingForecast] = None
         self.remaining_elec_wh = None
         self.storage_declared_full = False
         self.storage_full_since = time.time()
@@ -185,7 +185,6 @@ class AtomicAlly(ScadaActor):
             case HackOilOn():
                 if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
                     self.log("Acting on hack.oil.on message")
-                    previous_state = self.state
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
                 else:
                     self.log(f"Received hack.oil.on. In state {self.state} so ignoring")
@@ -195,12 +194,9 @@ class AtomicAlly(ScadaActor):
                     self.trigger_event(AtomicAllyEvent.StopHackOil)
                 else:
                     self.log(f"Received hack.oil.off. In state {self.state} so ignoring ")
-            case RemainingElec():
-                # TODO: perhaps 1 Wh is not the best number here
-                if message.Payload.RemainingWattHours <= 1:
-                    if "HpOn" in self.state and datetime.now(self.timezone).minute<55:
-                        self.trigger_event(AtomicAllyEvent.NoMoreElec)
-                self.remaining_elec_wh = message.Payload.RemainingWattHours
+            case SlowContractHeartbeat():
+                self.slow_contract_heartbeat_received(from_node, message.Payload)
+
             case WakeUp():
                 if self.state == AtomicAllyState.Dormant.value:
                     self.set_normal_command_tree() 
@@ -208,7 +204,7 @@ class AtomicAlly(ScadaActor):
                     self.suit_up()
             case HeatingForecast():
                 self.log("Received forecast")
-                self.forecasts: HeatingForecast = message.Payload
+                self.forecasts = message.Payload
             case StratBossTrigger():
                 try:
                     self.strat_boss_trigger_received(from_node, message.Payload)
@@ -217,6 +213,17 @@ class AtomicAlly(ScadaActor):
 
         return Ok(True)
     
+    def slow_contract_heartbeat_received(self, from_node, hb: SlowContractHeartbeat) -> None:
+        if from_node != self.primary_scada:
+            raise Exception("contract heartbeat should come from scada!")
+        # case RemainingElec(): # No longer getting this. 
+        #     # TODO: perhaps 1 Wh is not the best number here
+        #     if message.Payload.RemainingWattHours <= 1:
+        #         if "HpOn" in self.state and datetime.now(self.timezone).minute<55:
+        #             self.trigger_event(AtomicAllyEvent.NoMoreElec)
+        #     self.remaining_elec_wh = message.Payload.RemainingWattHours
+        self.engage_brain()
+
     def strat_boss_trigger_received(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
         self.log("Strat boss trigger received!")
         if self.state == AtomicAllyState.Dormant:
@@ -393,66 +400,66 @@ class AtomicAlly(ScadaActor):
                             self.is_buffer_empty()
                             and not self.is_storage_colder_than_buffer()
                         ):
-                            self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty.value)
+                            self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty)
                         else:
-                            self.trigger_event(AtomicAllyEvent.NoElecBufferFull.value)
+                            self.trigger_event(AtomicAllyEvent.NoElecBufferFull)
                     else:
                         if self.is_buffer_empty() or self.is_storage_full():
-                            self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
+                            self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
                         else:
-                            self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                            self.trigger_event(AtomicAllyEvent.ElecBufferFull)
                 elif self.no_more_elec():
                     self.turn_off_HP()
 
             # 1
-            elif self.state == AtomicAllyState.HpOnStoreOff.value:
+            elif self.state == AtomicAllyState.HpOnStoreOff:
                 if self.no_more_elec() and datetime.now(self.timezone).minute<55:
-                    self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
+                    self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 elif self.is_buffer_full() and not self.is_storage_full():
-                    self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                    self.trigger_event(AtomicAllyEvent.ElecBufferFull)
                 elif self.is_buffer_full(really_full=True):
                     if not self.storage_declared_full or time.time()-self.storage_full_since>15*60:
-                        self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                        self.trigger_event(AtomicAllyEvent.ElecBufferFull)
                     if self.storage_declared_full and time.time()-self.storage_full_since<15*60:
                         self.log("Both storage and buffer are as full as can be")
-                        self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
+                        self.trigger_event(AtomicAllyEvent.NoMoreElec)
                         # TODO: send message to ATN saying the EnergyInstruction will be violated
 
             # 2
-            elif self.state == AtomicAllyState.HpOnStoreCharge.value:
+            elif self.state == AtomicAllyState.HpOnStoreCharge:
                 if self.no_more_elec() and datetime.now(self.timezone).minute<55:
                     self.log("Finished with energy instruction! Turning off")
-                    self.trigger_event(AtomicAllyEvent.NoMoreElec.value)
+                    self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 elif self.is_buffer_empty() or self.is_storage_full():
-                    self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
+                    self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
 
             # 3
-            elif self.state == AtomicAllyState.HpOffStoreOff.value:
+            elif self.state == AtomicAllyState.HpOffStoreOff:
                 if self.no_more_elec():
                     if (
                         self.is_buffer_empty()
                         and not self.is_storage_colder_than_buffer()
                     ):
-                        self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty.value)
+                        self.trigger_event(AtomicAllyEvent.NoElecBufferEmpty)
                 else:
                     if self.is_buffer_empty() or self.is_storage_full():
-                        self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
+                        self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
                     else:
-                        self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                        self.trigger_event(AtomicAllyEvent.ElecBufferFull)
 
             # 4
-            elif self.state == AtomicAllyState.HpOffStoreDischarge.value:
+            elif self.state == AtomicAllyState.HpOffStoreDischarge:
                 if self.no_more_elec():
                     if (
                         self.is_buffer_full()
                         or self.is_storage_colder_than_buffer()
                     ):
-                        self.trigger_event(AtomicAllyEvent.NoElecBufferFull.value)
+                        self.trigger_event(AtomicAllyEvent.NoElecBufferFull)
                 else:
                     if self.is_buffer_empty() or self.is_storage_full():
-                        self.trigger_event(AtomicAllyEvent.ElecBufferEmpty.value)
+                        self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
                     else:
-                        self.trigger_event(AtomicAllyEvent.ElecBufferFull.value)
+                        self.trigger_event(AtomicAllyEvent.ElecBufferFull)
 
     async def main(self):
         await asyncio.sleep(2)
@@ -622,6 +629,9 @@ class AtomicAlly(ScadaActor):
         else:
             self.alert(summary="buffer_empty_fail", details="Impossible to know if the buffer is empty!")
             return False
+        if self.forecasts is None:
+            self.alert(summary="buffer_empty_fail", details="Impossible without forecasts")
+            return False
         max_rswt_next_3hours = max(self.forecasts.RswtF[:3])
         max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
         min_buffer = round(max_rswt_next_3hours - max_deltaT_rswt_next_3_hours,1)
@@ -644,6 +654,9 @@ class AtomicAlly(ScadaActor):
             buffer_full_ch = 'hp-ewt'
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
+            return False
+        if self.forecasts is None:
+            self.alert(summary="buffer_full_fail", details="Impossible without forecasts")
             return False
         max_buffer = round(max(self.forecasts.RswtF[:3]),1)
         buffer_full_ch_temp = round(self.latest_temperatures[buffer_full_ch],1)
@@ -716,10 +729,10 @@ class AtomicAlly(ScadaActor):
     def alert(self, summary: str, details: str) -> None:
         msg =Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node,
+            Node=self.node.Name,
             Type=LogLevel.Critical,
             Summary=summary,
             Details=details
         )
-        self._send_to(H0N.atn, msg)
+        self._send_to(self.atn, msg)
         self.log(f"Glitch: {summary}")

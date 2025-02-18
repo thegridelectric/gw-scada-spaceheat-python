@@ -25,6 +25,7 @@ class ContractStatus(GwStrEnum):
     Active = auto()
     TerminatedByAtn = auto()
     TerminatedByScada = auto()
+    CompletedUnknownOutcome = auto()
     CompletedSuccess = auto()
     CompletedFailureByScada = auto()
     CompletedFailureByAtn = auto()

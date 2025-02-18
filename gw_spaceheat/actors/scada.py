@@ -48,14 +48,15 @@ from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
-from actors.representation_handler import RepresentationHandler
+from actors import ContractHandler
 from data_classes.house_0_names import H0N
 from enums import MainAutoState, RepresentationStatus, TopState
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, Glitch, GameOn, GoDormant,
     LayoutLite, NewCommandTree, RemainingElec, RemainingElecEvent, ScadaParams, SendLayout,
-    SingleMachineState, SuitUp, WakeUp, HackOilOn, HackOilOff, SetRepresentationStatus
+    SingleMachineState, SlowContractHeartbeat, SlowDispatchContract,
+    SuitUp, WakeUp, HackOilOn, HackOilOff, SetRepresentationStatus
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -170,13 +171,12 @@ class Scada(ScadaInterface, Proactor):
 
     main_auto_states = MainAutoState.values()
     main_auto_transitions = [
-        {"trigger": "AtnLinkDead", "source": "Atn", "dest": "HomeAlone"},
-        {"trigger": "AtnWantsControl", "source": "HomeAlone", "dest": "Atn"},
+        {"trigger": "DispatchContractLive", "source": "HomeAlone", "dest": "Atn"},
         {"trigger": "AutoGoesDormant", "source": "Atn", "dest": "Dormant"},
         {"trigger": "AutoGoesDormant", "source": "HomeAlone", "dest": "Dormant"},
         {"trigger": "AutoWakesUp", "source": "Dormant", "dest": "HomeAlone"},
         {"trigger": "AtnReleasesControl", "source": "Atn", "dest": "HomeAlone"},
-        {"trigger": "AllyGivesUp", "source": "Atn", "dest": "HomeAlone"},
+        {"trigger": "ContractGracePeriodEnds", "source": "Atn", "dest": "HomeAlone"},
     ]
 
     def __init__(
@@ -272,20 +272,20 @@ class Scada(ScadaInterface, Proactor):
             model_attribute="auto_state",
         )
         self.timezone =  pytz.timezone(self.settings.timezone_str)
-        self.swimmer: RepresentationHandler = RepresentationHandler(
+        self.contract_handler: ContractHandler = ContractHandler(
             settings=self.settings,
             layout=self.layout,
             node=self.node,
             logger=self.logger.add_category_logger(
-                RepresentationHandler.LOGGER_NAME,
+                ContractHandler.LOGGER_NAME,
                 level=settings.contract_rep_logging_level,
             )
         )
-        self.swimmer.initialize()
+        self.initialize_contracts()
 
     def _start_derived_tasks(self):
         self._tasks.append(
-            asyncio.create_task(self.report_sending_task(), name="reoirt_sender")
+            asyncio.create_task(self.report_sending_task(), name="report_sender")
         )
         self._tasks.append(
             asyncio.create_task(self.snap_sending_task(), name="snap_sender")
@@ -422,6 +422,11 @@ class Scada(ScadaInterface, Proactor):
                     self.single_reading_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with single_reading_received: \n {e}")
+            case SlowContractHeartbeat():
+                try:
+                    self.slow_contract_heartbeat_received(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with slow_contract_heartbeat_received: \n {e}")
             case SuitUp():
                 try:
                     self.suit_up_received(from_node, payload)
@@ -512,14 +517,10 @@ class Scada(ScadaInterface, Proactor):
                 f"Ignoring AllyGivesUp from AtomicAlly, auto_state: {self.auto_state}"
             )
             return
-        # AutoState transition: AllyGivesUp: Atn -> HomeAlone
-        self.AllyGivesUp()
-        self.log(f"Atomic Ally giving up control: {payload.Reason}")
-        self.set_home_alone_command_tree()
-        # wake up home alone again. Ally will already be dormant
-        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-        # Inform AtomicTNode
-        # TODO: send message like DispatchContractDeclined to Atn
+        # will be 5 minutes until the state changes
+        hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
+        self._send_to(self.atn, hb)
+
 
     def analog_dispatch_received(
         self, from_node: ShNode, payload: AnalogDispatch
@@ -643,24 +644,11 @@ class Scada(ScadaInterface, Proactor):
         also update scada_data.power_watts, and send to synth gen
         """
         self._send_to(self.atn, payload)
-        self._data.latest_total_power_w = payload.Watts
-        self._send_to(self.synth_generator, payload)
-
-    def remaining_elec_received(
-        self, from_node: ShNode, payload: RemainingElec
-    ) -> None:
-        """Part of tracking the existing electricity contract
-
-        Send to atn by generating an event (probably stop that?)
-        Also share with atomic ally
-        """
-        if from_node.Name != H0N.synth_generator:
-            self.log(
-                f"Ignoring RemainingElecReceived from {from_node.Name} - expect {H0N.synth_generator}"
-            )
-        self._send_to(self.atomic_ally, payload)
-        self.generate_event(RemainingElecEvent(Remaining=payload))
-        #self.log("Sent remaining elec to ATN and atomic ally")
+        # Update internal data store
+        self.contract_handler.latest_power_w = payload.Watts
+        # Update contract energy tracking if contract is active
+        if self.contract_handler.latest_scada_hb:
+            self.contract_handler.update_energy_usage()
 
     def scada_params_received(
         self, from_node: ShNode, payload: ScadaParams, testing: bool = False
@@ -894,34 +882,38 @@ class Scada(ScadaInterface, Proactor):
                 direct_report, GoDormant(FromName=self.name, ToName=direct_report.Name)
             )
 
-    def ally_gives_up(self, msg: AllyGivesUp) -> None:
+    def contract_grace_period_ends(self) -> None:
         if self.auto_state != MainAutoState.Atn:
-            self.log(
-                f"Ignoring AllyGivesUp message, auto_state: {self.auto_state}"
-            )
-            return
-        # AutoState transition: AllyGivesUp: Atn -> HomeAlone
-        self.AllyGivesUp()
-        self.log(f"Atomic Ally giving up control: {msg.Reason}")
+            raise Exception(f"Only expect contract grace period ending ")
+        self.ContractGracePeriodEnds()
         self.set_home_alone_command_tree()
         # wake up home alone again. Ally will already be dormant
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         # Inform AtomicTNode
         # TODO: send message like DispatchContractDeclined to Atn
 
-    def atn_wants_control(self, t: DispatchContractGoLive) -> None:
-        if t.FromGNodeAlias != self.layout.atn_g_node_alias:
-            self.log(f"HUH? Message from {t.FromGNodeAlias}")
-            return
+    def slow_contract_heartbeat_received(self, hb: SlowContractHeartbeat) -> None:
+        return_hb = self.contract_handler.process_contract_hb(hb)
+        if return_hb is not None:
+            if return_hb.Status not in ContractHandler.DONE_STATES:
+                if self.auto_state == MainAutoState.HomeAlone:
+                    self.dispatch_contract_live()
+
+    def dispatch_contract_live(self) -> None:
+        """ DispatchContractLive: HomeAlone -> Atn
+        
+          - Triggers state change for AutoState
+          - Sets Atn Command Tree
+          - Tells HomeAlone and AtomicAlly
+        """
         if self.auto_state != MainAutoState.HomeAlone:
             self.log(
                 f"Ignoring control request from atn, auto_state: {self.auto_state}"
             )
             return
+        self.DispatchContractLive() # AutoState Trigger DispatchContractLive: HomeAlone -> Atn
+        self.log(f"New Dispatch Contract! Auto state {self.auto_state}")
 
-        # Trigger AtnWantsControl for auto state: HomeAlone -> Atn
-        self.AtnWantsControl()
-        self.log(f"AtnWantsControl! Auto state {self.auto_state}")
         # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
         # Ally which reports to atn.
         self.set_atn_command_tree()
@@ -932,32 +924,6 @@ class Scada(ScadaInterface, Proactor):
         # Let the atomic ally know its live
         self._send_to(self.layout.atomic_ally, WakeUp(ToName=H0N.atomic_ally))
 
-    def atn_link_dead(self) -> None:
-        if self.auto_state != MainAutoState.Atn:
-            self.log(f"Atn link is dead, but we were in state {self.auto_state} anyway")
-            return
-
-        # Trigger AtnLinkDead auto state:  Atn -> HomeAlone
-        self.AtnLinkDead()
-        self.log(f"AtnLink id dead! Auto state {self.auto_state}")
-        self.set_home_alone_command_tree()
-        # Let home alone know its in charge
-        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-        self._send_to(
-            self.layout.atomic_ally,
-            GoDormant(FromName=H0N.primary_scada, ToName=H0N.atomic_ally),
-        )
-        # Pico Cycler shouldn't change
-
-    def _derived_recv_deactivated(
-        self, transition: LinkManagerTransition
-    ) -> Result[bool, BaseException]:
-        """Overwrites base method. Triggered when link state is deactivated"""
-        if transition.link_name == self.upstream_client:
-            # proactor-speak for Atn is no longer talking with Scada, as evidenced
-            # by the once-a-minute pings disappearing
-            self.atn_link_dead()
-        return Ok()
 
     def _derived_recv_activated(
         self, transition: Transition
@@ -1070,55 +1036,20 @@ class Scada(ScadaInterface, Proactor):
 
     def initialize_contracts(self) -> None:
         """Called during Scada startup to load any persisted contracts"""
-    
-        contract_mgr = ContractManager(self.settings.paths.data_dir)
-        result = contract_mgr.load_contracts()
-        
-        if result.is_err():
-            self.log(f"Error loading contracts: {result.err()}")
-            return
+
+        # loads state and contract from persistent store
+        hb = self.contract_handler.initialize()
+
+        # Re-establish ATN mode if contract is live
+        if self.contract_handler.latest_scada_hb:
+            self.dispatch_contract_live()
             
-        live_contracts = result.value
-        if not live_contracts:
-            self.log("No live contracts found")
-            return
-
-        self.log(f"Found {len(live_contracts)} live contracts")
-        
-        # Example: Re-establish ATN mode if we have live contracts
-        if live_contracts and self.auto_state == MainAutoState.HomeAlone:
-            self.atn_wants_control()
-            for contract in live_contracts:
-                # Re-send energy instruction to atomic ally
-                instruction = EnergyInstruction(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    SlotStartS=contract.StartUnixS,
-                    SlotDurationMinutes=contract.DurationMinutes,
-                    SendTimeMs=int(time.time() * 1000),
-                    AvgPowerWatts=contract.AvgPowerWatts
-                )
-                self._send_to(self.atomic_ally, instruction)
-
-
-    async def contract_heartbeating(self) -> None:
-        """  Responsible for checking the state of representation
-        and contracts with atn and providing contract heartbeats
-        """
-        now = datetime.now(self.timezone)
-        prev_status = self.swimmer.status
-        if (self.swimmer.status == RepresentationStatus.Active and
-            self.swimmer._contract_end_time and 
-            now > self.swimmer._contract_end_time + timedelta(self.swimmer.GRACE_PERIOD_MINUTES)):
-            # Grace period after contract is ended. rep status: Active -> Ready
-            self.swimmer.status = RepresentationStatus.Ready
-            if prev_status != self.swimmer.status:
-                contract = self.
-                self._send_to(self.atn,
-                    SetRepresentationStatus(
-                        Status=RepresentationStatus.Ready,
-                        Reason="Grace period after last active contract"
-                    )
-                )
+        if hb:
+            self._send_to(self.atn, hb) 
+            self._send_to(self.atomic_ally, hb)
+        self._send_to(self.atn, SetRepresentationStatus(
+                Status=self.contract_handler.status,
+                Reason="Scada setting status on boot"))
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report

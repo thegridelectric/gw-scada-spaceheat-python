@@ -1,8 +1,9 @@
 from typing import Literal
 import time
 
-from pydantic import BaseModel, field_validator, PositiveInt
+from pydantic import BaseModel, field_validator, model_validator, PositiveInt
 from gwproto.property_format import UUID4Str, UTCSeconds,  LeftRightDotStr
+from typing_extensions import Self
 
 class SlowDispatchContract(BaseModel):
     """Represents a dispatch contract between Atn and Scada"""
@@ -10,6 +11,7 @@ class SlowDispatchContract(BaseModel):
     StartS: UTCSeconds
     DurationMinutes: PositiveInt
     AvgPowerWatts: PositiveInt
+    OilBoilerOn: bool
     ContractId: UUID4Str
     TypeName: Literal["slow.dispatch.contract"] = "slow.dispatch.contract"
     Version: Literal["000"] = "000"
@@ -26,7 +28,15 @@ class SlowDispatchContract(BaseModel):
             )
         return v
 
-    
+    @model_validator(mode="after")
+    def _check_axiom_1(self) -> Self:
+        """OilBoilerOn -> AvgPowerWatts is 0
+        """
+        if self.OilBoilerOn:
+            if self.AvgPowerWatts > 0:
+                raise ValueError("OilBoilerOn -> AvgPowerWatts is 0")
+        return self
+
     @property
     def ContractEndS(self) -> int:
         return self.StartS + self.DurationMinutes * 60

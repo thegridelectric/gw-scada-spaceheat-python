@@ -11,8 +11,6 @@ class MainAutoState(GwStrEnum):
       - HomeAlone
       - Atn
       - Dormant
-      - Observe
-      - WakingUp
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
@@ -22,8 +20,6 @@ class MainAutoState(GwStrEnum):
     HomeAlone = auto()
     Atn = auto()
     Dormant = auto()
-    Observe = auto()
-    WakingUp = auto()
 
     @classmethod
     def default(cls) -> "MainAutoState":

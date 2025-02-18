@@ -3,7 +3,7 @@ easier."""
 from actors.api_flow_module import ApiFlowModule
 from actors.api_tank_module import ApiTankModule
 from actors.atomic_ally import AtomicAlly
-from actors.contract_manager import ContractManager
+from actors.contract_handler import ContractHandler
 from actors.home_alone import HomeAlone
 from actors.honeywell_thermostat import HoneywellThermostat
 from actors.hp_relay_boss import HpRelayBoss
@@ -26,7 +26,7 @@ __all__ = [
     "ApiFlowModule",
     "ApiTankModule",
     "AtomicAlly",
-    "ContractManager",
+    "ContractHandler",
     "HomeAlone",
     "HoneywellThermostat",
     "HpRelayBoss",

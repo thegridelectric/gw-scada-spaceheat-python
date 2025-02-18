@@ -19,7 +19,8 @@ from gwproto.messages import (
 
 from named_types import Ha1Params, SingleMachineState, SnapshotSpaceheat
 class ScadaData:
-    latest_total_power_w: Optional[int]
+    latest_power_w: int
+    latest_power_s: float
     reports_to_store: Dict[str, Report]
     recent_machine_states: Dict[str, MachineStates] # key is machine handle
     latest_machine_state: Dict[str, SingleMachineState] # key is the node name
@@ -33,8 +34,8 @@ class ScadaData:
     ha1_params: Ha1Params
 
     def __init__(self, settings: ScadaSettings, hardware_layout: HardwareLayout):
-        self.latest_total_power_w: Optional[int] = None
-        self.latest_total_power_w: Optional[int] = None
+        self.latest_power_w: int = 0
+        self.latest_power_s: float = time.time()
         self.reports_to_store: Dict[str:Report] = {}
         self.seconds_by_channel: Dict[str:int] = {}
 

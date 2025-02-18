@@ -8,25 +8,25 @@ class MainAutoEvent(GwStrEnum):
     """
     
     Values:
-      - AtnLinkDead
-      - AtnWantsControl
-      - AtnReleasesControl
-      - AutoGoesDormant
-      - AutoWakesUp
-      - AllyGivesUp
+      - DispatchContractLive
+      - ContractGracePeriodEnds # 
+      - AutoGoesDormant # 
+      - AutoWakesUp # 
+      - AllyGivesUp # instead Scada terminates contract
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
       - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautoevent)
     """
 
-    AtnLinkDead = auto()
-    AtnWantsControl = auto()
     AtnReleasesControl = auto()
     AutoGoesDormant = auto()
     AutoWakesUp = auto()
     AllyGivesUp = auto()
     NoLiveContract = auto()
+    DispatchContractLive = auto()
+    ContractGracePeriodEnds = auto()
+
 
     @classmethod
     def default(cls) -> "MainAutoEvent":
