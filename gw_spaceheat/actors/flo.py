@@ -59,8 +59,9 @@ class DParams():
             self.load_forecast[0] += -available_house
         else:
             while available_house > 0:
+                load_backup = self.load_forecast[i]
                 self.load_forecast[i] = self.load_forecast[i] - min(available_house, self.load_forecast[i])
-                available_house = available_house - min(available_house, self.load_forecast[i])
+                available_house = available_house - min(available_house, load_backup)
                 i += 1
         self.check_hp_sizing()
         # TODO: add to config
