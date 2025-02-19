@@ -69,6 +69,18 @@ class ContractHandler:
         delta_wh = round(self.latest_power_w * delta_s / 3600)
         self.energy_used_wh += delta_wh
 
+    @property
+    def remaining_watthours(self) -> Optional[int]:
+        """ If there is no live contract, returns None
+
+        Otherwise return remaining WattHours left in contract, with
+        a minimum of 0
+        """
+        if not self.latest_scada_hb:
+            return None
+        contracted_wh = int(self.latest_scada_hb.Contract.AvgPowerWatts * self.latest_scada_hb.Contract.DurationMinutes/60)
+        return min(contracted_wh - self.energy_used_wh, 0)
+
     def load_heartbeat(self) -> Optional[SlowContractHeartbeat]:
         """Loads existing SlowDispatchContract from persistent storage
 

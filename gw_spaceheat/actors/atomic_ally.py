@@ -20,12 +20,13 @@ from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport,
 from result import Ok, Result
 from transitions import Machine
 
+from actors import ContractHandler
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
 from enums import LogLevel, StratBossState, StratBossEvent
 from named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast, NewCommandTree, 
-    SlowContractHeartbeat, SuitUp, StratBossTrigger, WakeUp,
+    SlowContractHeartbeat, SlowDispatchContract, SuitUp, StratBossTrigger, WakeUp,
 )
 
 
@@ -148,8 +149,8 @@ class AtomicAlly(ScadaActor):
         self.storage_full_since = time.time()
         if H0N.atomic_ally not in self.layout.nodes:
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
-        self.set_normal_command_tree()
-        self.cancel_strat_boss()
+
+        self.contract_handler : ContractHandler = self.services.contract_handler
     
     @property
     def data(self) -> ScadaData:
@@ -188,12 +189,7 @@ class AtomicAlly(ScadaActor):
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
                 else:
                     self.log(f"Received hack.oil.on. In state {self.state} so ignoring")
-            case HackOilOff():
-                if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
-                    self.log("Acting on hack.oil.off message")
-                    self.trigger_event(AtomicAllyEvent.StopHackOil)
-                else:
-                    self.log(f"Received hack.oil.off. In state {self.state} so ignoring ")
+
             case SlowContractHeartbeat():
                 self.slow_contract_heartbeat_received(from_node, message.Payload)
 
@@ -222,6 +218,12 @@ class AtomicAlly(ScadaActor):
         #         if "HpOn" in self.state and datetime.now(self.timezone).minute<55:
         #             self.trigger_event(AtomicAllyEvent.NoMoreElec)
         #     self.remaining_elec_wh = message.Payload.RemainingWattHours
+        #     case HackOilOff():  
+        # if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
+        #     self.log("Acting on hack.oil.off message")
+        #     self.trigger_event(AtomicAllyEvent.StopHackOil)
+        # else:
+        #     self.log(f"Received hack.oil.off. In state {self.state} so ignoring ")
         self.engage_brain()
 
     def strat_boss_trigger_received(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
