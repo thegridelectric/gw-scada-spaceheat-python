@@ -144,17 +144,18 @@ class AtomicAlly(ScadaActor):
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
         self.forecasts: Optional[HeatingForecast] = None
-        self.remaining_elec_wh = None
         self.storage_declared_full = False
         self.storage_full_since = time.time()
         if H0N.atomic_ally not in self.layout.nodes:
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
-
-        self.contract_handler : ContractHandler = self.services.contract_handler
     
     @property
     def data(self) -> ScadaData:
         return self._services.data
+
+    @property
+    def remaining_watthours(self) -> int:
+        return self.services.contract_handler.remainint_watthours
     
     @property
     def params(self) -> Ha1Params:
@@ -174,24 +175,16 @@ class AtomicAlly(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
         match message.Payload:
-            case EnergyInstruction():
-                self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
-                self.remaining_elec_wh = message.Payload.AvgPowerWatts
-                self.engage_brain()
             case GoDormant():
                 if self.state != AtomicAllyState.Dormant.value:
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
             case HackOilOn():
-                if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
-                    self.log("Acting on hack.oil.on message")
-                    self.trigger_event(AtomicAllyEvent.StartHackOil)
-                else:
-                    self.log(f"Received hack.oil.on. In state {self.state} so ignoring")
+                
 
-            case SlowContractHeartbeat():
-                self.slow_contract_heartbeat_received(from_node, message.Payload)
+            case SlowDispatchContract():
+                self.slow_dispatch_contract_received(from_node, message.Payload)
 
             case WakeUp():
                 if self.state == AtomicAllyState.Dormant.value:
@@ -209,9 +202,19 @@ class AtomicAlly(ScadaActor):
 
         return Ok(True)
     
-    def slow_contract_heartbeat_received(self, from_node, hb: SlowContractHeartbeat) -> None:
+    def slow_dispatch_contract_received(self, from_node, contract: SlowDispatchContract) -> None:
         if from_node != self.primary_scada:
-            raise Exception("contract heartbeat should come from scada!")
+            raise Exception("contract should come from scada!")
+        if contract.OilBoilerOn:
+            if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
+                    self.log("Acting on hack.oil.on message")
+                    self.trigger_event(AtomicAllyEvent.StartHackOil)
+            else:
+                self.log(f"Received contract w OilBoilerOn. In state {self.state} so ignoring")
+        # case EnergyInstruction():
+        #     self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
+        #     self.remaining_elec_wh = message.Payload.AvgPowerWatts
+        #     self.engage_brain()
         # case RemainingElec(): # No longer getting this. 
         #     # TODO: perhaps 1 Wh is not the best number here
         #     if message.Payload.RemainingWattHours <= 1:
