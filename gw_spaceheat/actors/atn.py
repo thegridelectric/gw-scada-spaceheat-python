@@ -1318,35 +1318,47 @@ class Atn(ActorInterface, Proactor):
 
         dist_usd_mwh = []
         lmp_usd_mwh = []
-        reg_usd_mwh = [0.0]*72
+        reg_usd_mwh = []
         try:
-            file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
+            if datetime.now(tz=self.timezone) < datetime(2025, 2, 21, tzinfo=self.timezone):
+                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
+            else:
+                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast_new.csv")
             with open(file_path, mode='r', newline='') as file:
                 reader = csv.reader(file)
                 next(reader)
                 for row in reader:
                     dist_usd_mwh.append(float(row[0]))
                     lmp_usd_mwh.append(float(row[1]))
+                    reg_usd_mwh.append(0.0)
                 if len(dist_usd_mwh)<72 or len(lmp_usd_mwh)<72:
                     raise Exception("Price forecasts must be at least 72 hours long")
         except Exception as e:
             self.log("Error reading price forecast from csv")
             raise Exception(e)
+        
+        if datetime.now(tz=self.timezone) < datetime(2025, 2, 21, tzinfo=self.timezone):
+            # Get the current hour
+            now = datetime.now(tz=self.timezone)
+            current_hour = now.hour
+            day_offset = (now.day % 3) * 24
 
-        # Get the current hour
-        now = datetime.now(tz=self.timezone)
-        current_hour = now.hour
-        day_offset = (now.day % 3) * 24
+            # Calculate the starting hour for the 48-hour forecast
+            start_hour = (day_offset + current_hour + 1) % 72
 
-        # Calculate the starting hour for the 48-hour forecast
-        start_hour = (day_offset + current_hour + 1) % 72
+            # Wrap the lists for the 48-hour forecast
+            dp_forecast_usd_per_mwh = [dist_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+            lmp_forecast_usd_per_mwh = [lmp_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+            reg_forecast_usd_per_mwh = [reg_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+        else:
+            time_since_21_feb = (datetime(2025, 2, 21, tzinfo=self.timezone) 
+                                 - datetime.now(tz=self.timezone).replace(minute=0, second=0, microsecond=0))
+            start_hour = int(time_since_21_feb.total_seconds() / 3600) + 1
+            dp_forecast_usd_per_mwh = [dist_usd_mwh[start_hour + i] for i in range(48)]
+            lmp_forecast_usd_per_mwh = [lmp_usd_mwh[start_hour + i] for i in range(48)]
+            reg_forecast_usd_per_mwh = [reg_usd_mwh[start_hour + i] for i in range(48)]
 
-        # Wrap the lists for the 48-hour forecast
-        dp_forecast_usd_per_mwh = [dist_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-        lmp_forecast_usd_per_mwh = [lmp_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-        reg_forecast_usd_per_mwh = [reg_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-
-        # Update the price forecast
+        # Update the price forecasts
         self.price_forecast = PriceForecast(
             dp_usd_per_mwh=dp_forecast_usd_per_mwh,
             lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
