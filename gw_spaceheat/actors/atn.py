@@ -1353,7 +1353,7 @@ class Atn(ActorInterface, Proactor):
         else:
             time_since_21_feb = (datetime(2025, 2, 20, 17, tzinfo=self.timezone) 
                                  - datetime.now(tz=self.timezone).replace(minute=0, second=0, microsecond=0))
-            start_hour = int(time_since_21_feb.total_seconds() / 3600) + 1
+            start_hour = int(time_since_21_feb.total_seconds() / 3600)
             dp_forecast_usd_per_mwh = [dist_usd_mwh[start_hour + i] for i in range(48)]
             lmp_forecast_usd_per_mwh = [lmp_usd_mwh[start_hour + i] for i in range(48)]
             reg_forecast_usd_per_mwh = [reg_usd_mwh[start_hour + i] for i in range(48)]
