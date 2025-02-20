@@ -1320,7 +1320,7 @@ class Atn(ActorInterface, Proactor):
         lmp_usd_mwh = []
         reg_usd_mwh = []
         try:
-            if datetime.now(tz=self.timezone) < datetime(2025, 2, 21, tzinfo=self.timezone):
+            if datetime.now(tz=self.timezone) < datetime(2025, 2, 20, 17, tzinfo=self.timezone):
                 file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
             else:
                 file_path = Path(f"{self.settings.paths.data_dir}/price_forecast_new.csv")
@@ -1337,7 +1337,7 @@ class Atn(ActorInterface, Proactor):
             self.log("Error reading price forecast from csv")
             raise Exception(e)
         
-        if datetime.now(tz=self.timezone) < datetime(2025, 2, 21, tzinfo=self.timezone):
+        if datetime.now(tz=self.timezone) < datetime(2025, 2, 20, 17, tzinfo=self.timezone):
             # Get the current hour
             now = datetime.now(tz=self.timezone)
             current_hour = now.hour
@@ -1351,7 +1351,7 @@ class Atn(ActorInterface, Proactor):
             lmp_forecast_usd_per_mwh = [lmp_usd_mwh[(start_hour + i) % 72] for i in range(48)]
             reg_forecast_usd_per_mwh = [reg_usd_mwh[(start_hour + i) % 72] for i in range(48)]
         else:
-            time_since_21_feb = (datetime(2025, 2, 21, tzinfo=self.timezone) 
+            time_since_21_feb = (datetime(2025, 2, 20, 17, tzinfo=self.timezone) 
                                  - datetime.now(tz=self.timezone).replace(minute=0, second=0, microsecond=0))
             start_hour = int(time_since_21_feb.total_seconds() / 3600) + 1
             dp_forecast_usd_per_mwh = [dist_usd_mwh[start_hour + i] for i in range(48)]
