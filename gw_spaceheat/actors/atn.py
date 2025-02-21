@@ -1320,10 +1320,7 @@ class Atn(ActorInterface, Proactor):
         lmp_usd_mwh = []
         reg_usd_mwh = []
         try:
-            if datetime.now(tz=self.timezone) < datetime(2025, 2, 20, 17, tzinfo=self.timezone):
-                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-            else:
-                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast_new.csv")
+            file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
             with open(file_path, mode='r', newline='') as file:
                 reader = csv.reader(file)
                 next(reader)
