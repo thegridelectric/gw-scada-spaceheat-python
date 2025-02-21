@@ -14,7 +14,7 @@ from result import Ok, Result
 
 from actors.scada_actor import ScadaActor
 from enums import TurnHpOnOff, HpModel, StratBossEvent, StratBossState
-from named_types import (FsmEvent, StratBossReady, StratBossTrigger)
+from named_types import (FsmEvent, SingleMachineState, StratBossReady, StratBossTrigger)
 from transitions import Machine
 
 
@@ -238,6 +238,15 @@ class StratBoss(ScadaActor):
         else:
             self.log(f"DON'T KNOW TRIGGER {trigger.Trigger}") # TODO: add Glitch
         self.log(f"{trigger.Trigger}: {before} -> {self.state}")
+        if before != self.state:
+            self._send_to(self.primary_scada,
+                          SingleMachineState(
+                              MachineHandle=self.node.handle,
+                              StateEnum=StratBossState.enum_name(),
+                              State=self.state,
+                              Cause=trigger.Trigger.value,
+                              UnixMs=int(time.time() * 1000)
+                          ))
         if self.state == StratBossState.Active:
             asyncio.create_task(self._timeout_timer())
             asyncio.create_task(self.active(trigger.Trigger))

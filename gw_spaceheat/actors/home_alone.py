@@ -113,7 +113,7 @@ class HomeAlone(ScadaActor):
             for state in states if state != "Dormant"
     ] + [
             {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"}
-            for state in states if state not in ["Dormant", "StratBoss"]
+            for state in states
     ]  
     + [{"trigger":"StopStratSaving", "source": "StratBoss", "dest": "Initializing"}]
     + [{"trigger":"WakeUp", "source": "Dormant", "dest": "Initializing"}]
@@ -726,7 +726,10 @@ class HomeAlone(ScadaActor):
                         # Let normal home alone know it is dormant
                         self.trigger_normal_event(HomeAloneEvent.GoDormant)
             case WakeUp():
-                self.wake_up_received(from_node, message.Payload)
+                try:
+                    self.wake_up_received(from_node, message.Payload)
+                except Exception as e:
+                    self.log(f"Trouble with wake_up_received: {e}")
             case HeatingForecast():
                 self.log("Received heating forecast")
                 self.forecasts: HeatingForecast = message.Payload
@@ -734,8 +737,6 @@ class HomeAlone(ScadaActor):
                     self.log(f"Top state: {self.top_state}")
                     self.log(f"State: {self.state}")
                     self.engage_brain()
-            case SingleMachineState():
-                self.single_machine_state_received(from_node, message.Payload)
             case StratBossTrigger():
                 try:
                     self.strat_boss_trigger_received(from_node, message.Payload)
@@ -747,7 +748,6 @@ class HomeAlone(ScadaActor):
         if self.top_state == HomeAloneState.Dormant:
             # TopWakeUp: Dormant -> Normal
             self.TopWakeUp()
-            # Command tree should already be set. No trouble doing it again
             self.set_normal_command_tree() 
             # figure out if StratBoss is active
             if self.strat_boss.name in self.data.latest_machine_state.keys():

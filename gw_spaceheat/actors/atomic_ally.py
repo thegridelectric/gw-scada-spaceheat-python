@@ -111,9 +111,8 @@ class AtomicAlly(ScadaActor):
     ] + [
         {"trigger":"WakeUp", "source": "Dormant", "dest": "Initializing"}
     ] + [
-            {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"}
-            for state in states]
-    ] + [{"trigger":"StopStratSaving", "source": "StratBoss", "dest": "Initializing"}]
+        {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"} for state in states] + [
+        {"trigger":"StopStratSaving", "source": "StratBoss", "dest": "Initializing"}]
     )
 
     def __init__(self, name: str, services: ServicesInterface):
@@ -184,7 +183,6 @@ class AtomicAlly(ScadaActor):
             case HackOilOn():
                 if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
                     self.log("Acting on hack.oil.on message")
-                    previous_state = self.state
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
                 else:
                     self.log(f"Received hack.oil.on. In state {self.state} so ignoring")
@@ -201,8 +199,10 @@ class AtomicAlly(ScadaActor):
                         self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 self.remaining_elec_wh = message.Payload.RemainingWattHours
             case WakeUp():
-                if self.state == AtomicAllyState.Dormant.value:
+                try:
                     self.wake_up_received(from_node, payload=message.Payload)
+                except Exception as e:
+                    self.log(f"trouble with wake_up_receiced: {e}")
             case HeatingForecast():
                 self.log("Received forecast")
                 self.forecasts: HeatingForecast = message.Payload
@@ -348,7 +348,9 @@ class AtomicAlly(ScadaActor):
     
         Sends SuitUp to Atn if ready, logs failure if prerequisites not met.
         """
-        
+        if self.state != AtomicAllyState.Dormant:
+            self.log(f"That's strange. Got WakeUp when state is {self.state}")
+            return
         if not self.forecasts:
             self.log("Cannot Wake up- missing forecasts!")
             self._send_to(
@@ -363,17 +365,20 @@ class AtomicAlly(ScadaActor):
             self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
         self.log("Waking up")
         self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
-
         # If strat boss actor is Active, then StartStratSaving: Dormant -> StratBoss
         if self.strat_boss.name in self.data.latest_machine_state.keys():
+                self.log(f"{self.strat_boss.name} IS in keys. State is {self.data.latest_machine_state[self.strat_boss.name].State} ")
                 strat_boss_state = self.data.latest_machine_state[self.strat_boss.name].State
                 if strat_boss_state == StratBossState.Active.value:
                     self.log("Strat boss active! Setting strat saver tree and going to StratBoss State")
                     self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
                     self.trigger_event(AtomicAllyEvent.StartStratSaving)  # state -> StratBoss
                     self.initialize_actuators()
+                else:
+                    self.log(f"strat_boss_state {strat_boss_state} is NOT StratBossState.Active.value ")
         # Else Dormant -> Initializing
         else: 
+            self.log(f"{self.strat_boss.name} not in latest_machine_state keys: {self.data.latest_machine_state.keys()}")
             self.trigger_event(AtomicAllyEvent.WakeUp) # Dormant -> Initializing
             self.initialize_actuators()
             self.engage_brain()
@@ -598,8 +603,13 @@ class AtomicAlly(ScadaActor):
         Set 0-10 defaults for ZeroTen outputters that are direct reports
         """
         dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
-        self.my_dfrs = [node for node in self.my_actuators() if node.ActorClass == ActorClass.ZeroTenOutputer]
-        for dfr_node in self.my_dfrs:
+        h_normal_010s = {
+            node
+            for node in self.my_actuators()
+            if node.ActorClass == ActorClass.ZeroTenOutputer and
+            self.the_boss_of(node) == self.node
+        }
+        for dfr_node in h_normal_010s:
             dfr_config = next(
                     config
                     for config in dfr_component.gt.ConfigList
