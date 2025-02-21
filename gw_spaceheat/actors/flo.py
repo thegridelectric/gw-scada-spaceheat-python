@@ -47,7 +47,7 @@ class DParams():
         # Modify load forecast to include energy available in the buffer
         available_buffer = config.BufferAvailableKwh
         i = 0
-        while available_buffer > 0:
+        while available_buffer > 0 and i < len(self.load_forecast):
             load_backup = self.load_forecast[i]
             self.load_forecast[i] = self.load_forecast[i] - min(available_buffer, self.load_forecast[i])
             available_buffer = available_buffer - min(available_buffer, load_backup)
@@ -58,7 +58,7 @@ class DParams():
         if available_house < 0:
             self.load_forecast[0] += -available_house
         else:
-            while available_house > 0:
+            while available_house > 0 and i < len(self.load_forecast):
                 load_backup = self.load_forecast[i]
                 self.load_forecast[i] = self.load_forecast[i] - min(available_house, self.load_forecast[i])
                 available_house = available_house - min(available_house, load_backup)

@@ -95,7 +95,9 @@ class FloHinge():
                     combination_name += f"{'C' if branch2_charge else 'D'}-"
                     combination_name += f"{'C' if branch3_charge else 'D'}"
                     self.follow_branch(branch1_charge, branch2_charge, branch3_charge, combination_name)
+        print("Knitting branches...")
         self.knit_branches()
+        print("Done")
 
         for branch in self.feasible_branches:
             print(f"\nCombination: {branch}")
@@ -169,10 +171,11 @@ class FloHinge():
             self.get_hinge_start_state()
             self.follow_branch(b1, b2, b3, combo, final=True)
             self.hinge_steps.append(self.feasible_branches[combo]['knitted_to'])
-            self.plot_hinge(combo=combo)
 
 
     def follow_branch(self, branch1_charge, branch2_charge, branch3_charge, combination_name, final=False):
+        if not final: 
+            print(combination_name)
         node0 = self.turn_on_node
         total_hinge_cost_usd = 0
         # First hour
@@ -219,7 +222,7 @@ class FloHinge():
         
         if n.top_temp - self.dg.params.delta_T(n.top_temp) < n.bottom_temp or n.middle_temp is not None:
             flo_params_temporary: FloParamsHouse0 = self.dg.params.config.model_copy()
-            flo_params_temporary.HorizonHours = 2
+            flo_params_temporary.HorizonHours = 24
             flo_params_temporary.InitialTopTempF = n.top_temp if n.top_temp<=175 else 175
             flo_params_temporary.InitialBottomTempF = n.bottom_temp if n.middle_temp is None else n.middle_temp
             flo_params_temporary.InitialThermocline = n.thermocline1 if n.thermocline2 is None else (self.dg.params.num_layers-n.thermocline2+n.thermocline1)
