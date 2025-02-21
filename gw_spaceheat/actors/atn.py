@@ -16,6 +16,7 @@ import pytz
 import aiohttp
 import rich
 from actors.flo import DGraph
+from actors.hinge import FloHinge
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
@@ -824,17 +825,13 @@ class Atn(ActorInterface, Proactor):
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
         )
-        self.log("Creating graph")
+        self.log("Creating graph and solving Dijkstra...")
         st = time.time()
-        g = DGraph(flo_params)
-        self.log(f"The first time step is {round(g.params.fraction_of_hour_remaining*60)} minutes")
-        self.log(f"Done in {round(time.time()-st,2)} seconds")
-        self.log("Solving Dijkstra")
-        g.solve_dijkstra()
-        self.log("Solved!")
+        f = FloHinge(flo_params)
+        self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
         self.log("Finding PQ pairs")
         st = time.time()
-        pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
+        pq_pairs: List[PriceQuantityUnitless] = f.generate_bid()
         self.log(
             f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
         )
