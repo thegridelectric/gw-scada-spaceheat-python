@@ -1441,7 +1441,7 @@ class Atn(ActorInterface, Proactor):
         )
         self.log("Successfully read price forecast from local CSV")
         self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-        self.log(f"total energy USD/MWh {self.price_forecast.total_energy}")
+        self.log(f"total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
