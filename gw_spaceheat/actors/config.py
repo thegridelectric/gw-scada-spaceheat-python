@@ -48,6 +48,7 @@ class ScadaSettings(ProactorSettings):
     max_ewt_f: int = 170
     load_overestimation_percent: int = 0
     oil_boiler_for_onpeak_backup: bool = True
+    stratboss_dist_010v: int = 100
     hp_model: HpModel = HpModel.SamsungHighTempHydroKitPlusMultiV # TODO: move to layout
     representation_dormant: bool = False
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")

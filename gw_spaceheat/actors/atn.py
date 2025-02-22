@@ -5,6 +5,7 @@ import json
 import threading
 import time
 import uuid
+from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
@@ -46,6 +47,15 @@ from tests.atn import messages
 from tests.atn.atn_config import AtnSettings, DashboardSettings
 from tests.atn.dashboard.dashboard import Dashboard
 
+class PriceForecast(BaseModel):
+    dp_usd_per_mwh: List[float]
+    lmp_usd_per_mwh: List[float]
+    reg_usd_per_mwh: List[float]
+
+    @property
+    def total_energy(self) -> List[float]:
+        """Calculate the total price forecast by summing dp, lmp, and reg components."""
+        return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
 
 class AtnMQTTCodec(MQTTCodec):
     exp_src: str
@@ -156,12 +166,12 @@ class Atn(ActorInterface, Proactor):
         self.hp_is_off = False
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
-        self.price_forecast = None
+        self.price_forecast: Optional[PriceForecast] = None
         self.data_channels: List
         self.temperature_channel_names = None
         self.ha1_params: Optional[Ha1Params] = None
         self.latest_report: Optional[Report] = None
-        self.report_output_dir = self.settings.paths.data_dir / "report"
+        self.report_output_dir = Path(f"{self.settings.paths.data_dir}/report")
         self.report_output_dir.mkdir(parents=True, exist_ok=True)
         if self.settings.dashboard.print_gui:
             self.dashboard = Dashboard(
@@ -235,6 +245,7 @@ class Atn(ActorInterface, Proactor):
             case LatestPrice():
                 path_dbg |= 0x00000100
                 self.latest_price_received(message.Payload)
+                # self._publish_to_scada(message.Payload) # so we can record in database
             case _:
                 path_dbg |= 0x00000040
 
@@ -452,7 +463,7 @@ class Atn(ActorInterface, Proactor):
         )
         self.log(f"Wants control! State is now {self.state}")
 
-    def release_control(self) -> float:
+    def release_control(self) -> None:
         """
         If scada is in Atn mode, will go to Homealone
         """
@@ -606,16 +617,16 @@ class Atn(ActorInterface, Proactor):
             except Exception as e:
                 self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
 
-    def set_load_overestimation_percent(self, load_overestimation_percent: float) -> None:
-        if load_overestimation_percent < 0 or load_overestimation_percent > 100:
-            self.log("Invalid entry, load_overestimation_percent should be a value between 0 and 100")
+    def set_stratboss_dist_010(self, stratboss_dist_010v: int = 100) -> None:
+        if stratboss_dist_010v < 0 or stratboss_dist_010v > 100:
+            self.log("Invalid entry, stratboss_dist_010v should be a value between 0 and 100")
             return
         if self.ha1_params is None:
             self.send_layout()
         else:
             try:
                 new = Ha1Params.model_validate(
-                    {**self.ha1_params.model_dump(), "LoadOverestimationPercent": load_overestimation_percent}
+                    {**self.ha1_params.model_dump(), "StratBossDist010": stratboss_dist_010v}
                 )
                 self.send_new_params(new)
             except Exception as e:
@@ -766,7 +777,7 @@ class Atn(ActorInterface, Proactor):
             # TODO: under some conditions we might want to run a FLO at another time
             return
         await self.get_weather(session)
-        self.get_price_update_forecast_usd_per_mwh()
+        self.update_price_forecast()
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_thermocline_and_centroids()
@@ -778,7 +789,12 @@ class Atn(ActorInterface, Proactor):
 
         buffer_available_kwh = await self.get_buffer_available_kwh()
         house_available_kwh = await self.get_house_available_kwh()
-
+        if self.price_forecast is None:
+            self.log("Not running flo - no price forecast")
+            return
+        if self.weather_forecast is None:
+            self.log("Not running flo - no weather forecast")
+            return
         flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
@@ -786,9 +802,9 @@ class Atn(ActorInterface, Proactor):
             InitialBottomTempF=int(initial_bottomtemp),
             InitialThermocline=initial_thermocline * 2,
             # TODO: price and weather forecasts should include the current hour if we are running a partial hour
-            LmpForecast=self.price_forecast["lmp"],
-            DistPriceForecast=self.price_forecast["dp"],
-            RegPriceForecast=self.price_forecast["reg"],
+            LmpForecast=self.price_forecast.lmp_usd_per_mwh,
+            DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
+            RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
             OatForecastF=self.weather_forecast["oat"],
             WindSpeedForecastMph=self.weather_forecast["ws"],
             AlphaTimes10=self.ha1_params.AlphaTimes10,
@@ -1062,7 +1078,7 @@ class Atn(ActorInterface, Proactor):
                                if 'buffer' in k
                                and v is not None}
         if not buffer_temperatures:
-            self.log(f"Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
+            self.log("Missing temperatures in get_buffer_available_kwh, returning 0 kWh")
             return 0
         try:
             rswt = await self.get_RSWT(minus_deltaT=False)
@@ -1074,16 +1090,34 @@ class Atn(ActorInterface, Proactor):
                     buffer_available_energy += m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt_minus_deltaT) * 5/9
             if round(buffer_available_energy,2) == 0:
                 for bl in buffer_temperatures:
-                    buffer_available_energy += - m_layer_kg * 4.187/3600 * (buffer_temperatures[bl]-rswt) * 5/9
+                    buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
             return round(buffer_available_energy,2)
         except Exception as e:
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
             return 0
         
     async def get_house_available_kwh(self):
-        # Thermal mass of house? In kWh/degF
-        # How much thermal mass is one zone?
-        return 0
+        setpoints = {}
+        temps = {}
+        zone_names = []
+        for zone_setpoint in [x for x in self.latest_channel_values if 'zone' in x and 'set' in x]:
+            zone_name = zone_setpoint.replace('-set','')
+            zone_names.append(zone_name)
+            if self.latest_channel_values[zone_setpoint] is not None:
+                setpoints[zone_name] = self.to_fahrenheit(self.latest_channel_values[zone_setpoint]/1000)
+            if (zone_setpoint.replace('-set','-temp') in self.latest_channel_values
+                and self.latest_channel_values[zone_setpoint.replace('-set','-temp')] is not None):
+                temps[zone_name] = self.to_fahrenheit(self.latest_channel_values[zone_setpoint.replace('-set','-temp')]/1000)
+        self.log(f"Found all zone setpoints: {setpoints}")
+        self.log(f"Found all zone temperatures: {temps}")
+        thermal_mass_kwh_per_degf = 1
+        house_availale_kwh = 0
+        for zone in zone_names:
+            if zone in temps and zone in setpoints:
+                house_availale_kwh += thermal_mass_kwh_per_degf * (temps[zone] - setpoints[zone])
+        house_availale_kwh = round(house_availale_kwh,2)
+        self.log(f"House available kWh: {house_availale_kwh}")
+        return house_availale_kwh
     
     def use_oil_as_fuel_substitute(self) -> False:
         if self.latest_price is None:
@@ -1263,43 +1297,73 @@ class Atn(ActorInterface, Proactor):
             "ws": wf["ws"],
         }
 
-    def get_price_update_forecast_usd_per_mwh(self) -> float:
-        """ returns price this hour and updates self.price_forecast for the start of next hour
-
-        All in $/MWh
+    def get_price(self) -> float:
+        """ returns price this hour (LMP plus Dist) in USD/MWh 
+        
+        Hack: perfect forecast - use price forecast 
         """
-        # Read the 72h electricity prices from local CSV file
-        # TODO: replace with a price service
+        if not self.price_forecast:
+            self.update_price_forecast()
+        if not self.price_forecast:
+            return 0
+        return self.price_forecast.dp_usd_per_mwh[0] + self.price_forecast.lmp_usd_per_mwh[0]
+
+    def update_price_forecast(self) -> None:
+        """ updates self.price_forecast for the start of next hour. All in USD/MWh
+
+        Reads the 72 hour electricity price from price_forecast.csv file in data 
+        directory. Uses the datetime day mod 3 to determine which day it is
+       
+        """
+
         dist_usd_mwh = []
         lmp_usd_mwh = []
-        reg_usd_mwh = [0]*72
+        reg_usd_mwh = []
         try:
-            house_alias = self.layout.scada_g_node_alias.split('.')[-2]
-            file_path = f"/home/ubuntu/{house_alias}-atn/gw-scada-spaceheat-python/price_forecast.csv"
+            file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
             with open(file_path, mode='r', newline='') as file:
                 reader = csv.reader(file)
-                header = next(reader)
+                next(reader)
                 for row in reader:
                     dist_usd_mwh.append(float(row[0]))
                     lmp_usd_mwh.append(float(row[1]))
+                    reg_usd_mwh.append(0.0)
                 if len(dist_usd_mwh)<72 or len(lmp_usd_mwh)<72:
                     raise Exception("Price forecasts must be at least 72 hours long")
         except Exception as e:
             self.log("Error reading price forecast from csv")
             raise Exception(e)
+        
+        if datetime.now(tz=self.timezone) < datetime(2025, 2, 20, 17, tzinfo=self.timezone):
+            # Get the current hour
+            now = datetime.now(tz=self.timezone)
+            current_hour = now.hour
+            day_offset = (now.day % 3) * 24
 
-        dp_forecast_usd_per_mwh = dist_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
-        lmp_forecast_usd_per_mwh = lmp_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
-        reg_forecast_usd_per_mwh = reg_usd_mwh[datetime.now(tz=self.timezone).hour+1:datetime.now(tz=self.timezone).hour+49]
-        self.price_forecast = {
-            "dp": dp_forecast_usd_per_mwh,
-            "lmp": lmp_forecast_usd_per_mwh,
-            "reg": reg_forecast_usd_per_mwh,
-        }
-        self.log("Succesfully read price forecast from local CSV")
-        self.log(self.price_forecast)
-        total_price = [dp+lmp+reg for dp,lmp,reg in zip(dist_usd_mwh, lmp_usd_mwh, reg_usd_mwh)]
-        return total_price[datetime.now(tz=self.timezone).hour]
+            # Calculate the starting hour for the 48-hour forecast
+            start_hour = (day_offset + current_hour + 1) % 72
+
+            # Wrap the lists for the 48-hour forecast
+            dp_forecast_usd_per_mwh = [dist_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+            lmp_forecast_usd_per_mwh = [lmp_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+            reg_forecast_usd_per_mwh = [reg_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+        else:
+            time_since_21_feb = (datetime.now(tz=self.timezone).replace(minute=0, second=0, microsecond=0)
+                                 - datetime(2025, 2, 20, 17, tzinfo=self.timezone))
+            start_hour = int(time_since_21_feb.total_seconds() / 3600)
+            dp_forecast_usd_per_mwh = [dist_usd_mwh[start_hour + i] for i in range(48)]
+            lmp_forecast_usd_per_mwh = [lmp_usd_mwh[start_hour + i] for i in range(48)]
+            reg_forecast_usd_per_mwh = [reg_usd_mwh[start_hour + i] for i in range(48)]
+
+        # Update the price forecasts
+        self.price_forecast = PriceForecast(
+            dp_usd_per_mwh=dp_forecast_usd_per_mwh,
+            lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
+            reg_usd_per_mwh=reg_forecast_usd_per_mwh,
+        )
+        self.log("Successfully read price forecast from local CSV")
+        self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
+        self.log(f"total energy USD/MWh {self.price_forecast.total_energy}")
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
@@ -1337,7 +1401,7 @@ class Atn(ActorInterface, Proactor):
         slot_start_s = int(now) - int(now) % 3600
         mtn = MarketTypeName.rt60gate5.value
         market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-        usd_per_mwh = self.get_price_update_forecast_usd_per_mwh()
+        usd_per_mwh = self.get_price()
         price = LatestPrice(
                 FromGNodeAlias=Atn.P_NODE,
                 PriceTimes1000=int(usd_per_mwh * 1000),

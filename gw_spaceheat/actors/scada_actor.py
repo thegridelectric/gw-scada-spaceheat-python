@@ -770,8 +770,10 @@ class ScadaActor(Actor):
         boss_name= node.Handle.split(".")[-2]
         return self.layout.node(boss_name, None)
 
-    def direct_reports(self) -> list[ShNode]:
-        return [n for n in self.layout.nodes.values() if self.is_boss_of(n)]
+    def direct_reports(self, boss: Optional[ShNode] = None) -> list[ShNode]:
+        if boss is None:
+            boss = self.node
+        return [n for n in self.layout.nodes.values() if self.the_boss_of(n) == boss]
 
     def _send_to(self, dst: ShNode, payload: Any, src: Optional[ShNode] = None) -> None:
         if dst is None:

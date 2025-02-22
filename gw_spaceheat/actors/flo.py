@@ -59,8 +59,9 @@ class DParams():
             self.load_forecast[0] += -available_house
         else:
             while available_house > 0:
+                load_backup = self.load_forecast[i]
                 self.load_forecast[i] = self.load_forecast[i] - min(available_house, self.load_forecast[i])
-                available_house = available_house - min(available_house, self.load_forecast[i])
+                available_house = available_house - min(available_house, load_backup)
                 i += 1
         self.check_hp_sizing()
         # TODO: add to config
@@ -135,7 +136,7 @@ class DParams():
             self.initial_bottom_temp = round(self.initial_top_temp - self.delta_T(self.initial_top_temp))
 
         self.max_thermocline = self.num_layers
-        if self.initial_top_temp > MAX_TOP_TEMP:
+        if self.initial_top_temp > MAX_TOP_TEMP-5:
             self.max_thermocline = self.initial_thermocline
 
         available_temps = []
@@ -168,11 +169,15 @@ class DParams():
                 t = round(t - self.delta_T(t))
                 b = round(b - self.delta_T(b))
 
+        self.available_top_temps = [x[0] for x in available_temps]
+        if self.available_top_temps != sorted(self.available_top_temps):
+            for i in range(1, len(available_temps)):
+                available_temps[i] = (max(available_temps[i][0], available_temps[i-1][0]), available_temps[i][1])
+
         available_temps_no_duplicates = []
         skip_next_i = False
         for i in range(len(available_temps)):
             if i<len(available_temps)-1 and available_temps[i][0] == available_temps[i+1][0]:
-                print(f"Combining {available_temps[i]} with {available_temps[i+1]}")
                 available_temps_no_duplicates.append((available_temps[i][0], available_temps[i][1]+available_temps[i+1][1]))
                 skip_next_i = True
             elif not skip_next_i:
@@ -180,12 +185,18 @@ class DParams():
             else:
                 skip_next_i = False
         available_temps = available_temps_no_duplicates.copy()
-            
+
+        if max([x[0] for x in available_temps]) < MAX_TOP_TEMP-5:
+            available_temps.append((MAX_TOP_TEMP-5, self.num_layers))
+
+        if self.max_thermocline == self.num_layers and available_temps[-1][1] < self.num_layers:
+            available_temps[-1] = (available_temps[-1][0], self.num_layers)
+
         self.available_top_temps = [x[0] for x in available_temps]
         if self.available_top_temps != sorted(self.available_top_temps):
             print("ERROR sorted is not the same")
 
-        heights = [x[1] for x in available_temps]
+        # heights = [x[1] for x in available_temps]
         # fig, ax = plt.subplots(figsize=(8, 6))
         # cmap = matplotlib.colormaps['Reds']
         # norm = plt.Normalize(min(self.available_top_temps)-20, max(self.available_top_temps)+20)
@@ -344,8 +355,10 @@ class DGraph():
                     
                     # Adjust the max elec the HP can use in the first time step
                     # (Duration of time step + turn-on effects)
-                    max_hp_elec_in = self.params.max_hp_elec_in * (self.params.fraction_of_hour_remaining if h==0 else 1)
-                    max_hp_elec_in = (((1-self.params.hp_turn_on_minutes/60) if self.params.hp_is_off else 1) * max_hp_elec_in)
+                    max_hp_elec_in = self.params.max_hp_elec_in
+                    if h==0:
+                        max_hp_elec_in = max_hp_elec_in * self.params.fraction_of_hour_remaining
+                        max_hp_elec_in = (((1-self.params.hp_turn_on_minutes/60) if self.params.hp_is_off else 1) * max_hp_elec_in)
                     
                     # This condition reduces the amount of times we need to compute the COP
                     if (hp_heat_out/self.params.max_cop <= max_hp_elec_in and
@@ -372,6 +385,14 @@ class DGraph():
                                         continue
                             
                             self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
+                    
+                if not self.edges[node_now]:
+                    print(f"No edge from node {node_now}, adding edge with penalty")
+                    cop = self.params.COP(oat=self.params.oat_forecast[h], lwt=node_next.top_temp)
+                    hp_heat_out = max_hp_elec_in * cop
+                    node_next = [n for n in self.nodes[h+1] if n.top_temp==node_now.top_temp and n.thermocline1==node_now.thermocline1][0]
+                    self.edges[node_now].append(DEdge(node_now, node_next, 1e5, hp_heat_out))
+                    print(DEdge(node_now, node_next, 1e5, hp_heat_out))
 
     def add_rswt_minus_edge(self, node: DNode, time_slice, Q_losses):
         # In these calculations the load is both the heating requirement and the losses

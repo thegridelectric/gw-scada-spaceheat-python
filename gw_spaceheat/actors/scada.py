@@ -13,7 +13,6 @@ import dotenv
 from transitions import Machine
 from gwproto.message import Header
 from gwproactor.external_watchdog import SystemDWatchdogCommandBuilder
-from gwproactor.links import LinkManagerTransition
 from gwproactor.links.link_settings import LinkSettings
 from gwproto import create_message_model
 
@@ -50,11 +49,12 @@ from gwproactor.proactor_implementation import Proactor
 
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
-from enums import MainAutoState, RepresentationStatus, TopState
+from enums import MainAutoState,  TopState
+from enums import MainAutoState, TopState
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, Glitch, GameOn, GoDormant,
-    LayoutLite, NewCommandTree, RemainingElec, RemainingElecEvent, ScadaParams, SendLayout,
+    LayoutLite, NewCommandTree, ScadaParams, SendLayout,
     SingleMachineState, SlowContractHeartbeat, SlowDispatchContract,
     SuitUp, WakeUp, HackOilOn, HackOilOff, SetRepresentationStatus
 )
@@ -391,11 +391,6 @@ class Scada(ScadaInterface, Proactor):
                     self.power_watts_received(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with power_watts_received: \n {e}")
-            case RemainingElec():
-                try:
-                    self.remaining_elec_received(from_node, payload)
-                except Exception as e:
-                    self.log(f"Trouble with remaining_elec_received: \n {e}")
             case ScadaParams():
                 try:
                     self.scada_params_received(from_node, payload)
@@ -521,6 +516,14 @@ class Scada(ScadaInterface, Proactor):
         hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
         self._send_to(self.atn, hb)
 
+        # AutoState transition: AllyGivesUp: Atn -> HomeAlone
+        self.log(f"Atomic Ally giving up: {payload.Reason}")
+        self.set_home_alone_command_tree()
+        # wake up home alone and send atomic ally to sleep
+        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+        self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+        # Inform AtomicTNode
+        # TODO: send message like DispatchContractDeclined to Atn
 
     def analog_dispatch_received(
         self, from_node: ShNode, payload: AnalogDispatch
@@ -579,7 +582,7 @@ class Scada(ScadaInterface, Proactor):
         self.set_home_alone_command_tree()
         self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
         self._send_to(
-            self.atomic_ally, GoDormant(FromName=self.name, ToName=H0N.atomic_ally)
+            self.atomic_ally, GoDormant(ToName=H0N.atomic_ally)
         )
 
     def dispatch_contract_go_live_received(
@@ -691,6 +694,8 @@ class Scada(ScadaInterface, Proactor):
                 self.update_env_variable(
                     "SCADA_LOAD_OVERESTIMATION_PERCENT", new.LoadOverestimationPercent
                 )
+            if new.StratBossDist010 != old.StratBossDist010:
+                self.update_env_variable("SCADA_STRATBOSS_DIST_010V", new.StratBossDist010)
 
             response = ScadaParams(
                 FromGNodeAlias=self.hardware_layout.scada_g_node_alias,
@@ -751,7 +756,7 @@ class Scada(ScadaInterface, Proactor):
     def suit_up_received(self, from_node: ShNode, payload: SuitUp) -> None:
         if from_node.Name != H0N.atomic_ally:
             self.log(
-                f"Ignoring AllyGivesUp from {from_node.Name} - expect AtomicAlly (aa)"
+                f"Ignoring AllySuitsUp from {from_node.Name} - expect AtomicAlly (aa)"
             )
             return
         # TODO: think through state machine
@@ -879,7 +884,7 @@ class Scada(ScadaInterface, Proactor):
             self.layout.pico_cycler,
         ]:
             self._send_to(
-                direct_report, GoDormant(FromName=self.name, ToName=direct_report.Name)
+                direct_report, GoDormant(ToName=direct_report.Name)
             )
 
     def contract_grace_period_ends(self) -> None:
@@ -892,7 +897,7 @@ class Scada(ScadaInterface, Proactor):
         # Inform AtomicTNode
         # TODO: send message like DispatchContractDeclined to Atn
 
-    def slow_contract_heartbeat_received(self, hb: SlowContractHeartbeat) -> None:
+    def slow_contract_heartbeat_received(self, from_node: ShNode, hb: SlowContractHeartbeat) -> None:
         return_hb = self.contract_handler.process_contract_hb(hb)
         if return_hb is not None:
             if return_hb.Status not in ContractHandler.DONE_STATES:
@@ -919,7 +924,7 @@ class Scada(ScadaInterface, Proactor):
         self.set_atn_command_tree()
         # Let homealone know its dormant:
         self._send_to(
-            self.layout.home_alone, GoDormant(FromName=self.name, ToName=H0N.home_alone)
+            self.layout.home_alone, GoDormant(ToName=H0N.home_alone)
         )
         # Let the atomic ally know its live
         self._send_to(self.layout.atomic_ally, WakeUp(ToName=H0N.atomic_ally))
@@ -961,7 +966,7 @@ class Scada(ScadaInterface, Proactor):
                 node.Handle = f"{H0N.auto}.{H0N.home_alone}.{hp_relay_boss.Name}.{node.Name}"
             else:
                 node.Handle = (
-                    f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
+                    f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
                 )
         self._send_to(
             self.atn,
