@@ -344,9 +344,12 @@ class AtomicAlly(ScadaActor):
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
     def wake_up_received(self, from_node: ShNode, payload: WakeUp) -> None:
-        """Checks prerequisites and initializes AtomicAlly for dispatch contract participation.
-    
-        Sends SuitUp to Atn if ready, logs failure if prerequisites not met.
+        """Does one of 3 things:
+          - If no forecasts: reports back that it isn't changing from Dormant and exits
+          - Otherwise sends SuitUp back to Scada (so Scada knows it is taking control) and:
+            - Typical: WakeUpDormant -> Initializing (wake_up)
+            - If StratBoss actor is Active: StartStratSaving: Dormant -> Active
+
         """
         if self.state != AtomicAllyState.Dormant:
             self.log(f"That's strange. Got WakeUp when state is {self.state}")
@@ -374,14 +377,18 @@ class AtomicAlly(ScadaActor):
                     self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
                     self.trigger_event(AtomicAllyEvent.StartStratSaving)  # state -> StratBoss
                     self.initialize_actuators()
-                else:
-                    self.log(f"strat_boss_state {strat_boss_state} is NOT StratBossState.Active.value ")
+                else: # WakeUp: Dormant -> Initializing
+                    self.log(f"strat_boss_state {strat_boss_state} is NOT {StratBossState.Active.value} ")
+                    self.wake_up()
         # Else Dormant -> Initializing
         else: 
             self.log(f"{self.strat_boss.name} not in latest_machine_state keys: {self.data.latest_machine_state.keys()}")
-            self.trigger_event(AtomicAllyEvent.WakeUp) # Dormant -> Initializing
-            self.initialize_actuators()
-            self.engage_brain()
+            self.wake_up()
+
+    def wake_up(self) -> None:
+        self.trigger_event(AtomicAllyEvent.WakeUp) # Dormant -> Initializing
+        self.initialize_actuators()
+        self.engage_brain()
 
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
