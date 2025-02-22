@@ -20,7 +20,6 @@ from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport,
 from result import Ok, Result
 from transitions import Machine
 
-from actors import ContractHandler
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
 from enums import LogLevel, StratBossState
@@ -155,7 +154,7 @@ class AtomicAlly(ScadaActor):
 
     @property
     def remaining_watthours(self) -> int:
-        return self.services.contract_handler.remainint_watthours
+        return self.services.contract_handler.remaining_watthours
     
     @property
     def params(self) -> Ha1Params:
@@ -180,37 +179,81 @@ class AtomicAlly(ScadaActor):
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
-            case HackOilOn():
-                
-
-            case SlowDispatchContract():
-                self.slow_dispatch_contract_received(from_node, message.Payload)
-
-            case WakeUp():
-                try:
-                    self.wake_up_received(from_node, payload=message.Payload)
-                except Exception as e:
-                    self.log(f"trouble with wake_up_receiced: {e}")
             case HeatingForecast():
                 self.log("Received forecast")
                 self.forecasts = message.Payload
+            case SlowDispatchContract():
+                try:
+                    self.slow_dispatch_contract_received(from_node, message.Payload)
+                except Exception as e:
+                    self.log(f"Trouble with slow_dispatch_contract_received: {e}")
             case StratBossTrigger():
                 try:
                     self.strat_boss_trigger_received(from_node, message.Payload)
                 except Exception as e:
                     self.log(f"Problem with strat_boss_trigger_received: {e}")
+            case WakeUp():
+                try:
+                    self.wake_up_received(from_node, payload=message.Payload)
+                except Exception as e:
+                    self.log(f"trouble with wake_up_receiced: {e}")
 
         return Ok(True)
     
     def slow_dispatch_contract_received(self, from_node, contract: SlowDispatchContract) -> None:
+        """Does one of 3 things:
+          - If no forecasts: reports back that it isn't changing from Dormant and exits
+          - Otherwise sends SuitUp back to Scada (so Scada knows it is taking control) and:
+            - Typical: WakeUpDormant -> Initializing (wake_up)
+            - If StratBoss actor is Active: StartStratSaving: Dormant -> Active
+
+        """
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
+        
+        self.set_normal_command_tree() 
         if contract.OilBoilerOn:
             if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
-                    self.log("Acting on hack.oil.on message")
+                    self.log("SlowDispatchContract: OilBoilerOn")
                     self.trigger_event(AtomicAllyEvent.StartHackOil)
             else:
                 self.log(f"Received contract w OilBoilerOn. In state {self.state} so ignoring")
+        else:
+            if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
+                self.trigger_event(AtomicAllyEvent.StopHackOil) # will go to initializing
+
+                if not self.forecasts:
+            self.log("Cannot Wake up- missing forecasts!")
+            self._send_to(
+                self.primary_scada,
+                AllyGivesUp(Reason="Missing forecasts required for operation"))
+            return
+        
+        self.get_latest_temperatures()
+        if not self.temperatures_available:
+            self.no_temps_since = int(time.time())
+            self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
+        self.log("Waking up")
+        self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
+        # If strat boss actor is Active, then StartStratSaving: Dormant -> StratBoss
+        if self.strat_boss.name in self.data.latest_machine_state.keys():
+                self.log(f"{self.strat_boss.name} IS in keys. State is {self.data.latest_machine_state[self.strat_boss.name].State} ")
+                strat_boss_state = self.data.latest_machine_state[self.strat_boss.name].State
+                if strat_boss_state == StratBossState.Active.value:
+                    self.log("Strat boss active! Setting strat saver tree and going to StratBoss State")
+                    self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
+                    self.trigger_event(AtomicAllyEvent.StartStratSaving)  # state -> StratBoss
+                    self.initialize_actuators()
+                else: # WakeUp: Dormant -> Initializing
+                    self.log(f"strat_boss_state {strat_boss_state} is NOT {StratBossState.Active.value} ")
+                    self.wake_up()
+        # Else Dormant -> Initializing
+        else: 
+            self.log(f"{self.strat_boss.name} not in latest_machine_state keys: {self.data.latest_machine_state.keys()}")
+            self.wake_up()
+
+        if self.state == AtomicAllyState.Dormant:
+            self.WakeUp # Dormant -> Initializing
         # case EnergyInstruction():
         #     self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
         #     self.remaining_elec_wh = message.Payload.AvgPowerWatts
@@ -359,46 +402,11 @@ class AtomicAlly(ScadaActor):
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
     def wake_up_received(self, from_node: ShNode, payload: WakeUp) -> None:
-        """Does one of 3 things:
-          - If no forecasts: reports back that it isn't changing from Dormant and exits
-          - Otherwise sends SuitUp back to Scada (so Scada knows it is taking control) and:
-            - Typical: WakeUpDormant -> Initializing (wake_up)
-            - If StratBoss actor is Active: StartStratSaving: Dormant -> Active
 
-        """
         if self.state != AtomicAllyState.Dormant:
             self.log(f"That's strange. Got WakeUp when state is {self.state}")
             return
-        if not self.forecasts:
-            self.log("Cannot Wake up- missing forecasts!")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason="Missing forecasts required for operation"))
-            return
-        
-        self.set_normal_command_tree() 
-        self.get_latest_temperatures()
-        if not self.temperatures_available:
-            self.no_temps_since = int(time.time())
-            self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
-        self.log("Waking up")
-        self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
-        # If strat boss actor is Active, then StartStratSaving: Dormant -> StratBoss
-        if self.strat_boss.name in self.data.latest_machine_state.keys():
-                self.log(f"{self.strat_boss.name} IS in keys. State is {self.data.latest_machine_state[self.strat_boss.name].State} ")
-                strat_boss_state = self.data.latest_machine_state[self.strat_boss.name].State
-                if strat_boss_state == StratBossState.Active.value:
-                    self.log("Strat boss active! Setting strat saver tree and going to StratBoss State")
-                    self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
-                    self.trigger_event(AtomicAllyEvent.StartStratSaving)  # state -> StratBoss
-                    self.initialize_actuators()
-                else: # WakeUp: Dormant -> Initializing
-                    self.log(f"strat_boss_state {strat_boss_state} is NOT {StratBossState.Active.value} ")
-                    self.wake_up()
-        # Else Dormant -> Initializing
-        else: 
-            self.log(f"{self.strat_boss.name} not in latest_machine_state keys: {self.data.latest_machine_state.keys()}")
-            self.wake_up()
+
 
     def wake_up(self) -> None:
         self.trigger_event(AtomicAllyEvent.WakeUp) # Dormant -> Initializing

@@ -49,8 +49,7 @@ from gwproactor.proactor_implementation import Proactor
 
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
-from enums import MainAutoState,  TopState
-from enums import MainAutoState, TopState
+from enums import MainAutoState,  TopState, ContractStatus
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, Glitch, GameOn, GoDormant,
@@ -889,7 +888,7 @@ class Scada(ScadaInterface, Proactor):
 
     def contract_grace_period_ends(self) -> None:
         if self.auto_state != MainAutoState.Atn:
-            raise Exception(f"Only expect contract grace period ending ")
+            raise Exception("Only expect contract grace period ending ")
         self.ContractGracePeriodEnds()
         self.set_home_alone_command_tree()
         # wake up home alone again. Ally will already be dormant
@@ -899,10 +898,18 @@ class Scada(ScadaInterface, Proactor):
 
     def slow_contract_heartbeat_received(self, from_node: ShNode, hb: SlowContractHeartbeat) -> None:
         return_hb = self.contract_handler.process_contract_hb(hb)
-        if return_hb is not None:
-            if return_hb.Status not in ContractHandler.DONE_STATES:
-                if self.auto_state == MainAutoState.HomeAlone:
-                    self.dispatch_contract_live()
+        if return_hb is None:
+            self.log("Ignoring slow contract heartbeat")
+            return
+        
+        if return_hb.Status in ContractHandler.DONE_STATES:
+            self._send_to(self.atn, return_hb)
+        
+        if hb.Status == ContractStatus.Created:
+            self._send_to(self.atomic_ally, hb.Contract)
+
+        if self.auto_state == MainAutoState.HomeAlone:
+            self.dispatch_contract_live()
 
     def dispatch_contract_live(self) -> None:
         """ DispatchContractLive: HomeAlone -> Atn

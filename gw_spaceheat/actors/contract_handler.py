@@ -172,11 +172,9 @@ class ContractHandler:
         return_hb = self.load_heartbeat()  # None unless returning expired HB to atn
         if self.settings.representation_dormant:
             self.status = RepresentationStatus.Dormant
+            return_hb = None
         else:
-            if self.in_grace_period():  #
-                self.status = RepresentationStatus.Active
-            else:
-                self.status = RepresentationStatus.Ready
+            self.status = RepresentationStatus.Active
         self.logger.info("Starting in %s state", self.status.value)
         return return_hb
 
@@ -193,14 +191,6 @@ class ContractHandler:
         else:
             return True
 
-    def update_status(self) -> None:
-        """If status is Active, checks if this needs to be updated"""
-        if self.status != RepresentationStatus.Active:
-            return
-        if self.in_grace_period():
-            return
-        self.status = RepresentationStatus.Ready
-
     def process_set_status(self, cmd: SetRepresentationStatus) -> Optional[Glitch]:
         """Handle SetRepresentationStatus command from ATN"""
         prior_status = self.status
@@ -215,27 +205,8 @@ class ContractHandler:
                     Details=f"Latest Contract hb: {self.latest_scada_hb.model_dump_json()}",
                 )
             self.status = RepresentationStatus.Dormant
-        elif cmd.Status == RepresentationStatus.Ready:
-            if self.status == RepresentationStatus.Dormant:
-                self.status = RepresentationStatus.Ready
-            elif self.status == RepresentationStatus.Active:
-                if self.latest_scada_hb is None:
-                    details = (
-                        "Representation Status allegedly active but no latest_atn_hb!!"
-                    )
-                else:
-                    details = (
-                        f"Latest Contract hb: {self.latest_scada_hb.model_dump_json()}"
-                    )
-                return Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    Node=self.node.name,
-                    Type=LogLevel.Info,
-                    Summary="Cannot transition to Ready - active contract exists",
-                    Details=details,
-                )
-            else:
-                self.status = RepresentationStatus.Ready
+        elif cmd.Status == RepresentationStatus.Active:
+            self.status = RepresentationStatus.Active
 
         if self.status != prior_status:
             msg = f"Status changed: {prior_status} -> {self.status}"
@@ -291,7 +262,7 @@ class ContractHandler:
             self.prev = self.latest_scada_hb
             self.flush_latest_scada_hb()
 
-        else:  # representation status either Ready or Active
+        else:  # representation status Active
             if atn_hb.Status == ContractStatus.Created:
                 if self.latest_scada_hb:
                     self.logger.info(
@@ -331,19 +302,19 @@ class ContractHandler:
     def start_new_contract_hb(
         self, atn_hb: SlowContractHeartbeat
     ) -> SlowContractHeartbeat:
-        """Manage scenario where self.RepresentationStatus is Ready and we receive
+        """Manage scenario where self.RepresentationStatus is Active and we receive
         the first HB for a newly created Contract
           -  cases:
             - Prev contract exists, terminated and/or completed, inside the grace period
             - Existing contract is not completed or terminated, still
             in the existing timeframe: Ignore this one
-            - Previous contract exists, outside of grace period (Ready)
-            - No previous contract (Ready)
+            - Previous contract exists, outside of grace period 
+            - No previous contract
             - right now does not handle a contract for a future time slot
         """
-        if self.status not in [RepresentationStatus.Ready, RepresentationStatus.Active]:
+        if self.status != RepresentationStatus.Active:
             raise Exception(
-                "Can only start new contract from ready or active representation status"
+                "Can only start new contract with active representation status"
             )
         if atn_hb.Status != ContractStatus.Created:
             raise Exception(

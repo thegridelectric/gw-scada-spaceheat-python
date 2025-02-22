@@ -1,7 +1,6 @@
 import json
 import random
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -14,7 +13,7 @@ from gwproto.data_classes.sh_node import ShNode
 from named_types import Glitch, SetRepresentationStatus, SlowContractHeartbeat
 
 from actors.config import ScadaSettings
-
+from actors.scada_data import ScadaData
 
 class AtnContractHandler:
     """Handles ATN's representation contract and dispatch contracts w SCADA"""
@@ -36,6 +35,7 @@ class AtnContractHandler:
         layout: House0Layout,
         node: ShNode,  # intended to be H0N.primary_scada
         logger: LoggerOrAdapter,
+        data: ScadaData,
     ):
         self.settings = settings
         self.layout = layout
@@ -45,6 +45,7 @@ class AtnContractHandler:
         self.contract_file = Path(
             f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"
         )
+        self.data = data
         self.status: RepresentationStatus = (
             RepresentationStatus.Dormant
         )  # Start dormant until initialized
@@ -97,7 +98,7 @@ class AtnContractHandler:
                     )
                     return self.prev
                 else:
-                    self.latest_scada_hb = hb
+                    self.latest_atn_hb = hb
                     self.logger.info("Loaded ContractHb into hb")
                     return None
             else:
@@ -158,13 +159,6 @@ class AtnContractHandler:
         else:
             return True
 
-    def update_status(self) -> None:
-        """If status is Active, checks if this needs to be updated"""
-        if self.status != RepresentationStatus.Active:
-            return
-        if self.in_grace_period():
-            return
-        self.status = RepresentationStatus.Ready
 
     def process_set_status(self, cmd: SetRepresentationStatus) -> Optional[Glitch]:
         """Handle SetRepresentationStatus command from ATN"""
@@ -180,27 +174,8 @@ class AtnContractHandler:
                     Details=f"Latest Contract hb: {self.latest_scada_hb.model_dump_json()}",
                 )
             self.status = RepresentationStatus.Dormant
-        elif cmd.Status == RepresentationStatus.Ready:
-            if self.status == RepresentationStatus.Dormant:
-                self.status = RepresentationStatus.Ready
-            elif self.status == RepresentationStatus.Active:
-                if self.latest_scada_hb is None:
-                    details = (
-                        "Representation Status allegedly active but no latest_atn_hb!!"
-                    )
-                else:
-                    details = (
-                        f"Latest Contract hb: {self.latest_scada_hb.model_dump_json()}"
-                    )
-                return Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    Node=self.node.name,
-                    Type=LogLevel.Info,
-                    Summary="Cannot transition to Ready - active contract exists",
-                    Details=details,
-                )
-            else:
-                self.status = RepresentationStatus.Ready
+        elif cmd.Status == RepresentationStatus.Active:
+            self.status = RepresentationStatus.Active
 
         if self.status != prior_status:
             msg = f"Status changed: {prior_status} -> {self.status}"
