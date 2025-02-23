@@ -22,7 +22,7 @@ from named_types import (
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, StratBossTrigger, 
             WakeUp )
-from enums import HomeAloneTopState, LogLevel, StratBossState, StratBossEvent
+from enums import HomeAloneTopState, LogLevel, StratBossState
 
  
 class HomeAloneState(GwStrEnum):
@@ -113,7 +113,7 @@ class HomeAlone(ScadaActor):
             for state in states if state != "Dormant"
     ] + [
             {"trigger": "StartStratSaving", "source": state, "dest": "StratBoss"}
-            for state in states if state not in ["Dormant", "StratBoss"]
+            for state in states
     ]  
     + [{"trigger":"StopStratSaving", "source": "StratBoss", "dest": "Initializing"}]
     + [{"trigger":"WakeUp", "source": "Dormant", "dest": "Initializing"}]
@@ -186,7 +186,7 @@ class HomeAlone(ScadaActor):
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
         self.set_normal_command_tree()
-        self.cancel_strat_boss()
+
 
     @property
     def normal_node(self) -> ShNode:
@@ -559,13 +559,14 @@ class HomeAlone(ScadaActor):
         if self.top_state != HomeAloneTopState.Normal:
             raise Exception("Can not go into initialize relays if top state is not Normal")
         
-        my_relays =  {
+        h_normal_relays =  {
             relay
             for relay in self.my_actuators()
-            if relay.ActorClass == ActorClass.Relay and self.the_boss_of(relay) == self.normal_node
+            if relay.ActorClass == ActorClass.Relay and
+            self.the_boss_of(relay) == self.normal_node
         }
 
-        target_relays: List[ShNode] = list(my_relays - {
+        target_relays: List[ShNode] = list(h_normal_relays - {
                 self.store_charge_discharge_relay, # keep as it was
                 self.hp_failsafe_relay,
                 self.hp_scada_ops_relay, # keep as it was unless on peak
@@ -583,11 +584,12 @@ class HomeAlone(ScadaActor):
         if self.is_onpeak():
             self.log("Is on peak: turning off HP")
             self.turn_off_HP(from_node=self.normal_node)
-        self.relays_initialized = True
+
         try:
             self.set_010_defaults()
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")
+        self.relays_initialized = True
             
     
     def trigger_just_offpeak(self):
@@ -661,9 +663,22 @@ class HomeAlone(ScadaActor):
             self.turn_on_HP(from_node=self.onpeak_backup_node)
 
     def set_010_defaults(self) -> None:
+        """
+        Sets default 0-10V values for those actuators that are direct reports
+        of the h.n (home alone normal node).
+
+        If the normal state is StratSaver, then dist-010V node is a direct report of
+        StratBoss and will not be reset
+        """
         dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
-        self.my_dfrs = [node for node in self.layout.nodes.values() if node.ActorClass == ActorClass.ZeroTenOutputer]
-        for dfr_node in self.my_dfrs:
+        h_normal_010s = {
+            node
+            for node in self.my_actuators()
+            if node.ActorClass == ActorClass.ZeroTenOutputer and
+            self.the_boss_of(node) == self.normal_node
+        }
+
+        for dfr_node in h_normal_010s:
             dfr_config = next(
                     config
                     for config in dfr_component.gt.ConfigList
@@ -711,16 +726,10 @@ class HomeAlone(ScadaActor):
                         # Let normal home alone know it is dormant
                         self.trigger_normal_event(HomeAloneEvent.GoDormant)
             case WakeUp():
-                if self.top_state == HomeAloneState.Dormant:
-                    # TopWakeUp: Dormant -> Normal
-                    self.TopWakeUp()
-                    # Command tree should already be set. No trouble doing it again
-                    self.set_normal_command_tree() 
-                    # engage brain will WakeUp: Dormant -> Initializing
-                    # run the appropriate relay initialization and then
-                    # evaluate if it can move into a known state
-                    self.cancel_strat_boss()
-                    self.engage_brain(waking_up = True)
+                try:
+                    self.wake_up_received(from_node, message.Payload)
+                except Exception as e:
+                    self.log(f"Trouble with wake_up_received: {e}")
             case HeatingForecast():
                 self.log("Received heating forecast")
                 self.forecasts: HeatingForecast = message.Payload
@@ -734,6 +743,26 @@ class HomeAlone(ScadaActor):
                 except Exception as e:
                     self.log(f"Problem strat_bss_trigger_received: {e}")
         return Ok(True)
+
+    def wake_up_received(self, from_node: ShNode, payload: WakeUp) -> None:
+        if self.top_state == HomeAloneState.Dormant:
+            # TopWakeUp: Dormant -> Normal
+            self.TopWakeUp()
+            self.set_normal_command_tree() 
+            # figure out if StratBoss is active
+            if self.strat_boss.name in self.data.latest_machine_state.keys():
+                strat_boss_state = self.data.latest_machine_state[self.strat_boss.name].State
+                if strat_boss_state == StratBossState.Active.value:
+                    self.log("Strat boss active! Setting strat saver tree and going to StratBoss State")
+                    self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
+                    self.trigger_normal_event(HomeAloneEvent.StartStratSaving) # state -> StratBoss
+                    self.initialize_actuators() # if in StratBoss will not touch StratBoss' actuators
+                    return
+            
+        self.engage_brain(waking_up=True) 
+        # engage brain will WakeUp: Dormant -> Initializing
+        # run the appropriate relay initialization and then
+        # evaluate if it can move into a known state
 
     def strat_boss_trigger_received(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
         self.log("Strat boss trigger received!")
@@ -757,15 +786,6 @@ class HomeAlone(ScadaActor):
             self.engage_brain(waking_up=True)
             # confirm change of command tree by returning payload to strat boss
             self._send_to(dst=self.strat_boss, payload=payload, src=self.normal_node)
-
-    def cancel_strat_boss(self):
-        self._send_to(self.layout.node(H0N.strat_boss),
-                      StratBossTrigger(
-                          FromState=StratBossState.Active,
-                          ToState=StratBossState.Dormant,
-                          Trigger=StratBossEvent.BossCancels,
-                      ),
-                      self.layout.node(H0N.home_alone))
 
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:
@@ -982,10 +1002,10 @@ class HomeAlone(ScadaActor):
     def alert(self, summary: str, details: str) -> None:
         msg =Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node,
+            Node=self.node.Name,
             Type=LogLevel.Critical,
             Summary=summary,
             Details=details
         )
-        self._send_to(H0N.atn, msg)
+        self._send_to(self.atn, msg)
         self.log(f"CRITICAL GLITCH: {summary}")

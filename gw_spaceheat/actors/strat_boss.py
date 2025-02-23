@@ -4,16 +4,17 @@ import uuid
 from collections import deque
 from typing import  Sequence
 from data_classes.house_0_names import H0CN, H0N
-from gwproactor.message import Message, PatInternalWatchdogMessage
+from gwproto.message import Message
+from gwproactor.message import PatInternalWatchdogMessage
 from gwproactor import MonitoredName, ServicesInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName
 from gwproto.named_types import AnalogDispatch, FsmFullReport
-from result import Result
+from result import Ok, Result
 
 from actors.scada_actor import ScadaActor
 from enums import TurnHpOnOff, HpModel, StratBossEvent, StratBossState
-from named_types import FsmEvent, StratBossReady, StratBossTrigger
+from named_types import (FsmEvent, SingleMachineState, StratBossReady, StratBossTrigger)
 from transitions import Machine
 
 
@@ -93,7 +94,6 @@ class StratBoss(ScadaActor):
         self.idu_w_readings = deque(maxlen=15)
         self.odu_w_readings = deque(maxlen=15)
         self.hp_power_w: float = 0
-        self.scada_just_started = True
         self.ewt_f: float = 0
         self.lwt_f: float = 0
 
@@ -138,12 +138,12 @@ class StratBoss(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         if self.sidelined():
             self.log(f"Sidelined so ignoring messages! Handle: {self.node.handle}")
-            return
+            return Ok(False)
         payload = message.Payload
         
         from_node = self.layout.node(message.Header.Src, None)
         if from_node is None:
-            return
+            return Ok(False)
         match payload:
             case FsmEvent():
                 try:
@@ -156,7 +156,20 @@ class StratBoss(ScadaActor):
                 self.strat_boss_trigger_received(from_node, payload)
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}"
-            )
+                )
+                return Ok(False)
+        return Ok(True)
+
+    def is_heatpump_starting_up_or_defrosting(self) -> bool:
+        """ Helps in edge case where Scada goes from homealone
+        to atomic ally just after starting up the heat pump. Without
+        this, the atomic ally will send a TurnOn but it will be 
+        ignored by StratBoss and we will destratify.
+        """
+        if self.hp_power_w < self.HP_POWER_THRESHOLD_W:
+            return True
+        else:
+            return False
 
     def fsm_event_received(self, from_node: ShNode, payload: FsmEvent) -> None:
         if from_node != self.hp_relay_boss:
@@ -167,15 +180,15 @@ class StratBoss(ScadaActor):
             let_boss_know = False
             if payload.EventName == TurnHpOnOff.TurnOn \
                 and self.state == StratBossState.Dormant:
-                if self.hp_relay_closed() and not self.scada_just_started:
-                    self.log("NOT TRIGGERING HpOn because HpRelay already closed and scada didn't just start")
-                else:
-                    let_boss_know = True
-                    trigger = StratBossTrigger(
-                        FromState=StratBossState.Dormant,
-                        ToState=StratBossState.Active,
-                        Trigger=StratBossEvent.HpTurnOnReceived
-                    )
+                    if not self.is_heatpump_starting_up_or_defrosting():
+                        self.log("NOT STARTING STRATBOSS: don't think the heat pump is actually starting up")
+                    else:
+                        let_boss_know = True
+                        trigger = StratBossTrigger(
+                            FromState=StratBossState.Dormant,
+                            ToState=StratBossState.Active,
+                            Trigger=StratBossEvent.HpTurnOnReceived
+                        )
             elif payload.EventName == TurnHpOnOff.TurnOff \
                 and self.state == StratBossState.Active:
                 let_boss_know = True
@@ -188,9 +201,7 @@ class StratBoss(ScadaActor):
                 self.log(f"Sending {trigger.Trigger} to {self.boss.Handle}")
                 self._send_to(self.boss, trigger)
             else:
-                self.log(f"Got {payload.EventName} but its not triggering a state change from {self.state}")
-        self.scada_just_started = False
-    
+                self.log(f"Got {payload.EventName} but its not triggering a state change from {self.state}")    
 
     def strat_boss_trigger_received(self, from_node: ShNode, payload: StratBossTrigger):
         """
@@ -227,6 +238,15 @@ class StratBoss(ScadaActor):
         else:
             self.log(f"DON'T KNOW TRIGGER {trigger.Trigger}") # TODO: add Glitch
         self.log(f"{trigger.Trigger}: {before} -> {self.state}")
+        if before != self.state:
+            self._send_to(self.primary_scada,
+                          SingleMachineState(
+                              MachineHandle=self.node.handle,
+                              StateEnum=StratBossState.enum_name(),
+                              State=self.state,
+                              Cause=trigger.Trigger.value,
+                              UnixMs=int(time.time() * 1000)
+                          ))
         if self.state == StratBossState.Active:
             asyncio.create_task(self._timeout_timer())
             asyncio.create_task(self.active(trigger.Trigger))
