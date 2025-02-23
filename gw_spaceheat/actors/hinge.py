@@ -345,12 +345,17 @@ class FloHinge():
     def generate_bid(self):
         # add new nodes and edges
         if self.charge1_node:
-            self.g.nodes[0].extend([self.charge1_node, self.discharge1_node])
+            self.g.nodes[0].extend([self.charge1_node, self.stay1_node, self.discharge1_node])
             # Charge edge
             charge1_cost = self.g.params.elec_price_forecast[0] * self.g.params.max_hp_elec_in / 100
             charge1_hp_heat_out = self.g.params.max_hp_elec_in * self.g.params.COP(self.g.params.oat_forecast[0], 0) 
             charge1_edge = DEdge(self.g.initial_node, self.charge1_node, charge1_cost, charge1_hp_heat_out)
             self.g.edges[self.g.initial_node].append(charge1_edge)
+            # Load edge
+            stay1_cost = self.g.params.elec_price_forecast[0]/100 * self.g.params.load_forecast[0] / self.g.params.COP(self.g.params.oat_forecast[0],0)
+            stay1_hp_heat_out = self.g.params.load_forecast[0]
+            stay1_edge = DEdge(self.g.initial_node, self.stay1_node, stay1_cost, stay1_hp_heat_out)
+            self.g.edges[self.g.initial_node].append(stay1_edge)
             # Discharge edge
             discharge1_edge = DEdge(self.g.initial_node, self.discharge1_node, 0, 0)
             self.g.edges[self.g.initial_node].append(discharge1_edge)
@@ -401,7 +406,9 @@ class FloHinge():
         # remove new nodes and edges
         if self.charge1_node:
             self.g.nodes[0].remove(self.charge1_node)
+            self.g.nodes[0].remove(self.stay1_node)
             self.g.edges[self.g.initial_node].remove(charge1_edge)
+            self.g.edges[self.g.initial_node].remove(stay1_edge)
         self.g.nodes[0].remove(self.discharge1_node)
         self.g.edges[self.g.initial_node].remove(discharge1_edge)
 
