@@ -409,9 +409,10 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
-    def quick_atn_take_control_hack(self):
+    async def quick_atn_take_control_hack(self):
         self.release_control()
         self.send_layout()
+        await asyncio.sleep(2)
         self.take_control()
 
     def send_new_params(self, new: Ha1Params) -> None:
