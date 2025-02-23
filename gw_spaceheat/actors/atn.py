@@ -409,6 +409,11 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
+    def quick_atn_take_control_hack(self):
+        self.release_control()
+        self.send_layout()
+        self.take_control()
+
     def send_new_params(self, new: Ha1Params) -> None:
         self.send_threadsafe(
             Message(
