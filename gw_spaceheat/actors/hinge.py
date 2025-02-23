@@ -54,13 +54,13 @@ class FloHinge():
         # Find hour at which the HP is turned on (we trust the decisions to discharge)
         node_i = self.g.initial_node
         self.initial_node = HingeNode(
-            time_slice = node_i.time_slice,
-            top_temp = node_i.top_temp,
-            middle_temp = node_i.middle_temp,
-            bottom_temp = node_i.bottom_temp,
-            thermocline1 = node_i.thermocline1,
-            thermocline2 = node_i.thermocline2,
-            params = self.g.params
+            time_slice = self.dg.initial_node.time_slice,
+            top_temp = self.dg.initial_node.top_temp,
+            middle_temp = self.dg.initial_node.middle_temp,
+            bottom_temp = self.dg.initial_node.bottom_temp,
+            thermocline1 = self.dg.initial_node.thermocline1,
+            thermocline2 = self.dg.initial_node.thermocline2,
+            params = self.dg.params
             )
         self.hinge_steps.append(self.initial_node)
         for i in range(48):
@@ -88,13 +88,13 @@ class FloHinge():
 
     def evaluate_branches(self):
         self.feasible_branches = {}
-        for branch1_charge in [True, False]:
-            for branch2_charge in [True, False]:
-                for branch3_charge in [True, False]:
-                    combination_name = f"{'C' if branch1_charge else 'D'}-"
-                    combination_name += f"{'C' if branch2_charge else 'D'}-"
-                    combination_name += f"{'C' if branch3_charge else 'D'}"
-                    self.follow_branch(branch1_charge, branch2_charge, branch3_charge, combination_name)
+        for branch1 in ['charge', 'load', 'discharge']:
+            for branch2 in ['charge', 'load', 'discharge']:
+                for branch3 in ['charge', 'load', 'discharge']:
+                    combination_name = f"{'C' if branch1=='charge' else ('D' if branch1=='discharge' else 'L')}-"
+                    combination_name += f"{'C' if branch2=='charge' else ('D' if branch2=='discharge' else 'L')}-"
+                    combination_name += f"{'C' if branch3=='charge' else ('D' if branch3=='discharge' else 'L')}"
+                    self.follow_branch(combination_name)
         print("Knitting branches...")
         self.knit_branches()
         print("Done")
@@ -166,54 +166,74 @@ class FloHinge():
         for combo in self.feasible_branches:
             if combo != self.best_combination:
                 continue
-            b1, b2, b3 = [True if x=='C' else False for x in combo.split('-')]
             self.hinge_steps = []
             self.get_hinge_start_state()
-            self.follow_branch(b1, b2, b3, combo, final=True)
+            self.follow_branch(combo, final=True)
             self.hinge_steps.append(self.feasible_branches[combo]['knitted_to'])
 
 
-    def follow_branch(self, branch1_charge, branch2_charge, branch3_charge, combination_name, final=False):
-        if not final: 
-            print(combination_name)
+    def follow_branch(self, combination_name, final=False):
+        branch1, branch2, branch3 = combination_name.split('-')
         node0 = self.turn_on_node
         total_hinge_cost_usd = 0
         # First hour
-        node1 = self.charge_from(node0) if branch1_charge else self.discharge_from(node0)
-        if final:
-            self.hinge_steps.append(node1)
         h = self.turn_on_node.time_slice
-        if branch1_charge:
+        if branch1=='C':
+            node1 = self.charge_from(node0)
             total_hinge_cost_usd += self.g.params.elec_price_forecast[h] * self.g.params.max_hp_elec_in / 100
-        else:
+            b1_hp = self.g.params.max_hp_elec_in * self.g.params.COP(self.g.params.oat_forecast[h],0)
+        elif branch1=='L':
+            node1 = self.stay_at(node0)
+            b1_hp = self.g.params.load_forecast[h]
+        elif branch1=='D':
+            node1 = self.discharge_from(node0)
+            b1_hp = 0
             RSWT = self.g.params.rswt_forecast[h]
             if node0.top_temp < RSWT or node1.top_temp < RSWT - self.g.params.delta_T(RSWT):
                 return
-        # Second hour
-        node2 = self.charge_from(node1) if branch2_charge else self.discharge_from(node1)
         if final:
-            self.hinge_steps.append(node2)
+            self.hinge_steps.append(node1)
+        # Second hour
         h += 1
-        if branch2_charge:
+        if branch2=='C':
+            node2 = self.charge_from(node1)
             total_hinge_cost_usd += self.g.params.elec_price_forecast[h] * self.g.params.max_hp_elec_in / 100
-        else:
+            b2_hp = self.g.params.max_hp_elec_in * self.g.params.COP(self.g.params.oat_forecast[h],0)
+        elif branch2=='L':
+            node2 = self.stay_at(node1)
+            b2_hp = self.g.params.load_forecast[h]
+        elif branch2=='D':
+            node2 = self.discharge_from(node1)
+            b2_hp = 0
             RSWT = self.g.params.rswt_forecast[h]
             if node1.top_temp < RSWT or node2.top_temp < RSWT - self.g.params.delta_T(RSWT):
                 return
-        # Third hour
-        node3 = self.charge_from(node2) if branch3_charge else self.discharge_from(node2)
         if final:
-            self.hinge_steps.append(node3)
+            self.hinge_steps.append(node2)
+        # Third hour
         h += 1
-        if branch3_charge:
+        if branch3=='C':
+            node3 = self.charge_from(node2)
             total_hinge_cost_usd += self.g.params.elec_price_forecast[h] * self.g.params.max_hp_elec_in / 100
-        else:
+            b3_hp = self.g.params.max_hp_elec_in * self.g.params.COP(self.g.params.oat_forecast[h],0)
+        elif branch3=='L':
+            node3 = self.stay_at(node2)
+            b3_hp = self.g.params.load_forecast[h]
+        elif branch3=='D':
+            node3 = self.discharge_from(node2)
             RSWT = self.g.params.rswt_forecast[h]
+            b3_hp = 0
             if node2.top_temp < RSWT or node3.top_temp < RSWT - self.g.params.delta_T(RSWT):
                 return
+        if final:
+            self.hinge_steps.append(node3)
         # Add to feasible branches
         if not final:
-            self.feasible_branches[combination_name] = {'hinge_cost': total_hinge_cost_usd, 'final_state': node3}
+            self.feasible_branches[combination_name] = {
+                'hinge_cost': total_hinge_cost_usd, 
+                'hp_heat_out': [0]*self.turn_on_hour + [round(x,2) for x in [b1_hp, b2_hp, b3_hp]],
+                'final_state': node3
+                }
 
 
     def discharge_from(self, n: HingeNode):
@@ -303,6 +323,17 @@ class FloHinge():
             params = self.g.params
         )
         return next_node
+    
+    def stay_at(self, n: HingeNode):
+        return HingeNode(
+            time_slice = n.time_slice+1,
+            top_temp = n.top_temp,
+            middle_temp = n.middle_temp,
+            bottom_temp = n.bottom_temp,
+            thermocline1 = n.thermocline1,
+            thermocline2 = n.thermocline2,
+            params = n.params
+        )
 
     def knit_branches(self):
         for branch in self.feasible_branches:
