@@ -5,7 +5,6 @@ import asyncio
 import enum
 import uuid
 import threading
-from datetime import datetime, timedelta
 import time
 import pytz
 from typing import Any, List, Optional, cast
@@ -52,7 +51,7 @@ from data_classes.house_0_names import H0N
 from enums import MainAutoState,  TopState, ContractStatus, RepresentationStatus
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    DispatchContractGoDormant, Glitch, GameOn, GoDormant,
+    Glitch, GameOn, GoDormant,
     LayoutLite, NewCommandTree, ScadaParams, SendLayout, SetRepresentationStatus,
     SingleMachineState, SlowContractHeartbeat, 
     SuitUp, WakeUp, 
@@ -337,13 +336,6 @@ class Scada(ScadaInterface, Proactor):
                     self.channel_readings_received(from_node, payload)
                 except Exception as e:
                     self.logger.error(f"problem with channel_readings_received: \n {e}")
-            case DispatchContractGoDormant():
-                try:
-                    self.dispatch_contract_go_dormant_received(from_node, payload)
-                except Exception as e:
-                    self.logger.error(
-                        f"problem with dispatch_contract_go_dormant_received: \n {e}"
-                    )
             case FsmFullReport():
                 try:
                     self.fsm_full_report_received(from_node, payload)
@@ -560,24 +552,6 @@ class Scada(ScadaInterface, Proactor):
                 ch.Name
             ] = payload.ScadaReadTimeUnixMsList[-1]
 
-    def dispatch_contract_go_dormant_received(
-        self, from_node: ShNode, payload: DispatchContractGoDormant
-    ) -> None:
-        if payload.FromGNodeAlias != self.layout.atn_g_node_alias:
-            self.log(f"HUH? Message from {payload.FromGNodeAlias}")
-            return
-        if self.auto_state != MainAutoState.Atn:
-            self.log(
-                f"Ignoring DispatchContractGoDormant from atn, auto_state: {self.auto_state}"
-            )
-            return
-        self.AtnReleasesControl()
-        self.set_home_alone_command_tree()
-        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-        self._send_to(
-            self.atomic_ally, GoDormant(ToName=H0N.atomic_ally)
-        )
-
     def fsm_full_report_received(
         self, from_node: ShNode, payload: FsmFullReport
     ) -> None:
@@ -685,6 +659,7 @@ class Scada(ScadaInterface, Proactor):
             self, from_node: ShNode, cmd: SetRepresentationStatus
     ) -> None:
         """Handle SetRepresentationStatus command from ATN"""
+    
         prior_status = self.contract_handler.status
         if cmd.Status == RepresentationStatus.Dormant:
             if self.auto_state == MainAutoState.Atn:
@@ -705,13 +680,13 @@ class Scada(ScadaInterface, Proactor):
         elif cmd.Status == RepresentationStatus.Active:
             if self.contract_handler.status == RepresentationStatus.Dormant:
                 self.contract_handler.status = RepresentationStatus.Active
-            else:
                 self._send_to(self.atn,
-                              SetRepresentationStatus(
-                                  FromGNodeAlias=self.layout.scada_g_node_alias,
-                                  TimeS=int(time.time(),
-                                            )
-                              ))
+                    SetRepresentationStatus(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        TimeS=int(time.time()),
+                        Status=RepresentationStatus.Active,
+                        Reason="Atn just set to Active")
+                )
 
         if self.contract_handler.status != prior_status:
             msg = f"Status changed: {prior_status} -> {self.contract_handler.status}"
@@ -922,6 +897,15 @@ class Scada(ScadaInterface, Proactor):
                 )
                 self._send_to(self.atn, termination_hb)
             return
+        
+        if self.contract_handler.status == RepresentationStatus.Dormant:
+            self._send_to(self.atn,
+                        SetRepresentationStatus(
+                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                        TimeS=int(time.time()),
+                        Status=RepresentationStatus.Dormant,
+                        Reason="Scada: RepresentationStatus is Dormant!")
+                )
         return_hb = self.contract_handler.process_contract_hb(hb)
         if return_hb is None:
             self.log("Ignoring slow contract heartbeat")
@@ -1153,6 +1137,8 @@ class Scada(ScadaInterface, Proactor):
             self._send_to(self.atn, hb) 
             self._send_to(self.atomic_ally, hb)
         self._send_to(self.atn, SetRepresentationStatus(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                TimeS=int(time.time()),
                 Status=self.contract_handler.status,
                 Reason="Scada setting status on boot"))
 

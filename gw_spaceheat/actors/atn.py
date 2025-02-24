@@ -37,7 +37,8 @@ from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from named_types import (AtnBid, DispatchContractGoDormant,
                          DispatchContractGoLive, EnergyInstruction, FloParamsHouse0,
                          Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
-                         ScadaParams, SendLayout, SnapshotSpaceheat)
+                         ScadaParams, SendLayout, SetRepresentationStatus,
+                         SlowContractHeartbeat, SlowDispatchContract, SnapshotSpaceheat)
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
