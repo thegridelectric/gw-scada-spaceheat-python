@@ -28,6 +28,8 @@ class ContractHandler:
         ContractStatus.CompletedFailureByScada,
     ]
     GRACE_PERIOD_MINUTES = 5  # Time after contract end before auto-ready
+    WARNING_MINUTES_AFTER_END  = 2 
+
     LOGGER_NAME = "ContractHandler"
     def __init__(
         self,
@@ -58,7 +60,7 @@ class ContractHandler:
         """
         now = time.time()
         if not self.latest_scada_hb:
-            raise ValueError("Only supposed to call update_energy_usage w live contract")
+            return
         if self.energy_updated_s is None:
             self.energy_used_wh = 0
             self.energy_updated_s = now
@@ -351,7 +353,7 @@ class ContractHandler:
         - return None if atn_hb.Status is TerminatedByAtn 
         """
         self.update_energy_usage()
-        if self.status not in [RepresentationStatus.Ready, RepresentationStatus.Active]:
+        if self.status != RepresentationStatus.Active:
             raise Exception(
                 "Do not call update_existing_contract if rep status is not Ready or Active"
             )

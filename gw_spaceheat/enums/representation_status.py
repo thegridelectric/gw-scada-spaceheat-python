@@ -6,19 +6,17 @@ from gw.enums import GwStrEnum
 
 class RepresentationStatus(GwStrEnum):
     """
-    The possible states of a representation
-    contract between Atn and Scada
+    Representation Status handles intentional availability/unavailability
     Values:
-      - Ready  # Scada ready to receive a dispatch
-      - Active # Currently operating under a live dispatch contract
-      - Dormant  # Not accepting dispatch contracts
+      - Active # Atn can attempt to establish a contract
+      - Dormant  # Atn should not try to establish a contract - Scada
+      is intentionally not accepting them
 
     For more information:
       - [ASLs](https://gridworks-type-registry.readthedocs.io/en/latest/)
       - [Global Authority](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautostate)
     """
 
-    Ready = auto()
     Active = auto()
     Dormant = auto()
 

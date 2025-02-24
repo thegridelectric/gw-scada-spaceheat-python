@@ -118,7 +118,7 @@ class SlowContractHeartbeat(BaseModel):
             "ContractId": "c3cd6c8d-e8d8-4875-8f7b-d3ea13c28693", 
             "FromNode": "a",
             "Status": "Active",
-            "MessageCreatedMs": 1234567890,
+            "MessageCreatedMs": 1740425972511,
             "MyDigit": 3,
             "YourLastDigit": 7,
             "PrevSignedProof": "algo_sig_xyz..."

@@ -1,5 +1,6 @@
 """Scada implementation"""
 import os
+import random
 import asyncio
 import enum
 import uuid
@@ -18,7 +19,6 @@ from gwproto import create_message_model
 
 from gwproto.enums import ActorClass
 
-from actors.power_meter import PowerMeter
 from data_classes.house_0_layout import House0Layout
 from gwproto.messages import FsmFullReport
 from gwproto.messages import EventBase
@@ -49,13 +49,13 @@ from gwproactor.proactor_implementation import Proactor
 
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
-from enums import MainAutoState,  TopState, ContractStatus
+from enums import MainAutoState,  TopState, ContractStatus, RepresentationStatus
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    DispatchContractGoDormant, DispatchContractGoLive, EnergyInstruction, Glitch, GameOn, GoDormant,
-    LayoutLite, NewCommandTree, ScadaParams, SendLayout,
-    SingleMachineState, SlowContractHeartbeat, SlowDispatchContract,
-    SuitUp, WakeUp, HackOilOn, HackOilOff, SetRepresentationStatus
+    DispatchContractGoDormant, Glitch, GameOn, GoDormant,
+    LayoutLite, NewCommandTree, ScadaParams, SendLayout, SetRepresentationStatus,
+    SingleMachineState, SlowContractHeartbeat, 
+    SuitUp, WakeUp, 
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -344,20 +344,6 @@ class Scada(ScadaInterface, Proactor):
                     self.logger.error(
                         f"problem with dispatch_contract_go_dormant_received: \n {e}"
                     )
-            case DispatchContractGoLive():
-                try:
-                    self.dispatch_contract_go_live_received(from_node, payload)
-                except Exception as e:
-                    self.logger.error(
-                        f"problem with dispatch_contract_go_live_received: \n {e}"
-                    )
-            case EnergyInstruction():
-                try:
-                    self.energy_instruction_received(from_node, payload)
-                except Exception as e:
-                    self.logger.error(
-                        f"problem with .energy_instruction_received: \n {e}"
-                    )
             case FsmFullReport():
                 try:
                     self.fsm_full_report_received(from_node, payload)
@@ -373,13 +359,6 @@ class Scada(ScadaInterface, Proactor):
                     CreatedMs=payload.CreatedMs
                 )
                 self._send_to(self.atn, new_glitch)
-                
-            case HackOilOn():
-                self.log("Received hack oil on")
-                self._send_to(self.layout.atomic_ally, payload)
-            case HackOilOff():
-                self.log("Received hack oil off")
-                self._send_to(self.layout.atomic_ally, payload)
             case MachineStates():
                 try:
                     self.machine_states_received(from_node, payload)
@@ -406,6 +385,11 @@ class Scada(ScadaInterface, Proactor):
                     self._send_to(from_node, self._data.make_snapshot())
                 except Exception as e:
                     self.log(f"Trouble with SendSnap: {e}")
+            case SetRepresentationStatus():
+                try:
+                    self.set_representation_status_received(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with set_representation_status_received: {e}")
             case SingleMachineState():
                 try:
                     self.single_machine_state_received(from_node, payload)
@@ -515,14 +499,24 @@ class Scada(ScadaInterface, Proactor):
         hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
         self._send_to(self.atn, hb)
 
+        # Set warning task for grace period expiration
+        warning_delay = (time.time() + 
+                        self.contract_handler.WARNING_MINUTES_AFTER_END * 60)
+        
+        # Cancel any existing warning task
+        if hasattr(self, 'warning_task'):
+            self.warning_task.cancel()
+
+        self.warning_task = asyncio.create_task(
+            self.handle_grace_period(
+                delay_s=warning_delay,
+                contract_id=hb.Contract.ContractId
+            ),
+            name=f"contract_warning_{hb.Contract.ContractId}"
+        )
+
         # AutoState transition: AllyGivesUp: Atn -> HomeAlone
         self.log(f"Atomic Ally giving up: {payload.Reason}")
-        self.set_home_alone_command_tree()
-        # wake up home alone and send atomic ally to sleep
-        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-        self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
-        # Inform AtomicTNode
-        # TODO: send message like DispatchContractDeclined to Atn
 
     def analog_dispatch_received(
         self, from_node: ShNode, payload: AnalogDispatch
@@ -584,26 +578,6 @@ class Scada(ScadaInterface, Proactor):
             self.atomic_ally, GoDormant(ToName=H0N.atomic_ally)
         )
 
-    def dispatch_contract_go_live_received(
-        self, from_node: ShNode, payload: DispatchContractGoLive
-    ) -> None:
-        if payload.FromGNodeAlias != self.layout.atn_g_node_alias:
-            self.log(f"HUH? Message from {payload.FromGNodeAlias}")
-            return
-        if self.auto_state != MainAutoState.HomeAlone:
-            self.log(
-                f"Ignoring control request from atn, auto_state: {self.auto_state}"
-            )
-            return
-        self.atn_wants_control(t=payload)
-
-    def energy_instruction_received(
-        self, from_node: ShNode, payload: EnergyInstruction
-    ) -> None:
-        self._send_to(self.synth_generator, payload)
-        if self.auto_state == MainAutoState.Atn:
-            self._send_to(self.atomic_ally, payload)
-
     def fsm_full_report_received(
         self, from_node: ShNode, payload: FsmFullReport
     ) -> None:
@@ -639,11 +613,10 @@ class Scada(ScadaInterface, Proactor):
             UnixMs=payload.UnixMsList[-1]
         )
 
-
     def power_watts_received(self, from_node: ShNode, payload: PowerWatts):
         """Highest priority of scada is to pass this on to Atn
 
-        also update scada_data.power_watts, and send to synth gen
+        also call contract_handler.update_energy_usage
         """
         self._send_to(self.atn, payload)
         # Update internal data store
@@ -708,6 +681,45 @@ class Scada(ScadaInterface, Proactor):
             self.logger.error(f"Sending back {response}")
             self._send_to(self.atn, response)
 
+    def set_representation_status_received(
+            self, from_node: ShNode, cmd: SetRepresentationStatus
+    ) -> None:
+        """Handle SetRepresentationStatus command from ATN"""
+        prior_status = self.contract_handler.status
+        if cmd.Status == RepresentationStatus.Dormant:
+            if self.auto_state == MainAutoState.Atn:
+                # Immediate transition to HomeAlone
+                self.AtnReleasesControl()
+                self.set_home_alone_command_tree()
+                self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+                self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+
+            if self.contract_handler.latest_scada_hb:
+                termination_hb = self.contract_handler.scada_terminates_contract_hb(
+                    "Atn sent SetRepresentationStatus Dormant"
+                )
+                self._send_to(self.atn, termination_hb)
+
+            self.contract_handler.status = RepresentationStatus.Dormant
+                
+        elif cmd.Status == RepresentationStatus.Active:
+            if self.contract_handler.status == RepresentationStatus.Dormant:
+                self.contract_handler.status = RepresentationStatus.Active
+            else:
+                self._send_to(self.atn,
+                              SetRepresentationStatus(
+                                  FromGNodeAlias=self.layout.scada_g_node_alias,
+                                  TimeS=int(time.time(),
+                                            )
+                              ))
+
+        if self.contract_handler.status != prior_status:
+            msg = f"Status changed: {prior_status} -> {self.contract_handler.status}"
+            if cmd.Reason:
+                msg += f" Reason: {cmd.Reason}"
+            self.log(msg)
+        return None
+
     def single_machine_state_received(
         self, from_node: ShNode, payload: SingleMachineState
     ) -> None:
@@ -760,6 +772,7 @@ class Scada(ScadaInterface, Proactor):
             return
         # TODO: think through state machine
         # tell the atomic transactive node that game is on
+        self.process_new_contract()
         self._send_to(self.atn, GameOn(FromGNodeAlias=self.layout.scada_g_node_alias))
 
     def synced_readings_received(self, from_node: ShNode, payload: SyncedReadings):
@@ -806,16 +819,12 @@ class Scada(ScadaInterface, Proactor):
         # This will set auto_state and update the actuator forest to Admin
         self.auto_goes_dormant()
         
-        # Uncomment if we want strat boss to stop when switching to admin
-        # strat_boss = self.layout.node(H0N.strat_boss)
-        # admin = self.layout.node(H0N.admin)
-        # self._send_to(strat_boss,
-        #               StratBossTrigger(
-        #                   FromState=StratBossState.Active,
-        #                   ToState=StratBossState.Dormant,
-        #                   Trigger=StratBossEvent.BossCancels,
-        #               ),
-        #               admin)
+        # If there's an active contract, terminate it
+        if self.contract_handler.latest_scada_hb:
+            termination_hb = self.contract_handler.scada_terminates_contract_hb(
+                cause="Scada entered Admin mode"
+            )
+            self._send_to(self.atn, termination_hb)
 
     def admin_releases_control(self) -> None:
         if self.top_state != TopState.Admin:
@@ -897,19 +906,99 @@ class Scada(ScadaInterface, Proactor):
         # TODO: send message like DispatchContractDeclined to Atn
 
     def slow_contract_heartbeat_received(self, from_node: ShNode, hb: SlowContractHeartbeat) -> None:
+        # First check if in Admin mode
+        if self.top_state == TopState.Admin:
+            if hb.Status == ContractStatus.Created:
+                # Only respond to Created - ignore other heartbeats
+                termination_hb = SlowContractHeartbeat(
+                    FromNode=self.node.Name,
+                    Contract=hb.Contract,
+                    PreviousStatus=hb.Status,
+                    Status=ContractStatus.TerminatedByScada,
+                    Cause="Scada in Admin mode - cannot accept dispatch contracts",
+                    MessageCreatedMs=int(time.time() * 1000),
+                    MyDigit=random.choice(range(10)),
+                    YourLastDigit=hb.MyDigit,
+                )
+                self._send_to(self.atn, termination_hb)
+            return
         return_hb = self.contract_handler.process_contract_hb(hb)
         if return_hb is None:
             self.log("Ignoring slow contract heartbeat")
             return
-        
         if return_hb.Status in ContractHandler.DONE_STATES:
             self._send_to(self.atn, return_hb)
         
         if hb.Status == ContractStatus.Created:
-            self._send_to(self.atomic_ally, hb.Contract)
-
-        if self.auto_state == MainAutoState.HomeAlone:
             self.dispatch_contract_live()
+
+    def process_new_contract(self) -> None:
+        """Called after contract is confirmed (SuitUp received)"""
+        # Cancel any existing timers
+        if hasattr(self, 'warning_task'):
+            self.warning_task.cancel()
+        
+        if self.contract_handler.latest_scada_hb is None:
+            return
+        contract = self.contract_handler.latest_scada_hb.Contract 
+        warning_delay = (contract.ContractEndS + 
+                        self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - time.time())
+        
+        # Schedule new warning
+        self.warning_task = asyncio.create_task(
+            self.handle_grace_period(delay_s=warning_delay,
+                                         contract_id=contract.ContractId),
+            name=f"contract_warning_{contract.ContractId}"
+        )
+
+    async def handle_grace_period(self, delay_s: float, contract_id: str):
+        """Handles warning messages and state transition out of atn if needed.
+        
+        Atn is meant to be the actor that terminates each contract but Scada also
+        provided backup for that here.
+        """
+        await asyncio.sleep(delay_s)
+        
+        # First check if this is still the active contract
+        if not self.contract_handler.latest_scada_hb:
+            return
+        contract = self.contract_handler.latest_scada_hb.Contract
+            
+        # Case 1: latest_scada_hb is None - old contract was properly expired
+        # Still send warning since we haven't received a new contract
+        if not self.contract_handler.latest_scada_hb:
+            warning = NoNewContractWarning(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ContractId=contract_id,
+                GraceEndTimeS=time.time() + 
+                            (self.contract_handler.GRACE_PERIOD_MINUTES - 
+                             self.contract_handler.WARNING_MINUTES_AFTER_END) * 60
+            )
+            self._send_to(self.atn, warning)
+            return
+         # Case 2: We have a different contract - everything is fine
+        if self.contract_handler.latest_scada_hb.Contract.ContractId != contract_id:
+            return
+        # Case 3: Same contract still active - needs to be completed
+        self.log(f"Contract {contract_id} end time reached - sending completion")
+        
+        # Send completion heartbeat and set contract_handler.latest_scada_hb to None
+        completion_hb = self.contract_handler.scada_detects_contract_complete_hb()
+        self._send_to(self.atn, completion_hb)
+
+        # Set backup timer for grace period  
+        grace_remaining = (self.contract_handler.GRACE_PERIOD_MINUTES - 
+                        self.contract_handler.WARNING_MINUTES_AFTER_END) * 60
+        await asyncio.sleep(grace_remaining)
+        
+        # If still same contract after grace period, force transition to home alone  
+        if not self.contract_handler.latest_scada_hb:
+            
+            self.log(f"Grace period expired for contract {contract_id} - transitioning to home alone")
+            self.ContractGracePeriodEnds()
+            self.set_home_alone_command_tree()
+            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
 
     def dispatch_contract_live(self) -> None:
         """ DispatchContractLive: HomeAlone -> Atn
@@ -918,23 +1007,27 @@ class Scada(ScadaInterface, Proactor):
           - Sets Atn Command Tree
           - Tells HomeAlone and AtomicAlly
         """
-        if self.auto_state != MainAutoState.HomeAlone:
-            self.log(
-                f"Ignoring control request from atn, auto_state: {self.auto_state}"
-            )
+        if self.top_state == TopState.Admin:
+            self.log("That's strange - expect TopState auto here. ")
             return
-        self.DispatchContractLive() # AutoState Trigger DispatchContractLive: HomeAlone -> Atn
         self.log(f"New Dispatch Contract! Auto state {self.auto_state}")
-
-        # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
-        # Ally which reports to atn.
-        self.set_atn_command_tree()
-        # Let homealone know its dormant:
-        self._send_to(
-            self.layout.home_alone, GoDormant(ToName=H0N.home_alone)
+        
+        if self.auto_state == MainAutoState.HomeAlone:
+            self.DispatchContractLive() # AutoState Trigger DispatchContractLive: HomeAlone -> Atn
+            # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
+            # Ally which reports to atn.
+            self.set_atn_command_tree()
+            # Let homealone know its dormant:
+            self._send_to(
+                self.layout.home_alone, GoDormant(ToName=H0N.home_alone)
+            )
+        # Regardless of auto state
+        if self.contract_handler.latest_scada_hb is None:
+            self.log("That's strange! There should be a latest_scada_hb!")
+            return
+        self._send_to(self.atomic_ally, self.contract_handler.latest_scada_hb.Contract
         )
-        # Let the atomic ally know its live
-        self._send_to(self.layout.atomic_ally, WakeUp(ToName=H0N.atomic_ally))
+
 
 
     def _derived_recv_activated(
@@ -1064,7 +1157,8 @@ class Scada(ScadaInterface, Proactor):
                 Reason="Scada setting status on boot"))
 
     async def state_tracker(self) -> None:
-        loop_s = self.settings.seconds_per_report
+        loop_s = 60
+        # loop_s = self.settings.seconds_per_report
         while True:
             hiccup = 1.5
             sleep_s = max(hiccup, loop_s - (time.time() % loop_s) - 1.2)
@@ -1092,6 +1186,7 @@ class Scada(ScadaInterface, Proactor):
                 )
                 self.logger.warning(f"Top state: {self.top_state}")
                 self.logger.warning(f"Auto state: {self.auto_state}")
+
 
     #############################################
     # Core synchronous reporting tasks: reports (all timestamped sensing data)

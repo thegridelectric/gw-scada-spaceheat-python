@@ -2,7 +2,7 @@ import time
 import uuid
 import asyncio
 from data_classes.house_0_names import H0CN, H0N
-from gwproactor.message import Message
+from gwproto.message import Message
 from gwproactor import ServicesInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types import FsmFullReport
