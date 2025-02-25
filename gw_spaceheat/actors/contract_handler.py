@@ -10,7 +10,7 @@ from data_classes.house_0_names import H0N
 from enums import ContractStatus, LogLevel, RepresentationStatus
 from gwproactor.logger import LoggerOrAdapter
 from gwproto.data_classes.sh_node import ShNode
-from named_types import Glitch, SetRepresentationStatus, SlowContractHeartbeat, SlowDispatchContract
+from named_types import Glitch, SetRepresentationStatus, SlowContractHeartbeat
 
 
 from actors.config import ScadaSettings
@@ -95,7 +95,7 @@ class ContractHandler:
 
         - Returns a new SlowDispatchContract with state CompletedUnknownOutcome
         if the passing of time mandates a state change.
-        - If the hb doesn't exist, doesn't load anyting and returns None
+        - If the hb doesn't exist, doesn't load anything and returns None
         - If the hb exists and covered by current time, sets self.hb
         to this heartbeat and returns None
         """
@@ -107,38 +107,32 @@ class ContractHandler:
 
         try:
             hb = SlowContractHeartbeat.model_validate(contract_data)
-            if hb.FromNode != H0N.atn:
-                raise Exception(
-                    f"Should store last hb from atn ('a'), not {hb.FromNode}"
-                )
-            if hb.Status in self.DONE_STATES:
+            if hb.FromNode == H0N.atn:
+                if hb.Status not in [ContractStatus.TerminatedByAtn,
+                                     ContractStatus.CompletedUnknownOutcome]:
+                    return
                 self.prev = hb
-                self.logger.info("Loaded ContractHb into prev")
-                return None
-            elif hb.Status in [
-                ContractStatus.Received,
-                ContractStatus.Active,
-            ]:  # one of the Scada states
-                # should be one of Scada states
-                if hb.FromNode != H0N.primary_scada:
-                    raise ValueError("Saved Active contracts must be from Scada!")
+            else:
                 if time.time() > hb.Contract.contract_end_s():
-                    self.prev = SlowContractHeartbeat(
-                        FromNode=self.node.name,
-                        Contract=hb.Contract,
-                        PreviousStatus=hb.Status,
-                        Status=ContractStatus.CompletedUnknownOutcome,
-                        WattHoursUsed=hb.WattHoursUsed,
-                        MessageCreatedMs=int(time.time() * 1000),
-                        Cause="Set by Scada on rebooting",
-                        YourLastDigit=hb.MyDigit,
-                        MyDigit=random.choice(range(10)),
-                    )
-                    self.logger.info(
-                        "Contract expired! Should send hb to atn ASAP."
-                        "Loaded ContractHb into prev"
-                    )
-                    return self.prev
+                    if hb.Status not in self.DONE_STATES:
+                        self.prev = SlowContractHeartbeat(
+                            FromNode=self.node.name,
+                            Contract=hb.Contract,
+                            PreviousStatus=hb.Status,
+                            Status=ContractStatus.CompletedUnknownOutcome,
+                            WattHoursUsed=hb.WattHoursUsed,
+                            MessageCreatedMs=int(time.time() * 1000),
+                            Cause="Set by Scada on rebooting",
+                            YourLastDigit=hb.MyDigit,
+                            MyDigit=random.choice(range(10)),
+                        )
+                        self.logger.info(
+                            "Contract expired! Should send hb to atn ASAP."
+                            "Loaded ContractHb into prev"
+                        )
+                        return self.prev
+                    else:
+                        return None
                 else:
                     if hb.WattHoursUsed is None:
                         raise ValueError("Cannot happen: from scada -> WattHoursUsed not None")
@@ -147,9 +141,6 @@ class ContractHandler:
                     self.energy_updated_s = time.time()
                     self.logger.info("Loaded ContractHb into hb")
                     return hb
-            else:
-                raise ValueError(f"Unexpected contract status {hb.Status}")
-                # self.logger.warning(f"Unexpected contract status {hb.Status}")
         except Exception as e:
             raise ValueError(f"Issue loading contract! {e}")
             # self.logger.warning(f"Issue loading contract! {e}")
@@ -166,7 +157,7 @@ class ContractHandler:
         if atn_hb:
             if atn_hb.Status not in [ContractStatus.TerminatedByAtn,
                                      ContractStatus.CompletedUnknownOutcome]:
-                raise ValueError("only stores atn_hb's with Status TermiantedByAtn or CompletedUnknownAutcome")
+                raise ValueError("only stores atn_hb's with Status TerminatedByAtn or CompletedUnknownAutcome")
             hb = atn_hb
 
         with open(self.contract_file, "w") as f:
@@ -230,7 +221,7 @@ class ContractHandler:
         """
         if not self.latest_scada_hb:
             return
-        if self.latest_scada_hb.Status not in self.DONE_STATES:
+        if self.latest_scada_hb.Status not in selfFup.DONE_STATES:
             return
         self.latest_scada_hb = None
         self.energy_used_wh = 0
