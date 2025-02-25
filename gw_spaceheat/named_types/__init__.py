@@ -24,6 +24,7 @@ from named_types.latest_price import LatestPrice
 from named_types.layout_lite import LayoutLite
 from named_types.market_maker_ack import MarketMakerAck
 from named_types.new_command_tree import NewCommandTree
+from named_types.no_new_contract_warning import NoNewContractWarning
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
 from named_types.remaining_elec import RemainingElec
@@ -65,6 +66,7 @@ __all__ = [
     "LayoutLite",
     "MarketMakerAck",
     "NewCommandTree",
+    "NoNewContractWarning",
     "PicoMissing",
     "PriceQuantityUnitless",
     "RemainingElec",

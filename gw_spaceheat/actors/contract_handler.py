@@ -236,71 +236,6 @@ class ContractHandler:
         self.energy_used_wh = 0
         self.energy_updated_s = None
 
-    def process_contract_hb(
-        self, atn_hb: SlowContractHeartbeat
-    ) -> Optional[SlowContractHeartbeat]:
-        """Handles contract heartbeating with atn.
-        If the atn_hb is appropriate:
-            - Updates the energy used so far
-            - Returns the heartbeat to send back to the atn (with updated usage)
-            - Saves return hb to self.latest_scada_hb and non-volatile storage
-
-        Inappropriate hb if:
-            - Representation status is Dormant
-            - inbound hb is "Created" when an active hb exists
-            - Contracts do not match
-
-        """
-        return_hb = None
-        if self.status == RepresentationStatus.Dormant:
-            self.logger.info("Ignoring atn contract hb - Dormant!")
-            if self.latest_scada_hb:
-                self.update_energy_usage()
-                if atn_hb.Contract == self.latest_scada_hb.Contract:
-                    return_hb = SlowContractHeartbeat(
-                        FromNode=self.node.Name,
-                        Contract=atn_hb.Contract,
-                        PreviousStatus=atn_hb.Status,
-                        Status=ContractStatus.TerminatedByScada,
-                        Cause="Scada's records show Dormant RepresentatationStatus",
-                        WattHoursUsed=self.energy_used_wh,
-                        MessageCreatedMs=int(time.time() * 1000),
-                        MyDigit=random.choice(range(10)),
-                        YourLastDigit=atn_hb.MyDigit,
-                    )
-            self.prev = self.latest_scada_hb
-            self.flush_latest_scada_hb()
-
-        else:  # representation status Active
-            if atn_hb.Status == ContractStatus.Created:
-                if self.latest_scada_hb:
-                    self.logger.info(
-                        "Received Created when I already have an existing atn_hb. Ignoring!"
-                    )
-                    return_hb = None
-                else:
-                    return_hb = self.start_new_contract_hb(atn_hb)
-            else:  # Otherwise we should share the same hb
-                if self.latest_scada_hb is None:
-                    self.logger.warning(
-                        f"my hb is None but received this hb. Ignoring! \n{atn_hb}"
-                    )
-                    return_hb = None
-                elif self.latest_scada_hb.Contract != atn_hb.Contract:
-                    self.logger.warning(
-                        f"my contract is not the same as incoming! Ignoring! Mine: {self.latest_scada_hb.Contract}\n incoming: {atn_hb.Contract}"
-                    )
-                    return_hb = None
-                else:
-                    return_hb = self.update_existing_contract_hb(atn_hb)
-
-        if return_hb is None:
-            self.logger.warning("Returning no hb")
-        else:
-            # TODO: include start, stop time in local timezone human readable and AvgPower
-            self.logger.info(f"Sending back {return_hb.Status}")
-        return return_hb
-
     def get_initial_watt_hours(self, atn_hb: SlowContractHeartbeat) -> int:
         """Contracts start within 10 seconds of market so returns
         delta_t * latest_power_w
@@ -321,13 +256,13 @@ class ContractHandler:
             - No previous contract
             - right now does not handle a contract for a future time slot
         """
-        if self.status != RepresentationStatus.Active:
+        if self.status == RepresentationStatus.Dormant:
             raise Exception(
                 "Can only start new contract with active representation status"
             )
         if atn_hb.Status != ContractStatus.Created:
             raise Exception(
-                "Can only start new contract with a ContractStatus of Created!"
+                f"Can only start new contract with a ContractStatus of Created, not {atn_hb.Status}"
             )
         if self.latest_scada_hb:
             self.logger.warning("Ignoring atn hb! Still inside existing contract")
@@ -354,16 +289,21 @@ class ContractHandler:
 
     def update_existing_contract_hb(
         self, atn_hb: SlowContractHeartbeat
-    ) -> Optional[SlowContractHeartbeat]:
+    ) -> SlowContractHeartbeat:
         """ Update energy usage and either 
           - return the contract, or
         - return None if atn_hb.Status is TerminatedByAtn 
+
+        raise exception if latest_scada_hb is none or if its contract
+        does not match
         """
         self.update_energy_usage()
-        if self.status != RepresentationStatus.Active:
+        if self.status == RepresentationStatus.Dormant:
             raise Exception(
                 "Do not call update_existing_contract if rep status is not Ready or Active"
             )
+        if atn_hb.Status == ContractStatus.Created:
+            raise Exception("Does not process newly created contracts!")
         if self.latest_scada_hb is None:
             raise Exception(
                 "Do not call update_existing_contract_hb if latest_atn_hb is None"
@@ -465,16 +405,4 @@ class ContractHandler:
         self.latest_scada_hb = None
         return hb
 
-    @property
-    def live_dispatch_contract(self) -> Optional[SlowDispatchContract]:
-        """Returns none if not in the contract period for a non-terminated 
-        dispatch contract. 
-        
-        Note: contract_handler.status can be Activce with no live dispatch
-        contract, as we leave a 5-minute grace period after the termination
-        of a contract
-        """
-        if self.latest_scada_hb is None:
-            return None
-        return self.latest_scada_hb.Contract
 

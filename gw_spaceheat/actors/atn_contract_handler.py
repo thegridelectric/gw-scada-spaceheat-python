@@ -3,18 +3,23 @@ import random
 import time
 import uuid
 from pathlib import Path
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 
 import pytz
 from gwproto.property_format import UUID4Str
+from gwproto.data_classes.sh_node import ShNode
+from data_classes.house_0_layout import House0Layout
+from data_classes.house_0_names import H0N
+from gwproactor.logger import LoggerOrAdapter
+
 from enums import ContractStatus, RepresentationStatus, LogLevel
 from named_types import (
     SlowContractHeartbeat, 
     SlowDispatchContract, 
-    Glitch,
     SetRepresentationStatus,
-    RemainingElec
 )
+
+from actors.config import ScadaSettings
 
 
 class AtnContractHandler:
@@ -35,18 +40,18 @@ class AtnContractHandler:
         ContractStatus.Active
     ]
     HEARTBEAT_INTERVAL_SECONDS = 60  # Send heartbeats once per minute
-    
+    LOGGER_NAME = "AtnContractHandler" 
     def __init__(
         self,
-        settings,
-        layout,
-        logger,
-        atn_name="a",  # Use "a" for ATN as per SlowContractHeartbeat spec
+        node: ShNode,
+        settings: ScadaSettings,
+        layout: House0Layout,
+        logger: LoggerOrAdapter,
     ):
         self.settings = settings
+        self.node = node
         self.layout = layout
         self.logger = logger
-        self.atn_name = atn_name
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.contract_file = Path(
             f"{self.settings.paths.data_dir}/atn_contract.json"
@@ -81,7 +86,7 @@ class AtnContractHandler:
                 self.logger.info("Loaded completed contract")
                 return None
             
-            if hb.FromNode == "s":  # From SCADA
+            if hb.FromNode != H0N.primary_scada:  # From SCADA
                 self.latest_scada_hb = hb
                 self.active_contract_id = hb.Contract.ContractId
                 
@@ -96,14 +101,13 @@ class AtnContractHandler:
                 self.logger.info(f"Loaded active contract: {hb.Contract.ContractId}")
                 return hb
                 
-            elif hb.FromNode == self.atn_name:  # From ATN
+            elif hb.FromNode == self.node.name:  # From ATN: only if not yet confirmed
                 self.latest_hb = hb
                 self.active_contract_id = hb.Contract.ContractId
                 
                 # Contract could still be in created state and not yet confirmed
-                if hb.Status in [ContractStatus.Created, ContractStatus.Confirmed]:
-                    self.logger.info(f"Loaded contract in {hb.Status} state")
-                    return hb
+                if hb.Status != ContractStatus.Created:
+                    raise Exception(f"should only store atn hbs if not yet confirmed, got {hb.Status}")
                 
                 # Check if contract is still valid time-wise
                 if time.time() > hb.Contract.contract_end_s():
@@ -117,8 +121,7 @@ class AtnContractHandler:
                 return hb
                 
             else:
-                self.logger.warning(f"Unknown heartbeat sender: {hb.FromNode}")
-                return None
+                raise Exception(f"Unknown heartbeat sender: {hb.FromNode}")
                 
         except Exception as e:
             self.logger.error(f"Failed to load contract: {e}")
@@ -130,9 +133,9 @@ class AtnContractHandler:
             f.write(hb.model_dump_json(indent=4))
         
         # Update internal state based on heartbeat
-        if hb.FromNode == "s":  # From SCADA
+        if hb.FromNode == H0N:  # From SCADA
             self.latest_scada_hb = hb
-        elif hb.FromNode == self.atn_name:  # From ATN
+        elif hb.FromNode == self.node.name:  # From ATN
             self.latest_hb = hb
             
         # If this is a terminal state, clear active contract
@@ -175,6 +178,7 @@ class AtnContractHandler:
         """
         # Only create if there's no active contract or the active contract is done
         if self.active_contract_id and self.latest_hb and self.latest_hb.Status in self.ACTIVE_STATES:
+
             self.logger.warning("Cannot create new contract while one is active")
             return None
             
@@ -193,7 +197,7 @@ class AtnContractHandler:
         
         # Create initial heartbeat
         hb = SlowContractHeartbeat(
-            FromNode=self.atn_name,
+            FromNode=self.node.name,
             Contract=contract,
             Status=ContractStatus.Created,
             MessageCreatedMs=int(time.time() * 1000),
@@ -218,7 +222,7 @@ class AtnContractHandler:
             return None
             
         hb = SlowContractHeartbeat(
-            FromNode=self.atn_name,
+            FromNode=self.node.name,
             Contract=self.latest_hb.Contract,
             PreviousStatus=self.latest_hb.Status,
             Status=ContractStatus.TerminatedByAtn,
@@ -239,7 +243,7 @@ class AtnContractHandler:
     def create_completion_heartbeat(self, previous_hb: SlowContractHeartbeat) -> SlowContractHeartbeat:
         """Create a heartbeat marking the current contract as completed"""
         hb = SlowContractHeartbeat(
-            FromNode=self.atn_name,
+            FromNode=self.node.name,
             Contract=previous_hb.Contract,
             PreviousStatus=previous_hb.Status,
             Status=ContractStatus.CompletedUnknownOutcome,
@@ -272,7 +276,7 @@ class AtnContractHandler:
             if time.time() - last_sent_time > 30:
                 # Resend the contract creation
                 hb = SlowContractHeartbeat(
-                    FromNode=self.atn_name,
+                    FromNode=self.node.name,
                     Contract=self.latest_hb.Contract,
                     Status=ContractStatus.Created,
                     MessageCreatedMs=int(time.time() * 1000),
@@ -289,7 +293,7 @@ class AtnContractHandler:
             if self.latest_scada_hb.Status == ContractStatus.Received:
                 # SCADA has received, we should confirm
                 hb = SlowContractHeartbeat(
-                    FromNode=self.atn_name,
+                    FromNode=self.node.name,
                     Contract=self.latest_scada_hb.Contract,
                     PreviousStatus=self.latest_scada_hb.Status,
                     Status=ContractStatus.Confirmed,
@@ -305,7 +309,7 @@ class AtnContractHandler:
                 # Contract is active, send periodic active updates
                 # ATN is not authoritative about "Active" status
                 hb = SlowContractHeartbeat(
-                    FromNode=self.atn_name,
+                    FromNode=self.node.name,
                     Contract=self.latest_scada_hb.Contract,
                     Status=ContractStatus.Active,
                     MessageCreatedMs=int(time.time() * 1000),
@@ -322,7 +326,7 @@ class AtnContractHandler:
                 self.active_contract_id = None
                 # Send one final acknowledgment
                 hb = SlowContractHeartbeat(
-                    FromNode=self.atn_name,
+                    FromNode=self.node.name,
                     Contract=self.latest_scada_hb.Contract,
                     Status=self.latest_scada_hb.Status,
                     MessageCreatedMs=int(time.time() * 1000),
@@ -342,18 +346,26 @@ class AtnContractHandler:
         Returns a response heartbeat if one should be sent
         """
         # Validate heartbeat is from SCADA
-        if hb.FromNode != "s":
+        if hb.FromNode != H0N.primary_scada:
             self.logger.warning(f"Received heartbeat from {hb.FromNode}, not SCADA")
             return None
             
+        if self.latest_hb is None:
+            self.logger.info("Got heartbeat when we have no live contract ... ignoring")
+            return
+        if self.latest_hb.Contract.ContractId != hb.Contract.ContractId:
+            self.logger.info(f"Got hb for different contract. ignoring. mine: {self.latest_hb}."
+                             f"Inbound: {hb}")
         # Store the latest SCADA heartbeat
         self.latest_scada_hb = hb
-        
+        self.store_heartbeat(hb)
+
+        if 
         # Check the status
         if hb.Status == ContractStatus.Received:
             # SCADA has received our contract, respond with confirmation
             response = SlowContractHeartbeat(
-                FromNode=self.atn_name,
+                FromNode=self.node.name,
                 Contract=hb.Contract,
                 PreviousStatus=hb.Status,
                 Status=ContractStatus.Confirmed,
@@ -374,7 +386,7 @@ class AtnContractHandler:
                 self.active_contract_id = None
             # Send acknowledgment
             response = SlowContractHeartbeat(
-                FromNode=self.atn_name,
+                FromNode=self.node.name,
                 Contract=hb.Contract,
                 Status=ContractStatus.TerminatedByScada,
                 MessageCreatedMs=int(time.time() * 1000),
@@ -393,7 +405,7 @@ class AtnContractHandler:
                 self.active_contract_id = None
             # Send acknowledgment
             response = SlowContractHeartbeat(
-                FromNode=self.atn_name,
+                FromNode=self.node.name,
                 Contract=hb.Contract,
                 Status=ContractStatus.CompletedUnknownOutcome,
                 MessageCreatedMs=int(time.time() * 1000),
