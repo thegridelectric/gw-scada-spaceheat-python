@@ -47,7 +47,7 @@ class DParams():
         # Modify load forecast to include energy available in the buffer
         available_buffer = config.BufferAvailableKwh
         i = 0
-        while available_buffer > 0:
+        while available_buffer > 0 and i < len(self.load_forecast):
             load_backup = self.load_forecast[i]
             self.load_forecast[i] = self.load_forecast[i] - min(available_buffer, self.load_forecast[i])
             available_buffer = available_buffer - min(available_buffer, load_backup)
@@ -58,7 +58,7 @@ class DParams():
         if available_house < 0:
             self.load_forecast[0] += -available_house
         else:
-            while available_house > 0:
+            while available_house > 0 and i < len(self.load_forecast):
                 load_backup = self.load_forecast[i]
                 self.load_forecast[i] = self.load_forecast[i] - min(available_house, self.load_forecast[i])
                 available_house = available_house - min(available_house, load_backup)
@@ -89,7 +89,7 @@ class DParams():
             error_text += f"\n=> The given HP is undersized ({self.max_hp_elec_in} kW electrical power)"
             print(error_text)
         
-    def COP(self, oat, lwt):
+    def COP(self, oat, lwt=None):
         if oat < self.config.CopMinOatF: 
             return self.config.CopMin
         else:
@@ -185,7 +185,7 @@ class DParams():
             else:
                 skip_next_i = False
         available_temps = available_temps_no_duplicates.copy()
-
+            
         if max([x[0] for x in available_temps]) < MAX_TOP_TEMP-5:
             available_temps.append((MAX_TOP_TEMP-5, self.num_layers))
 
@@ -227,30 +227,37 @@ class DParams():
                 return x
 
 class DNode():
-    def __init__(self, time_slice:int, top_temp:float, thermocline1:float, parameters:DParams):
+    def __init__(self, time_slice:int, top_temp:float, thermocline1:float, parameters:DParams, hinge_node=None):
         self.params = parameters
         # Position in graph
         self.time_slice = time_slice
         self.top_temp = top_temp
         self.thermocline1 = thermocline1
-        temperatures = [x[0] for x in self.params.temperature_stack]
-        heights = [x[1] for x in self.params.temperature_stack]
-        toptemp_idx = temperatures.index(top_temp)
-        height_first_two_layers = thermocline1 + heights[toptemp_idx-1]
-        if height_first_two_layers >= self.params.num_layers or toptemp_idx < 2:
-            self.middle_temp = None
-            self.bottom_temp = temperatures[toptemp_idx-1]
-            self.thermocline2 = None
+        if not hinge_node:
+            temperatures = [x[0] for x in self.params.temperature_stack]
+            heights = [x[1] for x in self.params.temperature_stack]
+            toptemp_idx = temperatures.index(top_temp)
+            height_first_two_layers = thermocline1 + heights[toptemp_idx-1]
+            if height_first_two_layers >= self.params.num_layers or toptemp_idx < 2:
+                self.middle_temp = None
+                self.bottom_temp = temperatures[toptemp_idx-1]
+                self.thermocline2 = None
+            else:
+                self.middle_temp = temperatures[toptemp_idx-1]
+                self.bottom_temp = temperatures[toptemp_idx-2]
+                self.thermocline2 = height_first_two_layers
+            # Dijkstra's algorithm
+            self.pathcost = 0 if time_slice==parameters.horizon else 1e9
+            self.next_node = None
+            # Absolute energy level
+            self.energy = self.get_energy()
+            self.index = None
         else:
-            self.middle_temp = temperatures[toptemp_idx-1]
-            self.bottom_temp = temperatures[toptemp_idx-2]
-            self.thermocline2 = height_first_two_layers
-        # Dijkstra's algorithm
-        self.pathcost = 0 if time_slice==parameters.horizon else 1e9
-        self.next_node = None
-        # Absolute energy level
-        self.energy = self.get_energy()
-        self.index = None
+            self.middle_temp = hinge_node['middle_temp']
+            self.thermocline2 = hinge_node['thermocline2']
+            self.bottom_temp = hinge_node['bottom_temp']
+            self.pathcost = hinge_node['pathcost']
+            self.energy = self.get_energy()
 
     def __repr__(self):
         if self.thermocline2 is not None:
@@ -336,7 +343,7 @@ class DGraph():
             
             for node_now in self.nodes[h]:
                 self.edges[node_now] = []
-                
+
                 # The losses might be lower than energy between two nodes
                 losses = self.params.storage_losses_percent/100 * (node_now.energy-self.bottom_node.energy)
                 if self.params.load_forecast[h]==0 and losses>0 and losses<self.params.energy_between_nodes[node_now.top_temp]:
