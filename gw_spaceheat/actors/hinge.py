@@ -223,7 +223,7 @@ class FloHinge():
                 if self.initial_node.top_temp < rswt or node.top_temp < rswt - self.g.params.delta_T(rswt):
                     continue
             else:
-                node = self.to_hingenode(self.initial_node, time_slice=node.time_slice+1)
+                node = self.to_hingenode(self.initial_node, time_slice=1)
             hour0_cost = hour0_kwh / self.g.params.COP(self.g.params.oat_forecast[0]) * self.g.params.elec_price_forecast[0]/100
             if [x for x in self.feasible_branches if x[0]==hour0_kwh]:
                 best_branch_from_hour1 = min(
