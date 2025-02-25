@@ -89,7 +89,7 @@ class DParams():
             error_text += f"\n=> The given HP is undersized ({self.max_hp_elec_in} kW electrical power)"
             print(error_text)
         
-    def COP(self, oat, lwt):
+    def COP(self, oat, lwt=None):
         if oat < self.config.CopMinOatF: 
             return self.config.CopMin
         else:

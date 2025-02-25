@@ -826,9 +826,9 @@ class Atn(ActorInterface, Proactor):
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
         )
-        self.log("Creating graph and solving Dijkstra...")
+        self.log("Creating graph and solving Dijkstra with Hinge...")
         st = time.time()
-        f = FloHinge(flo_params)
+        f = FloHinge(flo_params, hinge_hours=5, num_nodes=[10,3,3,3,3])
         self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
         self.log("Finding PQ pairs")
         st = time.time()
