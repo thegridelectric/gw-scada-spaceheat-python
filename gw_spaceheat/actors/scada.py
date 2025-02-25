@@ -303,24 +303,24 @@ class Scada(ScadaInterface, Proactor):
         match payload:
             case AdminDispatch():
                 try:
-                    self.admin_dispatch_received(from_node, payload)
+                    self.process_admin_dispatch(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with admin_dispatch_received: \n {e}")
+                    self.log(f"Trouble with process_admin_dispatch: \n {e}")
             case AdminKeepAlive():
                 try:
-                    self.admin_keep_alive_received(from_node, payload)
+                    self.process_admin_keep_alive(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with admin_keep_alive_received: \n {e}")
+                    self.log(f"Trouble with process_admin_keep_alive: \n {e}")
             case AdminReleaseControl():
                 try:
-                    self.admin_release_control_received(from_node, payload)
+                    self.process_admin_release_control(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with admin_release_control: \n {e}")
             case AllyGivesUp():
                 try:
-                    self.ally_gives_up_received(from_node, payload)
+                    self.process_ally_gives_up(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with ally_gives_up_received: \n {e}")
+                    self.log(f"Trouble with process_ally_gives_up: \n {e}")
             case AnalogDispatch():
                 try:
                     self.analog_dispatch_received(from_node, payload)
@@ -394,9 +394,9 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with single_reading_received: \n {e}")
             case SlowContractHeartbeat():
                 try:
-                    self.slow_contract_heartbeat_received(from_node, payload)
+                    self.process_slow_contract_heartbeat(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with slow_contract_heartbeat_received: \n {e}")
+                    self.log(f"Trouble with process_slow_contract_heartbeat: \n {e}")
             case SuitUp():
                 try:
                     self.suit_up_received(from_node, payload)
@@ -414,7 +414,7 @@ class Scada(ScadaInterface, Proactor):
     # Process Messages
     #####################################################################
 
-    def admin_dispatch_received(
+    def process_admin_dispatch(
         self, from_node: ShNode, payload: AdminDispatch
     ) -> None:
         if from_node != self.admin:
@@ -441,7 +441,7 @@ class Scada(ScadaInterface, Proactor):
                 )
             )
 
-    def admin_release_control_received(
+    def process_admin_release_control(
         self, from_node: ShNode, payload: AdminReleaseControl
     ) -> None:
         if from_node != self.admin:
@@ -464,7 +464,7 @@ class Scada(ScadaInterface, Proactor):
         # the actuator forest to HomeAlone
         self.auto_wakes_up()
 
-    def admin_keep_alive_received(
+    def process_admin_keep_alive(
         self, from_node: ShNode, payload: AdminKeepAlive
     ) -> None:
         if from_node != self.admin:
@@ -476,7 +476,7 @@ class Scada(ScadaInterface, Proactor):
             self.admin_wakes_up()
             self.log("Admin Wakes Up")
 
-    def ally_gives_up_received(self, from_node: ShNode, payload: AllyGivesUp) -> None:
+    def process_ally_gives_up(self, from_node: ShNode, payload: AllyGivesUp) -> None:
         if from_node.Name != H0N.atomic_ally:
             self.log(
                 f"Ignoring AllyGivesUp from {from_node.Name} - expect AtomicAlly (aa)"
@@ -880,7 +880,7 @@ class Scada(ScadaInterface, Proactor):
         # Inform AtomicTNode
         # TODO: send message like DispatchContractDeclined to Atn
 
-    def slow_contract_heartbeat_received(self, from_node: ShNode, hb: SlowContractHeartbeat) -> None:
+    def process_slow_contract_heartbeat(self, from_node: ShNode, hb: SlowContractHeartbeat) -> None:
         # First check if in Admin mode
         if self.top_state == TopState.Admin:
             if hb.Status == ContractStatus.Created:
@@ -906,6 +906,15 @@ class Scada(ScadaInterface, Proactor):
                         Status=RepresentationStatus.Dormant,
                         Reason="Scada: RepresentationStatus is Dormant!")
                 )
+            return
+        
+        if hb.Status == ContractStatus.Created:
+            if self.contract_handler.latest_scada_hb is None:
+                self.dispatch_contract_live()
+            elif self.contract_handler.active_contract_has_expired():
+                self._send_to(self.atn,
+                    self.contract_handler.scada_detects_contract_complete_hb()
+                )
         return_hb = self.contract_handler.process_contract_hb(hb)
         if return_hb is None:
             self.log("Ignoring slow contract heartbeat")
@@ -913,8 +922,7 @@ class Scada(ScadaInterface, Proactor):
         if return_hb.Status in ContractHandler.DONE_STATES:
             self._send_to(self.atn, return_hb)
         
-        if hb.Status == ContractStatus.Created:
-            self.dispatch_contract_live()
+        
 
     def process_new_contract(self) -> None:
         """Called after contract is confirmed (SuitUp received)"""
@@ -925,7 +933,7 @@ class Scada(ScadaInterface, Proactor):
         if self.contract_handler.latest_scada_hb is None:
             return
         contract = self.contract_handler.latest_scada_hb.Contract 
-        warning_delay = (contract.ContractEndS + 
+        warning_delay = (contract.contract_end_s() + 
                         self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - time.time())
         
         # Schedule new warning

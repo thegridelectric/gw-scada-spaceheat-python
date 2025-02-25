@@ -1,22 +1,24 @@
 import json
 import random
 import time
+import uuid
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List
 
 import pytz
-from data_classes.house_0_layout import House0Layout
-from data_classes.house_0_names import H0N
-from enums import ContractStatus, LogLevel, RepresentationStatus
-from gwproactor.logger import LoggerOrAdapter
-from gwproto.data_classes.sh_node import ShNode
-from named_types import Glitch, SetRepresentationStatus, SlowContractHeartbeat
+from gwproto.property_format import UUID4Str
+from enums import ContractStatus, RepresentationStatus, LogLevel
+from named_types import (
+    SlowContractHeartbeat, 
+    SlowDispatchContract, 
+    Glitch,
+    SetRepresentationStatus,
+    RemainingElec
+)
 
-from actors.config import ScadaSettings
-from actors.scada_data import ScadaData
 
 class AtnContractHandler:
-    """Handles ATN's representation contract and dispatch contracts w SCADA"""
+    """Handles ATN's side of representation contract with SCADA and dispatch contracts"""
 
     DONE_STATES = [
         ContractStatus.TerminatedByAtn,
@@ -26,360 +28,423 @@ class AtnContractHandler:
         ContractStatus.CompletedFailureByAtn,
         ContractStatus.CompletedFailureByScada,
     ]
-    GRACE_PERIOD_MINUTES = 5  # Time after contract end before auto-ready
-    LOGGER_NAME = "AtnContractHandler"
-
+    ACTIVE_STATES = [
+        ContractStatus.Created,
+        ContractStatus.Received,
+        ContractStatus.Confirmed,
+        ContractStatus.Active
+    ]
+    HEARTBEAT_INTERVAL_SECONDS = 60  # Send heartbeats once per minute
+    
     def __init__(
         self,
-        settings: ScadaSettings,
-        layout: House0Layout,
-        node: ShNode,  # intended to be H0N.primary_scada
-        logger: LoggerOrAdapter,
-        data: ScadaData,
+        settings,
+        layout,
+        logger,
+        atn_name="a",  # Use "a" for ATN as per SlowContractHeartbeat spec
     ):
         self.settings = settings
         self.layout = layout
-        self.node = node
-        self.timezone = pytz.timezone(self.settings.timezone_str)
         self.logger = logger
+        self.atn_name = atn_name
+        self.timezone = pytz.timezone(self.settings.timezone_str)
         self.contract_file = Path(
-            f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"
+            f"{self.settings.paths.data_dir}/atn_contract.json"
         )
-        self.data = data
-        self.status: RepresentationStatus = (
-            RepresentationStatus.Dormant
-        )  # Start dormant until initialized
+        self.status: RepresentationStatus = RepresentationStatus.Active  # Default to active
         self.latest_scada_hb: Optional[SlowContractHeartbeat] = None
-
+        self.latest_hb: Optional[SlowContractHeartbeat] = None
+        self.active_contract_id: Optional[UUID4Str] = None
+        self.next_heartbeat_time = 0
+        self.pending_contracts: Dict[UUID4Str, SlowDispatchContract] = {}
+        self.remaining_energy_wh: Optional[int] = None
+        
     def load_heartbeat(self) -> Optional[SlowContractHeartbeat]:
-        """Loads existing SlowDispatchContract from persistent storage
-
-        - Returns a new SlowDispatchContract with state CompletedUnknownOutcome
-        if the passing of time mandates a state change.
-        - If the hb doesn't exist, doesn't load anyting and returns None
-        - If the hb exists and covered by current time, sets self.hb
-        to this heartbeat and returns None
+        """Loads existing SlowContractHeartbeat from persistent storage
+        
+        - Returns None if no heartbeat exists
+        - Otherwise loads the heartbeat and sets internal state
         """
-        if not self.contract_file.exists():  # no file
-            self.logger.info("No contract")
-            return
+        if not self.contract_file.exists():
+            self.logger.info("No contract file found")
+            return None
+            
         with open(self.contract_file, "r") as f:
             contract_data = json.load(f)
 
         try:
             hb = SlowContractHeartbeat.model_validate(contract_data)
-            if hb.FromNode != H0N.atn:
-                raise Exception(
-                    f"Should store last hb from atn ('a'), not {hb.FromNode}"
-                )
+            
+            # Store as latest heartbeat
             if hb.Status in self.DONE_STATES:
-                self.prev = hb
-                self.logger.info("Loaded ContractHb into prev")
+                # This is a completed contract, not active
+                self.logger.info("Loaded completed contract")
                 return None
-            elif hb.Status in [
-                ContractStatus.Created,
-                ContractStatus.Confirmed,
-                ContractStatus.Active,
-            ]:  # one of the atn states
-                if time.time() > hb.Contract.ContractEndS:
-                    self.prev = SlowContractHeartbeat(
-                        FromNode=self.node.name,
-                        Contract=hb.Contract,
-                        PreviousStatus=hb.Status,
-                        Status=ContractStatus.CompletedUnknownOutcome,
-                        MessageCreatedMs=int(time.time() * 1000),
-                        Cause="Set by Scada on rebooting",
-                        YourLastDigit=hb.MyDigit,
-                        MyDigit=random.choice(range(10)),
-                    )
-                    self.logger.info(
-                        "Contract expired! Should send hb to atn ASAP."
-                        "Loaded ContractHb into prev"
-                    )
-                    return self.prev
-                else:
-                    self.latest_atn_hb = hb
-                    self.logger.info("Loaded ContractHb into hb")
-                    return None
+            
+            if hb.FromNode == "s":  # From SCADA
+                self.latest_scada_hb = hb
+                self.active_contract_id = hb.Contract.ContractId
+                
+                # Check if contract is still valid time-wise
+                if time.time() > hb.Contract.contract_end_s():
+                    # Contract has expired, need to mark as completed
+                    self.logger.info("Loaded contract has expired, will send completion heartbeat")
+                    completion_hb = self.create_completion_heartbeat(hb)
+                    self.store_heartbeat(completion_hb)
+                    return completion_hb
+                
+                self.logger.info(f"Loaded active contract: {hb.Contract.ContractId}")
+                return hb
+                
+            elif hb.FromNode == self.atn_name:  # From ATN
+                self.latest_hb = hb
+                self.active_contract_id = hb.Contract.ContractId
+                
+                # Contract could still be in created state and not yet confirmed
+                if hb.Status in [ContractStatus.Created, ContractStatus.Confirmed]:
+                    self.logger.info(f"Loaded contract in {hb.Status} state")
+                    return hb
+                
+                # Check if contract is still valid time-wise
+                if time.time() > hb.Contract.contract_end_s():
+                    # Contract has expired, need to mark as completed
+                    self.logger.info("Loaded contract has expired, will send completion heartbeat")
+                    completion_hb = self.create_completion_heartbeat(hb)
+                    self.store_heartbeat(completion_hb)
+                    return completion_hb
+                
+                self.logger.info(f"Loaded active contract: {hb.Contract.ContractId}")
+                return hb
+                
             else:
-                raise ValueError(f"Unexpected contract status {hb.Status}")
-                # self.logger.warning(f"Unexpected contract status {hb.Status}")
+                self.logger.warning(f"Unknown heartbeat sender: {hb.FromNode}")
+                return None
+                
         except Exception as e:
-            raise ValueError(f"Issue loading contract! {e}")
-            # self.logger.warning(f"Issue loading contract! {e}")
-
-    def store_heartbeat(self) -> None:
-        """Stores existing SlowDispatchContract to persistent storage
-
-        Does not expect to store Created, Received or Confirmed.
-        """
-        if self.latest_scada_hb is None:
-            raise ValueError("Do not expect to store_heartbeat when None")
-        elif self.latest_scada_hb.Status not in self.DONE_STATES + [
-            ContractStatus.Active
-        ]:
-            raise ValueError(
-                f"Does not expect to store a {self.latest_scada_hb.Status.value} Status "
-            )
-        ...  # TODO: write self.hb to self.contract_file
-
-    def clear_heartbeat(self) -> None:
-        """Removes existing SlowDispatchContract from
-
-        Does not expect to store Created, Received or Confirmed.
-        """
-        ...  # TODO: delete self.contract_file
-
+            self.logger.error(f"Failed to load contract: {e}")
+            return None
+            
+    def store_heartbeat(self, hb: SlowContractHeartbeat) -> None:
+        """Stores a SlowContractHeartbeat to persistent storage"""
+        with open(self.contract_file, "w") as f:
+            f.write(hb.model_dump_json(indent=4))
+        
+        # Update internal state based on heartbeat
+        if hb.FromNode == "s":  # From SCADA
+            self.latest_scada_hb = hb
+        elif hb.FromNode == self.atn_name:  # From ATN
+            self.latest_hb = hb
+            
+        # If this is a terminal state, clear active contract
+        if hb.Status in self.DONE_STATES:
+            if self.active_contract_id == hb.Contract.ContractId:
+                self.active_contract_id = None
+                
+        # If this is a new contract, set as active
+        elif not self.active_contract_id:
+            self.active_contract_id = hb.Contract.ContractId
+    
     def initialize(self) -> Optional[SlowContractHeartbeat]:
-        """Set initial status and contract state based on persistent store.
-
-        Returns a heartbeat if contract has become expired
+        """Initialize contract handler state from persistent storage
+        
+        Returns a heartbeat if one needs to be sent to SCADA
         """
-        return_hb = self.load_heartbeat()  # None unless returning expired HB to atn
-        if self.settings.representation_dormant:
-            self.status = RepresentationStatus.Dormant
-        else:
-            if self.in_grace_period():  #
-                self.status = RepresentationStatus.Active
-            else:
-                self.status = RepresentationStatus.Ready
-        self.logger.info("Starting in %s state", self.status.value)
-        return return_hb
-
-    def in_grace_period(self) -> bool:
-        """Scada is NOT dormant, and a contract is active or was active within 5 minutes"""
-        if self.status == RepresentationStatus.Dormant:
-            return False
-        if self.latest_scada_hb:
-            return True
-        elif not self.prev:
-            return False
-        elif time.time() > self.prev.grace_period_end_s():
-            return False
-        else:
-            return True
-
-
-    def process_set_status(self, cmd: SetRepresentationStatus) -> Optional[Glitch]:
-        """Handle SetRepresentationStatus command from ATN"""
-        prior_status = self.status
-
-        if cmd.Status == RepresentationStatus.Dormant:
-            if self.latest_scada_hb:
-                return Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    Node=self.node.name,
-                    Type=LogLevel.Warning,
-                    Summary="Cannot transition to Dormant - active contract exists",
-                    Details=f"Latest Contract hb: {self.latest_scada_hb.model_dump_json()}",
-                )
-            self.status = RepresentationStatus.Dormant
-        elif cmd.Status == RepresentationStatus.Active:
-            self.status = RepresentationStatus.Active
-
-        if self.status != prior_status:
-            msg = f"Status changed: {prior_status} -> {self.status}"
-            if cmd.Reason:
-                msg += f" Reason: {cmd.Reason}"
-            self.logger.info(msg)
-        return None
-
-    def process_contract_hb(
-        self, atn_hb: SlowContractHeartbeat
-    ) -> Optional[SlowContractHeartbeat]:
-        """Handles contract heartbeating with atn.
-        If the atn_hb is appropriate:
-            - Returns the heartbeat to send back to the atn
-            - saves inbound atn_hb to self.latest_atn_hb and non-volatile stoarge
-        Inappropriate hb if:
-            - Representation status is Dormant
-            - inbound hb
-
-        """
-
-        return_hb = None
-
-        if self.status == RepresentationStatus.Dormant:
-            self.logger.info("Ignoring atn contract hb - Dormant!")
-            if self.latest_scada_hb:
-                if atn_hb.Contract == self.latest_scada_hb.Contract:
-                    return_hb = SlowContractHeartbeat(
-                        FromNode=self.node.Name,
-                        Contract=atn_hb.Contract,
-                        PreviousStatus=atn_hb.Status,
-                        Status=ContractStatus.TerminatedByScada,
-                        Cause="Scada's records show Dormant RepresentatationStatus",
-                        MessageCreatedMs=int(time.time() * 1000),
-                        MyDigit=random.choice(range(10)),
-                        YourLastDigit=atn_hb.MyDigit,
-                    )
-            self.prev = None
-            self.atn_hb = None
-
-        else:  # representation status either Ready or Active
-            if atn_hb.Status == ContractStatus.Created:
-                if self.latest_scada_hb:
-                    self.logger.info(
-                        "Received Created when I already have an existing atn_hb. Ignoring!"
-                    )
-                    return_hb = None
-                else:
-                    return_hb = self.start_new_contract_hb(atn_hb)
-            else:  # Otherwise we should share the same hb
-                if self.latest_scada_hb is None:
-                    self.logger.warning(
-                        f"my hb is None but received this hb. Ignoring! \n{atn_hb}"
-                    )
-                    return_hb = None
-                elif self.latest_scada_hb.Contract != atn_hb.Contract:
-                    self.logger.warning(
-                        f"my contract is not the same as incoming! Ignoring! Mine: {self.latest_scada_hb.Contract}\n incoming: {atn_hb.Contract}"
-                    )
-                    return_hb = None
-                else:
-                    return_hb = self.update_existing_contract_hb(atn_hb)
-
-        if return_hb is None:
-            self.logger.warning("Returning no hb")
-        else:
-            # TODO: include start, stop time in local timezone human readable and AvgPower
-            self.logger.info(f"Sending back {return_hb.Status}")
-        return return_hb
-
-    def start_new_contract_hb(
-        self, atn_hb: SlowContractHeartbeat
-    ) -> SlowContractHeartbeat:
-        """Manage scenario where self.RepresentationStatus is Ready and we receive
-        the first HB for a newly created Contract
-          -  cases:
-            - Prev contract exists, terminated and/or completed, inside the grace period
-            - Existing contract is not completed or terminated, still
-            in the existing timeframe: Ignore this one
-            - Previous contract exists, outside of grace period (Ready)
-            - No previous contract (Ready)
-            - right now does not handle a contract for a future time slot
-        """
-        if self.status not in [RepresentationStatus.Ready, RepresentationStatus.Active]:
-            raise Exception(
-                "Can only start new contract from ready or active representation status"
-            )
-        if atn_hb.Status != ContractStatus.Created:
-            raise Exception(
-                "Can only start new contract with a ContractStatus of Created!"
-            )
-        if self.latest_scada_hb:
-            self.logger.warning("Ignoring atn hb! Still inside existing contract")
-            self.logger.warning(f"Existing: {self.latest_scada_hb}")
-            raise Exception(f"Inbound: {atn_hb}")
-
-        self.status = RepresentationStatus.Active  # representation: Ready -> Active
-        self.latest_scada_hb = atn_hb
-        self.store_heartbeat()
-        return SlowContractHeartbeat(
-            FromNode=self.node.Name,
-            Contract=atn_hb.Contract,
-            PreviousStatus=atn_hb.Status,
-            Status=ContractStatus.Received,
-            MessageCreatedMs=int(time.time() * 1000),
-            MyDigit=random.choice(range(10)),
-            YourLastDigit=atn_hb.MyDigit,
-        )
-
-    def update_existing_contract_hb(
-        self, atn_hb: SlowContractHeartbeat
-    ) -> SlowContractHeartbeat:
-        if self.status not in [RepresentationStatus.Ready, RepresentationStatus.Active]:
-            raise Exception(
-                "Do not call update_existing_contract if rep status is not Ready or Active"
-            )
-        if self.latest_scada_hb is None:
-            raise Exception(
-                "Do not call update_existing_contract_hb if latest_atn_hb is None"
-            )
-        if self.latest_scada_hb.Contract != atn_hb.Contract:
-            raise Exception(
-                "Do not call update_existing_contract if self.hb.Contract != atn_hb.Contract"
-            )
-
-        if atn_hb.Status == ContractStatus.TerminatedByAtn:  # clear out contract
-            new_contract_status = atn_hb.Status
-            self.prev = atn_hb
-            self.latest_scada_hb = None
-            self.clear_heartbeat()
-        else:
-            if atn_hb.Status == ContractStatus.Confirmed:
-                if self.latest_scada_hb.Status != ContractStatus.Created:
-                    raise Exception(
-                        f"self.hb.Status is {self.latest_scada_hb.Status} instead of Created with inbound atn_hb.Status of Confirmed!"
-                    )
-                new_contract_status = ContractStatus.Active  # for hb back to atn
-            elif atn_hb.Status == ContractStatus.Active:
-                if self.latest_scada_hb.Status != ContractStatus.Confirmed:
-                    raise Exception(
-                        f"self.hb.Status is {self.latest_scada_hb.Status} instead of Created with inbound atn_hb.Status of Confirmed!"
-                    )
-                new_contract_status = ContractStatus.Active
-            self.latest_scada_hb = atn_hb
-            self.store_heartbeat()
-
-        if new_contract_status != atn_hb.Status:
-            prev_status = atn_hb.Status
-        else:
-            prev_status = None
-        return SlowContractHeartbeat(
-            FromNode=self.node.Name,
-            Contract=atn_hb.Contract,
-            PreviousStatus=prev_status,
-            Status=new_contract_status,
-            MessageCreatedMs=int(time.time() * 1000),
-            MyDigit=random.choice(range(10)),
-            YourLastDigit=atn_hb.MyDigit,
-        )
-
-    def scada_terminates_contract_hb(self, cause: str = "") -> SlowContractHeartbeat:
-        """Creats a heartbeat declaring scada termination of contract
-        - can only call if self.latest_atn_hb exists
-        - sets prev to latest_atn_hb and latest_atn_hb to None
-        """
-        if not self.latest_scada_hb:
-            raise Exception("Cannot call scada terminates contract if no latest_atn_hb")
-        hb = SlowContractHeartbeat(
-            FromNode=self.node.Name,
-            Contract=self.latest_scada_hb.Contract,
-            PreviousStatus=self.latest_scada_hb.Status,
-            Status=ContractStatus.TerminatedByScada,
-            Cause=cause,
-            MessageCreatedMs=int(time.time() * 1000),
-            MyDigit=random.choice(range(10)),
-            YourLastDigit=self.latest_scada_hb.MyDigit,
-        )
-        self.prev = hb
-        self.latest_scada_hb = None
+        hb = self.load_heartbeat()
+        
+        # Schedule next heartbeat
+        self.schedule_next_heartbeat()
+        
         return hb
-
-    def scada_detects_contract_complete_hb(self) -> SlowContractHeartbeat:
-        """Creats a heartbeat noting time has passed completion
-        - can only call if self.latest_atn_hb exists
-        - sets prev to latest_atn_hb and latest_atn_hb to None
-
-        Raises exception if called before the ContractEndS
+    
+    def schedule_next_heartbeat(self) -> None:
+        """Schedule the next heartbeat"""
+        self.next_heartbeat_time = time.time() + self.HEARTBEAT_INTERVAL_SECONDS
+    
+    def is_heartbeat_due(self) -> bool:
+        """Check if it's time to send a heartbeat"""
+        return time.time() >= self.next_heartbeat_time
+    
+    def create_new_contract(self, 
+                           avg_power_watts: int, 
+                           duration_minutes: int = 60, 
+                           oil_boiler_on: bool = False) -> SlowContractHeartbeat:
+        """Create a new dispatch contract
+        
+        This is called when the latest price is received and the ATN decides
+        to create a new contract.
         """
+        # Only create if there's no active contract or the active contract is done
+        if self.active_contract_id and self.latest_hb and self.latest_hb.Status in self.ACTIVE_STATES:
+            self.logger.warning("Cannot create new contract while one is active")
+            return None
+            
+        # Create contract starting at the next 5-minute boundary
         now = time.time()
-        if not self.latest_scada_hb:
-            raise Exception("Cannot call scada terminates contract if no latest_atn_hb")
-        if now < self.latest_scada_hb.Contract.ContractEndS:
-            raise Exception(
-                f"scada_detects_contract_complete_hb called at {int(now)}, before ContractEndTime of {self.latest_scada_hb.Contract.ContractEndS}"
-            )
+        start_s = int(now - (now % 300) + 300)  # Next 5-minute boundary
+        
+        contract = SlowDispatchContract(
+            ScadaAlias=self.layout.scada_g_node_alias,
+            StartS=start_s,
+            DurationMinutes=duration_minutes,
+            AvgPowerWatts=avg_power_watts,
+            OilBoilerOn=oil_boiler_on,
+            ContractId=str(uuid.uuid4()),
+        )
+        
+        # Create initial heartbeat
         hb = SlowContractHeartbeat(
-            FromNode=self.node.Name,
-            Contract=self.latest_scada_hb.Contract,
-            PreviousStatus=self.latest_scada_hb.Status,
+            FromNode=self.atn_name,
+            Contract=contract,
+            Status=ContractStatus.Created,
+            MessageCreatedMs=int(time.time() * 1000),
+            MyDigit=random.choice(range(10)),
+            YourLastDigit=None,  # First message in chain
+        )
+        
+        # Store heartbeat
+        self.store_heartbeat(hb)
+        self.latest_hb = hb
+        self.active_contract_id = contract.ContractId
+        
+        # Also store in pending contracts
+        self.pending_contracts[contract.ContractId] = contract
+        
+        return hb
+    
+    def create_termination_heartbeat(self, reason: str) -> Optional[SlowContractHeartbeat]:
+        """Create a heartbeat terminating the current contract"""
+        if not self.active_contract_id or not self.latest_hb:
+            self.logger.warning("No active contract to terminate")
+            return None
+            
+        hb = SlowContractHeartbeat(
+            FromNode=self.atn_name,
+            Contract=self.latest_hb.Contract,
+            PreviousStatus=self.latest_hb.Status,
+            Status=ContractStatus.TerminatedByAtn,
+            Cause=reason,
+            MessageCreatedMs=int(time.time() * 1000),
+            MyDigit=random.choice(range(10)),
+            YourLastDigit=self.latest_scada_hb.MyDigit if self.latest_scada_hb else None,
+        )
+        
+        # Store heartbeat
+        self.store_heartbeat(hb)
+        
+        # Clear active contract
+        self.active_contract_id = None
+        
+        return hb
+    
+    def create_completion_heartbeat(self, previous_hb: SlowContractHeartbeat) -> SlowContractHeartbeat:
+        """Create a heartbeat marking the current contract as completed"""
+        hb = SlowContractHeartbeat(
+            FromNode=self.atn_name,
+            Contract=previous_hb.Contract,
+            PreviousStatus=previous_hb.Status,
             Status=ContractStatus.CompletedUnknownOutcome,
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),
-            YourLastDigit=self.latest_scada_hb.MyDigit,
+            YourLastDigit=self.latest_scada_hb.MyDigit if self.latest_scada_hb else None,
         )
-        self.prev = hb
-        self.latest_scada_hb = None
+        
+        # Store heartbeat
+        self.store_heartbeat(hb)
+        
+        # Clear active contract
+        self.active_contract_id = None
+        
         return hb
+    
+    def generate_next_heartbeat(self) -> Optional[SlowContractHeartbeat]:
+        """Generate the next heartbeat in the contract sequence
+        
+        This is called periodically to maintain the contract heartbeat
+        """
+        if not self.active_contract_id:
+            self.schedule_next_heartbeat()
+            return None
+            
+        # If we don't have a scada response yet but have sent a contract, check if we need to resend
+        if not self.latest_scada_hb and self.latest_hb and self.latest_hb.Status == ContractStatus.Created:
+            # Check if it's been over 30 seconds since we sent the contract
+            last_sent_time = self.latest_hb.MessageCreatedMs / 1000
+            if time.time() - last_sent_time > 30:
+                # Resend the contract creation
+                hb = SlowContractHeartbeat(
+                    FromNode=self.atn_name,
+                    Contract=self.latest_hb.Contract,
+                    Status=ContractStatus.Created,
+                    MessageCreatedMs=int(time.time() * 1000),
+                    MyDigit=random.choice(range(10)),
+                    YourLastDigit=None,  # Still first message
+                )
+                self.store_heartbeat(hb)
+                self.schedule_next_heartbeat()
+                return hb
+                
+        # If we have received a response from SCADA
+        if self.latest_scada_hb:
+            # Check the status of the contract
+            if self.latest_scada_hb.Status == ContractStatus.Received:
+                # SCADA has received, we should confirm
+                hb = SlowContractHeartbeat(
+                    FromNode=self.atn_name,
+                    Contract=self.latest_scada_hb.Contract,
+                    PreviousStatus=self.latest_scada_hb.Status,
+                    Status=ContractStatus.Confirmed,
+                    MessageCreatedMs=int(time.time() * 1000),
+                    MyDigit=random.choice(range(10)),
+                    YourLastDigit=self.latest_scada_hb.MyDigit,
+                )
+                self.store_heartbeat(hb)
+                self.schedule_next_heartbeat()
+                return hb
+                
+            elif self.latest_scada_hb.Status == ContractStatus.Active:
+                # Contract is active, send periodic active updates
+                # ATN is not authoritative about "Active" status
+                hb = SlowContractHeartbeat(
+                    FromNode=self.atn_name,
+                    Contract=self.latest_scada_hb.Contract,
+                    Status=ContractStatus.Active,
+                    MessageCreatedMs=int(time.time() * 1000),
+                    MyDigit=random.choice(range(10)),
+                    YourLastDigit=self.latest_scada_hb.MyDigit,
+                    IsAuthoritative=False,
+                )
+                self.store_heartbeat(hb)
+                self.schedule_next_heartbeat()
+                return hb
+                
+            elif self.latest_scada_hb.Status in self.DONE_STATES:
+                # Contract is done, clear active contract
+                self.active_contract_id = None
+                # Send one final acknowledgment
+                hb = SlowContractHeartbeat(
+                    FromNode=self.atn_name,
+                    Contract=self.latest_scada_hb.Contract,
+                    Status=self.latest_scada_hb.Status,
+                    MessageCreatedMs=int(time.time() * 1000),
+                    MyDigit=random.choice(range(10)),
+                    YourLastDigit=self.latest_scada_hb.MyDigit,
+                    IsAuthoritative=False,
+                )
+                self.store_heartbeat(hb)
+                return hb
+                
+        self.schedule_next_heartbeat()
+        return None
+    
+    def process_heartbeat(self, hb: SlowContractHeartbeat) -> Optional[SlowContractHeartbeat]:
+        """Process a heartbeat from SCADA
+        
+        Returns a response heartbeat if one should be sent
+        """
+        # Validate heartbeat is from SCADA
+        if hb.FromNode != "s":
+            self.logger.warning(f"Received heartbeat from {hb.FromNode}, not SCADA")
+            return None
+            
+        # Store the latest SCADA heartbeat
+        self.latest_scada_hb = hb
+        
+        # Check the status
+        if hb.Status == ContractStatus.Received:
+            # SCADA has received our contract, respond with confirmation
+            response = SlowContractHeartbeat(
+                FromNode=self.atn_name,
+                Contract=hb.Contract,
+                PreviousStatus=hb.Status,
+                Status=ContractStatus.Confirmed,
+                MessageCreatedMs=int(time.time() * 1000),
+                MyDigit=random.choice(range(10)),
+                YourLastDigit=hb.MyDigit,
+            )
+            self.store_heartbeat(response)
+            # Reset next heartbeat time to maintain regular frequency
+            self.schedule_next_heartbeat()
+            return response
+            
+        elif hb.Status == ContractStatus.TerminatedByScada:
+            # SCADA has terminated the contract
+            self.logger.info(f"Contract terminated by SCADA: {hb.Cause}")
+            # Clear active contract if this is our active one
+            if self.active_contract_id == hb.Contract.ContractId:
+                self.active_contract_id = None
+            # Send acknowledgment
+            response = SlowContractHeartbeat(
+                FromNode=self.atn_name,
+                Contract=hb.Contract,
+                Status=ContractStatus.TerminatedByScada,
+                MessageCreatedMs=int(time.time() * 1000),
+                MyDigit=random.choice(range(10)),
+                YourLastDigit=hb.MyDigit,
+                IsAuthoritative=False,
+            )
+            self.store_heartbeat(response)
+            return response
+            
+        elif hb.Status == ContractStatus.CompletedUnknownOutcome:
+            # Contract has completed
+            self.logger.info("Contract completed")
+            # Clear active contract if this is our active one
+            if self.active_contract_id == hb.Contract.ContractId:
+                self.active_contract_id = None
+            # Send acknowledgment
+            response = SlowContractHeartbeat(
+                FromNode=self.atn_name,
+                Contract=hb.Contract,
+                Status=ContractStatus.CompletedUnknownOutcome,
+                MessageCreatedMs=int(time.time() * 1000),
+                MyDigit=random.choice(range(10)),
+                YourLastDigit=hb.MyDigit,
+                IsAuthoritative=False,
+            )
+            self.store_heartbeat(response)
+            return response
+            
+        # For other statuses, just store the heartbeat but don't respond directly
+        self.store_heartbeat(hb)
+        return None
+        
+    def process_remaining_energy(self, remaining_wh: int) -> None:
+        """Process an update about remaining energy from SCADA"""
+        self.remaining_energy_wh = remaining_wh
+        
+    def set_representation_status(self, status: RepresentationStatus, reason: str = "") -> SetRepresentationStatus:
+        """Update the representation status and create a message to send to SCADA"""
+        old_status = self.status
+        self.status = status
+        
+        if old_status != status:
+            self.logger.info(f"Representation status changed: {old_status} -> {status}")
+            if reason:
+                self.logger.info(f"Reason: {reason}")
+                
+        return SetRepresentationStatus(
+            FromGNodeAlias=self.layout.atn_g_node_alias,
+            TimeS=int(time.time()),
+            Status=status,
+            Reason=reason,
+        )
+        
+    def has_active_contract(self) -> bool:
+        """Check if there is an active contract"""
+        return (
+            self.active_contract_id is not None and 
+            self.latest_hb is not None and
+            self.latest_hb.Status in self.ACTIVE_STATES
+        )
+        
+    def can_create_new_contract(self) -> bool:
+        """Check if a new contract can be created"""
+        # Cannot create if representation is dormant
+        if self.status == RepresentationStatus.Dormant:
+            return False
+            
+        # Cannot create if there's an active contract
+        if self.has_active_contract():
+            return False
+            
+        return True

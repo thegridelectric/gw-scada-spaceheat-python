@@ -29,7 +29,7 @@ class SlowContractHeartbeat(BaseModel):
         """ 5 minutes after the ContractEndS unless the contract
         was terminated, in which case 5 minutes after termination
         """
-        contract_done_s = self.Contract.ContractEndS
+        contract_done_s = self.Contract.contract_end_s()
         if self.Status in [ContractStatus.TerminatedByAtn, ContractStatus.TerminatedByScada]:
             contract_done_s = int(self.MessageCreatedMs / 1000)
         return contract_done_s + self.contract_grace_period_minutes() * 60

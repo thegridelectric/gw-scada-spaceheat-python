@@ -83,6 +83,13 @@ class ContractHandler:
         contracted_wh = int(self.latest_scada_hb.Contract.AvgPowerWatts * self.latest_scada_hb.Contract.DurationMinutes/60)
         return min(contracted_wh - self.energy_used_wh, 0)
 
+    def active_contract_has_expired(self) -> bool:
+        if not self.latest_scada_hb:
+            return False
+        if time.time() > self.latest_scada_hb.Contract.contract_end_s():
+            return True
+        return False
+
     def load_heartbeat(self) -> Optional[SlowContractHeartbeat]:
         """Loads existing SlowDispatchContract from persistent storage
 
@@ -115,7 +122,7 @@ class ContractHandler:
                 # should be one of Scada states
                 if hb.FromNode != H0N.primary_scada:
                     raise ValueError("Saved Active contracts must be from Scada!")
-                if time.time() > hb.Contract.ContractEndS:
+                if time.time() > hb.Contract.contract_end_s():
                     self.prev = SlowContractHeartbeat(
                         FromNode=self.node.name,
                         Contract=hb.Contract,
@@ -441,9 +448,9 @@ class ContractHandler:
         now = time.time()
         if not self.latest_scada_hb:
             raise Exception("Cannot call scada terminates contract if no latest_atn_hb")
-        if now < self.latest_scada_hb.Contract.ContractEndS:
+        if now < self.latest_scada_hb.Contract.contract_end_s():
             raise Exception(
-                f"scada_detects_contract_complete_hb called at {int(now)}, before ContractEndTime of {self.latest_scada_hb.Contract.ContractEndS}"
+                f"scada_detects_contract_complete_hb called at {int(now)}, before ContractEndTime of {self.latest_scada_hb.Contract.contract_end_s()}"
             )
         hb = SlowContractHeartbeat(
             FromNode=self.node.Name,

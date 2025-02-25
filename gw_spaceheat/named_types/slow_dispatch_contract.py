@@ -37,7 +37,6 @@ class SlowDispatchContract(BaseModel):
                 raise ValueError("OilBoilerOn -> AvgPowerWatts is 0")
         return self
 
-    @property
-    def ContractEndS(self) -> int:
+    def contract_end_s(self) -> int:
         return self.StartS + self.DurationMinutes * 60
 
