@@ -55,7 +55,7 @@ class AdminSubClient:
     def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         ...
 
-    def strat_boss_trigger_received(self, payload: StratBossTrigger) -> None:
+    def process_strat_boss_trigger(self, payload: StratBossTrigger) -> None:
         ...
 
     def process_mqtt_state_changed(self, old_state: str, new_state: str) -> None:

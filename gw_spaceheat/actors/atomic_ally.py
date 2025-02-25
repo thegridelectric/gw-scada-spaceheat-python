@@ -188,18 +188,18 @@ class AtomicAlly(ScadaActor):
                 self.forecasts = message.Payload
             case SlowDispatchContract():
                 try:
-                    self.slow_dispatch_contract_received(from_node, message.Payload)
+                    self.process_slow_dispatch_contract(from_node, message.Payload)
                 except Exception as e:
-                    self.log(f"Trouble with slow_dispatch_contract_received: {e}")
+                    self.log(f"Trouble with process_slow_dispatch_contract: {e}")
             case StratBossTrigger():
                 try:
-                    self.strat_boss_trigger_received(from_node, message.Payload)
+                    self.process_strat_boss_trigger(from_node, message.Payload)
                 except Exception as e:
-                    self.log(f"Problem with strat_boss_trigger_received: {e}")
+                    self.log(f"Problem with process_strat_boss_trigger: {e}")
 
         return Ok(True)
     
-    def slow_dispatch_contract_received(self, from_node, contract: SlowDispatchContract) -> None:
+    def process_slow_dispatch_contract(self, from_node, contract: SlowDispatchContract) -> None:
 
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
@@ -223,11 +223,11 @@ class AtomicAlly(ScadaActor):
                 self.trigger_event(AtomicAllyEvent.StopHackOil) # will go to initializing
             self.engage_brain()
 
-    def strat_boss_trigger_received(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
+    def process_strat_boss_trigger(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
         self.log("Strat boss trigger received!")
         if self.state == AtomicAllyState.Dormant:
             self.log(f"state is {self.state}")
-            self.log("strat boss should be sidelined and NOT sending messages but strat_boss_trigger_received. IGNORING")
+            self.log("strat boss should be sidelined and NOT sending messages but process_strat_boss_trigger. IGNORING")
             return
         
         if payload.FromState == StratBossState.Dormant:

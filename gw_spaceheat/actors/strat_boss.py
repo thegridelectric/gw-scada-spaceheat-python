@@ -147,13 +147,13 @@ class StratBoss(ScadaActor):
         match payload:
             case FsmEvent():
                 try:
-                    self.fsm_event_received(from_node, payload)
+                    self.process_fsm_event(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with fsm_event_received: {e}")
+                    self.log(f"Trouble with process_fsm_event: {e}")
             case FsmFullReport():
                 ... # direct reports following up re acting on commands given
             case StratBossTrigger():
-                self.strat_boss_trigger_received(from_node, payload)
+                self.process_strat_boss_trigger(from_node, payload)
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}"
                 )
@@ -171,7 +171,7 @@ class StratBoss(ScadaActor):
         else:
             return False
 
-    def fsm_event_received(self, from_node: ShNode, payload: FsmEvent) -> None:
+    def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None:
         if from_node != self.hp_relay_boss:
             self.log(f"Rejecting FsmEvent. Expected from_node hp_relay_boss but got {from_node.Name}")
         if payload.ToHandle != self.hp_relay_boss.Handle:
@@ -203,7 +203,7 @@ class StratBoss(ScadaActor):
             else:
                 self.log(f"Got {payload.EventName} but its not triggering a state change from {self.state}")    
 
-    def strat_boss_trigger_received(self, from_node: ShNode, payload: StratBossTrigger):
+    def process_strat_boss_trigger(self, from_node: ShNode, payload: StratBossTrigger):
         """
         Receiving this message from the boss means the command tree reflects ToState
         """

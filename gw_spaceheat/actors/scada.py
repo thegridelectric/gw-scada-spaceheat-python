@@ -323,24 +323,24 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with process_ally_gives_up: \n {e}")
             case AnalogDispatch():
                 try:
-                    self.analog_dispatch_received(from_node, payload)
+                    self.process_analog_dispatch(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with analog_dispatch_received: \n {e}")
+                    self.log(f"Trouble with proces_analog_dispatch: \n {e}")
             case ChannelFlatlined():
                 try:
                     self.data.flush_channel_from_latest(payload.Channel.Name)
                 except Exception as e:
-                    self.log(f"Trouble with ChannelFlatlined Received: \n {e}")
+                    self.log(f"Trouble with ChannelFlatlined: \n {e}")
             case ChannelReadings():
                 try:
-                    self.channel_readings_received(from_node, payload)
+                    self.process_channel_readings(from_node, payload)
                 except Exception as e:
-                    self.logger.error(f"problem with channel_readings_received: \n {e}")
+                    self.logger.error(f"problem with process_channel_readings: \n {e}")
             case FsmFullReport():
                 try:
-                    self.fsm_full_report_received(from_node, payload)
+                    self.process_fsm_full_report(from_node, payload)
                 except Exception as e:
-                    self.logger.error(f"problem with fsm_full_report_received: \n {e}")
+                    self.logger.error(f"problem with process_fsm_full_report: \n {e}")
             case Glitch():
                 new_glitch = Glitch(
                     FromGNodeAlias=payload.FromGNodeAlias,
@@ -353,20 +353,20 @@ class Scada(ScadaInterface, Proactor):
                 self._send_to(self.atn, new_glitch)
             case MachineStates():
                 try:
-                    self.machine_states_received(from_node, payload)
+                    self.process_machine_states(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with machine_states_received: \n {e}")
+                    self.log(f"Trouble with process_machine_states: \n {e}")
             case PowerWatts():
                 try:
-                    self.power_watts_received(from_node, payload)
+                    self.process_power_watts(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with power_watts_received: \n {e}")
+                    self.log(f"Trouble with process_power_watts: \n {e}")
             case ScadaParams():
                 try:
-                    self.scada_params_received(from_node, payload)
+                    self.process_scada_params(from_node, payload)
                     self._send_to(self.synth_generator, payload)
                 except Exception as e:
-                    self.log(f"Trouble with scada_params_received: \n {e}")
+                    self.log(f"Trouble with process_scada_params: \n {e}")
             case SendLayout():
                 try:
                     self._send_to(from_node, self.layout_lite)
@@ -379,19 +379,19 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with SendSnap: {e}")
             case SetRepresentationStatus():
                 try:
-                    self.set_representation_status_received(from_node, payload)
+                    self.process_set_representation_status(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with set_representation_status_received: {e}")
+                    self.log(f"Trouble with process_set_representation_status: {e}")
             case SingleMachineState():
                 try:
-                    self.single_machine_state_received(from_node, payload)
+                    self.proess_single_machine_state(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with single_machine_state_received: \n {e}")
+                    self.log(f"Trouble with process_single_machine_state_: \n {e}")
             case SingleReading():
                 try:
-                    self.single_reading_received(from_node, payload)
+                    self.process_single_reading(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with single_reading_received: \n {e}")
+                    self.log(f"Trouble with process_single_reading: \n {e}")
             case SlowContractHeartbeat():
                 try:
                     self.process_slow_contract_heartbeat(from_node, payload)
@@ -399,14 +399,14 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with process_slow_contract_heartbeat: \n {e}")
             case SuitUp():
                 try:
-                    self.suit_up_received(from_node, payload)
+                    self.process_suit_up(from_node, payload)
                 except Exception as e:
-                    self.logger.error(f"Trouble with suit_up_received: \n {e}")
+                    self.logger.error(f"Trouble with process_suit_up: \n {e}")
             case SyncedReadings():
                 try:
-                    self.synced_readings_received(from_node, payload)
+                    self.process_synced_readings(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with synced_reading_received: \n {e}")
+                    self.log(f"Trouble with process_synced_reading: \n {e}")
             case _:
                 raise ValueError(f"Scada does not expect to receive[{type(payload)}!]")
 
@@ -510,7 +510,7 @@ class Scada(ScadaInterface, Proactor):
         # AutoState transition: AllyGivesUp: Atn -> HomeAlone
         self.log(f"Atomic Ally giving up: {payload.Reason}")
 
-    def analog_dispatch_received(
+    def process_analog_dispatch(
         self, from_node: ShNode, payload: AnalogDispatch
     ) -> None:
         if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
@@ -531,7 +531,7 @@ class Scada(ScadaInterface, Proactor):
         #     self.log(f"Sending to {to_node.Name}")
         #     self._send_to(to_node.Name, payload)
 
-    def channel_readings_received(
+    def process_channel_readings(
         self, from_node: ShNode, payload: ChannelReadings
     ) -> None:
         if payload.ChannelName not in self._layout.data_channels:
@@ -552,12 +552,12 @@ class Scada(ScadaInterface, Proactor):
                 ch.Name
             ] = payload.ScadaReadTimeUnixMsList[-1]
 
-    def fsm_full_report_received(
+    def process_fsm_full_report(
         self, from_node: ShNode, payload: FsmFullReport
     ) -> None:
         self._data.recent_fsm_reports[payload.TriggerId] = payload
 
-    def machine_states_received(
+    def process_machine_states(
         self, from_node: ShNode, payload: MachineStates
     ) -> None:
         node_name = payload.MachineHandle.split('.')[-1]
@@ -587,7 +587,7 @@ class Scada(ScadaInterface, Proactor):
             UnixMs=payload.UnixMsList[-1]
         )
 
-    def power_watts_received(self, from_node: ShNode, payload: PowerWatts):
+    def process_power_watts(self, from_node: ShNode, payload: PowerWatts):
         """Highest priority of scada is to pass this on to Atn
 
         also call contract_handler.update_energy_usage
@@ -599,7 +599,7 @@ class Scada(ScadaInterface, Proactor):
         if self.contract_handler.latest_scada_hb:
             self.contract_handler.update_energy_usage()
 
-    def scada_params_received(
+    def process_scada_params(
         self, from_node: ShNode, payload: ScadaParams, testing: bool = False
     ) -> None:
         if from_node != self.atn:
@@ -655,7 +655,7 @@ class Scada(ScadaInterface, Proactor):
             self.logger.error(f"Sending back {response}")
             self._send_to(self.atn, response)
 
-    def set_representation_status_received(
+    def process_set_representation_status(
             self, from_node: ShNode, cmd: SetRepresentationStatus
     ) -> None:
         """Handle SetRepresentationStatus command from ATN"""
@@ -695,7 +695,7 @@ class Scada(ScadaInterface, Proactor):
             self.log(msg)
         return None
 
-    def single_machine_state_received(
+    def proess_single_machine_state(
         self, from_node: ShNode, payload: SingleMachineState
     ) -> None:
         # TODO: compare MachineHandle last word with from_node.Name
@@ -724,7 +724,7 @@ class Scada(ScadaInterface, Proactor):
         node_name = payload.MachineHandle.split('.')[-1]
         self._data.latest_machine_state[node_name] = payload
 
-    def single_reading_received(
+    def process_single_reading(
         self, from_node: ShNode, payload: SingleReading
     ) -> None:
         if payload.ChannelName in self._layout.data_channels:
@@ -739,7 +739,7 @@ class Scada(ScadaInterface, Proactor):
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
         self._forward_single_reading(payload)
 
-    def suit_up_received(self, from_node: ShNode, payload: SuitUp) -> None:
+    def process_suit_up(self, from_node: ShNode, payload: SuitUp) -> None:
         if from_node.Name != H0N.atomic_ally:
             self.log(
                 f"Ignoring AllySuitsUp from {from_node.Name} - expect AtomicAlly (aa)"
@@ -750,9 +750,9 @@ class Scada(ScadaInterface, Proactor):
         self.process_new_contract()
         self._send_to(self.atn, GameOn(FromGNodeAlias=self.layout.scada_g_node_alias))
 
-    def synced_readings_received(self, from_node: ShNode, payload: SyncedReadings):
+    def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings):
         self._logger.path(
-            "++synced_readings_received from: %s  channels: %d",
+            "++process_synced_readingsfrom: %s  channels: %d",
             from_node.Name,
             len(payload.ChannelNameList),
         )
@@ -770,9 +770,6 @@ class Scada(ScadaInterface, Proactor):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
-        self._logger.path(
-            "--gt_sh_telemetry_from_multipurpose_sensor_received  path:0x%08X", path_dbg
-        )
 
     #####################################################################
     # State Machine related
