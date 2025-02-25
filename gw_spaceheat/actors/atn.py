@@ -826,19 +826,32 @@ class Atn(ActorInterface, Proactor):
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
         )
-        self.log("Creating graph and solving Dijkstra with Hinge...")
-        st = time.time()
-        f = FloHinge(flo_params, hinge_hours=5, num_nodes=[10,3,3,3,3])
-        self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
-        self.log("Finding PQ pairs")
-        st = time.time()
-        pq_pairs: List[PriceQuantityUnitless] = f.generate_bid()
-        self.log(
-            f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
-        )
-        # TODO: remove this later
-        if len(pq_pairs) > 100:
-            self.log("TOO MANY PQ PAIRS!")
+        if self.settings.hinge:
+            self.log("Creating graph and solving Dijkstra with Hinge...")
+            st = time.time()
+            f = FloHinge(flo_params, hinge_hours=5, num_nodes=[10,3,3,3,3])
+            self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
+            self.log("Finding PQ pairs")
+            st = time.time()
+            pq_pairs: List[PriceQuantityUnitless] = f.generate_bid()
+            self.log(
+                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
+            )
+        else:
+            self.log("Creating graph")
+            st = time.time()
+            g = DGraph(flo_params)
+            self.log(f"The first time step is {round(g.params.fraction_of_hour_remaining*60)} minutes")
+            self.log(f"Done in {round(time.time()-st,2)} seconds")
+            self.log("Solving Dijkstra")
+            g.solve_dijkstra()
+            self.log("Solved!")
+            self.log("Finding PQ pairs")
+            st = time.time()
+            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
+            self.log(
+                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
+            )
 
         # Generate bid
         t = time.time()

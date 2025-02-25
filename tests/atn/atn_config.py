@@ -48,6 +48,7 @@ class AtnSettings(ProactorSettings):
     fuel_sub_usd_per_mwh: int = 250 # hack until we account for COP etc
     hp_model: HpModel = HpModel.SamsungHighTempHydroKitPlusMultiV # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
+    hinge: bool = False
 
 
     @model_validator(mode="before")
