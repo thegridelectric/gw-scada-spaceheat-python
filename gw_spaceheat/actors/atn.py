@@ -16,6 +16,7 @@ import pytz
 import aiohttp
 import rich
 from actors.flo import DGraph
+from actors.hinge import FloHinge
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
@@ -761,6 +762,7 @@ class Atn(ActorInterface, Proactor):
                 self.sent_bid = False
             else:
                 self.log(f"Minute {datetime.now().minute}")
+                # await self.run_fake_d(session)
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
@@ -824,23 +826,32 @@ class Atn(ActorInterface, Proactor):
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
         )
-        self.log("Creating graph")
-        st = time.time()
-        g = DGraph(flo_params)
-        self.log(f"The first time step is {round(g.params.fraction_of_hour_remaining*60)} minutes")
-        self.log(f"Done in {round(time.time()-st,2)} seconds")
-        self.log("Solving Dijkstra")
-        g.solve_dijkstra()
-        self.log("Solved!")
-        self.log("Finding PQ pairs")
-        st = time.time()
-        pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
-        self.log(
-            f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
-        )
-        # TODO: remove this later
-        if len(pq_pairs) > 100:
-            self.log("TOO MANY PQ PAIRS!")
+        if self.settings.hinge:
+            self.log("Creating graph and solving Dijkstra with Hinge...")
+            st = time.time()
+            f = FloHinge(flo_params, hinge_hours=5, num_nodes=[10,3,3,3,3])
+            self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
+            self.log("Finding PQ pairs")
+            st = time.time()
+            pq_pairs: List[PriceQuantityUnitless] = f.generate_bid()
+            self.log(
+                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
+            )
+        else:
+            self.log("Creating graph")
+            st = time.time()
+            g = DGraph(flo_params)
+            self.log(f"The first time step is {round(g.params.fraction_of_hour_remaining*60)} minutes")
+            self.log(f"Done in {round(time.time()-st,2)} seconds")
+            self.log("Solving Dijkstra")
+            g.solve_dijkstra()
+            self.log("Solved!")
+            self.log("Finding PQ pairs")
+            st = time.time()
+            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
+            self.log(
+                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
+            )
 
         # Generate bid
         t = time.time()
@@ -863,6 +874,83 @@ class Atn(ActorInterface, Proactor):
         self.latest_bid = bid
         self.log(f"Bid: {bid}")
         self.sent_bid = True
+
+    async def run_fake_d(self, session: aiohttp.ClientSession) -> None:
+        dijkstra_start_time = int(datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)))
+        
+        await self.get_weather(session)
+        self.update_price_forecast()
+
+        self.log("Finding thermocline position and top temperature")
+        result = await self.get_thermocline_and_centroids()
+        if result is None:
+            self.log("Get thermocline and centroid failed! Releasing control of Scada!")
+            self.release_control()
+            return
+        initial_toptemp, initial_bottomtemp, initial_thermocline = result
+
+        buffer_available_kwh = await self.get_buffer_available_kwh()
+        house_available_kwh = await self.get_house_available_kwh()
+        if self.price_forecast is None:
+            self.log("Not running flo - no price forecast")
+            return
+        if self.weather_forecast is None:
+            self.log("Not running flo - no weather forecast")
+            return
+        flo_params = FloParamsHouse0(
+            GNodeAlias=self.layout.scada_g_node_alias,
+            StartUnixS=dijkstra_start_time,
+            InitialTopTempF=int(initial_toptemp),
+            InitialBottomTempF=int(initial_bottomtemp),
+            InitialThermocline=initial_thermocline * 2,
+            # TODO: price and weather forecasts should include the current hour if we are running a partial hour
+            LmpForecast=self.price_forecast.lmp_usd_per_mwh,
+            DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
+            RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
+            OatForecastF=self.weather_forecast["oat"],
+            WindSpeedForecastMph=self.weather_forecast["ws"],
+            AlphaTimes10=self.ha1_params.AlphaTimes10,
+            BetaTimes100=self.ha1_params.BetaTimes100,
+            GammaEx6=self.ha1_params.GammaEx6,
+            IntermediatePowerKw=self.ha1_params.IntermediatePowerKw,
+            IntermediateRswtF=self.ha1_params.IntermediateRswtF,
+            DdPowerKw=self.ha1_params.DdPowerKw,
+            DdRswtF=self.ha1_params.DdRswtF,
+            DdDeltaTF=self.ha1_params.DdDeltaTF,
+            MaxEwtF=self.ha1_params.MaxEwtF,
+            HpIsOff=self.hp_is_off,
+            BufferAvailableKwh=buffer_available_kwh,
+            HouseAvailableKwh=house_available_kwh
+        )
+        self.log("Creating graph and solving Dijkstra...")
+        st = time.time()
+        f = FloHinge(flo_params)
+        self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
+        self.log("Finding PQ pairs")
+        st = time.time()
+        pq_pairs: List[PriceQuantityUnitless] = f.generate_bid()
+        self.log(
+            f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
+        )
+        # TODO: remove this later
+        if len(pq_pairs) > 100:
+            self.log("TOO MANY PQ PAIRS!")
+
+        # Generate bid
+        t = time.time()
+        slot_start_s = int(t - (t % 3600)) + 3600
+        mtn = MarketTypeName.rt60gate5.value
+        market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
+        bid = AtnBid(
+            BidderAlias=self.layout.atn_g_node_alias,
+            MarketSlotName=market_slot_name,
+            PqPairs=pq_pairs,
+            InjectionIsPositive=False,  # withdrawing energy since load not generation
+            PriceUnit=MarketPriceUnit.USDPerMWh,
+            QuantityUnit=MarketQuantityUnit.AvgkW,
+            SignedMarketFeeTxn="BogusAlgoSignature",
+        )
+        self.log(f"Bid: {bid}")
 
     def latest_price_received(self, payload: LatestPrice) -> None:
         self.latest_price = payload
@@ -1363,7 +1451,7 @@ class Atn(ActorInterface, Proactor):
         )
         self.log("Successfully read price forecast from local CSV")
         self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-        self.log(f"total energy USD/MWh {self.price_forecast.total_energy}")
+        self.log(f"total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
