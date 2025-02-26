@@ -106,7 +106,7 @@ class BidRunner(threading.Thread):
             mtn = MarketTypeName.rt60gate5.value
             market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
             self.bid = AtnBid(
-                BidderAlias=self.atn_g_node_alias,
+                BidderAlias=self.atn_alias,
                 MarketSlotName=market_slot_name,
                 PqPairs=pq_pairs,
                 InjectionIsPositive=False,  # withdrawing energy since load not generation
