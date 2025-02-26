@@ -326,6 +326,9 @@ class Atn(ActorInterface, Proactor):
                 )  
                 self.log(f"Bid: {bid}")
                 self.sent_bid = True
+            case CleanupBidRunner():
+                self.log("Cleaning up bid runner")
+                self.bid_runner = None
             case LatestPrice():
                 path_dbg |= 0x00000100
                 self.latest_price_received(message.Payload)
@@ -349,9 +352,6 @@ class Atn(ActorInterface, Proactor):
             )
         self.stats.add_message(decoded)
         match decoded.Payload:
-            case CleanupBidRunner():
-                self.log("Cleaning up bid runner")
-                self.bid_runner = None
             case LayoutLite():
                 path_dbg |= 0x00000001
                 self._process_layout_lite(decoded.Payload)
