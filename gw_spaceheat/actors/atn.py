@@ -303,6 +303,7 @@ class Atn(ActorInterface, Proactor):
         )
 
     def _derived_process_message(self, message: Message):
+        self.log("RECEIVED SMTHING")
         self._logger.path(
             "++Atn._derived_process_message %s/%s",
             message.Header.Src,
@@ -314,6 +315,7 @@ class Atn(ActorInterface, Proactor):
             self.process_atn_message(message)
     
     def process_atn_message(self, message: Message):
+        self.log("PROCESS ATN MESSAGE")
         path_dbg = 0
         match message.Payload:
             case LatestPrice():
@@ -338,6 +340,7 @@ class Atn(ActorInterface, Proactor):
                 f"Received\n\t topic: [{message.Payload.message.topic}]"
             )
         self.stats.add_message(decoded)
+        self.log("RECEIVED A MESSAGE")
         match decoded.Payload:
             case AtnBid():
                 bid = message.Payload
