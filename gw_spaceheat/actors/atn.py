@@ -125,6 +125,7 @@ class BidRunner(threading.Thread):
             )
         finally:
             # Ensure cleanup happens even if there's an error
+            self.log("Done running bid runner")
             self.on_complete(self.atn_name)
             # Explicitly delete the graph to free memory
             del g
@@ -939,15 +940,15 @@ class Atn(ActorInterface, Proactor):
         self.log("Started Dijkstra computation in background")
 
     def _cleanup_bid_runner(self, atn_name: str) -> None:
-        """Callback to clean up bid runner when it's done"""
         """Callback to clean up bid runner when it's done.
         Note: This is called from the BidRunner thread."""
         # Use send_threadsafe to ensure thread-safe cleanup
+        self.log("Received callback to cleanup bid runner")
         self.send_threadsafe(
             Message(
                 Src=atn_name,
                 Dst=atn_name,
-                Payload=CleanupBidRunner()  # You'd need to define this message type
+                Payload=CleanupBidRunner()
             )
         )
 
