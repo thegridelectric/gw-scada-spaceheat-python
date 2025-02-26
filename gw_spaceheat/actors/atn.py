@@ -20,7 +20,7 @@ from actors.hinge import FloHinge
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
-from named_types import RemainingElecEvent, GameOn
+from named_types import RemainingElecEvent
 from named_types import HackOilOn, HackOilOff
 from data_classes.house_0_names import House0RelayIdx
 
@@ -35,6 +35,7 @@ from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
+from actors.atn_contract_handler import AtnContractHandler
 from named_types import (AtnBid, DispatchContractGoDormant,
                          DispatchContractGoLive, EnergyInstruction, FloParamsHouse0,
                          Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
@@ -137,7 +138,7 @@ class Atn(ActorInterface, Proactor):
         hardware_layout: House0Layout,
     ):
         super().__init__(name=name, settings=settings, hardware_layout=hardware_layout)
-        self.latest_remaining_elec = None
+        self.energy_remaining_wh = None
         self._web_manager.disable()
         self.data = AtnData(hardware_layout)
         self._links.add_mqtt_link(
@@ -189,6 +190,15 @@ class Atn(ActorInterface, Proactor):
             self.dashboard = None
 
         self.latest_price: Optional[LatestPrice] = None
+        self.contract_handler: AtnContractHandler = AtnContractHandler(
+            node=self.node,
+            settings=self.settings,
+            layout=self.layout,
+            logger=self.logger.add_category_logger(
+                AtnContractHandler.LOGGER_NAME,
+                level=settings.contract_rep_logging_level
+            )
+        )
 
     @property
     def name(self) -> str:
@@ -269,24 +279,21 @@ class Atn(ActorInterface, Proactor):
         match decoded.Payload:
             case LayoutLite():
                 path_dbg |= 0x00000001
-                self._process_layout_lite(decoded.Payload)
+                self.process_layout_lite(decoded.Payload)
             case PowerWatts():
                 path_dbg |= 0x00000002
-                self._process_pwr(decoded.Payload)
+                self.process_power_watts(decoded.Payload)
             case Report():
                 path_dbg |= 0x00000004
-                self._process_report(decoded.Payload)
+                self.process_report(decoded.Payload)
             case ScadaParams():
                 path_dbg |= 0x00000008
-                self._process_scada_params(decoded.Payload)
+                self.process_scada_params(decoded.Payload)
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000010
-                self._process_snapshot(decoded.Payload)
-            case GameOn():
-                self.log("Scada: Game On!")
-                if self.latest_remaining_elec is not None:
-                    self.log("Sending energy instruction with the latest remaining electricity")
-                    self.send_energy_dispatches(self.latest_remaining_elec)
+                self.process_snapshot(decoded.Payload)
+            case SlowContractHeartbeat():
+                self.process_slow_contract_heartbeat(decoded.Payload)
             case EventBase():
                 path_dbg |= 0x00000020
                 self._process_event(decoded.Payload)
@@ -295,25 +302,56 @@ class Atn(ActorInterface, Proactor):
                     == ReportEvent.model_fields["TypeName"].default
                 ):
                     path_dbg |= 0x00000040
-                    self._process_report(decoded.Payload.Report)
+                    self.process_report(decoded.Payload.Report)
                 elif (
                     decoded.Payload.TypeName
                     == SnapshotSpaceheat.model_fields["TypeName"].default
                 ):
                     path_dbg |= 0x00000080
-                    self._process_snapshot(decoded.Payload)
+                    self.process_snapshot(decoded.Payload)
                 elif (
                     decoded.Payload.TypeName 
                     == RemainingElecEvent.model_fields['TypeName'].default
                 ):
                     path_dbg |= 0x00000120
                     self.log(f"Received remaining electricity {decoded.Payload.Remaining.RemainingWattHours} Wh")
-                    self.latest_remaining_elec = decoded.Payload.Remaining.RemainingWattHours
+                    self.energy_remaining_wh = decoded.Payload.Remaining.RemainingWattHours
             case _:
                 path_dbg |= 0x00000100
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-    def _process_pwr(self, pwr: PowerWatts) -> None:
+    @property
+    def remaining_energy_wh(self) -> int:
+        """
+        Returns a non-negative number. If the energy used already exceeds the
+        contract returns 0
+        """
+        hb = self.contract_handler.latest_hb
+        if hb is None:
+            return 0
+        contract_wh = int(hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60)
+        return min(0, contract_wh - self.contract_handler.energy_used_wh)
+
+    def process_slow_contract_heartbeat(self, scada_hb: SlowContractHeartbeat) -> None:
+        
+        if self.contract_handler.latest_hb is None:
+            self.log(f"Unexpected Scada hb ... we have no heatbeat! {scada_hb}")
+            return
+
+        if scada_hb.Contract.ContractId != self.contract_handler.latest_hb.Contract.ContractId:
+            self.log("Not the same ContractId")
+            return
+        # consider checking YourLastDigit
+        if self.latest_hb is not None:
+            if hb.MessageCreatedMs < self.latest_scada_hb.MessageCreatedMs:
+                self.logger.info(f"hb receivced out of order. Ignoring!")
+        if self.energy_remaining_wh > 0:
+            self.log("Sending energy instruction with the latest remaining electricity")
+            self.send_energy_dispatches(self.energy_remaining_wh)
+
+    def process_power_watts(self, pwr: PowerWatts) -> None:
+        if not self.dashboard:
+            return
         if self.settings.dashboard.print_gui:
             self.dashboard.process_power(pwr)
         else:
@@ -340,13 +378,13 @@ class Atn(ActorInterface, Proactor):
             s += f"  {channel.AboutNodeName}: {extra}\n"
         return s
 
-    def _process_scada_params(self, params: ScadaParams) -> None:
+    def process_scada_params(self, params: ScadaParams) -> None:
         if params.NewParams:
             print(f"Old: {self.ha1_params}")
             print(f"New: {params.NewParams}")
             self.ha1_params = params.NewParams
 
-    def _process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
+    def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
         if self.settings.dashboard.print_gui:
             self.dashboard.process_snapshot(snapshot)
@@ -358,7 +396,7 @@ class Atn(ActorInterface, Proactor):
             for channel in self.temperature_channel_names:
                 self.latest_channel_values[channel] = 60000
 
-    def _process_layout_lite(self, layout: LayoutLite) -> None:
+    def process_layout_lite(self, layout: LayoutLite) -> None:
         self.ha1_params = layout.Ha1Params
         self.logger.error(f"Just got layout: {self.ha1_params}")
         if self.state == "DispatchDormantScadaNotReady":
@@ -371,7 +409,7 @@ class Atn(ActorInterface, Proactor):
             if "depth" in x.Name and "micro-v" not in x.Name
         ]
 
-    def _process_report(self, report: Report) -> None:
+    def process_report(self, report: Report) -> None:
         self.data.latest_report = report
         # Check if HP is on or off by looking at relay 6
         for machine_state in report.StateList:

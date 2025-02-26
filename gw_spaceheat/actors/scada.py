@@ -51,7 +51,7 @@ from data_classes.house_0_names import H0N
 from enums import MainAutoState,  TopState, ContractStatus, RepresentationStatus
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GameOn, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning,
+    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning,
     ScadaParams, SendLayout, SetRepresentationStatus, SingleMachineState, 
     SlowContractHeartbeat, SuitUp, WakeUp, 
 )
@@ -747,7 +747,7 @@ class Scada(ScadaInterface, Proactor):
         # TODO: think through state machine
         # tell the atomic transactive node that game is on
         self.process_new_contract()
-        self._send_to(self.atn, GameOn(FromGNodeAlias=self.layout.scada_g_node_alias))
+        self._send_to(self.atn, self.contract_handler.latest_scada_hb)
 
     def process_synced_readings(self, from_node: ShNode, payload: SyncedReadings):
         self._logger.path(
@@ -906,6 +906,7 @@ class Scada(ScadaInterface, Proactor):
                 self.contract_handler.start_new_contract_hb(atn_hb)
                 self._send_to(self.atomic_ally, self.contract_handler.latest_scada_hb.Contract
                 ) 
+                # will send hb ion process_suit_up, after atomic ally acknowledges
         else:
             if self.contract_handler.latest_scada_hb is None:
                 self.log(f"got continuation hb when Scada has no contract! ignoring:  {atn_hb.Contract}")
@@ -915,10 +916,9 @@ class Scada(ScadaInterface, Proactor):
                 f"existing: {self.contract_handler.latest_scada_hb}")
                 return
             self.contract_handler.update_existing_contract_hb(atn_hb)
+            self._send_to(self.atn, self.contract_handler.latest_scada_hb)
 
-        if self.contract_handler.latest_scada_hb is None:
-            raise Exception("At this point, latest_scada_hb must exist!")
-        self._send_to(self.atn, self.contract_handler.latest_scada_hb)
+        
 
     def process_new_contract(self) -> None:
         """Called after contract is confirmed (SuitUp received)"""

@@ -19,13 +19,12 @@ from named_types import (
     SlowDispatchContract, 
     SetRepresentationStatus,
 )
-from pydantic import BaseModel
 from enum import auto
 from typing import List
 
 from gw.enums import GwStrEnum
 
-from actors.config import ScadaSettings
+from tests.atn.atn_config import AtnSettings
 
 class DispatchContractState(GwStrEnum):
     Expired = auto()
@@ -53,7 +52,7 @@ class AtnContractHandler:
     def __init__(
         self,
         node: ShNode,
-        settings: ScadaSettings,
+        settings: AtnSettings,
         layout: House0Layout,
         logger: LoggerOrAdapter,
     ):
@@ -106,11 +105,11 @@ class AtnContractHandler:
                 self.energy_updated_s = hb.MessageCreatedMs / 1000
                 if hb.FromNode == self.node.name:
                     if hb.Status != ContractStatus.Created:
-                        raise Exception(f"Only save atn heartbeats with status Created!")
+                        raise Exception("Only save atn heartbeats with status Created!")
                     self.energy_used_wh = 0
                 else:
                     if hb.WattHoursUsed is None:
-                        raise Exception(f"hb from Scada must have WattHoursUsed!")
+                        raise Exception("hb from Scada must have WattHoursUsed!")
                     self.energy_used_wh = hb.WattHoursUsed
                 self.latest_hb = hb
                 return None
@@ -135,40 +134,25 @@ class AtnContractHandler:
         
         Returns a heartbeat if one needs to be sent to SCADA
         """
-        hb = self.load_heartbeat()
-        
-        # Schedule next heartbeat
-        self.schedule_next_heartbeat()
-        
+        hb = self.load_heartbeat()        
         return hb
-    
-    def schedule_next_heartbeat(self) -> None:
-        """Schedule the next heartbeat"""
-        self.next_heartbeat_time = time.time() + self.HEARTBEAT_INTERVAL_SECONDS
-    
-    def is_heartbeat_due(self) -> bool:
-        """Check if it's time to send a heartbeat"""
-        return time.time() >= self.next_heartbeat_time
     
     def create_new_contract(self, 
                            avg_power_watts: int, 
                            duration_minutes: int = 60, 
-                           oil_boiler_on: bool = False) -> SlowContractHeartbeat:
+                           oil_boiler_on: bool = False) -> None:
         """Create a new dispatch contract
         
         This is called when the latest price is received and the ATN decides
         to create a new contract.
         """
         # Only create if there's no active contract or the active contract is done
-        if self.active_contract_id and self.latest_hb and self.latest_hb.Status in self.ACTIVE_STATES:
-
-            self.logger.warning("Cannot create new contract while one is active")
-            return None
+        if self.latest_hb:
+            raise Exception("Cannot create new contract while one is active")
             
         # Create contract starting at the next 5-minute boundary
         now = time.time()
         start_s = int(now - (now % 300) + 300)  # Next 5-minute boundary
-        
         contract = SlowDispatchContract(
             ScadaAlias=self.layout.scada_g_node_alias,
             StartS=start_s,
@@ -189,14 +173,8 @@ class AtnContractHandler:
         )
         
         # Store heartbeat
-        self.store_heartbeat(hb)
+        self.store_heartbeat()
         self.latest_hb = hb
-        self.active_contract_id = contract.ContractId
-        
-        # Also store in pending contracts
-        self.pending_contracts[contract.ContractId] = contract
-        
-        return hb
     
     def create_termination_heartbeat(self, reason: str) -> Optional[SlowContractHeartbeat]:
         """Create a heartbeat terminating the current contract"""
@@ -266,7 +244,7 @@ class AtnContractHandler:
                     MyDigit=random.choice(range(10)),
                     YourLastDigit=None,  # Still first message
                 )
-                self.store_heartbeat(hb)
+                self.store_heartbeat()
                 self.schedule_next_heartbeat()
                 return hb
                 
@@ -343,13 +321,12 @@ class AtnContractHandler:
         # check if contract has expired. If so
         # If we get to here it means the hb is for our live contract. Make sure its the latest
         # we'vce received from Scada before storing it
-        if self.latest_scada_hb is not None:
+        if self.latest_hb is not None:
             if hb.MessageCreatedMs < self.latest_scada_hb.MessageCreatedMs:
-                self.logger.info(f"hb receivced out of order. Ignoring!")
+                self.logger.info("hb receivced out of order. Ignoring!")
         self.latest_scada_hb = hb
-        self.store_heartbeat(hb)
+        self.store_heartbeat()
 
-        if 
         # Check the status
         if hb.Status == ContractStatus.Received:
             # SCADA has received our contract, respond with confirmation
@@ -362,7 +339,6 @@ class AtnContractHandler:
                 MyDigit=random.choice(range(10)),
                 YourLastDigit=hb.MyDigit,
             )
-            self.store_heartbeat(response)
             # Reset next heartbeat time to maintain regular frequency
             self.schedule_next_heartbeat()
             return response
@@ -478,3 +454,12 @@ class AtnContractHandler:
             log_str += f" | Reason: {hb.Cause}"
         
         return log_str
+
+    def schedule_next_heartbeat(self) -> None:
+        """Schedule the next heartbeat"""
+        self.next_heartbeat_time = time.time() + self.HEARTBEAT_INTERVAL_SECONDS
+    
+    def is_heartbeat_due(self) -> bool:
+        """Check if it's time to send a heartbeat"""
+        return time.time() >= self.next_heartbeat_time
+    

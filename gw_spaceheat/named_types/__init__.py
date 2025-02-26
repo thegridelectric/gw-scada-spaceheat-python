@@ -13,7 +13,6 @@ from named_types.events import RemainingElecEvent
 from named_types.flo_params import FloParams
 from named_types.flo_params_house0 import FloParamsHouse0
 from named_types.fsm_event import FsmEvent
-from named_types.game_on import GameOn
 from named_types.glitch import Glitch
 from named_types.go_dormant import GoDormant
 from named_types.ha1_params import Ha1Params
@@ -55,7 +54,6 @@ __all__ = [
     "FloParams",
     "FloParamsHouse0",
     "FsmEvent",
-    "GameOn",
     "Glitch",
     "GoDormant",
     "Ha1Params",
