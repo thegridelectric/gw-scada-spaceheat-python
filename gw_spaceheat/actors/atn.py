@@ -9,7 +9,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast, Literal, Callable
 
 import numpy as np
 import pytz
@@ -57,6 +57,77 @@ class PriceForecast(BaseModel):
     def total_energy(self) -> List[float]:
         """Calculate the total price forecast by summing dp, lmp, and reg components."""
         return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
+
+
+class CleanupBidRunner(BaseModel):
+    TypeName:  Literal["clenaup.bid.runner"] = "cleanup.bid.runner"
+    Version: Literal["000"] = "000"
+
+
+class BidRunner(threading.Thread):
+    def __init__(self, params: FloParamsHouse0,
+                 atn_settings: AtnSettings,
+                 atn_name: str, 
+                 atn_g_node_alias: str,
+                 send_threadsafe: Callable[[Message], None],
+                 on_complete: Callable[[str], None],
+                 logger: Optional[Callable[[str], None]] = None):
+        super().__init__()
+        self.log = logger or print  # Fallback to print if no logger provided
+        self.params = params
+        self.atn_settings = atn_settings
+        self.atn_name = atn_name
+        self.atn_alias = atn_g_node_alias
+        self.send_threadsafe = send_threadsafe
+        self.on_complete = on_complete
+        self.bid: Optional[AtnBid] = None
+        
+    def run(self):
+        try:
+            # Run FLO
+            self.log("Creating graph and solving Dijkstra...")
+            st = time.time()
+            if self.atn_settings.hinge:
+                self.log("Using hinge")
+                g = FloHinge(self.params, hinge_hours=5, num_nodes=[10,3,3,3,3])
+            else:
+                self.log("Not using hinge")
+                g = DGraph(self.params)
+                g.solve_dijkstra()
+            self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
+            self.log("Finding PQ pairs...")
+            st = time.time()
+            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
+            self.log(f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds")
+            
+            # Generate bid
+            t = time.time()
+            slot_start_s = int(t - (t % 3600)) + 3600
+            mtn = MarketTypeName.rt60gate5.value
+            market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
+            self.bid = AtnBid(
+                BidderAlias=self.atn_g_node_alias,
+                MarketSlotName=market_slot_name,
+                PqPairs=pq_pairs,
+                InjectionIsPositive=False,  # withdrawing energy since load not generation
+                PriceUnit=MarketPriceUnit.USDPerMWh,
+                QuantityUnit=MarketQuantityUnit.AvgkW,
+                SignedMarketFeeTxn="BogusAlgoSignature",
+            )
+            
+            # Send bid through ATN's message processing
+            self.send_threadsafe(
+                Message(
+                    Src=self.atn_name,
+                    Dst=self.atn_name,
+                    Payload=self.bid
+                )
+            )
+        finally:
+            # Ensure cleanup happens even if there's an error
+            self.on_complete(self.atn_name)
+            # Explicitly delete the graph to free memory
+            del g
 
 class AtnMQTTCodec(MQTTCodec):
     exp_src: str
@@ -111,6 +182,7 @@ class Atn(ActorInterface, Proactor):
     SCADA_MQTT = "scada"
     data: AtnData
     event_loop_thread: Optional[threading.Thread] = None
+    bid_runner: Optional[threading.Thread]
     dashboard: Optional[Dashboard]
     ha1_params: Optional[Ha1Params]
 
@@ -188,6 +260,7 @@ class Atn(ActorInterface, Proactor):
             self.dashboard = None
 
         self.latest_price: Optional[LatestPrice] = None
+        self.bid_runner = None
 
     @property
     def name(self) -> str:
@@ -266,6 +339,18 @@ class Atn(ActorInterface, Proactor):
             )
         self.stats.add_message(decoded)
         match decoded.Payload:
+            case AtnBid():
+                bid = message.Payload
+                self.latest_bid = bid
+                # self._links.publish_message(
+                #     self.SCADA_MQTT, 
+                #     Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
+                # )  
+                self.log(f"Bid: {bid}")
+                self.sent_bid = True
+            case CleanupBidRunner():
+                self.log("Cleaning up bid runner")
+                self.bid_runner = None
             case LayoutLite():
                 path_dbg |= 0x00000001
                 self._process_layout_lite(decoded.Payload)
@@ -766,9 +851,23 @@ class Atn(ActorInterface, Proactor):
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
+        """Prepare parameters and start a bid computation.
+    
+        This method is async because it needs to fetch weather forecasts,
+        but the actual Dijkstra computation runs in a separate thread.
+        Async parallelizes waiting (like HTTP requests) but does not 
+        gracefully handle high CPU use. The additional thread handles
+        the CPU-intensive graph computation.
+        """
         if self.sent_bid:
             self.log("NOT RUNNING Dijsktra! Already sent bid")
             return
+        
+        # Check if there's already a bid runner
+        if self.bid_runner is not None and self.bid_runner.is_alive():
+            self.log("BidRunner already running!")
+            return
+
         if datetime.now().minute >= 55:
             dijkstra_start_time = int(
                 datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
@@ -826,57 +925,44 @@ class Atn(ActorInterface, Proactor):
             self.SCADA_MQTT, 
             Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
         )
-        if self.settings.hinge:
-            self.log("Creating graph and solving Dijkstra with Hinge...")
-            st = time.time()
-            f = FloHinge(flo_params, hinge_hours=5, num_nodes=[10,3,3,3,3])
-            self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
-            self.log("Finding PQ pairs")
-            st = time.time()
-            pq_pairs: List[PriceQuantityUnitless] = f.generate_bid()
-            self.log(
-                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
-            )
-        else:
-            self.log("Creating graph")
-            st = time.time()
-            g = DGraph(flo_params)
-            self.log(f"The first time step is {round(g.params.fraction_of_hour_remaining*60)} minutes")
-            self.log(f"Done in {round(time.time()-st,2)} seconds")
-            self.log("Solving Dijkstra")
-            g.solve_dijkstra()
-            self.log("Solved!")
-            self.log("Finding PQ pairs")
-            st = time.time()
-            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
-            self.log(
-                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
-            )
+        self.bid_runner = BidRunner(
+            params=flo_params, 
+            atn_settings=self.settings,
+            atn_name=self.name, 
+            atn_g_node_alias=self.layout.atn_g_node_alias,
+            send_threadsafe=self.send_threadsafe,
+            on_complete=self._cleanup_bid_runner,
+            logger=self.log,
+        )
+        self.bid_runner.start()  
+        # Instead of waiting, return to event loop
+        self.log("Started Dijkstra computation in background")
 
-        # Generate bid
-        t = time.time()
-        slot_start_s = int(t - (t % 3600)) + 3600
-        mtn = MarketTypeName.rt60gate5.value
-        market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-        bid = AtnBid(
-            BidderAlias=self.layout.atn_g_node_alias,
-            MarketSlotName=market_slot_name,
-            PqPairs=pq_pairs,
-            InjectionIsPositive=False,  # withdrawing energy since load not generation
-            PriceUnit=MarketPriceUnit.USDPerMWh,
-            QuantityUnit=MarketQuantityUnit.AvgkW,
-            SignedMarketFeeTxn="BogusAlgoSignature",
+    def _cleanup_bid_runner(self, atn_name: str) -> None:
+        """Callback to clean up bid runner when it's done"""
+        """Callback to clean up bid runner when it's done.
+        Note: This is called from the BidRunner thread."""
+        # Use send_threadsafe to ensure thread-safe cleanup
+        self.send_threadsafe(
+            Message(
+                Src=atn_name,
+                Dst=atn_name,
+                Payload=CleanupBidRunner()  # You'd need to define this message type
+            )
         )
-        self._links.publish_message(
-            self.SCADA_MQTT, 
-            Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
-        )
-        self.latest_bid = bid
-        self.log(f"Bid: {bid}")
-        self.sent_bid = True
 
     async def run_fake_d(self, session: aiohttp.ClientSession) -> None:
-        dijkstra_start_time = int(datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)))
+        if datetime.now().minute >= 55:
+            return
+
+        # Check if there's already a bid runner
+        if self.bid_runner is not None and self.bid_runner.is_alive():
+            self.log("BidRunner already running!")
+            return
+    
+        dijkstra_start_time = int(
+            datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
+            )
         
         await self.get_weather(session)
         self.update_price_forecast()
@@ -922,48 +1008,18 @@ class Atn(ActorInterface, Proactor):
             BufferAvailableKwh=buffer_available_kwh,
             HouseAvailableKwh=house_available_kwh
         )
-        if self.settings.hinge:
-            self.log("Creating graph and solving Dijkstra with Hinge...")
-            st = time.time()
-            f = FloHinge(flo_params, hinge_hours=5, num_nodes=[10,3,3,3,3])
-            self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
-            self.log("Finding PQ pairs")
-            st = time.time()
-            pq_pairs: List[PriceQuantityUnitless] = f.generate_bid()
-            self.log(
-                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
-            )
-        else:
-            self.log("Creating graph")
-            st = time.time()
-            g = DGraph(flo_params)
-            self.log(f"The first time step is {round(g.params.fraction_of_hour_remaining*60)} minutes")
-            self.log(f"Done in {round(time.time()-st,2)} seconds")
-            self.log("Solving Dijkstra")
-            g.solve_dijkstra()
-            self.log("Solved!")
-            self.log("Finding PQ pairs")
-            st = time.time()
-            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
-            self.log(
-                f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds"
-            )
-
-        # Generate bid
-        t = time.time()
-        slot_start_s = int(t - (t % 3600)) + 3600
-        mtn = MarketTypeName.rt60gate5.value
-        market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-        bid = AtnBid(
-            BidderAlias=self.layout.atn_g_node_alias,
-            MarketSlotName=market_slot_name,
-            PqPairs=pq_pairs,
-            InjectionIsPositive=False,  # withdrawing energy since load not generation
-            PriceUnit=MarketPriceUnit.USDPerMWh,
-            QuantityUnit=MarketQuantityUnit.AvgkW,
-            SignedMarketFeeTxn="BogusAlgoSignature",
+        self.bid_runner = BidRunner(
+            params=flo_params, 
+            atn_settings=self.settings,
+            atn_name=self.name, 
+            atn_g_node_alias=self.layout.atn_g_node_alias,
+            send_threadsafe=self.send_threadsafe,
+            on_complete=self._cleanup_bid_runner,
+            logger=self.log,
         )
-        self.log(f"Bid: {bid}")
+        self.bid_runner.start()  
+        # Instead of waiting, return to event loop
+        self.log("Started Dijkstra computation in background")
 
     def latest_price_received(self, payload: LatestPrice) -> None:
         self.latest_price = payload
