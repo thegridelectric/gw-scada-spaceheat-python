@@ -847,7 +847,7 @@ class Atn(ActorInterface, Proactor):
                 self.sent_bid = False
             else:
                 self.log(f"Minute {datetime.now().minute}")
-                # await self.run_fake_d(session)
+                await self.run_fake_d(session)
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
