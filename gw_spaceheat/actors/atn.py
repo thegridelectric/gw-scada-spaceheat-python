@@ -256,7 +256,7 @@ class Atn(ActorInterface, Proactor):
         match message.Payload:
             case LatestPrice():
                 path_dbg |= 0x00000100
-                self.latest_price_received(message.Payload)
+                self.process_latest_price(message.Payload)
                 # self._publish_to_scada(message.Payload) # so we can record in database
             case _:
                 path_dbg |= 0x00000040
@@ -321,7 +321,7 @@ class Atn(ActorInterface, Proactor):
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
     @property
-    def remaining_energy_wh(self) -> int:
+    def energy_remaining_wh(self) -> int:
         """
         Returns a non-negative number. If the energy used already exceeds the
         contract returns 0
@@ -333,7 +333,6 @@ class Atn(ActorInterface, Proactor):
         return min(0, contract_wh - self.contract_handler.energy_used_wh)
 
     def process_slow_contract_heartbeat(self, scada_hb: SlowContractHeartbeat) -> None:
-        
         if self.contract_handler.latest_hb is None:
             self.log(f"Unexpected Scada hb ... we have no heatbeat! {scada_hb}")
             return
@@ -341,13 +340,10 @@ class Atn(ActorInterface, Proactor):
         if scada_hb.Contract.ContractId != self.contract_handler.latest_hb.Contract.ContractId:
             self.log("Not the same ContractId")
             return
-        # consider checking YourLastDigit
-        if self.latest_hb is not None:
-            if hb.MessageCreatedMs < self.latest_scada_hb.MessageCreatedMs:
-                self.logger.info(f"hb receivced out of order. Ignoring!")
-        if self.energy_remaining_wh > 0:
-            self.log("Sending energy instruction with the latest remaining electricity")
-            self.send_energy_dispatches(self.energy_remaining_wh)
+        if self.contract_handler.latest_hb is not None:
+            if scada_hb.MessageCreatedMs < self.contract_handler.latest_hb.MessageCreatedMs:
+                self.logger.info("hb receivced out of order. Ignoring!")
+
 
     def process_power_watts(self, pwr: PowerWatts) -> None:
         if not self.dashboard:
@@ -386,7 +382,8 @@ class Atn(ActorInterface, Proactor):
 
     def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
-        if self.settings.dashboard.print_gui:
+
+        if self.settings.dashboard.print_gui and self.dashboard:
             self.dashboard.process_snapshot(snapshot)
         if self.settings.dashboard.print_snap:
             self._logger.warning(self.snapshot_str(snapshot))
@@ -1004,7 +1001,7 @@ class Atn(ActorInterface, Proactor):
         )
         self.log(f"Bid: {bid}")
 
-    def latest_price_received(self, payload: LatestPrice) -> None:
+    def process_latest_price(self, payload: LatestPrice) -> None:
         self.latest_price = payload
         self.log("Received latest price")
         if self.latest_bid is None:
