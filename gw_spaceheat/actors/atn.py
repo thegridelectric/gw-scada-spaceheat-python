@@ -314,16 +314,15 @@ class Atn(ActorInterface, Proactor):
             self.process_atn_message(message)
     
     def process_atn_message(self, message: Message):
-        self.log("PROCESS ATN MESSAGE")
         path_dbg = 0
         match message.Payload:
             case AtnBid():
                 bid = message.Payload
                 self.latest_bid = bid
-                # self._links.publish_message(
-                #     self.SCADA_MQTT, 
-                #     Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
-                # )  
+                self._links.publish_message(
+                    self.SCADA_MQTT, 
+                    Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
+                )  
                 self.log(f"Bid: {bid}")
                 self.sent_bid = True
             case LatestPrice():
@@ -848,7 +847,7 @@ class Atn(ActorInterface, Proactor):
                 self.sent_bid = False
             else:
                 self.log(f"Minute {datetime.now().minute}")
-                await self.run_fake_d(session)
+                # await self.run_fake_d(session)
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
