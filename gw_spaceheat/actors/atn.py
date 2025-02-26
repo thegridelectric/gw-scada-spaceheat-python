@@ -59,11 +59,6 @@ class PriceForecast(BaseModel):
         return [dp + lmp for dp, lmp in zip(self.dp_usd_per_mwh, self.lmp_usd_per_mwh)]
 
 
-class CleanupBidRunner(BaseModel):
-    TypeName:  Literal["clenaup.bid.runner"] = "cleanup.bid.runner"
-    Version: Literal["000"] = "000"
-
-
 class BidRunner(threading.Thread):
     def __init__(self, params: FloParamsHouse0,
                  atn_settings: AtnSettings,
@@ -326,9 +321,6 @@ class Atn(ActorInterface, Proactor):
                 )  
                 self.log(f"Bid: {bid}")
                 self.sent_bid = True
-            case CleanupBidRunner():
-                self.log("Cleaning up bid runner")
-                self.bid_runner = None
             case LatestPrice():
                 path_dbg |= 0x00000100
                 self.latest_price_received(message.Payload)
@@ -942,15 +934,8 @@ class Atn(ActorInterface, Proactor):
     def _cleanup_bid_runner(self, atn_name: str) -> None:
         """Callback to clean up bid runner when it's done.
         Note: This is called from the BidRunner thread."""
-        # Use send_threadsafe to ensure thread-safe cleanup
-        self.log("Received callback to cleanup bid runner")
-        self.send_threadsafe(
-            Message(
-                Src=atn_name,
-                Dst=atn_name,
-                Payload=CleanupBidRunner()
-            )
-        )
+        self.log("Cleaned up bid runner")
+        self.bid_runner = None
 
     async def run_fake_d(self, session: aiohttp.ClientSession) -> None:
         if datetime.now().minute >= 55:
