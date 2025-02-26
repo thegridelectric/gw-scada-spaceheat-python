@@ -437,7 +437,8 @@ class HomeAlone(ScadaActor):
         Manages the logic for the Normal top state, (ie. self.state)
         """
         if self.top_state != HomeAloneTopState.Normal:
-            raise Exception(f"brain is only for Normal top state, not {self.top_state}")
+            self.log(f"brain is only for Normal top state, not {self.top_state}")
+            return
 
         if waking_up:
             if self.state == HomeAloneState.Dormant:
