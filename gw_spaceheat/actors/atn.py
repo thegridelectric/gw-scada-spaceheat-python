@@ -303,7 +303,6 @@ class Atn(ActorInterface, Proactor):
         )
 
     def _derived_process_message(self, message: Message):
-        self.log("RECEIVED SMTHING")
         self._logger.path(
             "++Atn._derived_process_message %s/%s",
             message.Header.Src,
@@ -318,6 +317,15 @@ class Atn(ActorInterface, Proactor):
         self.log("PROCESS ATN MESSAGE")
         path_dbg = 0
         match message.Payload:
+            case AtnBid():
+                bid = message.Payload
+                self.latest_bid = bid
+                # self._links.publish_message(
+                #     self.SCADA_MQTT, 
+                #     Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
+                # )  
+                self.log(f"Bid: {bid}")
+                self.sent_bid = True
             case LatestPrice():
                 path_dbg |= 0x00000100
                 self.latest_price_received(message.Payload)
@@ -340,17 +348,7 @@ class Atn(ActorInterface, Proactor):
                 f"Received\n\t topic: [{message.Payload.message.topic}]"
             )
         self.stats.add_message(decoded)
-        self.log("RECEIVED A MESSAGE")
         match decoded.Payload:
-            case AtnBid():
-                bid = message.Payload
-                self.latest_bid = bid
-                # self._links.publish_message(
-                #     self.SCADA_MQTT, 
-                #     Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
-                # )  
-                self.log(f"Bid: {bid}")
-                self.sent_bid = True
             case CleanupBidRunner():
                 self.log("Cleaning up bid runner")
                 self.bid_runner = None
