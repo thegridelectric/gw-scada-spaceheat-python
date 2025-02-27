@@ -638,7 +638,7 @@ class AtomicAlly(ScadaActor):
         if self.hp_scada_ops_relay.name in self.data.latest_machine_state.keys():
             scada_relay_state = self.data.latest_machine_state[self.hp_scada_ops_relay.name].State
             
-            if scada_relay_state == RelayClosedOrOpen.Closed.value:
+            if scada_relay_state == RelayClosedOrOpen.RelayClosed:
                 # If the relay is closed and there is no contract, keep it closed
                 if self.contract_hb is None:
                     return False

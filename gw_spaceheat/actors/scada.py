@@ -278,7 +278,6 @@ class Scada(ScadaInterface, Proactor):
                 level=settings.contract_rep_logging_level,
             )
         )
-        self.initialize_contracts()
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -1151,6 +1150,9 @@ class Scada(ScadaInterface, Proactor):
     async def state_tracker(self) -> None:
         loop_s = 60
         # loop_s = self.settings.seconds_per_report
+        await asyncio.sleep(4)
+        self.log("About to initialize contracts")
+        self.initialize_contracts()
         while True:
             hiccup = 1.5
             sleep_s = max(hiccup, loop_s - (time.time() % loop_s) - 1.2)
