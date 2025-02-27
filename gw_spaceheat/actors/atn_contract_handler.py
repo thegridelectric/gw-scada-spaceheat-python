@@ -1,5 +1,5 @@
 
-
+import asyncio
 import json
 import random
 import time
@@ -20,15 +20,12 @@ from named_types import (
     AtnBid, LatestPrice, SlowContractHeartbeat, SlowDispatchContract, 
     SetRepresentationStatus,
 )
-from enum import auto
-
-from gw.enums import GwStrEnum
 
 from tests.atn.atn_config import AtnSettings
 
 class AtnContractHandler:
     """Handles ATN's side of representation contract with SCADA and dispatch contracts"""
-
+    HEARTBEAT_INTERVAL_S = 60
     DONE_STATES = [
         ContractStatus.TerminatedByAtn,
         ContractStatus.TerminatedByScada,
@@ -58,6 +55,7 @@ class AtnContractHandler:
         self.layout = layout
         self.logger = logger
         self.send_threadsafe = send_threadsafe
+        self._stop_requested = False
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.contract_file = Path(
             f"{self.settings.paths.data_dir}/atn_contract.json"
@@ -70,6 +68,7 @@ class AtnContractHandler:
         self.latest_hb: Optional[SlowContractHeartbeat] = None # Current active hb, None means no active contract
         self.latest_price: Optional[LatestPrice] = None
         self.latest_bid: Optional[AtnBid] = None
+    
         
     def load_heartbeat(self) -> Optional[SlowContractHeartbeat]:
         """Loads existing SlowContractHeartbeat from persistent storage
@@ -271,6 +270,36 @@ class AtnContractHandler:
             return False
         return False
 
+    async def contract_heartbeat_task(self):
+        """Task that sends regular heartbeats while a contract is active"""
+        while not self._stop_requested:
+            # Only send heartbeats if we have an active contract
+            if self.latest_hb and self.latest_hb.Status in [ContractStatus.Confirmed, ContractStatus.Active]:
+                # Check if contract has expired
+                if time.time() > self.latest_hb.Contract.contract_end_s():
+                    # Contract expired - initiate completion
+                    completion_hb = self.create_completion_heartbeat()
+                    self.send_threadsafe(
+                        Message(
+                            Src=self.node.name,
+                            Dst=H0N.primary_scada,
+                            Payload=completion_hb
+                        )
+                    )
+                else:
+                    # Create a mid-contract heartbeat
+                    mid_contract_hb = self.create_midcontract_heartbeat()
+                    self.send_threadsafe(
+                        Message(
+                            Src=self.node.name,
+                            Dst=H0N.primary_scada,
+                            Payload=mid_contract_hb
+                        )
+                    )
+            
+            # Wait for next heartbeat interval
+            await asyncio.sleep(self.HEARTBEAT_INTERVAL_S)
+    
     def start_completing_old_contract(self) -> None:
         """
         """

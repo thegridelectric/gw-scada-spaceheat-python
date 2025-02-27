@@ -574,16 +574,21 @@ class Atn(ActorInterface, Proactor):
         self.event_loop_thread.start()
 
     def stop_and_join_thread(self):
+        self.contract_handler._stop_requested = True
         self.stop()
         if self.event_loop_thread is not None and self.event_loop_thread.is_alive():
             self.event_loop_thread.join()
 
     def _start_derived_tasks(self):
         self._tasks.append(asyncio.create_task(self.main(), name="atn-main"))
+        self._tasks.append(asyncio.create_task(
+                self.contract_handler.contract_heartbeat_task(), 
+                name="contract_heartbeat"
+            )
+        )
         self._tasks.append(
             asyncio.create_task(self.fake_market_maker(), name="fake market maker")
         )
-        self._tasks.append
 
     async def main(self):
         async with aiohttp.ClientSession() as session:
