@@ -20,7 +20,6 @@ from actors.hinge import FloHinge
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
-from named_types import RemainingElecEvent
 from named_types import HackOilOn, HackOilOff
 from data_classes.house_0_names import House0RelayIdx
 
@@ -36,6 +35,7 @@ from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
+from enums import RepresentationStatus
 from named_types import (AtnBid, DispatchContractGoDormant,
                          DispatchContractGoLive, EnergyInstruction, FloParamsHouse0,
                          Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
@@ -289,6 +289,8 @@ class Atn(ActorInterface, Proactor):
             case ScadaParams():
                 path_dbg |= 0x00000008
                 self.process_scada_params(decoded.Payload)
+            case SetRepresentationStatus():
+                self.process_set_representation_status(decoded.Payload)
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000010
                 self.process_snapshot(decoded.Payload)
@@ -309,13 +311,6 @@ class Atn(ActorInterface, Proactor):
                 ):
                     path_dbg |= 0x00000080
                     self.process_snapshot(decoded.Payload)
-                elif (
-                    decoded.Payload.TypeName 
-                    == RemainingElecEvent.model_fields['TypeName'].default
-                ):
-                    path_dbg |= 0x00000120
-                    self.log(f"Received remaining electricity {decoded.Payload.Remaining.RemainingWattHours} Wh")
-                    self.energy_remaining_wh = decoded.Payload.Remaining.RemainingWattHours
             case _:
                 path_dbg |= 0x00000100
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
@@ -353,6 +348,13 @@ class Atn(ActorInterface, Proactor):
         else:
             rich.print("Received PowerWatts")
             rich.print(pwr)
+
+    def process_set_representation_status(self, payload: SetRepresentationStatus) -> None:
+        if payload.FromGNodeAlias != self.layout.scada_g_node_alias:
+            self.log(f"IGNORING set representation status from {payload.FromGNodeAlias}")
+        if payload.Status != self.contract_handler.status:
+            self.log(f"Got SetRepresentationStatus from scada. Changing to {payload.Status}")
+        self.contract_handler.status = payload.Status
 
     def snapshot_str(self, snapshot: SnapshotSpaceheat) -> str:
         s = "\n\nSnapshot received:\n"
@@ -394,6 +396,7 @@ class Atn(ActorInterface, Proactor):
                 self.latest_channel_values[channel] = 60000
 
     def process_layout_lite(self, layout: LayoutLite) -> None:
+        # TODO - CHANGE THIS!!
         self.ha1_params = layout.Ha1Params
         self.logger.error(f"Just got layout: {self.ha1_params}")
         if self.state == "DispatchDormantScadaNotReady":
@@ -517,26 +520,6 @@ class Atn(ActorInterface, Proactor):
             )
         )
 
-    def hack_oil_on(self) -> None:
-        self.log("Sending HackOilOn to scada")
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=HackOilOn(),
-            )
-        )
-
-    def hack_oil_off(self) -> None:
-        self.log("Sending HackOilOff to scada")
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=HackOilOff(),
-            )
-        )
-        
     def set_alpha(self, alpha: float) -> None:
         if self.ha1_params is None:
             self.send_layout()
@@ -1029,7 +1012,7 @@ class Atn(ActorInterface, Proactor):
         energy_wh = avg_w * 1
         if energy_wh < 1000:
             energy_wh = 0
-        self.send_energy_dispatches(watthours=energy_wh, slot_minutes=60)
+        self.start_new_contract(watthours=energy_wh)
 
     def to_fahrenheit(self, t: float) -> float:
         return t * 9 / 5 + 32
@@ -1270,56 +1253,45 @@ class Atn(ActorInterface, Proactor):
             return False
         return False
 
-    def send_energy_dispatches(self, watthours: int, slot_minutes: int = 60) -> None:
-        """ Sends an energy instructions  at the top of the next 5 minutes.
 
-         - EnergyInstruction for electricity. 
-         - HackOilOn and/or HackOilOff
-
-         If deciding to turn on oil, sends an EnergyInstruction of 0 instead of watthours
-        """
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            asyncio.create_task(
-                self._wait_and_send_energy_dispatches(watthours, slot_minutes)
-            )
-        else:
-            loop.run_until_complete(self._wait_and_send_energy_dispatches(watthours, slot_minutes))
-    
-    async def _wait_and_send_energy_dispatches(self, watthours: int, slot_minutes: int=60) -> None:
-        """ Sends an energy instructions  at the top of the next 5 minutes.
-
-         - EnergyInstruction for electricity. 
-         - HackOilOn and/or HackOilOff
+    def start_new_contract(self, watthours: int) -> None:
+        """ Create a new SlowDispatchContract at the top of the hour
+            Create a new Heartbeat
+            Send it to the Scada
 
          If deciding to turn on oil, sends an EnergyInstruction of 0 instead of watthours
         """
-        if self.latest_price is None:
-            self.log("Don't have a latest price. Not sending energy instruction")
-            # TODO: ignore if latest price is stale (no longer in market slot)
+        if self.contract_handler.status == RepresentationStatus.Dormant:
+            self.log("Not starting new contract ... Dormant RepresentationStatus")
             return
-        after_top_s = (time.time() % 300)
-        # EnergyInstructions must be sent within 10 seconds of the top of 5 minutes
-        if after_top_s > 5:
-            wait_s = 300 - after_top_s
-            self.log(f"Sleeping {wait_s} seconds before sending EnergyInstruction")
-            await asyncio.sleep(300 - (time.time() % 300)) # wait until the top of 5 minutes
+        now = time.time()
+        slot_start_s = int(now - (now % 3600))
 
-        t = time.time()
-        slot_start_s = int(t - (t % 300))
+        after_top_s =now % 3600
+        if after_top_s >= 10:
+            self.log(f"Not starting new contract! more than 10 seconds after top of hour: {round(after_top_s)}")
+            return
+        
+        if self.latest_price is None:
+            self.log("Don't have a latest price. Not creating new contract")
+            return
+
+        oil_boiler_on = False
         if watthours > 0 and self.use_oil_as_fuel_substitute():
             watthours = 0
             if watthours > 2500:
-                self.hack_oil_on()
-            else:
-                self.hack_oil_off() # Hack for right now. If more expensive than oil use the thermal store of house            
-        else:
-            self.hack_oil_off()
+                oil_boiler_on = True
+
+        if self.contract_handler
+        self.contract_handler.create_new_contract(
+            avg_power_watts = watthours,  # since we are assuming 60 minutes
+            oil_boiler_on = oil_boiler_on
+        )
         try:
             payload = EnergyInstruction(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 SlotStartS=slot_start_s,
-                SlotDurationMinutes=slot_minutes,
+                SlotDurationMinutes=60,
                 SendTimeMs=int(time.time() * 1000),
                 AvgPowerWatts=int(watthours) if watthours>=0 else 0,
             )

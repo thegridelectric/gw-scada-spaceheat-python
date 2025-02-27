@@ -178,19 +178,6 @@ class ContractHandler:
         self.logger.info("Starting in %s state", self.status.value)
         return return_hb
 
-    def in_grace_period(self) -> bool:
-        """Scada is NOT dormant, and a contract is active or was active within 5 minutes"""
-        if self.status == RepresentationStatus.Dormant:
-            return False
-        if self.latest_scada_hb:
-            return True
-        elif not self.prev:
-            return False
-        elif time.time() > self.prev.grace_period_end_s():
-            return False
-        else:
-            return True
-
     def process_set_status(self, cmd: SetRepresentationStatus) -> Optional[Glitch]:
         """Handle SetRepresentationStatus command from ATN"""
         prior_status = self.status
@@ -280,10 +267,11 @@ class ContractHandler:
 
     def update_existing_contract_hb(
         self, atn_hb: SlowContractHeartbeat
-    ) -> SlowContractHeartbeat:
-        """ Update energy usage and either 
-          - return the contract, or
-        - return None if atn_hb.Status is TerminatedByAtn 
+    ) -> Optional[SlowContractHeartbeat]:
+        """ Update energy usage and 
+        - return  hb for Scada to send back
+        - or None if Scada doesn't send anything back (if Atn terminates contract
+        prior to completion)
 
         raise exception if latest_scada_hb is none or if its contract
         does not match
@@ -369,10 +357,10 @@ class ContractHandler:
         self.latest_scada_hb = None
         return hb
 
-    def scada_detects_contract_complete_hb(self) -> SlowContractHeartbeat:
+    def scada_contract_completion_hb(self) -> SlowContractHeartbeat:
         """Creats a heartbeat noting time has passed completion
-        - can only call if self.latest_atn_hb exists
-        - sets prev to latest_atn_hb and latest_atn_hb to None
+        - can only call if self.latest_scada_hb exists
+        - sets prev to this hb and latest_scada_hb to None
 
         Raises exception if called before the ContractEndS
         """

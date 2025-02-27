@@ -797,22 +797,6 @@ class Scada(ScadaInterface, Proactor):
             )
             self._send_to(self.atn, termination_hb)
 
-    def admin_releases_control(self) -> None:
-        if self.top_state != TopState.Admin:
-            self.log("Ignoring AdminWakesUp, TopState not Admin")
-            return
-        # AdminReleasesControl:  Admin => Auto
-        self.AdminReleasesControl()
-        self.log(f"Admin releases control: {self.top_state}")
-        # cancel the timeout
-        if self._admin_timeout_task is not None:
-            if not self._admin_timeout_task.cancelled():
-                self._admin_timeout_task.cancel()
-            self._admin_timeout_task = None
-            # wake up auto state, which has been dormant. This will set
-        # the actuator forest to HomeAlone
-        self.auto_wakes_up()
-
     def admin_times_out(self) -> None:
         if self.top_state == TopState.Auto:
             self.log("Ignoring AdminTimesOut, TopState already Auto")
@@ -834,17 +818,30 @@ class Scada(ScadaInterface, Proactor):
     # AUTO STATE MACHINE
 
     def auto_wakes_up(self) -> None:
+        """
+        checks if in  If so, goes to atn. Otherwise
+        goes to home alone
+        """
         if self.auto_state != MainAutoState.Dormant:
             self.log(f"STRANGE!! auto state is already{self.auto_state}")
             return
-
         # Trigger AutoWakesUp for auto state: Dormant -> HomeAlone
         self.AutoWakesUp()
-        # all actuators report directly to home alone
-        self.set_home_alone_command_tree()
-        # Let homealone and pico-cycler know they in charge again
-        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-        self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
+        self.log("AutoWakesUp: Dormant -> HomeAlone")
+        if self.in_grace_period(): # go to Atn
+            self.DispatchContractLive()
+            self.log("DispatchContractLive: HomeAlone -> Atn")
+            self.set_atn_command_tree()
+            # Let atn and pico-cycler know they in charge again
+            self._send_to(self.layout.atn, WakeUp(ToName=H0N.atn))
+            self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
+
+        else:
+            # all actuators report directly to home alone
+            self.set_home_alone_command_tree()
+            # Let homealone and pico-cycler know they in charge again
+            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+            self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
 
     def auto_goes_dormant(self) -> None:
         if self.auto_state == MainAutoState.Dormant:
@@ -867,23 +864,7 @@ class Scada(ScadaInterface, Proactor):
             )
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, atn_hb: SlowContractHeartbeat) -> None:
-        # First check if in Admin mode
-        if self.top_state == TopState.Admin:
-            if atn_hb.Status == ContractStatus.Created:
-                # Only respond to Created - ignore other heartbeats
-                termination_hb = SlowContractHeartbeat(
-                    FromNode=self.node.Name,
-                    Contract=atn_hb.Contract,
-                    PreviousStatus=atn_hb.Status,
-                    Status=ContractStatus.TerminatedByScada,
-                    Cause="Scada in Admin mode - cannot accept dispatch contracts",
-                    MessageCreatedMs=int(time.time() * 1000),
-                    MyDigit=random.choice(range(10)),
-                    YourLastDigit=atn_hb.MyDigit,
-                )
-                self._send_to(self.atn, termination_hb)
-            return
-        
+
         if self.contract_handler.status == RepresentationStatus.Dormant:
             self._send_to(self.atn,
                         SetRepresentationStatus(
@@ -895,13 +876,16 @@ class Scada(ScadaInterface, Proactor):
             return
 
         if atn_hb.Status == ContractStatus.Created:
+            if self.top_state == TopState.Admin:
+                self.log("Ignoring new contrat, in Admin")
+                return
             if self.contract_handler.latest_scada_hb is None: # contract already wrapped up
                 self.contract_handler.start_new_contract_hb(atn_hb) #sets up matching latest_scada_hb
                 if self.auto_state == MainAutoState.HomeAlone:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
                 self._send_to(self.atn,
-                    self.contract_handler.scada_detects_contract_complete_hb()
+                    self.contract_handler.scada_contract_completion_hb()
                 )
                 self.contract_handler.start_new_contract_hb(atn_hb)
                 self._send_to(self.atomic_ally, self.contract_handler.latest_scada_hb.Contract
@@ -915,10 +899,10 @@ class Scada(ScadaInterface, Proactor):
                 self.log(f"Got inbound hb with contract mismatch! \n inbound: {atn_hb}"
                 f"existing: {self.contract_handler.latest_scada_hb}")
                 return
-            self.contract_handler.update_existing_contract_hb(atn_hb)
-            self._send_to(self.atn, self.contract_handler.latest_scada_hb)
-
-        
+            return_hb = self.contract_handler.update_existing_contract_hb(atn_hb)
+            if return_hb:
+                self._send_to(self.atn, return_hb) # on completion, will send back a completion
+                # hb with final energy_used_wh
 
     def process_new_contract(self) -> None:
         """Called after contract is confirmed (SuitUp received)"""
@@ -937,6 +921,25 @@ class Scada(ScadaInterface, Proactor):
             name=f"contract_task_{contract.ContractId}"
         )
 
+    def in_grace_period(self) -> bool:
+        """Scada is NOT dormant, and a contract is active or was active within 5 minutes
+        Effect: if contract_handler.active_contract_has_expired, send a final
+        completion heartbeat, None -> latest_scada_hb -> prev
+        """
+        if self.contract_handler.status == RepresentationStatus.Dormant:
+            return False
+        if self.contract_handler.active_contract_has_expired():
+                self._send_to(self.atn, 
+                        self.contract_handler.scada_contract_completion_hb())
+        if self.contract_handler.latest_scada_hb: # will not be expired
+            return True
+        elif not self.contract_handler.prev:
+            return False
+        elif time.time() > self.contract_handler.prev.grace_period_end_s():
+            return False
+        else:
+            return True
+        
     async def handle_contract_timing(self):
         """Handles warning messages and state transition out of atn if needed.
         
@@ -950,9 +953,6 @@ class Scada(ScadaInterface, Proactor):
                         self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - time.time())
         await asyncio.sleep(delay_s)
         
-        # First check if this is still the active contract
-        if not self.contract_handler.latest_scada_hb:
-            return
         grace_end_s = contract.contract_end_s()+ self.contract_handler.GRACE_PERIOD_MINUTES* 60
         # Case 1: latest_scada_hb is None - old contract was properly expired
         # Still send warning since we haven't received a new contract
@@ -971,7 +971,7 @@ class Scada(ScadaInterface, Proactor):
         self.log(f"Contract {contract.ContractId} end time reached - sending completion")
         
         # Send completion heartbeat and set contract_handler.latest_scada_hb to None
-        completion_hb = self.contract_handler.scada_detects_contract_complete_hb()
+        completion_hb = self.contract_handler.scada_contract_completion_hb()
         self._send_to(self.atn, completion_hb)
 
         # Set backup timer for grace period  
@@ -980,8 +980,7 @@ class Scada(ScadaInterface, Proactor):
         await asyncio.sleep(grace_remaining)
         
         # If still same contract after grace period, force transition to home alone  
-        if not self.contract_handler.latest_scada_hb:
-            
+        if not self.in_grace_period():
             self.log(f"Grace period expired for contract {contract.ContractId} - transitioning to home alone")
             self.ContractGracePeriodEnds()
             self.set_home_alone_command_tree()
