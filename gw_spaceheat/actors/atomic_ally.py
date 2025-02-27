@@ -3,7 +3,6 @@ import time
 import uuid
 from enum import auto
 from typing import cast, List, Sequence, Optional
-from datetime import datetime
 
 import pytz
 from data_classes.house_0_names import H0CN, H0N
@@ -14,7 +13,7 @@ from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.components.dfr_component import DfrComponent
 
-from gwproto.enums import ActorClass, FsmReportType
+from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
 from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport,
                                  MachineStates)
 from result import Ok, Result
@@ -22,10 +21,10 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import LogLevel, StratBossState, RelayClosedOrOpen
+from enums import LogLevel, StratBossState
 from named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast, NewCommandTree, 
-    SlowContractHeartbeat, SlowDispatchContract, SuitUp, StratBossTrigger, WakeUp,
+    SlowContractHeartbeat, SlowDispatchContract, SuitUp, StratBossTrigger
 )
 
 

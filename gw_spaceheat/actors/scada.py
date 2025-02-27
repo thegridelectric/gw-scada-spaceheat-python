@@ -489,20 +489,13 @@ class Scada(ScadaInterface, Proactor):
         # will be 5 minutes until the state changes
         hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
         self._send_to(self.atn, hb)
-
-        # Set warning task for grace period expiration
-        warning_delay = (time.time() + 
-                        self.contract_handler.WARNING_MINUTES_AFTER_END * 60)
         
         # Cancel any existing warning task
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()
 
         self.contract_task = asyncio.create_task(
-            self.handle_contract_timing(
-                delay_s=warning_delay,
-                contract_id=hb.Contract.ContractId
-            ),
+            self.handle_contract_timing(),
             name=f"contract_warning_{hb.Contract.ContractId}"
         )
 
@@ -677,6 +670,9 @@ class Scada(ScadaInterface, Proactor):
             self.contract_handler.status = RepresentationStatus.Dormant
                 
         elif cmd.Status == RepresentationStatus.Active:
+            if self.settings.monitor_only:
+                self.log("Ignoring cmd to movce RepresentationStatus to Active - monitor only!")
+                return
             if self.contract_handler.status == RepresentationStatus.Dormant:
                 self.contract_handler.status = RepresentationStatus.Active
                 self._send_to(self.atn,
@@ -891,6 +887,8 @@ class Scada(ScadaInterface, Proactor):
                 self._send_to(self.atomic_ally, self.contract_handler.latest_scada_hb.Contract
                 ) 
                 # will send hb ion process_suit_up, after atomic ally acknowledges
+        elif atn_hb.Status == ContractStatus.TerminatedByAtn:
+            raise Exception("Ack! Haven't thought through termination by atn ...")
         else:
             if self.contract_handler.latest_scada_hb is None:
                 self.log(f"got continuation hb when Scada has no contract! ignoring:  {atn_hb.Contract}")
@@ -946,29 +944,33 @@ class Scada(ScadaInterface, Proactor):
         Atn is meant to be the actor that terminates each contract but Scada also
         provided backup for that here.
         """
-        if self.contract_handler.latest_scada_hb is None:
+        hb = self.contract_handler.latest_scada_hb
+        if hb is None:
             return
-        contract = self.contract_handler.latest_scada_hb.Contract
-        delay_s = (contract.contract_end_s() + 
+        
+        actual_end_s = hb.Contract.contract_end_s()
+        if hb.Status == ContractStatus.TerminatedByScada:
+            actual_end_s = hb.MessageCreatedMs / 1000
+        delay_s = (actual_end_s + 
                         self.contract_handler.WARNING_MINUTES_AFTER_END * 60 - time.time())
         await asyncio.sleep(delay_s)
         
-        grace_end_s = contract.contract_end_s()+ self.contract_handler.GRACE_PERIOD_MINUTES* 60
+        grace_end_s = int(actual_end_s+ self.contract_handler.GRACE_PERIOD_MINUTES* 60)
         # Case 1: latest_scada_hb is None - old contract was properly expired
         # Still send warning since we haven't received a new contract
         if not self.contract_handler.latest_scada_hb:
             self._send_to(self.atn, NoNewContractWarning(
                 FromGNodeAlias=self.layout.scada_g_node_alias,
-                ContractId=contract.ContractId,
+                ContractId=hb.Contract.ContractId,
                 GraceEndTimeS=grace_end_s
             ))
             return
          # Case 2: We have a different contract after the wait - this is the normal 
          # case where the old contract expired and atn sent a new one
-        if self.contract_handler.latest_scada_hb.Contract.ContractId != contract.ContractId:
+        if self.contract_handler.latest_scada_hb.Contract.ContractId != hb.Contract.ContractId:
             return
         # Case 3: Same contract still active - needs to be completed
-        self.log(f"Contract {contract.ContractId} end time reached - sending completion")
+        self.log(f"Contract {hb.Contract.ContractId} end time reached - sending completion")
         
         # Send completion heartbeat and set contract_handler.latest_scada_hb to None
         completion_hb = self.contract_handler.scada_contract_completion_hb()
@@ -981,7 +983,7 @@ class Scada(ScadaInterface, Proactor):
         
         # If still same contract after grace period, force transition to home alone  
         if not self.in_grace_period():
-            self.log(f"Grace period expired for contract {contract.ContractId} - transitioning to home alone")
+            self.log(f"Grace period expired for contract {hb.Contract.ContractId} - transitioning to home alone")
             self.ContractGracePeriodEnds()
             self.set_home_alone_command_tree()
             self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))

@@ -338,11 +338,11 @@ class ContractHandler:
 
     def scada_terminates_contract_hb(self, cause: str = "") -> SlowContractHeartbeat:
         """Creats a heartbeat declaring scada termination of contract
-        - can only call if self.latest_atn_hb exists
-        - sets prev to latest_atn_hb and latest_atn_hb to None
+        - can only call if self.latest_scada_hb exists
+        - sets prev to terminating_hb  and latest_scada_hb to None
         """
         if not self.latest_scada_hb:
-            raise Exception("Cannot call scada terminates contract if no latest_atn_hb")
+            raise Exception("Cannot call scada terminates contract if no latest_scada_hb")
         hb = SlowContractHeartbeat(
             FromNode=self.node.Name,
             Contract=self.latest_scada_hb.Contract,

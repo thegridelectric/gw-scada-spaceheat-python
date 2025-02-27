@@ -1,34 +1,30 @@
+
+
 import json
 import random
 import time
 import datetime
 import uuid
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Callable
 
 import pytz
-from gwproto.property_format import UUID4Str
+from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
 from gwproactor.logger import LoggerOrAdapter
-
-from enums import ContractStatus, RepresentationStatus, LogLevel
-from named_types import (
-    SlowContractHeartbeat, 
-    SlowDispatchContract, 
+from enums import MarketPriceUnit
+from enums import ContractStatus, RepresentationStatus
+from named_types import ( 
+    AtnBid, LatestPrice, SlowContractHeartbeat, SlowDispatchContract, 
     SetRepresentationStatus,
 )
 from enum import auto
-from typing import List
 
 from gw.enums import GwStrEnum
 
 from tests.atn.atn_config import AtnSettings
-
-class DispatchContractState(GwStrEnum):
-    Expired = auto()
-    
 
 class AtnContractHandler:
     """Handles ATN's side of representation contract with SCADA and dispatch contracts"""
@@ -55,19 +51,25 @@ class AtnContractHandler:
         settings: AtnSettings,
         layout: House0Layout,
         logger: LoggerOrAdapter,
+        send_threadsafe: Callable[[Message], None]
     ):
         self.settings = settings
         self.node = node
         self.layout = layout
         self.logger = logger
+        self.send_threadsafe = send_threadsafe
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.contract_file = Path(
             f"{self.settings.paths.data_dir}/atn_contract.json"
         )
+        self.next_contract_energy_wh: Optional[int] = None
         self.energy_used_wh: int = 0
         self.energy_updated_s: Optional[float] = None
         self.status: RepresentationStatus = RepresentationStatus.Active  # Default to active
-        self.latest_hb: Optional[SlowContractHeartbeat] = None
+        self.layout_received: bool = False # have we received the layout
+        self.latest_hb: Optional[SlowContractHeartbeat] = None # Current active hb, None means no active contract
+        self.latest_price: Optional[LatestPrice] = None
+        self.latest_bid: Optional[AtnBid] = None
         
     def load_heartbeat(self) -> Optional[SlowContractHeartbeat]:
         """Loads existing SlowContractHeartbeat from persistent storage
@@ -142,16 +144,71 @@ class AtnContractHandler:
         """
         hb = self.load_heartbeat()        
         return hb
-    
-    def create_new_contract(self, 
-                           avg_power_watts: int, 
-                           duration_minutes: int = 60, 
-                           oil_boiler_on: bool = False) -> None:
-        """Create a new dispatch contract
-        
-        This is called when the latest price is received and the ATN decides
-        to create a new contract.
+
+    def process_slow_contract_heartbeat(self, scada_hb: SlowContractHeartbeat) -> None:
+        """ - Does nothing if scada_hb does not match (latest_hb is None, mis-match in ContractId,
+        or MessageCreatedMs is out of order)
+        Otherwise:
+          - sets self.latest_hb to this hb
+          - updates energy_used_wh and energy_updated_s
+          - stores the heartbeat
+          - sets latest_hb to None if scada sends Completed or Terminated
+          
         """
+        if self.latest_hb is None:
+            self.logger.info(f"Unexpected Scada hb ... we have no heartbeat! {scada_hb}")
+            return
+        if scada_hb.Contract.ContractId != self.latest_hb.Contract.ContractId:
+            self.logger.info("Not the same ContractId ... ignoring")
+            return
+        if self.latest_hb is not None:
+            if scada_hb.MessageCreatedMs < self.latest_hb.MessageCreatedMs:
+                self.logger.info("hb received out of order. Ignoring!")
+                return
+        if scada_hb.WattHoursUsed is None: 
+            raise Exception("this can't happen, axiomatically in Hb")
+
+        self.energy_used_wh = scada_hb.WattHoursUsed
+        self.energy_updated_s = time.time()
+        self.store_heartbeat(scada_hb)
+       
+        if scada_hb.Status == ContractStatus.CompletedUnknownOutcome:
+            self.latest_hb = None # we can create new contract now!
+            if self.can_create_contract():
+                self.create_new_contract()
+        if scada_hb.Status == ContractStatus.TerminatedByScada:
+            self.latest_hb = None
+        else:
+            self.latest_hb = scada_hb
+        self.logger.info(self.formatted_contract(scada_hb))
+    
+    def create_new_contract(self) -> None:
+        """
+        - Create a new SlowDispatchContract at the top of the hour
+        - Create a new Heartbeat, stores in latest_hb
+        - Sends new Heartbeat to Scada
+        """
+        if self.next_contract_energy_wh is None:
+            raise Exception("next_contract_energy_wh should not be None!")
+        watthours = self.next_contract_energy_wh
+        self.next_contract_energy_wh = None
+        if self.status == RepresentationStatus.Dormant:
+            self.logger.info("Not starting new contract ... Dormant RepresentationStatus")
+            return
+        now = time.time()
+        after_top_s =now % 3600
+        if after_top_s >= 10:
+            self.logger.info(f"Not starting new contract! more than 10 seconds after top of hour: {round(after_top_s)}")
+            return
+        
+        if self.latest_price is None:
+            self.logger.info("Don't have a latest price. Not creating new contract")
+            return
+
+        if self.latest_hb is not None:
+            self.logger.info("WHY IS latest_hb not none??")
+            self.latest_hb = None
+
         # Only create if there's no active contract or the active contract is done
         if self.latest_hb:
             raise Exception("Cannot create new contract while one is active")
@@ -160,6 +217,14 @@ class AtnContractHandler:
         now = time.time()
         start_s = int(now - (now % 3600))
 
+        oil_boiler_on = False
+        if watthours > 0 and self.use_oil_as_fuel_substitute():
+            watthours = 0
+            if watthours > 2500:
+                oil_boiler_on = True
+
+        duration_minutes=60
+        avg_power_watts = int(watthours * (60/duration_minutes))
         contract = SlowDispatchContract(
             ScadaAlias=self.layout.scada_g_node_alias,
             StartS=start_s,
@@ -178,11 +243,50 @@ class AtnContractHandler:
             MyDigit=random.choice(range(10)),
             YourLastDigit=None,  # First message in chain
         )
-        
+    
         # Store heartbeat
         self.store_heartbeat()
         self.latest_hb = hb
-    
+
+        # Send hb to scada
+        self.send_threadsafe(
+                Message(
+                    Src=self.node.name,
+                    Dst=H0N.primary_scada,
+                    Payload=self.latest_hb,
+                )
+            )
+
+    def use_oil_as_fuel_substitute(self) -> bool:
+        if self.latest_price is None:
+            return False
+        if self.latest_price.PriceUnit != MarketPriceUnit.USDPerMWh:
+            raise Exception(f"Stop being so parochial and assuming {MarketPriceUnit.USDPerMWh}")
+        price_usd_per_mwh = self.latest_price.PriceTimes1000 / 1000
+        self.logger.info(f"Latest price is ${price_usd_per_mwh}/MWh. Fuel sub threshold ${self.settings.fuel_sub_usd_per_mwh}/MWh")
+        if price_usd_per_mwh > self.settings.fuel_sub_usd_per_mwh and self.settings.fuel_substitution:
+            return True
+        elif not self.settings.fuel_substitution:
+            self.logger.info("fuel_substation variable set to False! ")
+            return False
+        return False
+
+    def start_completing_old_contract(self) -> None:
+        """
+        """
+        if self.latest_hb is None:
+            raise Exception("Only call when latest_hb exists")
+        
+        if self.latest_hb.Contract.contract_end_s() > time.time():
+            raise Exception("Past the top of the hour but still in prev contract timeslot!?")
+        
+        try:
+            self.send_threadsafe(Message(src=self.node.name, Dst=H0N.primary_scada,
+                            Payload=self.create_completion_heartbeat())
+            )
+        except Exception as e:
+            self.logger.info(f"Tried to send contract completion in process_latest_price. Perhaps race cond? {e}")
+
     def create_termination_heartbeat(self, reason: str) -> SlowContractHeartbeat:
         """Create a heartbeat terminating the current contract"""
         if not self.latest_hb:
@@ -207,8 +311,6 @@ class AtnContractHandler:
     
     def create_completion_heartbeat(self) -> SlowContractHeartbeat:
         """Create a heartbeat marking the current contract as completed
-
-        Set latest_hb to None. Store the completion heartbeat
         """
         if not self.latest_hb:
             raise Exception("No active contract to terminate")
@@ -224,10 +326,6 @@ class AtnContractHandler:
             MyDigit=random.choice(range(10)),
             YourLastDigit=self.latest_hb.MyDigit,
         )
-        # Store
-        self.store_heartbeat(hb)
-        # Clear active contract
-        self.latest_hb = None
         return hb
     
     def create_midcontract_heartbeat(self) -> SlowContractHeartbeat:
@@ -254,39 +352,13 @@ class AtnContractHandler:
         else:
             raise Exception(f"Cannot call this if latest_hb.Status is {self.latest_hb.Status}")
 
-    def process_slow_contract_heartbeat(self, scada_hb: SlowContractHeartbeat) -> None:
-        """ - Does nothing if scada_hb does not match (latest_hb is None, mis-match in ContractId,
-        or MessageCreatedMs is out of order)
-        Otherwise:
-          - sets self.latest_hb to this hb
-          - updates energy_used_wh and energy_updated_s
-          - stores the heartbeat
-          - sets latest_hb to None if scada sends Completed or Terminated
-          
-        """
-        if self.latest_hb is None:
-            self.logger.info(f"Unexpected Scada hb ... we have no heartbeat! {scada_hb}")
-            return
-        if scada_hb.Contract.ContractId != self.latest_hb.Contract.ContractId:
-            self.logger.info("Not the same ContractId ... ignoring")
-            return
-        if self.latest_hb is not None:
-            if scada_hb.MessageCreatedMs < self.latest_hb.MessageCreatedMs:
-                self.logger.info("hb received out of order. Ignoring!")
-                return
-        if scada_hb.WattHoursUsed is None: # also means FromNode is Scada
-            raise Exception("this can't happen, axiomatically in Hb")
-        
-        self.energy_used_wh = scada_hb.WattHoursUsed
-        self.energy_updated_s = time.time()
-        self.store_heartbeat(scada_hb)
-        if scada_hb.Status in [ContractStatus.TerminatedByScada,
-                               ContractStatus.CompletedUnknownOutcome]:
-            self.logger.info(f"Contract terminated by SCADA: {scada_hb.Cause}")
-            self.latest_hb = None
-        else:
-            self.latest_hb = scada_hb
-
+    def can_create_contract(self) -> bool:
+        """ layout received, no latest_hb, have calculated next energy, representation status is active"""
+        return self.layout_received \
+                and self.latest_hb is None \
+                and self.next_contract_energy_wh is not None \
+                and self.status == RepresentationStatus.Active
+    
     def set_representation_status(self, status: RepresentationStatus, reason: str = "") -> SetRepresentationStatus:
         """Update the representation status and create a message to send to SCADA"""
         old_status = self.status
@@ -344,11 +416,5 @@ class AtnContractHandler:
         
         return log_str
 
-    def schedule_next_heartbeat(self) -> None:
-        """Schedule the next heartbeat"""
-        self.next_heartbeat_time = time.time() + self.HEARTBEAT_INTERVAL_SECONDS
     
-    def is_heartbeat_due(self) -> bool:
-        """Check if it's time to send a heartbeat"""
-        return time.time() >= self.next_heartbeat_time
     

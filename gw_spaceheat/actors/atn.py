@@ -5,7 +5,6 @@ import json
 import threading
 import time
 import uuid
-from enum import auto
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -22,7 +21,6 @@ from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
 from data_classes.house_0_names import House0RelayIdx
-from gw.enums import GwStrEnum
 from gwproactor import QOS, ActorInterface
 from gwproactor.config import LoggerLevels
 from gwproactor.links.link_settings import LinkSettings
@@ -35,20 +33,19 @@ from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
-from enums import RepresentationStatus
-from named_types import (AtnBid, DispatchContractGoDormant,
-                         DispatchContractGoLive, FloParamsHouse0,
-                         Ha1Params, LatestPrice, LayoutLite, PriceQuantityUnitless, 
+from enums import ContractStatus, RepresentationStatus
+from named_types import (AtnBid, FloParamsHouse0,Ha1Params, LatestPrice, LayoutLite, 
+                         NoNewContractWarning, PriceQuantityUnitless, 
                          ScadaParams, SendLayout, SetRepresentationStatus,
                          SlowContractHeartbeat,  SnapshotSpaceheat)
 
 from paho.mqtt.client import MQTTMessageInfo
 from pydantic import BaseModel
-from transitions import Machine
 
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings, DashboardSettings
 from tests.atn.dashboard.dashboard import Dashboard
+
 
 class PriceForecast(BaseModel):
     dp_usd_per_mwh: List[float]
@@ -176,6 +173,7 @@ class AtnData:
     
 class Atn(ActorInterface, Proactor):
     MAIN_LOOP_SLEEP_SECONDS = 61
+    HEARTBEAT_INTERVAL_S = 60
     P_NODE = "hw1.isone.ver.keene"
     SCADA_MQTT = "scada"
     data: AtnData
@@ -183,21 +181,6 @@ class Atn(ActorInterface, Proactor):
     bid_runner: Optional[threading.Thread]
     dashboard: Optional[Dashboard]
     ha1_params: Optional[Ha1Params]
-
-    states = [
-        "DispatchDormantScadaReady",
-        "DispatchDormantScadaNotReady",
-        "DispatchLive"
-    ]
-
-    transitions = [
-        {"trigger": "ScadaReadyReceived", "source": "DispatchDormantScadaNotReady", "dest": "DispatchDormantScadaReady"},
-        {"trigger": "AtnWantsControl", "source": "DispatchDormantScadaReady", "dest": "DispatchLive"},
-        {"trigger": "AtnReleasesControl", "source": "DispatchLive", "dest": "DispatchDormantScadaNotReady"},
-        {"trigger": "ScadaLinkDead", "source": "DispatchLive", "dest": "DispatchDormantScadaNotReady"},
-         {"trigger": "ScadaLinkDead", "source": "DispatchDormantScadaReady", "dest": "DispatchDormantScadaNotReady"}
-
-    ]
 
     def __init__(
         self,
@@ -218,22 +201,12 @@ class Atn(ActorInterface, Proactor):
                 downstream=True,
             )
         )
-        self.machine = Machine(
-            model=self,
-            states=Atn.states,
-            transitions=Atn.transitions,
-            initial="DispatchDormantScadaNotReady",
-            send_event=False,
-        ) 
-
-        self.log(f"State is {self.state}")
         self.is_simulated = self.settings.is_simulated
         self.latest_channel_values: Dict[str, int] = {}
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
         self.sent_bid = False
-        self.latest_bid = None
         self.hp_is_off = False
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
@@ -256,8 +229,7 @@ class Atn(ActorInterface, Proactor):
             )
         else:
             self.dashboard = None
-
-        self.latest_price: Optional[LatestPrice] = None
+        self.next_contract_energy_wh: Optional[int] = None
         self.contract_handler: AtnContractHandler = AtnContractHandler(
             node=self.node,
             settings=self.settings,
@@ -265,7 +237,8 @@ class Atn(ActorInterface, Proactor):
             logger=self.logger.add_category_logger(
                 AtnContractHandler.LOGGER_NAME,
                 level=settings.contract_rep_logging_level
-            )
+            ),
+            send_threadsafe=self.send_threadsafe,
         )
         self.bid_runner = None
 
@@ -325,7 +298,7 @@ class Atn(ActorInterface, Proactor):
         match message.Payload:
             case AtnBid():
                 bid = message.Payload
-                self.latest_bid = bid
+                self.contract_handler.latest_bid = bid
                 self._links.publish_message(
                     self.SCADA_MQTT, 
                     Message(Src=self.publication_name, Dst="broadcast", Payload=bid)
@@ -358,6 +331,8 @@ class Atn(ActorInterface, Proactor):
             case LayoutLite():
                 path_dbg |= 0x00000001
                 self.process_layout_lite(decoded.Payload)
+            case NoNewContractWarning():
+                self.process_no_new_contract_warning(decoded.Payload)                    
             case PowerWatts():
                 path_dbg |= 0x00000002
                 self.process_power_watts(decoded.Payload)
@@ -404,7 +379,22 @@ class Atn(ActorInterface, Proactor):
             return 0
         contract_wh = int(hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60)
         return min(0, contract_wh - self.contract_handler.energy_used_wh)
-        
+
+    def process_no_new_contract_warning(self, payload: NoNewContractWarning) -> None:
+        """
+        Resending a "Created" hb if it exists
+        """
+        hb = self.contract_handler.latest_hb
+        if hb:
+            if hb.Status == ContractStatus.Created:
+                self.send_threadsafe(
+                    Message(
+                        Src=self.name,
+                        Dst=self.scada.name,
+                        Payload=hb
+                    )
+                )
+
     def process_power_watts(self, pwr: PowerWatts) -> None:
         if not self.dashboard:
             return
@@ -461,18 +451,17 @@ class Atn(ActorInterface, Proactor):
                 self.latest_channel_values[channel] = 60000
 
     def process_layout_lite(self, layout: LayoutLite) -> None:
-        # TODO - CHANGE THIS!!
+        """ ContractState: Initializing -> Ready if needed
+        """
         self.ha1_params = layout.Ha1Params
-        self.logger.error(f"Just got layout: {self.ha1_params}")
-        if self.state == "DispatchDormantScadaNotReady":
-            # ScadaReadyReceived: DispatchDormantScadaNotReady -> DispatchDormantScadaReady
-            self.ScadaReadyReceived()
-        self.log(f"State is now {self.state}")
         self.temperature_channel_names = [
             x.Name
             for x in layout.DataChannels
             if "depth" in x.Name and "micro-v" not in x.Name
         ]
+        if self.contract_handler.layout_received is False:
+            self.contract_handler.layout_received = True # Necessary for bids & contracts
+            self.logger.info("Received layout data - ATN now ready for contract operations")
 
     def process_report(self, report: Report) -> None:
         self.data.latest_report = report
@@ -542,47 +531,39 @@ class Atn(ActorInterface, Proactor):
         )
         self.log("Requesting layout")
 
-    def take_control(self) -> None:
+    def release_control(self, reason = "") -> None:
         """
-        Will trigger Atn mode in scada, if the Scada gets this message
-        and is in HomeAlone
+        Immediately void any contract and go to Dormant RepresentationStatus
         """
-        if not self.state == "DispatchDormantScadaReady":
-            self.log("Scada not ready! Not taking control")
-            return
-        elif not self.latest_channel_values:
-            self.log("Not taking control! Do not have latest channel values")
-            return
-        # AtnWantsControl: DispatchDormantScadaReady -> DispatchLive
-        self.AtnWantsControl()
         self.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,
-                Payload=DispatchContractGoLive(
+                Payload=SetRepresentationStatus(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    BlockchainSig="bogus_algo_sig",
+                    TimeS=int(time.time()),
+                    Status=RepresentationStatus.Dormant,
+                    Reason=reason
+                    )
                 ),
             )
-        )
-        self.log(f"Wants control! State is now {self.state}")
+        self.contract_handler.status = RepresentationStatus.Dormant
 
-    def release_control(self) -> None:
-        """
-        If scada is in Atn mode, will go to Homealone
-        """
-        if self.state == "DispatchLive":
-            self.AtnReleasesControl()
+    def request_control(self, reason="") -> None:
+        """Request for Active Representation Status. Scada may ignore 
+        (e.g. if in monitor only)"""
         self.send_threadsafe(
             Message(
                 Src=self.name,
                 Dst=self.scada.name,
-                Payload=DispatchContractGoDormant(
+                Payload=SetRepresentationStatus(
                     FromGNodeAlias=self.layout.atn_g_node_alias,
-                    BlockchainSig="bogus_algo_sig",
+                    TimeS=int(time.time()),
+                    Status=RepresentationStatus.Active,
+                    Reason=reason
+                    )
                 ),
             )
-        )
 
     def start(self):
         if self.event_loop_thread is not None:
@@ -612,14 +593,14 @@ class Atn(ActorInterface, Proactor):
         while not self._stop_requested:
             await asyncio.sleep(5)
             if datetime.now().minute >= 55 and not self.sent_bid:
-                if self.state == "DispatchLive":
+                if self.contract_handler.status == RepresentationStatus.Active:
                     # In the last 5 minutes of the hour: make a bid for the next hour
                     try:
                         await self.run_d(session)
                     except Exception as e:
                         self.log(f"Exception running Dijkstra: {e}")
                 else:
-                    self.log(f"In the last 5 minutes but not running d. State is {self.state}")
+                    self.log("Representation status Dormant - not creating bid")
             elif datetime.now().minute <= 55 and self.sent_bid:
                 self.sent_bid = False
             else:
@@ -798,9 +779,9 @@ class Atn(ActorInterface, Proactor):
         self.log("Started Dijkstra computation in background")
 
     def process_latest_price(self, payload: LatestPrice) -> None:
-        self.latest_price = payload
+        self.contract_handler.latest_price = payload
         self.log("Received latest price")
-        if self.latest_bid is None:
+        if self.contract_handler.latest_bid is None:
             self.log("Ignoring - no bid exists")
             return
         if (
@@ -813,20 +794,26 @@ class Atn(ActorInterface, Proactor):
             return
 
         pq_pairs = [
-            (x.PriceTimes1000, x.QuantityTimes1000) for x in self.latest_bid.PqPairs
+            (x.PriceTimes1000, x.QuantityTimes1000) for x in self.contract_handler.latest_bid.PqPairs
         ]
         sorted_pq_pairs = sorted(pq_pairs, key=lambda pair: pair[0])
         # Quantity is AvgkW, so QuantityTimes1000 is avg_w
-        assert self.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
+        assert self.contract_handler.latest_bid.QuantityUnit == MarketQuantityUnit.AvgkW
         for pair in sorted_pq_pairs:
             if pair[0] < payload.PriceTimes1000:
                 avg_w = pair[1] # WattHours
 
         # 1 hour
-        energy_wh = avg_w * 1
-        if energy_wh < 1000:
-            energy_wh = 0
-        self.start_new_contract(watthours=energy_wh)
+        self.contract_handler.next_contract_energy_wh = avg_w * 1
+        if self.contract_handler.next_contract_energy_wh < 1000:
+            self.contract_handler.next_contract_energy_wh = 0
+
+        if self.contract_handler.latest_hb:
+            self.contract_handler.start_completing_old_contract() # waiting_for_completion_ack
+        elif self.contract_handler.can_create_contract():
+            self.contract_handler.create_new_contract()
+        else:
+            self.log("Why am I here")
 
     def to_fahrenheit(self, t: float) -> float:
         return t * 9 / 5 + 32
@@ -1057,80 +1044,7 @@ class Atn(ActorInterface, Proactor):
         self.log(f"House available kWh: {house_availale_kwh}")
         return house_availale_kwh
     
-    def use_oil_as_fuel_substitute(self) -> bool:
-        if self.latest_price is None:
-            return False
-        if self.latest_price.PriceUnit != MarketPriceUnit.USDPerMWh:
-            raise Exception(f"Stop being so parochial and assuming {MarketPriceUnit.USDPerMWh}")
-        price_usd_per_mwh = self.latest_price.PriceTimes1000 / 1000
-        self.log(f"Latest price is ${price_usd_per_mwh}/MWh. Fuel sub threshold ${self.settings.fuel_sub_usd_per_mwh}/MWh")
-        if price_usd_per_mwh > self.settings.fuel_sub_usd_per_mwh and self.settings.fuel_substitution:
-            return True
-        elif not self.settings.fuel_substitution:
-            self.log("fuel_substation variable set to False! ")
-            return False
-        return False
-
-
-    def start_new_contract(self, watthours: int) -> None:
-        """ 
-        - Complete existing contract if needed, send completion to scada and set contract_handler.latest_hb to None
-        - Create a new SlowDispatchContract at the top of the hour
-        - Create a new Heartbeat, store in contract_handler.latest_hb 
-        - Send new Heartbeat to Scada
-        """
-        if self.contract_handler.status == RepresentationStatus.Dormant:
-            self.log("Not starting new contract ... Dormant RepresentationStatus")
-            return
-        now = time.time()
-
-        after_top_s =now % 3600
-        if after_top_s >= 10:
-            self.log(f"Not starting new contract! more than 10 seconds after top of hour: {round(after_top_s)}")
-            return
-        
-        if self.latest_price is None:
-            self.log("Don't have a latest price. Not creating new contract")
-            return
-
-        # Need to complete previous contract
-        if self.contract_handler.latest_hb:
-            if self.contract_handler.latest_hb.Contract.contract_end_s() > time.time():
-                raise Exception("Past the top of the hour but still in prev contract timeslot!?")
-            # send out completion to scada
-            try:
-                self.send_threadsafe(Message(src=self.name, Dst=self.scada.name,
-                                Payload=self.contract_handler.create_completion_heartbeat())
-                )
-            except Exception as e:
-                self.log(f"Tried to send contract completion in process_latest_price. Perhaps race cond? {e}")
-        
-        if self.contract_handler.latest_hb is not None:
-            self.log("WHY IS latest_hb not none??")
-            self.contract_handler.latest_hb = None
-
-        oil_boiler_on = False
-        if watthours > 0 and self.use_oil_as_fuel_substitute():
-            watthours = 0
-            if watthours > 2500:
-                oil_boiler_on = True
-
-        self.contract_handler.create_new_contract(
-            avg_power_watts = watthours,  # since we are assuming 60 minutes
-            oil_boiler_on = oil_boiler_on
-        )
-        try:
-            self.send_threadsafe(
-                Message(
-                    Src=self.name,
-                    Dst=self.scada.name,
-                    Payload=self.contract_handler.latest_hb,
-                )
-            )
-            self.log(f"Created new contract and sent first hb: {self.contract_handler.formatted_contract()}")
-
-        except Exception as e:
-            self.log(f"Missed the boat sending this energy instruction!:{e} ")
+    
 
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
