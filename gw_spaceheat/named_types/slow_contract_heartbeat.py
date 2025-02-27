@@ -65,8 +65,7 @@ class SlowContractHeartbeat(BaseModel):
                 raise ValueError("Scada IsAuthoritative for Received!")
         # Active/CompletedSuccess/CompletedFailure are for umpire only
         # For now, treat these as claims by participants
-        if self.Status in [ContractStatus.Active, 
-                          ContractStatus.CompletedSuccess,
+        if self.Status in [ContractStatus.CompletedSuccess,
                           ContractStatus.CompletedFailureByAtn,
                           ContractStatus.CompletedFailureByScada]:
             # Later the umpire will enforce these
