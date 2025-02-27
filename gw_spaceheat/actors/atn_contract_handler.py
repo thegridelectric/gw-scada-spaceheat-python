@@ -68,8 +68,7 @@ class AtnContractHandler:
         self.latest_hb: Optional[SlowContractHeartbeat] = None # Current active hb, None means no active contract
         self.latest_price: Optional[LatestPrice] = None
         self.latest_bid: Optional[AtnBid] = None
-    
-        
+
     def load_heartbeat(self) -> Optional[SlowContractHeartbeat]:
         """Loads existing SlowContractHeartbeat from persistent storage
         
@@ -109,6 +108,8 @@ class AtnContractHandler:
                     if hb.Status != ContractStatus.Created:
                         raise Exception("Only save atn heartbeats with status Created!")
                     self.energy_used_wh = 0
+                    self.latest_hb = hb
+                    return hb
                 else:
                     if hb.WattHoursUsed is None:
                         raise Exception("hb from Scada must have WattHoursUsed!")
@@ -128,7 +129,7 @@ class AtnContractHandler:
             raise Exception("Can't store hb if latest_hb is none!")
         
         if hb_to_store.FromNode == self.node.name:
-            if hb_to_store not in [ContractStatus.Created, 
+            if hb_to_store.Status not in [ContractStatus.Created, 
                                    ContractStatus.TerminatedByAtn,
                                    ContractStatus.CompletedUnknownOutcome]:
                 raise Exception(f"Does not store atn hb with status {hb_to_store.Status}")
@@ -243,7 +244,7 @@ class AtnContractHandler:
             YourLastDigit=None,  # First message in chain
         )
     
-        # Store heartbeat
+        # Update and store the heartbeat
         self.latest_hb = hb
         self.store_heartbeat()
         
@@ -273,6 +274,18 @@ class AtnContractHandler:
 
     async def contract_heartbeat_task(self):
         """Task that sends regular heartbeats while a contract is active"""
+        await asyncio.sleep(10)
+        hb = self.initialize()
+        if hb is not None:
+            if hb.Status == ContractStatus.Created:
+                # we didn't get any response, send again
+                self.send_threadsafe(
+                        Message(
+                            Src=self.node.name,
+                            Dst=H0N.primary_scada,
+                            Payload=hb,
+                        )
+                    )
         while not self._stop_requested:
             # Only send heartbeats if we have an active contract
             if self.latest_hb and self.latest_hb.Status in [ContractStatus.Confirmed, ContractStatus.Active]:
