@@ -244,9 +244,10 @@ class AtnContractHandler:
         )
     
         # Store heartbeat
-        self.store_heartbeat()
         self.latest_hb = hb
-
+        self.store_heartbeat()
+        
+        self.logger.info(f"Created new contract! {self.formatted_contract(self.latest_hb)}")
         # Send hb to scada
         self.send_threadsafe(
                 Message(
