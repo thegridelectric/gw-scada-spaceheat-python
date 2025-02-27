@@ -37,9 +37,9 @@ class SlowContractHeartbeat(BaseModel):
 
     @model_validator(mode="after")
     def _check_axiom_1(self) -> Self:
-        """Axiom 1: Contracts must be created, received, and confirmed no later 
+        """Axiom 1: Contracts must be created no later 
         than 10 seconds after StartS"""
-        if self.Status in [ContractStatus.Created, ContractStatus.Received, ContractStatus.Confirmed]:
+        if self.Status in [ContractStatus.Created]:
             time_s = self.MessageCreatedMs / 1000
             if time_s > self.Contract.StartS + 10:
                 raise ValueError(

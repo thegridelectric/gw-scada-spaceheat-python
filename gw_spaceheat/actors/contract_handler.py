@@ -170,7 +170,7 @@ class ContractHandler:
         Returns a heartbeat if contract has become expired
         """
         return_hb = self.load_heartbeat()  # None unless returning expired HB to atn
-        if self.settings.representation_dormant:
+        if self.settings.representation_dormant or self.settings.monitor_only:
             self.status = RepresentationStatus.Dormant
             return_hb = None
         else:
@@ -208,7 +208,7 @@ class ContractHandler:
         """
         if not self.latest_scada_hb:
             return
-        if self.latest_scada_hb.Status not in selfFup.DONE_STATES:
+        if self.latest_scada_hb.Status not in self.DONE_STATES:
             return
         self.latest_scada_hb = None
         self.energy_used_wh = 0

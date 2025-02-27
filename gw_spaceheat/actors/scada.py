@@ -184,7 +184,7 @@ class Scada(ScadaInterface, Proactor):
         actor_nodes: Optional[List[ShNode]] = None,
     ):
         if not isinstance(hardware_layout, House0Layout):
-            raise Exception("Make sure to pass Hosue0Layout object as hardware_layout!")
+            raise Exception("Make sure to pass House0Layout object as hardware_layout!")
         self.is_simulated = False
         self._layout: House0Layout = hardware_layout
         self._data = ScadaData(settings, hardware_layout)
