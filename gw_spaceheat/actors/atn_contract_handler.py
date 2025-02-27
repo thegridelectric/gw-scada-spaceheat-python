@@ -281,8 +281,9 @@ class AtnContractHandler:
                 # we didn't get any response, send again
                 self.send_threadsafe(Message(Src=self.node.name,Dst=H0N.primary_scada,Payload=hb))
         while not self._stop_requested:
+            self.logger.info("In while loop")
             # Only send heartbeats if we have an active contract              
-            if self.latest_hb and self.latest_hb.Status in [ContractStatus.Created, ContractStatus.Confirmed, ContractStatus.Active]:
+            if self.latest_hb and self.latest_hb.Status in [ContractStatus.Created, ContractStatus.Received, ContractStatus.Active]:
                     # Check if contract has expired
                     if time.time() > self.latest_hb.Contract.contract_end_s():
                         # Contract expired - initiate completion
