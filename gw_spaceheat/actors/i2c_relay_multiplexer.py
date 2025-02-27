@@ -23,7 +23,8 @@ from gwproto.named_types import (SingleReading,
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
 from actors.scada_actor import ScadaActor
-from named_types import FsmEvent
+from named_types import FsmEvent, Glitch
+from enums import LogLevel
 class ChangeKridaPin(Enum):
     Energize = 0
     DeEnergize = 1
@@ -112,30 +113,47 @@ class I2cRelayMultiplexer(ScadaActor):
 
                 time.sleep(0.2)
                 print(f"initializing board at {hex(address)}")
-                for j in range(1, 17):
-                    # set relay to correct pin, and switch to output. This energizes all relays
-                    gw_idx = (board_idx - 1) * 16 + j
-                    pin_idx = gw_to_pin(gw_idx)
-                    self.krida_relay_pin[gw_idx] = self.krida_board[board_idx].get_pin(
-                        pin_idx
+                try:
+                    for j in range(1, 17):
+                        # set relay to correct pin, and switch to output. This energizes all relays
+                        gw_idx = (board_idx - 1) * 16 + j
+                        pin_idx = gw_to_pin(gw_idx)
+                        self.krida_relay_pin[gw_idx] = self.krida_board[board_idx].get_pin(
+                            pin_idx
+                        )
+                        self.krida_relay_pin[gw_idx].switch_to_output()
+                    time.sleep(1)
+                    for j in range(1, 17):
+                        # move all relays back to de-energized position
+                        self.krida_relay_pin[
+                            i * 16 + j
+                        ].value = ChangeKridaPin.DeEnergize.value
+                    # and record the de-energized state for all known relays
+                    print(f"Done initializing board {board_idx}")
+                except Exception as e:
+                    self.log(f"Trouble with board {board_idx}! Setting to simulated")
+                    for j in range(1,17):
+                        gw_idx = (board_idx - 1) * 16 + j
+                        self.krida_relay_pin[gw_idx] = SimulatedPin(
+                            value=KridaPinState.DeEnergized.value
+                        )
+                    self._send_to(self.atn,
+                                  Glitch(
+                                      FromGNodeAlias=self.layout.scada_g_node_alias,
+                                      Node=self.node.Name,
+                                      Type=LogLevel.Warning,
+                                      Summary=f"i2c board {board_idx} ({hex(address)}) failed to initialize. Setting as simulated",
+                                      Details=f"I2c Errors: {e}",
+                                  )
                     )
-                    self.krida_relay_pin[gw_idx].switch_to_output()
-                time.sleep(1)
-                for j in range(1, 17):
-                    # move all relays back to de-energized position
-                    self.krida_relay_pin[
-                        i * 16 + j
-                    ].value = ChangeKridaPin.DeEnergize.value
-                # and record the de-energized state for all known relays
-                print(f"Done initializing board {board_idx}")
-                for relay in self.my_relays:
+                for relay in self.my_relays:                        
                     self.relay_state[
                         self.get_idx(relay)
                     ] = RelayEnergizationState.DeEnergized
 
-    def get_idx(self, relay: ShNode) -> Optional[int]:
+    def get_idx(self, relay: ShNode) -> int:
         if not relay.actor_class == ActorClass.Relay:
-            return None
+            raise Exception(f"That doesn't make sense! get_idx for {relay.name} should exist")
         relay_config = next(
             (
                 config
@@ -145,7 +163,7 @@ class I2cRelayMultiplexer(ScadaActor):
             None,
         )
         if relay_config is None:
-            return None
+            raise Exception(f"That doesn't make sense! relay_config for {relay.name} should exist")
         return relay_config.RelayIdx
 
     def get_channel(self, relay: ShNode) -> Optional[DataChannel]:

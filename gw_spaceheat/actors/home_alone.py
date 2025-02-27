@@ -68,6 +68,8 @@ class TopStateEvent(GwStrEnum):
     JustOffpeak = auto()
     MissingData = auto()
     DataAvailable = auto()
+    MonitorOnly = auto()
+    MonitorAndControl = auto()
 
 class HomeAlone(ScadaActor):
     MAIN_LOOP_SLEEP_SECONDS = 60
@@ -119,7 +121,8 @@ class HomeAlone(ScadaActor):
     + [{"trigger":"WakeUp", "source": "Dormant", "dest": "Initializing"}]
     )
 
-    top_states = ["Normal", "UsingBackupOnpeak", "Dormant", "ScadaBlind"]
+    top_states = HomeAloneTopState.values()
+    # ["Normal", "UsingBackupOnpeak", "Dormant", "ScadaBlind", "Monitor"]
     top_transitions = [
         {"trigger": "HouseColdOnpeak", "source": "Normal", "dest": "UsingBackupOnpeak"},
         {"trigger": "TopGoDormant", "source": "Normal", "dest": "Dormant"},
@@ -129,6 +132,8 @@ class HomeAlone(ScadaActor):
         {"trigger": "JustOffpeak", "source": "UsingBackupOnpeak", "dest": "Normal"},
         {"trigger": "MissingData", "source": "Normal", "dest": "ScadaBlind"},
         {"trigger": "DataAvailable", "source": "ScadaBlind", "dest": "Normal"},
+        {"trigger": "MonitorOnly", "source": "Normal", "dest": "Monitor"},
+        {"trigger": "MonitorAndControl", "source": "Monitor", "dest": "Normal"}
     ]
     
 
@@ -162,7 +167,7 @@ class HomeAlone(ScadaActor):
             send_event=True,
         )   
 
-        self.top_state = HomeAloneTopState.Normal
+        
         self.top_machine = Machine(
             model=self,
             states=HomeAlone.top_states,
@@ -171,7 +176,10 @@ class HomeAlone(ScadaActor):
             send_event=False,
             model_attribute="top_state",
         )  
-        
+        if self.settings.monitor_only:
+            self.top_state = HomeAloneTopState.Monitor
+        else: 
+            self.top_state = HomeAloneTopState.Normal
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.is_simulated = self.settings.is_simulated
         self.oil_boiler_during_onpeak = self.settings.oil_boiler_for_onpeak_backup
@@ -394,34 +402,34 @@ class HomeAlone(ScadaActor):
             self._send(PatInternalWatchdogMessage(src=self.name))
             self.log(f"Top state: {self.top_state}")
             self.log(f"State: {self.state}")
+            if not self.top_state == HomeAloneTopState.Monitor:
+                # update temperatures_available
+                self.get_latest_temperatures()
 
-            # update temperatures_available
-            self.get_latest_temperatures()
-
-            # Update top state
-            if self.top_state == HomeAloneTopState.Normal:
-                if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
-                    self.trigger_house_cold_onpeak_event()
-            elif self.top_state == HomeAloneTopState.UsingBackupOnpeak and not self.is_onpeak():
-                self.trigger_just_offpeak()
-            elif self.top_state == HomeAloneTopState.ScadaBlind:
-                if self.forecasts and self.temperatures_available:
-                    self.log("Forecasts and temperatures are both available again!")
-                    self.trigger_data_available()
-                elif self.is_onpeak() and self.settings.oil_boiler_for_onpeak_backup:
-                    if not self.scadablind_boiler:
-                        self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
-                        self.scadablind_boiler = True
-                        self.scadablind_scada = False
-                else:
-                    if not self.scadablind_scada:
-                        self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
-                        self.scadablind_boiler = False
-                        self.scadablind_scada = True
-            
-            # Update state
-            if self.top_state == HomeAloneTopState.Normal:
-                self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
+                # Update top state
+                if self.top_state == HomeAloneTopState.Normal:
+                    if self.house_is_cold_onpeak() and self.is_buffer_empty(really_empty=True) and self.is_storage_empty():
+                        self.trigger_house_cold_onpeak_event()
+                elif self.top_state == HomeAloneTopState.UsingBackupOnpeak and not self.is_onpeak():
+                    self.trigger_just_offpeak()
+                elif self.top_state == HomeAloneTopState.ScadaBlind:
+                    if self.forecasts and self.temperatures_available:
+                        self.log("Forecasts and temperatures are both available again!")
+                        self.trigger_data_available()
+                    elif self.is_onpeak() and self.settings.oil_boiler_for_onpeak_backup:
+                        if not self.scadablind_boiler:
+                            self.aquastat_ctrl_switch_to_boiler(from_node=self.scada_blind_node)
+                            self.scadablind_boiler = True
+                            self.scadablind_scada = False
+                    else:
+                        if not self.scadablind_scada:
+                            self.aquastat_ctrl_switch_to_scada(from_node=self.scada_blind_node)
+                            self.scadablind_boiler = False
+                            self.scadablind_scada = True
+                
+                # Update state
+                if self.top_state == HomeAloneTopState.Normal:
+                    self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def engage_brain(self, waking_up: bool = False) -> None:
@@ -429,7 +437,8 @@ class HomeAlone(ScadaActor):
         Manages the logic for the Normal top state, (ie. self.state)
         """
         if self.top_state != HomeAloneTopState.Normal:
-            raise Exception(f"brain is only for Normal top state, not {self.top_state}")
+            self.log(f"brain is only for Normal top state, not {self.top_state}")
+            return
 
         if waking_up:
             if self.state == HomeAloneState.Dormant:

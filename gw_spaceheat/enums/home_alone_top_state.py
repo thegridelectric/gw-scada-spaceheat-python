@@ -39,4 +39,4 @@ class HomeAloneTopState(GwStrEnum):
 
     @classmethod
     def enum_version(cls) -> str:
-        return "000"
+        return "001"
