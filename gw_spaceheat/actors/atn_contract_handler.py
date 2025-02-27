@@ -274,43 +274,40 @@ class AtnContractHandler:
 
     async def contract_heartbeat_task(self):
         """Task that sends regular heartbeats while a contract is active"""
-        await asyncio.sleep(10)
+        await asyncio.sleep(2)
         hb = self.initialize()
         if hb is not None:
             if hb.Status == ContractStatus.Created:
                 # we didn't get any response, send again
-                self.send_threadsafe(
-                        Message(
-                            Src=self.node.name,
-                            Dst=H0N.primary_scada,
-                            Payload=hb,
-                        )
-                    )
+                self.send_threadsafe(Message(Src=self.node.name,Dst=H0N.primary_scada,Payload=hb))
         while not self._stop_requested:
-            # Only send heartbeats if we have an active contract
-            if self.latest_hb and self.latest_hb.Status in [ContractStatus.Confirmed, ContractStatus.Active]:
-                # Check if contract has expired
-                if time.time() > self.latest_hb.Contract.contract_end_s():
-                    # Contract expired - initiate completion
-                    completion_hb = self.create_completion_heartbeat()
-                    self.send_threadsafe(
-                        Message(
-                            Src=self.node.name,
-                            Dst=H0N.primary_scada,
-                            Payload=completion_hb
+            # Only send heartbeats if we have an active contract              
+            if self.latest_hb and self.latest_hb.Status in [ContractStatus.Created, ContractStatus.Confirmed, ContractStatus.Active]:
+                    # Check if contract has expired
+                    if time.time() > self.latest_hb.Contract.contract_end_s():
+                        # Contract expired - initiate completion
+                        completion_hb = self.create_completion_heartbeat()
+                        self.send_threadsafe(
+                            Message(
+                                Src=self.node.name,
+                                Dst=H0N.primary_scada,
+                                Payload=completion_hb
+                            )
                         )
-                    )
-                else:
-                    # Create a mid-contract heartbeat
-                    mid_contract_hb = self.create_midcontract_heartbeat()
-                    self.send_threadsafe(
-                        Message(
-                            Src=self.node.name,
-                            Dst=H0N.primary_scada,
-                            Payload=mid_contract_hb
-                        )
-                    )
+                    else:
+                        if self.latest_hb.Status == ContractStatus.Created: 
+                            send_hb = self.latest_hb # RESEND first contract
+                        else:
+                            send_hb = self.create_midcontract_heartbeat() # Create a mid-contract heartbeat
             
+                        self.send_threadsafe(
+                            Message(
+                                Src=self.node.name,
+                                Dst=H0N.primary_scada,
+                                Payload=send_hb
+                            )
+                        )
+                    
             # Wait for next heartbeat interval
             await asyncio.sleep(self.HEARTBEAT_INTERVAL_S)
     

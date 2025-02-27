@@ -595,8 +595,10 @@ class Atn(ActorInterface, Proactor):
             await self.main_loop(session)
 
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
+        await asyncio.sleep(5)
+        self.send_layout() # if we've just started, we need the layout
         while not self._stop_requested:
-            await asyncio.sleep(5)
+
             if datetime.now().minute >= 55 and not self.sent_bid:
                 if self.contract_handler.status == RepresentationStatus.Active:
                     # In the last 5 minutes of the hour: make a bid for the next hour
