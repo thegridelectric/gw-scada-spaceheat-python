@@ -323,7 +323,7 @@ class AtnContractHandler:
             raise Exception("Past the top of the hour but still in prev contract timeslot!?")
         
         try:
-            self.send_threadsafe(Message(src=self.node.name, Dst=H0N.primary_scada,
+            self.send_threadsafe(Message(Src=self.node.name, Dst=H0N.primary_scada,
                             Payload=self.create_completion_heartbeat())
             )
         except Exception as e:
