@@ -16,7 +16,7 @@ class SlowContractHeartbeat(BaseModel):
     IsAuthoritative: bool = True
     WattHoursUsed: Optional[int] = None
     MyDigit: int
-    YourLastDigit: Optional[int]
+    YourLastDigit: Optional[int] = None
     SignedProof: str = "algo_sig_dummy" # For blockchain validation
     TypeName: Literal["slow.contract.heartbeat"] = "slow.contract.heartbeat"
     Version: Literal["000"] = "000"
