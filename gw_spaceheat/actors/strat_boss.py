@@ -226,8 +226,7 @@ class StratBoss(ScadaActor):
         if trigger.Trigger == StratBossEvent.HpTurnOnReceived:
             self.HpTurnOnReceived()
         elif trigger.Trigger == StratBossEvent.DefrostDetected:
-            self.log("detected defrost but NOT activating")
-            # self.DefrostDetected()
+            self.DefrostDetected()
         elif trigger.Trigger == StratBossEvent.LiftDetected:
             self.LiftDetected()
         elif trigger.Trigger == StratBossEvent.HpTurnOffReceived:
@@ -353,21 +352,23 @@ class StratBoss(ScadaActor):
             if good_readings:
                 if self.state == StratBossState.Dormant:
                     if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
-                        if self.lg_high_temp_hydrokit_entering_defrost():
-                            self._send_to(self.boss, StratBossTrigger(
-                                    FromState=StratBossState.Dormant,
-                                    ToState=StratBossState.Active,
-                                    Trigger=StratBossEvent.DefrostDetected
-                                ) 
-                            )
+                        self.log("detecting defrost but not sending anything to boss")
+                        # if self.lg_high_temp_hydrokit_entering_defrost():
+                        #     self._send_to(self.boss, StratBossTrigger(
+                        #             FromState=StratBossState.Dormant,
+                        #             ToState=StratBossState.Active,
+                        #             Trigger=StratBossEvent.DefrostDetected
+                        #         ) 
+                        #     )
                     if self.hp_model == HpModel.SamsungHighTempHydroKitPlusMultiV:
                         if self.samsung_high_temp_hydrokit_entering_defrost():
-                            self._send_to(self.boss, StratBossTrigger(
-                                FromState=StratBossState.Dormant,
-                                    ToState=StratBossState.Active,
-                                    Trigger=StratBossEvent.DefrostDetected
-                                )
-                            )
+                            self.log("detecting defrost but not sending anything to boss")
+                            # self._send_to(self.boss, StratBossTrigger(
+                            #     FromState=StratBossState.Dormant,
+                            #         ToState=StratBossState.Active,
+                            #         Trigger=StratBossEvent.DefrostDetected
+                            #     )
+                            # )
             await asyncio.sleep(self.DEFROST_DETECT_SLEEP_S)
 
     def lg_high_temp_hydrokit_entering_defrost(self) -> bool:
