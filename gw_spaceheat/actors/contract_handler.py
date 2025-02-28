@@ -71,6 +71,7 @@ class ContractHandler:
         self.energy_updated_s = now
         delta_wh = round(self.latest_power_w * delta_s / 3600)
         self.energy_used_wh += delta_wh
+        self.logger.info(f"delta_s: {delta_s}, latest_power_w: {self.latest_power_w}, energy_used_wh: {self.energy_used_wh}")
 
     @property
     def remaining_watthours(self) -> Optional[int]:
