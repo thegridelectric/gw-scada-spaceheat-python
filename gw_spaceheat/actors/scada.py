@@ -859,7 +859,7 @@ class Scada(ScadaInterface, Proactor):
             )
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, atn_hb: SlowContractHeartbeat) -> None:
-
+        self.log(f"Just received {self.contract_handler.formatted_contract(atn_hb)}")
         if self.contract_handler.status == RepresentationStatus.Dormant:
             self._send_to(self.atn,
                         SetRepresentationStatus(

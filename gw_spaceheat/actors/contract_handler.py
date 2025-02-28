@@ -1,6 +1,7 @@
 import json
 import random
 import time
+import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -384,4 +385,43 @@ class ContractHandler:
         self.latest_scada_hb = None
         return hb
 
+    def formatted_contract(self, hb_to_format: Optional[SlowContractHeartbeat] = None) -> str:
+        """Format contract heartbeat information for logging in a human-readable format."""
+        hb = self.latest_scada_hb
+        if hb_to_format:
+            hb = hb_to_format
+        
+        if not hb:
+            return ""
+        
+        # Convert time to local timezone
+        created_time = datetime.datetime.fromtimestamp(
+            time.time(), 
+            tz=self.timezone
+        ).strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Calculate total energy for the contract in Wh
+        total_energy = hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60
+        
+        # Energy used so far (only present in SCADA heartbeats)
+        if hb.Status == ContractStatus.Created:
+            energy_used = 0
+        else:
+            energy_used = f"{hb.WattHoursUsed} Wh" if hb.WattHoursUsed is not None else "Unknown"
+        
+        # Format the log string
+        log_str = (
+            f"Contract[{hb.Contract.ContractId[:6]}]: "
+            f"{created_time} | "
+            f"From: {hb.FromNode} | "
+            f"Total: {total_energy:.1f} Wh | "
+            f"Used: {energy_used} | "
+            f"Status: {hb.Status.value}"
+        )
+        
+        # Add reason if present
+        if hb.Cause:
+            log_str += f" | Reason: {hb.Cause}"
+        
+        return log_str
 

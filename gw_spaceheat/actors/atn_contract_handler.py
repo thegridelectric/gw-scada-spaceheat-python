@@ -432,6 +432,11 @@ class AtnContractHandler:
             hb.MessageCreatedMs / 1000, 
             tz=self.timezone
         ).strftime('%Y-%m-%d %H:%M:%S')
+
+        my_time = datetime.datetime.fromtimestamp(
+            time.time(), 
+            tz=self.timezone
+        ).strftime('%Y-%m-%d %H:%M:%S')
         
         # Calculate total energy for the contract in Wh
         total_energy = hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60
@@ -444,8 +449,8 @@ class AtnContractHandler:
         
         # Format the log string
         log_str = (
-            f"Contract[{hb.Contract.ContractId[:8]}]: "
-            f"{created_time} | "
+            f"[{my_time}] Contract[{hb.Contract.ContractId[:6]}]: "
+            f"hb timestamp {created_time} | "
             f"From: {hb.FromNode} | "
             f"Total: {total_energy:.1f} Wh | "
             f"Used: {energy_used} | "
