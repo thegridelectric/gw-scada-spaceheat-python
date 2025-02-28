@@ -226,7 +226,8 @@ class StratBoss(ScadaActor):
         if trigger.Trigger == StratBossEvent.HpTurnOnReceived:
             self.HpTurnOnReceived()
         elif trigger.Trigger == StratBossEvent.DefrostDetected:
-            self.DefrostDetected()
+            self.log("detected defrost but NOT activating")
+            # self.DefrostDetected()
         elif trigger.Trigger == StratBossEvent.LiftDetected:
             self.LiftDetected()
         elif trigger.Trigger == StratBossEvent.HpTurnOffReceived:
