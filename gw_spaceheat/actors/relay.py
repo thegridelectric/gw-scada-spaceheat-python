@@ -4,9 +4,10 @@ import time
 from typing import Dict, List, cast, Sequence, Optional
 
 from gw.enums import GwStrEnum
+from gwproto.message import Message
 from gwproto.data_classes.data_channel import DataChannel
 from gwproactor import  ServicesInterface, MonitoredName
-from gwproactor.message import Message, PatInternalWatchdogMessage
+from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import (
     I2cMultichannelDtRelayComponent,
 )
@@ -37,7 +38,7 @@ from result import Err, Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
-from enums import LogLevel
+from enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
 from named_types import FsmEvent, Glitch
 
 class Relay(ScadaActor):
@@ -285,12 +286,14 @@ class Relay(ScadaActor):
             H0N.hp_scada_ops_relay,
             H0N.store_pump_failsafe,
             H0N.primary_pump_scada_ops,
+            H0N.hp_loop_on_off,
         } | set(stat_ops_names):
         
             if self.name in {
                 H0N.vdc_relay,
                 H0N.tstat_common_relay,
                 H0N.hp_scada_ops_relay,
+                H0N.hp_loop_on_off
             }:
                 if self.de_energizing_event != ChangeRelayState.CloseRelay:
                     raise Exception(
@@ -332,6 +335,11 @@ class Relay(ScadaActor):
                 raise Exception(
                     f"Expect SwitchToHeatPump as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
+        elif self.name == H0N.hp_loop_keep_send:
+            self.my_state_enum = HpLoopKeepSend
+            self.my_event_enum = ChangeKeepSend
+            if self.de_energizing_event != ChangeKeepSend.ChangeToSendMore:
+                raise Exception(f"Expect ChangeToSendMore as de-energizing event for {self.name}!")
         elif self.name in stat_failsafe_names:
             self.my_state_enum = HeatcallSource
             self.my_event_enum = ChangeHeatcallSource
@@ -339,7 +347,7 @@ class Relay(ScadaActor):
                 raise Exception(
                     f"Expect SwitchToWallThermostat as de-energizing event for {self.name}; got {self.de_energizing_event}"
                 )
-
+        
         
         self.transitions = [
                 {
