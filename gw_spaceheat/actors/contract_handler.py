@@ -282,7 +282,7 @@ class ContractHandler:
         raise exception if latest_scada_hb is none or if its contract
         does not match
         """
-        self.update_energy_usage()
+        self.update_energy_usage(self.latest_power_w)
         if self.status == RepresentationStatus.Dormant:
             raise Exception(
                 "Do not call update_existing_contract if rep status is not Ready or Active"
