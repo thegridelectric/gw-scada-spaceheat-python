@@ -723,7 +723,7 @@ class ScadaActor(Actor):
                 FromHandle=from_node.handle,
                 ToHandle=self.hp_loop_keep_send.handle,
                 EventType=ChangeKeepSend.enum_name(),
-                EventName=ChangeKeepSend.SendMore,
+                EventName=ChangeKeepSend.ChangeToSendMore,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
@@ -746,7 +746,7 @@ class ScadaActor(Actor):
                 FromHandle=from_node.handle,
                 ToHandle=self.hp_loop_keep_send.handle,
                 EventType=ChangeKeepSend.enum_name(),
-                EventName=ChangeKeepSend.SendLess,
+                EventName=ChangeKeepSend.ChangeToSendLess,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
