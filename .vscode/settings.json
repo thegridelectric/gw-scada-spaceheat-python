@@ -1,0 +1,5 @@
+{
+	"ruff.enable": true,
+	"ruff.fixAll": true,
+	"python.testing.pytestEnabled": true,
+}
