@@ -83,7 +83,7 @@ class ContractHandler:
         if not self.latest_scada_hb:
             return None
         contracted_wh = int(self.latest_scada_hb.Contract.AvgPowerWatts * self.latest_scada_hb.Contract.DurationMinutes/60)
-        return min(contracted_wh - self.energy_used_wh, 0)
+        return max(contracted_wh - self.energy_used_wh, 0)
 
     def active_contract_has_expired(self) -> bool:
         if not self.latest_scada_hb:
@@ -91,6 +91,7 @@ class ContractHandler:
         if time.time() > self.latest_scada_hb.Contract.contract_end_s():
             return True
         return False
+
 
     def load_heartbeat(self) -> Optional[SlowContractHeartbeat]:
         """Loads existing SlowDispatchContract from persistent storage
@@ -396,10 +397,15 @@ class ContractHandler:
             return ""
         
         # Convert time to local timezone
-        created_time = datetime.datetime.fromtimestamp(
-            time.time(), 
+        slot_start = datetime.datetime.fromtimestamp(
+            hb.Contract.StartS, 
             tz=self.timezone
         ).strftime('%Y-%m-%d %H:%M:%S')
+
+        slot_end = datetime.datetime.fromtimestamp(
+            hb.Contract.contract_end_s(), 
+            tz=self.timezone
+        ).strftime('%H:%M:%S')
         
         # Calculate total energy for the contract in Wh
         total_energy = hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60
@@ -413,7 +419,7 @@ class ContractHandler:
         # Format the log string
         log_str = (
             f"Contract[{hb.Contract.ContractId[:6]}]: "
-            f"{created_time} | "
+            f"{slot_start} - {slot_end} | "
             f"From: {hb.FromNode} | "
             f"Total: {total_energy:.1f} Wh | "
             f"Used: {energy_used} | "
