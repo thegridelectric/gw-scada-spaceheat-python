@@ -20,7 +20,7 @@ from gwproto.enums import (
     ChangeStoreFlowRelay,
     RelayClosedOrOpen
 )
-from enums import TurnHpOnOff
+from enums import TurnHpOnOff, ChangeKeepSend
 from named_types import FsmEvent
 from pydantic import ValidationError
 
@@ -123,12 +123,24 @@ class ScadaActor(Actor):
         return self.layout.node(H0N.store_pump_failsafe)
 
     @property
+    def primary_pump_scada_ops(self) -> ShNode:
+        """relay 11"""
+        return self.layout.node(H0N.primary_pump_scada_ops)
+    
+    @property
     def primary_pump_failsafe(self) -> ShNode:
+        """relay 12"""
         return self.layout.node(H0N.primary_pump_failsafe)
 
     @property
-    def primary_pump_scada_ops(self) -> ShNode:
-        return self.layout.node(H0N.primary_pump_scada_ops)
+    def hp_loop_on_off(self) -> ShNode:
+        """relay 14"""
+        return self.layout.node(H0N.hp_loop_on_off)
+    
+    @property
+    def hp_loop_keep_send(self) -> ShNode:
+        """relay 15"""
+        return self.layout.node(H0N.hp_loop_keep_send)
 
     def stat_failsafe_relay(self, zone: str) -> ShNode:
         """
@@ -643,6 +655,100 @@ class ScadaActor(Actor):
             self._send_to(self.primary_pump_scada_ops, event, from_node)
             self.log(
                 f"{self.node.handle if from_node is None else from_node.handle} sending CloseRelay to {self.primary_pump_scada_ops.handle}"
+            )
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def sieg_valve_active(self, from_node: Optional[ShNode] = None) -> None:
+        """
+        Activate the valve controlling how much water is flowing out of the
+        Siegenthaler loop. This will result in the flow out beginning to decrease
+        if relay 15 is in SendLess position, or beginning to increase if relay 15
+        is in the SendMore position
+        """
+        if from_node is None:
+            from_node = self.node
+        try:
+            event = FsmEvent(
+                FromHandle=from_node.handle,
+                ToHandle=self.hp_loop_on_off.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(self.hp_loop_on_off, event, from_node)
+            self.log(
+                f"{from_node.handle} sending CloseRelay to HpLoopOnOff relay {self.hp_loop_on_off.handle}"
+            )
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def sieg_valve_dormant(self, from_node: Optional[ShNode] = None) -> None:
+        """
+        Stop sending a signal to move the valve controlling how much water is 
+        flowing out of the Siegenthaler loop. 
+        """
+        if from_node is None:
+            from_node = self.node
+        try:
+            event = FsmEvent(
+                FromHandle=from_node.handle,
+                ToHandle=self.hp_loop_on_off.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(self.hp_loop_on_off, event, from_node)
+            self.log(
+                f"{from_node.handle} sending OpenRelay to HpLoopOnOff relay {self.hp_loop_on_off.handle}"
+            )
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def change_to_hp_send_more(self, from_node: Optional[ShNode] = None) -> None:
+        """
+        Sets the Keep/Send relay so that if relay 14 is On, the Siegenthaler
+        valve moves towards sending MORE water out of the Siegenthaler loop (SendMore)
+        """
+        if from_node is None:
+            from_node = self.node
+        try:
+            event = FsmEvent(
+                FromHandle=from_node.handle,
+                ToHandle=self.hp_loop_keep_send.handle,
+                EventType=ChangeKeepSend.enum_name(),
+                EventName=ChangeKeepSend.SendMore,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(self.hp_loop_keep_send, event, from_node)
+            self.log(
+                f"{from_node.handle} sending SendMore to HpLoopKeepSend relay {self.hp_loop_keep_send.handle}"
+            )
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def change_to_hp_send_less(self, from_node: Optional[ShNode] = None) -> None:
+        """
+        Sets the Keep/Send relay so that if relay 15 is On, the Siegenthaler
+        valve moves towards sending LESS water out of the Siegenthaler loop (SendLess)
+        """
+        if from_node is None:
+            from_node = self.node
+        try:
+            event = FsmEvent(
+                FromHandle=from_node.handle,
+                ToHandle=self.hp_loop_keep_send.handle,
+                EventType=ChangeKeepSend.enum_name(),
+                EventName=ChangeKeepSend.SendLess,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(self.hp_loop_keep_send, event, from_node)
+            self.log(
+                f"{from_node.handle} sending SendLessto HpLoopKeepSend relay {self.hp_loop_keep_send.handle}"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")

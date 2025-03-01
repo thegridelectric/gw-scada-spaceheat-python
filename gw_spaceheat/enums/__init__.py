@@ -16,8 +16,10 @@ on these ideas:
  """
 
 from gw.enums import MarketTypeName
+from enums.change_keep_send import ChangeKeepSend
 from enums.home_alone_top_state import HomeAloneTopState
 from enums.hp_model import HpModel
+from enums.hp_loop_keep_send import HpLoopKeepSend
 from enums.log_level import LogLevel
 from enums.main_auto_event import MainAutoEvent
 from enums.main_auto_state import MainAutoState
@@ -35,7 +37,9 @@ from enums.turn_hp_on_off import TurnHpOnOff
 __all__ = [
     "MarketTypeName",
     "HpModel",
+    "ChangeKeepSend",
     "HomeAloneTopState",  # [home.alone.top.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#homealonetopstate)
+    "HpLoopKeepSend",
     "LogLevel",  # [log.level.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#loglevel)
     "MainAutoEvent",  # [main.auto.event.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautoevent)
     "MainAutoState",  # [main.auto.state.000](https://gridworks-type-registry.readthedocs.io/en/latest/enums.html#mainautostate)
