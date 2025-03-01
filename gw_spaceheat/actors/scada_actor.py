@@ -208,8 +208,12 @@ class ScadaActor(Actor):
             self.primary_pump_failsafe_to_hp(from_node)
         elif relay == self.primary_pump_scada_ops:
             self.turn_off_primary_pump(from_node)
+        elif relay == self.hp_loop_on_off:
+            self.sieg_valve_active(from_node)
+        elif relay == self.hp_loop_keep_send:
+            self.change_to_hp_send_more(from_node)
         else:
-            self.log(f"Unrecognized relay {relay}! Not energizing")
+            self.log(f"Unrecognized relay {relay}! Not de-energizing")
 
     def energize(self, relay: ShNode, from_node=None) -> None:
         if relay.ActorClass != ActorClass.Relay:

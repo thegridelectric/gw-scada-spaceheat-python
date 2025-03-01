@@ -583,7 +583,8 @@ class AtomicAlly(ScadaActor):
                 self.store_charge_discharge_relay, # keep as it was
                 self.hp_failsafe_relay,
                 self.hp_scada_ops_relay, # keep as it was unless on peak
-                self.aquastat_control_relay
+                self.aquastat_control_relay, # de-energized turns on oil boiler - only go here if scada is dead!
+                self.hp_loop_on_off, # de-energized keeps telling hp loop valve to change - only go here if scada is dead!
             }
         )
         target_relays.sort(key=lambda x: x.Name)
@@ -595,9 +596,11 @@ class AtomicAlly(ScadaActor):
             except Exception as e:
                 self.log(f"Trouble de energizing {relay}")
 
-        self.log("Taking care of critical relays")
+        self.log("Taking care of relays with default energized positions")
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
+        self.sieg_valve_dormant()
+
         if self.no_more_elec():
             self.turn_off_HP()
         try:
