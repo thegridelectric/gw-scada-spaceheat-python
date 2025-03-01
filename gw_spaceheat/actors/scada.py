@@ -585,10 +585,9 @@ class Scada(ScadaInterface, Proactor):
         """
         self._send_to(self.atn, payload)
         # Update internal data store
-        self.contract_handler.latest_power_w = payload.Watts
         # Update contract energy tracking if contract is active
         if self.contract_handler.latest_scada_hb:
-            self.contract_handler.update_energy_usage()
+            self.contract_handler.update_energy_usage(payload.Watts)
 
     def process_scada_params(
         self, from_node: ShNode, payload: ScadaParams, testing: bool = False

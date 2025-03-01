@@ -611,7 +611,7 @@ class Atn(ActorInterface, Proactor):
             elif datetime.now().minute <= 55 and self.sent_bid:
                 self.sent_bid = False
             else:
-                self.log(f"Minute {datetime.now().minute}")
+                ...
                 # await self.run_fake_d(session)
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 

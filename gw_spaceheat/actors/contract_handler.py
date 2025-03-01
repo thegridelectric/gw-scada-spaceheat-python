@@ -53,10 +53,10 @@ class ContractHandler:
         self.latest_scada_hb: Optional[SlowContractHeartbeat] = None
         self.prev: Optional[SlowContractHeartbeat] = None
         self.latest_power_w: int = 0
-        self.energy_used_wh: int = 0
+        self.energy_used_wh: float = 0
         self.energy_updated_s: Optional[float] = None
 
-    def update_energy_usage(self) -> None:
+    def update_energy_usage(self, latest_power_w: int) -> None:
         """Updates the live dispatch contract (self.latest_scada_hb.contract)
         """
         now = time.time()
@@ -65,13 +65,16 @@ class ContractHandler:
         if self.energy_updated_s is None:
             self.energy_used_wh = 0
             self.energy_updated_s = now
+            self.latest_power_w = latest_power_w
             self.logger.info("Race condition! latest_scada_hb existed but energy_updated_s was 0")
             return
+        
         delta_s = now - self.energy_updated_s
         self.energy_updated_s = now
-        delta_wh = round(self.latest_power_w * delta_s / 3600)
+        delta_wh = self.latest_power_w * delta_s / 3600
         self.energy_used_wh += delta_wh
-        self.logger.info(f"delta_s: {delta_s}, latest_power_w: {self.latest_power_w}, energy_used_wh: {self.energy_used_wh}")
+        self.latest_power_w = latest_power_w
+        self.logger.info(f"delta_s: {delta_s}, latest_power_w: {self.latest_power_w}, energy_used_wh: {round(self.energy_used_wh, 1)}")
 
     @property
     def remaining_watthours(self) -> Optional[int]:
@@ -83,7 +86,7 @@ class ContractHandler:
         if not self.latest_scada_hb:
             return None
         contracted_wh = int(self.latest_scada_hb.Contract.AvgPowerWatts * self.latest_scada_hb.Contract.DurationMinutes/60)
-        return max(contracted_wh - self.energy_used_wh, 0)
+        return max(int(contracted_wh - self.energy_used_wh), 0)
 
     def active_contract_has_expired(self) -> bool:
         if not self.latest_scada_hb:
@@ -260,7 +263,7 @@ class ContractHandler:
             Contract=atn_hb.Contract,
             PreviousStatus=atn_hb.Status,
             Status=ContractStatus.Received,
-            WattHoursUsed=self.energy_used_wh,
+            WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(now * 1000),
             MyDigit=random.choice(range(10)),
             YourLastDigit=atn_hb.MyDigit,
@@ -308,7 +311,7 @@ class ContractHandler:
                 Contract=atn_hb.Contract,
                 Status=ContractStatus.CompletedUnknownOutcome,
                 Cause=f"Final energy accounting: used {self.energy_used_wh}Wh of contracted {contracted_energy_wh}Wh",
-                WattHoursUsed=self.energy_used_wh,
+                WattHoursUsed=round(self.energy_used_wh),
                 MessageCreatedMs=int(time.time() * 1000),
                 MyDigit=random.choice(range(10)),
                 YourLastDigit=atn_hb.MyDigit,
@@ -329,7 +332,7 @@ class ContractHandler:
                 Contract=atn_hb.Contract,
                 PreviousStatus=prev_status,
                 Status=ContractStatus.Active,
-                WattHoursUsed=self.energy_used_wh,
+                WattHoursUsed=round(self.energy_used_wh),
                 MessageCreatedMs=int(time.time() * 1000),
                 MyDigit=random.choice(range(10)),
                 YourLastDigit=atn_hb.MyDigit,
