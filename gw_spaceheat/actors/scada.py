@@ -859,6 +859,7 @@ class Scada(ScadaInterface, Proactor):
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, atn_hb: SlowContractHeartbeat) -> None:
         self.log(f"Just received {self.contract_handler.formatted_contract(atn_hb)}")
+        return_hb = None
         if self.contract_handler.status == RepresentationStatus.Dormant:
             self._send_to(self.atn,
                         SetRepresentationStatus(
@@ -871,10 +872,10 @@ class Scada(ScadaInterface, Proactor):
 
         if atn_hb.Status == ContractStatus.Created:
             if self.top_state == TopState.Admin:
-                self.log("Ignoring new contrat, in Admin")
+                self.log("Ignoring new contract, in Admin")
                 return
             if self.contract_handler.latest_scada_hb is None: # contract already wrapped up
-                self.contract_handler.start_new_contract_hb(atn_hb) #sets up matching latest_scada_hb
+                return_hb = self.contract_handler.start_new_contract_hb(atn_hb) #sets up matching latest_scada_hb
                 if self.auto_state == MainAutoState.HomeAlone:
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
@@ -896,9 +897,10 @@ class Scada(ScadaInterface, Proactor):
                 f"existing: {self.contract_handler.latest_scada_hb}")
                 return
             return_hb = self.contract_handler.update_existing_contract_hb(atn_hb)
-            if return_hb:
-                self._send_to(self.atn, return_hb) # on completion, will send back a completion
-                # hb with final energy_used_wh
+
+        if return_hb:
+            self._send_to(self.atn, return_hb) # on completion, will send back a completion
+            # hb with final energy_used_wh
 
     def process_new_contract(self) -> None:
         """Called after contract is confirmed (SuitUp received)"""

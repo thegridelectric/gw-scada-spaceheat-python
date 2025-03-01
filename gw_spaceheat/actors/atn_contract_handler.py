@@ -58,7 +58,7 @@ class AtnContractHandler:
         self._stop_requested = False
         self.timezone = pytz.timezone(self.settings.timezone_str)
         self.contract_file = Path(
-            f"{self.settings.paths.data_dir}/atn_contract.json"
+            f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"
         )
         self.next_contract_energy_wh: Optional[int] = None
         self.energy_used_wh: int = 0
@@ -427,17 +427,21 @@ class AtnContractHandler:
         if not hb:
             return ""
         
-        # Convert time to local timezone
-        created_time = datetime.datetime.fromtimestamp(
-            hb.MessageCreatedMs / 1000, 
+        slot_start = datetime.datetime.fromtimestamp(
+            hb.Contract.StartS, 
             tz=self.timezone
         ).strftime('%Y-%m-%d %H:%M:%S')
 
-        my_time = datetime.datetime.fromtimestamp(
-            time.time(), 
+        slot_end = datetime.datetime.fromtimestamp(
+            hb.Contract.contract_end_s(), 
             tz=self.timezone
-        ).strftime('%Y-%m-%d %H:%M:%S')
-        
+        ).strftime('%H:%M:%S')
+
+        created_time = datetime.datetime.fromtimestamp(
+            hb.MessageCreatedMs / 1000, 
+            tz=self.timezone
+        ).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+
         # Calculate total energy for the contract in Wh
         total_energy = hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60
         
@@ -449,12 +453,12 @@ class AtnContractHandler:
         
         # Format the log string
         log_str = (
-            f"[{my_time}] Contract[{hb.Contract.ContractId[:6]}]: "
-            f"hb timestamp {created_time} | "
+            f"[Contract[{hb.Contract.ContractId[:6]}]: "
+            f"{slot_start} - {slot_end} | "
             f"From: {hb.FromNode} | "
             f"Total: {total_energy:.1f} Wh | "
-            f"Used: {energy_used} | "
-            f"Status: {hb.Status.value}"
+            f"Used: {energy_used} Wh| "
+            f"Status: {hb.Status.value} | [created {created_time}]"
         )
         
         # Add reason if present

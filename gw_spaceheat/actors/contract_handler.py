@@ -409,7 +409,11 @@ class ContractHandler:
             hb.Contract.contract_end_s(), 
             tz=self.timezone
         ).strftime('%H:%M:%S')
-        
+
+        created_time = datetime.datetime.fromtimestamp(
+                hb.MessageCreatedMs / 1000, 
+                tz=self.timezone
+            ).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         # Calculate total energy for the contract in Wh
         total_energy = hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60
         
@@ -417,7 +421,7 @@ class ContractHandler:
         if hb.Status == ContractStatus.Created:
             energy_used = 0
         else:
-            energy_used = f"{hb.WattHoursUsed} Wh" if hb.WattHoursUsed is not None else "Unknown"
+            energy_used = f"{round(self.energy_used_wh, 1)}"
         
         # Format the log string
         log_str = (
@@ -425,8 +429,8 @@ class ContractHandler:
             f"{slot_start} - {slot_end} | "
             f"From: {hb.FromNode} | "
             f"Total: {total_energy:.1f} Wh | "
-            f"Used: {energy_used} | "
-            f"Status: {hb.Status.value}"
+            f"Used: {energy_used} Wh| "
+            f"Status: {hb.Status.value} | [created {created_time}]"
         )
         
         # Add reason if present
