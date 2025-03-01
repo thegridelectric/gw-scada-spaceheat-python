@@ -579,7 +579,8 @@ class HomeAlone(ScadaActor):
                 self.store_charge_discharge_relay, # keep as it was
                 self.hp_failsafe_relay,
                 self.hp_scada_ops_relay, # keep as it was unless on peak
-                self.aquastat_control_relay
+                self.aquastat_control_relay,
+                 self.hp_loop_on_off,
             }
         )
         target_relays.sort(key=lambda x: x.Name)
@@ -589,6 +590,7 @@ class HomeAlone(ScadaActor):
         self.log("Taking care of critical relays")
         self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
         self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
+        self.sieg_valve_dormant(from_node=self.normal_node)
 
         if self.is_onpeak():
             self.log("Is on peak: turning off HP")
