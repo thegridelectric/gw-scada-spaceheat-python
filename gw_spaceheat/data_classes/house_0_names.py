@@ -59,6 +59,8 @@ class House0RelayIdx:
     boiler_scada_ops: Literal[10] = 10
     primary_pump_ops: Literal[11] = 11
     primary_pump_failsafe: Literal[12] = 12
+    hp_loop_on_off: Literal[14] = 14
+    hp_loop_keep_send: Literal[15] = 15
     # pattern: zone1 failsafe is 17, zone2 ops is 18 etc
     base_stat: Literal[17] = 17
 
@@ -131,6 +133,8 @@ class H0N:
     primary_pump_failsafe: Literal["relay12"] = (
         f"relay{House0RelayIdx.primary_pump_failsafe}"
     )
+    hp_loop_on_off: Literal["relay14"] = "relay14"
+    hp_loop_keep_send: Literal["relay15"] = "relay15"
 
     # zero ten output
     dist_010v = "dist-010v"
@@ -208,6 +212,9 @@ class H0CN:
     primary_pump_failsafe_relay_state = (
         f"primary-pump-failsafe-{H0N.primary_pump_failsafe}"
     )
+
+    hp_loop_on_off_relay_state = f"hp-loop-on-off-{H0N.hp_loop_on_off}"
+    hp_loop_keep_send_relay_state = f"hp-loop-keep-send-{H0N.hp_loop_keep_send}"
 
     # 010V output state (as declared by entity sending, not reading)
     dist_010v = "dist-010v"

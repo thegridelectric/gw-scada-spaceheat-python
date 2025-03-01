@@ -26,6 +26,7 @@ from gwproto.named_types import (
     RelayActorConfig,
     SpaceheatNodeGt,
 )
+from enums import ChangeKeepSend, HpLoopKeepSend
 from gwproto.named_types.component_attribute_class_gt import ComponentAttributeClassGt
 from layout_gen import LayoutDb
 from pydantic import BaseModel
@@ -210,6 +211,40 @@ def add_relays(
                 Exponent=0,
                 Unit=Unit.Unitless,
             ),
+            RelayActorConfig(
+                ChannelName=H0CN.hp_loop_on_off_relay_state,
+                RelayIdx=House0RelayIdx.hp_loop_on_off,
+                ActorName=H0N.hp_loop_on_off,
+                PollPeriodMs=cfg.PollPeriodMs,
+                CapturePeriodS=cfg.CapturePeriodS,
+                WiringConfig=RelayWiringConfig.NormallyClosed,
+                EventType=ChangeRelayState.enum_name(),
+                StateType=RelayClosedOrOpen.enum_name(),
+                DeEnergizingEvent=ChangeRelayState.CloseRelay,
+                EnergizingEvent=ChangeRelayState.OpenRelay,
+                DeEnergizedState=RelayClosedOrOpen.RelayClosed,
+                EnergizedState=RelayClosedOrOpen.RelayOpen,
+                AsyncCapture=True,
+                Exponent=0,
+                Unit=Unit.Unitless,
+            ),
+            RelayActorConfig(
+                ChannelName=H0CN.hp_loop_keep_send_relay_state,
+                RelayIdx=House0RelayIdx.hp_loop_keep_send,
+                ActorName=H0N.hp_loop_keep_send,
+                PollPeriodMs=cfg.PollPeriodMs,
+                CapturePeriodS=cfg.CapturePeriodS,
+                WiringConfig=RelayWiringConfig.DoubleThrow,
+                EventType=ChangeKeepSend.enum_name(),
+                StateType=HpLoopKeepSend.enum_name(),
+                DeEnergizingEvent=ChangeKeepSend.ChangeToSendMore,
+                EnergizingEvent=ChangeKeepSend.ChangeToSendLess,
+                DeEnergizedState=HpLoopKeepSend.SendMore,
+                EnergizedState=HpLoopKeepSend.SendLess,
+                AsyncCapture=True,
+                Exponent=0,
+                Unit=Unit.Unitless,
+            ),
         ]
 
         # Add 2 relays for each thermostat zone
@@ -368,6 +403,24 @@ def add_relays(
             DisplayName="Primary Pump SCADA Ops",
             ComponentId=db.component_id_by_alias(component_display_name),
         ),
+        SpaceheatNodeGt(
+            ShNodeId=db.make_node_id(H0N.hp_loop_on_off),
+            Name=H0N.hp_loop_on_off,
+            ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_loop_on_off}",
+            Handle=f"auto.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.hp_loop_on_off}",
+            ActorClass=ActorClass.Relay,
+            DisplayName="Hp Loop Valve Active/Dormant Relay",
+            ComponentId=db.component_id_by_alias(component_display_name),
+        ),
+        SpaceheatNodeGt(
+            ShNodeId=db.make_node_id(H0N.hp_loop_keep_send),
+            Name=H0N.hp_loop_keep_send,
+            ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_loop_keep_send}",
+            Handle=f"auto.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.hp_loop_keep_send}",
+            ActorClass=ActorClass.Relay,
+            DisplayName="Hp Loop Valve SendMore/SendLess Relay",
+            ComponentId=db.component_id_by_alias(component_display_name),
+        ),
     ]
 
     for i in range(len(zone_names)):
@@ -479,6 +532,24 @@ def add_relays(
             TelemetryName=TelemetryName.RelayState,
             TerminalAssetAlias=db.terminal_asset_alias,
             Id=db.make_channel_id(H0CN.primary_pump_scada_ops_relay_state),
+        ),
+        DataChannelGt(
+            Name=H0CN.hp_loop_on_off_relay_state,
+            DisplayName="Hp Loop On Off Relay State",
+            AboutNodeName=H0N.hp_loop_on_off,
+            CapturedByNodeName=H0N.relay_multiplexer,
+            TelemetryName=TelemetryName.RelayState,
+            TerminalAssetAlias=db.terminal_asset_alias,
+            Id=db.make_channel_id(H0CN.hp_loop_on_off_relay_state),
+        ),
+        DataChannelGt(
+            Name=H0CN.hp_loop_keep_send_relay_state,
+            DisplayName="Hp Loop Keep/Send Relay State",
+            AboutNodeName=H0N.hp_loop_keep_send,
+            CapturedByNodeName=H0N.relay_multiplexer,
+            TelemetryName=TelemetryName.RelayState,
+            TerminalAssetAlias=db.terminal_asset_alias,
+            Id=db.make_channel_id(H0CN.hp_loop_keep_send_relay_state),
         ),
     ]
 
