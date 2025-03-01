@@ -16,6 +16,7 @@ on these ideas:
  """
 
 from gw.enums import MarketTypeName
+from enums.contract_status import ContractStatus
 from enums.change_keep_send import ChangeKeepSend
 from enums.home_alone_top_state import HomeAloneTopState
 from enums.hp_model import HpModel
