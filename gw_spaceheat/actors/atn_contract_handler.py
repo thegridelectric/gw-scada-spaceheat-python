@@ -430,12 +430,12 @@ class AtnContractHandler:
         slot_start = datetime.datetime.fromtimestamp(
             hb.Contract.StartS, 
             tz=self.timezone
-        ).strftime('%Y-%m-%d %H:%M:%S')
+        ).strftime('%H:%M')
 
         slot_end = datetime.datetime.fromtimestamp(
             hb.Contract.contract_end_s(), 
             tz=self.timezone
-        ).strftime('%H:%M:%S')
+        ).strftime('%H:%M')
 
         created_time = datetime.datetime.fromtimestamp(
             hb.MessageCreatedMs / 1000, 
@@ -449,16 +449,15 @@ class AtnContractHandler:
         if hb.Status == ContractStatus.Created:
             energy_used = 0
         else:
-            energy_used = f"{hb.WattHoursUsed} Wh" if hb.WattHoursUsed is not None else "Unknown"
+            energy_used = hb.WattHoursUsed
         
         # Format the log string
         log_str = (
-            f"[Contract[{hb.Contract.ContractId[:6]}]: "
-            f"{slot_start} - {slot_end} | "
-            f"From: {hb.FromNode} | "
+            f"Contract[{hb.Contract.ContractId[:3]}] "
+            f"{slot_start} - {slot_end}: "
             f"Total: {total_energy:.1f} Wh | "
-            f"Used: {energy_used} Wh| "
-            f"Status: {hb.Status.value} | [created {created_time}]"
+            f"Used: {energy_used} Wh | "
+            f"Status: {hb.Status.value}  (created by {hb.FromNode} at {created_time})"
         )
         
         # Add reason if present

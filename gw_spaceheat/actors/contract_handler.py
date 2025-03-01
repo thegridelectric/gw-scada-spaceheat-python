@@ -74,7 +74,6 @@ class ContractHandler:
         delta_wh = self.latest_power_w * delta_s / 3600
         self.energy_used_wh += delta_wh
         self.latest_power_w = latest_power_w
-        self.logger.info(f"delta_s: {delta_s}, latest_power_w: {self.latest_power_w}, energy_used_wh: {round(self.energy_used_wh, 1)}")
 
     @property
     def remaining_watthours(self) -> Optional[int]:
@@ -403,12 +402,12 @@ class ContractHandler:
         slot_start = datetime.datetime.fromtimestamp(
             hb.Contract.StartS, 
             tz=self.timezone
-        ).strftime('%Y-%m-%d %H:%M:%S')
+        ).strftime('%H:%M')
 
         slot_end = datetime.datetime.fromtimestamp(
             hb.Contract.contract_end_s(), 
             tz=self.timezone
-        ).strftime('%H:%M:%S')
+        ).strftime('%H:%M')
 
         created_time = datetime.datetime.fromtimestamp(
                 hb.MessageCreatedMs / 1000, 
@@ -425,12 +424,11 @@ class ContractHandler:
         
         # Format the log string
         log_str = (
-            f"Contract[{hb.Contract.ContractId[:6]}]: "
-            f"{slot_start} - {slot_end} | "
-            f"From: {hb.FromNode} | "
+            f"Contract[{hb.Contract.ContractId[:3]}] "
+            f"{slot_start} - {slot_end}: "
             f"Total: {total_energy:.1f} Wh | "
-            f"Used: {energy_used} Wh| "
-            f"Status: {hb.Status.value} | [created {created_time}]"
+            f"Used: {energy_used} Wh | "
+            f"Status: {hb.Status.value}  (created by {hb.FromNode} at {created_time})"
         )
         
         # Add reason if present

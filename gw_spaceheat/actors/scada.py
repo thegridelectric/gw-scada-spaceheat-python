@@ -392,7 +392,7 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with process_single_reading: \n {e}")
             case SlowContractHeartbeat():
                 try:
-                    self.process_slow_contract_heartbeat(from_node, payload)
+                    self.contract_handler.process_slow_contract_heartbeat(payload)
                 except Exception as e:
                     self.log(f"Trouble with process_slow_contract_heartbeat: \n {e}")
             case SuitUp():
@@ -858,7 +858,7 @@ class Scada(ScadaInterface, Proactor):
             )
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, atn_hb: SlowContractHeartbeat) -> None:
-        self.log(f"Just received {self.contract_handler.formatted_contract(atn_hb)}")
+        self.log(f"{self.contract_handler.formatted_contract(atn_hb)}")
         return_hb = None
         if self.contract_handler.status == RepresentationStatus.Dormant:
             self._send_to(self.atn,
