@@ -392,7 +392,7 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with process_single_reading: \n {e}")
             case SlowContractHeartbeat():
                 try:
-                    self.contract_handler.process_slow_contract_heartbeat(payload)
+                    self.process_slow_contract_heartbeat(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_slow_contract_heartbeat: \n {e}")
             case SuitUp():
