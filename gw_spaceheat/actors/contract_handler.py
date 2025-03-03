@@ -305,17 +305,9 @@ class ContractHandler:
             # Determine contracted energy amount
             contracted_energy_wh = atn_hb.Contract.AvgPowerWatts * atn_hb.Contract.DurationMinutes / 60
             # Send final energy accounting
-            final_hb = SlowContractHeartbeat(
-                FromNode=H0N.primary_scada,
-                Contract=atn_hb.Contract,
-                Status=ContractStatus.CompletedUnknownOutcome,
-                Cause=f"Final energy accounting: used {self.energy_used_wh}Wh of contracted {contracted_energy_wh}Wh",
-                WattHoursUsed=round(self.energy_used_wh),
-                MessageCreatedMs=int(time.time() * 1000),
-                MyDigit=random.choice(range(10)),
-                YourLastDigit=atn_hb.MyDigit,
-                IsAuthoritative=False,  # Not claiming authority on outcome
-            )
+
+            final_hb = self.scada_contract_completion_hb(
+                cause=f"Final energy accounting: used {self.energy_used_wh}Wh of contracted {contracted_energy_wh}Wh")
             self.latest_scada_hb = final_hb
             self.store_heartbeat() # stores latest_scada_hb
             self.flush_latest_scada_hb() # then fluses it
@@ -354,6 +346,7 @@ class ContractHandler:
             PreviousStatus=self.latest_scada_hb.Status,
             Status=ContractStatus.TerminatedByScada,
             Cause=cause,
+            WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),
             YourLastDigit=self.latest_scada_hb.MyDigit,
@@ -362,7 +355,7 @@ class ContractHandler:
         self.latest_scada_hb = None
         return hb
 
-    def scada_contract_completion_hb(self) -> SlowContractHeartbeat:
+    def scada_contract_completion_hb(self, cause="") -> SlowContractHeartbeat:
         """Creats a heartbeat noting time has passed completion
         - can only call if self.latest_scada_hb exists
         - sets prev to this hb and latest_scada_hb to None
@@ -381,9 +374,12 @@ class ContractHandler:
             Contract=self.latest_scada_hb.Contract,
             PreviousStatus=self.latest_scada_hb.Status,
             Status=ContractStatus.CompletedUnknownOutcome,
+            Cause=cause,
+            WattHoursUsed=round(self.energy_used_wh),
             MessageCreatedMs=int(time.time() * 1000),
             MyDigit=random.choice(range(10)),
             YourLastDigit=self.latest_scada_hb.MyDigit,
+            IsAuthoritative=False # not claiming authority on outcome
         )
         self.prev = hb
         self.latest_scada_hb = None

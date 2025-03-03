@@ -653,18 +653,16 @@ class Scada(ScadaInterface, Proactor):
         prior_status = self.contract_handler.status
         if cmd.Status == RepresentationStatus.Dormant:
             if self.auto_state == MainAutoState.Atn:
-                # Immediate transition to HomeAlone
+                if self.contract_handler.latest_scada_hb:
+                    termination_hb = self.contract_handler.scada_terminates_contract_hb(
+                        "Atn sent SetRepresentationStatus Dormant"
+                    )
+                    self._send_to(self.atn, termination_hb)
+                                # Immediate transition to HomeAlone
                 self.AtnReleasesControl()
                 self.set_home_alone_command_tree()
                 self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
                 self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
-
-            if self.contract_handler.latest_scada_hb:
-                termination_hb = self.contract_handler.scada_terminates_contract_hb(
-                    "Atn sent SetRepresentationStatus Dormant"
-                )
-                self._send_to(self.atn, termination_hb)
-
             self.contract_handler.status = RepresentationStatus.Dormant
                 
         elif cmd.Status == RepresentationStatus.Active:
@@ -880,12 +878,12 @@ class Scada(ScadaInterface, Proactor):
                     self.dispatch_contract_live() # sets up the trees, changes state, let's aa and h know
             elif self.contract_handler.active_contract_has_expired(): # wrap up existing
                 self._send_to(self.atn,
-                    self.contract_handler.scada_contract_completion_hb()
+                    self.contract_handler.scada_contract_completion_hb("Wrapping up existing contract")
                 )
                 self.contract_handler.start_new_contract_hb(atn_hb)
                 self._send_to(self.atomic_ally, self.contract_handler.latest_scada_hb.Contract
                 ) 
-                # will send hb ion process_suit_up, after atomic ally acknowledges
+                # will send hb in process_suit_up, after atomic ally acknowledges
         elif atn_hb.Status == ContractStatus.TerminatedByAtn:
             raise Exception("Ack! Haven't thought through termination by atn ...")
         else:
@@ -928,7 +926,7 @@ class Scada(ScadaInterface, Proactor):
             return False
         if self.contract_handler.active_contract_has_expired():
                 self._send_to(self.atn, 
-                        self.contract_handler.scada_contract_completion_hb())
+                        self.contract_handler.scada_contract_completion_hb("Active contract has expired"))
         if self.contract_handler.latest_scada_hb: # will not be expired
             return True
         elif not self.contract_handler.prev:
@@ -973,7 +971,7 @@ class Scada(ScadaInterface, Proactor):
         self.log(f"Contract {hb.Contract.ContractId} end time reached - sending completion")
         
         # Send completion heartbeat and set contract_handler.latest_scada_hb to None
-        completion_hb = self.contract_handler.scada_contract_completion_hb()
+        completion_hb = self.contract_handler.scada_contract_completion_hb("Noticed active contract complete")
         self._send_to(self.atn, completion_hb)
 
         # Set backup timer for grace period  
