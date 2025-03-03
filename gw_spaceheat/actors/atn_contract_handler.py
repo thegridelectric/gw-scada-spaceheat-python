@@ -168,6 +168,7 @@ class AtnContractHandler:
         if scada_hb.WattHoursUsed is None: 
             raise Exception("this can't happen, axiomatically in Hb")
 
+        self.logger.info(self.formatted_contract(scada_hb))
         self.energy_used_wh = scada_hb.WattHoursUsed
         self.energy_updated_s = time.time()
         self.store_heartbeat(scada_hb)
@@ -176,11 +177,10 @@ class AtnContractHandler:
             self.latest_hb = None # we can create new contract now!
             if self.can_create_contract():
                 self.create_new_contract()
-        if scada_hb.Status == ContractStatus.TerminatedByScada:
+        elif scada_hb.Status == ContractStatus.TerminatedByScada:
             self.latest_hb = None
         else:
             self.latest_hb = scada_hb
-        self.logger.info(self.formatted_contract(scada_hb))
     
     def create_new_contract(self) -> None:
         """

@@ -816,7 +816,7 @@ class Atn(ActorInterface, Proactor):
             self.contract_handler.next_contract_energy_wh = 0
 
         if self.contract_handler.latest_hb:
-            self.contract_handler.start_completing_old_contract() # waiting_for_completion_ack
+            self.contract_handler.start_completing_old_contract()
         elif self.contract_handler.can_create_contract():
             self.contract_handler.create_new_contract()
         else:
