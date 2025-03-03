@@ -2,7 +2,7 @@ import time
 import uuid
 import asyncio
 from data_classes.house_0_names import H0CN, H0N
-from gwproactor.message import Message
+from gwproto.message import Message
 from gwproactor import ServicesInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types import FsmFullReport
@@ -37,28 +37,28 @@ class HpRelayBoss(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
         if from_node is None:
-            return
+            return Ok(False)
         payload = message.Payload
         match payload:
             case FsmEvent():
                 try:
-                    self.fsm_event_received(from_node, payload)
+                    self.process_fsm_event(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with fsm_event_received: {e}")
+                    self.log(f"Trouble with process_fsm_event: {e}")
             case FsmFullReport():
                 ... # relay reports back with ack of change if we care
             case StratBossReady():
                 try:
-                    self.strat_boss_ready_received(from_node, payload)
+                    self.process_strat_boss_ready(from_node, payload)
                 except Exception as e:
-                   self.log(f"Trouble with strat_boss_ready_receivd: {e}")
+                   self.log(f"Trouble with process_strat_boss_ready: {e}")
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
         return Ok(True)
     
     
-    def fsm_event_received(self, from_node: ShNode, payload: FsmEvent) -> None:    
+    def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None:    
         if payload.ToHandle != self.node.handle:
              # TODO: turn this into a report?
             self._send_to(self.atn,
@@ -108,7 +108,7 @@ class HpRelayBoss(ScadaActor):
         # if not self.hp_relay_closed():
         #     self.close_hp_scada_ops_relay()
 
-    def strat_boss_ready_received(self, from_node: ShNode, payload: StratBossReady) -> None:
+    def process_strat_boss_ready(self, from_node: ShNode, payload: StratBossReady) -> None:
         if self.waiting_for_strat_boss:
             self.log("Strat boss ready received! Closing relay")
             self.close_hp_scada_ops_relay()

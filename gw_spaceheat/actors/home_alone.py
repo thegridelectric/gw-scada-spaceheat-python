@@ -738,9 +738,9 @@ class HomeAlone(ScadaActor):
                         self.trigger_normal_event(HomeAloneEvent.GoDormant)
             case WakeUp():
                 try:
-                    self.wake_up_received(from_node, message.Payload)
+                    self.process_wake_up(from_node, message.Payload)
                 except Exception as e:
-                    self.log(f"Trouble with wake_up_received: {e}")
+                    self.log(f"Trouble with process_wake_up: {e}")
             case HeatingForecast():
                 self.log("Received heating forecast")
                 self.forecasts: HeatingForecast = message.Payload
@@ -750,12 +750,12 @@ class HomeAlone(ScadaActor):
                     self.engage_brain()
             case StratBossTrigger():
                 try:
-                    self.strat_boss_trigger_received(from_node, message.Payload)
+                    self.process_strat_boss_trigger(from_node, message.Payload)
                 except Exception as e:
-                    self.log(f"Problem strat_bss_trigger_received: {e}")
+                    self.log(f"Problem process_strat_boss_trigger: {e}")
         return Ok(True)
 
-    def wake_up_received(self, from_node: ShNode, payload: WakeUp) -> None:
+    def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
         if self.top_state == HomeAloneState.Dormant:
             # TopWakeUp: Dormant -> Normal
             self.TopWakeUp()
@@ -775,11 +775,11 @@ class HomeAlone(ScadaActor):
         # run the appropriate relay initialization and then
         # evaluate if it can move into a known state
 
-    def strat_boss_trigger_received(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
+    def process_strat_boss_trigger(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
         self.log("Strat boss trigger received!")
         if self.state == HomeAloneState.Dormant:
             self.log(f"top state is {self.top_state} and state is {self.state}")
-            self.log("strat boss should be sidelined and NOT sending messages but strat_boss_trigger_received. IGNORING")
+            self.log("strat boss should be sidelined and NOT sending messages but process_strat_boss_trigger. IGNORING")
             return
         
         if payload.FromState == StratBossState.Dormant:

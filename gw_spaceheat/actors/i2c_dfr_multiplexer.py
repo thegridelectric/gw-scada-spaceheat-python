@@ -180,7 +180,7 @@ class I2cDfrMultiplexer(ScadaActor):
             self.resend_dfr[dfr.Name] = True
             self.log(f"Trouble setting dfr level for {dfr.Name}!: {e}")
 
-    def analog_dispatch_received(self, dispatch: AnalogDispatch) -> None:
+    def process_analog_dispatch(self, dispatch: AnalogDispatch) -> None:
         if not self.layout.node_by_handle(dispatch.FromHandle):
             self.log(f"Ignoring dispatch from  handle {dispatch.FromHandle} - not in layout!!")
             return
@@ -203,9 +203,9 @@ class I2cDfrMultiplexer(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         if isinstance(message.Payload, AnalogDispatch):
             try:
-                self.analog_dispatch_received(message.Payload)
+                self.process_analog_dispatch(message.Payload)
             except Exception as e:
-                self.log(f"Trouble with analog_dispatch_received: {e}")
+                self.log(f"Trouble with process_analog_dispatch: {e}")
         return Err(
             ValueError(
                 f"Error. Dfr Multiplexer {self.name} receieved unexpected message: {message.Header}"

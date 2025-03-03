@@ -1,5 +1,5 @@
 import re
-
+import logging
 from pydantic import BaseModel
 from pydantic import model_validator
 from enums import HpModel
@@ -49,7 +49,7 @@ class AtnSettings(ProactorSettings):
     hp_model: HpModel = HpModel.SamsungHighTempHydroKitPlusMultiV # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
     hinge: bool = False
-
+    contract_rep_logging_level: int = logging.INFO
 
     @model_validator(mode="before")
     @classmethod
