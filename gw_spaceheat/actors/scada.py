@@ -48,7 +48,8 @@ from gwproactor.proactor_implementation import Proactor
 
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
-from enums import MainAutoState,  TopState, ContractStatus, RepresentationStatus
+from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoEvent, MainAutoState, 
+                    PicoCyclerState, RepresentationStatus, TopState)
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning,
@@ -279,6 +280,7 @@ class Scada(ScadaInterface, Proactor):
                 level=settings.contract_rep_logging_level,
             )
         )
+        self.initialize_hierarchical_state_data() # set states for 
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -475,28 +477,12 @@ class Scada(ScadaInterface, Proactor):
             self.log("Admin Wakes Up")
 
     def process_ally_gives_up(self, from_node: ShNode, payload: AllyGivesUp) -> None:
-        if from_node.Name != H0N.atomic_ally:
-            self.log(
-                f"Ignoring AllyGivesUp from {from_node.Name} - expect AtomicAlly (aa)"
-            )
-            return
-        if self.auto_state != MainAutoState.Atn:
-            self.log(
-                f"Ignoring AllyGivesUp from AtomicAlly, auto_state: {self.auto_state}"
-            )
-            return
-
-        self.log("Ally gives up! Sending termination hb to Scada")
         # AutoState transition: AllyGivesUp: Atn -> HomeAlone
-        self.AllyGivesUp()
+        self.auto_trigger(MainAutoEvent.AllyGivesUp)
         self.log(f"Atomic Ally giving up: {payload.Reason}")
         self.log("Sending termination hb to Scada. State: Atn -> HomeAlone")
         hb = self.contract_handler.scada_terminates_contract_hb(cause=f"Ally Gives up: {payload.Reason}")
         self._send_to(self.atn, hb)
-        self.set_home_alone_command_tree()
-        self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-        self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
-
         # Cancel any existing warning task
         if hasattr(self, 'contract_task'):
             self.contract_task.cancel()
@@ -659,10 +645,7 @@ class Scada(ScadaInterface, Proactor):
                     )
                     self._send_to(self.atn, termination_hb)
                                 # Immediate transition to HomeAlone
-                self.AtnReleasesControl()
-                self.set_home_alone_command_tree()
-                self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-                self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+                self.auto_trigger(MainAutoEvent.AtnReleasesControl)
             self.contract_handler.status = RepresentationStatus.Dormant
 
         elif cmd.Status == RepresentationStatus.Active:
@@ -769,6 +752,38 @@ class Scada(ScadaInterface, Proactor):
     # Top States: Admin, Auto
     # Top Events: AdminWakesUp, AdminTimesOut, AdminReleasesControl
 
+    def initialize_hierarchical_state_data(self) -> None:
+        """ Scada TopState: Auto, Scada Auto: HomeAlone
+          HomeAlone: Normal, AtomicAlly: Dormant
+
+        """
+        now_ms = int(time.time() * 1000)
+        self.data.latest_machine_state[self.name] = SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=TopState.enum_name(),
+                State=TopState.Auto,
+                UnixMs=now_ms,
+            )
+        
+        # AtomicAlly is Dormant
+        self.data.latest_machine_state[self.atomic_ally.name] = SingleMachineState(
+                MachineHandle=self.atomic_ally.handle,
+                StateEnum=AtomicAllyState.enum_name(),
+                State=AtomicAllyState.Dormant,
+                UnixMs=now_ms,
+            )
+        
+        # HomeAloneTopState is Normal
+        self.data.latest_machine_state[self.home_alone.name] = SingleMachineState(
+                MachineHandle=self.node.handle,
+                StateEnum=HomeAloneTopState.enum_name(),
+                State=HomeAloneTopState.Normal,
+                UnixMs=now_ms,
+            )
+
+        # TODO: Add auto state and pico cylcer
+
+
     def admin_wakes_up(self) -> None:
         if self.top_state == TopState.Admin:
             self.log("Ignoring AdminWakesUp, TopState already Admin")
@@ -780,7 +795,7 @@ class Scada(ScadaInterface, Proactor):
             self.log("AdminWakesUp called when auto state was dormant!!")
             return
         # This will set auto_state and update the actuator forest to Admin
-        self.auto_goes_dormant()
+        self.auto_trigger(MainAutoEvent.AutoGoesDormant)
 
     def admin_times_out(self) -> None:
         if self.top_state == TopState.Auto:
@@ -802,51 +817,90 @@ class Scada(ScadaInterface, Proactor):
 
     # AUTO STATE MACHINE
 
+    def auto_trigger(self, trigger: MainAutoEvent) -> None:
+        """ Pulls trigger, updates command tree and sends appropriate messages
+        """
+        if trigger == MainAutoEvent.DispatchContractLive:
+            if self.auto_state != MainAutoState.HomeAlone:
+                self.log(f"Ignoring DispatchContractLive tigger in auto_state {self.auto_state}")
+                return
+            self.DispatchContractLive()
+            self.log("DispatchContractLive: HomeAlone -> Atn")
+            self.set_atn_command_tree()
+            # Wake up atn, tell home alone to go dormant
+            self._send_to(self.atn, WakeUp(ToName=self.atn.name))
+            self._send_to(self.home_alone, GoDormant(ToName=self.home_alone.name)
+            )
+        elif trigger == MainAutoEvent.ContractGracePeriodEnds:
+            if self.auto_state != MainAutoState.Atn:
+                self.log(f"Ignoring ContractGracePeriodEnds trigger in auto_state {self.auto_state}")
+                return
+            self.ContractGracePeriodEnds()
+            self.log("ContractGracePeriodEnds: Atn -> HomeAlone")
+            self.set_home_alone_command_tree()
+            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+        elif trigger == MainAutoEvent.AtnReleasesControl:
+            if self.auto_state != MainAutoState.Atn:
+                self.log(f"Ignoring AtnReleasesControl trigger in auto_state {self.auto_state}")
+                return
+            self.AtnReleasesControl()
+            self.log("AtnReleasesControls: Atn -> HomeAlone")
+            self.set_home_alone_command_tree()
+            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+        elif trigger == MainAutoEvent.AllyGivesUp:
+            if self.auto_state != MainAutoState.Atn:
+                self.log(f"Ignoring AllyGivesUp trigger in auto_state {self.auto_state}")
+                return
+            self.AllyGivesUp()
+            self.log("AllyGivesUp: Atn -> HomeAlone")
+            self.set_home_alone_command_tree()
+            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
+            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+        elif trigger == MainAutoEvent.AutoGoesDormant:
+            if self.auto_state == MainAutoState.Dormant:
+                self.log(f"Ignoring AutoWakesUp trigger in auto_state {self.auto_state}")
+                return
+            self.AutoGoesDormant()
+            self.log(f"AutoGoesDormant: {self.auto_state} -> Dormant")
+            self.log(f"auto_state {self.auto_state}")
+            # ADMIN CONTROL FOREST: a single tree, controlling all actuators
+            self.set_admin_command_tree()
+
+            # Let the active nodes know they've lost control of their actuators
+            for direct_report in [self.atomic_ally,self.home_alone,self.layout.pico_cycler]:
+                self._send_to(
+                    direct_report, GoDormant(ToName=direct_report.Name)
+                )
+        elif trigger == MainAutoEvent.AutoWakesUp:
+            if self.auto_state != MainAutoState.Dormant:
+                self.log(f"Ignoring AutoWakesUp trigger in auto_state {self.auto_state}")
+                return
+            self.AutoWakesUp()
+            self.log("AutoWakesUp: Dormant -> HomeAlone")
+            self.set_home_alone_command_tree()
+            self._send_to(self.home_alone, WakeUp(ToName=H0N.home_alone))
+            self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
+            
+
     def auto_wakes_up(self) -> None:
         """
-        checks if in  If so, goes to atn. Otherwise
-        goes to home alone
+        Goes to HomeAlone. Then if in grace period, triggers DispatchContractLive
         """
         if self.auto_state != MainAutoState.Dormant:
             self.log(f"STRANGE!! auto state is already{self.auto_state}")
             return
         # Trigger AutoWakesUp for auto state: Dormant -> HomeAlone
-        self.AutoWakesUp()
+        self.auto_trigger(MainAutoEvent.AutoWakesUp)
         self.log("AutoWakesUp: Dormant -> HomeAlone")
-        if self.in_grace_period(): # go to Atn
+        if self.in_grace_period():
+            # self.auto_trigger(MainAutoEvent.DispatchContractLive)
             self.DispatchContractLive()
-            self.log("DispatchContractLive: HomeAlone -> Atn")
             self.set_atn_command_tree()
-            # Let atn and pico-cycler know they in charge again
-            self._send_to(self.layout.atn, WakeUp(ToName=H0N.atn))
-            self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
-
-        else:
-            # all actuators report directly to home alone
-            self.set_home_alone_command_tree()
-            # Let homealone and pico-cycler know they in charge again
-            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-            self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
-
-    def auto_goes_dormant(self) -> None:
-        if self.auto_state == MainAutoState.Dormant:
-            self.log("Ignoring AutoGoesDormant ... auto state is already dormant")
-            return
-        # Trigger AutoGoesDormant for auto state: Atn OR HomeAlone -> Dormant
-        self.AutoGoesDormant()
-        self.log(f"auto_state {self.auto_state}")
-        # ADMIN CONTROL FOREST: a single tree, controlling all actuators
-        self.set_admin_command_tree()
-
-        # Let the active nodes know they've lost control of their actuators
-        for direct_report in [
-            self.layout.atomic_ally,
-            self.layout.home_alone,
-            self.layout.pico_cycler,
-        ]:
-            self._send_to(
-                direct_report, GoDormant(ToName=direct_report.Name)
+            self._send_to(self.home_alone, GoDormant(ToName=self.home_alone.name)
             )
+            self.log("Intentionally putting auto to Atn WITHOUT letting atn know")
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, atn_hb: SlowContractHeartbeat) -> None:
         self.log(f"{self.contract_handler.formatted_contract(atn_hb)}")
@@ -974,10 +1028,7 @@ class Scada(ScadaInterface, Proactor):
         # If still same contract after grace period, force transition to home alone
         if not self.in_grace_period():
             self.log(f"Grace period expired for contract {hb.Contract.ContractId} - transitioning to home alone")
-            self.ContractGracePeriodEnds()
-            self.set_home_alone_command_tree()
-            self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
-            self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
+            self.auto_trigger(MainAutoEvent.ContractGracePeriodEnds)
 
     def dispatch_contract_live(self) -> None:
         """ DispatchContractLive: HomeAlone -> Atn
@@ -992,17 +1043,10 @@ class Scada(ScadaInterface, Proactor):
 
         if self.contract_handler.latest_scada_hb is None:
             raise Exception("Should be called AFTER setting latest_scada_hb!")
-        self.log(f"New Dispatch Contract! Auto state {self.auto_state}")
+        self.log("New Dispatch Contract!")
 
         if self.auto_state == MainAutoState.HomeAlone:
-            self.DispatchContractLive() # AutoState Trigger DispatchContractLive: HomeAlone -> Atn
-            # ATN CONTROL FOREST: pico cycler its own tree. All other actuators report to Atomic
-            # Ally which reports to atn.
-            self.set_atn_command_tree()
-            # Let homealone know its dormant:
-            self._send_to(
-                self.layout.home_alone, GoDormant(ToName=H0N.home_alone)
-            )
+            self.auto_trigger(MainAutoEvent.DispatchContractLive)
         # Regardless of auto state
         if self.contract_handler.latest_scada_hb is None:
             self.log("That's strange! There should be a latest_scada_hb!")
@@ -1137,6 +1181,34 @@ class Scada(ScadaInterface, Proactor):
                 TimeS=int(time.time()),
                 Status=self.contract_handler.status,
                 Reason="Scada setting status on boot"))
+    
+    def enforce_auto_state_consistency(self) -> None:
+        """ Enforces that auto_state [Atn, HomeAlone, Dormant] is consistent
+        with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else]
+        """
+        aa_state = self.data.latest_machine_state[self.atomic_ally.name].State
+        h_state = self.data.latest_machine_state[self.home_alone.name].State
+        if self.auto_state == MainAutoState.Dormant:
+            if aa_state != AtomicAllyState.Dormant:
+                self.log(f"Noticed auto_state Dormant but AtomicAlly in {aa_state}! Sending GoDormant")
+                self._send_to(self.atomic_ally, GoDormant(ToName=self.atomic_ally.name))
+            if h_state != HomeAloneTopState.Dormant:
+                self.log(f"Noticed auto_state Dormant but HomeAlone in {h_state}! Sending GoDormant")
+                self._send_to(self.home_alone, GoDormant(ToName=self.home_alone.name))
+        elif self.auto_state == MainAutoState.Atn:
+            if aa_state == AtomicAllyState.Dormant:
+                self.log("Noticed auto_state Atn but AtomicAlly Dormant! Sending WakeUp")
+                self._send_to(self.atn, WakeUp(ToName=self.atn.name))
+            if h_state != HomeAloneTopState.Dormant:
+               self.log(f"Noticed auto_state Atn but HomeAlone in {h_state}! Sending GoDormant")
+               self._send_to(self.home_alone, GoDormant(ToName=self.home_alone.name))
+        elif self.auto_state == MainAutoState.HomeAlone:
+            if aa_state != AtomicAllyState.Dormant:
+                self.log(f"Noticed auto_state HomeAlone but AtomicAlly in {aa_state}! Sending GoDormant")
+                self._send_to(self.atn, GoDormant(ToName=self.atn.name))
+            if h_state == HomeAloneTopState.Dormant:
+               self.log("Noticed auto_state HomeAlone but home_alone Dormant! Sending WakeUp")
+               self._send_to(self.home_alone, WakeUp(ToName=self.home_alone.name))
 
     async def state_tracker(self) -> None:
         loop_s = self.settings.seconds_per_report
@@ -1147,6 +1219,7 @@ class Scada(ScadaInterface, Proactor):
             hiccup = 1.5
             sleep_s = max(hiccup, loop_s - (time.time() % loop_s) - 1.2)
             await asyncio.sleep(sleep_s)
+            self.enforce_auto_state_consistency() # e.g. if self.auto_state is Atn, then AtomicAlly is NOT Dormant
             # report the state
             if sleep_s != hiccup:
                 self._send_to(

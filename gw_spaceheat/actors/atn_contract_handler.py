@@ -92,13 +92,13 @@ class AtnContractHandler:
                 self.logger.info("Loaded completed contract")
                 return None
         
-            # Check if contract is still valid time-wise
+            # If contract has ended, mark as complete and send that message. Set latest_hb to None
             if time.time() > hb.Contract.contract_end_s():
                 if hb.Status not in self.DONE_STATES:
                     # Contract has expired, need to mark as completed
                     self.logger.info("Loaded contract has expired, will send completion heartbeat")
-                    self.latest_hb = hb
                     completion_hb = self.create_completion_heartbeat()
+                    self.latest_hb = None
                     return completion_hb
                 else:
                     return None

@@ -16,6 +16,7 @@ on these ideas:
  """
 
 from gw.enums import MarketTypeName
+from enums.atomic_ally_state import AtomicAllyState
 from enums.contract_status import ContractStatus
 from enums.change_keep_send import ChangeKeepSend
 from enums.home_alone_top_state import HomeAloneTopState
@@ -37,6 +38,7 @@ from enums.turn_hp_on_off import TurnHpOnOff
 
 
 __all__ = [
+    "AtomicAllyState",
     "ContractStatus",
     "MarketTypeName",
     "HpModel",

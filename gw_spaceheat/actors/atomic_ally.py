@@ -14,33 +14,19 @@ from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.components.dfr_component import DfrComponent
 
 from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
-from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport,
-                                 MachineStates)
+from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport)
 from result import Ok, Result
 from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import LogLevel, StratBossState
+from enums import AtomicAllyState, LogLevel, StratBossState
 from named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast, NewCommandTree, 
-    SlowContractHeartbeat, SlowDispatchContract, SuitUp, StratBossTrigger
+    SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp, StratBossTrigger
 )
 
 
-class AtomicAllyState(GwStrEnum):
-    Dormant = auto()
-    Initializing = auto()
-    HpOnStoreOff = auto()
-    HpOnStoreCharge = auto()
-    HpOffStoreOff = auto()
-    HpOffStoreDischarge = auto()
-    HpOffOilBoilerTankAquastat = auto()
-    StratBoss = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "atomic.ally.state"
 
 
 class AtomicAllyEvent(GwStrEnum):
@@ -314,11 +300,11 @@ class AtomicAlly(ScadaActor):
         self.log(f"{event}: {self.prev_state} -> {self.state}")
         self._send_to(
             self.primary_scada,
-            MachineStates(
+            SingleMachineState(
                 MachineHandle=self.node.handle,
                 StateEnum=AtomicAllyState.enum_name(),
-                StateList=[self.state],
-                UnixMsList=[now_ms],
+                State=self.state,
+                UnixMs=now_ms,
             ),
         )
 

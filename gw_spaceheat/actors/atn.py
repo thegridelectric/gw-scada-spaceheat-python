@@ -9,7 +9,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import Any, Dict, List, Optional, Tuple, cast, Literal, Callable
+from typing import Any, Dict, List, Optional, Tuple, cast, Callable
 
 import numpy as np
 import pytz
@@ -535,6 +535,7 @@ class Atn(ActorInterface, Proactor):
                     )
                 ),
             )
+        self.log("Releasing control - sending SetRepresentationStatus.Dormant to scada and setting state to Dormant ")
         self.contract_handler.status = RepresentationStatus.Dormant
 
     def request_control(self, reason="") -> None:
@@ -552,6 +553,7 @@ class Atn(ActorInterface, Proactor):
                     )
                 ),
             )
+        self.log("Requesting control - sending SetRepresentationStatus.Active to scada")
 
     def start(self):
         if self.event_loop_thread is not None:
@@ -1225,7 +1227,6 @@ class Atn(ActorInterface, Proactor):
             centroids = new_centroids
         return labels
 
-
     async def fake_market_maker(self):
         while True:
             # Calculate the time to the next top of the hour
@@ -1259,7 +1260,6 @@ class Atn(ActorInterface, Proactor):
             )
         except Exception as e:
             self.log(f"Problem generating or sending a LatestPrice: {e}")
-
 
     def log(self, note: str) -> None:
         log_str = f"[atn] {note}"

@@ -27,7 +27,6 @@ class MainAutoEvent(GwStrEnum):
     AutoGoesDormant = auto()
     AutoWakesUp = auto()
 
-
     @classmethod
     def default(cls) -> "MainAutoEvent":
         return cls.AutoWakesUp
