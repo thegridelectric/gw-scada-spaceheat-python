@@ -61,7 +61,8 @@ class AtnContractHandler:
             f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"
         )
         self.next_contract_energy_wh: Optional[int] = None
-        self.energy_used_wh: int = 0
+        self.energy_used_wh: float = 0
+        self.latest_power_w: int = 0
         self.energy_updated_s: Optional[float] = None
         self.status: RepresentationStatus = RepresentationStatus.Active  # Default to active
         self.layout_received: bool = False # have we received the layout

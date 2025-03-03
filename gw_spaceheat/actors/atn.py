@@ -368,18 +368,6 @@ class Atn(ActorInterface, Proactor):
                 path_dbg |= 0x00000100
         self._logger.path("--Atn._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-    @property
-    def energy_remaining_wh(self) -> int:
-        """
-        Returns a non-negative number. If the energy used already exceeds the
-        contract returns 0
-        """
-        hb = self.contract_handler.latest_hb
-        if hb is None:
-            return 0
-        contract_wh = int(hb.Contract.AvgPowerWatts * hb.Contract.DurationMinutes / 60)
-        return min(0, contract_wh - self.contract_handler.energy_used_wh)
-
     def process_no_new_contract_warning(self, payload: NoNewContractWarning) -> None:
         """
         Resending a "Created" hb if it exists

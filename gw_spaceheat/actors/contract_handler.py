@@ -314,14 +314,10 @@ class ContractHandler:
             self.prev = final_hb
             return final_hb
         elif atn_hb.Status in [ContractStatus.Confirmed, ContractStatus.Active]:
-            if atn_hb.Status == ContractStatus.Confirmed:
-                prev_status = ContractStatus.Confirmed
-            else:
-                prev_status = None
             self.latest_scada_hb = SlowContractHeartbeat(
                 FromNode=H0N.primary_scada,
                 Contract=atn_hb.Contract,
-                PreviousStatus=prev_status,
+                PreviousStatus=atn_hb.Status,
                 Status=ContractStatus.Active,
                 WattHoursUsed=round(self.energy_used_wh),
                 MessageCreatedMs=int(time.time() * 1000),
