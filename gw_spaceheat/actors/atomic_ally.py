@@ -3,7 +3,6 @@ import time
 import uuid
 from enum import auto
 from typing import cast, List, Sequence, Optional
-from datetime import datetime
 
 import pytz
 from data_classes.house_0_names import H0CN, H0N
@@ -14,34 +13,21 @@ from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.data_classes.components.dfr_component import DfrComponent
 
-from gwproto.enums import ActorClass, FsmReportType
-from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport,
-                                 MachineStates)
+from gwproto.enums import ActorClass, FsmReportType, RelayClosedOrOpen
+from gwproto.named_types import (AnalogDispatch, FsmAtomicReport, FsmFullReport)
 from result import Ok, Result
 from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import LogLevel, StratBossState
+from enums import AtomicAllyState, LogLevel, StratBossState
 from named_types import (
-    AllyGivesUp, EnergyInstruction, Glitch, GoDormant,
-    Ha1Params, HeatingForecast, RemainingElec, SuitUp, WakeUp, HackOilOn, HackOilOff, StratBossTrigger, NewCommandTree
+    AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast, NewCommandTree, 
+    SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp, 
+    StratBossTrigger
 )
 
 
-class AtomicAllyState(GwStrEnum):
-    Dormant = auto()
-    Initializing = auto()
-    HpOnStoreOff = auto()
-    HpOnStoreCharge = auto()
-    HpOffStoreOff = auto()
-    HpOffStoreDischarge = auto()
-    HpOffOilBoilerTankAquastat = auto()
-    StratBoss = auto()
-
-    @classmethod
-    def enum_name(cls) -> str:
-        return "atomic.ally.state"
 
 
 class AtomicAllyEvent(GwStrEnum):
@@ -142,8 +128,7 @@ class AtomicAlly(ScadaActor):
         self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")
-        self.forecasts: HeatingForecast = None
-        self.remaining_elec_wh = None
+        self.forecasts: Optional[HeatingForecast] = None
         self.storage_declared_full = False
         self.storage_full_since = time.time()
         if H0N.atomic_ally not in self.layout.nodes:
@@ -152,7 +137,15 @@ class AtomicAlly(ScadaActor):
     @property
     def data(self) -> ScadaData:
         return self._services.data
+
+    @property
+    def remaining_watthours(self) -> Optional[int]:
+        return self.services.contract_handler.remaining_watthours
     
+    @property
+    def contract_hb(self) -> Optional[SlowContractHeartbeat]:
+        return self.services.contract_handler.latest_scada_hb
+
     @property
     def params(self) -> Ha1Params:
         return self.data.ha1_params
@@ -171,54 +164,57 @@ class AtomicAlly(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
         match message.Payload:
-            case EnergyInstruction():
-                self.log(f"Received an EnergyInstruction for {message.Payload.AvgPowerWatts} Watts average power")
-                self.remaining_elec_wh = message.Payload.AvgPowerWatts
-                self.engage_brain()
             case GoDormant():
                 if self.state != AtomicAllyState.Dormant:
                     # GoDormant: AnyOther -> Dormant ...
                     self.trigger_event(AtomicAllyEvent.GoDormant)
                     self.log("Going dormant")
-            case HackOilOn():
-                if self.state not in (AtomicAllyState.HpOffOilBoilerTankAquastat, AtomicAllyState.Dormant):
-                    self.log("Acting on hack.oil.on message")
-                    self.trigger_event(AtomicAllyEvent.StartHackOil)
-                else:
-                    self.log(f"Received hack.oil.on. In state {self.state} so ignoring")
-            case HackOilOff():
-                if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
-                    self.log("Acting on hack.oil.off message")
-                    self.trigger_event(AtomicAllyEvent.StopHackOil)
-                else:
-                    self.log(f"Received hack.oil.off. In state {self.state} so ignoring ")
-            case RemainingElec():
-                # TODO: perhaps 1 Wh is not the best number here
-                if message.Payload.RemainingWattHours <= 1:
-                    if "HpOn" in self.state and datetime.now(self.timezone).minute<55:
-                        self.trigger_event(AtomicAllyEvent.NoMoreElec)
-                self.remaining_elec_wh = message.Payload.RemainingWattHours
-            case WakeUp():
-                try:
-                    self.wake_up_received(from_node, payload=message.Payload)
-                except Exception as e:
-                    self.log(f"trouble with wake_up_receiced: {e}")
             case HeatingForecast():
                 self.log("Received forecast")
-                self.forecasts: HeatingForecast = message.Payload
+                self.forecasts = message.Payload
+            case SlowDispatchContract(): # WakeUp
+                try:
+                    self.process_slow_dispatch_contract(from_node, message.Payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_slow_dispatch_contract: {e}")
             case StratBossTrigger():
                 try:
-                    self.strat_boss_trigger_received(from_node, message.Payload)
+                    self.process_strat_boss_trigger(from_node, message.Payload)
                 except Exception as e:
-                    self.log(f"Problem with strat_boss_trigger_received: {e}")
-
+                    self.log(f"Problem with process_strat_boss_trigger: {e}")
         return Ok(True)
     
-    def strat_boss_trigger_received(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
+    def process_slow_dispatch_contract(self, from_node, contract: SlowDispatchContract) -> None:
+        """ Used to start new contracts and/or to wake up"""
+        self.log("Processing SlowDispatchContract!")
+        if from_node != self.primary_scada:
+            raise Exception("contract should come from scada!")
+        
+        if not self.forecasts:
+            self.log("Cannot Wake up - missing forecasts!")
+            self._send_to(
+                self.primary_scada,
+                AllyGivesUp(Reason="Missing forecasts required for operation"))
+            return
+        if self.state == AtomicAllyState.Dormant:
+            self.log("Got a slow dispatch contract ... waking up")
+            self.wake_up()
+        if contract.OilBoilerOn:
+            if self.state != AtomicAllyState.HpOffOilBoilerTankAquastat:
+                self.log("SlowDispatchContract: OilBoilerOn")
+                self.trigger_event(AtomicAllyEvent.StartHackOil)
+            else:
+                self.log(f"Received contract w OilBoilerOn. Already in {self.state} so ignoring")
+        else:
+            if self.state == AtomicAllyState.HpOffOilBoilerTankAquastat:
+                self.trigger_event(AtomicAllyEvent.StopHackOil) # will go to initializing
+            self.engage_brain()
+
+    def process_strat_boss_trigger(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
         self.log("Strat boss trigger received!")
         if self.state == AtomicAllyState.Dormant:
             self.log(f"state is {self.state}")
-            self.log("strat boss should be sidelined and NOT sending messages but strat_boss_trigger_received. IGNORING")
+            self.log("strat boss should be sidelined and NOT sending messages but process_strat_boss_trigger. IGNORING")
             return
         
         if payload.FromState == StratBossState.Dormant:
@@ -306,11 +302,11 @@ class AtomicAlly(ScadaActor):
         self.log(f"{event}: {self.prev_state} -> {self.state}")
         self._send_to(
             self.primary_scada,
-            MachineStates(
+            SingleMachineState(
                 MachineHandle=self.node.handle,
                 StateEnum=AtomicAllyState.enum_name(),
-                StateList=[self.state],
-                UnixMsList=[now_ms],
+                State=self.state,
+                UnixMs=now_ms,
             ),
         )
 
@@ -343,62 +339,49 @@ class AtomicAlly(ScadaActor):
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
 
-    def wake_up_received(self, from_node: ShNode, payload: WakeUp) -> None:
-        """Does one of 3 things:
-          - If no forecasts: reports back that it isn't changing from Dormant and exits
-          - Otherwise sends SuitUp back to Scada (so Scada knows it is taking control) and:
+    def wake_up(self) -> None:
+        """
+          - If temperatures are not available, logs no_temp_since (to kick out in 5 minutes)
+          - Sends SuitUp back to Scada (so Scada knows it is taking control)
+          - Sets state (and then initializes actuators and sets command tree if needed)
             - Typical: WakeUpDormant -> Initializing (wake_up)
             - If StratBoss actor is Active: StartStratSaving: Dormant -> Active
 
         """
-        if self.state != AtomicAllyState.Dormant:
-            self.log(f"That's strange. Got WakeUp when state is {self.state}")
-            return
-        if not self.forecasts:
-            self.log("Cannot Wake up- missing forecasts!")
-            self._send_to(
-                self.primary_scada,
-                AllyGivesUp(Reason="Missing forecasts required for operation"))
-            return
-        
-        self.set_normal_command_tree() 
+        self.log("Waking up")
+        in_strat = False
         self.get_latest_temperatures()
         if not self.temperatures_available:
             self.no_temps_since = int(time.time())
             self.log("Temperatures not available. Won't turn on hp until they are. Will bail in 5 if still not available")
-        self.log("Waking up")
+        
         self._send_to(self.primary_scada, SuitUp(ToNode=H0N.primary_scada, FromNode=self.name))
         # If strat boss actor is Active, then StartStratSaving: Dormant -> StratBoss
         if self.strat_boss.name in self.data.latest_machine_state.keys():
-                self.log(f"{self.strat_boss.name} IS in keys. State is {self.data.latest_machine_state[self.strat_boss.name].State} ")
                 strat_boss_state = self.data.latest_machine_state[self.strat_boss.name].State
                 if strat_boss_state == StratBossState.Active.value:
-                    self.log("Strat boss active! Setting strat saver tree and going to StratBoss State")
-                    self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
-                    self.trigger_event(AtomicAllyEvent.StartStratSaving)  # state -> StratBoss
-                    self.initialize_actuators()
-                else: # WakeUp: Dormant -> Initializing
-                    self.log(f"strat_boss_state {strat_boss_state} is NOT {StratBossState.Active.value} ")
-                    self.wake_up()
-        # Else Dormant -> Initializing
-        else: 
-            self.log(f"{self.strat_boss.name} not in latest_machine_state keys: {self.data.latest_machine_state.keys()}")
-            self.wake_up()
+                    in_strat = True
 
-    def wake_up(self) -> None:
-        self.trigger_event(AtomicAllyEvent.WakeUp) # Dormant -> Initializing
+        if in_strat: # Dormant -> StratBoss
+            self.log("Strat boss active! Setting strat saver tree and going to StratBoss State")
+            self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
+            self.trigger_event(AtomicAllyEvent.StartStratSaving)  
+        else:   #  Dormant -> Initializing
+            self.trigger_event(AtomicAllyEvent.WakeUp) # Dormant -> Initializing
+        
         self.initialize_actuators()
-        self.engage_brain()
 
     def engage_brain(self) -> None:
         self.log(f"State: {self.state}")
-        if self.state not in [AtomicAllyState.Dormant, AtomicAllyState.HpOffOilBoilerTankAquastat]:
+        if self.state not in [AtomicAllyState.Dormant, 
+                              AtomicAllyState.HpOffOilBoilerTankAquastat,
+                              AtomicAllyState.StratBoss]:
             self.get_latest_temperatures()
 
             if self.state == AtomicAllyState.Initializing:
                 if self.temperatures_available: 
                     self.no_temps_since = None
-                    if self.no_more_elec():
+                    if self.hp_should_be_off():
                         if (
                             self.is_buffer_empty()
                             and not self.is_storage_colder_than_buffer()
@@ -420,12 +403,12 @@ class AtomicAlly(ScadaActor):
                             self.primary_scada,
                             AllyGivesUp(Reason="Missing temperatures required for operation"))
                         return
-                    if self.no_more_elec():
+                    if self.hp_should_be_off():
                         self.turn_off_HP()
 
             # 1
             elif self.state == AtomicAllyState.HpOnStoreOff:
-                if self.no_more_elec() and datetime.now(self.timezone).minute<55:
+                if self.hp_should_be_off():
                     self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 elif self.is_buffer_full() and not self.is_storage_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferFull)
@@ -439,15 +422,14 @@ class AtomicAlly(ScadaActor):
 
             # 2
             elif self.state == AtomicAllyState.HpOnStoreCharge:
-                if self.no_more_elec() and datetime.now(self.timezone).minute<55:
-                    self.log("Finished with energy instruction! Turning off")
+                if self.hp_should_be_off():
                     self.trigger_event(AtomicAllyEvent.NoMoreElec)
                 elif self.is_buffer_empty() or self.is_storage_full():
                     self.trigger_event(AtomicAllyEvent.ElecBufferEmpty)
 
             # 3
             elif self.state == AtomicAllyState.HpOffStoreOff:
-                if self.no_more_elec():
+                if self.hp_should_be_off():
                     if (
                         self.is_buffer_empty()
                         and not self.is_storage_colder_than_buffer()
@@ -461,7 +443,7 @@ class AtomicAlly(ScadaActor):
 
             # 4
             elif self.state == AtomicAllyState.HpOffStoreDischarge:
-                if self.no_more_elec():
+                if self.hp_should_be_off():
                     if (
                         self.is_buffer_full()
                         or self.is_storage_colder_than_buffer()
@@ -483,16 +465,16 @@ class AtomicAlly(ScadaActor):
 
     def update_relays(self) -> None:
         self.log(f"update_relays with previous_state {self.prev_state} and state {self.state}")
-        if self.state == AtomicAllyState.Dormant.value:
+        if self.state == AtomicAllyState.Dormant:
             return
-        if self.state == AtomicAllyState.Initializing.value:
-            if self.no_more_elec():
+        if self.state == AtomicAllyState.Initializing:
+            if self.hp_should_be_off():
                 self.turn_off_HP()
             return
-        if self.state == AtomicAllyState.StratBoss.value:
+        if self.state == AtomicAllyState.StratBoss:
             return
 
-        if self.prev_state == AtomicAllyState.HpOffOilBoilerTankAquastat.value:
+        if self.prev_state == AtomicAllyState.HpOffOilBoilerTankAquastat:
             self.hp_failsafe_switch_to_scada()
             self.aquastat_ctrl_switch_to_scada()
         if "HpOn" not in self.prev_state and "HpOn" in self.state:
@@ -600,8 +582,7 @@ class AtomicAlly(ScadaActor):
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
         self.sieg_valve_dormant()
-
-        if self.no_more_elec():
+        if self.hp_should_be_off():
             self.turn_off_HP()
         try:
             self.set_010_defaults()
@@ -639,13 +620,26 @@ class AtomicAlly(ScadaActor):
             )
             self.log(f"Just set {dfr_node.handle} to {dfr_config.InitialVoltsTimes100} from {self.node.handle} ")            
 
-    def no_more_elec(self) -> bool:
-        if self.remaining_elec_wh is None or self.remaining_elec_wh <= 1:
-            #self.log("No electricity available")
-            return True
-        else:
-            #self.log(f"Electricity available: {self.remaining_elec_wh} Wh")
-            return False
+    def hp_should_be_off(self) -> bool:
+        if self.remaining_watthours:
+            if self.remaining_watthours > 0:
+                return False
+        
+        if self.hp_scada_ops_relay.name in self.data.latest_machine_state.keys():
+            scada_relay_state = self.data.latest_machine_state[self.hp_scada_ops_relay.name].State
+            
+            if scada_relay_state == RelayClosedOrOpen.RelayClosed:
+                # If the relay is closed and there is no contract, keep it closed
+                if self.contract_hb is None:
+                    return False
+                # If the relay is closed and in the last 5 minutes of >= 30 minute contract,
+                #  keep it closed
+                elif self.contract_hb.Contract.DurationMinutes >= 30:  
+                    c = self.contract_hb.Contract
+                    last_5 = c.StartS + (c.DurationMinutes - 5)*60  
+                    if time.time() > last_5:
+                        return False
+        return True
     
     def is_buffer_empty(self, really_empty=False) -> bool:
         if H0CN.buffer.depth2 in self.latest_temperatures:
@@ -657,6 +651,9 @@ class AtomicAlly(ScadaActor):
             buffer_empty_ch = H0CN.dist_swt
         else:
             self.alert(summary="buffer_empty_fail", details="Impossible to know if the buffer is empty!")
+            return False
+        if self.forecasts is None:
+            self.alert(summary="buffer_empty_fail", details="Impossible without forecasts")
             return False
         max_rswt_next_3hours = max(self.forecasts.RswtF[:3])
         max_deltaT_rswt_next_3_hours = max(self.forecasts.RswtDeltaTF[:3])
@@ -680,6 +677,9 @@ class AtomicAlly(ScadaActor):
             buffer_full_ch = 'hp-ewt'
         else:
             self.alert(summary="buffer_full_fail", details="Impossible to know if the buffer is full!")
+            return False
+        if self.forecasts is None:
+            self.alert(summary="buffer_full_fail", details="Impossible without forecasts")
             return False
         max_buffer = round(max(self.forecasts.RswtF[:3]),1)
         buffer_full_ch_temp = round(self.latest_temperatures[buffer_full_ch],1)
@@ -752,7 +752,7 @@ class AtomicAlly(ScadaActor):
     def alert(self, summary: str, details: str) -> None:
         msg =Glitch(
             FromGNodeAlias=self.layout.scada_g_node_alias,
-            Node=self.node.name,
+            Node=self.node.Name,
             Type=LogLevel.Critical,
             Summary=summary,
             Details=details

@@ -74,6 +74,8 @@ def test_scada_settings_defaults(clean_scada_env):
         ).model_dump(),
         timezone_str="America/New_York",
         is_simulated=False,
+        representation_dormant=False,
+        contract_rep_logging_level=20,
         hp_model=HpModel.SamsungHighTempHydroKitPlusMultiV
     )
     assert settings.model_dump() == exp

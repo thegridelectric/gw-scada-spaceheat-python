@@ -24,6 +24,7 @@ class ScadaSettings(ProactorSettings):
     #logging related (temporary)
     pico_cycler_state_logging: bool = False
     power_meter_logging_level: int = logging.WARNING
+    contract_rep_logging_level: int = logging.INFO
     local_mqtt: MQTTClient = MQTTClient()
     gridworks_mqtt: MQTTClient = MQTTClient()
     seconds_per_report: int = 300
@@ -50,6 +51,7 @@ class ScadaSettings(ProactorSettings):
     stratboss_dist_010v: int = 100
     monitor_only: bool = False
     hp_model: HpModel = HpModel.SamsungHighTempHydroKitPlusMultiV # TODO: move to layout
+    representation_dormant: bool = False
     model_config = SettingsConfigDict(env_prefix="SCADA_", extra="ignore")
 
     HpModel.LgHighTempHydroKitPlusMultiV

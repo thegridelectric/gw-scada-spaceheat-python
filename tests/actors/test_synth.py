@@ -15,7 +15,7 @@ from named_types import ScadaParams
 
 def test_ha1(monkeypatch, tmp_path):
     # change to test directory and create an empty .env
-    # so that 'find_dotenv()' in _scada_params_received() does not
+    # so that 'find_dotenv()' in process_scada_params() does not
     # modify any non-tests .envs in the file system.
     monkeypatch.chdir(tmp_path)
     dotenv_filepath = Path(".env")
@@ -72,7 +72,7 @@ def test_ha1(monkeypatch, tmp_path):
 
     )
 
-    s.scada_params_received(s.atn, params_from_atn, testing=True)
+    s.process_scada_params(s.atn, params_from_atn, testing=True)
     assert synth.params.DdPowerKw == 10
 
     # wrote the new parameter to .env
