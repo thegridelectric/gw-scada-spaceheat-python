@@ -352,8 +352,8 @@ class StratBoss(ScadaActor):
             if good_readings:
                 if self.state == StratBossState.Dormant:
                     if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
-                        self.log("detecting defrost but not sending anything to boss")
                         # if self.lg_high_temp_hydrokit_entering_defrost():
+                        #   self.log("detecting defrost but not sending anything to boss")
                         #     self._send_to(self.boss, StratBossTrigger(
                         #             FromState=StratBossState.Dormant,
                         #             ToState=StratBossState.Active,
@@ -362,7 +362,7 @@ class StratBoss(ScadaActor):
                         #     )
                     if self.hp_model == HpModel.SamsungHighTempHydroKitPlusMultiV:
                         if self.samsung_high_temp_hydrokit_entering_defrost():
-                            self.log("detecting defrost but not sending anything to boss")
+                            # self.log("detecting defrost but not sending anything to boss")
                             # self._send_to(self.boss, StratBossTrigger(
                             #     FromState=StratBossState.Dormant,
                             #         ToState=StratBossState.Active,
