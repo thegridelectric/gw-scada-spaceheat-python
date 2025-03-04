@@ -23,7 +23,8 @@ from actors.scada_data import ScadaData
 from enums import AtomicAllyState, LogLevel, StratBossState
 from named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast, NewCommandTree, 
-    SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp, StratBossTrigger
+    SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp, 
+    StratBossTrigger
 )
 
 
@@ -171,7 +172,7 @@ class AtomicAlly(ScadaActor):
             case HeatingForecast():
                 self.log("Received forecast")
                 self.forecasts = message.Payload
-            case SlowDispatchContract():
+            case SlowDispatchContract(): # WakeUp
                 try:
                     self.process_slow_dispatch_contract(from_node, message.Payload)
                 except Exception as e:
@@ -181,21 +182,22 @@ class AtomicAlly(ScadaActor):
                     self.process_strat_boss_trigger(from_node, message.Payload)
                 except Exception as e:
                     self.log(f"Problem with process_strat_boss_trigger: {e}")
-
         return Ok(True)
     
     def process_slow_dispatch_contract(self, from_node, contract: SlowDispatchContract) -> None:
-
+        """ Used to start new contracts and/or to wake up"""
+        self.log("Processing SlowDispatchContract!")
         if from_node != self.primary_scada:
             raise Exception("contract should come from scada!")
         
         if not self.forecasts:
-            self.log("Cannot Wake up- missing forecasts!")
+            self.log("Cannot Wake up - missing forecasts!")
             self._send_to(
                 self.primary_scada,
                 AllyGivesUp(Reason="Missing forecasts required for operation"))
             return
         if self.state == AtomicAllyState.Dormant:
+            self.log("Got a slow dispatch contract ... waking up")
             self.wake_up()
         if contract.OilBoilerOn:
             if self.state != AtomicAllyState.HpOffOilBoilerTankAquastat:
