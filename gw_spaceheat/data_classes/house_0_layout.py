@@ -64,7 +64,7 @@ class House0Layout(HardwareLayout):
             raise TypeError("ZoneList must be a list")
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
-        self.short_names = H0N(self.total_store_tanks, self.zone_list)
+        self.h0n = H0N(self.total_store_tanks, self.zone_list)
 
     @property
     def actuators(self) -> List[ShNode]:

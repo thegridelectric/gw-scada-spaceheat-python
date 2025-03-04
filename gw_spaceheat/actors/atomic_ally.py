@@ -20,15 +20,12 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import AtomicAllyState, LogLevel, StratBossState
+from enums import AtomicAllyState, LogLevel, PumpDocEvent, StratBossState, StratBossEvent
 from named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast, NewCommandTree, 
-    SingleMachineState, SlowContractHeartbeat, SlowDispatchContract, SuitUp, 
-    StratBossTrigger
+    PumpDocTrigger, SingleMachineState, SlowContractHeartbeat, SlowDispatchContract,
+     SuitUp, StratBossTrigger
 )
-
-
-
 
 class AtomicAllyEvent(GwStrEnum):
     NoMoreElec = auto()
@@ -172,6 +169,11 @@ class AtomicAlly(ScadaActor):
             case HeatingForecast():
                 self.log("Received forecast")
                 self.forecasts = message.Payload
+            case PumpDocTrigger():
+                try:
+                    self.process_pump_doc_trigger(from_node, message.Payload)
+                except Exception as e:
+                    self.log(f"Problem process_pump_doc_trigger: {e}")
             case SlowDispatchContract(): # WakeUp
                 try:
                     self.process_slow_dispatch_contract(from_node, message.Payload)
@@ -184,6 +186,42 @@ class AtomicAlly(ScadaActor):
                     self.log(f"Problem with process_strat_boss_trigger: {e}")
         return Ok(True)
     
+    def process_pump_doc_trigger(self, from_node: ShNode, payload: PumpDocTrigger) -> None:
+        """If pump doctor is timing out, set the command tree to what it should
+        be, based on the top state. And then let pump doc know it
+
+        Otherwise, pump doctor wants to engage. First cancel strat boss if it is running,
+        then give pump doc control of the relays and actuators it needs to perform its duties,
+        and finally let pump doc know it can act
+        """
+        self.log("PumpDoc trigger received!")
+        if self.state in [AtomicAllyState.Dormant]:
+            self.log(f"Thats strange. {self.node.handle} got a trigger when Dormant")
+            return
+        
+        pump_doc = from_node
+
+        if payload.Trigger == PumpDocEvent.Timeout:
+            self.set_command_tree(boss_node=self.node)
+            # tell pump doctor to go dormant:
+            self._send_to(pump_doc, payload)
+            # and then engage the brain
+            self.engage_brain()
+        else:  # All other triggers activate pump doc
+            # First, cancel strat boss if its running
+            if self.state == AtomicAllyState.StratBoss:
+                self.set_command_tree(boss_node=self.node)
+                cancel_strat = StratBossTrigger(
+                        FromState=StratBossState.Active,
+                        ToState=StratBossState.Dormant,
+                        Trigger=StratBossEvent.BossCancels,
+                    )
+            self._send_to(self.strat_boss, cancel_strat, self.node)
+            # Then, give pump doc the relays and dfrs it needs to perform its duties
+            self.set_pump_doctor_command_tree(boss_node=self.node)
+            # And finally let pump doc know it can act
+            self._send_to(pump_doc, payload)
+
     def process_slow_dispatch_contract(self, from_node, contract: SlowDispatchContract) -> None:
         """ Used to start new contracts and/or to wake up"""
         self.log("Processing SlowDispatchContract!")

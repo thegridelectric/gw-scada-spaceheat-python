@@ -21,7 +21,7 @@ from gwproto.enums import (
     RelayClosedOrOpen
 )
 from enums import TurnHpOnOff, ChangeKeepSend
-from named_types import FsmEvent
+from named_types import FsmEvent, NewCommandTree
 from pydantic import ValidationError
 
 
@@ -81,6 +81,7 @@ class ScadaActor(Actor):
     def hp_relay_boss(self) -> ShNode:
         return self.layout.node(H0N.hp_relay_boss)
 
+
     def my_actuators(self) -> List[ShNode]:
         """Get all actuator nodes that are descendants of this node in the handle hierarchy"""
         my_handle_prefix = f"{self.node.handle}."
@@ -119,7 +120,7 @@ class ScadaActor(Actor):
         return self.layout.node(H0N.aquastat_ctrl_relay)
 
     @property
-    def store_pump_failsafe(self) -> ShNode:
+    def store_pump_failsafe_relay(self) -> ShNode:
         return self.layout.node(H0N.store_pump_failsafe)
 
     @property
@@ -202,7 +203,7 @@ class ScadaActor(Actor):
             self.hp_failsafe_switch_to_aquastat(from_node)
         elif relay == self.aquastat_control_relay:
             self.aquastat_ctrl_switch_to_boiler(from_node)
-        elif relay == self.store_pump_failsafe:
+        elif relay == self.store_pump_failsafe_relay:
             self.turn_off_store_pump(from_node)
         elif relay == self.primary_pump_failsafe:
             self.primary_pump_failsafe_to_hp(from_node)
@@ -241,7 +242,7 @@ class ScadaActor(Actor):
             self.hp_failsafe_switch_to_scada(from_node)
         elif relay == self.aquastat_control_relay:
             self.aquastat_ctrl_switch_to_scada(from_node)
-        elif relay == self.store_pump_failsafe:
+        elif relay == self.store_pump_failsafe_relay:
             self.turn_on_store_pump(from_node)
         elif relay == self.primary_pump_failsafe:
             self.primary_pump_failsafe_to_scada(from_node)
@@ -531,15 +532,15 @@ class ScadaActor(Actor):
         try:
             event = FsmEvent(
                 FromHandle=self.node.handle if from_node is None else from_node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
+                ToHandle=self.store_pump_failsafe_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.store_pump_failsafe, event, from_node)
+            self._send_to(self.store_pump_failsafe_relay, event, from_node)
             self.log(
-                f"{from_node.handle} sending OpenRelay to StorePump OnOff {self.store_pump_failsafe.handle}"
+                f"{from_node.handle} sending OpenRelay to StorePump OnOff {self.store_pump_failsafe_relay.handle}"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
@@ -554,15 +555,15 @@ class ScadaActor(Actor):
         try:
             event = FsmEvent(
                 FromHandle=from_node.handle,
-                ToHandle=self.store_pump_failsafe.handle,
+                ToHandle=self.store_pump_failsafe_relay.handle,
                 EventType=ChangeRelayState.enum_name(),
                 EventName=ChangeRelayState.CloseRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.store_pump_failsafe, event, from_node)
+            self._send_to(self.store_pump_failsafe_relay, event, from_node)
             self.log(
-                f"{self.node.handle if from_node is None else from_node.handle} sending CloseRelay to StorePump OnOff {self.store_pump_failsafe.handle}"
+                f"{self.node.handle if from_node is None else from_node.handle} sending CloseRelay to StorePump OnOff {self.store_pump_failsafe_relay.handle}"
             )
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
@@ -877,6 +878,8 @@ class ScadaActor(Actor):
     def the_boss_of(self, node: ShNode) -> Optional[ShNode]:
         if node.Handle == node.Name:
             return None
+        if node.Handle is None:
+            return None
         boss_name= node.Handle.split(".")[-2]
         return self.layout.node(boss_name, None)
 
@@ -884,6 +887,72 @@ class ScadaActor(Actor):
         if boss is None:
             boss = self.node
         return [n for n in self.layout.nodes.values() if self.the_boss_of(n) == boss]
+
+    def set_hierarchical_fsm_handles(self, boss_node: ShNode) -> None:
+        """ Sets the hp_relay_boss, start_boss and pump_doc Nodes as reports to boss_node"""
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = f"{boss_node.handle}.{hp_relay_boss.Name}"
+
+        scada_ops_relay = self.layout.node(H0N.hp_scada_ops_relay)
+        scada_ops_relay.Handle = f"{boss_node.handle}.{hp_relay_boss.Name}.{scada_ops_relay.Name}"
+
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = f"{boss_node.handle}.{strat_boss.Name}"
+
+        pump_doc = self.layout.node(H0N.pump_doctor)
+        pump_doc.Handle = f"{boss_node.handle}.{pump_doc.Name}"
+
+    def set_command_tree(self, boss_node: ShNode) -> None:
+        """ All actuators in my chain of command report to boss node.
+          - except for scada_ops_relay, which continues to report to hp_relay_boss
+          - and all the hierarchical fsms (hp_relay_boss, strat_boss, pump_doc) report to boss
+
+          Throws exception if boss_node is not in my chain of command
+        """
+        # TODO: if boss_node is not in my chain of command, 
+        # raise an error
+        my_handle_prefix = f"{self.node.handle}."
+        if not boss_node.handle.startswith(my_handle_prefix):
+            raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
+        self.set_hierarchical_fsm_handles(boss_node)
+
+        for node in self.my_actuators():
+            if node.Name != H0N.hp_scada_ops_relay:
+                node.Handle =  f"{boss_node.handle}.{node.Name}"
+        self._send_to(
+            self.atn,
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+        self.log(f"Set {boss_node.handle} command tree")
+
+    def set_pump_doctor_command_tree(self, boss_node: ShNode) -> None:
+        """ Thermostat relays, store pump relay and dist/store 010s report to pump doc"""
+        my_handle_prefix = f"{self.node.handle}."
+        if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
+            raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
+        pump_doc = self.layout.node(H0N.pump_doctor)
+        boss_prefix = f"{boss_node.handle}."
+        if not pump_doc.handle.startswith(boss_prefix):
+            raise Exception(f"pump_doc {pump_doc.handle} does not report to boss_node {boss_node.handle}")
+        
+        # dist/store 010s report to pump doc
+        dist_010_node = self.layout.node(H0N.dist_010v)
+        store_010_node = self.layout.node(H0N.store_010v)
+        dist_010_node.Handle = f"{pump_doc.handle}.{dist_010_node.Name}"
+        store_010_node.Handle = f"{pump_doc.handle}.{store_010_node.Name}"
+
+        # store pump relay reports to pump doc
+        self.store_pump_failsafe_relay.Handle = f"{pump_doc.handle}.{self.store_pump_failsafe_relay.Name}"
+        # Thermostat relays report to pump doc
+        for zone in self.layout.zone_list:
+            failsafe_node = self.stat_failsafe_relay(zone)
+            failsafe_node.Handle = f"{pump_doc.handle}.{failsafe_node.Name}"
+            stat_ops_node = self.stat_ops_relay(zone)
+            stat_ops_node.Handle = f"{pump_doc.handle}.{stat_ops_node.Name}"
 
     def _send_to(self, dst: ShNode, payload: Any, src: Optional[ShNode] = None) -> None:
         if dst is None:

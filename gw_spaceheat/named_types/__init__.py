@@ -26,6 +26,7 @@ from named_types.new_command_tree import NewCommandTree
 from named_types.no_new_contract_warning import NoNewContractWarning
 from named_types.pico_missing import PicoMissing
 from named_types.price_quantity_unitless import PriceQuantityUnitless
+from named_types.pump_doc_trigger import PumpDocTrigger
 from named_types.remaining_elec import RemainingElec
 from named_types.set_representation_status import SetRepresentationStatus
 from named_types.slow_dispatch_contract import SlowDispatchContract
@@ -66,6 +67,7 @@ __all__ = [
     "NewCommandTree",
     "NoNewContractWarning",
     "PicoMissing",
+    "PumpDocTrigger",
     "PriceQuantityUnitless",
     "RemainingElec",
     "SlowContractHeartbeat",

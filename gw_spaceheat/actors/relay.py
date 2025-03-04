@@ -39,7 +39,7 @@ from transitions import Machine
 from data_classes.house_0_names import House0RelayIdx
 from actors.scada_actor import ScadaActor
 from enums import LogLevel, ChangeKeepSend, HpLoopKeepSend
-from named_types import FsmEvent, Glitch
+from named_types import FsmEvent, Glitch, SingleMachineState
 
 class Relay(ScadaActor):
     STATE_REPORT_S = 300
@@ -181,7 +181,7 @@ class Relay(ScadaActor):
             )
             return Ok()
 
-    def _process_atomic_report(
+    def process_atomic_report(
         self, message: FsmAtomicReport
     ) -> Result[bool, BaseException]:
         if message.TriggerId not in self.reports_by_trigger:
@@ -210,7 +210,7 @@ class Relay(ScadaActor):
             isinstance(message.Payload, FsmAtomicReport)
             and message.Header.Src == self.relay_multiplexer.name
         ):
-            return self._process_atomic_report(message.Payload)
+            return self.process_atomic_report(message.Payload)
 
         return Err(
             ValueError(
@@ -258,11 +258,11 @@ class Relay(ScadaActor):
         # self.log(f"[{self.my_channel().Name}] {self.state}")
         self._send_to(
             self.primary_scada,
-            MachineStates(
+            SingleMachineState(
                 MachineHandle=self.node.handle,
                 StateEnum=self.my_state_enum.enum_name(),
-                StateList=[self.state],
-                UnixMsList=[now_ms],
+                State=self.state,
+                UnixMs=now_ms,
             ),
         )
 

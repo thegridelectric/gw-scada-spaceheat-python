@@ -693,6 +693,14 @@ class LayoutDb:
                     ActorClass=ActorClass.StratBoss,
                     DisplayName="Stratification Boss",
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.pump_doctor),
+                    Name=H0N.pump_doctor,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.pump_doctor}",
+                    Handle="auto.h.n.pump-doc",
+                    ActorClass=ActorClass.PumpDoctor,
+                    DisplayName="Pump Doctor",
+                ),
             ]
         )
     

@@ -15,6 +15,7 @@ from actors.multipurpose_sensor import MultipurposeSensor
 from actors.parentless import Parentless
 from actors.pico_cycler import PicoCycler
 from actors.power_meter import PowerMeter
+from actors.pump_doctor import PumpDoctor
 from actors.relay import Relay
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
@@ -38,6 +39,7 @@ __all__ = [
     "Parentless",
     "PicoCycler",
     "PowerMeter",
+    "PumpDoctor",
     "Relay",
     "Scada",
     "ScadaInterface",

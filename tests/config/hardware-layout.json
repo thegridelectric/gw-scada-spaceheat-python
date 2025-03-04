@@ -874,6 +874,16 @@
       "Version": "200"
     },
     {
+      "ActorClass": "PumpDoctor",
+      "ActorHierarchyName": "s.pump-doc",
+      "DisplayName": "Pump Doctor",
+      "Handle": "auto.h.n.pump-doc",
+      "Name": "pump-doc",
+      "ShNodeId": "541b0d03-7477-4ac4-a096-1dd85b9e9df2",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.relay1",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",

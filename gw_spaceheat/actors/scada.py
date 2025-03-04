@@ -1,13 +1,12 @@
 """Scada implementation"""
 import os
-import random
 import asyncio
 import enum
 import uuid
 import threading
 import time
 import pytz
-from typing import Any, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 import dotenv
 from transitions import Machine
@@ -46,6 +45,7 @@ from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
+from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
 from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoEvent, MainAutoState, 
@@ -241,7 +241,7 @@ class Scada(ScadaInterface, Proactor):
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
         self.pending_dispatch: Optional[AnalogDispatch] = None
 
-        self.set_home_alone_command_tree()
+        self.set_command_tree(boss_node=self.home_alone)
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(
@@ -280,7 +280,21 @@ class Scada(ScadaInterface, Proactor):
                 level=settings.contract_rep_logging_level,
             )
         )
-        self.initialize_hierarchical_state_data() # set states for 
+        self.initialize_hierarchical_state_data()
+        self.state_machine_subscriptions: List[StateMachineSubscription] = [
+            StateMachineSubscription(
+                subscriber_name=self.layout.h0n.pump_doctor,
+                publisher_name=self.layout.h0n.store_pump_failsafe)                       
+        ]
+        self.channel_subscriptions: Dict[str, ChannelSubscription] = {}
+        for i in range(len(self.layout.zone_list)):
+            zone_idx = i + 1
+            ch_name = self.layout.channel_names.zone[zone_idx].whitewire_pwr
+            self.channel_subscriptions[ch_name] = ChannelSubscription(
+                    subscriber_name=self.layout.h0n.pump_doctor,
+                    channel_name=self.layout.channel_names.zone[zone_idx].whitewire_pwr
+                )
+        
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -384,7 +398,7 @@ class Scada(ScadaInterface, Proactor):
                     self.log(f"Trouble with process_set_representation_status: {e}")
             case SingleMachineState():
                 try:
-                    self.proess_single_machine_state(from_node, payload)
+                    self.process_single_machine_state(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_single_machine_state_: \n {e}")
             case SingleReading():
@@ -669,10 +683,13 @@ class Scada(ScadaInterface, Proactor):
             self.log(msg)
         return None
 
-    def proess_single_machine_state(
+    def process_single_machine_state(
         self, from_node: ShNode, payload: SingleMachineState
     ) -> None:
-        # TODO: compare MachineHandle last word with from_node.Name
+        """ Updates recent_machine_state and handles subscriptions to
+        state changes"""
+        node_name = payload.MachineHandle.split('.')[-1]
+
         if payload.MachineHandle in self._data.recent_machine_states:
             prev: MachineStates = self._data.recent_machine_states[
                 payload.MachineHandle
@@ -695,8 +712,25 @@ class Scada(ScadaInterface, Proactor):
                 StateList=[payload.State],
                 UnixMsList=[payload.UnixMs],
             )
-        node_name = payload.MachineHandle.split('.')[-1]
+        
         self._data.latest_machine_state[node_name] = payload
+        self.handle_state_change_subscriptions(from_node, payload)
+
+    def handle_state_change_subscriptions(self, from_node: ShNode, sms: SingleMachineState) -> None:
+        # Find all subscriptions for this publisher (from_node)
+        for subscription in self.state_machine_subscriptions:
+            if subscription.publisher_name == from_node.Name:
+                # Get the subscriber node
+                subscriber_node = self._layout.node(subscription.subscriber_name)
+                if subscriber_node is not None:
+                    self.log(f"Sending {sms.MachineHandle} state to {subscriber_node.name}")
+                    self._send_to(
+                        to_node=subscriber_node,
+                        payload=sms,
+                        from_node=from_node
+                    )
+                else:
+                    self.log(f"Subscriber {subscription.subscriber_name} not found for state change from {from_node.Name}")
 
     def process_single_reading(
         self, from_node: ShNode, payload: SingleReading
@@ -712,6 +746,15 @@ class Scada(ScadaInterface, Proactor):
         self._data.latest_channel_values[ch.Name] = payload.Value
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
         self._forward_single_reading(payload)
+        if payload.ChannelName in self.channel_subscriptions:
+            cs = self.channel_subscriptions[payload.ChannelName]
+            subscriber_node = self._layout.node(cs.subscriber_name)
+            self._send_to(subscriber_node,
+                            SingleReading(
+                                ChannelName=payload.ChannelName,
+                                Value=payload.Value,
+                                ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                            )) 
 
     def process_suit_up(self, from_node: ShNode, payload: SuitUp) -> None:
         if from_node.Name != H0N.atomic_ally:
@@ -744,6 +787,15 @@ class Scada(ScadaInterface, Proactor):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+            if channel_name in self.channel_subscriptions:
+                cs = self.channel_subscriptions[channel_name]
+                subscriber_node = self._layout.node(cs.subscriber_name)
+                self._send_to(subscriber_node,
+                              SingleReading(
+                                  ChannelName=channel_name,
+                                  Value=payload.ValueList[idx],
+                                  ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                              )) 
 
     #####################################################################
     # State Machine related
@@ -831,7 +883,7 @@ class Scada(ScadaInterface, Proactor):
             contract = self.contract_handler.latest_scada_hb.Contract
             self.DispatchContractLive()
             self.log("DispatchContractLive: HomeAlone -> Atn")
-            self.set_atn_command_tree()
+            self.set_command_tree(boss_node=self.atomic_ally)
             # Wake up atn, tell home alone to go dormant
             self._send_to(self.atomic_ally, contract)
             self._send_to(self.home_alone, GoDormant(ToName=self.home_alone.name)
@@ -842,7 +894,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             self.ContractGracePeriodEnds()
             self.log("ContractGracePeriodEnds: Atn -> HomeAlone")
-            self.set_home_alone_command_tree()
+            self.set_command_tree(boss_node=self.home_alone)
             self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
             self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
         elif trigger == MainAutoEvent.AtnReleasesControl:
@@ -851,7 +903,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             self.AtnReleasesControl()
             self.log("AtnReleasesControls: Atn -> HomeAlone")
-            self.set_home_alone_command_tree()
+            self.set_command_tree(boss_node=self.home_alone)
             self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
             self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
         elif trigger == MainAutoEvent.AllyGivesUp:
@@ -860,7 +912,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             self.AllyGivesUp()
             self.log("AllyGivesUp: Atn -> HomeAlone")
-            self.set_home_alone_command_tree()
+            self.set_command_tree(boss_node=self.home_alone)
             self._send_to(self.layout.home_alone, WakeUp(ToName=H0N.home_alone))
             self._send_to(self.atomic_ally, GoDormant(ToName=H0N.atomic_ally))
         elif trigger == MainAutoEvent.AutoGoesDormant:
@@ -871,7 +923,7 @@ class Scada(ScadaInterface, Proactor):
             self.log(f"AutoGoesDormant: {self.auto_state} -> Dormant")
             self.log(f"auto_state {self.auto_state}")
             # ADMIN CONTROL FOREST: a single tree, controlling all actuators
-            self.set_admin_command_tree()
+            self.set_command_tree(boss_node=self.admin)
 
             # Let the active nodes know they've lost control of their actuators
             for direct_report in [self.atomic_ally,self.home_alone,self.layout.pico_cycler]:
@@ -884,7 +936,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             self.AutoWakesUp()
             self.log("AutoWakesUp: Dormant -> HomeAlone")
-            self.set_home_alone_command_tree()
+            self.set_command_tree(boss_node=self.home_alone)
             self._send_to(self.home_alone, WakeUp(ToName=H0N.home_alone))
             self._send_to(self.layout.pico_cycler, WakeUp(ToName=H0N.pico_cycler))
             
@@ -1007,6 +1059,7 @@ class Scada(ScadaInterface, Proactor):
                 GraceEndTimeS=grace_end_s
             ))
             return
+        self.log("Contract handler noticed no new contract! Alerting atn")
          # Case 2: We have a different contract after the wait - this is the normal
          # case where the old contract expired and atn sent a new one
         if self.contract_handler.latest_scada_hb.Contract.ContractId != hb.Contract.ContractId:
@@ -1065,30 +1118,39 @@ class Scada(ScadaInterface, Proactor):
     # where the line of direct report is required for following a command
     ##########################################################
 
-    def set_home_alone_command_tree(self) -> None:
-        """ HomeAlone Base Command Tree
+    def set_hierarchical_fsm_handles(self, boss_node: ShNode) -> None:
+        """ Sets the hp_relay_boss, start_boss and pump_doc Nodes to the correct
+        boss: AtomicAlly, Admin or HomeAlone normal"""
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = f"{boss_node.handle}.{hp_relay_boss.Name}"
+
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = f"{boss_node.handle}.{strat_boss.Name}"
+
+        pump_doc = self.layout.node(H0N.pump_doctor)
+        pump_doc.Handle = f"{boss_node.handle}.{pump_doc.Name}"
+
+    def set_command_tree(self, boss_node: ShNode, pico_cycler_separate: bool=True) -> None:
+        """ Sets a Command Tree under the boss_node: either atomic ally, admin or home alone
         
-         - All actuators except for HpScadaOps and PicoCycler report to AtomicAlly
-         - HpRelayBoss reports to Atomic Ally, 
-         - StratBoss reports to Atomic Ally
+         - All actuators except for HpScadaOps and (possibly) PicoCycler report to boss
+         - hierarchical finite state machine nodes report to boss, 
+         - if pico_cycler_separate is False, then PicoCycler reports to boss
         
          TODO: Add ascii representation 
         """
-
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{hp_relay_boss.Name}"
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{strat_boss.Name}"
+ 
+        self.set_hierarchical_fsm_handles(boss_node)
 
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
-                node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-            elif node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{hp_relay_boss.Name}.{node.Name}"
-            else:
+                if pico_cycler_separate:
+                    node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
+                else:
+                    node.Handle = f"{boss_node.handle}.{node.Name}"
+            elif node.Name != H0N.hp_scada_ops_relay:
                 node.Handle = (
-                    f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
+                    f"{boss_node.handle}.{node.Name}"
                 )
         self._send_to(
             self.atn,
@@ -1098,64 +1160,6 @@ class Scada(ScadaInterface, Proactor):
                 UnixMs=int(time.time() * 1000),
             ),
         )
-
-    def set_admin_command_tree(self) -> None:
-        """ Admin Base Command Tree
-        
-         - All actuators except for HpScadaOps report directly to admin
-         - HpRelayBoss reports to admin
-         - StratBoss reports to admin
-        """
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.admin}.{hp_relay_boss.Name}"
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.admin}.{strat_boss.Name}"
-
-        for node in self.layout.actuators:
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.admin}.{hp_relay_boss.Name}.{node.Name}"
-            else:
-                node.Handle = f"{H0N.admin}.{node.Name}"
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-
-    def set_atn_command_tree(self) -> None:
-        """ Atn Base Command Tree
-        
-         - All actuators except for HpScadaOps and PicoCycler report to AtomicAlly
-         - HpRelayBoss reports to Atomic Ally, 
-         - StratBoss reports to Atomic Ally
-         TODO: Add ascii representation 
-        """
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{strat_boss.Name}"
-
-        for node in self.layout.actuators:
-            if node.Name == H0N.vdc_relay:
-                node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
-            elif node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
-            else:
-                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-
 
     #######################################
     # Contract management
