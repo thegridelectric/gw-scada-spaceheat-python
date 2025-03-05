@@ -212,19 +212,19 @@ class Parentless(ScadaInterface, Proactor):
         match decoded.Payload:
             case Report():
                 path_dbg |= 0x00000001
-                self.report_received(decoded.Payload)
+                self.process_report(decoded.Payload)
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000002
-                self.snapshot_received(decoded.Payload)
+                self.process_snapshot(decoded.Payload)
             case _:
                 # Intentionally ignored for forward compatibility
                 path_dbg |= 0x00000004
         self._logger.path("--Parentless._derived_process_mqtt_message  path:0x%08X", path_dbg)
 
-    def snapshot_received(self, payload: SnapshotSpaceheat)-> None:
+    def process_snapshot(self, payload: SnapshotSpaceheat)-> None:
         self._data.latest_snap = payload
 
-    def report_received(self, payload: Report)-> None:
+    def process_report(self, payload: Report)-> None:
         self._data.latest_report = payload
     
     def run_in_thread(self, daemon: bool = True) -> threading.Thread:
