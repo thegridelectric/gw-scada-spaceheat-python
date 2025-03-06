@@ -438,18 +438,18 @@ class ScadaActor(Actor):
         try:
             event = FsmEvent(
                 FromHandle=from_node.handle,
-                ToHandle=self.hp_relay_boss.handle,
-                EventType= TurnHpOnOff.enum_name(),
-                EventName=TurnHpOnOff.TurnOn,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType= ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.hp_relay_boss, event, from_node)
+            self._send_to(self.hp_scada_ops_relay, event, from_node)
             self.log(
-                f"{from_node.handle} sending CloseRelay to HpRelayBoss {self.hp_relay_boss.handle}"
+                f"{from_node.handle} sending CloseRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
             )
         except ValidationError as e:
-            self.log(f"Tried to tell HpRelayBoss to turn on HP but didn't have rights: {e}")
+            self.log(f"Tried to tell HpScadaOpsRelay to turn on HP but didn't have rights: {e}")
 
     def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
         """  Turn off heat pump by sending trigger to HpRelayBoss
@@ -462,18 +462,18 @@ class ScadaActor(Actor):
         try:
             event = FsmEvent(
                 FromHandle=from_node.handle,
-                ToHandle=self.hp_relay_boss.handle,
-                EventType=TurnHpOnOff.enum_name(),
-                EventName=TurnHpOnOff.TurnOff,
+                ToHandle=self.hp_scada_ops_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.hp_relay_boss, event, from_node)
+            self._send_to(self.hp_scada_ops_relay, event, from_node)
             self.log(
-                f"{from_node.handle} sending OpenRelay to HpRelayBoss {self.hp_relay_boss.handle}"
+                f"{from_node.handle} sending OpenRelay to HpScadaOpsRelay {self.hp_scada_ops_relay.handle}"
             )
         except ValidationError as e:
-            self.log(f"Tried to tell HpRelayBoss to turn off HP but didn't have rights: {e}")
+            self.log(f"Tried to tell HpScadaOpsRelay to turn off HP but didn't have rights: {e}")
 
     def aquastat_ctrl_switch_to_boiler(self, from_node: Optional[ShNode] = None) -> None:
         """
