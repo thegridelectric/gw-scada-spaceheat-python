@@ -246,16 +246,16 @@ class HomeAlone(ScadaActor):
         Not in command of HpScadaOps relay
         """
 
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = hp_relay_boss.Name # out of chain of command
+        # hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        # hp_relay_boss.Handle = hp_relay_boss.Name # out of chain of command
         
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = strat_boss.Name # out of chain of command
+        # strat_boss = self.layout.node(H0N.strat_boss)
+        # strat_boss.Handle = strat_boss.Name # out of chain of command
 
         for node in self.my_actuators():
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
-            else:
+            # if node.Name == H0N.hp_scada_ops_relay:
+            #     node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
+            # else:
                 node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_onpeak_backup}.{node.Name}"
         self._send_to(
             self.atn,
@@ -270,18 +270,18 @@ class HomeAlone(ScadaActor):
 
     def set_normal_command_tree(self) -> None:
 
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{hp_relay_boss.Name}"
+        # hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        # hp_relay_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{hp_relay_boss.Name}"
         
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{strat_boss.Name}"
+        # strat_boss = self.layout.node(H0N.strat_boss)
+        # strat_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{strat_boss.Name}"
 
 
         for node in self.my_actuators():
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{hp_relay_boss.Name}.{node.Name}"
-            else:
-                node.Handle =  f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
+            # if node.Name == H0N.hp_scada_ops_relay:
+            #     node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{hp_relay_boss.Name}.{node.Name}"
+            # else:
+            node.Handle =  f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
         self._send_to(
             self.atn,
             NewCommandTree(
@@ -293,46 +293,46 @@ class HomeAlone(ScadaActor):
         self.log("Set normal command tree")
 
     def set_strat_saver_command_tree(self) -> None:
-        
-        # charge discharge relay reports to strat boss
-        chg_dschg_node = self.layout.node(H0N.store_charge_discharge_relay)
-        chg_dschg_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{chg_dschg_node.Name}"
+        ...
+        # # charge discharge relay reports to strat boss
+        # chg_dschg_node = self.layout.node(H0N.store_charge_discharge_relay)
+        # chg_dschg_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{chg_dschg_node.Name}"
 
-        # Thermostat relays report to strat boss
-        for zone in self.layout.zone_list:
-            failsafe_node = self.stat_failsafe_relay(zone)
-            failsafe_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{failsafe_node.Name}"
-            stat_ops_node = self.stat_ops_relay(zone)
-            stat_ops_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{stat_ops_node.Name}"
+        # # Thermostat relays report to strat boss
+        # for zone in self.layout.zone_list:
+        #     failsafe_node = self.stat_failsafe_relay(zone)
+        #     failsafe_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{failsafe_node.Name}"
+        #     stat_ops_node = self.stat_ops_relay(zone)
+        #     stat_ops_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{stat_ops_node.Name}"
 
-        # dist pump and primary pump dfrs reports to strat boss
-        dist_010_node = self.layout.node(H0N.dist_010v)
-        primary_010_node = self.layout.node(H0N.primary_010v)
-        dist_010_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{dist_010_node.Name}"
-        primary_010_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{primary_010_node.Name}"
+        # # dist pump and primary pump dfrs reports to strat boss
+        # dist_010_node = self.layout.node(H0N.dist_010v)
+        # primary_010_node = self.layout.node(H0N.primary_010v)
+        # dist_010_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{dist_010_node.Name}"
+        # primary_010_node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.strat_boss}.{primary_010_node.Name}"
 
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-        self.log(f"Set strat saver command tree. E.g. charge/discharge is now {chg_dschg_node.handle}")
+        # self._send_to(
+        #     self.atn,
+        #     NewCommandTree(
+        #         FromGNodeAlias=self.layout.scada_g_node_alias,
+        #         ShNodes=list(self.layout.nodes.values()),
+        #         UnixMs=int(time.time() * 1000),
+        #     ),
+        # )
+        # self.log(f"Set strat saver command tree. E.g. charge/discharge is now {chg_dschg_node.handle}")
 
     def set_scadablind_command_tree(self) -> None:
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = hp_relay_boss.Name # out of chain of command
+        # hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        # hp_relay_boss.Handle = hp_relay_boss.Name # out of chain of command
         
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = strat_boss.Name # out of chain of command
+        # strat_boss = self.layout.node(H0N.strat_boss)
+        # strat_boss.Handle = strat_boss.Name # out of chain of command
 
         for node in self.my_actuators():
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
-            else:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_scada_blind}.{node.Name}"
+            # if node.Name == H0N.hp_scada_ops_relay:
+            #     node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
+            # else:
+            node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_scada_blind}.{node.Name}"
         self._send_to(
             self.atn,
             NewCommandTree(
@@ -748,11 +748,11 @@ class HomeAlone(ScadaActor):
                     self.log(f"Top state: {self.top_state}")
                     self.log(f"State: {self.state}")
                     self.engage_brain()
-            case StratBossTrigger():
-                try:
-                    self.process_strat_boss_trigger(from_node, message.Payload)
-                except Exception as e:
-                    self.log(f"Problem process_strat_boss_trigger: {e}")
+            # case StratBossTrigger():
+            #     try:
+            #         self.process_strat_boss_trigger(from_node, message.Payload)
+            #     except Exception as e:
+            #         self.log(f"Problem process_strat_boss_trigger: {e}")
         return Ok(True)
 
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
@@ -761,42 +761,42 @@ class HomeAlone(ScadaActor):
             self.TopWakeUp()
             self.set_normal_command_tree() 
             # figure out if StratBoss is active
-            if self.strat_boss.name in self.data.latest_machine_state.keys():
-                strat_boss_state = self.data.latest_machine_state[self.strat_boss.name].State
-                if strat_boss_state == StratBossState.Active.value:
-                    self.log("Strat boss active! Setting strat saver tree and going to StratBoss State")
-                    self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
-                    self.trigger_normal_event(HomeAloneEvent.StartStratSaving) # state -> StratBoss
-                    self.initialize_actuators() # if in StratBoss will not touch StratBoss' actuators
-                    return
+            # if self.strat_boss.name in self.data.latest_machine_state.keys():
+            #     strat_boss_state = self.data.latest_machine_state[self.strat_boss.name].State
+            #     if strat_boss_state == StratBossState.Active.value:
+            #         self.log("Strat boss active! Setting strat saver tree and going to StratBoss State")
+            #         self.set_strat_saver_command_tree()  # will happen e.g. when aa->h w strat boss running
+            #         self.trigger_normal_event(HomeAloneEvent.StartStratSaving) # state -> StratBoss
+            #         self.initialize_actuators() # if in StratBoss will not touch StratBoss' actuators
+            #         return
             
         self.engage_brain(waking_up=True) 
         # engage brain will WakeUp: Dormant -> Initializing
         # run the appropriate relay initialization and then
         # evaluate if it can move into a known state
 
-    def process_strat_boss_trigger(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
-        self.log("Strat boss trigger received!")
-        if self.state == HomeAloneState.Dormant:
-            self.log(f"top state is {self.top_state} and state is {self.state}")
-            self.log("strat boss should be sidelined and NOT sending messages but process_strat_boss_trigger. IGNORING")
-            return
+    # def process_strat_boss_trigger(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
+    #     self.log("Strat boss trigger received!")
+    #     if self.state == HomeAloneState.Dormant:
+    #         self.log(f"top state is {self.top_state} and state is {self.state}")
+    #         self.log("strat boss should be sidelined and NOT sending messages but process_strat_boss_trigger. IGNORING")
+    #         return
         
-        if payload.FromState == StratBossState.Dormant:
-            if self.state == HomeAloneState.StratBoss:
-                raise Exception("Inconsistency! StratBoss thinks its Dormant but HA is in StratBoss State")
-            self.set_strat_saver_command_tree()
-            self.trigger_normal_event(HomeAloneEvent.StartStratSaving)
-            # confirm change of command tree by returning payload to strat boss
-            self._send_to(dst=self.strat_boss, payload=payload, src=self.normal_node)
-        else: 
-            if self.state != HomeAloneState.StratBoss:
-                raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
-            self.set_normal_command_tree()
-            self.trigger_normal_event(HomeAloneEvent.StopStratSaving)
-            self.engage_brain(waking_up=True)
-            # confirm change of command tree by returning payload to strat boss
-            self._send_to(dst=self.strat_boss, payload=payload, src=self.normal_node)
+    #     if payload.FromState == StratBossState.Dormant:
+    #         if self.state == HomeAloneState.StratBoss:
+    #             raise Exception("Inconsistency! StratBoss thinks its Dormant but HA is in StratBoss State")
+    #         self.set_strat_saver_command_tree()
+    #         self.trigger_normal_event(HomeAloneEvent.StartStratSaving)
+    #         # confirm change of command tree by returning payload to strat boss
+    #         self._send_to(dst=self.strat_boss, payload=payload, src=self.normal_node)
+    #     else: 
+    #         if self.state != HomeAloneState.StratBoss:
+    #             raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
+    #         self.set_normal_command_tree()
+    #         self.trigger_normal_event(HomeAloneEvent.StopStratSaving)
+    #         self.engage_brain(waking_up=True)
+    #         # confirm change of command tree by returning payload to strat boss
+    #         self._send_to(dst=self.strat_boss, payload=payload, src=self.normal_node)
 
     def change_all_temps(self, temp_c) -> None:
         if self.is_simulated:

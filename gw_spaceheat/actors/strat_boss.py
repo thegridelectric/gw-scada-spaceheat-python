@@ -183,8 +183,11 @@ class StratBoss(ScadaActor):
                     if not self.is_heatpump_starting_up_or_defrosting():
                         self.log("NOT STARTING STRATBOSS: don't think the heat pump is actually starting up")
                     else:
-                        good_readings = self.update_power_readings()
-                        if good_readings:
+                        good_power = self.update_power_readings()
+                        good_temp = self.update_temp_readings()
+                        # we need this data to leave StratBoss
+                        # so better have it before going active
+                        if good_power and good_temp:
                             let_boss_know = True
                             trigger = StratBossTrigger(
                                 FromState=StratBossState.Dormant,
