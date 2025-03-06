@@ -183,12 +183,14 @@ class StratBoss(ScadaActor):
                     if not self.is_heatpump_starting_up_or_defrosting():
                         self.log("NOT STARTING STRATBOSS: don't think the heat pump is actually starting up")
                     else:
-                        let_boss_know = True
-                        trigger = StratBossTrigger(
-                            FromState=StratBossState.Dormant,
-                            ToState=StratBossState.Active,
-                            Trigger=StratBossEvent.HpTurnOnReceived
-                        )
+                        good_readings = self.update_power_readings()
+                        if good_readings:
+                            let_boss_know = True
+                            trigger = StratBossTrigger(
+                                FromState=StratBossState.Dormant,
+                                ToState=StratBossState.Active,
+                                Trigger=StratBossEvent.HpTurnOnReceived
+                            )
             elif payload.EventName == TurnHpOnOff.TurnOff \
                 and self.state == StratBossState.Active:
                 let_boss_know = True
@@ -338,18 +340,17 @@ class StratBoss(ScadaActor):
 
     async def defrost_watcher(self) -> None:
         """
-        Responsible for helping to detect and triggering the defrost state change
+        Responsible for helping to detect and triggering the defrost state change.
+        Only triggers if odu pwr and idu pwr 
         """
         self.last_pat_s = 0
         while not self._stop_requested:
             if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
                 self._send(PatInternalWatchdogMessage(src=self.name))
                 self.last_pat_s = time.time()
-            try: 
-                good_readings = self.update_power_readings()
-            except Exception as e:
-                self.log(f"Trouble with update_power_readings: {e}")
-            if good_readings:
+            good_power = self.update_power_readings()
+            good_temp = self.update_temp_readings()
+            if good_power and good_temp:
                 if self.state == StratBossState.Dormant:
                     if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
                         if self.lg_high_temp_hydrokit_entering_defrost():
@@ -399,6 +400,7 @@ class StratBoss(ScadaActor):
         return entering_defrost
 
     def update_temp_readings(self) -> bool:
+        """Returns true if ewt_f and lwt_f exist"""
         ewt_channel = self.layout.channel(H0CN.hp_ewt)
         lwt_channel = self.layout.channel(H0CN.hp_lwt)
          # TODO: add these channels to the test objects!
@@ -415,6 +417,8 @@ class StratBoss(ScadaActor):
         return True
 
     def update_power_readings(self) -> bool:
+        """Returns true if odu and idu power readings exists
+        """
         odu_pwr_channel = self.layout.channel(H0CN.hp_odu_pwr)
         idu_pwr_channel = self.layout.channel(H0CN.hp_idu_pwr)
         assert odu_pwr_channel.TelemetryName == TelemetryName.PowerW
