@@ -1131,6 +1131,9 @@ class Scada(ScadaInterface, Proactor):
         strat_boss = self.layout.node(H0N.strat_boss)
         strat_boss.Handle = f"{boss_node.handle}.{strat_boss.Name}"
 
+        scada_ops_relay = self.layout.node(H0N.hp_scada_ops_relay)
+        scada_ops_relay.Handle = f"{boss_node.handle}.{hp_relay_boss.Name}.{scada_ops_relay.Name}"
+
         pump_doc = self.layout.node(H0N.pump_doctor)
         pump_doc.Handle = f"{boss_node.handle}.{pump_doc.Name}"
 
@@ -1164,6 +1167,8 @@ class Scada(ScadaInterface, Proactor):
                 UnixMs=int(time.time() * 1000),
             ),
         )
+        self.log(f"SET COMMAND TREE FOR {boss_node.handle}")
+
 
     #######################################
     # Contract management
