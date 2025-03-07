@@ -32,7 +32,6 @@ class PumpDoctor(ScadaActor):
     MIN_FLOW_GPM = 0.2
     PUMP_CHECK_S = 10 # seconds to wait before checking pump power
     PUMP_DEFIB_S = 5  # seconds to keep pump off
-    PUMP_POWER_THRESHOLD_W = 5
     FLOW_CHECK_S = 30 # how long to wait before checking flow after pump is on
     CALEFFI_ZONE_VALVE_CONTROLLER_S = 45 # time after a whitewire that signal sent to dist pump
     def __init__(self, name: str, services: ServicesInterface):
@@ -139,7 +138,7 @@ class PumpDoctor(ScadaActor):
     def process_single_reading(self, from_node: ShNode, reading: SingleReading) -> None:
         channel = self.layout.channel(reading.ChannelName)
         if channel in self.whitewire_channels:
-            if reading.Value > self.WHITEWIRE_POWER_THRESHOLD_W:
+            if abs(reading.Value) > self.WHITEWIRE_POWER_THRESHOLD_W:
                 if self.whitewire[channel.Name] == 0:
                     # this whitewire just turned on! 
                     self.whitewire[channel.Name] = 1
@@ -172,7 +171,7 @@ class PumpDoctor(ScadaActor):
                 # check the dist pump power
                 if self.dist_pump_power_readings_exist():
                     dist_pump_pwr = self.data.latest_channel_values[H0CN.dist_pump_pwr]
-                    if dist_pump_pwr < self.PUMP_POWER_THRESHOLD_W and self.state == PumpDocState.Dormant:
+                    if abs(dist_pump_pwr) <= self.PUMP_POWER_THRESHOLD_W and self.state == PumpDocState.Dormant:
                         self.log(f"Waited {self.CALEFFI_ZONE_VALVE_CONTROLLER_S} and dist pump power still {dist_pump_pwr}!")
                         self._send_to(self.boss, PumpDocTrigger(
                             FromState=PumpDocState.Dormant,
@@ -188,13 +187,14 @@ class PumpDoctor(ScadaActor):
         # Wait 10 seconds
         await asyncio.sleep(self.PUMP_CHECK_S)
         if self.store_pump_relay_state == RelayClosedOrOpen.RelayOpen:
+            self.log("Store pump relay is open.")
             return
         
         # Check store pump power
         if self.store_pump_power_readings_exist():
             store_pump_pwr = self.data.latest_channel_values[H0CN.store_pump_pwr]
-            if store_pump_pwr < self.PUMP_POWER_THRESHOLD_W and self.state == PumpDocState.Dormant:
-                    self.log("NoStoreFlow detected!")
+            if abs(store_pump_pwr) <= self.PUMP_POWER_THRESHOLD_W and self.state == PumpDocState.Dormant:
+                    self.log(f"NoStoreFlow detected! store pump power {store_pump_pwr}")
                     self._send_to(self.boss, PumpDocTrigger(
                         FromState=PumpDocState.Dormant,
                         ToState=PumpDocState.Store,
@@ -352,7 +352,7 @@ class PumpDoctor(ScadaActor):
     # Check if the pump is working. Either way, report a Glitch
         try:
             store_pump_pwr = self.data.latest_channel_values[H0CN.store_pump_pwr]
-            if store_pump_pwr < self.PUMP_POWER_THRESHOLD_W and self.store_pump_relay_state == RelayClosedOrOpen.RelayClosed:
+            if abs(store_pump_pwr) <= self.PUMP_POWER_THRESHOLD_W and self.store_pump_relay_state == RelayClosedOrOpen.RelayClosed:
                 glitch = Glitch(
                     FromGNodeAlias=self.layout.scada_g_node_alias,
                     Node=self.node.Name,

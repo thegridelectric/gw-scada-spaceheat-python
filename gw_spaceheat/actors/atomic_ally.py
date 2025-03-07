@@ -205,7 +205,7 @@ class AtomicAlly(ScadaActor):
         pump_doc = from_node
 
         if payload.Trigger == PumpDocEvent.Timeout:
-            self.log("Pump doc timing out!")
+            self.log(f"Pump doc finished with {payload.FromState}!")
             if self.pump_doc_state != PumpDocState.Dormant:
                 self.pump_doc_state = PumpDocState.Dormant
                 self.last_pump_doc_change_s = time.time()
