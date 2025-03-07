@@ -34,7 +34,7 @@ class PumpDoctor(ScadaActor):
     PUMP_DEFIB_S = 5  # seconds to keep pump off
     PUMP_POWER_THRESHOLD_W = 5
     FLOW_CHECK_S = 30 # how long to wait before checking flow after pump is on
-    CALEFFI_ZONE_VALVE_CONTROLLER_S = 20 # time after a whitewire that signal sent to dist pump
+    CALEFFI_ZONE_VALVE_CONTROLLER_S = 35 # time after a whitewire that signal sent to dist pump
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self.state: PumpDocState = PumpDocState.Dormant
@@ -47,16 +47,16 @@ class PumpDoctor(ScadaActor):
         self.store_pump_relay_change_s: float = 0
         self.lwt_f: float = 0
         self.whitewire_channels: List[DataChannel] = []
-        self.whitewire: Dict[str, int] # ch name -> 0 / 1
+        self.whitewire: Dict[str, int] = {} # ch name -> 0 / 1
         self.dist_valve_controller_state: ValveControllerState = ValveControllerState.AllWhitewiresOff
-        # for i in range(len(self.layout.zone_list)):
-        #     zone_idx = i+1
-        #     ch_name = self.layout.channel_names.zone[zone_idx].whitewire_pwr
-        #     ch = self.layout.channel(ch_name)
-        #     if ch is None:
-        #         raise Exception(f"What happened! Missing channel {ch_name}")
-        #     self.whitewire_channels.append(ch)
-        #     self.whitewire[ch.Name] = 0 # initialize with all off
+        for i in range(len(self.layout.zone_list)):
+            zone_idx = i+1
+            ch_name = self.layout.channel_names.zone[zone_idx].whitewire_pwr
+            ch = self.layout.channel(ch_name)
+            if ch is None:
+                raise Exception(f"What happened! Missing channel {ch_name}")
+            self.whitewire_channels.append(ch)
+            self.whitewire[ch.Name] = 0 # initialize with all off
 
     def start(self) -> None:
         ...

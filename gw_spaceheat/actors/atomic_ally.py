@@ -217,7 +217,7 @@ class AtomicAlly(ScadaActor):
         else:  # All other triggers activate pump doc
             if self.pump_doc_state != PumpDocState.Dormant:
                 raise Exception(f"Shouldn't get a pump doc {payload.Trigger} if state is {self.pump_doc_state}")
-            self.log("Activing PumpDoc!")
+            self.log(f"Activating PumpDoc for {payload.Trigger}!")
             self.pump_doc_state = payload.ToState
             self.last_pump_doc_change_s = time.time()
             # First, cancel strat boss if its running
@@ -229,7 +229,7 @@ class AtomicAlly(ScadaActor):
                         ToState=StratBossState.Dormant,
                         Trigger=StratBossEvent.BossCancels,
                     )
-            self._send_to(self.strat_boss, cancel_strat, self.node)
+                self._send_to(self.strat_boss, cancel_strat, self.node)
             # Then, give pump doc the relays and dfrs it needs to perform its duties
             self.set_pump_doctor_command_tree(boss_node=self.node)
             # And finally let pump doc know it can act

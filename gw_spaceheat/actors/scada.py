@@ -775,6 +775,8 @@ class Scada(ScadaInterface, Proactor):
             len(payload.ChannelNameList),
         )
         path_dbg = 0
+        if from_node.Name == H0N.primary_power_meter:
+            self.sr = payload
         for idx, channel_name in enumerate(payload.ChannelNameList):
             path_dbg |= 0x00000001
             if channel_name not in self._layout.data_channels:
@@ -788,6 +790,7 @@ class Scada(ScadaInterface, Proactor):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+            
             if channel_name in self.channel_subscriptions:
                 cs = self.channel_subscriptions[channel_name]
                 subscriber_node = self._layout.node(cs.subscriber_name)
