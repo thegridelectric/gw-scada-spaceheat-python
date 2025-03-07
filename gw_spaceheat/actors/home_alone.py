@@ -22,7 +22,8 @@ from named_types import (
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, PumpDocTrigger, SingleMachineState, StratBossTrigger, 
             WakeUp )
-from enums import HomeAloneTopState, LogLevel, StratBossState, StratBossEvent, PumpDocEvent
+from enums import (HomeAloneTopState, LogLevel, StratBossState, StratBossEvent,
+                   PumpDocEvent, PumpDocState)
 
  
 class HomeAloneState(GwStrEnum):
@@ -192,7 +193,8 @@ class HomeAlone(ScadaActor):
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
         self.set_command_tree(boss_node=self.normal_node)
-
+        self.pump_doc_state: PumpDocState = PumpDocState.Dormant
+        self.last_pump_doc_change_s: float = 0
 
     @property
     def normal_node(self) -> ShNode:
@@ -287,7 +289,6 @@ class HomeAlone(ScadaActor):
         )
         self.log("Set top state command tree")
 
-
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.MAIN_LOOP_SLEEP_SECONDS * 2.1)]
@@ -367,6 +368,15 @@ class HomeAlone(ScadaActor):
                 if self.top_state == HomeAloneTopState.Normal:
                     self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+            if self.pump_doc_state != PumpDocState.Dormant and \
+                time.time() - self.last_pump_doc_change_s > 60:
+                    self.log(f"Huh, pump doc state {self.pump_doc_state} for more than 60 seconds!")
+                    self._send_to(self.pump_doctor,
+                                  PumpDocTrigger(
+                                      FromState=self.pump_doc_state,
+                                      ToState=PumpDocState.Dormant,
+                                      Trigger=PumpDocEvent.Timeout
+                                  ))
 
     def engage_brain(self, waking_up: bool = False) -> None:
         """
@@ -735,6 +745,9 @@ class HomeAlone(ScadaActor):
             raise Exception(f"pump doc {from_node.handle} doesn't have a boss!!")
         if payload.Trigger == PumpDocEvent.Timeout:
             self.log("Pump doc timing out!")
+            if self.pump_doc_state != PumpDocState.Dormant:
+                self.pump_doc_state = PumpDocState.Dormant
+                self.last_pump_doc_change_s = time.time()
             # take back actuators from the pump doctor to correct boss
             if self.top_state == HomeAloneTopState.Normal:
                 self.set_command_tree(boss_node=self.normal_node)
@@ -747,9 +760,14 @@ class HomeAlone(ScadaActor):
             # and then engage the brain
             self.engage_brain()
         else:  # All other triggers activate pump doc
+            if self.pump_doc_state != PumpDocState.Dormant:
+                raise Exception(f"Shouldn't get a pump doc {payload.Trigger} if state is {self.pump_doc_state}")
+            self.log("Activing PumpDoc!")
+            self.pump_doc_state = payload.ToState
+            self.last_pump_doc_change_s = time.time()
             # First, cancel strat boss if its running
             if self.state == HomeAloneState.StratBoss:
-                self.log("Canceling Stratboss for pump doc")
+                self.log("First, cancel Stratboss for pump doc")
                 self.set_command_tree(boss_node=self.normal_node)
                 cancel_strat = StratBossTrigger(
                         FromState=StratBossState.Active,

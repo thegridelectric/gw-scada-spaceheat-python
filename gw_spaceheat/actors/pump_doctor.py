@@ -1,7 +1,7 @@
 import asyncio
 import time
 import uuid
-from typing import List, Dict
+from typing import List, Dict, cast
 from gwproto.data_classes.data_channel import DataChannel
 from data_classes.house_0_names import H0CN, H0N
 from gwproto.message import Message
@@ -12,9 +12,9 @@ from gwproto.named_types import AnalogDispatch, SingleReading, FsmFullReport
 from result import Ok, Result
 
 from actors.scada_actor import ScadaActor
-from enums import PumpDocState, PumpDocEvent
-
-from named_types import (SingleMachineState, PumpDocTrigger)
+from enums import LogLevel, PumpDocState, PumpDocEvent
+from gwproto.data_classes.components.dfr_component import DfrComponent
+from named_types import (Glitch, PumpDocTrigger, SingleMachineState)
 
 from enum import auto
 
@@ -30,8 +30,8 @@ class PumpDoctor(ScadaActor):
     PUMP_POWER_THRESHOLD_W = 2
     WHITEWIRE_POWER_THRESHOLD_W = 5
     MIN_FLOW_GPM = 0.2
-    PUMP_CHECK_S = 10
-    TIMEOUT_S = 10
+    PUMP_CHECK_S = 10 # seconds to wait before checking pump power
+    PUMP_DEFIB_S = 5  # seconds to keep pump off
     PUMP_POWER_THRESHOLD_W = 5
     FLOW_CHECK_S = 30 # how long to wait before checking flow after pump is on
     CALEFFI_ZONE_VALVE_CONTROLLER_S = 20 # time after a whitewire that signal sent to dist pump
@@ -158,7 +158,8 @@ class PumpDoctor(ScadaActor):
         a NoDistFlow PumpDocTrigger if the pump isn't on and the PumpDocState is Dormant"""
         if not self.dist_valve_controller_state == ValveControllerState.AllWhitewiresOff:
             return
-        if any(self.whitewire.values()): 
+        if any(self.whitewire.values()):
+            self.log("Waiting for valves to open")
             self.dist_valve_controller_state = ValveControllerState.WaitingForValvesToOpen
             await asyncio.sleep(self.CALEFFI_ZONE_VALVE_CONTROLLER_S)
             if self.dist_valve_controller_state == ValveControllerState.WaitingForValvesToOpen:
@@ -192,6 +193,7 @@ class PumpDoctor(ScadaActor):
         if self.store_pump_power_readings_exist():
             store_pump_pwr = self.data.latest_channel_values[H0CN.store_pump_pwr]
             if store_pump_pwr < self.PUMP_POWER_THRESHOLD_W and self.state == PumpDocState.Dormant:
+                    self.log("NoStoreFlow detected!")
                     self._send_to(self.boss, PumpDocTrigger(
                         FromState=PumpDocState.Dormant,
                         ToState=PumpDocState.Store,
@@ -202,6 +204,7 @@ class PumpDoctor(ScadaActor):
             await asyncio.sleep(self.FLOW_CHECK_S)
             store_flow_gpm = self.data.latest_channel_values[H0CN.store_flow] / 100
             if store_flow_gpm < self.MIN_FLOW_GPM and self.state == PumpDocState.Dormant:
+                self.log("NoStoreFlow detected!")
                 self._send_to(self.boss, PumpDocTrigger(
                     FromState=PumpDocState.Dormant,
                     ToState=PumpDocState.Store,
@@ -216,6 +219,7 @@ class PumpDoctor(ScadaActor):
         Wait for TIMEOUT seconds and then send a Dormant PumpDocTrigger
         """
         # start heat calls on all white wires
+        self.log("Doctoring the distribution pump")
         for zone in self.layout.zone_list:
             self.heatcall_ctrl_to_scada(zone)
             self.stat_ops_open_relay(zone)
@@ -233,8 +237,63 @@ class PumpDoctor(ScadaActor):
                 UnixTimeMs=int(time.time() * 1000),
             )
         )
-        self.log(f"Sent analog dispatch to {dist_010v_node.handle}")
-        await asyncio.sleep(self.TIMEOUT_S)
+        self.log(f"Sent analog dispatch 0 to {dist_010v_node.handle}")
+        # keep pump off for 5 seconds
+        await asyncio.sleep(self.PUMP_DEFIB_S)
+    
+
+        # set dist 010V output back to its default
+        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
+        dist_dfr_config = next(
+                    config
+                    for config in dfr_component.gt.ConfigList
+                    if config.ChannelName == dist_010v_node.name
+                )
+        self._send_to(
+            dist_010v_node,
+            AnalogDispatch(
+                FromHandle=self.node.handle,
+                ToHandle=dist_010v_node.handle,
+                AboutName=dist_010v_node.Name,
+                Value=dist_dfr_config.InitialVoltsTimes100,
+                TriggerId=str(uuid.uuid4()),
+                UnixTimeMs=int(time.time() * 1000),
+            )
+        )
+        self.log(f"Sent analog dispatch {dist_dfr_config.InitialVoltsTimes100}  to {dist_010v_node.handle}")
+        # Send thermostat control back to the stats (and de-energize the stat_ops relays)
+        for zone in self.layout.zone_list:
+            self.heatcall_ctrl_to_stat(zone)
+            self.stat_ops_open_relay(zone)
+
+        # Wait again
+        await asyncio.sleep(self.PUMP_DEFIB_S)
+
+        # Check if the pump is working. Either way, report a Glitch
+        try:
+            dist_pump_pwr = self.data.latest_channel_values[H0CN.dist_pump_pwr]
+            if dist_pump_pwr < self.PUMP_POWER_THRESHOLD_W and any(self.whitewire.values()):
+                glitch = Glitch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    Node=self.node.Name,
+                    Type=LogLevel.Critical,
+                    Summary="No distribution pump activity recorded since the last heat call",
+                    Details=f"dist pump power: {dist_pump_pwr}, whitewires: {self.whitewire} "
+                )
+            else:
+                glitch = Glitch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    Node=self.node.Name,
+                    Type=LogLevel.Info,
+                    Summary="Pump doctor cycled dist pump. Looks successful",
+                    Details=f"dist pump power: {dist_pump_pwr}, whitewires: {self.whitewire}"
+                )
+            self._send_to(self.atn, glitch)
+        except Exception as e:
+            self.log(f"Trouble reporting Dist Pump glitch! {e}")
+
+        # and then exit
+
         self._send_to(self.boss, PumpDocTrigger(
             FromState=self.state,
             ToState=PumpDocState.Dormant,
@@ -246,6 +305,7 @@ class PumpDoctor(ScadaActor):
         Set store-010V to 0,  turn off the store pump
         Wait for TIMEOUT seconds and then send a Dormant PumpDocTrigger
         """
+        self.log("Doctoring the store pump")
         store_010v_node = self.layout.node(H0N.store_010v)
         # set 010V output to 0
         self._send_to(
@@ -261,7 +321,55 @@ class PumpDoctor(ScadaActor):
         )
         self.log(f"Sent analog dispatch to {store_010v_node.handle}")
         self.turn_off_store_pump()
-        await asyncio.sleep(self.TIMEOUT_S)
+        await asyncio.sleep(self.PUMP_DEFIB_S)
+
+        # set dist 010V output back to its default
+        dfr_component = cast(DfrComponent, self.layout.node(H0N.zero_ten_out_multiplexer).component)
+        store_dfr_config = next(
+                    config
+                    for config in dfr_component.gt.ConfigList
+                    if config.ChannelName == store_010v_node.name
+                )
+        self._send_to(
+            store_010v_node,
+            AnalogDispatch(
+                FromHandle=self.node.handle,
+                ToHandle=store_010v_node.handle,
+                AboutName=store_010v_node.Name,
+                Value=store_dfr_config.InitialVoltsTimes100,
+                TriggerId=str(uuid.uuid4()),
+                UnixTimeMs=int(time.time() * 1000),
+            )
+        )
+        self.log(f"Sent analog dispatch {store_dfr_config.InitialVoltsTimes100}  to {store_010v_node.handle}")
+        # Turn store pump back on
+        self.turn_on_store_pump()  
+
+        # Wait again
+        await asyncio.sleep(self.PUMP_DEFIB_S)
+  
+    # Check if the pump is working. Either way, report a Glitch
+        try:
+            store_pump_pwr = self.data.latest_channel_values[H0CN.store_pump_pwr]
+            if store_pump_pwr < self.PUMP_POWER_THRESHOLD_W and self.store_pump_relay_state == RelayClosedOrOpen.RelayClosed:
+                glitch = Glitch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    Node=self.node.Name,
+                    Type=LogLevel.Critical,
+                    Summary="No store pump activity since store pump relay closed",
+                    Details=f"Store pump relay closed but power is {store_pump_pwr}" , 
+                )
+            else:
+                glitch = Glitch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    Node=self.node.Name,
+                    Type=LogLevel.Info,
+                    Summary="Pump doctor cycled store pump. Looks successful",
+                    Details=f"store pump power: {store_pump_pwr}, store pump: {self.store_pump_relay_state.value}"
+                )
+            self._send_to(self.atn, glitch)
+        except Exception as e:
+            self.log(f"Trouble reporting Stpre Pump glitch! {e}")
         self._send_to(self.boss, PumpDocTrigger(
             FromState=self.state,
             ToState=PumpDocState.Dormant,

@@ -20,7 +20,8 @@ from transitions import Machine
 
 from actors.scada_actor import ScadaActor
 from actors.scada_data import ScadaData
-from enums import AtomicAllyState, LogLevel, PumpDocEvent, StratBossState, StratBossEvent
+from enums import (AtomicAllyState, LogLevel, PumpDocEvent, PumpDocState,
+                   StratBossState, StratBossEvent)
 from named_types import (
     AllyGivesUp,  Glitch, GoDormant, Ha1Params, HeatingForecast, NewCommandTree, 
     PumpDocTrigger, SingleMachineState, SlowContractHeartbeat, SlowDispatchContract,
@@ -130,6 +131,8 @@ class AtomicAlly(ScadaActor):
         self.storage_full_since = time.time()
         if H0N.atomic_ally not in self.layout.nodes:
             raise Exception(f"AtomicAlly requires {H0N.atomic_ally} node!!")
+        self.pump_doc_state: PumpDocState = PumpDocState.Dormant
+        self.last_pump_doc_change_s: float = 0
     
     @property
     def data(self) -> ScadaData:
@@ -202,15 +205,25 @@ class AtomicAlly(ScadaActor):
         pump_doc = from_node
 
         if payload.Trigger == PumpDocEvent.Timeout:
+            self.log("Pump doc timing out!")
+            if self.pump_doc_state != PumpDocState.Dormant:
+                self.pump_doc_state = PumpDocState.Dormant
+                self.last_pump_doc_change_s = time.time()
             self.set_command_tree(boss_node=self.node)
             # tell pump doctor to go dormant:
             self._send_to(pump_doc, payload)
             # and then engage the brain
             self.engage_brain()
         else:  # All other triggers activate pump doc
+            if self.pump_doc_state != PumpDocState.Dormant:
+                raise Exception(f"Shouldn't get a pump doc {payload.Trigger} if state is {self.pump_doc_state}")
+            self.log("Activing PumpDoc!")
+            self.pump_doc_state = payload.ToState
+            self.last_pump_doc_change_s = time.time()
             # First, cancel strat boss if its running
             if self.state == AtomicAllyState.StratBoss:
                 self.set_command_tree(boss_node=self.node)
+                self.log("First, cancel Stratboss for pump doc")
                 cancel_strat = StratBossTrigger(
                         FromState=StratBossState.Active,
                         ToState=StratBossState.Dormant,
@@ -500,6 +513,15 @@ class AtomicAlly(ScadaActor):
             self._send(PatInternalWatchdogMessage(src=self.name))
             self.engage_brain()
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
+            if self.pump_doc_state != PumpDocState.Dormant and \
+                time.time() - self.last_pump_doc_change_s > 60:
+                    self.log(f"Huh, pump doc state {self.pump_doc_state} for more than 60 seconds!")
+                    self._send_to(self.pump_doctor,
+                                  PumpDocTrigger(
+                                      FromState=self.pump_doc_state,
+                                      ToState=PumpDocState.Dormant,
+                                      Trigger=PumpDocEvent.Timeout
+                                  ))
 
     def update_relays(self) -> None:
         self.log(f"update_relays with previous_state {self.prev_state} and state {self.state}")
