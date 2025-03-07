@@ -81,6 +81,9 @@ class ScadaActor(Actor):
     def hp_relay_boss(self) -> ShNode:
         return self.layout.node(H0N.hp_relay_boss)
 
+    @property
+    def pump_doctor(self) -> ShNode:
+        return self.layout.node(H0N.pump_doctor)
 
     def my_actuators(self) -> List[ShNode]:
         """Get all actuator nodes that are descendants of this node in the handle hierarchy"""
