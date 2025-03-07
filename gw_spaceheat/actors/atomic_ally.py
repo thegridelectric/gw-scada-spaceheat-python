@@ -211,7 +211,7 @@ class AtomicAlly(ScadaActor):
             self.engage_brain()
 
     def process_strat_boss_trigger(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
-        self.log("Strat boss trigger received!")
+        self.log(f"Strat boss trigger received! {payload.Trigger.value}")
         if self.state == AtomicAllyState.Dormant:
             self.log(f"state is {self.state}")
             self.log("strat boss should be sidelined and NOT sending messages but process_strat_boss_trigger. IGNORING")
