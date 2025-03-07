@@ -248,7 +248,7 @@ class StratBoss(ScadaActor):
                               UnixMs=int(time.time() * 1000)
                           ))
         if self.state == StratBossState.Active:
-            asyncio.create_task(self._timeout_timer())
+            self._timeout_timer_task = asyncio.create_task(self._timeout_timer())
             asyncio.create_task(self.active(trigger.Trigger))
         else:
             self.flush_lift_timer()
@@ -279,18 +279,18 @@ class StratBoss(ScadaActor):
         self.log(f"Sent analog dispatch to {dist_010v_node.handle}")
 
     def flush_timeout_timer(self) -> None:
-        if hasattr(self, "_timeout_timer"):
-            task = self._timeout_timer
+        if hasattr(self, "_timeout_timer_task"):
+            task = self._timeout_timer_task
             if not task.done():  # Check if it's still running
                 task.cancel()  # Request cancellation
-            del self._timeout_timer # Remove the attribute
+            del self._timeout_timer_task # Remove the attribute
 
     def flush_lift_timer(self) -> None:
-        if hasattr(self, "_lift_timer"):
-            task = self._lift_timer
+        if hasattr(self, "_lift_timer_task"):
+            task = self._lift_timer_task
             if not task.done():  # Check if it's still running
                 task.cancel()  # Request cancellation
-            del self._lift_timer  # Remove the attribute
+            del self._lift_timer_task  # Remove the attribute
 
     async def active(self, trigger: StratBossEvent) -> None:
         if trigger == StratBossEvent.HpTurnOnReceived:
@@ -305,7 +305,7 @@ class StratBoss(ScadaActor):
         if self.state == StratBossState.Active:
             self.valved_to_discharge_store()
             self.turn_on_dist_pump()
-            asyncio.create_task(self._lift_timer())
+            self._lift_timer_task = asyncio.create_task(self._lift_timer())
 
     async def _ungate_hp_relay_boss(self) -> None:
         wait_seconds = max(0, self.strat_prep_seconds() - self.primary_pump_delay_seconds)
@@ -329,7 +329,6 @@ class StratBoss(ScadaActor):
                 if log_counter % (LOG_INTERVAL // self.LIFT_DETECT_SLEEP_S) == 0:
                     self.log(f"lwt {round(self.lwt_f, 2)} F, ewt {round(self.ewt_f, 2)} F, lift {round(lift)} F v {self.HP_LIFT_THRESHOLD_F} ")
                 if lift > self.HP_LIFT_THRESHOLD_F:
-                    if self.hp_power_w > self.HP_POWER_THRESHOLD_W:
                         self._send_to(self.boss,StratBossTrigger(
                             FromState=StratBossState.Active,
                             ToState=StratBossState.Dormant,

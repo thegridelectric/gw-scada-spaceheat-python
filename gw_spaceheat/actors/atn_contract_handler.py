@@ -168,8 +168,10 @@ class AtnContractHandler:
                 return
         if scada_hb.WattHoursUsed is None: 
             raise Exception("this can't happen, axiomatically in Hb")
-
-        self.logger.info(self.formatted_contract(scada_hb))
+        if self.status == RepresentationStatus.Dormant:
+            self.logger.info("Dormant representation status but got hb")
+        else:
+            self.logger.info(self.formatted_contract(scada_hb))
         self.energy_used_wh = scada_hb.WattHoursUsed
         self.energy_updated_s = time.time()
         self.store_heartbeat(scada_hb)

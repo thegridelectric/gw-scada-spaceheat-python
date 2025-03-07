@@ -668,6 +668,7 @@ class Scada(ScadaInterface, Proactor):
                 return
             if self.contract_handler.status == RepresentationStatus.Dormant:
                 self.contract_handler.status = RepresentationStatus.Active
+                self.log("Setting representation contract to Active")
                 self._send_to(self.atn,
                     SetRepresentationStatus(
                         FromGNodeAlias=self.layout.scada_g_node_alias,
@@ -953,7 +954,10 @@ class Scada(ScadaInterface, Proactor):
             self.auto_trigger(MainAutoEvent.DispatchContractLive)
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, atn_hb: SlowContractHeartbeat) -> None:
-        self.log(f"{self.contract_handler.formatted_contract(atn_hb)}")
+        if self.contract_handler.status == RepresentationStatus.Dormant:
+            self.log("Dormant Representation Contract but got contract hb ...")
+        else:
+            self.log(f"{self.contract_handler.formatted_contract(atn_hb)}")
         return_hb = None
         if self.contract_handler.status == RepresentationStatus.Dormant:
             self._send_to(self.atn,
