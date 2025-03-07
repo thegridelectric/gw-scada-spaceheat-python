@@ -76,7 +76,7 @@ def test_scada_settings_defaults(clean_scada_env):
         is_simulated=False,
         representation_dormant=False,
         contract_rep_logging_level=20,
-        hp_model=HpModel.SamsungHighTempHydroKitPlusMultiV
+        hp_model=HpModel.SamsungFiveTonneHydroKit
     )
     assert settings.model_dump() == exp
     assert settings.local_mqtt == exp_local_mqtt

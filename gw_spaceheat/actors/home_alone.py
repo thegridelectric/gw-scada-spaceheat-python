@@ -763,7 +763,7 @@ class HomeAlone(ScadaActor):
             self._send_to(pump_doc, payload, pump_doc_boss)
 
     def process_strat_boss_trigger(self, from_node: Optional[ShNode], payload: StratBossTrigger) -> None:
-        self.log("Strat boss trigger received!")
+        self.log(f"Strat boss trigger received! {payload.Trigger.value}")
         if self.state == HomeAloneState.Dormant:
             self.log(f"top state is {self.top_state} and state is {self.state}")
             self.log("strat_boss should be sidelined and NOT sending messages but process_strat_boss_trigger. IGNORING")

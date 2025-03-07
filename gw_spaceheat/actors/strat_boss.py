@@ -121,7 +121,7 @@ class StratBoss(ScadaActor):
     def get_primary_pump_delay_seconds(self) -> int:
         """Seconds between closing the HpOps relay and primary pump coming on
         """
-        if self.hp_model == HpModel.SamsungHighTempHydroKitPlusMultiV:
+        if self.hp_model in  [HpModel.SamsungFourTonneHydroKit, HpModel.SamsungFiveTonneHydroKit]:
             return self.SAMSUNG_HYDROKIT_PRIMARY_PUMP_DELAY_SECONDS
         elif self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
             return self.LG_HYDROKIT_PRIMARY_PUMP_DELAY_SECONDS
@@ -237,7 +237,7 @@ class StratBoss(ScadaActor):
             self.BossCancels()
         else:
             self.log(f"DON'T KNOW TRIGGER {trigger.Trigger}") # TODO: add Glitch
-        self.log(f"{trigger.Trigger}: {before} -> {self.state}")
+        self.log(f"StratBoss state change: {trigger.Trigger}: {before} -> {self.state}")
         if before != self.state:
             self._send_to(self.primary_scada,
                           SingleMachineState(
@@ -250,6 +250,9 @@ class StratBoss(ScadaActor):
         if self.state == StratBossState.Active:
             asyncio.create_task(self._timeout_timer())
             asyncio.create_task(self.active(trigger.Trigger))
+        else:
+            self.flush_lift_timer()
+            self.flush_timeout_timer()
 
     def turn_on_dist_pump(self) -> None:
         """
@@ -275,6 +278,20 @@ class StratBoss(ScadaActor):
         )
         self.log(f"Sent analog dispatch to {dist_010v_node.handle}")
 
+    def flush_timeout_timer(self) -> None:
+        if hasattr(self, "_timeout_timer"):
+            task = self._timeout_timer
+            if not task.done():  # Check if it's still running
+                task.cancel()  # Request cancellation
+            del self._timeout_timer # Remove the attribute
+
+    def flush_lift_timer(self) -> None:
+        if hasattr(self, "_lift_timer"):
+            task = self._lift_timer
+            if not task.done():  # Check if it's still running
+                task.cancel()  # Request cancellation
+            del self._lift_timer  # Remove the attribute
+
     async def active(self, trigger: StratBossEvent) -> None:
         if trigger == StratBossEvent.HpTurnOnReceived:
             max_strat_prep_seconds = max(self.DIST_PUMP_ON_SECONDS, self.VALVED_TO_DISCHARGE_SECONDS)
@@ -283,13 +300,12 @@ class StratBoss(ScadaActor):
                 wait_s = wait_s - 5
                 self.log(f"Waiting {wait_s} s before changing relays")
                 await asyncio.sleep(wait_s)
-        asyncio.create_task(self._lift_timer())
+
         #Make sure we're still active before proceeding in case we waited.
         if self.state == StratBossState.Active:
             self.valved_to_discharge_store()
             self.turn_on_dist_pump()
-            # while self.state == StratBossState.Active:
-            #     await asyncio.sleep(self.SLEEP_LOOP_S) # Add PID control of dist pump 010 to match dist flow to primary flow
+            asyncio.create_task(self._lift_timer())
 
     async def _ungate_hp_relay_boss(self) -> None:
         wait_seconds = max(0, self.strat_prep_seconds() - self.primary_pump_delay_seconds)
@@ -301,13 +317,17 @@ class StratBoss(ScadaActor):
         self._send_to(self.hp_relay_boss, StratBossReady())
 
     async def _lift_timer(self) -> None:
-        """ Wait 2 minutes. Then if LWT - EWT > Lift Threshold AND HP Power > Power Threshold, send trigger"""
+        """ Wait 2 minutes. Then if LWT - EWT > Lift Threshold send trigger"""
         self.log("sleeping for 2 minutes before attempting to detect lift")
         await asyncio.sleep(2*60)
+
+        log_counter = 0 # Counter to track logging frequency
+        LOG_INTERVAL = 30 # Log every 30 seocnds
         while self.state == StratBossState.Active:
-            if self.update_temp_readings() and self.update_power_readings():
+            if self.update_temp_readings():
                 lift = self.lwt_f-self.ewt_f
-                self.log(f"lwt {round(self.lwt_f, 2)} F, ewt {round(self.ewt_f, 2)} F, lift {round(lift)} F v {self.HP_LIFT_THRESHOLD_F} |  Power: {self.hp_power_w} (v {self.HP_POWER_THRESHOLD_W})")
+                if log_counter % (LOG_INTERVAL // self.LIFT_DETECT_SLEEP_S) == 0:
+                    self.log(f"lwt {round(self.lwt_f, 2)} F, ewt {round(self.ewt_f, 2)} F, lift {round(lift)} F v {self.HP_LIFT_THRESHOLD_F} ")
                 if lift > self.HP_LIFT_THRESHOLD_F:
                     if self.hp_power_w > self.HP_POWER_THRESHOLD_W:
                         self._send_to(self.boss,StratBossTrigger(
@@ -315,11 +335,12 @@ class StratBoss(ScadaActor):
                             ToState=StratBossState.Dormant,
                             Trigger=StratBossEvent.LiftDetected
                         ))
+                        self.log(f"Lift detected! {round(lift)} F  ")
             else:
                 self.log("No data from ewt and/or lwt and/or ho_idu_pwr and/or hp_odu_pwr!")
+            log_counter += 1
             await asyncio.sleep(self.LIFT_DETECT_SLEEP_S)
-                
-    
+
     async def _timeout_timer(self) -> None:
         """ Wait 12 minutes. If still active at the end then pull the ActiveTwelveMinutes Trigger"""
         await asyncio.sleep(self.TIMEOUT_MINUTES * 60)
@@ -330,8 +351,7 @@ class StratBoss(ScadaActor):
                 ToState=StratBossState.Dormant,
                 Trigger=StratBossEvent.Timeout
             ))
-    
-    
+
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
         return [MonitoredName(self.name, self.WATCHDOG_PAT_S * 10)]
@@ -359,14 +379,18 @@ class StratBoss(ScadaActor):
                                     Trigger=StratBossEvent.DefrostDetected
                                 ) 
                             )
-                    if self.hp_model == HpModel.SamsungHighTempHydroKitPlusMultiV:
-                        if self.samsung_high_temp_hydrokit_entering_defrost():
+                            self.log("Defrost detected!")
+                    elif self.hp_model in [HpModel.SamsungFourTonneHydroKit,
+                                           HpModel.SamsungFiveTonneHydroKit]:
+                        if self.samsung_entering_defrost():
                             self._send_to(self.boss, StratBossTrigger(
                                 FromState=StratBossState.Dormant,
                                     ToState=StratBossState.Active,
                                     Trigger=StratBossEvent.DefrostDetected
                                 )
                             )
+                            self.log("Defrost detected!")
+
             await asyncio.sleep(self.DEFROST_DETECT_SLEEP_S)
 
     def lg_high_temp_hydrokit_entering_defrost(self) -> bool:
@@ -385,7 +409,7 @@ class StratBoss(ScadaActor):
             entering_defrost = False
         return entering_defrost
     
-    def samsung_high_temp_hydrokit_entering_defrost(self) -> bool:
+    def samsung_entering_defrost(self) -> bool:
         """
         The Samsung High Temp Hydrokit is entering defrost if:  
           - IDU Power  - ODU Power > 1500
