@@ -329,7 +329,6 @@ class StratBoss(ScadaActor):
                 if log_counter % (LOG_INTERVAL // self.LIFT_DETECT_SLEEP_S) == 0:
                     self.log(f"lwt {round(self.lwt_f, 2)} F, ewt {round(self.ewt_f, 2)} F, lift {round(lift)} F v {self.HP_LIFT_THRESHOLD_F} ")
                 if lift > self.HP_LIFT_THRESHOLD_F:
-                    if self.hp_power_w > self.HP_POWER_THRESHOLD_W:
                         self._send_to(self.boss,StratBossTrigger(
                             FromState=StratBossState.Active,
                             ToState=StratBossState.Dormant,
