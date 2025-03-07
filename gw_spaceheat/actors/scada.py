@@ -1426,17 +1426,21 @@ class Scada(ScadaInterface, Proactor):
             # TODO: make admin conversation less hacky?
             if decoded.Payload.TypeName == "strat.boss.trigger":
                 to_node = self.layout.node(H0N.strat_boss)
+            elif decoded.Payload.TypeName == "pump.doc.trigger":
+                to_node = self.layout.node(H0N.pump_doctor)
         else:
             raise ValueError(
                 "ERROR. No mqtt handler for mqtt client %s", message.Payload.client_name
             )
         from_node = self._layout.node(src, None)
 
+
         if from_node is None:
             self.log(f"Got a message from unrecognized {decoded.Header.Src} - ignoring")
             self.decoded = decoded
             return
-
+        if to_node.Name == H0N.pump_doctor:
+            self.log("Sending PumpDocTrigger from admin to pump doctor")
         self._send_to(to_node, payload, from_node)
 
     def init(self) -> None:

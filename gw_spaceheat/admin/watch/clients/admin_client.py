@@ -22,7 +22,7 @@ from admin.watch.clients.constrained_mqtt_client import ConstrainedMQTTClient
 from admin.watch.clients.constrained_mqtt_client import MessageReceivedCallback
 from admin.watch.clients.constrained_mqtt_client import MQTTClientCallbacks
 from admin.watch.clients.constrained_mqtt_client import StateChangeCallback
-from named_types import LayoutLite, SendLayout, SnapshotSpaceheat, StratBossTrigger
+from named_types import LayoutLite, PumpDocTrigger, SendLayout, SnapshotSpaceheat, StratBossTrigger
 
 module_logger = logging.getLogger(__name__)
 
@@ -53,6 +53,9 @@ class AdminSubClient:
         ...
 
     def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
+        ...
+
+    def process_pump_doc_trigger(self, payload: PumpDocTrigger) -> None:
         ...
 
     def process_strat_boss_trigger(self, payload: StratBossTrigger) -> None:
@@ -198,6 +201,9 @@ class AdminClient:
                 f"<{type(e)}>: <{e}>",
             )
 
+    def _process_pump_doc_trigger(self, src: str, payload: PumpDocTrigger) -> None:
+        self.publish(payload)
+
     def _process_strat_boss_trigger(self, src: str, payload: StratBossTrigger) -> None:
         self.publish(payload)
 
@@ -231,6 +237,11 @@ class AdminClient:
             if decoded_topic.message_type == type_name(LayoutLite):
                 path_dbg |= 0x00000001
                 self._process_layout_lite(payload)
+            elif decoded_topic.message_type == type_name(PumpDocTrigger):
+                path_dbg |= 0x00000080
+                message = Message[PumpDocTrigger].model_validate_json(payload)
+                src = message.Header.Src
+                self._process_pump_doc_trigger(src, message.Payload)
             elif decoded_topic.message_type == type_name(SnapshotSpaceheat):
                 path_dbg |= 0x00000002
                 self._process_snapshot(payload)
