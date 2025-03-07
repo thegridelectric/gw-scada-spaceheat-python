@@ -274,6 +274,10 @@ class Atn(ActorInterface, Proactor):
     def layout(self) -> House0Layout:
         return cast(House0Layout, self._layout)
 
+    @property
+    def status(self) -> RepresentationStatus:
+        return self.contract_handler.status
+
     def init(self):
         """Called after constructor so derived functions can be used in setup."""
 
