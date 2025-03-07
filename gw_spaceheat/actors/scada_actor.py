@@ -915,7 +915,7 @@ class ScadaActor(Actor):
         # TODO: if boss_node is not in my chain of command, 
         # raise an error
         my_handle_prefix = f"{self.node.handle}."
-        if not boss_node.handle.startswith(my_handle_prefix):
+        if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
             raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
         self.set_hierarchical_fsm_handles(boss_node)
 

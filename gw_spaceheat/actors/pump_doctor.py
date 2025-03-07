@@ -34,7 +34,7 @@ class PumpDoctor(ScadaActor):
     PUMP_DEFIB_S = 5  # seconds to keep pump off
     PUMP_POWER_THRESHOLD_W = 5
     FLOW_CHECK_S = 30 # how long to wait before checking flow after pump is on
-    CALEFFI_ZONE_VALVE_CONTROLLER_S = 35 # time after a whitewire that signal sent to dist pump
+    CALEFFI_ZONE_VALVE_CONTROLLER_S = 45 # time after a whitewire that signal sent to dist pump
     def __init__(self, name: str, services: ServicesInterface):
         super().__init__(name, services)
         self.state: PumpDocState = PumpDocState.Dormant
@@ -173,6 +173,7 @@ class PumpDoctor(ScadaActor):
                 if self.dist_pump_power_readings_exist():
                     dist_pump_pwr = self.data.latest_channel_values[H0CN.dist_pump_pwr]
                     if dist_pump_pwr < self.PUMP_POWER_THRESHOLD_W and self.state == PumpDocState.Dormant:
+                        self.log(f"Waited {self.CALEFFI_ZONE_VALVE_CONTROLLER_S} and dist pump power still {dist_pump_pwr}!")
                         self._send_to(self.boss, PumpDocTrigger(
                             FromState=PumpDocState.Dormant,
                             ToState=PumpDocState.Dist,
