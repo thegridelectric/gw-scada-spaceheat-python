@@ -661,7 +661,10 @@ class Scada(ScadaInterface, Proactor):
                                 # Immediate transition to HomeAlone
                 self.auto_trigger(MainAutoEvent.AtnReleasesControl)
             self.contract_handler.status = RepresentationStatus.Dormant
-
+            if self.contract_handler.latest_scada_hb:
+                self.log(" PROBLEM: scada_terminates_contract_hb should have set latest_scada_hb to None!!")
+            else:
+                self.log("self.latest_scada_hb is None")
         elif cmd.Status == RepresentationStatus.Active:
             if self.settings.monitor_only:
                 self.log("Ignoring cmd to movce RepresentationStatus to Active - monitor only!")
@@ -678,7 +681,7 @@ class Scada(ScadaInterface, Proactor):
                 )
 
         if self.contract_handler.status != prior_status:
-            msg = f"Status changed: {prior_status} -> {self.contract_handler.status}"
+            msg = f"Representation Status changed: {prior_status} -> {self.contract_handler.status}"
             if cmd.Reason:
                 msg += f" Reason: {cmd.Reason}"
             self.log(msg)
@@ -958,9 +961,10 @@ class Scada(ScadaInterface, Proactor):
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, atn_hb: SlowContractHeartbeat) -> None:
         if self.contract_handler.status == RepresentationStatus.Dormant:
-            self.log("Dormant Representation Contract but got contract hb ...")
+            self.log("Dormant Representation Contract but got contract hb ... ignoring")
+            return
         else:
-            self.log(f"{self.contract_handler.formatted_contract(atn_hb)}")
+            self.log(f"Representation Status {self.contract_handler.status}. {self.contract_handler.formatted_contract(atn_hb)}")
         return_hb = None
         if self.contract_handler.status == RepresentationStatus.Dormant:
             self._send_to(self.atn,
