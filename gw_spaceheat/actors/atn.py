@@ -241,6 +241,7 @@ class Atn(ActorInterface, Proactor):
             send_threadsafe=self.send_threadsafe,
         )
         self.bid_runner = None
+        self.dist_010_on: bool = False
 
     @property
     def name(self) -> str:
@@ -431,6 +432,19 @@ class Atn(ActorInterface, Proactor):
 
     def process_snapshot(self, snapshot: SnapshotSpaceheat) -> None:
         self.data.latest_snapshot = snapshot
+        my_list = snapshot.LatestReadingList
+        living_rm_reading = next((s for s in my_list if s.ChannelName == "zone1-living-rm-gw-temp"), None)
+        if living_rm_reading is not None:
+            living_rm_c = living_rm_reading.Value / 1000
+            self.living_rm_f = (9*living_rm_c/5) + 32
+            if not self.dist_010_on:
+                if self.living_rm_f < 67.5:
+                    self.set_dist_010(20)
+                    self.dist_010_on = True
+            else:
+                if self.living_rm_f > 69:
+                    self.set_dist_010(10)
+                    self.dist_010_on = False
 
         if self.settings.dashboard.print_gui and self.dashboard:
             self.dashboard.process_snapshot(snapshot)
@@ -591,6 +605,12 @@ class Atn(ActorInterface, Proactor):
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
         await asyncio.sleep(5)
         self.send_layout() # if we've just started, we need the layout
+        
+        self.set_dist_010(20)
+        await asyncio.sleep(1)
+        self.set_dist_010(10)
+        self.dist_010_on = False
+        self.living_rm_f = 70
         while not self._stop_requested:
 
             if datetime.now().minute >= 55 and not self.sent_bid:
