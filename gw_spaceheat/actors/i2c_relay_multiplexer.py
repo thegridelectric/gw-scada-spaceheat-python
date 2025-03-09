@@ -7,10 +7,12 @@ from typing import Any, Dict, List, Optional, Sequence, cast
 
 from gw.enums import GwStrEnum
 # from actors.simple_sensor import SimpleSensor, SimpleSensorDriverThread
-from gwproactor import MonitoredName, ServicesInterface
+from gwproactor import MonitoredName
 from gwproactor.message import Message, PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import \
     I2cMultichannelDtRelayComponent
+
+from gwproactor.logger import LoggerOrAdapter
 from gwproto.data_classes.data_channel import DataChannel
 from data_classes.house_0_layout import House0Layout
 from gwproto.data_classes.sh_node import ShNode
@@ -22,6 +24,7 @@ from gwproto.named_types import (SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
+from actors.scada_interface import ScadaInterface
 from actors.scada_actor import ScadaActor
 from named_types import FsmEvent, Glitch
 from enums import LogLevel
@@ -43,6 +46,7 @@ SLEEP_STEP_SECONDS = 0.1
 
 
 class I2cRelayMultiplexer(ScadaActor):
+    RELAY_MULTIPLEXER_LOGGER_NAME: str = "RelayMultiplexer"
     RELAY_LOOP_S = 300
     node: ShNode
     component: I2cMultichannelDtRelayComponent
@@ -52,16 +56,20 @@ class I2cRelayMultiplexer(ScadaActor):
     _stop_requested: bool
     i2c_bus: Optional[Any]  # board.I2C()
     krida_board: Dict[int, Any]
-    relay_state: Dict[int, Any]
+    relay_state: Dict[int, RelayEnergizationState]
     my_relays: List[ShNode]
 
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: ScadaInterface,
     ):
         super().__init__(name, services)
         self.is_simulated = self.settings.is_simulated
+        self.logger = services.logger.add_category_logger(
+            self.RELAY_MULTIPLEXER_LOGGER_NAME,
+            level=self.settings.relay_multiplexer_logging_level,
+        )
         self.component = cast(I2cMultichannelDtRelayComponent, self.node.component)
         if self.component.cac.MakeModel != MakeModel.KRIDA__DOUBLEEMR16I2CV3:
             raise Exception(
@@ -82,7 +90,7 @@ class I2cRelayMultiplexer(ScadaActor):
         self.relay_state: Dict[int, RelayEnergizationState] = {}
         self._stop_requested = False
 
-    def initialize_board(self) -> None:
+    async def initialize_boards(self) -> None:
         if self.is_simulated:
             for relay in self.my_relays:
                 idx = self.get_idx(relay)
@@ -100,56 +108,82 @@ class I2cRelayMultiplexer(ScadaActor):
 
             num_boards = 2
             for i in range(num_boards):
-                board_idx = i + 1
-                address = addresses[i]
-                try:
-                    self.krida_board[board_idx] = adafruit_pcf8575.PCF8575(
-                        i2c_bus=self.i2c_bus, address=address
-                    )
-                except Exception as e:
-                    raise Exception(
-                        f"Failed to get board at {address} for board {i}: {e}"
-                    ) from e
+                setup_attempts = 0
+                setup_done = False
+                while setup_attempts < 3 and not setup_done:
+                    wait_s = setup_attempts + 1
+                    board_idx = i + 1
+                    address = addresses[i]
+                    try:
+                        self.krida_board[board_idx] = adafruit_pcf8575.PCF8575(
+                            i2c_bus=self.i2c_bus, address=address
+                        )
+                        self.logger.info(f"Found board at {address} for board {board_idx}")
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Failed to get board at {address} for board {board_idx}: {e}"
+                        )
+                        await asyncio.sleep(wait_s)
+                        continue
 
-                time.sleep(0.2)
-                print(f"initializing board at {hex(address)}")
-                try:
-                    for j in range(1, 17):
-                        # set relay to correct pin, and switch to output. This energizes all relays
-                        gw_idx = (board_idx - 1) * 16 + j
-                        pin_idx = gw_to_pin(gw_idx)
-                        self.krida_relay_pin[gw_idx] = self.krida_board[board_idx].get_pin(
-                            pin_idx
+                    await asyncio.sleep(0.2)
+                    self.logger.info(f"initializing board {board_idx} at {hex(address)}")
+                    try:
+                        for j in range(1, 17):
+                            # set relay to correct pin, and switch to output. This energizes all relays
+                            gw_idx = (board_idx - 1) * 16 + j
+                            pin_idx = gw_to_pin(gw_idx)
+                            self.krida_relay_pin[gw_idx] = self.krida_board[board_idx].get_pin(
+                                pin_idx
+                            )
+                            self.krida_relay_pin[gw_idx].switch_to_output()
+                        for j in range(1, 17):
+                            # move all relays back to de-energized position
+                            self.krida_relay_pin[
+                                i * 16 + j
+                            ].value = ChangeKridaPin.DeEnergize.value
+                        # and record the de-energized state for all known relays
+                        self.logger.info(f"Successfully initialized board {board_idx}")
+                        setup_done = True
+                    except Exception as e:
+                        self.logger.warning(f"Trouble initializing board {board_idx}! {e}")
+                        setup_attempts += 1
+                        await asyncio.sleep(wait_s)
+                # send up a Glitch if things took more than once
+                if setup_attempts > 0:
+                    if not setup_done:
+                        for j in range(1,17):
+                            gw_idx = (board_idx - 1) * 16 + j
+                            self.krida_relay_pin[gw_idx] = SimulatedPin(
+                                value=KridaPinState.DeEnergized.value
+                            )
+                        log_level = LogLevel.Critical
+                        summary = f"i2c board {board_idx} ({hex(address)}) failed to initialize. Setting as simulated"
+
+                    else: 
+                        log_level = LogLevel.Info
+                        summary = f"i2c board {board_idx} ({hex(address)}) took {setup_attempts+1} attempts to initialize! "
+                        self._send_to(self.atn,
+                                    Glitch(
+                                        FromGNodeAlias=self.layout.scada_g_node_alias,
+                                        Node=self.node.Name,
+                                        Type=log_level,
+                                        Summary=summary,
+                                        Details="",
+                                    )
                         )
-                        self.krida_relay_pin[gw_idx].switch_to_output()
-                    time.sleep(1)
-                    for j in range(1, 17):
-                        # move all relays back to de-energized position
-                        self.krida_relay_pin[
-                            i * 16 + j
-                        ].value = ChangeKridaPin.DeEnergize.value
-                    # and record the de-energized state for all known relays
-                    print(f"Done initializing board {board_idx}")
-                except Exception as e:
-                    self.log(f"Trouble with board {board_idx}! Setting to simulated")
-                    for j in range(1,17):
-                        gw_idx = (board_idx - 1) * 16 + j
-                        self.krida_relay_pin[gw_idx] = SimulatedPin(
-                            value=KridaPinState.DeEnergized.value
-                        )
-                    self._send_to(self.atn,
-                                  Glitch(
-                                      FromGNodeAlias=self.layout.scada_g_node_alias,
-                                      Node=self.node.Name,
-                                      Type=LogLevel.Warning,
-                                      Summary=f"i2c board {board_idx} ({hex(address)}) failed to initialize. Setting as simulated",
-                                      Details=f"I2c Errors: {e}",
-                                  )
-                    )
+                # finally, de-energize all relays
+                self.log("De-energizing all the relays")
                 for relay in self.my_relays:                        
                     self.relay_state[
                         self.get_idx(relay)
                     ] = RelayEnergizationState.DeEnergized
+        # and now start maintaining relay states
+        self.services.add_task(
+            asyncio.create_task(
+                self.maintain_relay_states(), name="maintain_relay_states"
+            )
+        )
 
     def get_idx(self, relay: ShNode) -> int:
         if not relay.actor_class == ActorClass.Relay:
@@ -183,7 +217,7 @@ class I2cRelayMultiplexer(ScadaActor):
 
     def _dispatch_relay_pin(self, dispatch: FsmEvent) -> Result[bool, BaseException]:
         if dispatch.EventType != ChangeRelayPin.enum_name():
-            return
+            return Ok(False)
         relay = self.layout.node_by_handle(dispatch.FromHandle)
         if relay is None:
             return Err(
@@ -193,7 +227,9 @@ class I2cRelayMultiplexer(ScadaActor):
         idx = self.get_idx(relay)
         if idx is None:
             return Err(ValueError(f"Not a valid relay: {relay}"))
-
+        if idx not in self.relay_state:
+            self.log("Relay board not initialized yet. Ignoring dispatch")
+            return Ok(False)
         try:
             if dispatch.EventName == ChangeRelayPin.Energize.value:
                 self.krida_relay_pin[idx].value = ChangeKridaPin.Energize.value
@@ -204,6 +240,8 @@ class I2cRelayMultiplexer(ScadaActor):
         except Exception as e:
             return Err(ValueError(f"Trouble setting relay {idx} via i2c: {e}"))
         channel = self.get_channel(relay)
+        if channel is None:
+            raise Exception("Channel can't be None here")
         if channel.TelemetryName != TelemetryName.RelayState:
             raise Exception(
                 "relay state channels should have telemetry name RelayState"
@@ -265,7 +303,6 @@ class I2cRelayMultiplexer(ScadaActor):
             self._send(PatInternalWatchdogMessage(src=self.name))
             channel_names = []
             values = []
-            ft = datetime.fromtimestamp(time.time()).strftime("%H:%M:%S")
             for relay in self.my_relays:
                 idx = self.get_idx(relay)
                 channel_names.append(self.get_channel(relay).Name)
@@ -292,12 +329,7 @@ class I2cRelayMultiplexer(ScadaActor):
             await asyncio.sleep(self.RELAY_LOOP_S)
 
     def start(self) -> None:
-        self.initialize_board()
-        self.services.add_task(
-            asyncio.create_task(
-                self.maintain_relay_states(), name="maintain_relay_states"
-            )
-        )
+        asyncio.create_task(self.initialize_boards())
 
     def stop(self) -> None:
         """

@@ -25,6 +25,9 @@ class House0Layout(HardwareLayout):
     zone_list: List[str]
     total_store_tanks: int
     strategy: Literal["House0"] = "House0"
+    strat_boss_exemption_zones: List[str]
+    strat_boss_exemption_hours: List[int]
+    exempted_strat_boss_dist_010v: int # distribution pump 010 when some zones are exempted
 
     def __init__(  # noqa: PLR0913
         self,
@@ -47,6 +50,24 @@ class House0Layout(HardwareLayout):
             raise DcError(
                 "House0 requires ZoneList, a list of the thermostat zone names!"
             )
+        if "StratBossExemptionZones" not in layout:
+            self.strat_boss_exemption_zones = []
+        else:
+            self.strat_boss_exemption_zones = layout["StratBossExemptionZones"]
+        if "StratBossExemptionHours" not in layout:
+            self.strat_boss_exemption_hours = []
+        else:
+            self.strat_boss_exemption_hours = layout["StratBossExemptionHours"]
+        if "ExemptedStratBossDist010V" not in layout:
+            self.exempted_strat_boss_dist_010v = 80
+        else:
+            self.exempted_strat_boss_dist_010v = layout["ExemptedStratBossDist010V"]
+        if not isinstance(self.exempted_strat_boss_dist_010v, int) or\
+            self.exempted_strat_boss_dist_010v < 0 or \
+            self.exempted_strat_boss_dist_010v > 100:
+            raise ValueError("ExemptedStratBossDist010V must be an integer between 0 and 100")
+        if not all(isinstance(hour, int) and 0 <= hour <= 23 for hour in self.strat_boss_exemption_hours):
+            raise ValueError("All elements in StratBossExemptionHours must be integers between 0 and 23 (inclusive).")
         if "TotalStoreTanks" not in layout:
             raise DcError("House0 requires TotalStoreTanks")
         if "Strategy" not in layout:
@@ -64,7 +85,7 @@ class House0Layout(HardwareLayout):
             raise TypeError("ZoneList must be a list")
         if not 1 <= len(self.zone_list) <= 6:
             raise ValueError("Must have between 1 and 6 store zones")
-        self.short_names = H0N(self.total_store_tanks, self.zone_list)
+        self.h0n = H0N(self.total_store_tanks, self.zone_list)
 
     @property
     def actuators(self) -> List[ShNode]:
