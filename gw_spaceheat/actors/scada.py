@@ -46,6 +46,7 @@ from gwproactor.message import MQTTReceiptPayload
 from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
+from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
 from actors.home_alone import HomeAlone
 from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
@@ -282,7 +283,12 @@ class Scada(ScadaInterface, Proactor):
                 level=settings.contract_rep_logging_level,
             )
         )
-        self.initialize_hierarchical_state_data() # set states for 
+        self.initialize_hierarchical_state_data()
+        self.state_machine_subscriptions: List[StateMachineSubscription] = [
+            StateMachineSubscription(
+                subscriber_name=self.layout.h0n.strat_boss,
+                publisher_name=self.layout.h0n.hp_scada_ops_relay)                       
+        ]
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -700,6 +706,24 @@ class Scada(ScadaInterface, Proactor):
             )
         node_name = payload.MachineHandle.split('.')[-1]
         self._data.latest_machine_state[node_name] = payload
+        self.handle_state_change_subscriptions(from_node, payload)
+
+    def handle_state_change_subscriptions(self, from_node: ShNode, sms: SingleMachineState) -> None:
+        # Find all subscriptions for this publisher (from_node)
+        for subscription in self.state_machine_subscriptions:
+            if subscription.publisher_name == from_node.Name:
+                # Get the subscriber node
+                subscriber_node = self._layout.node(subscription.subscriber_name)
+                if subscriber_node is not None:
+                    self.log(f"Sending {sms.MachineHandle} state to {subscriber_node.name}")
+                    self._send_to(
+                        to_node=subscriber_node,
+                        payload=sms,
+                        from_node=from_node
+                    )
+                else:
+                    self.log(f"Subscriber {subscription.subscriber_name} not found for state change from {from_node.Name}")
+
 
     def process_single_reading(
         self, from_node: ShNode, payload: SingleReading

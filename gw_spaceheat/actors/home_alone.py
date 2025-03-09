@@ -180,7 +180,6 @@ class HomeAlone(ScadaActor):
             self.top_state = HomeAloneTopState.Monitor
         else: 
             self.top_state = HomeAloneTopState.Normal
-        self.timezone = pytz.timezone(self.settings.timezone_str)
         self.is_simulated = self.settings.is_simulated
         self.oil_boiler_during_onpeak = self.settings.oil_boiler_for_onpeak_backup
         self.log(f"Params: {self.params}")

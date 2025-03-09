@@ -1,20 +1,21 @@
 import asyncio
 import time
 import uuid
+from datetime import datetime
 from collections import deque
-from typing import  Sequence
+from typing import List, Sequence
 from data_classes.house_0_names import H0CN, H0N
 from gwproto.message import Message
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproactor import MonitoredName, ServicesInterface
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.enums import TelemetryName
+from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.named_types import AnalogDispatch, FsmFullReport
 from result import Ok, Result
 
 from actors.scada_actor import ScadaActor
-from enums import TurnHpOnOff, HpModel, StratBossEvent, StratBossState
-from named_types import (FsmEvent, SingleMachineState, StratBossReady, StratBossTrigger)
+from enums import LogLevel, TurnHpOnOff, HpModel, StratBossEvent, StratBossState
+from named_types import (FsmEvent, Glitch, SingleMachineState, StratBossReady, StratBossTrigger)
 from transitions import Machine
 
 
@@ -91,11 +92,15 @@ class StratBoss(ScadaActor):
             initial=StratBossState.Dormant,
             send_event=False
         )
+        
         self.idu_w_readings = deque(maxlen=15)
         self.odu_w_readings = deque(maxlen=15)
         self.hp_power_w: float = 0
         self.ewt_f: float = 0
         self.lwt_f: float = 0
+        self.hp_scada_ops_relay_state: RelayClosedOrOpen = RelayClosedOrOpen.RelayOpen
+        self.log(f"Exempt zones: {self.layout.strat_boss_exemption_zones}")
+        self.log(f"Hours exempt: {self.layout.strat_boss_exemption_hours}")
 
     def start(self) -> None:
         self.services.add_task(
@@ -103,6 +108,16 @@ class StratBoss(ScadaActor):
                 self.defrost_watcher(), name="defrost_watcher"
             )
         )
+        if self.never_operates():
+            self._send_to(self.atn,
+                          Glitch(
+                              FromGNodeAlias=self.layout.scada_g_node_alias,
+                              Node=self.node.name,
+                              Type=LogLevel.Info,
+                              Summary="StratBoss not running. All zones exempt all the time!",
+                              Details="",
+                          ))
+            self.log("Strat boss not running. All zones exempt!")
 
     def stop(self) -> None:
         """ Required method, used for stopping tasks. Noop"""
@@ -111,6 +126,30 @@ class StratBoss(ScadaActor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
         ...
+
+    def never_operates(self) -> bool:
+        """ To shut down strat boss, list all 24 hours 0 .. 23 as exemption
+        hours and all zones as exemption zones"""
+        if len(set(self.layout.strat_boss_exemption_hours)) == 24 and \
+            set(self.layout.zone_list).issubset(set(self.layout.strat_boss_exemption_zones)):
+                return True
+        else:
+            return False
+
+    def operating_now(self) -> bool:
+        if len(self.strat_zones_now()) == 0:
+            return False
+        return True
+    
+    def strat_zones_now(self) -> List[str]:
+        """Returns the list of zones used for cycling water from the heat pump
+        through when in strat boss"""
+        now = datetime.now(self.timezone)
+        exempted = []
+        if now.hour in self.layout.strat_boss_exemption_hours:
+            exempted = self.layout.strat_boss_exemption_zones
+        
+        return [zone for zone in self.layout.zone_list if zone not in exempted]
 
     def sidelined(self) -> bool:
         """ Sidelined if it is out of the chain of command; e.g boss is own ShNode"""
@@ -136,11 +175,13 @@ class StratBoss(ScadaActor):
         return max(self.DIST_PUMP_ON_SECONDS, self.VALVED_TO_DISCHARGE_SECONDS)
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
+        if self.never_operates():
+            return Ok(False)
+        
         if self.sidelined():
             self.log(f"Sidelined so ignoring messages! Handle: {self.node.handle}")
             return Ok(False)
         payload = message.Payload
-        
         from_node = self.layout.node(message.Header.Src, None)
         if from_node is None:
             return Ok(False)
@@ -152,6 +193,8 @@ class StratBoss(ScadaActor):
                     self.log(f"Trouble with process_fsm_event: {e}")
             case FsmFullReport():
                 ... # direct reports following up re acting on commands given
+            case SingleMachineState():
+                self.process_single_machine_state(from_node, payload)
             case StratBossTrigger():
                 self.process_strat_boss_trigger(from_node, payload)
             case _: 
@@ -159,17 +202,6 @@ class StratBoss(ScadaActor):
                 )
                 return Ok(False)
         return Ok(True)
-
-    def is_heatpump_starting_up_or_defrosting(self) -> bool:
-        """ Helps in edge case where Scada goes from homealone
-        to atomic ally just after starting up the heat pump. Without
-        this, the atomic ally will send a TurnOn but it will be 
-        ignored by StratBoss and we will destratify.
-        """
-        if self.hp_power_w < self.HP_POWER_THRESHOLD_W:
-            return True
-        else:
-            return False
 
     def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None:
         if from_node != self.hp_relay_boss:
@@ -179,9 +211,10 @@ class StratBoss(ScadaActor):
         if payload.EventType == TurnHpOnOff.enum_name():
             let_boss_know = False
             if payload.EventName == TurnHpOnOff.TurnOn \
-                and self.state == StratBossState.Dormant:
-                    if not self.is_heatpump_starting_up_or_defrosting():
-                        self.log("NOT STARTING STRATBOSS: don't think the heat pump is actually starting up")
+                and self.state == StratBossState.Dormant \
+                and self.operating_now():
+                    if self.hp_scada_ops_relay_state == RelayClosedOrOpen.RelayClosed:
+                        self.log("NOT STARTING STRATBOSS: hp scada ops relay is already closed")
                     else:
                         let_boss_know = True
                         trigger = StratBossTrigger(
@@ -202,6 +235,22 @@ class StratBoss(ScadaActor):
                 self._send_to(self.boss, trigger)
             else:
                 self.log(f"Got {payload.EventName} but its not triggering a state change from {self.state}")    
+
+    def process_single_machine_state(self, from_node: ShNode, sms: SingleMachineState):
+        if from_node == self.hp_scada_ops_relay:
+            if sms.State != self.hp_scada_ops_relay_state:
+                self.log(f"HpScadaOpsRelay is {sms.State}!")
+                self.hp_scada_ops_relay_state = RelayClosedOrOpen(sms.State)
+                # When Scada starts up the relay is closed (de-energized)
+                # and this should start StratBoss, even though HpRelayBoss
+                # is not involved 
+                if sms.State == RelayClosedOrOpen.RelayClosed:
+                    self._send_to(self.boss,
+                                  StratBossTrigger(
+                            FromState=StratBossState.Dormant,
+                            ToState=StratBossState.Active,
+                            Trigger=StratBossEvent.HpTurnOnReceived
+                        ))
 
     def process_strat_boss_trigger(self, from_node: ShNode, payload: StratBossTrigger):
         """
@@ -256,27 +305,36 @@ class StratBoss(ScadaActor):
 
     def turn_on_dist_pump(self) -> None:
         """
-        Turn on heat calls for all zones and set 010V for dist pump to 100
+        Turn on heat calls for all zones - EXCEPT those in the StratBossExemptionZones list
+        and set 010V for dist pump to 100
         """
+        self.log(f"Forcing heatcalls for {self.strat_zones_now()}")
         # start heat calls on all white wires
-        for zone in self.layout.zone_list:
+        for zone in self.strat_zones_now():
             self.heatcall_ctrl_to_scada(zone)
             self.stat_ops_close_relay(zone)
         # caleffi zone valve controller takes about 30 seconds CHECK
         dist_010v_node = self.layout.node(H0N.dist_010v)
-        # set 010V output to 100
+       
+        
+        if datetime.now(self.timezone).hour in self.layout.strat_boss_exemption_hours:
+            dist_010_value = self.layout.exempted_strat_boss_dist_010v
+            self.log(f"Sent exemption value {dist_010_value} to {dist_010v_node.handle}")
+        else:
+            dist_010_value = self.data.ha1_params.StratBossDist010
+            self.log(f"Sending normal {dist_010_value} to {dist_010v_node.handle} ")
         self._send_to(
             dist_010v_node,
             AnalogDispatch(
                 FromHandle=self.node.handle,
                 ToHandle=dist_010v_node.handle,
                 AboutName=dist_010v_node.Name,
-                Value=self.data.ha1_params.StratBossDist010,
+                Value=dist_010_value,
                 TriggerId=str(uuid.uuid4()),
                 UnixTimeMs=int(time.time() * 1000),
             )
         )
-        self.log(f"Sent analog dispatch to {dist_010v_node.handle}")
+       
 
     def flush_timeout_timer(self) -> None:
         if hasattr(self, "_timeout_timer_task"):
@@ -361,36 +419,37 @@ class StratBoss(ScadaActor):
         """
         self.last_pat_s = 0
         while not self._stop_requested:
-            if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
-                self._send(PatInternalWatchdogMessage(src=self.name))
-                self.last_pat_s = time.time()
-            try: 
-                good_readings = self.update_power_readings()
-            except Exception as e:
-                self.log(f"Trouble with update_power_readings: {e}")
-            if good_readings:
-                if self.state == StratBossState.Dormant:
-                    if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
-                        if self.lg_high_temp_hydrokit_entering_defrost():
-                            self._send_to(self.boss, StratBossTrigger(
-                                    FromState=StratBossState.Dormant,
-                                    ToState=StratBossState.Active,
-                                    Trigger=StratBossEvent.DefrostDetected
-                                ) 
-                            )
-                            self.log("Defrost detected!")
-                    elif self.hp_model in [HpModel.SamsungFourTonneHydroKit,
-                                           HpModel.SamsungFiveTonneHydroKit]:
-                        if self.samsung_entering_defrost():
-                            self._send_to(self.boss, StratBossTrigger(
-                                FromState=StratBossState.Dormant,
-                                    ToState=StratBossState.Active,
-                                    Trigger=StratBossEvent.DefrostDetected
+            if self.operating_now():
+                if time.time() - self.last_pat_s > self.WATCHDOG_PAT_S:
+                    self._send(PatInternalWatchdogMessage(src=self.name))
+                    self.last_pat_s = time.time()
+                try: 
+                    good_readings = self.update_power_readings()
+                except Exception as e:
+                    self.log(f"Trouble with update_power_readings: {e}")
+                if good_readings:
+                    if self.state == StratBossState.Dormant:
+                        if self.hp_model == HpModel.LgHighTempHydroKitPlusMultiV:
+                            if self.lg_high_temp_hydrokit_entering_defrost():
+                                self._send_to(self.boss, StratBossTrigger(
+                                        FromState=StratBossState.Dormant,
+                                        ToState=StratBossState.Active,
+                                        Trigger=StratBossEvent.DefrostDetected
+                                    ) 
                                 )
-                            )
-                            self.log("Defrost detected!")
+                                self.log("Defrost detected!")
+                        elif self.hp_model in [HpModel.SamsungFourTonneHydroKit,
+                                            HpModel.SamsungFiveTonneHydroKit]:
+                            if self.samsung_entering_defrost():
+                                self._send_to(self.boss, StratBossTrigger(
+                                    FromState=StratBossState.Dormant,
+                                        ToState=StratBossState.Active,
+                                        Trigger=StratBossEvent.DefrostDetected
+                                    )
+                                )
+                                self.log("Defrost detected!")
 
-            await asyncio.sleep(self.DEFROST_DETECT_SLEEP_S)
+                await asyncio.sleep(self.DEFROST_DETECT_SLEEP_S)
 
     def lg_high_temp_hydrokit_entering_defrost(self) -> bool:
         """

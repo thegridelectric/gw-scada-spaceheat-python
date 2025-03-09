@@ -50,6 +50,7 @@ def test_scada_settings_defaults(clean_scada_env):
         stratboss_dist_010v=100,
         pico_cycler_state_logging=False,
         power_meter_logging_level=logging.WARNING,
+        relay_multiplexer_logging_level=logging.INFO,
         local_mqtt=exp_local_mqtt.model_dump(),
         gridworks_mqtt=MQTTClient(
             tls=TLSInfo().update_tls_paths(

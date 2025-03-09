@@ -11,6 +11,7 @@ class ZoneNodes:
         zone_name = f"zone{idx + 1}-{zone}".lower()
         self.zone_name = zone_name
         self.stat = f"{zone_name}-stat"
+        self.whitewire=f"zone{idx + 1}-{zone}-whitewire"
 
     def __repr__(self) -> str:
         return f"Zone {self.zone_name} and stat {self.stat}"
@@ -35,9 +36,10 @@ class ZoneChannelNames:
         self.temp = f"{self.zone_name}-temp"
         self.set = f"{self.zone_name}-set"
         self.state = f"{self.zone_name}-state"
+        self.whitewire_pwr=f"zone{idx}-{zone}-whitewire-pwr"
 
     def __repr__(self) -> str:
-        return f"Channels: .temp: {self.temp}, .set: {self.set}, .state: {self.state}"
+        return f"Channels: {self.temp}, {self.set}, {self.state}, {self.whitewire_pwr}"
 
 
 class TankChannelNames:
@@ -83,6 +85,7 @@ class H0N:
     zero_ten_out_multiplexer = "dfr-multiplexer"
     hp_relay_boss = "hp-relay-boss"
     strat_boss = "strat-boss"
+    pump_doctor = "pump-doc"
 
     # core power-metered nodes
     hp_odu = "hp-odu"
@@ -359,25 +362,26 @@ class H0CN:
                 TelemetryName=TelemetryName.WaterTempCTimes1000,
             )
         for i in self.zone:
-            d[self.zone[i].temp] = (
-                ChannelStub(
+            d[self.zone[i].temp] = ChannelStub(
                     Name=self.zone[i].temp,
                     AboutNodeName=self.zone[i].zone_name,
                     TelemetryName=TelemetryName.AirTempFTimes1000,
                 ),
-            )
-            d[self.zone[i].set] = (
-                ChannelStub(
+    
+            d[self.zone[i].set] = ChannelStub(
                     Name=self.zone[i].temp,
                     AboutNodeName=self.zone[i].stat_name,
                     TelemetryName=TelemetryName.AirTempFTimes1000,
                 ),
-            )
-            d[self.zone[i].set] = (
-                ChannelStub(
+            d[self.zone[i].set] = ChannelStub(
                     Name=self.zone[i].state,
                     AboutNodeName=self.zone[i].stat_name,
                     TelemetryName=TelemetryName.ThermostatState,
                 ),
-            )
+            d[self.zone[i].whitewire] = ChannelStub(
+                    Name=self.zone[i].state,
+                    AboutNodeName=self.zone[i].stat_name,
+                    TelemetryName=TelemetryName.ThermostatState,
+                ),
+            
         return d
