@@ -33,8 +33,8 @@ from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
-from enums import ContractStatus, RepresentationStatus
-from named_types import (AtnBid, FloParamsHouse0,Ha1Params, LatestPrice, LayoutLite, 
+from enums import ContractStatus, LogLevel, RepresentationStatus
+from named_types import (AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, 
                          NoNewContractWarning, PriceQuantityUnitless, 
                          ScadaParams, SendLayout, SetRepresentationStatus,
                          SlowContractHeartbeat,  SnapshotSpaceheat)
@@ -309,6 +309,11 @@ class Atn(ActorInterface, Proactor):
                 )  
                 self.log(f"Bid: {bid}")
                 self.sent_bid = True
+            case Glitch():
+                self._links.publish_message(
+                    self.SCADA_MQTT,
+                    Message(Src=self.publication_name, Dst="broadcast", Payload=message.Payload)
+                )
             case LatestPrice():
                 path_dbg |= 0x00000100
                 self.process_latest_price(message.Payload)
@@ -780,12 +785,53 @@ class Atn(ActorInterface, Proactor):
         # Instead of waiting, return to event loop
         self.log("Started Dijkstra computation in background")
 
+    def validate_bid_time(self, bid: AtnBid) -> bool:
+        """ Validates that the bid's market slot name corresponds to the current hour."""
+        if not bid:
+            return False
+            
+        # Extract slot start time from market slot name
+        try:
+            market_slot_name_parts = bid.MarketSlotName.split('.')
+            slot_start_s = int(market_slot_name_parts[-1])
+            
+            # Get current hour start in unix time
+            now = time.time()
+            current_hour_start_s = int(now - (now % 3600))
+            
+            # Check if bid is for current hour
+            if slot_start_s != current_hour_start_s:
+                self.log(f"Bid time mismatch: bid for {slot_start_s}, current hour starts at {current_hour_start_s}")
+                return False
+                
+            return True
+        except (ValueError, IndexError) as e:
+            self.log(f"Error validating bid time: {e}")
+            return False
+
     def process_latest_price(self, payload: LatestPrice) -> None:
         self.contract_handler.latest_price = payload
         self.log("Received latest price")
         if self.contract_handler.latest_bid is None:
             self.log("Ignoring - no bid exists")
             return
+
+        # Validate bid timeframe
+        if not self.validate_bid_time(self.contract_handler.latest_bid):
+            # Send glitch message to report invalid bid time
+            glitch = Glitch(
+                FromGNodeAlias=self.layout.atn_g_node_alias,
+                Node=self.node.name,
+                Type=LogLevel.Warning,
+                Summary="Invalid bid timeframe",
+                Details=f"Stale bid detected. Bid slot start: {self.contract_handler.latest_bid.MarketSlotName}. Current price: {payload.MarketSlotName}",
+                CreatedMs=int(time.time() * 1000)
+            )
+            self.send_threadsafe(
+                Message(Src=self.name, Dst=self.name, Payload=glitch))
+            self.log("Sent glitch for invalid bid timeframe")
+            return
+        
         if (
             datetime.now(self.timezone).minute != 0
             and datetime.now(self.timezone).second <= 5
