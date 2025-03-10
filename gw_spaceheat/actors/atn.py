@@ -121,6 +121,7 @@ class BidRunner(threading.Thread):
                         Payload=self.bid
                     )
                 )
+                break
         finally:
             # Ensure cleanup happens even if there's an error
             self.log("Done running bid runner")
