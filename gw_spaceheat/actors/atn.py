@@ -628,7 +628,7 @@ class Atn(ActorInterface, Proactor):
             else:
                 if self.contract_handler.latest_hb is None:
                     self.log(f"No active contract. Representation status {self.contract_handler.status.value}")
-                await self.run_fake_d(session)
+                # await self.run_fake_d(session)
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
@@ -1236,8 +1236,6 @@ class Atn(ActorInterface, Proactor):
             if response.status_code == 200:
                 self.log("Successfully received prices from API")
                 data = response.json()
-                self.log(data)
-                self.log(data['lmp'])
                 self.price_forecast = PriceForecast(
                     dp_usd_per_mwh=data['dist'],
                     lmp_usd_per_mwh=data['lmp'],
