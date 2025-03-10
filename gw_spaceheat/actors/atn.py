@@ -1230,12 +1230,12 @@ class Atn(ActorInterface, Proactor):
         return self.price_forecast.dp_usd_per_mwh[0] + self.price_forecast.lmp_usd_per_mwh[0]
 
     async def get_price_forecast_from_price_service(self):
-        url = "https://price-forecast.electricity.works/get_prices"
+        url = "https://price-forecasts.electricity.works/get_prices"
         async with httpx.AsyncClient() as client:
             response = await client.post(url)
             if response.status_code == 200:
                 self.log("Successfully received prices from API")
-                data = response.json()
+                data = await response.json()
                 self.price_forecast = PriceForecast(
                     dp_usd_per_mwh=data['dist'],
                     lmp_usd_per_mwh=data['lmp'],
