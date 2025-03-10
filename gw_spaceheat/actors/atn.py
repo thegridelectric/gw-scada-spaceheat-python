@@ -15,6 +15,7 @@ import numpy as np
 import pytz
 import aiohttp
 import rich
+import httpx
 from actors.flo import DGraph
 from actors.hinge import FloHinge
 from data_classes.house_0_layout import House0Layout
@@ -67,6 +68,7 @@ class BidRunner(threading.Thread):
                  on_complete: Callable[[str], None],
                  logger: Optional[Callable[[str], None]] = None):
         super().__init__()
+        self.stop_event = threading.Event()
         self.log = logger or print  # Fallback to print if no logger provided
         self.params = params
         self.atn_settings = atn_settings
@@ -75,54 +77,61 @@ class BidRunner(threading.Thread):
         self.send_threadsafe = send_threadsafe
         self.on_complete = on_complete
         self.bid: Optional[AtnBid] = None
+        self.alive_since = time.time()
         
     def run(self):
         try:
-            # Run FLO
-            self.log("Creating graph and solving Dijkstra...")
-            st = time.time()
-            if self.atn_settings.hinge:
-                self.log("Using hinge")
-                g = FloHinge(self.params, hinge_hours=5, num_nodes=[10,3,3,3,3])
-            else:
-                self.log("Not using hinge")
-                g = DGraph(self.params)
-                g.solve_dijkstra()
-            self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
-            self.log("Finding PQ pairs...")
-            st = time.time()
-            pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
-            self.log(f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds")
-            
-            # Generate bid
-            t = time.time()
-            slot_start_s = int(t - (t % 3600)) + 3600
-            mtn = MarketTypeName.rt60gate5.value
-            market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-            self.bid = AtnBid(
-                BidderAlias=self.atn_alias,
-                MarketSlotName=market_slot_name,
-                PqPairs=pq_pairs,
-                InjectionIsPositive=False,  # withdrawing energy since load not generation
-                PriceUnit=MarketPriceUnit.USDPerMWh,
-                QuantityUnit=MarketQuantityUnit.AvgkW,
-                SignedMarketFeeTxn="BogusAlgoSignature",
-            )
-            
-            # Send bid through ATN's message processing
-            self.send_threadsafe(
-                Message(
-                    Src=self.atn_name,
-                    Dst=self.atn_name,
-                    Payload=self.bid
+            while not self.stop_event.is_set():
+                # Run FLO
+                self.log("Creating graph and solving Dijkstra...")
+                st = time.time()
+                if self.atn_settings.hinge:
+                    self.log("Using hinge")
+                    g = FloHinge(self.params, hinge_hours=5, num_nodes=[10,3,3,3,3])
+                else:
+                    self.log("Not using hinge")
+                    g = DGraph(self.params)
+                    g.solve_dijkstra()
+                self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
+                self.log("Finding PQ pairs...")
+                st = time.time()
+                pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
+                self.log(f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds")
+                
+                # Generate bid
+                t = time.time()
+                slot_start_s = int(t - (t % 3600)) + 3600
+                mtn = MarketTypeName.rt60gate5.value
+                market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
+                self.bid = AtnBid(
+                    BidderAlias=self.atn_alias,
+                    MarketSlotName=market_slot_name,
+                    PqPairs=pq_pairs,
+                    InjectionIsPositive=False,  # withdrawing energy since load not generation
+                    PriceUnit=MarketPriceUnit.USDPerMWh,
+                    QuantityUnit=MarketQuantityUnit.AvgkW,
+                    SignedMarketFeeTxn="BogusAlgoSignature",
                 )
-            )
+                
+                # Send bid through ATN's message processing
+                self.send_threadsafe(
+                    Message(
+                        Src=self.atn_name,
+                        Dst=self.atn_name,
+                        Payload=self.bid
+                    )
+                )
+                break
         finally:
             # Ensure cleanup happens even if there's an error
             self.log("Done running bid runner")
             self.on_complete(self.atn_name)
             # Explicitly delete the graph to free memory
             del g
+
+    def stop(self):
+        self.log("Stopping BidRunner")
+        self.stop_event.set()
 
 class AtnMQTTCodec(MQTTCodec):
     exp_src: str
@@ -240,7 +249,7 @@ class Atn(ActorInterface, Proactor):
             ),
             send_threadsafe=self.send_threadsafe,
         )
-        self.bid_runner = None
+        self.bid_runner: BidRunner = None
 
     @property
     def name(self) -> str:
@@ -598,6 +607,13 @@ class Atn(ActorInterface, Proactor):
         self.send_layout() # if we've just started, we need the layout
         while not self._stop_requested:
 
+            if (self.bid_runner is not None 
+                and self.bid_runner.is_alive()
+                and time.time() - self.bid_runner.alive_since > 5*60):
+                    self.log("BidRunner has been running since at least 5 minutes, stop")
+                    self.bid_runner.stop()
+                    self.bid_runner.on_complete(self.name)
+
             if datetime.now().minute >= 55 and not self.sent_bid:
                 if self.contract_handler.status == RepresentationStatus.Active:
                     # In the last 5 minutes of the hour: make a bid for the next hour
@@ -631,7 +647,12 @@ class Atn(ActorInterface, Proactor):
         # Check if there's already a bid runner
         if self.bid_runner is not None and self.bid_runner.is_alive():
             self.log("BidRunner already running!")
-            return
+            if time.time() - self.bid_runner.alive_since > 5*60:
+                self.log("BidRunner has been running since at least 5 minutes, stop")
+                self.bid_runner.stop()
+                self.bid_runner.on_complete(self.name)
+            else:
+                return
 
         if datetime.now().minute >= 55:
             dijkstra_start_time = int(
@@ -643,7 +664,7 @@ class Atn(ActorInterface, Proactor):
             # TODO: under some conditions we might want to run a FLO at another time
             return
         await self.get_weather(session)
-        self.update_price_forecast()
+        await self.update_price_forecast()
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_thermocline_and_centroids()
@@ -719,14 +740,19 @@ class Atn(ActorInterface, Proactor):
         # Check if there's already a bid runner
         if self.bid_runner is not None and self.bid_runner.is_alive():
             self.log("BidRunner already running!")
-            return
+            if time.time() - self.bid_runner.alive_since > 5*60:
+                self.log("BidRunner has been running since at least 5 minutes, stop")
+                self.bid_runner.stop()
+                self.bid_runner.on_complete(self.name)
+            else:
+                return
     
         dijkstra_start_time = int(
             datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
             )
         
         await self.get_weather(session)
-        self.update_price_forecast()
+        await self.update_price_forecast()
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_thermocline_and_centroids()
@@ -1192,73 +1218,94 @@ class Atn(ActorInterface, Proactor):
             "ws": wf["ws"],
         }
 
-    def get_price(self) -> float:
+    async def get_price(self) -> float:
         """ returns price this hour (LMP plus Dist) in USD/MWh 
         
         Hack: perfect forecast - use price forecast 
         """
         if not self.price_forecast:
-            self.update_price_forecast()
+            await self.update_price_forecast()
         if not self.price_forecast:
             return 0
         return self.price_forecast.dp_usd_per_mwh[0] + self.price_forecast.lmp_usd_per_mwh[0]
 
-    def update_price_forecast(self) -> None:
+    async def get_price_forecast_from_price_service(self):
+        url = "https://price-forecasts.electricity.works/get_prices"
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url)
+            if response.status_code == 200:
+                self.log("Successfully received prices from API")
+                data = response.json()
+                self.price_forecast = PriceForecast(
+                    dp_usd_per_mwh=data['dist'],
+                    lmp_usd_per_mwh=data['lmp'],
+                    reg_usd_per_mwh=[0] * len(data['lmp']),
+                )
+            else:
+                self.log(f"Status code: {response.status_code}")
+                raise Exception("Failed to receive prices.")
+
+    async def update_price_forecast(self) -> None:
         """ updates self.price_forecast for the start of next hour. All in USD/MWh
 
         Reads the 72 hour electricity price from price_forecast.csv file in data 
         directory. Uses the datetime day mod 3 to determine which day it is
-       
         """
-
-        dist_usd_mwh = []
-        lmp_usd_mwh = []
-        reg_usd_mwh = []
         try:
-            file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
-            with open(file_path, mode='r', newline='') as file:
-                reader = csv.reader(file)
-                next(reader)
-                for row in reader:
-                    dist_usd_mwh.append(float(row[0]))
-                    lmp_usd_mwh.append(float(row[1]))
-                    reg_usd_mwh.append(0.0)
-                if len(dist_usd_mwh)<72 or len(lmp_usd_mwh)<72:
-                    raise Exception("Price forecasts must be at least 72 hours long")
-        except Exception as e:
-            self.log("Error reading price forecast from csv")
-            raise Exception(e)
-        
-        if datetime.now(tz=self.timezone) < datetime(2025, 2, 20, 17, tzinfo=self.timezone):
-            # Get the current hour
-            now = datetime.now(tz=self.timezone)
-            current_hour = now.hour
-            day_offset = (now.day % 3) * 24
+            await self.get_price_forecast_from_price_service()
+            self.log("Successfully received price forecast from API")
+            self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
+            self.log(f"total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
+        except:
+            self.log("FAILED to get price forecast from price service, trying with local CSV")
+            dist_usd_mwh = []
+            lmp_usd_mwh = []
+            reg_usd_mwh = []
+            try:
+                file_path = Path(f"{self.settings.paths.data_dir}/price_forecast.csv")
+                with open(file_path, mode='r', newline='') as file:
+                    reader = csv.reader(file)
+                    next(reader)
+                    for row in reader:
+                        dist_usd_mwh.append(float(row[0]))
+                        lmp_usd_mwh.append(float(row[1]))
+                        reg_usd_mwh.append(0.0)
+                    if len(dist_usd_mwh)<72 or len(lmp_usd_mwh)<72:
+                        raise Exception("Price forecasts must be at least 72 hours long")
+            except Exception as e:
+                self.log("Error reading price forecast from csv")
+                raise Exception(e)
+            
+            if datetime.now(tz=self.timezone) < datetime(2025, 2, 20, 17, tzinfo=self.timezone):
+                # Get the current hour
+                now = datetime.now(tz=self.timezone)
+                current_hour = now.hour
+                day_offset = (now.day % 3) * 24
 
-            # Calculate the starting hour for the 48-hour forecast
-            start_hour = (day_offset + current_hour + 1) % 72
+                # Calculate the starting hour for the 48-hour forecast
+                start_hour = (day_offset + current_hour + 1) % 72
 
-            # Wrap the lists for the 48-hour forecast
-            dp_forecast_usd_per_mwh = [dist_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-            lmp_forecast_usd_per_mwh = [lmp_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-            reg_forecast_usd_per_mwh = [reg_usd_mwh[(start_hour + i) % 72] for i in range(48)]
-        else:
-            time_since_21_feb = (datetime.now(tz=self.timezone).replace(minute=0, second=0, microsecond=0)
-                                 - datetime(2025, 2, 20, 17, tzinfo=self.timezone))
-            start_hour = int(time_since_21_feb.total_seconds() / 3600)
-            dp_forecast_usd_per_mwh = [dist_usd_mwh[start_hour + i] for i in range(48)]
-            lmp_forecast_usd_per_mwh = [lmp_usd_mwh[start_hour + i] for i in range(48)]
-            reg_forecast_usd_per_mwh = [reg_usd_mwh[start_hour + i] for i in range(48)]
+                # Wrap the lists for the 48-hour forecast
+                dp_forecast_usd_per_mwh = [dist_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+                lmp_forecast_usd_per_mwh = [lmp_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+                reg_forecast_usd_per_mwh = [reg_usd_mwh[(start_hour + i) % 72] for i in range(48)]
+            else:
+                time_since_21_feb = (datetime.now(tz=self.timezone).replace(minute=0, second=0, microsecond=0)
+                                    - datetime(2025, 2, 20, 17, tzinfo=self.timezone))
+                start_hour = int(time_since_21_feb.total_seconds() / 3600)
+                dp_forecast_usd_per_mwh = [dist_usd_mwh[start_hour + i] for i in range(48)]
+                lmp_forecast_usd_per_mwh = [lmp_usd_mwh[start_hour + i] for i in range(48)]
+                reg_forecast_usd_per_mwh = [reg_usd_mwh[start_hour + i] for i in range(48)]
 
-        # Update the price forecasts
-        self.price_forecast = PriceForecast(
-            dp_usd_per_mwh=dp_forecast_usd_per_mwh,
-            lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
-            reg_usd_per_mwh=reg_forecast_usd_per_mwh,
-        )
-        self.log("Successfully read price forecast from local CSV")
-        self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
-        self.log(f"total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
+            # Update the price forecasts
+            self.price_forecast = PriceForecast(
+                dp_usd_per_mwh=dp_forecast_usd_per_mwh,
+                lmp_usd_per_mwh=lmp_forecast_usd_per_mwh,
+                reg_usd_per_mwh=reg_forecast_usd_per_mwh,
+            )
+            self.log("Successfully read price forecast from local CSV")
+            self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
+            self.log(f"total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
 
     def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
         data = np.array(data).reshape(-1, 1)
