@@ -1242,6 +1242,7 @@ class Atn(ActorInterface, Proactor):
                     reg_usd_per_mwh=[0] * len(data['lmp']),
                 )
             else:
+                self.log(f"Status code: {response.status_code}")
                 raise Exception("Failed to receive prices.")
 
     async def update_price_forecast(self) -> None:
