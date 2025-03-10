@@ -628,7 +628,7 @@ class Atn(ActorInterface, Proactor):
             else:
                 if self.contract_handler.latest_hb is None:
                     self.log(f"No active contract. Representation status {self.contract_handler.status.value}")
-                # await self.run_fake_d(session)
+                await self.run_fake_d(session)
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
