@@ -1235,7 +1235,7 @@ class Atn(ActorInterface, Proactor):
             response = await client.post(url)
             if response.status_code == 200:
                 self.log("Successfully received prices from API")
-                data = await response.json()
+                data = response.json()
                 self.log(data)
                 self.log(data['lmp'])
                 self.price_forecast = PriceForecast(
