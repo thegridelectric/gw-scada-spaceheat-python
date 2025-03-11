@@ -1335,7 +1335,7 @@ class Atn(ActorInterface, Proactor):
 
             # Sleep until the top of the hour
             await asyncio.sleep(sleep_time)
-            self.send_latest_price()
+            await self.send_latest_price()
 
     async def send_latest_price(self) -> None:
         now = time.time()
