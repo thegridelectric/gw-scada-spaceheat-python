@@ -1337,12 +1337,12 @@ class Atn(ActorInterface, Proactor):
             await asyncio.sleep(sleep_time)
             self.send_latest_price()
 
-    def send_latest_price(self) -> None:
+    async def send_latest_price(self) -> None:
         now = time.time()
         slot_start_s = int(now) - int(now) % 3600
         mtn = MarketTypeName.rt60gate5.value
         market_slot_name = f"e.{mtn}.{Atn.P_NODE}.{slot_start_s}"
-        usd_per_mwh = self.get_price()
+        usd_per_mwh = await self.get_price()
         price = LatestPrice(
                 FromGNodeAlias=Atn.P_NODE,
                 PriceTimes1000=int(usd_per_mwh * 1000),
