@@ -1226,7 +1226,47 @@ class Atn(ActorInterface, Proactor):
         if not self.price_forecast:
             await self.update_price_forecast()
         if not self.price_forecast:
-            return 0
+            try:
+                self.log("Could not get a price forecast.")
+                local_available, price = False, 0
+                # Read from local file
+                prices_file = Path(f"{self.settings.paths.data_dir}/weather.json")
+                if prices_file.exists():
+                    start_of_hour_timestamp = int(time.time() // 3600) * 3600
+                    with open(prices_file, 'r') as f:
+                        prices = json.load(f)
+                    if start_of_hour_timestamp in prices['unix_s']:
+                        self.log("A valid price forecast is available locally.")
+                        local_available = True
+                        index = prices['unix_s'].index(start_of_hour_timestamp)
+                        price = prices['energy'][index]
+                # Send glitch
+                glitch = Glitch(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    Node=self.node.name,
+                    Type=LogLevel.Critical,
+                    Summary="Could not find price forecast",
+                    Details="Local file had a forecast" if local_available else "Local file did not have a forecast",
+                    CreatedMs=int(time.time() * 1000)
+                )
+                self.send_threadsafe(
+                    Message(Src=self.name, Dst=self.name, Payload=glitch))
+                self.log("Sent glitch")
+                # Return price read locally or 0
+                return price
+            except:
+                glitch = Glitch(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    Node=self.node.name,
+                    Type=LogLevel.Critical,
+                    Summary="Could not find price forecast",
+                    Details="An error occured while attempting to read from local file",
+                    CreatedMs=int(time.time() * 1000)
+                )
+                self.send_threadsafe(
+                    Message(Src=self.name, Dst=self.name, Payload=glitch))
+                self.log("Sent glitch")
+                return 0
         return self.price_forecast.dp_usd_per_mwh[0] + self.price_forecast.lmp_usd_per_mwh[0]
 
     async def get_price_forecast_from_price_service(self):
@@ -1238,9 +1278,13 @@ class Atn(ActorInterface, Proactor):
                 data = response.json()
                 self.price_forecast = PriceForecast(
                     dp_usd_per_mwh=data['dist'],
-                    lmp_usd_per_mwh=data['lmp'],
+                    lmp_usd_per_mwh=data['lmp'],  
                     reg_usd_per_mwh=[0] * len(data['lmp']),
                 )
+                # Save price forecast to a local file
+                prices_file = Path(f"{self.settings.paths.data_dir}/weather.json")
+                with open(prices_file, 'w') as f:
+                    json.dump(data, f, indent=4) 
             else:
                 self.log(f"Status code: {response.status_code}")
                 raise Exception("Failed to receive prices.")
