@@ -179,7 +179,6 @@ class HomeAlone(ScadaActor):
             self.top_state = HomeAloneTopState.Monitor
         else: 
             self.top_state = HomeAloneTopState.Normal
-        self.timezone = pytz.timezone(self.settings.timezone_str)
         self.is_simulated = self.settings.is_simulated
         self.oil_boiler_during_onpeak = self.settings.oil_boiler_for_onpeak_backup
         self.log(f"Params: {self.params}")
@@ -195,6 +194,8 @@ class HomeAlone(ScadaActor):
         self.set_command_tree(boss_node=self.normal_node)
         self.pump_doc_state: PumpDocState = PumpDocState.Dormant
         self.last_pump_doc_change_s: float = 0
+        self.starting_up: bool = True
+
 
     @property
     def normal_node(self) -> ShNode:
@@ -366,7 +367,14 @@ class HomeAlone(ScadaActor):
                 
                 # Update state
                 if self.top_state == HomeAloneTopState.Normal:
-                    self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
+                    if self.starting_up:
+                        waking_up = True
+                        # make sure engage_brain is called with "waking up" even if
+                        # sytem switches abruptly to StratBoss on startup
+                    else:
+                        waking_up = self.state==HomeAloneState.Initializing
+                    self.engage_brain(waking_up=waking_up)
+                self.starting_up = False
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
             if self.pump_doc_state != PumpDocState.Dormant and \
                 time.time() - self.last_pump_doc_change_s > 60:
@@ -543,6 +551,7 @@ class HomeAlone(ScadaActor):
             self.turn_off_HP(from_node=self.normal_node)
 
         try:
+            self.log("Setting 010 defaults inside initialize_actuators")
             self.set_010_defaults()
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")

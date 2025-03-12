@@ -33,7 +33,7 @@ from gwproto.enums import (
 
 )
 
-from gwproto.named_types import FsmAtomicReport, FsmFullReport, MachineStates
+from gwproto.named_types import FsmAtomicReport, FsmFullReport
 from result import Err, Ok, Result
 from transitions import Machine
 from data_classes.house_0_names import House0RelayIdx

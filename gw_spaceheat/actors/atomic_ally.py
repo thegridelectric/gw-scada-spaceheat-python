@@ -1,5 +1,6 @@
 import asyncio
 import time
+import datetime
 import uuid
 from enum import auto
 from typing import cast, List, Sequence, Optional
@@ -122,7 +123,6 @@ class AtomicAlly(ScadaActor):
         )     
         self.state: AtomicAllyState = AtomicAllyState.Dormant
         self.prev_state: AtomicAllyState = AtomicAllyState.Dormant 
-        self.timezone = pytz.timezone(self.settings.timezone_str)
         self.is_simulated = self.settings.is_simulated
         self.log(f"Params: {self.params}")
         self.log(f"self.is_simulated: {self.is_simulated}")

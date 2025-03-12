@@ -1,13 +1,13 @@
 import time
 import uuid
 from typing import Any, Dict, List, Optional, cast
-
-from actors.config import ScadaSettings
+import pytz
 from actors.scada_data import ScadaData
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N, House0RelayIdx
 from gw.errors import DcError
-from gwproactor import Actor, ServicesInterface, QOS
+from actors.scada_interface import ScadaInterface
+from gwproactor import Actor,  QOS
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.enums import (
@@ -26,11 +26,11 @@ from pydantic import ValidationError
 
 
 class ScadaActor(Actor):
-    layout: House0Layout
-    node: ShNode
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
+        self.settings = services.settings
+        self.timezone = pytz.timezone(self.settings.timezone_str)
 
     @property
     def node(self) -> ShNode:
@@ -44,10 +44,6 @@ class ScadaActor(Actor):
         except Exception as e:
             raise Exception(f"Failed to cast layout as House0Layout!! {e}")
         return layout
-
-    @property
-    def settings(self) -> ScadaSettings:
-        return self.services.settings
 
     @property
     def data(self) -> ScadaData:

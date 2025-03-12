@@ -46,6 +46,8 @@ from gwproactor.persister import TimedRollingFilePersister
 from gwproactor.proactor_implementation import Proactor
 
 from actors.subscription_handler import ChannelSubscription, StateMachineSubscription
+from actors.home_alone import HomeAlone
+from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
 from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoEvent, MainAutoState, 
@@ -284,7 +286,10 @@ class Scada(ScadaInterface, Proactor):
         self.state_machine_subscriptions: List[StateMachineSubscription] = [
             StateMachineSubscription(
                 subscriber_name=self.layout.h0n.pump_doctor,
-                publisher_name=self.layout.h0n.store_pump_failsafe)                       
+                publisher_name=self.layout.h0n.store_pump_failsafe),
+            StateMachineSubscription(
+                subscriber_name=self.layout.h0n.strat_boss,
+                publisher_name=self.layout.h0n.hp_scada_ops_relay)                   
         ]
         self.channel_subscriptions: Dict[str, ChannelSubscription] = {}
         for i in range(len(self.layout.zone_list)):
@@ -294,7 +299,6 @@ class Scada(ScadaInterface, Proactor):
                     subscriber_name=self.layout.h0n.pump_doctor,
                     channel_name=self.layout.channel_names.zone[zone_idx].whitewire_pwr
                 )
-        
 
     def _start_derived_tasks(self):
         self._tasks.append(
@@ -652,13 +656,13 @@ class Scada(ScadaInterface, Proactor):
 
         prior_status = self.contract_handler.status
         if cmd.Status == RepresentationStatus.Dormant:
+            if self.contract_handler.latest_scada_hb:
+                termination_hb = self.contract_handler.scada_terminates_contract_hb(
+                    "Atn sent SetRepresentationStatus Dormant"
+                )
+                self._send_to(self.atn, termination_hb)
+                            # Immediate transition to HomeAlone
             if self.auto_state == MainAutoState.Atn:
-                if self.contract_handler.latest_scada_hb:
-                    termination_hb = self.contract_handler.scada_terminates_contract_hb(
-                        "Atn sent SetRepresentationStatus Dormant"
-                    )
-                    self._send_to(self.atn, termination_hb)
-                                # Immediate transition to HomeAlone
                 self.auto_trigger(MainAutoEvent.AtnReleasesControl)
             self.contract_handler.status = RepresentationStatus.Dormant
             if self.contract_handler.latest_scada_hb:
@@ -735,6 +739,7 @@ class Scada(ScadaInterface, Proactor):
                     )
                 else:
                     self.log(f"Subscriber {subscription.subscriber_name} not found for state change from {from_node.Name}")
+
 
     def process_single_reading(
         self, from_node: ShNode, payload: SingleReading
@@ -1204,9 +1209,14 @@ class Scada(ScadaInterface, Proactor):
         """ Enforces that auto_state [Atn, HomeAlone, Dormant] is consistent
         with the top_state reported by `h` [Dormant v anything else] and `aa` [Dormant v anything else]
         """
-        aa_state = self.data.latest_machine_state[self.atomic_ally.name].State
-        h_state = self.data.latest_machine_state[self.home_alone.name].State
+        h: HomeAlone = self.get_communicator(H0N.home_alone)
+        aa: AtomicAlly = self.get_communicator(H0N.atomic_ally)
 
+        
+        #aa_state = self.data.latest_machine_state[self.atomic_ally.name].State
+        #h_state = self.data.latest_machine_state[self.home_alone.name].State
+        aa_state = aa.state
+        h_state = h.top_state
 
         if self.auto_state == MainAutoState.Dormant:
             if aa_state != AtomicAllyState.Dormant:
