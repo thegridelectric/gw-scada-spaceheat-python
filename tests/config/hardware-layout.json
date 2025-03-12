@@ -150,6 +150,18 @@
       "Version": "001"
     },
     {
+      "AboutNodeName": "zone1-main-whitewire",
+      "CapturedByNodeName": "power-meter",
+      "DisplayName": "ZONE1 MAIN WHITEWIRE PWR",
+      "Id": "731fa356-64d5-4c34-8c9d-9a57cef25bbe",
+      "InPowerMetering": false,
+      "Name": "zone1-main-whitewire-pwr",
+      "TelemetryName": "PowerW",
+      "TerminalAssetAlias": "d1.isone.ct.newhaven.orange1.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
       "AboutNodeName": "zone1-main",
       "CapturedByNodeName": "zone1-main-stat",
       "DisplayName": "Zone1 Main Temp",
@@ -277,7 +289,19 @@
           "TypeName": "electric.meter.channel.config",
           "Unit": "W",
           "Version": "000"
+        },
+        {
+          "AsyncCapture": true,
+          "AsyncCaptureDelta": 5,
+          "CapturePeriodS": 300,
+          "ChannelName": "zone1-main-whitewire-pwr",
+          "Exponent": 0,
+          "PollPeriodMs": 1000,
+          "TypeName": "electric.meter.channel.config",
+          "Unit": "W",
+          "Version": "000"
         }
+
       ],
       "DisplayName": "Power Meter for Simulated Test system",
       "TypeName": "electric.meter.component.gt",
@@ -1051,6 +1075,16 @@
       "ActorHierarchyName": "s.zone1-main-stat",
       "Name": "zone1-main-stat",
       "ShNodeId": "24212380-515b-4842-9541-ad680919de19",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "NoActor",
+      "DisplayName": "Zone1 Main Whitewire",
+      "InPowerMetering": false,
+      "Name": "zone1-main-whitewire",
+      "NameplatePowerW": 10,
+      "ShNodeId": "fbe50b3d-74d7-4e33-a2c3-a3e04e5a0ce5",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },
