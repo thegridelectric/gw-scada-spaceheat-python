@@ -294,7 +294,7 @@ class DEdge():
         self.fake_cost: Optional[float] = None
 
     def __repr__(self):
-        return f"Edge: {self.tail} --cost:{round(self.cost,3)}--> {self.head}"
+        return f"Edge: {self.tail} --cost:{round(self.cost,3)}, heat:{round(self.hp_heat_out,2)}--> {self.head}"
 
 
 class DGraph():
@@ -343,6 +343,9 @@ class DGraph():
                               self.params.temperature_stack[self.params.available_top_temps.index(self.params.available_top_temps[-1])][1], 
                               self.params)
         
+        only_2_edges = True
+        print(f"Only two edges")
+        
         for h in range(self.params.horizon):
             
             for node_now in self.nodes[h]:
@@ -355,10 +358,11 @@ class DGraph():
 
                 # If the current top temperature is the first one available above RSWT
                 # If it exists, add an edge from the current node that drains the storage further than RSWT
-                RSWT_plus = self.params.rswt_plus[self.params.rswt_forecast[h]]
-                if node_now.top_temp == RSWT_plus and h < self.params.horizon-1:
-                    self.add_rswt_minus_edge(node_now, h, losses)
-                
+                if not only_2_edges:
+                    RSWT_plus = self.params.rswt_plus[self.params.rswt_forecast[h]]
+                    if node_now.top_temp == RSWT_plus and h < self.params.horizon-1:
+                        self.add_rswt_minus_edge(node_now, h, losses)
+
                 for node_next in self.nodes[h+1]:
 
                     store_heat_in = node_next.energy - node_now.energy
@@ -396,7 +400,16 @@ class DGraph():
                                         continue
                             
                             self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
-                    
+                
+                if self.edges[node_now] and only_2_edges:
+                    min_hp_out_edge = min(self.edges[node_now], key=lambda e: e.hp_heat_out)
+                    max_hp_out_edge = max(self.edges[node_now], key=lambda e: e.hp_heat_out)
+                    self.edges[node_now] = [min_hp_out_edge]
+                    if max_hp_out_edge.hp_heat_out > 10:
+                        self.edges[node_now].append(max_hp_out_edge)
+                    else:
+                        self.edges[node_now][0].hp_heat_out = 0
+
                 if not self.edges[node_now]:
                     print(f"No edge from node {node_now}, adding edge with penalty")
                     cop = self.params.COP(oat=self.params.oat_forecast[h], lwt=node_next.top_temp)
