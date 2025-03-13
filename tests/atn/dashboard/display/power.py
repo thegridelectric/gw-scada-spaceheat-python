@@ -100,7 +100,7 @@ class PowerDisplay:
         self.table.add_row(*row_2)
         self.table.add_row(*row_3)
         if self.channels.flows.sieg_flow.exists:
-            row_4 = ["---", "---", "x""Sieg Loop", str(self.channels.flows.sieg_flow), "---"]
+            row_4 = ["---", "---", "x","Sieg Loop", str(self.channels.flows.sieg_flow), "---"]
             self.table.add_row(*row_4)
         return self
 
