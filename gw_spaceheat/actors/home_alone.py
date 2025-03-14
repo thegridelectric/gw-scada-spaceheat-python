@@ -193,6 +193,7 @@ class HomeAlone(ScadaActor):
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
         self.set_normal_command_tree()
+        self.starting_up: bool = True
 
 
     @property
@@ -428,7 +429,14 @@ class HomeAlone(ScadaActor):
                 
                 # Update state
                 if self.top_state == HomeAloneTopState.Normal:
-                    self.engage_brain(waking_up=(self.state==HomeAloneState.Initializing))
+                    if self.starting_up:
+                        waking_up = True
+                        # make sure engage_brain is called with "waking up" even if
+                        # sytem switches abruptly to StratBoss on startup
+                    else:
+                        waking_up = self.state==HomeAloneState.Initializing
+                    self.engage_brain(waking_up=waking_up)
+                self.starting_up = False
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     def engage_brain(self, waking_up: bool = False) -> None:
@@ -596,6 +604,7 @@ class HomeAlone(ScadaActor):
             self.turn_off_HP(from_node=self.normal_node)
 
         try:
+            self.log("Setting 010 defaults inside initialize_actuators")
             self.set_010_defaults()
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")
