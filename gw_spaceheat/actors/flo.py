@@ -153,6 +153,8 @@ class DParams():
             else:
                 available_temps.append((b, height_bottom))
                 available_temps.append((t, height_top))
+                if t==round(t + self.delta_T_inverse(t)) or b==round(b + self.delta_T_inverse(b)):
+                    break
                 t = round(t + self.delta_T_inverse(t))
                 b = round(b + self.delta_T_inverse(b))
 
@@ -166,6 +168,8 @@ class DParams():
             else:
                 available_temps = [(t, height_top)] + available_temps
                 available_temps = [(b, height_bottom)] + available_temps
+                if t==round(t - self.delta_T(t)) or b==round(b - self.delta_T(b)):
+                    break
                 t = round(t - self.delta_T(t))
                 b = round(b - self.delta_T(b))
 
