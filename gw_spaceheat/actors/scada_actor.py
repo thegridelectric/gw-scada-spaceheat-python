@@ -111,6 +111,10 @@ class ScadaActor(Actor):
         return self.layout.node(H0N.hp_scada_ops_relay)
 
     @property
+    def thermistor_common_relay(self) -> ShNode:
+        return self.layout.node(H0N.thermistor_common_relay)
+
+    @property
     def aquastat_control_relay(self) -> ShNode:
         return self.layout.node(H0N.aquastat_ctrl_relay)
 
@@ -196,6 +200,8 @@ class ScadaActor(Actor):
             self.valved_to_discharge_store(from_node)
         elif relay == self.hp_failsafe_relay:
             self.hp_failsafe_switch_to_aquastat(from_node)
+        elif relay == self.thermistor_common_relay:
+            self.close_thermistor_common_relay(from_node)
         elif relay == self.aquastat_control_relay:
             self.aquastat_ctrl_switch_to_boiler(from_node)
         elif relay == self.store_pump_failsafe:
@@ -470,6 +476,48 @@ class ScadaActor(Actor):
             )
         except ValidationError as e:
             self.log(f"Tried to tell HpRelayBoss to turn off HP but didn't have rights: {e}")
+
+    def close_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
+        """
+        Close thermistor common relay (de-energizing relay 2).
+        Will log an error and do nothing if not the boss of this relay
+        """
+        if from_node is None:
+            from_node = self.node
+        try:
+            event = FsmEvent(
+                FromHandle=from_node.handle,
+                ToHandle=self.thermistor_common_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.CloseRelay,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(self.thermistor_common_relay, event, from_node)
+            self.log(f"{from_node.handle} sending CloseRelay to {self.thermistor_common_relay.handle}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
+
+    def open_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
+        """
+        Open thermistor common relay (energizing relay 2).
+        Will log an error and do nothing if not the boss of this relay
+        """
+        if from_node is None:
+            from_node = self.node
+        try:
+            event = FsmEvent(
+                FromHandle=from_node.handle,
+                ToHandle=self.thermistor_common_relay.handle,
+                EventType=ChangeRelayState.enum_name(),
+                EventName=ChangeRelayState.OpenRelay,
+                SendTimeUnixMs=int(time.time() * 1000),
+                TriggerId=str(uuid.uuid4()),
+            )
+            self._send_to(self.thermistor_common_relay, event, from_node)
+            self.log(f"{from_node.handle} sending OpenRelay to {self.thermistor_common_relay.handle}")
+        except ValidationError as e:
+            self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
     def aquastat_ctrl_switch_to_boiler(self, from_node: Optional[ShNode] = None) -> None:
         """

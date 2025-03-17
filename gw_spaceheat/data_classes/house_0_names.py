@@ -56,6 +56,7 @@ class House0RelayIdx:
     store_charge_disharge: Literal[3] = 3
     hp_failsafe: Literal[5] = 5
     hp_scada_ops: Literal[6] = 6
+    thermistor_common: Literal[7] = 7
     aquastat_ctrl: Literal[8] = 8
     store_pump_failsafe: Literal[9] = 9
     boiler_scada_ops: Literal[10] = 10
@@ -125,6 +126,7 @@ class H0N:
     )
     hp_failsafe_relay: Literal["relay5"] = f"relay{House0RelayIdx.hp_failsafe}"
     hp_scada_ops_relay: Literal["relay6"] = f"relay{House0RelayIdx.hp_scada_ops}"
+    thermistor_common_relay: Literal["relay7"] = "relay7"
     aquastat_ctrl_relay: Literal["relay8"] = f"relay{House0RelayIdx.aquastat_ctrl}"
     store_pump_failsafe: Literal["relay9"] = (
         f"relay{House0RelayIdx.store_pump_failsafe}"
@@ -205,6 +207,7 @@ class H0CN:
         f"charge-discharge-{H0N.store_charge_discharge_relay}"
     )
     hp_failsafe_relay_state = f"hp-failsafe-{H0N.hp_failsafe_relay}"
+    thermistor_common_relay_state = f"thermistor-common-{H0N.thermistor_common_relay}"
     hp_scada_ops_relay_state = f"hp-scada-ops-{H0N.hp_scada_ops_relay}"
     aquastat_ctrl_relay_state = f"aquastat-ctrl-{H0N.aquastat_ctrl_relay}"
     store_pump_failsafe_relay_state = f"store-pump-failsafe-{H0N.store_pump_failsafe}"

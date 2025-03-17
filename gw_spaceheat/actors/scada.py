@@ -646,13 +646,13 @@ class Scada(ScadaInterface, Proactor):
 
         prior_status = self.contract_handler.status
         if cmd.Status == RepresentationStatus.Dormant:
+            if self.contract_handler.latest_scada_hb:
+                termination_hb = self.contract_handler.scada_terminates_contract_hb(
+                    "Atn sent SetRepresentationStatus Dormant"
+                )
+                self._send_to(self.atn, termination_hb)
+                            # Immediate transition to HomeAlone
             if self.auto_state == MainAutoState.Atn:
-                if self.contract_handler.latest_scada_hb:
-                    termination_hb = self.contract_handler.scada_terminates_contract_hb(
-                        "Atn sent SetRepresentationStatus Dormant"
-                    )
-                    self._send_to(self.atn, termination_hb)
-                                # Immediate transition to HomeAlone
                 self.auto_trigger(MainAutoEvent.AtnReleasesControl)
             self.contract_handler.status = RepresentationStatus.Dormant
 
