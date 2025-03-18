@@ -8,10 +8,10 @@ from typing import Optional
 import pytz
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
-from enums import ContractStatus, LogLevel, RepresentationStatus
+from enums import ContractStatus, LogLevel
 from gwproactor.logger import LoggerOrAdapter
 from gwproto.data_classes.sh_node import ShNode
-from named_types import Glitch, SetRepresentationStatus, SlowContractHeartbeat
+from named_types import Glitch, SlowContractHeartbeat
 
 
 from actors.config import ScadaSettings
@@ -47,9 +47,6 @@ class ContractHandler:
         self.contract_file = Path(
             f"{self.settings.paths.data_dir}/slow_dispatch_contract.json"
         )
-        self.status: RepresentationStatus = (
-            RepresentationStatus.Dormant
-        )  # Start dormant until initialized
         self.latest_scada_hb: Optional[SlowContractHeartbeat] = None
         self.prev: Optional[SlowContractHeartbeat] = None
         self.latest_power_w: int = 0
@@ -175,37 +172,11 @@ class ContractHandler:
         Returns a heartbeat if contract has become expired
         """
         return_hb = self.load_heartbeat()  # None unless returning expired HB to atn
-        if self.settings.representation_dormant or self.settings.monitor_only:
-            self.status = RepresentationStatus.Dormant
-            return_hb = None
+        if return_hb:
+            self.logger.info(f"Starting with contract {return_hb.Contract.ContractId[:3]}")
         else:
-            self.status = RepresentationStatus.Active
-        self.logger.info("Starting in %s state", self.status.value)
+            self.logger.info("Starting with no contract")
         return return_hb
-
-    def process_set_status(self, cmd: SetRepresentationStatus) -> Optional[Glitch]:
-        """Handle SetRepresentationStatus command from ATN"""
-        prior_status = self.status
-
-        if cmd.Status == RepresentationStatus.Dormant:
-            if self.latest_scada_hb:
-                return Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    Node=self.node.name,
-                    Type=LogLevel.Warning,
-                    Summary="Cannot transition to Dormant - active contract exists",
-                    Details=f"Latest Contract hb: {self.latest_scada_hb.model_dump_json()}",
-                )
-            self.status = RepresentationStatus.Dormant
-        elif cmd.Status == RepresentationStatus.Active:
-            self.status = RepresentationStatus.Active
-
-        if self.status != prior_status:
-            msg = f"Status changed: {prior_status} -> {self.status}"
-            if cmd.Reason:
-                msg += f" Reason: {cmd.Reason}"
-            self.logger.info(msg)
-        return None
 
     def flush_latest_scada_hb(self) -> None:
         """ Sets latest_scada_hb to None, energy_used_wh to 0
@@ -229,8 +200,7 @@ class ContractHandler:
     def start_new_contract_hb(
         self, atn_hb: SlowContractHeartbeat
     ) -> SlowContractHeartbeat:
-        """Manage scenario where self.RepresentationStatus is Active and we receive
-        the first HB for a newly created Contract
+        """Managesthe first HB for a newly created Contract
           -  cases:
             - Prev contract exists, terminated and/or completed, inside the grace period
             - Existing contract is not completed or terminated, still
@@ -239,10 +209,7 @@ class ContractHandler:
             - No previous contract
             - right now does not handle a contract for a future time slot
         """
-        if self.status == RepresentationStatus.Dormant:
-            raise Exception(
-                "Can only start new contract with active representation status"
-            )
+
         if atn_hb.Status != ContractStatus.Created:
             raise Exception(
                 f"Can only start new contract with a ContractStatus of Created, not {atn_hb.Status}"
@@ -251,8 +218,6 @@ class ContractHandler:
             self.logger.warning("Ignoring atn hb! Still inside existing contract")
             self.logger.warning(f"Existing: {self.latest_scada_hb}")
             raise Exception(f"Inbound: {atn_hb}")
-
-        self.status = RepresentationStatus.Active  # representation: Ready -> Active
         
         now = time.time()
         self.energy_used_wh = self.get_initial_watt_hours(atn_hb)
@@ -282,10 +247,7 @@ class ContractHandler:
         does not match
         """
         self.update_energy_usage(self.latest_power_w)
-        if self.status == RepresentationStatus.Dormant:
-            raise Exception(
-                "Do not call update_existing_contract if rep status is not Ready or Active"
-            )
+
         if atn_hb.Status == ContractStatus.Created:
             raise Exception("Does not process newly created contracts!")
         if self.latest_scada_hb is None:

@@ -15,10 +15,9 @@ from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0N
 from gwproactor.logger import LoggerOrAdapter
 from enums import MarketPriceUnit
-from enums import ContractStatus, RepresentationStatus
+from enums import ContractStatus
 from named_types import ( 
     AtnBid, LatestPrice, SlowContractHeartbeat, SlowDispatchContract, 
-    SetRepresentationStatus,
 )
 
 from tests.atn.atn_config import AtnSettings
@@ -64,7 +63,6 @@ class AtnContractHandler:
         self.energy_used_wh: float = 0
         self.latest_power_w: int = 0
         self.energy_updated_s: Optional[float] = None
-        self.status: RepresentationStatus = RepresentationStatus.Active  # Default to active
         self.layout_received: bool = False # have we received the layout
         self.latest_hb: Optional[SlowContractHeartbeat] = None # Current active hb, None means no active contract
         self.latest_price: Optional[LatestPrice] = None
@@ -168,10 +166,8 @@ class AtnContractHandler:
                 return
         if scada_hb.WattHoursUsed is None: 
             raise Exception("this can't happen, axiomatically in Hb")
-        if self.status == RepresentationStatus.Dormant:
-            self.logger.info("Dormant representation status but got hb")
-        else:
-            self.logger.info(self.formatted_contract(scada_hb))
+
+        self.logger.info(self.formatted_contract(scada_hb))
         self.energy_used_wh = scada_hb.WattHoursUsed
         self.energy_updated_s = time.time()
         self.store_heartbeat(scada_hb)
@@ -195,9 +191,7 @@ class AtnContractHandler:
             raise Exception("next_contract_energy_wh should not be None!")
         watthours = self.next_contract_energy_wh
         self.next_contract_energy_wh = None
-        if self.status == RepresentationStatus.Dormant:
-            self.logger.info("Not starting new contract ... Dormant RepresentationStatus")
-            return
+
         now = time.time()
         after_top_s =now % 3600
         if after_top_s >= 10:
@@ -398,28 +392,10 @@ class AtnContractHandler:
             raise Exception(f"Cannot call this if latest_hb.Status is {self.latest_hb.Status}")
 
     def can_create_contract(self) -> bool:
-        """ layout received, no latest_hb, have calculated next energy, representation status is active"""
+        """ layout received, no latest_hb, and have calculated next energy"""
         return self.layout_received \
                 and self.latest_hb is None \
-                and self.next_contract_energy_wh is not None \
-                and self.status == RepresentationStatus.Active
-    
-    def set_representation_status(self, status: RepresentationStatus, reason: str = "") -> SetRepresentationStatus:
-        """Update the representation status and create a message to send to SCADA"""
-        old_status = self.status
-        self.status = status
-        
-        if old_status != status:
-            self.logger.info(f"Representation status changed: {old_status} -> {status}")
-            if reason:
-                self.logger.info(f"Reason: {reason}")
-                
-        return SetRepresentationStatus(
-            FromGNodeAlias=self.layout.atn_g_node_alias,
-            TimeS=int(time.time()),
-            Status=status,
-            Reason=reason,
-        )
+                and self.next_contract_energy_wh is not None
         
     def formatted_contract(self, hb_to_format: Optional[SlowContractHeartbeat] = None) -> str:
         """Format contract heartbeat information for logging in a human-readable format."""
