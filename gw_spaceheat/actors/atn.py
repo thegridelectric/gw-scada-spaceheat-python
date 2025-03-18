@@ -34,10 +34,10 @@ from gwproto.enums import TelemetryName, RelayClosedOrOpen
 from gwproto.messages import (EventBase, PowerWatts, Report, ReportEvent)
 from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
-from enums import ContractStatus, LogLevel, RepresentationStatus
+from enums import ContractStatus, LogLevel
 from named_types import (AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, 
                          NoNewContractWarning, PriceQuantityUnitless, 
-                         ScadaParams, SendLayout, SetRepresentationStatus,
+                         ScadaParams, SendLayout,
                          SlowContractHeartbeat,  SnapshotSpaceheat)
 
 from paho.mqtt.client import MQTTMessageInfo
@@ -250,6 +250,7 @@ class Atn(ActorInterface, Proactor):
             send_threadsafe=self.send_threadsafe,
         )
         self.bid_runner: BidRunner = None
+        self.sending_contracts: bool = True
 
     @property
     def name(self) -> str:
@@ -282,10 +283,6 @@ class Atn(ActorInterface, Proactor):
     @property
     def layout(self) -> House0Layout:
         return cast(House0Layout, self._layout)
-
-    @property
-    def status(self) -> RepresentationStatus:
-        return self.contract_handler.status
 
     def init(self):
         """Called after constructor so derived functions can be used in setup."""
@@ -360,8 +357,6 @@ class Atn(ActorInterface, Proactor):
             case ScadaParams():
                 path_dbg |= 0x00000008
                 self.process_scada_params(decoded.Payload)
-            case SetRepresentationStatus():
-                self.process_set_representation_status(decoded.Payload)
             case SnapshotSpaceheat():
                 path_dbg |= 0x00000010
                 self.process_snapshot(decoded.Payload)
@@ -409,13 +404,6 @@ class Atn(ActorInterface, Proactor):
         else:
             rich.print("Received PowerWatts")
             rich.print(pwr)
-
-    def process_set_representation_status(self, payload: SetRepresentationStatus) -> None:
-        if payload.FromGNodeAlias != self.layout.scada_g_node_alias:
-            self.log(f"IGNORING set representation status from {payload.FromGNodeAlias}")
-        if payload.Status != self.contract_handler.status:
-            self.log(f"Got SetRepresentationStatus from scada. Changing to {payload.Status}")
-        self.contract_handler.status = payload.Status
 
     def snapshot_str(self, snapshot: SnapshotSpaceheat) -> str:
         s = "\n\nSnapshot received:\n"
@@ -537,41 +525,13 @@ class Atn(ActorInterface, Proactor):
         )
         self.log("Requesting layout")
 
-    def release_control(self, reason = "") -> None:
-        """
-        Immediately void any contract and go to Dormant RepresentationStatus
-        """
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=SetRepresentationStatus(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    TimeS=int(time.time()),
-                    Status=RepresentationStatus.Dormant,
-                    Reason=reason
-                    )
-                ),
-            )
-        self.log("Releasing control - sending SetRepresentationStatus.Dormant to scada and setting state to Dormant ")
-        self.contract_handler.status = RepresentationStatus.Dormant
+    def stop_sending_contracts(self) -> None:
+        self.sending_contracts = False
+        self.log("Stop sending contracts")
 
-    def request_control(self, reason="") -> None:
-        """Request for Active Representation Status. Scada may ignore 
-        (e.g. if in monitor only)"""
-        self.send_threadsafe(
-            Message(
-                Src=self.name,
-                Dst=self.scada.name,
-                Payload=SetRepresentationStatus(
-                    FromGNodeAlias=self.layout.atn_g_node_alias,
-                    TimeS=int(time.time()),
-                    Status=RepresentationStatus.Active,
-                    Reason=reason
-                    )
-                ),
-            )
-        self.log("Requesting control - sending SetRepresentationStatus.Active to scada")
+    def start_sending_contracts(self) -> None:
+        self.sending_contracts = True
+        self.log("Start sending contracts")
 
     def start(self):
         if self.event_loop_thread is not None:
@@ -615,19 +575,16 @@ class Atn(ActorInterface, Proactor):
                     self.bid_runner.on_complete(self.name)
 
             if datetime.now().minute >= 55 and not self.sent_bid:
-                if self.contract_handler.status == RepresentationStatus.Active:
-                    # In the last 5 minutes of the hour: make a bid for the next hour
-                    try:
-                        await self.run_d(session)
-                    except Exception as e:
-                        self.log(f"Exception running Dijkstra: {e}")
-                else:
-                    self.log("Representation status Dormant - not creating bid")
+                try:
+                    await self.run_d(session)
+                except Exception as e:
+                    self.log(f"Exception running Dijkstra: {e}")
+
             elif datetime.now().minute <= 55 and self.sent_bid:
                 self.sent_bid = False
             else:
                 if self.contract_handler.latest_hb is None:
-                    self.log(f"No active contract. Representation status {self.contract_handler.status.value}")
+                    self.log("No active contract.")
                 # await self.run_fake_d(session)
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -661,7 +618,6 @@ class Atn(ActorInterface, Proactor):
         else:
             dijkstra_start_time = int(datetime.timestamp(datetime.now()))
             self.log("NOT RUNNING Dijkstra! Not in the last 5 minutes.")
-            # TODO: under some conditions we might want to run a FLO at another time
             return
         await self.get_weather(session)
         await self.update_price_forecast()
@@ -669,8 +625,7 @@ class Atn(ActorInterface, Proactor):
         self.log("Finding thermocline position and top temperature")
         result = await self.get_thermocline_and_centroids()
         if result is None:
-            self.log("Get thermocline and centroid failed! Releasing control of Scada!")
-            self.release_control()
+            self.log("Get thermocline and centroid failed! Not running FLO!")
             return
         initial_toptemp, initial_bottomtemp, initial_thermocline = result
 
@@ -758,7 +713,6 @@ class Atn(ActorInterface, Proactor):
         result = await self.get_thermocline_and_centroids()
         if result is None:
             self.log("Get thermocline and centroid failed! Releasing control of Scada!")
-            self.release_control()
             return
         initial_toptemp, initial_bottomtemp, initial_thermocline = result
 
@@ -811,8 +765,9 @@ class Atn(ActorInterface, Proactor):
         # Instead of waiting, return to event loop
         self.log("Started Dijkstra computation in background")
 
-    def validate_bid_time(self, bid: AtnBid) -> bool:
+    def latest_contract_is_live(self) -> bool:
         """ Validates that the bid's market slot name corresponds to the current hour."""
+        bid = self.contract_handler.latest_bid
         if not bid:
             return False
             
@@ -828,6 +783,7 @@ class Atn(ActorInterface, Proactor):
             # Check if bid is for current hour
             if slot_start_s != current_hour_start_s:
                 self.log(f"Bid time mismatch: bid for {slot_start_s}, current hour starts at {current_hour_start_s}")
+                
                 return False
                 
             return True
@@ -836,6 +792,9 @@ class Atn(ActorInterface, Proactor):
             return False
 
     def process_latest_price(self, payload: LatestPrice) -> None:
+        if not self.sending_contracts:
+            self.log("Not sending contracts, so ignoring latest price")
+            return
         self.contract_handler.latest_price = payload
         self.log("Received latest price")
         if self.contract_handler.latest_bid is None:
@@ -843,8 +802,8 @@ class Atn(ActorInterface, Proactor):
             return
 
         # Validate bid timeframe
-        if not self.validate_bid_time(self.contract_handler.latest_bid):
-            # Send glitch message to report invalid bid time
+        if not self.latest_contract_is_live():
+            self.contract_handler.latest_bid = None
             glitch = Glitch(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 Node=self.node.name,
@@ -855,7 +814,7 @@ class Atn(ActorInterface, Proactor):
             )
             self.send_threadsafe(
                 Message(Src=self.name, Dst=self.name, Payload=glitch))
-            self.log("Sent glitch for invalid bid timeframe")
+            self.log("Sent glitch for invalid bid timeframe and set latest bid to None")
             return
         
         if (

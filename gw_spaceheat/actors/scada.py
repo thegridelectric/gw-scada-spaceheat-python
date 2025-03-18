@@ -52,11 +52,11 @@ from actors.atomic_ally import AtomicAlly
 from actors import ContractHandler
 from data_classes.house_0_names import H0N
 from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoEvent, MainAutoState, 
-                    RepresentationStatus, TopState)
+                    TopState)
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning,
-    ScadaParams, SendLayout, SetRepresentationStatus, SingleMachineState,
+    ScadaParams, SendLayout, SingleMachineState,
     SlowContractHeartbeat, SuitUp, WakeUp,
 )
 
@@ -385,14 +385,9 @@ class Scada(ScadaInterface, Proactor):
                     self._send_to(from_node, self._data.make_snapshot())
                 except Exception as e:
                     self.log(f"Trouble with SendSnap: {e}")
-            case SetRepresentationStatus():
-                try:
-                    self.process_set_representation_status(from_node, payload)
-                except Exception as e:
-                    self.log(f"Trouble with process_set_representation_status: {e}")
             case SingleMachineState():
                 try:
-                    self.proess_single_machine_state(from_node, payload)
+                    self.process_single_machine_state(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_single_machine_state_: \n {e}")
             case SingleReading():
@@ -639,46 +634,7 @@ class Scada(ScadaInterface, Proactor):
             self.logger.error(f"Sending back {response}")
             self._send_to(self.atn, response)
 
-    def process_set_representation_status(
-            self, from_node: ShNode, cmd: SetRepresentationStatus
-    ) -> None:
-        """Handle SetRepresentationStatus command from ATN"""
-
-        prior_status = self.contract_handler.status
-        if cmd.Status == RepresentationStatus.Dormant:
-            if self.contract_handler.latest_scada_hb:
-                termination_hb = self.contract_handler.scada_terminates_contract_hb(
-                    "Atn sent SetRepresentationStatus Dormant"
-                )
-                self._send_to(self.atn, termination_hb)
-                            # Immediate transition to HomeAlone
-            if self.auto_state == MainAutoState.Atn:
-                self.auto_trigger(MainAutoEvent.AtnReleasesControl)
-            self.contract_handler.status = RepresentationStatus.Dormant
-
-        elif cmd.Status == RepresentationStatus.Active:
-            if self.settings.monitor_only:
-                self.log("Ignoring cmd to movce RepresentationStatus to Active - monitor only!")
-                return
-            if self.contract_handler.status == RepresentationStatus.Dormant:
-                self.contract_handler.status = RepresentationStatus.Active
-                self.log("Setting representation contract to Active")
-                self._send_to(self.atn,
-                    SetRepresentationStatus(
-                        FromGNodeAlias=self.layout.scada_g_node_alias,
-                        TimeS=int(time.time()),
-                        Status=RepresentationStatus.Active,
-                        Reason="Atn just set to Active")
-                )
-
-        if self.contract_handler.status != prior_status:
-            msg = f"Status changed: {prior_status} -> {self.contract_handler.status}"
-            if cmd.Reason:
-                msg += f" Reason: {cmd.Reason}"
-            self.log(msg)
-        return None
-
-    def proess_single_machine_state(
+    def process_single_machine_state(
         self, from_node: ShNode, payload: SingleMachineState
     ) -> None:
         # TODO: compare MachineHandle last word with from_node.Name
@@ -928,21 +884,9 @@ class Scada(ScadaInterface, Proactor):
             self.auto_trigger(MainAutoEvent.DispatchContractLive)
 
     def process_slow_contract_heartbeat(self, from_node: ShNode, atn_hb: SlowContractHeartbeat) -> None:
-        if self.contract_handler.status == RepresentationStatus.Dormant:
-            self.log("Dormant Representation Contract but got contract hb ...")
-        else:
-            self.log(f"{self.contract_handler.formatted_contract(atn_hb)}")
-        return_hb = None
-        if self.contract_handler.status == RepresentationStatus.Dormant:
-            self._send_to(self.atn,
-                        SetRepresentationStatus(
-                        FromGNodeAlias=self.layout.scada_g_node_alias,
-                        TimeS=int(time.time()),
-                        Status=RepresentationStatus.Dormant,
-                        Reason="Scada: RepresentationStatus is Dormant!")
-                )
-            return
 
+        self.log(f"{self.contract_handler.formatted_contract(atn_hb)}")
+        return_hb = None
         if atn_hb.Status == ContractStatus.Created:
             if self.top_state == TopState.Admin:
                 self.log("Ignoring new contract, in Admin")
@@ -996,8 +940,6 @@ class Scada(ScadaInterface, Proactor):
         Effect: if contract_handler.active_contract_has_expired, send a final
         completion heartbeat, None -> latest_scada_hb -> prev
         """
-        if self.contract_handler.status == RepresentationStatus.Dormant:
-            return False
         if self.contract_handler.active_contract_has_expired():
                 self._send_to(self.atn,
                         self.contract_handler.scada_contract_completion_hb("Active contract has expired"))
@@ -1204,11 +1146,6 @@ class Scada(ScadaInterface, Proactor):
         if hb:
             self._send_to(self.atn, hb)
             self._send_to(self.atomic_ally, hb)
-        self._send_to(self.atn, SetRepresentationStatus(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                TimeS=int(time.time()),
-                Status=self.contract_handler.status,
-                Reason="Scada setting status on boot"))
     
     def enforce_auto_state_consistency(self) -> None:
         """ Enforces that auto_state [Atn, HomeAlone, Dormant] is consistent
