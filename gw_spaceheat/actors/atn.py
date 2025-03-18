@@ -661,7 +661,6 @@ class Atn(ActorInterface, Proactor):
         else:
             dijkstra_start_time = int(datetime.timestamp(datetime.now()))
             self.log("NOT RUNNING Dijkstra! Not in the last 5 minutes.")
-            # TODO: under some conditions we might want to run a FLO at another time
             return
         await self.get_weather(session)
         await self.update_price_forecast()
@@ -669,8 +668,7 @@ class Atn(ActorInterface, Proactor):
         self.log("Finding thermocline position and top temperature")
         result = await self.get_thermocline_and_centroids()
         if result is None:
-            self.log("Get thermocline and centroid failed! Releasing control of Scada!")
-            self.release_control()
+            self.log("Get thermocline and centroid failed! Not running FLO!")
             return
         initial_toptemp, initial_bottomtemp, initial_thermocline = result
 
