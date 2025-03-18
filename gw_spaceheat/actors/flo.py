@@ -121,7 +121,10 @@ class DParams():
         cc = -self.dd_delta_t/self.dd_power * c - rwt
         if bb**2-4*aa*cc < 0 or (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt > 30:
             return 30
-        return (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt
+        dt = (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt
+        if dt<=1:
+            return 1
+        return dt
     
     def get_quadratic_coeffs(self):
         x_rswt = np.array([self.no_power_rswt, self.intermediate_rswt, self.dd_rswt])
@@ -130,10 +133,19 @@ class DParams():
         return [float(x) for x in np.linalg.solve(A, y_hpower)] 
     
     def get_available_top_temps(self) -> Tuple[Dict, Dict]:
-        MIN_BOTTOM_TEMP, MAX_TOP_TEMP = 100, 175
+        MIN_BOTTOM_TEMP, MAX_TOP_TEMP = 80, 175
+
+        if self.initial_top_temp < MIN_BOTTOM_TEMP:
+            self.initial_top_temp = MIN_BOTTOM_TEMP
 
         if self.initial_bottom_temp < self.initial_top_temp - self.delta_T(self.initial_top_temp):
             self.initial_bottom_temp = round(self.initial_top_temp - self.delta_T(self.initial_top_temp))
+
+        if self.initial_bottom_temp < MIN_BOTTOM_TEMP:
+            self.initial_bottom_temp = MIN_BOTTOM_TEMP
+
+        if self.initial_bottom_temp == self.initial_top_temp:
+            self.initial_bottom_temp += -5
 
         self.max_thermocline = self.num_layers
         if self.initial_top_temp > MAX_TOP_TEMP-5:
@@ -178,18 +190,22 @@ class DParams():
             for i in range(1, len(available_temps)):
                 available_temps[i] = (max(available_temps[i][0], available_temps[i-1][0]), available_temps[i][1])
 
-        available_temps_no_duplicates = []
-        skip_next_i = False
-        for i in range(len(available_temps)):
-            if i<len(available_temps)-1 and available_temps[i][0] == available_temps[i+1][0]:
-                available_temps_no_duplicates.append((available_temps[i][0], available_temps[i][1]+available_temps[i+1][1]))
-                skip_next_i = True
-            elif not skip_next_i:
-                available_temps_no_duplicates.append(available_temps[i])
-            else:
-                skip_next_i = False
-        available_temps = available_temps_no_duplicates.copy()
-            
+        for _ in range(10):
+            if sorted(list(set([x[0] for x in available_temps]))) == sorted([x[0] for x in available_temps]):
+                break
+            available_temps_no_duplicates = []
+            skip_next_i = False
+            for i in range(len(available_temps)):
+                if i<len(available_temps)-1 and available_temps[i][0] == available_temps[i+1][0]:
+                    available_temps_no_duplicates.append((available_temps[i][0], min(
+                        available_temps[i][1]+available_temps[i+1][1], self.num_layers)))
+                    skip_next_i = True
+                elif not skip_next_i:
+                    available_temps_no_duplicates.append(available_temps[i])
+                else:
+                    skip_next_i = False
+            available_temps = available_temps_no_duplicates.copy()
+
         if max([x[0] for x in available_temps]) < MAX_TOP_TEMP-5:
             available_temps.append((MAX_TOP_TEMP-5, self.num_layers))
 
