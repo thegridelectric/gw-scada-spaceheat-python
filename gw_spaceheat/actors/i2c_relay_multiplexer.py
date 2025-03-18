@@ -47,7 +47,7 @@ SLEEP_STEP_SECONDS = 0.1
 
 class I2cRelayMultiplexer(ScadaActor):
     RELAY_MULTIPLEXER_LOGGER_NAME: str = "RelayMultiplexer"
-    RELAY_LOOP_S = 300
+    RELAY_LOOP_S = 60
     node: ShNode
     component: I2cMultichannelDtRelayComponent
     wiring_config: RelayWiringConfig
@@ -310,12 +310,12 @@ class I2cRelayMultiplexer(ScadaActor):
                     values.append(RelayEnergizationState.Energized.value)
                     if not first_time:
                         self.krida_relay_pin[idx].value = KridaPinState.Energized.value
-                        # print(f"[{ft}] {relay.name}: Make sure Energized")
+                        # self.logger.info(f"Making sure {relay.name} is Energized")
                 else:
                     values.append(RelayEnergizationState.DeEnergized.value)
                     if not first_time:
                         self.krida_relay_pin[idx].value = KridaPinState.DeEnergized.value
-                        # print(f"[{ft}] {relay.name}: Make sure DeEnergized")
+                        # self.logger.info(f"Making sure {relay.name} is DeEnergized")
             readings = SyncedReadings(
                 ChannelNameList=channel_names,
                 ValueList=values,
