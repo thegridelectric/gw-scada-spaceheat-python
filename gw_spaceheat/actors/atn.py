@@ -803,7 +803,6 @@ class Atn(ActorInterface, Proactor):
 
         # Validate bid timeframe
         if not self.latest_contract_is_live():
-            self.contract_handler.latest_bid = None
             glitch = Glitch(
                 FromGNodeAlias=self.layout.atn_g_node_alias,
                 Node=self.node.name,
@@ -812,6 +811,7 @@ class Atn(ActorInterface, Proactor):
                 Details=f"Stale bid detected. Bid slot start: {self.contract_handler.latest_bid.MarketSlotName}. Current price: {payload.MarketSlotName}",
                 CreatedMs=int(time.time() * 1000)
             )
+            self.contract_handler.latest_bid = None
             self.send_threadsafe(
                 Message(Src=self.name, Dst=self.name, Payload=glitch))
             self.log("Sent glitch for invalid bid timeframe and set latest bid to None")
