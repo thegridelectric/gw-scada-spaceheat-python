@@ -396,8 +396,8 @@ class AtomicAlly(ScadaActor):
                             self.trigger_event(AtomicAllyEvent.ElecBufferFull)
                 else: # temperatures not avalable
                     if self.no_temps_since is None:
-                        raise Exception("Logic error: if temperatures_not_available no_temps_since should exist")
-                    if time.time() - self.no_temps_since > self.NO_TEMPS_BAIL_MINUTES * 60:
+                        self.no_temps_since = int(time.time()) # start the clock
+                    elif time.time() - self.no_temps_since > self.NO_TEMPS_BAIL_MINUTES * 60:
                         self.log("Cannot suit up - missing temperatures!")
                         self._send_to(
                             self.primary_scada,
