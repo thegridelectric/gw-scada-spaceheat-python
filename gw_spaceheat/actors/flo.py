@@ -240,7 +240,7 @@ class DGraph():
         print(f"Initial node: {self.initial_node}")
 
         self.storage_full = False
-        if STEP_F == 5 and self.params.initial_top_temp > max(self.top_temps)-STEP_F:
+        if self.params.initial_top_temp > 170:
             print("Storage is currently full, don't allow any node with more energy than this")
             self.storage_full = True
 
