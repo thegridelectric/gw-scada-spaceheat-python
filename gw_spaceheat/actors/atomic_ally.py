@@ -224,18 +224,21 @@ class AtomicAlly(ScadaActor):
             self.trigger_event(AtomicAllyEvent.StartStratSaving)
             # confirm change of command tree by returning payload to strat boss
             self._send_to(dst=self.strat_boss, payload=payload)
-        else: 
+        else:  # the trigger ToState is Dormant
             if self.state != AtomicAllyState.StratBoss:
                 self.log("Inconsistency! StratBoss thinks its Active but AA is not in StratBoss State")
-            self.set_normal_command_tree()
-            self.trigger_event(AtomicAllyEvent.StopStratSaving)
-            try:
-                self.initialize_actuators()
-            except Exception as e:
-                self.log(f"Trouble initializing actuators! {e}")
-            self.engage_brain()
-            # confirm change of command tree by returning payload to strat boss
-            self._send_to(dst=self.strat_boss, payload=payload)
+                # but we should definitely let StratBoss go dormant
+                self._send_to(self.strat_boss, payload)
+            else:
+                self.set_normal_command_tree()
+                self.trigger_event(AtomicAllyEvent.StopStratSaving)
+                try:
+                    self.initialize_actuators()
+                except Exception as e:
+                    self.log(f"Trouble initializing actuators! {e}")
+                self.engage_brain()
+                # confirm change of command tree by returning payload to strat boss
+                self._send_to(dst=self.strat_boss, payload=payload)
 
     def set_normal_command_tree(self) -> None:
         """
