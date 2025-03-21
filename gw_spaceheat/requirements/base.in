@@ -1,6 +1,5 @@
 setuptools
 numpy
-requests
 paho-mqtt
 pytz
 python-dotenv

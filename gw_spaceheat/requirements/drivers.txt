@@ -8,7 +8,6 @@ adafruit-blinka==8.50.0
     # via
     #   adafruit-circuitpython-ads1x15
     #   adafruit-circuitpython-busdevice
-    #   adafruit-circuitpython-connectionmanager
     #   adafruit-circuitpython-pcf8575
     #   adafruit-circuitpython-requests
     #   adafruit-circuitpython-typing
@@ -53,10 +52,6 @@ binho-host-adapter==0.1.6
     # via adafruit-blinka
 board==1.0
     # via -r gw_spaceheat/requirements/drivers.in
-certifi==2024.8.30
-    # via requests
-charset-normalizer==3.1.0
-    # via requests
 click==8.1.7
     # via
     #   textual-dev
@@ -75,9 +70,7 @@ gridworks-protocol==1.2.3
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
 idna==2.10
-    # via
-    #   requests
-    #   yarl
+    # via yarl
 jinja2==3.1.4
     # via
     #   aiohttp-jinja2
@@ -154,8 +147,6 @@ pytz==2024.1
     #   gridworks-protocol
 pyusb==1.2.1
     # via pyftdi
-requests==2.32.3
-    # via -r gw_spaceheat/requirements/base.in
 result==0.9.0
     # via
     #   -r gw_spaceheat/requirements/base.in
@@ -201,8 +192,6 @@ typing-extensions==4.12.2
     #   typer
 uc-micro-py==1.0.3
     # via linkify-it-py
-urllib3==2.2.3
-    # via requests
 xdg==6.0.0
     # via
     #   -r gw_spaceheat/requirements/base.in
