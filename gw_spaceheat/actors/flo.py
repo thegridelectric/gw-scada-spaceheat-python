@@ -3,6 +3,9 @@ from datetime import datetime
 from typing import Dict, List, Tuple
 from named_types import PriceQuantityUnitless, FloParamsHouse0
 from typing import Optional
+import time
+import json
+import os
 
 MIN_DIFFERENCE_F = 10
 STEP_F = 10
@@ -170,41 +173,6 @@ class DNode():
         kWh_bottom = (self.params.num_layers-self.thermocline2)*m_layer_kg * 4.187/3600 * to_kelvin(self.bottom_temp)
         return kWh_top + kWh_midlle + kWh_bottom
     
-    def plot(self):
-        norm = Normalize(vmin=100-20, vmax=170+20)
-        cmap = matplotlib.colormaps['Reds'] 
-        tank_top_colors = [cmap(norm(x)) for x in [self.top_temp]]
-        tank_middle_colors = [cmap(norm(x)) for x in [self.middle_temp]]
-        tank_bottom_colors = [cmap(norm(x)) for x in [self.bottom_temp]]
-        thermocline1_reversed = self.params.num_layers - self.thermocline1
-        thermocline2_reversed = self.params.num_layers - self.thermocline2
-        bars_top = plt.bar([0], 
-                           [self.thermocline1], 
-                           bottom=thermocline1_reversed, 
-                           color=tank_top_colors, alpha=0.9, width=0.5)
-        bars_middle = plt.bar([0], 
-                              [self.thermocline2 - self.thermocline1], 
-                              bottom=[thermocline2_reversed], 
-                              color=tank_middle_colors, alpha=0.9, width=0.5)
-        bars_bottom = plt.bar([0], 
-                              [thermocline2_reversed], 
-                              bottom=[0], 
-                              color=tank_bottom_colors, alpha=0.9, width=0.5)
-        plt.xlim([-1,1])
-        plt.xticks([])
-        for bar in bars_top:
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_y() + bar.get_height()/2, 
-                     f'{int(self.top_temp)}', ha='center', va='center', color='white')
-        for bar in bars_middle:
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_y() + bar.get_height()/2, 
-                    f'{int(self.middle_temp)}', ha='center', va='center', color='white')
-        for bar in bars_bottom:
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_y() + bar.get_height()/2, 
-                     f'{int(self.bottom_temp)}', ha='center', va='center', color='white')
-        plt.title(repr(self))
-        plt.show()
-
-
 class DEdge():
     def __init__(self, tail:DNode, head:DNode, cost:float, hp_heat_out:float):
         self.tail: DNode = tail
