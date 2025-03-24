@@ -56,7 +56,7 @@ class FloParamsHouse0(BaseModel):
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     # Flo type
     FloAlias: str = "Winter.Oak"
-    FloGitCommit: str = ""
+    FloGitCommit: str = "6828dea"
     TypeName: Literal["flo.params.house0"] = "flo.params.house0"
     Version: Literal["002"] = "002"
 
