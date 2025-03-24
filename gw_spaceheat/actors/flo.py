@@ -214,6 +214,7 @@ class DGraph():
         self.time_spent_in_total = time.time()-st
 
     def create_nodes(self):
+        print(f"Initial state: {self.params.initial_top_temp}({self.params.initial_thermocline}){self.params.initial_bottom_temp}")
         if STEP_F == 5:
             self.top_temps = sorted(list(range(110,170+2*STEP_F,STEP_F)), reverse=True) # 175, 170, ..., 110
         else:
@@ -239,6 +240,9 @@ class DGraph():
             initial_middle_temp = initial_top_temp - 20
             initial_bottom_temp = initial_top_temp - 20
             initial_th2 = self.params.initial_thermocline 
+        if initial_top_temp == initial_middle_temp:
+            initial_middle_temp = initial_top_temp-MIN_DIFFERENCE_F
+            initial_th2 = self.params.num_layers
         # Initial node
         self.initial_node = DNode(
             parameters=self.params,
