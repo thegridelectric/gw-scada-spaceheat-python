@@ -11,8 +11,8 @@ class HpLoopKeepSend(GwStrEnum):
     """
     """
 
-    SendLess = auto()
-    SendMore = auto()
+    KeepMore = auto()
+    KeepLess = auto()
 
     @classmethod
     def values(cls) -> List[str]:
@@ -23,7 +23,7 @@ class HpLoopKeepSend(GwStrEnum):
 
     @classmethod
     def default(cls) -> "HpLoopKeepSend":
-        return cls.SendMore
+        return cls.KeepLess
 
     @classmethod
     def enum_name(cls) -> str:

@@ -81,6 +81,28 @@
       "Version": "001"
     },
     {
+      "AboutNodeName": "relay14",
+      "CapturedByNodeName": "relay-multiplexer",
+      "DisplayName": "Hp Loop On Off Relay State",
+      "Id": "e8676be9-8428-40b5-9db3-d4a836029a7b",
+      "Name": "hp-loop-on-off-relay14",
+      "TelemetryName": "RelayState",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
+      "AboutNodeName": "relay15",
+      "CapturedByNodeName": "relay-multiplexer",
+      "DisplayName": "Hp Loop Keep/Send Relay State",
+      "Id": "8ef9b3f7-f54a-454f-879d-8a7e3446952f",
+      "Name": "hp-loop-keep-send-relay15",
+      "TelemetryName": "RelayState",
+      "TerminalAssetAlias": "hw1.isone.me.versant.keene.beech.ta",
+      "TypeName": "data.channel.gt",
+      "Version": "001"
+    },
+    {
       "AboutNodeName": "dist-010v",
       "CapturedByNodeName": "dfr-multiplexer",
       "DisplayName": "Dist 010V",
@@ -487,6 +509,44 @@
           "Unit": "Unitless",
           "Version": "002",
           "WiringConfig": "NormallyOpen"
+        },
+        {
+          "ActorName": "relay14",
+          "AsyncCapture": true,
+          "CapturePeriodS": 300,
+          "ChannelName": "hp-loop-on-off-relay14",
+          "DeEnergizedState": "RelayClosed",
+          "DeEnergizingEvent": "CloseRelay",
+          "EnergizedState": "RelayOpen",
+          "EnergizingEvent": "OpenRelay",
+          "EventType": "change.relay.state",
+          "Exponent": 0,
+          "PollPeriodMs": 200,
+          "RelayIdx": 14,
+          "StateType": "relay.closed.or.open",
+          "TypeName": "relay.actor.config",
+          "Unit": "Unitless",
+          "Version": "002",
+          "WiringConfig": "NormallyClosed"
+        },
+        {
+          "ActorName": "relay15",
+          "AsyncCapture": true,
+          "CapturePeriodS": 300,
+          "ChannelName": "hp-loop-keep-send-relay15",
+          "DeEnergizedState": "KeepLess",
+          "DeEnergizingEvent": "ChangeToKeepLess",
+          "EnergizedState": "KeepMore",
+          "EnergizingEvent": "ChangeToKeepMore",
+          "EventType": "change.keep.send",
+          "Exponent": 0,
+          "PollPeriodMs": 200,
+          "RelayIdx": 15,
+          "StateType": "hp.loop.keep.send",
+          "TypeName": "relay.actor.config",
+          "Unit": "Unitless",
+          "Version": "002",
+          "WiringConfig": "DoubleThrow"
         }
       ],
       "DisplayName": "i2c krida relay boards",
@@ -874,6 +934,16 @@
       "Version": "200"
     },
     {
+      "ActorClass": "SiegLoop",
+      "ActorHierarchyName": "s.sieg-loop",
+      "DisplayName": "Siegenthaler Loop",
+      "Handle": "auto.h.n.sieg-loop",
+      "Name": "sieg-loop",
+      "ShNodeId": "72a409bf-1d5c-4229-8d60-89ac72447e6a",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
       "ActorClass": "Relay",
       "ActorHierarchyName": "s.relay1",
       "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
@@ -947,6 +1017,28 @@
       "Handle": "auto.h.relay9",
       "Name": "relay9",
       "ShNodeId": "c4d9a75f-21fe-46b5-bf6c-1f21895fc882",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "Relay",
+      "ActorHierarchyName": "s.relay14",
+      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "DisplayName": "Hp Loop Valve Active/Dormant Relay",
+      "Handle": "auto.h.n.sieg-loop.relay14",
+      "Name": "relay14",
+      "ShNodeId": "52f048dc-7ee3-44cc-92ed-3681b9678879",
+      "TypeName": "spaceheat.node.gt",
+      "Version": "200"
+    },
+    {
+      "ActorClass": "Relay",
+      "ActorHierarchyName": "s.relay15",
+      "ComponentId": "15bcd017-fa1a-4885-b18f-2a36dedf2cf6",
+      "DisplayName": "Hp Loop Valve KeepMore/KeepLess Relay",
+      "Handle": "auto.h.n.sieg-loop.relay15",
+      "Name": "relay15",
+      "ShNodeId": "9fdbc19f-1f75-487d-894e-fb54d9d98ac9",
       "TypeName": "spaceheat.node.gt",
       "Version": "200"
     },

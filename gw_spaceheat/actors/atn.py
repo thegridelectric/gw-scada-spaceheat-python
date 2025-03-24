@@ -1515,6 +1515,23 @@ class Atn(ActorInterface, Proactor):
             except Exception as e:
                 self.logger.error(f"Failed to set LoadOverestimationPercent! {e}")
 
+    def set_keep(self, val: int = 100) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=AnalogDispatch(
+                    FromGNodeAlias=self.layout.atn_g_node_alias,
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    AboutName=H0N.sieg_loop,
+                    Value=val,
+                    TriggerId=str(uuid.uuid4()),
+                    UnixTimeMs=int(time.time() * 1000),
+                ),
+            )
+        )
+
     def set_dist_010(self, val: int = 30) -> None:
         self.send_threadsafe(
             Message(

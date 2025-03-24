@@ -6,6 +6,7 @@ from actors.atomic_ally import AtomicAlly
 from actors.contract_handler import ContractHandler
 from actors.home_alone import HomeAlone
 from actors.honeywell_thermostat import HoneywellThermostat
+from actors.hp_boss import HpBoss
 from actors.hp_relay_boss import HpRelayBoss
 from actors.hubitat import Hubitat
 from actors.hubitat_poller import HubitatPoller
@@ -18,6 +19,7 @@ from actors.power_meter import PowerMeter
 from actors.relay import Relay
 from actors.scada import Scada
 from actors.scada_interface import ScadaInterface
+from actors.sieg_loop import SiegLoop
 from actors.strat_boss import StratBoss
 from actors.synth_generator import SynthGenerator
 from actors.zero_ten_outputer import ZeroTenOutputer
@@ -29,6 +31,7 @@ __all__ = [
     "ContractHandler",
     "HomeAlone",
     "HoneywellThermostat",
+    "HpBoss",
     "HpRelayBoss",
     "Hubitat",
     "HubitatPoller",
@@ -41,6 +44,7 @@ __all__ = [
     "Relay",
     "Scada",
     "ScadaInterface",
+    "SiegLoop",
     "StratBoss",
     "SynthGenerator",
     "ZeroTenOutputer",

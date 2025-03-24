@@ -201,7 +201,7 @@ class SynthGenerator(ScadaActor):
         self._send_to(
                 self.primary_scada,
                 SingleReading(
-                    ChannelName="usable-energy",
+                    ChannelName=H0CN.usable_energy,
                     Value=int(self.usable_kwh*1000),
                     ScadaReadTimeUnixMs=t_ms,
                 ),
@@ -209,7 +209,7 @@ class SynthGenerator(ScadaActor):
         self._send_to(
                 self.primary_scada,
                 SingleReading(
-                    ChannelName="required-energy",
+                    ChannelName=H0CN.required_energy,
                     Value=int(self.required_kwh*1000),
                     ScadaReadTimeUnixMs=t_ms,
                 ),

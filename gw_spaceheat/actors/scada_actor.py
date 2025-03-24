@@ -21,7 +21,7 @@ from gwproto.enums import (
     RelayClosedOrOpen
 )
 from enums import TurnHpOnOff, ChangeKeepSend
-from named_types import FsmEvent
+from named_types import FsmEvent, NewCommandTree
 from pydantic import ValidationError
 
 
@@ -76,6 +76,10 @@ class ScadaActor(Actor):
     @property
     def hp_relay_boss(self) -> ShNode:
         return self.layout.node(H0N.hp_relay_boss)
+
+    @property
+    def pico_cycler(self) -> ShNode:
+        return self.layout.nodes[H0N.pico_cycler]
 
     def my_actuators(self) -> List[ShNode]:
         """Get all actuator nodes that are descendants of this node in the handle hierarchy"""
@@ -213,7 +217,7 @@ class ScadaActor(Actor):
         elif relay == self.hp_loop_on_off:
             self.sieg_valve_active(from_node)
         elif relay == self.hp_loop_keep_send:
-            self.change_to_hp_send_more(from_node)
+            self.change_to_hp_keep_less(from_node)
         else:
             self.log(f"Unrecognized relay {relay}! Not de-energizing")
 
@@ -755,7 +759,7 @@ class ScadaActor(Actor):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def change_to_hp_send_more(self, from_node: Optional[ShNode] = None) -> None:
+    def change_to_hp_keep_less(self, from_node: Optional[ShNode] = None) -> None:
         """
         Sets the Keep/Send relay so that if relay 14 is On, the Siegenthaler
         valve moves towards sending MORE water out of the Siegenthaler loop (SendMore)
@@ -767,7 +771,7 @@ class ScadaActor(Actor):
                 FromHandle=from_node.handle,
                 ToHandle=self.hp_loop_keep_send.handle,
                 EventType=ChangeKeepSend.enum_name(),
-                EventName=ChangeKeepSend.ChangeToSendMore,
+                EventName=ChangeKeepSend.ChangeToKeepLess,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
@@ -778,7 +782,7 @@ class ScadaActor(Actor):
         except ValidationError as e:
             self.log(f"Tried to change a relay but didn't have the rights: {e}")
 
-    def change_to_hp_send_less(self, from_node: Optional[ShNode] = None) -> None:
+    def change_to_hp_keep_more(self, from_node: Optional[ShNode] = None) -> None:
         """
         Sets the Keep/Send relay so that if relay 15 is On, the Siegenthaler
         valve moves towards sending LESS water out of the Siegenthaler loop (SendLess)
@@ -790,7 +794,7 @@ class ScadaActor(Actor):
                 FromHandle=from_node.handle,
                 ToHandle=self.hp_loop_keep_send.handle,
                 EventType=ChangeKeepSend.enum_name(),
-                EventName=ChangeKeepSend.ChangeToSendLess,
+                EventName=ChangeKeepSend.ChangeToKeepMore,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
@@ -921,6 +925,8 @@ class ScadaActor(Actor):
     def the_boss_of(self, node: ShNode) -> Optional[ShNode]:
         if node.Handle == node.Name:
             return None
+        if node.Handle is None:
+            return None
         boss_name= node.Handle.split(".")[-2]
         return self.layout.node(boss_name, None)
 
@@ -928,6 +934,67 @@ class ScadaActor(Actor):
         if boss is None:
             boss = self.node
         return [n for n in self.layout.nodes.values() if self.the_boss_of(n) == boss]
+
+    def set_hierarchical_fsm_handles(self, boss_node: ShNode) -> None:
+        """ 
+        ```
+        boss
+        ├─────────────────────────────────────────── hp-relay-boss
+        ├───────────────────────────sieg-loop         └── relay6 (hp_scada_ops_relay)                                          
+        └─────────────strat-boss     ├─ relay14 (hp_loop_on_off)
+                                     └─ relay15 (hp_loop_keep_send)
+        ```
+        """
+        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
+        hp_relay_boss.Handle = f"{boss_node.handle}.{hp_relay_boss.Name}"
+
+        scada_ops_relay = self.layout.node(H0N.hp_scada_ops_relay)
+        scada_ops_relay.Handle = f"{hp_relay_boss.Handle}.{scada_ops_relay.Name}"
+
+        strat_boss = self.layout.node(H0N.strat_boss)
+        strat_boss.Handle = f"{boss_node.handle}.{strat_boss.Name}"
+
+        sieg_loop = self.layout.node(H0N.sieg_loop)
+        sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
+
+        sieg_keep_send =  self.layout.node(H0N.hp_loop_keep_send)
+        sieg_keep_send.Handle = f"{sieg_loop.Handle}.{sieg_keep_send.Name}"
+
+        sieg_on_off = self.layout.node(H0N.hp_loop_on_off)
+        sieg_on_off.Handle = f"{sieg_loop.Handle}.{sieg_on_off.Name}"
+
+    def set_command_tree(self, boss_node: ShNode) -> None:
+        """ Sets handles for a command tree like this:
+           ```
+            boss
+            ├─────────────────────────────────────────── hp-relay-boss
+            ├───────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)                                          
+            ├──────────────strat-boss     ├─ relay14 (hp_loop_on_off)
+            ├── relay1 (vdc)              └─ relay15 (hp_loop_keep_send)
+            ├── relay2 (tstat_common)
+            └── all other relays and 0-10s  
+        ```                      
+        Throws exception if boss_node is not in my chain of command
+        """
+        # TODO: if boss_node is not in my chain of command, 
+        # raise an error
+        my_handle_prefix = f"{self.node.handle}."
+        if not boss_node.handle.startswith(my_handle_prefix) and boss_node != self.node:
+            raise Exception(f"{self.node.handle} cannot set command tree for boss_node {boss_node.handle}!")
+        self.set_hierarchical_fsm_handles(boss_node)
+
+        for node in self.my_actuators():
+            if node.Name not in [H0N.hp_scada_ops_relay,H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
+                node.Handle =  f"{boss_node.handle}.{node.Name}"
+        self._send_to(
+            self.atn,
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+        self.log(f"Set {boss_node.handle} command tree")
 
     def _send_to(self, dst: ShNode, payload: Any, src: Optional[ShNode] = None) -> None:
         if dst is None:

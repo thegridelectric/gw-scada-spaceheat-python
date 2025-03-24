@@ -693,9 +693,31 @@ class LayoutDb:
                     ActorClass=ActorClass.StratBoss,
                     DisplayName="Stratification Boss",
                 ),
+                SpaceheatNodeGt(
+                    ShNodeId=self.make_node_id(H0N.sieg_loop),
+                    Name=H0N.sieg_loop,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.sieg_loop}",
+                    Handle=f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{H0N.sieg_loop}",
+                    ActorClass=ActorClass.SiegLoop,
+                    DisplayName="Siegenthaler Loop",
+                ),
             ]
         )
-    
+
+        self.add_synth_channels(
+            [SynthChannelGt(
+            Id = self.make_synth_channel_id(H0CN.hp_keep),
+            Name = H0CN.hp_keep,
+            CreatedByNodeName = H0N.sieg_loop,
+            TelemetryName = TelemetryName.Unknown, # TODO: change to PercentClosed
+            TerminalAssetAlias = self.terminal_asset_alias,
+            Strategy = "Integrate relay motion",
+            DisplayName = "Percent keep in the Siegenthaler loop",
+            SyncReportMinutes = 1
+            )
+        ]
+        )
+         
 
     def add_stubs(self, cfg: Optional[StubConfig] = None):
         if cfg is None:
@@ -703,7 +725,7 @@ class LayoutDb:
         self.add_stub_scadas(cfg)
         if cfg.add_stub_power_meter:
             self.add_stub_power_meter(cfg)
-        
+
 
     def dict(self) -> dict:
         d = dict(

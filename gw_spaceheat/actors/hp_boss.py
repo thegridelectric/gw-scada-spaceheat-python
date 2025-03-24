@@ -3,7 +3,6 @@ import uuid
 import asyncio
 from data_classes.house_0_names import H0CN, H0N
 from gwproto.message import Message
-from gwproactor import ServicesInterface
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types import FsmFullReport
 from gwproto.enums import ChangeRelayState
@@ -15,13 +14,12 @@ from enums import LogLevel, TurnHpOnOff
 from named_types import FsmEvent, Glitch, StratBossReady
 
 
-class HpRelayBoss(ScadaActor):
+class HpBoss(ScadaActor):
     """
-    Direct Report relays:
+    Direct Reports:
     HpBoss
         ├── HpScadaOps
-        ├── HpLoopOnOff
-        └── HpLoopKeepSend
+        └── SiegLoop
     """
     TURN_ON_ANYWAY_S = 120 # turn on the heat pump after 2 minutes without strat-boss
     def __init__(self, name: str, services: ScadaInterface):

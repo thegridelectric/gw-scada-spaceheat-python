@@ -496,20 +496,18 @@ class Scada(ScadaInterface, Proactor):
         if payload.FromGNodeAlias != self._layout.atn_g_node_alias:
             self.logger.error("IGNORING DISPATCH - NOT FROM MY ATN")
             return
-        # HUGE HACK - 
+        # HUGE HACK - allow atn to moonlight as boss
         to_node = self.layout.node(payload.AboutName)
         boss_handle = '.'.join(to_node.handle.split('.')[:-1])
-        self._send_to(to_node, AnalogDispatch(FromGNodeAlias=payload.FromGNodeAlias,
+        msg = AnalogDispatch(FromGNodeAlias=payload.FromGNodeAlias,
                                               FromHandle=boss_handle,
                                               ToHandle=to_node.handle,
                                               AboutName=to_node.name,
                                               Value=payload.Value,
                                               TriggerId=payload.TriggerId,
-                                              UnixTimeMs=payload.UnixTimeMs))
-        # to_node = self.layout.node_by_handle(payload.ToHandle)
-        # if to_node:
-        #     self.log(f"Sending to {to_node.Name}")
-        #     self._send_to(to_node.Name, payload)
+                                              UnixTimeMs=payload.UnixTimeMs)
+        self.log(f"Got dispatch for {to_node.Handle} from atn. HACK: Sending on from {boss_handle}")
+        self._send_to(to_node, msg)
 
     def process_channel_readings(
         self, from_node: ShNode, payload: ChannelReadings
@@ -1039,12 +1037,15 @@ class Scada(ScadaInterface, Proactor):
 
     def set_home_alone_command_tree(self) -> None:
         """ HomeAlone Base Command Tree
-        
-         - All actuators except for HpScadaOps and PicoCycler report to AtomicAlly
-         - HpRelayBoss reports to Atomic Ally, 
-         - StratBoss reports to Atomic Ally
-        
-         TODO: Add ascii representation 
+        ```
+        h
+        ├────────────────────────────────────────────────── hp-relay-boss
+        ├────────────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)                                          
+        ├─────────────────strat-boss      ├─ relay14 (hp_loop_on_off)
+        ├── relay1 (vdc)                  └─ relay15 (hp_loop_keep_send)
+        ├── relay2 (tstat_common)
+        └── all other relays and 0-10s
+        ```
         """
 
         hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
@@ -1053,11 +1054,16 @@ class Scada(ScadaInterface, Proactor):
         strat_boss = self.layout.node(H0N.strat_boss)
         strat_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{strat_boss.Name}"
 
+        sieg_loop = self.layout.node(H0N.sieg_loop)
+        sieg_loop.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.sieg_loop}"
+
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             elif node.Name == H0N.hp_scada_ops_relay:
                 node.Handle = f"{H0N.auto}.{H0N.home_alone}.{hp_relay_boss.Name}.{node.Name}"
+            elif node.Name in [H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.sieg_loop}.{node.Name}"
             else:
                 node.Handle = (
                     f"{H0N.auto}.{H0N.home_alone}.{node.Name}"
@@ -1100,11 +1106,16 @@ class Scada(ScadaInterface, Proactor):
 
     def set_atn_command_tree(self) -> None:
         """ Atn Base Command Tree
-        
-         - All actuators except for HpScadaOps and PicoCycler report to AtomicAlly
-         - HpRelayBoss reports to Atomic Ally, 
-         - StratBoss reports to Atomic Ally
-         TODO: Add ascii representation 
+        ```
+        a
+        └─ aa
+            ├────────────────────────────────────────────────── hp-relay-boss
+            ├────────────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)                                          
+            ├─────────────────strat-boss      ├─ relay14 (hp_loop_on_off)
+            ├── relay1 (vdc)                  └─ relay15 (hp_loop_keep_send)
+            ├── relay2 (tstat_common)
+            └── all other relays and 0-10s
+        ```
         """
         hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
         hp_relay_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
@@ -1112,11 +1123,16 @@ class Scada(ScadaInterface, Proactor):
         strat_boss = self.layout.node(H0N.strat_boss)
         strat_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{strat_boss.Name}"
 
+        sieg_loop = self.layout.node(H0N.sieg_loop)
+        sieg_loop.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{H0N.sieg_loop}"
+
         for node in self.layout.actuators:
             if node.Name == H0N.vdc_relay:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             elif node.Name == H0N.hp_scada_ops_relay:
                 node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
+            elif node.Name in [H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
+                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{H0N.sieg_loop}.{node.Name}"
             else:
                 node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
         self._send_to(

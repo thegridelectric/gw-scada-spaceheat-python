@@ -192,7 +192,7 @@ class HomeAlone(ScadaActor):
             raise Exception(f"HomeAlone requires {H0N.home_alone_scada_blind} node!!")
         if H0N.home_alone_onpeak_backup not in self.layout.nodes:
             raise Exception(f"HomeAlone requires {H0N.home_alone_onpeak_backup} node!!")
-        self.set_normal_command_tree()
+        self.set_command_tree(boss_node=self.normal_node)
         self.starting_up: bool = True
 
 
@@ -241,57 +241,6 @@ class HomeAlone(ScadaActor):
             )
         )
 
-    def set_onpeak_backup_command_tree(self) -> None:
-        """
-        Not in command of HpScadaOps relay
-        """
-
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = hp_relay_boss.Name # out of chain of command
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = strat_boss.Name # out of chain of command
-
-        for node in self.my_actuators():
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
-            else:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_onpeak_backup}.{node.Name}"
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-        self.log("Set backup command tree")
-        
-
-    def set_normal_command_tree(self) -> None:
-
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{hp_relay_boss.Name}"
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{strat_boss.Name}"
-
-
-        for node in self.my_actuators():
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{hp_relay_boss.Name}.{node.Name}"
-            else:
-                node.Handle =  f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_normal}.{node.Name}"
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-        self.log("Set normal command tree")
-
     def set_strat_saver_command_tree(self) -> None:
         
         # charge discharge relay reports to strat boss
@@ -321,28 +270,6 @@ class HomeAlone(ScadaActor):
         )
         self.log(f"Set strat saver command tree. E.g. charge/discharge is now {chg_dschg_node.handle}")
 
-    def set_scadablind_command_tree(self) -> None:
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = hp_relay_boss.Name # out of chain of command
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = strat_boss.Name # out of chain of command
-
-        for node in self.my_actuators():
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
-            else:
-                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{H0N.home_alone_scada_blind}.{node.Name}"
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-        self.log("Set scadablind command tree")
-
     def top_state_update(self, cause: TopStateEvent) -> None:
         """
         Report top state associated to node "h"
@@ -359,7 +286,6 @@ class HomeAlone(ScadaActor):
             ),
         )
         self.log("Set top state command tree")
-
 
     @property
     def monitored_names(self) -> Sequence[MonitoredName]:
@@ -389,7 +315,7 @@ class HomeAlone(ScadaActor):
         #     self.log("Not triggering HouseColdOnpeak top event - not in top state Normal!")
         #     return
         # implement the change in command tree. Boss: h.n -> h.onpeak-backup
-        self.set_onpeak_backup_command_tree()
+        self.set_command_tree(boss_node=self.onpeak_backup_node)
         if self.state != HomeAloneState.Dormant:
             self.trigger_normal_event(HomeAloneEvent.GoDormant)
         self.HouseColdOnpeak()
@@ -501,8 +427,8 @@ class HomeAlone(ScadaActor):
                     if self.is_storage_ready():
                         self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageReady)
                     else:
-                        usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
-                        required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                        usable = self.data.latest_channel_values[H0CN.usable_energy] / 1000
+                        required = self.data.latest_channel_values[H0CN.required_energy] / 1000
                         if usable < required:
                             self.trigger_normal_event(HomeAloneEvent.OffPeakBufferFullStorageNotReady)
                         else:
@@ -524,8 +450,8 @@ class HomeAlone(ScadaActor):
                     if self.is_buffer_empty():
                         self.trigger_normal_event(HomeAloneEvent.OffPeakBufferEmpty)
                     elif not self.is_storage_ready():
-                        usable = self.data.latest_channel_values[H0N.usable_energy] / 1000
-                        required = self.data.latest_channel_values[H0N.required_energy] / 1000
+                        usable = self.data.latest_channel_values[H0CN.usable_energy] / 1000
+                        required = self.data.latest_channel_values[H0CN.required_energy] / 1000
                         if self.storage_declared_ready:
                             if self.full_storage_energy is None:
                                 if usable > 0.9*required:
@@ -626,7 +552,7 @@ class HomeAlone(ScadaActor):
         # Report state change to scada
         self.top_state_update(cause=TopStateEvent.JustOffpeak)
         # implement the change in command tree. Boss: h.onpeak-backup -> h.n
-        self.set_normal_command_tree()
+        self.set_command_tree(boss_node=self.normal_node)
         # and let the normal homealone know its alive 
         if self.state == HomeAloneState.Dormant:
             self.engage_brain(waking_up=True)
@@ -634,7 +560,7 @@ class HomeAlone(ScadaActor):
     def trigger_missing_data(self):
         if self.top_state != HomeAloneTopState.Normal:
             raise Exception("Should only call trigger_missing_data in transition from Normal to ScadaBlind!")
-        self.set_scadablind_command_tree()
+        self.set_command_tree(boss_node=self.scada_blind_node)
         if self.state != HomeAloneState.Dormant:
             self.trigger_normal_event(HomeAloneEvent.GoDormant)
         self.MissingData()
@@ -648,7 +574,7 @@ class HomeAlone(ScadaActor):
             raise Exception("Should only call trigger_data_available in transition from ScadaBlind to Normal!")
         self.DataAvailable()
         self.top_state_update(cause=TopStateEvent.DataAvailable)
-        self.set_normal_command_tree()
+        self.set_command_tree(boss_node=self.normal_node)
         if self.state == HomeAloneState.Dormant:
             self.engage_brain(waking_up=True)
 
@@ -665,8 +591,7 @@ class HomeAlone(ScadaActor):
         
     def onpeak_backup_actuator_actions(self) -> None:
         """
-        Expects set_onpeak_backup_command_tree already called, 
-        with self.onpeak_backup_node as boss
+        Expects set_command_tree already called, with self.onpeak_backup_node as boss
           - turns off store pump
           - iso valve open (valved to discharge)
           - if using oil boiler, turns hp failsafe to aquastat and aquastat ctrl to boiler
@@ -767,7 +692,7 @@ class HomeAlone(ScadaActor):
         if self.top_state == HomeAloneState.Dormant:
             # TopWakeUp: Dormant -> Normal
             self.TopWakeUp()
-            self.set_normal_command_tree() 
+            self.set_command_tree(boss_node=self.normal_node)
             # figure out if StratBoss is active
             if self.strat_boss.name in self.data.latest_machine_state.keys():
                 strat_boss_state = self.data.latest_machine_state[self.strat_boss.name].State
@@ -800,7 +725,7 @@ class HomeAlone(ScadaActor):
         else: 
             if self.state != HomeAloneState.StratBoss:
                 raise Exception("Inconsistency! StratBoss thinks its Active but HA is not in StratBoss State")
-            self.set_normal_command_tree()
+            self.set_command_tree(boss_node=self.normal_node)
             self.trigger_normal_event(HomeAloneEvent.StopStratSaving)
             self.engage_brain(waking_up=True)
             # confirm change of command tree by returning payload to strat boss
@@ -861,8 +786,8 @@ class HomeAlone(ScadaActor):
                 self.fill_missing_store_temps()
                 print("Successfully filled in the missing storage temperatures.")
                 self.temperatures_available = True
-        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy]
-        required_storage = self.data.latest_channel_values[H0N.required_energy]
+        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy]
+        required_storage = self.data.latest_channel_values[H0CN.required_energy]
         if total_usable_kwh is None or required_storage is None:
             self.temperatures_available = False
 
@@ -920,8 +845,8 @@ class HomeAlone(ScadaActor):
             return False
 
     def is_storage_ready(self, return_missing=False) -> bool:
-        total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
-        required_storage = self.data.latest_channel_values[H0N.required_energy] / 1000
+        total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
+        required_storage = self.data.latest_channel_values[H0CN.required_energy] / 1000
         if return_missing:
             return total_usable_kwh, required_storage
         if total_usable_kwh >= required_storage:
@@ -942,7 +867,7 @@ class HomeAlone(ScadaActor):
         
     def is_storage_empty(self):
         if not self.is_simulated:
-            total_usable_kwh = self.data.latest_channel_values[H0N.usable_energy] / 1000
+            total_usable_kwh = self.data.latest_channel_values[H0CN.usable_energy] / 1000
         else:
             total_usable_kwh = 0
         if total_usable_kwh < 0.2:

@@ -25,6 +25,7 @@ from gwproto.named_types import (
     TicklistReedReport,
 )
 from gwproto.named_types.web_server_gt import DEFAULT_WEB_SERVER_NAME
+from actors.scada_interface import ScadaInterface
 from actors.scada_actor import ScadaActor
 from enums import LogLevel
 from named_types import Glitch, PicoMissing
@@ -67,7 +68,7 @@ class ApiFlowModule(ScadaActor):
     def __init__(
         self,
         name: str,
-        services: ServicesInterface,
+        services: ScadaInterface,
     ):
         super().__init__(name, services)
         component = services.hardware_layout.component(name)
