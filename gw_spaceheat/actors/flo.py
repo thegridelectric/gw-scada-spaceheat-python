@@ -71,19 +71,20 @@ class DParams():
                 self.load_forecast[i] = self.load_forecast[i] - min(available_house, self.load_forecast[i])
                 available_house = available_house - min(available_house, load_backup)
                 i += 1
-        self.check_hp_sizing()
-        # TODO: add to config
-        self.min_cop = 1
-        self.max_cop = 3
-        self.soft_constraint: bool = True
         # First time step can be shorter than an hour
         if datetime.fromtimestamp(self.start_time).minute > 0:
             self.fraction_of_hour_remaining: float = datetime.fromtimestamp(self.start_time).minute / 60
         else:
             self.fraction_of_hour_remaining: float = 1
-        self.load_forecast[0] = self.load_forecast[0]*self.fraction_of_hour_remaining
+        self.load_forecast[0] = round(self.load_forecast[0]*self.fraction_of_hour_remaining,2)
+        self.check_hp_sizing()
+        # TODO: add to config
+        self.min_cop = 1
+        self.max_cop = 3
+        self.soft_constraint: bool = True
         
     def check_hp_sizing(self):
+        self.load_forecast = [round(x,2)+100 for x in self.load_forecast]
         max_load_elec = max(self.load_forecast) / self.COP(min(self.oat_forecast), max(self.rswt_forecast))
         if max_load_elec > self.max_hp_elec_in:
             error_text = f"\nThe current parameters indicate that on the coldest hour of the forecast ({min(self.oat_forecast)} F):"
@@ -92,6 +93,18 @@ class DParams():
             error_text += f"\n=> Need a HP that can reach {round(max_load_elec,2)} kW electrical power"
             error_text += f"\n=> The given HP is undersized ({self.max_hp_elec_in} kW electrical power)"
             print(error_text)
+            max_hp_elec_in = [self.max_hp_elec_in for _ in self.oat_forecast]
+            for h in range(len(max_hp_elec_in)):
+                if h==0:
+                    max_hp_elec_in[h] = max_hp_elec_in[h] * self.fraction_of_hour_remaining
+                    max_hp_elec_in[h] = (((1-self.hp_turn_on_minutes/60) if self.hp_is_off else 1) * max_hp_elec_in[h])
+                else:
+                    # Since we can't know if the HP was on or off after hour 0, remove half of the turn on time
+                    # Overestimating less when turning on, underestimating a little when already on
+                    max_hp_elec_in[h] = ((1-self.hp_turn_on_minutes/2/60) * max_hp_elec_in[h])    
+            all_max_hp = [round(power*self.COP(oat),2) for power, oat in zip(max_hp_elec_in, self.oat_forecast)]
+            self.load_forecast = [min(max_hp, self.load_forecast[i]) for i, max_hp in enumerate(all_max_hp)]
+            print("The load forecast has been capped to the HP's maximum power output.\n")
         
     def COP(self, oat, lwt=None):
         if oat < self.config.CopMinOatF: 
