@@ -84,7 +84,6 @@ class DParams():
         self.soft_constraint: bool = True
         
     def check_hp_sizing(self):
-        self.load_forecast = [round(x,2)+100 for x in self.load_forecast]
         max_load_elec = max(self.load_forecast) / self.COP(min(self.oat_forecast), max(self.rswt_forecast))
         if max_load_elec > self.max_hp_elec_in:
             error_text = f"\nThe current parameters indicate that on the coldest hour of the forecast ({min(self.oat_forecast)} F):"
