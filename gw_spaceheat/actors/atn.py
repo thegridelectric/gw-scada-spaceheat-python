@@ -18,7 +18,6 @@ import random
 import rich
 import httpx
 from actors.flo import DGraph
-from actors.hinge import FloHinge
 from data_classes.house_0_layout import House0Layout
 from data_classes.house_0_names import H0CN, H0N
 from enums import MarketPriceUnit, MarketQuantityUnit, MarketTypeName
@@ -252,7 +251,7 @@ class Atn(ActorInterface, Proactor):
         )
         self.bid_runner: BidRunner = None
         self.sending_contracts: bool = True
-        min_minute = min(max(3, datetime.now().minute), 56)
+        min_minute = min(max(50, datetime.now().minute), 56)
         self.random_flo_minute: int = random.randint(min_minute, 57)
 
     @property
