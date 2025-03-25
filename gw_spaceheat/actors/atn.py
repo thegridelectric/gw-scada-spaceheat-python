@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple, cast, Callable
 import numpy as np
 import pytz
 import aiohttp
+import random
 import rich
 import httpx
 from actors.flo import DGraph
@@ -251,6 +252,8 @@ class Atn(ActorInterface, Proactor):
         )
         self.bid_runner: BidRunner = None
         self.sending_contracts: bool = True
+        min_minute = min(max(3, datetime.now().minute), 56)
+        self.random_flo_minute: int = random.randint(min_minute, 57)
 
     @property
     def name(self) -> str:
@@ -574,18 +577,20 @@ class Atn(ActorInterface, Proactor):
                     self.bid_runner.stop()
                     self.bid_runner.on_complete(self.name)
 
-            if datetime.now().minute >= 55 and not self.sent_bid:
+            if datetime.now().minute >= self.random_flo_minute and not self.sent_bid:
                 try:
                     await self.run_d(session)
                 except Exception as e:
                     self.log(f"Exception running Dijkstra: {e}")
-
-            elif datetime.now().minute <= 55 and self.sent_bid:
+            elif datetime.now().minute <= self.random_flo_minute and self.sent_bid:
                 self.sent_bid = False
             else:
                 if self.contract_handler.latest_hb is None:
                     self.log("No active contract.")
                 # await self.run_fake_d(session)
+            
+            if datetime.now().minute <= self.random_flo_minute and not self.sent_bid:
+                self.log(f"Waiting for minute {self.random_flo_minute} to run FLO")
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
@@ -611,13 +616,13 @@ class Atn(ActorInterface, Proactor):
             else:
                 return
 
-        if datetime.now().minute >= 55:
+        if datetime.now().minute >= self.random_flo_minute:
             dijkstra_start_time = int(
                 datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
                 )
         else:
             dijkstra_start_time = int(datetime.timestamp(datetime.now()))
-            self.log("NOT RUNNING Dijkstra! Not in the last 5 minutes.")
+            self.log(f"NOT RUNNING Dijkstra! Not past minute {self.random_flo_minute}")
             return
         await self.get_weather(session)
         await self.update_price_forecast()
@@ -689,7 +694,7 @@ class Atn(ActorInterface, Proactor):
         self.bid_runner = None
 
     async def run_fake_d(self, session: aiohttp.ClientSession) -> None:
-        if datetime.now().minute >= 55:
+        if datetime.now().minute >= self.random_flo_minute:
             return
 
         # Check if there's already a bid runner

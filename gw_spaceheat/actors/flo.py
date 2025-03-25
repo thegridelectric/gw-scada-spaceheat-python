@@ -3,6 +3,15 @@ from datetime import datetime
 from typing import Dict, List, Tuple
 from named_types import PriceQuantityUnitless, FloParamsHouse0
 from typing import Optional
+import time
+import json
+import os
+
+MIN_DIFFERENCE_F = 10
+STEP_F = 10
+NUM_LAYERS = 24
+PRE_COMPUTE = True
+PRINT_DETAILS = False
 
 def to_kelvin(t):
     return (t-32)*5/9 + 273.15
@@ -41,7 +50,6 @@ class DParams():
         self.hp_is_off = config.HpIsOff
         self.hp_turn_on_minutes = config.HpTurnOnMinutes
         self.quadratic_coefficients = self.get_quadratic_coeffs()
-        self.temperature_stack = self.get_available_top_temps()
         self.load_forecast = [self.required_heating_power(oat,ws) for oat,ws in zip(self.oat_forecast,self.ws_forecast)]
         self.rswt_forecast = [self.required_swt(x) for x in self.load_forecast]
         # Modify load forecast to include energy available in the buffer
@@ -63,23 +71,20 @@ class DParams():
                 self.load_forecast[i] = self.load_forecast[i] - min(available_house, self.load_forecast[i])
                 available_house = available_house - min(available_house, load_backup)
                 i += 1
-        self.check_hp_sizing()
-        # TODO: add to config
-        self.min_cop = 1
-        self.max_cop = 3
-        self.soft_constraint: bool = True
         # First time step can be shorter than an hour
         if datetime.fromtimestamp(self.start_time).minute > 0:
             self.fraction_of_hour_remaining: float = datetime.fromtimestamp(self.start_time).minute / 60
         else:
             self.fraction_of_hour_remaining: float = 1
-        self.load_forecast[0] = self.load_forecast[0]*self.fraction_of_hour_remaining
-        # Find the first top temperature above RSWT for each hour
-        self.rswt_plus = {}
-        for rswt in self.rswt_forecast:
-            self.rswt_plus[rswt] = self.first_top_temp_above_rswt(rswt)
+        self.load_forecast[0] = round(self.load_forecast[0]*self.fraction_of_hour_remaining,2)
+        self.check_hp_sizing()
+        # TODO: add to config
+        self.min_cop = 1
+        self.max_cop = 3
+        self.soft_constraint: bool = True
         
     def check_hp_sizing(self):
+        self.load_forecast = [round(x,2) for x in self.load_forecast]
         max_load_elec = max(self.load_forecast) / self.COP(min(self.oat_forecast), max(self.rswt_forecast))
         if max_load_elec > self.max_hp_elec_in:
             error_text = f"\nThe current parameters indicate that on the coldest hour of the forecast ({min(self.oat_forecast)} F):"
@@ -88,6 +93,18 @@ class DParams():
             error_text += f"\n=> Need a HP that can reach {round(max_load_elec,2)} kW electrical power"
             error_text += f"\n=> The given HP is undersized ({self.max_hp_elec_in} kW electrical power)"
             print(error_text)
+            max_hp_elec_in = [self.max_hp_elec_in for _ in self.oat_forecast]
+            for h in range(len(max_hp_elec_in)):
+                if h==0:
+                    max_hp_elec_in[h] = max_hp_elec_in[h] * self.fraction_of_hour_remaining
+                    max_hp_elec_in[h] = (((1-self.hp_turn_on_minutes/60) if self.hp_is_off else 1) * max_hp_elec_in[h])
+                else:
+                    # Since we can't know if the HP was on or off after hour 0, remove half of the turn on time
+                    # Overestimating less when turning on, underestimating a little when already on
+                    max_hp_elec_in[h] = ((1-self.hp_turn_on_minutes/2/60) * max_hp_elec_in[h])    
+            all_max_hp = [round(power*self.COP(oat),2) for power, oat in zip(max_hp_elec_in, self.oat_forecast)]
+            self.load_forecast = [min(max_hp, self.load_forecast[i]) for i, max_hp in enumerate(all_max_hp)]
+            print("The load forecast has been capped to the HP's maximum power output.\n")
         
     def COP(self, oat, lwt=None):
         if oat < self.config.CopMinOatF: 
@@ -110,9 +127,7 @@ class DParams():
         return (-b + (b**2-4*a*c2)**0.5)/(2*a)
 
     def delta_T(self, swt):
-        d = self.dd_delta_t/self.dd_power * self.delivered_heating_power(swt)
-        d = 0 if swt<self.no_power_rswt else d
-        return d if d>0 else 0
+        return 20
     
     def delta_T_inverse(self, rwt: float) -> float:
         a, b, c = self.quadratic_coefficients
@@ -121,381 +136,660 @@ class DParams():
         cc = -self.dd_delta_t/self.dd_power * c - rwt
         if bb**2-4*aa*cc < 0 or (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt > 30:
             return 30
-        dt = (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt
-        if dt<=1:
-            return 1
-        return dt
+        return (-bb + (bb**2-4*aa*cc)**0.5)/(2*aa) - rwt
     
     def get_quadratic_coeffs(self):
         x_rswt = np.array([self.no_power_rswt, self.intermediate_rswt, self.dd_rswt])
         y_hpower = np.array([0, self.intermediate_power, self.dd_power])
         A = np.vstack([x_rswt**2, x_rswt, np.ones_like(x_rswt)]).T
         return [float(x) for x in np.linalg.solve(A, y_hpower)] 
-    
-    def get_available_top_temps(self) -> Tuple[Dict, Dict]:
-        MIN_BOTTOM_TEMP, MAX_TOP_TEMP = 80, 175
 
-        if self.initial_top_temp < MIN_BOTTOM_TEMP:
-            self.initial_top_temp = MIN_BOTTOM_TEMP
-
-        if self.initial_bottom_temp < self.initial_top_temp - self.delta_T(self.initial_top_temp):
-            self.initial_bottom_temp = round(self.initial_top_temp - self.delta_T(self.initial_top_temp))
-
-        if self.initial_bottom_temp < MIN_BOTTOM_TEMP:
-            self.initial_bottom_temp = MIN_BOTTOM_TEMP
-
-        if self.initial_bottom_temp == self.initial_top_temp:
-            self.initial_bottom_temp += -5
-
-        self.max_thermocline = self.num_layers
-        if self.initial_top_temp > MAX_TOP_TEMP-5:
-            self.max_thermocline = self.initial_thermocline
-
-        available_temps = []
-        height_top = self.initial_thermocline
-        height_bottom = self.num_layers - self.initial_thermocline
-
-        # Add temperatures above initial tank
-        t = self.initial_top_temp
-        b = self.initial_bottom_temp
-        while t < MAX_TOP_TEMP or b < MAX_TOP_TEMP:
-            if t > MAX_TOP_TEMP:
-                available_temps.append((b, height_bottom))
-                b = round(b + self.delta_T_inverse(b))
-            else:
-                available_temps.append((b, height_bottom))
-                available_temps.append((t, height_top))
-                if t==round(t + self.delta_T_inverse(t)) or b==round(b + self.delta_T_inverse(b)):
-                    break
-                t = round(t + self.delta_T_inverse(t))
-                b = round(b + self.delta_T_inverse(b))
-
-        # Add temperatures below initial tank
-        t = round(self.initial_top_temp - self.delta_T(self.initial_top_temp))
-        b = round(self.initial_bottom_temp - self.delta_T(self.initial_bottom_temp))
-        while b > MIN_BOTTOM_TEMP or t > MIN_BOTTOM_TEMP:
-            if b < MIN_BOTTOM_TEMP:
-                available_temps = [(t, height_top)] + available_temps
-                t = round(t - self.delta_T(t))
-            else:
-                available_temps = [(t, height_top)] + available_temps
-                available_temps = [(b, height_bottom)] + available_temps
-                if t==round(t - self.delta_T(t)) or b==round(b - self.delta_T(b)):
-                    break
-                t = round(t - self.delta_T(t))
-                b = round(b - self.delta_T(b))
-
-        self.available_top_temps = [x[0] for x in available_temps]
-        if self.available_top_temps != sorted(self.available_top_temps):
-            for i in range(1, len(available_temps)):
-                available_temps[i] = (max(available_temps[i][0], available_temps[i-1][0]), available_temps[i][1])
-
-        for _ in range(10):
-            if sorted(list(set([x[0] for x in available_temps]))) == sorted([x[0] for x in available_temps]):
-                break
-            available_temps_no_duplicates = []
-            skip_next_i = False
-            for i in range(len(available_temps)):
-                if i<len(available_temps)-1 and available_temps[i][0] == available_temps[i+1][0]:
-                    available_temps_no_duplicates.append((available_temps[i][0], min(
-                        available_temps[i][1]+available_temps[i+1][1], self.num_layers)))
-                    skip_next_i = True
-                elif not skip_next_i:
-                    available_temps_no_duplicates.append(available_temps[i])
-                else:
-                    skip_next_i = False
-            available_temps = available_temps_no_duplicates.copy()
-
-        if max([x[0] for x in available_temps]) < MAX_TOP_TEMP-5:
-            available_temps.append((MAX_TOP_TEMP-5, self.num_layers))
-
-        if self.max_thermocline == self.num_layers and available_temps[-1][1] < self.num_layers:
-            available_temps[-1] = (available_temps[-1][0], self.num_layers)
-
-        self.available_top_temps = [x[0] for x in available_temps]
-        if self.available_top_temps != sorted(self.available_top_temps):
-            print("ERROR sorted is not the same")
-
-        # heights = [x[1] for x in available_temps]
-        # fig, ax = plt.subplots(figsize=(8, 6))
-        # cmap = matplotlib.colormaps['Reds']
-        # norm = plt.Normalize(min(self.available_top_temps)-20, max(self.available_top_temps)+20)
-        # bottom = 0
-        # for i in range(len(available_temps)):
-        #     color = cmap(norm(self.available_top_temps[i]))
-        #     ax.bar(0, heights[i], bottom=bottom, color=color, width=1)
-        #     ax.text(0, bottom + heights[i]/2, str(self.available_top_temps[i]), ha='center', va='center', fontsize=10, color='white')
-        #     if i < len(available_temps)-1:
-        #         bottom += heights[i]
-        # ax.set_xticks([])
-        # ax.set_xlim([-2,2])
-        # plt.title(self.initial_top_temp)
-        # plt.tight_layout()
-        # plt.show()
-
-        self.energy_between_nodes = {}
-        m_layer = self.storage_volume*3.785 / self.num_layers
-        for i in range(1,len(self.available_top_temps)):
-            temp_drop_f = self.available_top_temps[i] - self.available_top_temps[i-1]
-            self.energy_between_nodes[self.available_top_temps[i]] = round(m_layer * 4.187/3600 * temp_drop_f*5/9,3)
-
-        return available_temps
-
-    def first_top_temp_above_rswt(self, rswt):
-        for x in sorted(self.available_top_temps):
-            if x > rswt:
-                return x
 
 class DNode():
-    def __init__(self, time_slice:int, top_temp:float, thermocline1:float, parameters:DParams, hinge_node=None):
+    def __init__(self, 
+                 parameters: DParams,
+                 time_slice:int, 
+                 top_temp:float, 
+                 thermocline1:int, 
+                 bottom_temp:float, 
+                 thermocline2: Optional[int]=None, 
+                 middle_temp: Optional[float]=None
+                 ):
         self.params = parameters
-        # Position in graph
+        # State
+        if not middle_temp:
+            middle_temp = top_temp-MIN_DIFFERENCE_F if top_temp>=100+2*MIN_DIFFERENCE_F else 100
+            thermocline2 = thermocline1
         self.time_slice = time_slice
         self.top_temp = top_temp
+        self.middle_temp = middle_temp
+        self.bottom_temp = bottom_temp
         self.thermocline1 = thermocline1
-        if not hinge_node:
-            temperatures = [x[0] for x in self.params.temperature_stack]
-            heights = [x[1] for x in self.params.temperature_stack]
-            toptemp_idx = temperatures.index(top_temp)
-            height_first_two_layers = thermocline1 + heights[toptemp_idx-1]
-            if height_first_two_layers >= self.params.num_layers or toptemp_idx < 2:
-                self.middle_temp = None
-                self.bottom_temp = temperatures[toptemp_idx-1]
-                self.thermocline2 = None
-            else:
-                self.middle_temp = temperatures[toptemp_idx-1]
-                self.bottom_temp = temperatures[toptemp_idx-2]
-                self.thermocline2 = height_first_two_layers
-            # Dijkstra's algorithm
-            self.pathcost = 0 if time_slice==parameters.horizon else 1e9
-            self.next_node = None
-            # Absolute energy level
-            self.energy = self.get_energy()
-            self.index = None
-        else:
-            self.middle_temp = hinge_node['middle_temp']
-            self.thermocline2 = hinge_node['thermocline2']
-            self.bottom_temp = hinge_node['bottom_temp']
-            self.pathcost = hinge_node['pathcost']
-            self.energy = self.get_energy()
+        self.thermocline2 = thermocline2
+        # Dijkstra's algorithm
+        self.pathcost = 0 if time_slice==parameters.horizon else 1e9
+        self.next_node = None
+        # Absolute energy level
+        self.energy = self.get_energy()
+        self.index = None
+
+    def to_string(self):
+        return f"{self.top_temp}({self.thermocline1}){self.middle_temp}({self.thermocline2}){self.bottom_temp}"
 
     def __repr__(self):
-        if self.thermocline2 is not None:
-            return f"{self.top_temp}({self.thermocline1}){self.middle_temp}({self.thermocline2}){self.bottom_temp}"
-            # return f"Node[top:{self.top_temp}, thermocline1:{self.thermocline1}, middle:{self.middle_temp}, thermocline2:{self.thermocline2}, bottom:{self.bottom_temp}]"
-        else:
-            return f"{self.top_temp}({self.thermocline1}){self.bottom_temp}"
-            # return f"Node[top:{self.top_temp}, thermocline1:{self.thermocline1}, bottom:{self.bottom_temp}]"
-
+        return f"[{self.time_slice}]{self.top_temp}({self.thermocline1}){self.middle_temp}({self.thermocline2}){self.bottom_temp}"
+        
     def get_energy(self):
         m_layer_kg = self.params.storage_volume*3.785 / self.params.num_layers
-        if self.middle_temp is not None:
-            kWh_top = (self.thermocline1-0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.top_temp)
-            kWh_midlle = (self.thermocline2-self.thermocline1)*m_layer_kg * 4.187/3600 * to_kelvin(self.middle_temp)
-            kWh_bottom = (self.params.num_layers-self.thermocline2+0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.bottom_temp)
-        else:        
-            kWh_top = (self.thermocline1-0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.top_temp)
-            kWh_midlle = 0
-            kWh_bottom = (self.params.num_layers-self.thermocline1+0.5)*m_layer_kg * 4.187/3600 * to_kelvin(self.bottom_temp)
+        kWh_top = self.thermocline1*m_layer_kg * 4.187/3600 * to_kelvin(self.top_temp)
+        kWh_midlle = (self.thermocline2-self.thermocline1)*m_layer_kg * 4.187/3600 * to_kelvin(self.middle_temp)
+        kWh_bottom = (self.params.num_layers-self.thermocline2)*m_layer_kg * 4.187/3600 * to_kelvin(self.bottom_temp)
         return kWh_top + kWh_midlle + kWh_bottom
-
-
+    
 class DEdge():
-    def __init__(self, tail:DNode, head:DNode, cost:float, hp_heat_out:float, rswt_minus_edge_elec:Optional[float]=None):
+    def __init__(self, tail:DNode, head:DNode, cost:float, hp_heat_out:float):
         self.tail: DNode = tail
         self.head: DNode = head
         self.cost = cost
         self.hp_heat_out = hp_heat_out
-        self.rswt_minus_edge_elec = rswt_minus_edge_elec
         self.fake_cost: Optional[float] = None
 
     def __repr__(self):
-        return f"Edge: {self.tail} --cost:{round(self.cost,3)}, heat:{round(self.hp_heat_out,2)}--> {self.head}"
-
+        return f"Edge[{self.tail} --cost:{round(self.cost,3)}, hp:{round(self.hp_heat_out,2)}--> {self.head}]"
+    
 
 class DGraph():
     def __init__(self, config: FloParamsHouse0):
         self.params = DParams(config)
-        self.nodes: Dict[int, List[DNode]] = {}
+        self.nodes: Dict[int, List[DNode]] = {h: [] for h in range(self.params.horizon+1)}
+        self.nodes_by: Dict[int, Dict[Tuple, Dict[Tuple, DNode]]] = {h: {} for h in range(self.params.horizon+1)}
         self.edges: Dict[DNode, List[DEdge]] = {}
+        self.time_spent_in_step1 = 0
+        self.time_spent_in_step2 = 0
+        self.time_spent_in_step3 = 0
+        st = time.time()
         self.create_nodes()
+        self.precompute_next_nodes()
         self.create_edges()
+        self.time_spent_in_total = time.time()-st
 
     def create_nodes(self):
-        self.initial_node = DNode(0, self.params.initial_top_temp, self.params.initial_thermocline, self.params)
-        for time_slice in range(self.params.horizon+1):
-            self.nodes[time_slice] = [self.initial_node] if time_slice==0 else []
-            if self.params.max_thermocline < self.params.num_layers:
-                self.nodes[time_slice].extend(
-                    DNode(time_slice, top_temp, thermocline, self.params)
-                    for top_temp in self.params.available_top_temps[1:-1]
-                    for thermocline in range(1,self.params.num_layers+1)
-                    if thermocline <= self.params.temperature_stack[self.params.available_top_temps.index(top_temp)][1]
-                    and (time_slice, top_temp, thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
-                )
-                self.nodes[time_slice].extend(
-                    DNode(time_slice, self.params.available_top_temps[-1], thermocline, self.params)
-                    for thermocline in range(1,self.params.max_thermocline+1)
-                    if thermocline <= self.params.temperature_stack[-1][1]
-                    and (time_slice, self.params.available_top_temps[-1], thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
-                )
+        print(f"Initial state: {self.params.initial_top_temp}({self.params.initial_thermocline}){self.params.initial_bottom_temp}")
+        if STEP_F == 5:
+            self.top_temps = sorted(list(range(110,170+2*STEP_F,STEP_F)), reverse=True) # 175, 170, ..., 110
+        else:
+            self.top_temps = sorted(list(range(110,170+STEP_F,STEP_F)), reverse=True) # 175, 170, ..., 110
+        self.middle_temps = [x-MIN_DIFFERENCE_F for x in (self.top_temps[:-1] if STEP_F==10 else self.top_temps[:-2])] 
+        self.bottom_temps = [100]
+        # Initial node temperatures
+        initial_top_temp = min(self.top_temps+[100,80], key=lambda x: abs(x-self.params.initial_top_temp))
+        initial_middle_temp = min(self.middle_temps+[100,80,60], key=lambda x: abs(x-self.params.initial_bottom_temp))
+        initial_bottom_temp = 100
+        initial_th2 = self.params.num_layers
+        if initial_top_temp == 110:
+            initial_middle_temp = 100
+            initial_th2 = self.params.initial_thermocline 
+        elif initial_middle_temp <= 100:
+            if initial_top_temp > 110:
+                initial_middle_temp = initial_top_temp-MIN_DIFFERENCE_F
+                initial_bottom_temp = 100
+                initial_th2 = self.params.initial_thermocline 
             else:
-                self.nodes[time_slice].extend(
-                    DNode(time_slice, top_temp, thermocline, self.params)
-                    for top_temp in self.params.available_top_temps[1:]
-                    for thermocline in range(1,self.params.num_layers+1)
-                    if thermocline <= self.params.temperature_stack[self.params.available_top_temps.index(top_temp)][1]
-                    and (time_slice, top_temp, thermocline) != (0, self.params.initial_top_temp, self.params.initial_thermocline)
-                )
+                initial_top_temp = initial_middle_temp + 20
+        elif initial_top_temp in [100,80]:
+            initial_middle_temp = initial_top_temp - 20
+            initial_bottom_temp = initial_top_temp - 20
+            initial_th2 = self.params.initial_thermocline 
+        if initial_top_temp == initial_middle_temp:
+            initial_middle_temp = initial_top_temp-MIN_DIFFERENCE_F
+            initial_th2 = self.params.num_layers
+        # Initial node
+        self.initial_node = DNode(
+            parameters=self.params,
+            time_slice=0,
+            top_temp=initial_top_temp,
+            middle_temp=initial_middle_temp,
+            bottom_temp=initial_bottom_temp,
+            thermocline1=self.params.initial_thermocline,
+            thermocline2=initial_th2
+        )
+        self.nodes[0] = [self.initial_node]
+        print(f"Initial node: {self.initial_node}")
+
+        self.storage_full = False
+        if self.params.initial_top_temp > 170:
+            print("Storage is currently full, don't allow any node with more energy than this")
+            self.storage_full = True
+
+        thermocline_combinations = []
+        for t1 in range(1,self.params.num_layers+1):
+            for t2 in range(1,self.params.num_layers+1):
+                if t2>=t1:
+                    thermocline_combinations.append((t1,t2))
+        print(f"=> {len(thermocline_combinations)} thermocline combinations")
+
+        temperature_combinations = []
+        for t in self.top_temps:
+            for m in self.middle_temps:
+                for b in self.bottom_temps:
+                    if b<=m-MIN_DIFFERENCE_F and m<=t-MIN_DIFFERENCE_F:
+                        temperature_combinations.append((t,m,b))
+        print(f"=> {len(temperature_combinations)} temperature combinations")
+
+        # Add cases where we can't have t >= m+10 >= b+10
+        if STEP_F==5: temperature_combinations += [(115,100,100)]
+        temperature_combinations += [(110,100,100)]
+
+        # Add colder temperatures
+        temperature_combinations += [(100,80,80), (80,60,60)]
+        
+        for h in self.nodes_by:
+            self.nodes_by[h] = {tmb: {th: None for th in thermocline_combinations} for tmb in temperature_combinations}
+        
+        total_nodes=0
+        for tmb in temperature_combinations:
+            for h in range(self.params.horizon+1):
+                for th in thermocline_combinations:
+                    t, m, b = tmb
+                    th1, th2 = th
+                    if m==b and th1!=th2:
+                        continue
+                    node = DNode(
+                        time_slice=h,
+                        top_temp=t,
+                        middle_temp=m,
+                        bottom_temp=b,
+                        thermocline1=th1,
+                        thermocline2=th2,
+                        parameters=self.params
+                        )
+                    if self.storage_full and node.energy>=self.initial_node.energy:
+                        continue
+                    self.nodes[h].append(node)
+                    self.nodes_by[h][tmb][th] = node
+                    total_nodes += 1
+                
+        print(f"=> Created a total of {int(total_nodes/49)} nodes per layer")
+        # for n in self.nodes[0][:30]:
+        #     n.plot()
 
     def create_edges(self):
+        print("Creating all edges...")
         
-        self.bottom_node = DNode(0, 
-                                 self.params.available_top_temps[1],
-                                 self.params.num_layers - self.params.temperature_stack[self.params.available_top_temps.index(self.params.available_top_temps[0])][1],
-                                 self.params)
-        self.top_node = DNode(0, 
-                              self.params.available_top_temps[-1], 
-                              self.params.temperature_stack[self.params.available_top_temps.index(self.params.available_top_temps[-1])][1], 
-                              self.params)
-        
-        only_2_edges = True
-        print(f"Only two edges")
-        
+        self.bottom_node_energy = DNode(
+            time_slice=0,
+            top_temp=80,
+            thermocline1=1,
+            bottom_temp=70,
+            parameters=self.params
+        ).energy
+
+        self.top_node_energy = DNode(
+            time_slice=0,
+            top_temp=175 if STEP_F==5 else 170,
+            thermocline1=self.params.num_layers,
+            bottom_temp=175 if STEP_F==5 else 170,
+            parameters=self.params
+        ).energy
+
         for h in range(self.params.horizon):
+
+            # Find the maximum heat the HP can put out
+            max_hp_elec_in = self.params.max_hp_elec_in
+            if h==0:
+                max_hp_elec_in = max_hp_elec_in * self.params.fraction_of_hour_remaining
+                max_hp_elec_in = (((1-self.params.hp_turn_on_minutes/60) if self.params.hp_is_off else 1) * max_hp_elec_in)
+            else:
+                # Since we can't know if the HP was on or off after hour 0, remove half of the turn on time
+                # Overestimating less when turning on, underestimating a little when already on
+                max_hp_elec_in = ((1-self.params.hp_turn_on_minutes/2/60) * max_hp_elec_in)            
+            cop = self.params.COP(oat=self.params.oat_forecast[h])
+            max_hp_heat_out = max_hp_elec_in * cop
             
             for node_now in self.nodes[h]:
                 self.edges[node_now] = []
 
-                # The losses might be lower than energy between two nodes
-                losses = self.params.storage_losses_percent/100 * (node_now.energy-self.bottom_node.energy)
-                if self.params.load_forecast[h]==0 and losses>0 and losses<self.params.energy_between_nodes[node_now.top_temp]:
-                    losses = self.params.energy_between_nodes[node_now.top_temp] + 1/1e9
+                losses = self.params.storage_losses_percent/100 * (node_now.energy-self.bottom_node_energy)
+                load = self.params.load_forecast[h]
+                rswt = self.params.rswt_forecast[h]
 
-                # If the current top temperature is the first one available above RSWT
-                # If it exists, add an edge from the current node that drains the storage further than RSWT
-                if not only_2_edges:
-                    RSWT_plus = self.params.rswt_plus[self.params.rswt_forecast[h]]
-                    if node_now.top_temp == RSWT_plus and h < self.params.horizon-1:
-                        self.add_rswt_minus_edge(node_now, h, losses)
-
-                for node_next in self.nodes[h+1]:
-
-                    store_heat_in = node_next.energy - node_now.energy
-                    hp_heat_out = store_heat_in + self.params.load_forecast[h] + losses
-                    
-                    # Adjust the max elec the HP can use in the first time step
-                    # (Duration of time step + turn-on effects)
-                    max_hp_elec_in = self.params.max_hp_elec_in
-                    if h==0:
-                        max_hp_elec_in = max_hp_elec_in * self.params.fraction_of_hour_remaining
-                        max_hp_elec_in = (((1-self.params.hp_turn_on_minutes/60) if self.params.hp_is_off else 1) * max_hp_elec_in)
-                    
-                    # This condition reduces the amount of times we need to compute the COP
-                    if (hp_heat_out/self.params.max_cop <= max_hp_elec_in and
-                        hp_heat_out/self.params.min_cop >= self.params.min_hp_elec_in):
-                    
-                        cop = self.params.COP(oat=self.params.oat_forecast[h], lwt=node_next.top_temp)
-
-                        if (hp_heat_out/cop <= max_hp_elec_in and 
-                            hp_heat_out/cop >= self.params.min_hp_elec_in):
-
-                            cost = self.params.elec_price_forecast[h]/100 * hp_heat_out/cop
-
-                            # If some of the load is satisfied by the storage
-                            # Then it must satisfy the SWT requirement
-                            if store_heat_in < 0:
-                                if ((hp_heat_out < self.params.load_forecast[h] and 
-                                     self.params.load_forecast[h] > 0)
-                                     and
-                                    (node_now.top_temp < self.params.rswt_forecast[h] or 
-                                     node_next.top_temp < self.params.rswt_forecast[h])):
-                                    if self.params.soft_constraint and not [x for x in self.edges[node_now] if x.head==node_next]:
-                                        cost += 1e5
-                                    else:
-                                        continue
-                            
-                            self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
-                
-                if self.edges[node_now] and only_2_edges:
-                    min_hp_out_edge = min(self.edges[node_now], key=lambda e: e.hp_heat_out)
-                    max_hp_out_edge = max(self.edges[node_now], key=lambda e: e.hp_heat_out)
-                    self.edges[node_now] = [min_hp_out_edge]
-                    if max_hp_out_edge.hp_heat_out > 10:
-                        self.edges[node_now].append(max_hp_out_edge)
+                # Ajust the maximum heat output
+                store_heat_in_for_full = self.top_node_energy - node_now.energy
+                hp_heat_out_for_full = store_heat_in_for_full + load + losses
+                if hp_heat_out_for_full < max_hp_heat_out:
+                    if hp_heat_out_for_full > 10: # TODO make this a min_hp_heat out parameter
+                        allowed_hp_heat_out = [0, hp_heat_out_for_full]
                     else:
-                        self.edges[node_now][0].hp_heat_out = 0
+                        allowed_hp_heat_out = [0]
+                else:
+                    allowed_hp_heat_out = [0, max_hp_heat_out]
 
-                if not self.edges[node_now]:
-                    print(f"No edge from node {node_now}, adding edge with penalty")
-                    cop = self.params.COP(oat=self.params.oat_forecast[h], lwt=node_next.top_temp)
-                    hp_heat_out = max_hp_elec_in * cop
-                    node_next = [n for n in self.nodes[h+1] if n.top_temp==node_now.top_temp and n.thermocline1==node_now.thermocline1][0]
-                    self.edges[node_now].append(DEdge(node_now, node_next, 1e5, hp_heat_out))
-                    print(DEdge(node_now, node_next, 1e5, hp_heat_out))
+                for hp_heat_out in allowed_hp_heat_out:
+                    store_heat_in = hp_heat_out - load - losses
+                    node_next = self.find_next_node(node_now, store_heat_in)
+                    cost = self.params.elec_price_forecast[h]/100*hp_heat_out/cop
+                    if store_heat_in < 0 and load > 0:
+                        if node_now.top_temp<rswt or node_next.top_temp<rswt:
+                            cost += 1e5
+                    self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
 
-    def add_rswt_minus_edge(self, node: DNode, time_slice, Q_losses):
-        # In these calculations the load is both the heating requirement and the losses
-        Q_load = self.params.load_forecast[time_slice] + Q_losses
-        # Find the heat stored in the water that is hotter than RSWT
-        Q_plus = 0
-        m_layer_kg = self.params.storage_volume*3.785 / self.params.num_layers
-        RSWT_minus = node.top_temp
-        if node.top_temp > self.params.rswt_forecast[time_slice]:
-            m_plus = (node.thermocline1-0.5) * m_layer_kg
-            Q_plus = m_plus * 4.187/3600 * self.params.delta_T(node.top_temp)*5/9
-            if node.middle_temp is not None:
-                RSWT_minus = node.middle_temp
-                RSWT_minus_minus = node.bottom_temp
+            print(f"Done for hour {h}")
+
+    def precompute_next_nodes(self):
+        if not PRE_COMPUTE:
+            return
+
+        json_file_path = "pre_computed_next_node.json"
+        if os.path.exists(json_file_path):
+            print(f"Found existing pre-computed data at {json_file_path}, loading...")
+            with open(json_file_path, 'r') as f:
+                self.pre_computed_next_node = json.load(f)
+            print("Done loading pre-computed data!")
+            
+        else:
+            print("Pre-computing next-nodes...")
+            max_hp_out = int(self.params.max_hp_elec_in * self.params.COP(50)) * 10
+            available_store_heat_in = [x/10 for x in range(-max_hp_out, max_hp_out, 1)]
+            self.pre_computed_next_node = {}
+            for shi in available_store_heat_in:
+                print(f"Store heat in: {shi}...")
+                self.pre_computed_next_node[str(shi)] = {}
+                for n in self.nodes[0]:
+                    self.pre_computed_next_node[str(shi)][n.to_string()] = self.model_accurately(n, shi).to_string()
+            
+            print(f"Saving pre-computed data to {json_file_path}...")
+            with open(json_file_path, 'w') as f:
+                json.dump(self.pre_computed_next_node, f)
+        
+        self.available_store_heat_in = [float(x) for x in list(self.pre_computed_next_node.keys())]
+        self.available_store_heat_in_array = np.array(self.available_store_heat_in)
+        print("Done!")
+
+    def find_next_node(self, node_now: DNode, store_heat_in: float):
+        if not PRE_COMPUTE:
+            return self.model_accurately(node_now, store_heat_in)
+        # Step 1
+        st = time.time()
+        closest_store_heat_in = self.available_store_heat_in[abs(self.available_store_heat_in_array-store_heat_in).argmin()]
+        self.time_spent_in_step1 += time.time() - st
+        # Step 2
+        st = time.time()
+        s: str = self.pre_computed_next_node[str(closest_store_heat_in)][node_now.to_string()]
+        parts = s.replace(')', '(').split('(')
+        t, th1, m, th2, b = int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3]), int(parts[4])
+        self.time_spent_in_step2 += time.time() - st
+        # Step 3
+        st = time.time()
+        next_node = self.nodes_by[node_now.time_slice+1][(t,m,b)][(th1,th2)]
+        self.time_spent_in_step3 += time.time() - st
+        return next_node
+
+    def model_accurately(self, node_now:DNode, store_heat_in:float, print_detail:bool=False) -> DNode:
+        if store_heat_in > 0:
+            if print_detail: print(f"Charge {node_now} by {store_heat_in}")
+            next_node = self.charge(node_now, store_heat_in, print_detail)
+        elif store_heat_in < -1:
+            if print_detail: print(f"Discharge {node_now} by {-store_heat_in}")
+            next_node = self.discharge(node_now, store_heat_in, print_detail)
+        else:
+            if print_detail: print("IDLE")
+            tmb = (node_now.top_temp, node_now.middle_temp, node_now.bottom_temp)
+            th = (node_now.thermocline1, node_now.thermocline2)
+            next_node = self.nodes_by[node_now.time_slice+1][tmb][th]
+        return next_node
+        
+    def charge(self, n: DNode, store_heat_in: float, print_detail: bool) -> DNode:
+        next_node_energy = n.energy + store_heat_in
+
+        # Charging from cold states
+        if n.top_temp<=100:
+            next_node_top_temp = n.top_temp
+            next_node_bottom_temp = n.bottom_temp
+            next_node_thermocline = self.find_thermocline(next_node_top_temp, next_node_bottom_temp, next_node_energy)
+            if next_node_thermocline > self.params.num_layers and n.top_temp == 80:
+                next_node_top_temp = 100
+                next_node_bottom_temp = 80
+                next_node_thermocline = self.find_thermocline(next_node_top_temp, next_node_bottom_temp, next_node_energy)
+            # Need to rise above cold states
+            if next_node_thermocline > self.params.num_layers:
+                # At this point we know we have
+                next_node_top_temp = 110
+                next_node_bottom_temp = 100
+
+        else:
+            # If there is a bottom layer
+            if n.thermocline2 < self.params.num_layers:
+                heated_bottom = n.bottom_temp + self.params.delta_T(n.bottom_temp)
+                if print_detail: print(f"heated_bottom = {heated_bottom}")
+
+                # Find the new top temperature after mixing (or not)
+                if heated_bottom < n.top_temp:
+                    top_and_middle_mixed = (n.top_temp*n.thermocline1 + n.middle_temp*(n.thermocline2-n.thermocline1))/n.thermocline2
+                    if print_detail: print(f"top_and_middle_mixed = {top_and_middle_mixed}")
+                    top_and_middle_and_heated_bottom_mixed = (
+                        (top_and_middle_mixed*n.thermocline2 + heated_bottom*(self.params.num_layers-n.thermocline2))/self.params.num_layers
+                        )
+                    if print_detail: print(f"top_and_middle_and_heated_bottom_mixed = {round(top_and_middle_and_heated_bottom_mixed,1)}")
+                    next_node_top_temp = round(top_and_middle_and_heated_bottom_mixed)
+                else:
+                    next_node_top_temp = heated_bottom   
+                
+                # Bottom layer stays the same
+                next_node_bottom_temp = n.bottom_temp
+
+            # If there is no bottom layer but there is a middle layer
+            elif n.thermocline1 < self.params.num_layers:     
+                heated_middle = n.middle_temp + self.params.delta_T(n.middle_temp)
+                if print_detail: print(f"heated_middle = {heated_middle}")
+
+                # Find the new top temperature after mixing (or not)
+                if heated_middle < n.top_temp:
+                    top_and_heated_middle_mixed = (
+                        (n.top_temp*n.thermocline1 + heated_middle*(self.params.num_layers-n.thermocline1))/self.params.num_layers
+                        )
+                    if print_detail: print(f"top_and_heated_middle_mixed = {round(top_and_heated_middle_mixed,1)}")
+                    next_node_top_temp = round(top_and_heated_middle_mixed)
+                else:
+                    next_node_top_temp = heated_middle   
+
+                # Bottom layer is the middle
+                next_node_bottom_temp = n.middle_temp
+
+            # If there is only a top layer
             else:
-                RSWT_minus = node.bottom_temp
-                RSWT_minus_minus = None
-        # The hot part of the storage alone can not provide the load and the losses
-        if Q_plus <= Q_load:
-            RSWT = self.params.rswt_forecast[time_slice]
-            RSWT_min_DT = RSWT - self.params.delta_T(RSWT)
-            m_chc = Q_load / (4.187/3600 * (to_kelvin(RSWT)-to_kelvin(RSWT_min_DT)))
-            m_minus_max = (1 - Q_plus/Q_load) * m_chc
-            if m_minus_max > self.params.storage_volume*3.785:
-                print("m_minus_max > total storage mass!")
-                m_minus_max = self.params.storage_volume*3.785
-            if node.middle_temp is not None and RSWT_minus != node.top_temp:
-                m_minus = m_layer_kg * (node.thermocline2 - node.thermocline1)
-                if m_minus > m_minus_max:
-                    m_minus = m_minus_max
-                m_minus_minus = m_minus_max - m_minus
-                Q_minus_max = (
-                    m_minus * 4.187/3600 * (self.params.delta_T(RSWT_minus)*5/9)
-                    + m_minus_minus * 4.187/3600 * (self.params.delta_T(RSWT_minus_minus)*5/9)
-                    )
-            else:
-                Q_minus_max = m_minus_max * 4.187/3600 * (self.params.delta_T(RSWT_minus)*5/9)
-            Q_missing = Q_load - Q_plus - Q_minus_max
-            if Q_missing < 0:
-                print(f"Isn't this impossible? Q_load - Q_plus - Q_minus_max = {round(Q_missing,2)} kWh")
-            Q_missing = 0 if Q_missing < 0 else Q_missing
-            if Q_missing > 0 and not self.params.soft_constraint:
-                return
-            # Find the next node that would be the closest to matching the energy
-            next_node_energy = node.energy - (Q_plus + Q_minus_max)
-            next_nodes = [x for x in self.nodes[time_slice+1] if x.energy <= node.energy and x.energy >= next_node_energy]
-            next_node = sorted(next_nodes, key=lambda x: x.energy)[0]
-            # Penalty is slightly more expensive than the cost of producing Q_missing in the next hour
-            cop = self.params.COP(oat=self.params.oat_forecast[time_slice+1], lwt=next_node.top_temp)
-            penalty = (Q_missing+1)/cop * self.params.elec_price_forecast[time_slice+1]/100
-            self.edges[node].append(DEdge(node, next_node, penalty, 0, rswt_minus_edge_elec=(Q_missing+1)/cop))
+                heated_top = n.top_temp + self.params.delta_T(n.top_temp)
+                if print_detail: print(f"heated_top = {heated_top}")
+                next_node_top_temp = heated_top   
+                # Bottom layer is the top
+                next_node_bottom_temp = n.top_temp
 
+        # Starting with that top and current bottom, find the thermocline position that matches the next node energy
+        next_node_thermocline = self.find_thermocline(next_node_top_temp, next_node_bottom_temp, next_node_energy)
+        if print_detail: print(f"Next node ({next_node_top_temp}, {next_node_bottom_temp}) thermocline: {next_node_thermocline}")
+        while next_node_thermocline > self.params.num_layers:
+            next_node_bottom_temp = next_node_top_temp
+            next_node_top_temp = round(next_node_top_temp + self.params.delta_T(next_node_top_temp))
+            next_node_thermocline = self.find_thermocline(next_node_top_temp, next_node_bottom_temp, next_node_energy)
+            if print_detail: print(f"Next node ({next_node_top_temp}, {next_node_bottom_temp}) thermocline: {next_node_thermocline}")
+
+        if next_node_top_temp <= 100:
+            node_next_true = DNode(
+                parameters = self.params,
+                time_slice = n.time_slice+1,
+                top_temp = next_node_top_temp,
+                middle_temp = next_node_bottom_temp,
+                bottom_temp = next_node_bottom_temp,
+                thermocline1 = next_node_thermocline,
+                thermocline2 = next_node_thermocline,
+            )
+        
+        else:
+            if next_node_bottom_temp not in self.bottom_temps:
+                node_next_true = DNode(
+                    parameters = self.params,
+                    time_slice = n.time_slice+1,
+                    top_temp = next_node_top_temp if next_node_thermocline>0 else next_node_bottom_temp,
+                    middle_temp = next_node_bottom_temp if next_node_thermocline>0 else None,
+                    bottom_temp = n.bottom_temp,
+                    thermocline1 = next_node_thermocline if next_node_thermocline>0 else self.params.num_layers,
+                    thermocline2 = self.params.num_layers if next_node_thermocline>0 else None,
+                )
+            else:
+                node_next_true = DNode(
+                    parameters = self.params,
+                    time_slice = n.time_slice+1,
+                    top_temp = next_node_top_temp,
+                    middle_temp = None,
+                    bottom_temp = next_node_bottom_temp,
+                    thermocline1 = next_node_thermocline,
+                    thermocline2 = None
+                )
+
+        node_next = self.find_closest_node(node_next_true, print_detail)
+        if print_detail: print(f"True: {node_next_true}, associated to {node_next}")
+        return node_next
+        
+    def find_thermocline(self, top_temp, bottom_temp, energy):
+        top, bottom = to_kelvin(top_temp), to_kelvin(bottom_temp)
+        m_layer_kg = self.params.storage_volume*3.785 / self.params.num_layers    
+        if top==bottom: top+=1  
+        return int(1/(top-bottom)*(energy/(m_layer_kg*4.187/3600)-(-0.5*top+(self.params.num_layers+0.5)*bottom)))
+    
+    def discharge(self, n: DNode, store_heat_in: float, print_detail: bool) -> DNode:
+        next_node_energy = n.energy + store_heat_in
+        candidate_nodes: List[DNode] = []
+        if print_detail: print(f"Current energy {round(n.energy,2)}, looking for {round(next_node_energy,2)}")
+        # Starting from current node
+        th1 = n.thermocline1-1
+        th2 = n.thermocline2-1
+
+        # Node to discharge is a cold node
+        if n.top_temp <= 100:
+            if n.top_temp==80 and th1==0:
+                return min(self.nodes[n.time_slice+1], key=lambda x: x.energy)
+            # Go through the top being at 100 or at 80
+            while th1>0:
+                if print_detail: print(f"Looking for {n.top_temp}({th1}){n.middle_temp}({th2}){n.bottom_temp}")
+                tmb = (n.top_temp, n.middle_temp, n.bottom_temp)
+                th = (th1, th2)
+                node = self.nodes_by[n.time_slice+1][tmb][th]
+                if print_detail: print(f"Energy: {round(node.energy,2)}")
+                th1 += -1
+                th2 += -1
+                candidate_nodes.append(node)
+                if next_node_energy >= node.energy:
+                    break
+            # If the top was at 100 try now 80
+            if n.top_temp == 100:
+                th1 = self.params.num_layers
+                th2 = self.params.num_layers
+                while th1>0:
+                    if print_detail: print(f"Looking for {n.top_temp-20}({th1}){n.middle_temp-20}({th2}){n.bottom_temp-20}")
+                    tmb = (80, 60, 60)
+                    th = (th1, th2)
+                    node = self.nodes_by[n.time_slice+1][tmb][th]
+                    if print_detail: print(f"Energy: {round(node.energy,2)}")
+                    th1 += -1
+                    th2 += -1
+                    candidate_nodes.append(node)
+                    if next_node_energy >= node.energy:
+                        break
+            closest_node = min([x for x in candidate_nodes], key=lambda x: abs(x.energy-next_node_energy))
+            return closest_node
+
+        need_to_break = False
+        while True:
+            # Moving up step by step until the end of the top layer
+            while th1>0:
+                if print_detail: print(f"Looking for {n.top_temp}({th1}){n.middle_temp}({th2}){n.bottom_temp}")
+                tmb = (n.top_temp, n.middle_temp, n.bottom_temp)
+                th = (th1, th2)
+                node = self.nodes_by[n.time_slice+1][tmb][th]
+                if print_detail: print(f"Energy: {round(node.energy,2)}")
+                th1 += -1
+                th2 += -1
+                candidate_nodes.append(node)
+                if next_node_energy >= node.energy:
+                    need_to_break = True
+                    break
+            if need_to_break: break
+
+            # There is no middle layer (cold nodes reached)
+            if n.middle_temp == n.bottom_temp or (n.bottom_temp==100 and th1==th2):
+                # Go through the top being at 100
+                top_temp = 100
+                middle_temp = 80
+                bottom_temp = 80
+                th1 = self.params.num_layers
+                th2 = self.params.num_layers
+                while th1>0:
+                    if print_detail: print(f"Looking for {top_temp}({th1}){middle_temp}({th2}){bottom_temp}")
+                    tmb = (top_temp, middle_temp, bottom_temp)
+                    th = (th1, th2)
+                    node = self.nodes_by[n.time_slice+1][tmb][th]
+                    if print_detail: print(f"Energy: {round(node.energy,2)}")
+                    th1 += -1
+                    th2 += -1
+                    candidate_nodes.append(node)
+                    if next_node_energy >= node.energy:
+                        break
+                # Go through the top being at 80
+                top_temp = 80
+                middle_temp = 60
+                bottom_temp = 60
+                th1 = self.params.num_layers
+                th2 = self.params.num_layers
+                while th1>0:
+                    if print_detail: print(f"Looking for {top_temp}({th1}){middle_temp}({th2}){bottom_temp}")
+                    tmb = (top_temp, middle_temp, bottom_temp)
+                    th = (th1, th2)
+                    node = self.nodes_by[n.time_slice+1][tmb][th]
+                    if print_detail: print(f"Energy: {round(node.energy,2)}")
+                    th1 += -1
+                    th2 += -1
+                    candidate_nodes.append(node)
+                    if next_node_energy >= node.energy:
+                        break
+                closest_node = min([x for x in candidate_nodes], key=lambda x: abs(x.energy-next_node_energy))
+                return closest_node
+
+            # Moving up step by step until the end of the middle layer
+            top_temp = n.middle_temp
+            th1 = th2
+            while th1>0:
+                if print_detail: print(f"Looking for {top_temp}({th1})-({th2}){n.bottom_temp}")
+                node = [
+                    x for x in self.nodes[n.time_slice+1]
+                    if x.top_temp==top_temp
+                    and x.bottom_temp==n.bottom_temp
+                    and x.thermocline1==th1
+                    and x.thermocline2==th2
+                ][0]
+                if print_detail: print(f"Energy: {round(node.energy,2)}")
+                th1 += -1
+                th2 += -1
+                candidate_nodes.append(node)
+                if next_node_energy >= node.energy:
+                    break
+            break
+
+        # Find the candidate node which has closest energy to the target
+        closest_node = min([x for x in candidate_nodes], key=lambda x: abs(x.energy-next_node_energy))
+        return closest_node
+        
+    def find_closest_node(self, true_n: DNode, print_detail: bool) -> DNode:
+        if print_detail: print(f"Looking for closest of {true_n}")
+
+        # Cold nodes
+        if true_n.top_temp <= 100:
+            nodes_with_similar_temps = [
+                n for n in self.nodes[true_n.time_slice] if 
+                n.top_temp==true_n.top_temp and 
+                n.middle_temp==true_n.top_temp-20 and 
+                n.bottom_temp==true_n.top_temp-20 and
+                n.thermocline1==true_n.thermocline1 and
+                n.thermocline2==true_n.thermocline2
+            ]
+            closest_node = min(nodes_with_similar_temps, key = lambda x: abs(x.energy-true_n.energy))
+            return closest_node
+
+        # Find closest available top, middle and bottom temps
+        closest_top_temp = min(self.top_temps, key=lambda x: abs(float(x)-true_n.top_temp))
+        closest_middle_temp = min(self.middle_temps, key=lambda x: abs(float(x)-true_n.middle_temp))
+        closest_bottom_temp = min(self.bottom_temps, key=lambda x: abs(float(x)-true_n.bottom_temp))
+
+        # Need at least 10F between top and middle
+        if closest_top_temp - closest_middle_temp < MIN_DIFFERENCE_F:
+            closest_middle_temp = closest_top_temp-MIN_DIFFERENCE_F if closest_top_temp>115 else 100
+
+        # Correct for the 120,100,100 case
+        if closest_top_temp == 120 and closest_middle_temp==100:
+            closest_middle_temp = 110
+
+        if print_detail: print(f"{closest_top_temp},{closest_middle_temp},{closest_bottom_temp}")
+
+        # Top temperature is impossible to reach
+        if true_n.top_temp > max(self.top_temps):
+            nodes_with_similar_temps = [
+                n for n in self.nodes[true_n.time_slice] if 
+                n.top_temp == max(self.top_temps) and
+                n.middle_temp==closest_middle_temp and
+                n.bottom_temp==closest_bottom_temp and
+                n.thermocline2==true_n.thermocline2
+            ]
+            closest_node = min(nodes_with_similar_temps, key = lambda x: abs(x.energy-true_n.energy))
+            return closest_node
+
+        # Both top and middle were rounded above
+        if closest_top_temp > true_n.top_temp and closest_middle_temp > true_n.middle_temp:
+            nodes_with_similar_temps = [
+                n for n in self.nodes[true_n.time_slice] if 
+                n.top_temp<=closest_top_temp and
+                n.top_temp>=closest_top_temp-STEP_F and
+                n.middle_temp<=closest_middle_temp and
+                n.middle_temp>=closest_middle_temp-STEP_F and
+                n.bottom_temp==closest_bottom_temp and
+                n.thermocline2==true_n.thermocline2
+            ]
+            closest_node = min(nodes_with_similar_temps, key = lambda x: abs(x.energy-true_n.energy))
+            return closest_node
+        
+        # Both top and middle were rounded below
+        if closest_top_temp < true_n.top_temp and closest_bottom_temp < true_n.middle_temp:
+            nodes_with_similar_temps = [
+                n for n in self.nodes[true_n.time_slice] if 
+                n.top_temp<=closest_top_temp+STEP_F and
+                n.top_temp>=closest_top_temp and
+                n.middle_temp<=closest_middle_temp+STEP_F and
+                n.middle_temp>=closest_middle_temp and
+                n.bottom_temp==closest_bottom_temp and
+                n.thermocline2==true_n.thermocline2
+            ]
+            closest_node = min(nodes_with_similar_temps, key = lambda x: abs(x.energy-true_n.energy))
+            return closest_node
+
+        # Top was rounded above but not middle: flexible th1
+        if closest_top_temp > true_n.top_temp:
+            nodes_with_similar_temps = [
+                n for n in self.nodes[true_n.time_slice] if 
+                n.top_temp==closest_top_temp and
+                n.middle_temp==closest_middle_temp and
+                n.bottom_temp==closest_bottom_temp and
+                n.thermocline2==true_n.thermocline2
+            ]
+            closest_node = min(nodes_with_similar_temps, key = lambda x: abs(x.energy-true_n.energy))
+            return closest_node
+
+        # Middle was rounded above but not top: flexible th2
+        if closest_top_temp > true_n.top_temp:
+            nodes_with_similar_temps = [
+                n for n in self.nodes[true_n.time_slice] if 
+                n.top_temp==closest_top_temp and
+                n.middle_temp==closest_middle_temp and
+                n.bottom_temp==closest_bottom_temp and
+                n.thermocline1==true_n.thermocline1
+            ]
+            closest_node = min(nodes_with_similar_temps, key = lambda x: abs(x.energy-true_n.energy))
+            return closest_node
+
+        nodes_with_similar_temps = [
+            n for n in self.nodes[true_n.time_slice] if 
+            n.top_temp==closest_top_temp and 
+            n.middle_temp==closest_middle_temp and 
+            n.bottom_temp==closest_bottom_temp and
+            n.thermocline1==true_n.thermocline1 and
+            n.thermocline2==true_n.thermocline2
+        ]
+        closest_node = min(nodes_with_similar_temps, key = lambda x: abs(x.energy-true_n.energy))
+        return closest_node
+    
     def solve_dijkstra(self):
         for time_slice in range(self.params.horizon-1, -1, -1):
             for node in self.nodes[time_slice]:
                 best_edge = min(self.edges[node], key=lambda e: e.head.pathcost + e.cost)
-                if best_edge.hp_heat_out < 0: 
-                    best_edge_neg = max([e for e in self.edges[node] if e.hp_heat_out<0], key=lambda e: e.hp_heat_out)
-                    best_edge_pos = min([e for e in self.edges[node] if e.hp_heat_out>=0], key=lambda e: e.hp_heat_out)
-                    best_edge = best_edge_pos if (-best_edge_neg.hp_heat_out >= best_edge_pos.hp_heat_out) else best_edge_neg
                 node.pathcost = best_edge.head.pathcost + best_edge.cost
                 node.next_node = best_edge.head
-    
+
     def generate_bid(self):
         self.pq_pairs: List[PriceQuantityUnitless] = []
         forecasted_price_usd_mwh = self.params.elec_price_forecast[0] * 10
@@ -506,8 +800,6 @@ class DGraph():
             for edge in self.edges[self.initial_node]:
                 if edge.cost >= 1e4: # penalized node
                     edge.fake_cost = edge.cost
-                elif edge.rswt_minus_edge_elec is not None: # penalized node
-                    edge.fake_cost = edge.rswt_minus_edge_elec * elec_price_usd_mwh/1000
                 else:
                     cop = self.params.COP(oat=self.params.oat_forecast[0], lwt=edge.head.top_temp)
                     edge.fake_cost = edge.hp_heat_out / cop * elec_price_usd_mwh/1000

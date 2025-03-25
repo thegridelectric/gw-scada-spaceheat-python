@@ -244,7 +244,7 @@ class StratBoss(ScadaActor):
                 # When Scada starts up the relay is closed (de-energized)
                 # and this should start StratBoss, even though HpRelayBoss
                 # is not involved 
-                if sms.State == RelayClosedOrOpen.RelayClosed:
+                if sms.State == RelayClosedOrOpen.RelayClosed and self.state == StratBossState.Dormant:
                     self._send_to(self.boss,
                                   StratBossTrigger(
                             FromState=StratBossState.Dormant,
