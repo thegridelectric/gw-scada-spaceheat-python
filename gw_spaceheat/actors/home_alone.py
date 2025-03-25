@@ -523,7 +523,18 @@ class HomeAlone(ScadaActor):
         self.log("Taking care of critical relays")
         self.hp_failsafe_switch_to_scada(from_node=self.normal_node)
         self.aquastat_ctrl_switch_to_scada(from_node=self.normal_node)
-        self.sieg_valve_dormant(from_node=self.normal_node)
+
+        # Not sure what to do with siegenthaler loop state - this is full
+        # keep - need to check if hp is on before doing this.
+        # self._send_to(self.sieg_loop,
+        #               AnalogDispatch(FromGNodeAlias=self.layout.scada_g_node_alias,
+        #                              FromHandle=self.node.handle,
+        #                              ToHandle=self.sieg_loop.handle,
+        #                              AboutName=self.sieg_loop.name,
+        #                              Value=100,
+        #                              TriggerId=str(uuid.uiud4()),
+        #                              UnixTimeMs=int(time.time() * 1000)             
+        #             ))
 
         if self.is_onpeak():
             self.log("Is on peak: turning off HP")
@@ -931,7 +942,7 @@ class HomeAlone(ScadaActor):
         elif H0CN.buffer_hot_pipe in self.latest_temperatures:
             tank_top = H0CN.buffer_hot_pipe
         else:
-            self.alert(alias="store_v_buffer_fail", msg="It is impossible to know if the top of the storage is warmer than the top of the buffer!")
+            self.alert(summary="store_v_buffer_fail", details="It is impossible to know if the top of the storage is warmer than the top of the buffer!")
             return False
         if self.latest_temperatures[buffer_top] > self.latest_temperatures[tank_top] + 3:
             self.log("Storage top colder than buffer top")

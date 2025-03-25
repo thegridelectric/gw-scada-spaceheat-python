@@ -228,7 +228,7 @@ class AtomicAlly(ScadaActor):
                 # but we should definitely let StratBoss go dormant
                 self._send_to(self.strat_boss, payload)
             else:
-                self.set_normal_command_tree()
+                self.set_command_tree(boss_node=self.node)
                 self.trigger_event(AtomicAllyEvent.StopStratSaving)
                 try:
                     self.initialize_actuators()
@@ -237,33 +237,6 @@ class AtomicAlly(ScadaActor):
                 self.engage_brain()
                 # confirm change of command tree by returning payload to strat boss
                 self._send_to(dst=self.strat_boss, payload=payload)
-
-    def set_normal_command_tree(self) -> None:
-        """
-        TODO: add diagram
-        """
-
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}"
-        
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{strat_boss.Name}"
-
-
-        for node in self.my_actuators():
-            if node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{H0N.atn}.{H0N.atomic_ally}.{hp_relay_boss.Name}.{node.Name}"
-            else:
-                node.Handle =  f"{H0N.atn}.{H0N.atomic_ally}.{node.Name}"
-        self._send_to(
-            self.atn,
-            NewCommandTree(
-                FromGNodeAlias=self.layout.scada_g_node_alias,
-                ShNodes=list(self.layout.nodes.values()),
-                UnixMs=int(time.time() * 1000),
-            ),
-        )
-        self.log("Set normal command tree")
 
     def set_strat_saver_command_tree(self) -> None:
         """
@@ -582,7 +555,7 @@ class AtomicAlly(ScadaActor):
         self.log("Taking care of relays with default energized positions")
         self.hp_failsafe_switch_to_scada()
         self.aquastat_ctrl_switch_to_scada()
-        self.sieg_valve_dormant()
+        # Figure out what to do w heat pump & sieg loop
         if self.hp_should_be_off():
             self.turn_off_HP()
         try:

@@ -78,6 +78,10 @@ class ScadaActor(Actor):
         return self.layout.node(H0N.hp_relay_boss)
 
     @property
+    def sieg_loop(self) -> ShNode:
+        return self.layout.node(H0N.sieg_loop)
+
+    @property
     def pico_cycler(self) -> ShNode:
         return self.layout.nodes[H0N.pico_cycler]
 
@@ -945,6 +949,7 @@ class ScadaActor(Actor):
                                      └─ relay15 (hp_loop_keep_send)
         ```
         """
+        self.log(f"Setting fsm handles under {boss_node.name}")
         hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
         hp_relay_boss.Handle = f"{boss_node.handle}.{hp_relay_boss.Name}"
 

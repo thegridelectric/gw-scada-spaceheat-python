@@ -1,19 +1,19 @@
 import time
 from typing import List
 import asyncio
+import uuid
 from enum import auto
-from data_classes.house_0_names import H0CN, H0N
+from data_classes.house_0_names import H0CN
 from gwproto.message import Message
 from gwproto.data_classes.sh_node import ShNode
 from gwproto.named_types import FsmFullReport, SingleReading, AnalogDispatch
-from gwproto.enums import ChangeRelayState
 from result import Ok, Result
 from gw.enums import GwStrEnum
 from transitions import Machine
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from enums import LogLevel
-from named_types import FsmEvent, Glitch, SingleMachineState
+from named_types import Glitch, SingleMachineState
 
 from transitions import Machine
 class SiegState(GwStrEnum):
@@ -48,23 +48,25 @@ class SiegLoop(ScadaActor):
     FULL_RANGE_S = 70
     RESET_S = 10
 
-    
-
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.percent_keep: int = 100
         self.resetting = False
         self.state: SiegState = SiegState.FullyKeep
-
+        self._movement_task = None # Track the current movement task
+        self.move_start_s: float = 0
+        self.latest_move_duration_s: float = 0
         # Define transitions with callback
         self.transitions = [
             {"trigger": "StartKeepingMore", "source": "FullySend", "dest": "KeepingMore", "before": "before_keeping_more"},
             {"trigger": "StartKeepingMore", "source": "SteadyBlend", "dest": "KeepingMore", "before": "before_keeping_more"},
             {"trigger": "StartKeepingMore", "source": "KeepingLess", "dest": "KeepingMore", "before": "before_keeping_more"},
+            {"trigger": "StartKeepingMore", "source": "KeepingMore", "dest": "KeepingMore", "before": "before_keeping_more"},
             {"trigger": "StopKeepingMore", "source": "KeepingMore", "dest": "SteadyBlend", "before": "before_keeping_steady"},
             {"trigger": "StartKeepingLess", "source": "FullyKeep", "dest": "KeepingLess", "before": "before_keeping_less"},
             {"trigger": "StartKeepingLess", "source": "SteadyBlend", "dest": "KeepingLess", "before": "before_keeping_less"},
             {"trigger": "StartKeepingLess", "source": "KeepingMore", "dest": "KeepingLess", "before": "before_keeping_less"},
+            {"trigger": "StartKeepingLess", "source": "KeepingLess", "dest": "KeepingLess", "before": "before_keeping_less"},
             {"trigger": "StopKeepingLess", "source": "KeepingLess", "dest": "SteadyBlend", "before": "before_keeping_steady"},
             {"trigger": "ResetToFullySend", "source": "KeepingLess", "dest": "FullySend", "before": "before_keeping_steady"},
             {"trigger": "ResetToFullyKeep", "source": "KeepingMore", "dest": "FullyKeep", "before": "before_keeping_steady"},
@@ -78,8 +80,16 @@ class SiegLoop(ScadaActor):
         )
 
     def start(self) -> None:
-        """ Required method, used for starting long-lived tasks. Noop."""
-        asyncio.create_task(self._reset_to_fully_send())
+        """ Move to full send"""
+        # Generate a new task ID for this movement
+        new_task_id = str(uuid.uuid4())[-4:]
+        self._current_task_id = new_task_id
+        target_percent = 0
+        self.log(f"Task {new_task_id}: target {target_percent}")
+        self._current_task_id = new_task_id
+        self._movement_task = asyncio.create_task(
+            self._move_to_target_percent_keep(target_percent, new_task_id)
+        )  
 
     def stop(self) -> None:
         """ Required method, used for stopping tasks. Noop"""
@@ -96,22 +106,25 @@ class SiegLoop(ScadaActor):
     def before_keeping_more(self, event):
         self.change_to_hp_keep_more()
         self.sieg_valve_active()
-        
+        self.move_start_s = time.time()
+
     def before_keeping_less(self, event):
         self.change_to_hp_keep_less()
         self.sieg_valve_active()
-        
+        self.move_start_s = time.time()
+
     def before_keeping_steady(self, event):
         # Logic for steady blend state (including FullySend and FullyKeep)
         self.sieg_valve_dormant()
-        
+        self.latest_move_duration_s = time.time() - self.move_start_s
+
     def trigger_event(self, event: SiegEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.state
-    
+
         if self.resetting:
             raise Exception("Do not interrupt resetting to fully send or fully keep!")
-        
+
         # Trigger the state machine transition
         self.trigger(event)
 
@@ -139,108 +152,132 @@ class SiegLoop(ScadaActor):
                     asyncio.create_task(self.process_analog_dispatch(from_node, payload), name="analog_dispatch")
                 except Exception as e:
                     self.log(f"Trouble with process_analog_dispatch: {e}")
+            case FsmFullReport():
+                ... # got report back from relays
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
         return Ok(True)
-    
+
     async def process_analog_dispatch(self, from_node: ShNode, payload: AnalogDispatch) -> None:    
         if from_node != self.boss:
-            #raise Exception(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
             self.log(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
+            return
+
         if self.boss.handle != payload.FromHandle:
             self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
-        # don't interrupt a reset 
-        orig_percent_keep = self.percent_keep
-        orig_state = self.state
-        if self.resetting:
-            if orig_state == SiegState.KeepingMore:
-                wait_s = 6 + self.FULL_RANGE_S * (100 -orig_percent_keep) / 100
-                self.log(f"Waiting {wait_s} while resetting to full keep") 
-            else:
-                wait_s = 6 + self.FULL_RANGE_S * orig_percent_keep / 100
-                self.log(f"Waiting {wait_s} while resetting to full send") 
-            # wait for the resetting to finish
-            await asyncio.sleep(wait_s)
-        if self.resetting:
-            self._send_to(
-                self.primary_scada,
-                Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    Node=self.node.Name,
-                    Type=LogLevel.Info,
-                    Summary=f"SiegLoop ignored AnalogDispatch to set HpKeep to {payload.Value} because it was resetting",
-                    Details=f"Slept for {wait_s} seconds from {orig_percent_keep} % and state {orig_state}. Was still resetting!"
-                )
-            )
-            self.log(f"SiegLoop ignored AnalogDispatch to set HpKeep to {payload.Value} because it was resetting")
             return
-        # OK! now we can follow the directions
-        if payload.Value == 100:
-            await self._reset_to_fully_keep()
-        elif payload.Value == 0:
-            await self._reset_to_fully_send()
-        elif self.percent_keep > payload.Value:
-            if self.state != SiegState.KeepingLess:
-                self.trigger_event(SiegEvent.StartKeepingLess)
-            while self.percent_keep > payload.Value:
-                await self._keep_one_percent_less()
-            self.trigger_event(SiegEvent.StopKeepingLess)
-        else:
-            if self.state != SiegState.KeepingMore:
+
+        target_percent = payload.Value
+        self.log(f"Received command to set valve to {target_percent}% keep")
+
+        # Generate a new task ID for this movement
+        new_task_id = str(uuid.uuid4())[-4:]
+        self._current_task_id = new_task_id
+        
+        # Cancel any existing movement task
+        if hasattr(self, '_movement_task') and self._movement_task and not self._movement_task.done():
+            self.log(f"Cancelling previous movement from {self.percent_keep}% to new target {target_percent}%")
+            self._movement_task.cancel()
+            
+            # Wait for the task to actually complete
+            try:
+                # Use a timeout to avoid waiting forever if something goes wrong
+                await asyncio.wait_for(self._movement_task, timeout=2.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                self.log("Cancelled previous task")
+            
+            # Ensure proper state cleanup regardless of how the task ended
+            if self.state == SiegState.KeepingMore:
+                self.trigger_event(SiegEvent.StopKeepingMore)
+                self.log(f"Triggered StopKeepingMore after cancellation")
+            elif self.state == SiegState.KeepingLess:
+                self.trigger_event(SiegEvent.StopKeepingLess)
+                self.log(f"Triggered StopKeepingLess after cancellation")
+
+        # Create a new task for the movement
+        self._movement_task = asyncio.create_task(
+            self._move_to_target_percent_keep(target_percent, new_task_id)
+        )  
+
+    async def _move_to_target_percent_keep(self, target_percent: int, task_id: str) -> None:
+        """Move the valve to the target percent keep value."""
+        if self.percent_keep == target_percent:
+            self.log(f"Already at target {target_percent}%")
+            return
+            
+        # Determine direction
+        moving_to_more_keep = self.percent_keep < target_percent
+    
+        # Wait a moment to ensure the state machine has settled
+        await asyncio.sleep(0.2)
+        
+        # Set the appropriate state
+        try:
+            if moving_to_more_keep:
+                self.log(f"Starting movement to MORE keep ({self.percent_keep}% -> {target_percent}%)")
                 self.trigger_event(SiegEvent.StartKeepingMore)
-            while self.percent_keep < payload.Value:
-                await self._keep_one_percent_more()
-            self.trigger_event(SiegEvent.StopKeepingMore)
+                # Now process the movement in a loop
+                while self.percent_keep < target_percent:
+                    # Check if this task has been superseded
+                    if task_id != self._current_task_id:
+                        self.log(f"Task {task_id} has been superseded, stopping")
+                        break
+                        
+                    await self._keep_one_percent_more(task_id)
+                    # Allow for cancellation to be processed
+                    await asyncio.sleep(0)
+            else:
+                self.log(f"Starting movement to LESS keep ({self.percent_keep}% -> {target_percent}%)")
+                self.trigger_event(SiegEvent.StartKeepingLess)
+                
+                # Now process the movement in a loop
+                while self.percent_keep > target_percent:
+                    # Check if this task has been superseded
+                    if task_id != self._current_task_id:
+                        self.log(f"Task {task_id} has been superseded, stopping")
+                        break
+                        
+                    await self._keep_one_percent_less(task_id)
+                    # Allow for cancellation to be processed
+                    await asyncio.sleep(0)
 
-    async def _reset_to_fully_send(self) -> None:
-        self.log(f"Resetting to full send from {self.percent_keep}")
-        if self.state == SiegState.FullySend:
-            self.log("Already in FullySend")
+            # Complete the movement only if we're still the current task
+            if task_id == self._current_task_id:
+                if moving_to_more_keep and self.state == SiegState.KeepingMore:
+                    self.trigger_event(SiegEvent.StopKeepingMore)
+                elif not moving_to_more_keep and self.state == SiegState.KeepingLess:
+                    self.trigger_event(SiegEvent.StopKeepingLess)
+                    
+                self.log(f"Movement completed: {self.percent_keep}% keep")
+
+        except asyncio.CancelledError:
+            self.log(f"Movement cancelled at {self.percent_keep}%")
+            # Let the cancellation propagate to the caller
+            raise
+        
+        except Exception as e:
+            self.log(f"Error during movement: {e}")
+            # Make sure to clean up state
+            if self.state == SiegState.KeepingMore:
+                self.trigger_event(SiegEvent.StopKeepingMore)
+            elif self.state == SiegState.KeepingLess:
+                self.trigger_event(SiegEvent.StopKeepingLess)
+
+    async def _keep_one_percent_less(self, task_id: str) -> None:
+        # Check if we're still the current task
+        if task_id != self._current_task_id:
             return
-        if self.state != SiegState.KeepingLess:
-            self.trigger_event(SiegEvent.StartKeepingLess)
-        # Now we are in KeepingLess
-        self.resetting = True
-        while self.percent_keep > 0:
-            await self._keep_one_percent_less()
-
-        # Wait a little longer to make sure
-        await asyncio.sleep(self.RESET_S)
-
-        # rest of the code is supposed to respect resetting
-        if self.state != SiegState.KeepingLess:
-            raise Exception(f"resetting {self.resetting} and state {self.state}; expecting KeepingLess")
-        self.resetting = False
-        self.trigger_event(SiegEvent.ResetToFullySend)
-
-    async def _reset_to_fully_keep(self) -> None:
-        self.log(f"Resetting to full keep from {self.percent_keep}")
-        if self.state == SiegState.FullyKeep:
-            self.log("Already in FullyKeep")
-            return
-        if self.state != SiegState.KeepingMore:
-            self.trigger_event(SiegEvent.StartKeepingMore)
-        # Now we are in KeepingMore
-        self.resetting = True
-        while self.percent_keep < 100:
-            await self._keep_one_percent_more()
-
-        # Wait a little longer to make sure
-        await asyncio.sleep(self.RESET_S)
-
-        # rest of the code is supposed to respect resetting
-        if self.state != SiegState.KeepingMore:
-            raise Exception(f"resetting {self.resetting} and state {self.state}; expecting KeepingMore")
-        self.resetting = False
-        self.trigger_event(SiegEvent.ResetToFullyKeep)
-
-    async def _keep_one_percent_less(self) -> None:
         if self.state != SiegState.KeepingLess:
             raise Exception(f"Only call _keep_one_percent_less in state KeepingLess, not {self.state}")
         sleep_s = self.FULL_RANGE_S / 100
         orig_keep = self.percent_keep
         await asyncio.sleep(sleep_s)
+
+        # Check again if we're still the current task after sleeping
+        if task_id != self._current_task_id:
+            return
+        
         self.percent_keep = orig_keep - 1
         self.log(f"{self.percent_keep}% keep")
         self._send_to(
@@ -252,12 +289,20 @@ class SiegLoop(ScadaActor):
             )
         )
 
-    async def _keep_one_percent_more(self) -> None:
+    async def _keep_one_percent_more(self, task_id: str) -> None:
+        # Check if we're still the current task
+        if task_id != self._current_task_id:
+            return
         if self.state != SiegState.KeepingMore:
             raise Exception(f"Only call _keep_one_percent_more in state KeepingMore, not {self.state}")
         sleep_s = self.FULL_RANGE_S / 100
         orig_keep = self.percent_keep
         await asyncio.sleep(sleep_s)
+
+        # Check again if we're still the current task after sleeping
+        if task_id != self._current_task_id:
+            return
+        
         self.percent_keep = orig_keep + 1
         self.log(f"{self.percent_keep}% keep")
         self._send_to(
@@ -268,3 +313,44 @@ class SiegLoop(ScadaActor):
                 ScadaReadTimeUnixMs=int(time.time() *1000)
             )
         )
+
+    def keep_harder(self) -> None:
+        if self.state != SiegState.FullyKeep:
+            self.log("Use when in FullyKeep")
+            return
+        self.change_to_hp_keep_more()
+        self.sieg_valve_active()
+        self._send_to(
+                self.primary_scada,
+                Glitch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    Node=self.node.Name,
+                    Type=LogLevel.Info,
+                    Summary="keep 1 second more",
+                    Details=f"from fully keep w percent_keep {self.percent_keep}%, keep 1 second more"
+                )
+            )
+        self.log(f"keeping for 1 second more")
+        time.sleep(1)
+        self.sieg_valve_dormant()
+
+    def send_harder(self) -> None:
+        if self.state != SiegState.FullySend:
+            self.log("Use when in FullySend")
+            return
+        self.change_to_hp_keep_less()
+        self.sieg_valve_active()
+        self.log(f"sending for 1 second more")
+        self._send_to(
+                self.primary_scada,
+                Glitch(
+                    FromGNodeAlias=self.layout.scada_g_node_alias,
+                    Node=self.node.Name,
+                    Type=LogLevel.Info,
+                    Summary="send 1 second more",
+                    Details=f"from fully send w percent_keep {self.percent_keep}%, send 1 second more"
+                )
+            )
+        time.sleep(1)
+        self.sieg_valve_dormant()
+
