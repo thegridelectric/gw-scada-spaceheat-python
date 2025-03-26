@@ -131,6 +131,14 @@ class DGraph():
             and n.thermocline1 == self.params.initial_thermocline
         ]
 
+        # TODO: remove?
+        if not nodes_with_initial_top_and_middle:
+            nodes_with_initial_top_and_middle = [
+            n for n in self.nodes[0]
+            if n.top_temp == initial_top_temp
+            and n.middle_temp == initial_middle_temp
+        ]
+
         self.initial_node = min(
             nodes_with_initial_top_and_middle, 
             key=lambda x: abs(x.energy-self.initial_state.energy)
