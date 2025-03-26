@@ -128,6 +128,7 @@ class DGraph():
             n for n in self.nodes[0]
             if n.top_temp == initial_top_temp
             and n.middle_temp == initial_middle_temp
+            and n.thermocline1 == self.params.initial_thermocline
         ]
 
         self.initial_node = min(
