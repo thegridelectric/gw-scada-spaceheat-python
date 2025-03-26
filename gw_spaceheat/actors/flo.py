@@ -2,7 +2,7 @@ import time
 import json
 import numpy as np
 from typing import Dict, List, Tuple
-from dijkstra_types import DParams, DNode, DEdge
+from .dijkstra_types import DParams, DNode, DEdge
 from named_types import FloParamsHouse0, PriceQuantityUnitless
 
 class DGraph():
