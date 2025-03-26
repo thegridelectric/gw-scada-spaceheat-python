@@ -85,18 +85,13 @@ class BidRunner(threading.Thread):
                 # Run FLO
                 self.log("Creating graph and solving Dijkstra...")
                 st = time.time()
-                if self.atn_settings.hinge:
-                    self.log("Using hinge")
-                    g = FloHinge(self.params, hinge_hours=5, num_nodes=[10,3,3,3,3])
-                else:
-                    self.log("Not using hinge")
-                    g = DGraph(self.params)
-                    g.solve_dijkstra()
+                g = DGraph(self.params)
+                g.solve_dijkstra()
                 self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 self.log("Finding PQ pairs...")
                 st = time.time()
-                pq_pairs: List[PriceQuantityUnitless] = g.generate_bid()
-                self.log(f"Found {len(pq_pairs)} pairs in {round(time.time()-st,2)} seconds")
+                g.generate_bid()
+                self.log(f"Found {len(g.pq_pairs)} pairs in {round(time.time()-st,2)} seconds")
                 
                 # Generate bid
                 t = time.time()
@@ -106,7 +101,7 @@ class BidRunner(threading.Thread):
                 self.bid = AtnBid(
                     BidderAlias=self.atn_alias,
                     MarketSlotName=market_slot_name,
-                    PqPairs=pq_pairs,
+                    PqPairs=g.pq_pairs,
                     InjectionIsPositive=False,  # withdrawing energy since load not generation
                     PriceUnit=MarketPriceUnit.USDPerMWh,
                     QuantityUnit=MarketQuantityUnit.AvgkW,
