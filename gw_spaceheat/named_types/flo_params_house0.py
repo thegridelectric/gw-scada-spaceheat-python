@@ -51,7 +51,6 @@ class FloParamsHouse0(BaseModel):
     DdRswtF: StrictInt
     DdDeltaTF: StrictInt
     MaxEwtF: StrictInt
-    DischargingDdDeltaTF: StrictInt = 45
     PriceUnit: MarketPriceUnit = MarketPriceUnit.USDPerMWh
     ParamsGeneratedS: UTCSeconds = Field(default_factory=lambda: int(time.time()))
     # Flo type
