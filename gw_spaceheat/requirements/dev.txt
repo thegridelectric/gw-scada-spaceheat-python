@@ -56,16 +56,16 @@ frozenlist==1.4.0
     #   aiosignal
 gridworks==1.2.0
     # via gridworks-protocol
-gridworks-cert==0.4.4
+gridworks-cert==0.4.5
     # via
     #   -r gw_spaceheat/requirements/dev.in
     #   gridworks-proactor
-gridworks-proactor[tests]==1.1.9
+gridworks-proactor[tests]==1.1.11
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   -r gw_spaceheat/requirements/dev.in
     #   -r gw_spaceheat/requirements/test.in
-gridworks-protocol==1.2.3
+gridworks-protocol==1.2.4
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-proactor
@@ -234,10 +234,11 @@ trogon==0.5.0
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-cert
-typer==0.12.5
+typer==0.15.2
     # via
     #   -r gw_spaceheat/requirements/base.in
     #   gridworks-cert
+    #   gridworks-proactor
 typing-extensions==4.7.1
     # via
     #   anyio
