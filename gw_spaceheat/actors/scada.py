@@ -55,8 +55,8 @@ from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoE
                     TopState)
 from named_types import (
     AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
-    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning,
-    ScadaParams, SendLayout, SingleMachineState,
+    Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
+    ScadaParams, SendLayout, SiegLoopEndpointValveAdjustment, SingleMachineState, 
     SlowContractHeartbeat, SuitUp, WakeUp,
 )
 
@@ -369,6 +369,11 @@ class Scada(ScadaInterface, Proactor):
                     self.process_power_watts(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_power_watts: \n {e}")
+            case ResetHpKeepValue():
+                try:
+                    self.process_reset_hp_keep_value(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_reset_hp_keep_value: \n {e}")
             case ScadaParams():
                 try:
                     self.process_scada_params(from_node, payload)
@@ -385,6 +390,11 @@ class Scada(ScadaInterface, Proactor):
                     self._send_to(from_node, self._data.make_snapshot())
                 except Exception as e:
                     self.log(f"Trouble with SendSnap: {e}")
+            case SiegLoopEndpointValveAdjustment():
+                try:
+                    self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_sieg_loop_endpoint_valve_adjustment: \n {e}")
             case SingleMachineState():
                 try:
                     self.process_single_machine_state(from_node, payload)
@@ -510,6 +520,25 @@ class Scada(ScadaInterface, Proactor):
                                               UnixTimeMs=payload.UnixTimeMs)
         self.log(f"Got dispatch for {to_node.Handle} from atn. HACK: Sending on from {boss.handle}")
         self._send_to(to_node, msg, from_node=boss)
+
+    def process_reset_hp_keep_value(
+            self, from_node: ShNode, payload: ResetHpKeepValue
+    ) -> None:
+        to_node = self.layout.node_by_handle(payload.ToHandle)
+        if to_node is None:
+            self.log(f"Ignoring reset.hp.keep.value to {payload.ToHandle} -> not a known node")
+            return
+        boss = self.layout.boss_node(to_node)
+        if boss is None:
+            self.log(f"That's funny! no buss for {payload.ToHandle}")
+            return
+        payload.FromHandle = boss.handle
+        self._send_to(to_node, payload, boss)
+
+    def process_sieg_loop_endpoint_valve_adjustment(
+            self, from_node, payload: SiegLoopEndpointValveAdjustment
+    ) -> None:
+        
 
     def process_channel_readings(
         self, from_node: ShNode, payload: ChannelReadings
