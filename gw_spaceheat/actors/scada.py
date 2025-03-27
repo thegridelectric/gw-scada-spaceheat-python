@@ -1542,7 +1542,7 @@ class Scada(ScadaInterface, Proactor):
                 self.logger.error("Couldn't find a .env file - perhaps because in CI?")
                 return
         else:
-            dotenv_filepath = "/home/pi/gw-scada-spaceheat-python/.env"
+            dotenv_filepath = "/home/pi/gridworks-scada/.env"
             if not os.path.isfile(dotenv_filepath):
                 self.log("Did not find .env file")
                 return
