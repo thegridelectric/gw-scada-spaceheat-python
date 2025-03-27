@@ -13,7 +13,8 @@ from transitions import Machine
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from enums import LogLevel
-from named_types import Glitch, SingleMachineState
+from named_types import (Glitch, ResetHpKeepValue,
+    SingleMachineState,  SiegLoopEndpointValveAdjustment)
 
 from transitions import Machine
 class SiegState(GwStrEnum):
@@ -152,6 +153,16 @@ class SiegLoop(ScadaActor):
                     asyncio.create_task(self.process_analog_dispatch(from_node, payload), name="analog_dispatch")
                 except Exception as e:
                     self.log(f"Trouble with process_analog_dispatch: {e}")
+            case ResetHpKeepValue():
+                try:
+                    asyncio.create_task(self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload), name="analog_dispatch")
+                except Exception as e:
+                    self.log(f"Trouble with process_analog_dispatch: {e}")
+            case SiegLoopEndpointValveAdjustment():
+                try:
+                    asyncio.create_task(self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload), name="analog_dispatch")
+                except Exception as e:
+                    self.log(f"Trouble with process_analog_dispatch: {e}")
             case FsmFullReport():
                 ... # got report back from relays
             case _: 
@@ -176,8 +187,75 @@ class SiegLoop(ScadaActor):
         self._current_task_id = new_task_id
         
         # Cancel any existing movement task
+        await self.clean_up_old_task()
+
+        # Create a new task for the movement
+        self._movement_task = asyncio.create_task(
+            self._move_to_target_percent_keep(target_percent, new_task_id)
+        )  
+
+    def process_reset_hp_keep_value(
+        self, from_node: ShNode, payload: ResetHpKeepValue
+    ) -> None:
+        if from_node != self.boss:
+            self.log(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
+            return
+
+        if self.boss.handle != payload.FromHandle:
+            self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
+            return
+
+        if payload.FromValue != self.percent_keep:
+            self.send_glitch(f"Ignoring ResetHpKeepValue w FromValue {payload.FromValue} - percent keep is {self.percent_keep}")
+            return
+        
+        if self._movement_task:
+            self.send_glitch(f"Not resetting hp keep value while moving")
+            return
+
+        self.percent_keep = payload.ToValue
+        self._send_to(
+            self.primary_scada,
+            SingleReading(
+                ChannelName=H0CN.hp_keep,
+                Value=self.percent_keep,
+                ScadaReadTimeUnixMs=int(time.time() *1000)
+            )
+        )
+
+    async def process_sieg_loop_endpoint_valve_adjustment(
+        self, from_node: ShNode, payload: SiegLoopEndpointValveAdjustment
+    ) -> None:
+        if from_node != self.boss:
+            self.log(f"sieg loop expects commands from its boss {self.boss.Handle}, not {from_node.Handle}")
+            return
+
+        if self.boss.handle != payload.FromHandle:
+            self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
+            return
+
+        if payload.HpKeepPercent != self.percent_keep:
+            self.send_glitch(f"Ignoring SiegLoopEndpointValveAdjustment w {payload.HpKeepPercent} - our keep percent is {self.percent_keep}")
+            return
+        if self._movement_task: 
+            self.send_glitch("Ignoring SiegLoopEndpointValveAdjustment - moving already")
+            return
+        elif self.state not in [SiegState.FullyKeep, SiegState.FullySend]:
+            self.send_glitch(f"Ignoring SiegLoopEndpointValveAdjustment - perent keep at {self.percent_keep} and state {self.state}")
+
+        # Generate a new task ID for this movement
+        new_task_id = str(uuid.uuid4())[-4:]
+        self._current_task_id = new_task_id
+        # Create a new task for the movement
+        if self.state == SiegState.FullyKeep:
+            new_task = self.keep_harder(payload.Seconds, new_task_id)
+        else:
+            new_task = self.send_harder(payload.Seconds, new_task_id)
+        self._movement_task = asyncio.create_task(new_task) 
+
+    async def clean_up_old_task(self) -> None:
         if hasattr(self, '_movement_task') and self._movement_task and not self._movement_task.done():
-            self.log(f"Cancelling previous movement from {self.percent_keep}% to new target {target_percent}%")
+            self.log(f"Cancelling previous movement task")
             self._movement_task.cancel()
             
             # Wait for the task to actually complete
@@ -195,11 +273,9 @@ class SiegLoop(ScadaActor):
                 self.trigger_event(SiegEvent.StopKeepingLess)
                 self.log(f"Triggered StopKeepingLess after cancellation")
 
-        # Create a new task for the movement
-        self._movement_task = asyncio.create_task(
-            self._move_to_target_percent_keep(target_percent, new_task_id)
-        )  
-
+            # Set task to None after cancellation
+            self._movement_task = None
+        
     async def _move_to_target_percent_keep(self, target_percent: int, task_id: str) -> None:
         """Move the valve to the target percent keep value."""
         if self.percent_keep == target_percent:
@@ -253,7 +329,8 @@ class SiegLoop(ScadaActor):
 
         except asyncio.CancelledError:
             self.log(f"Movement cancelled at {self.percent_keep}%")
-            # Let the cancellation propagate to the caller
+            # Let the cancellation propagate to the caller - don't set state here
+            # as clean_up_old_task handles the FSM state transition
             raise
         
         except Exception as e:
@@ -263,6 +340,10 @@ class SiegLoop(ScadaActor):
                 self.trigger_event(SiegEvent.StopKeepingMore)
             elif self.state == SiegState.KeepingLess:
                 self.trigger_event(SiegEvent.StopKeepingLess)
+
+        finally:
+            # Always set the task to None when complete, whether successful or not
+            self._movement_task = None
 
     async def _keep_one_percent_less(self, task_id: str) -> None:
         # Check if we're still the current task
@@ -314,43 +395,68 @@ class SiegLoop(ScadaActor):
             )
         )
 
-    def keep_harder(self) -> None:
-        if self.state != SiegState.FullyKeep:
-            self.log("Use when in FullyKeep")
-            return
-        self.change_to_hp_keep_more()
-        self.sieg_valve_active()
+    async def keep_harder(self, seconds: int, task_id: str) -> None:
+        try:
+            if self.state != SiegState.FullyKeep:
+                self.log("Use only when in FullyKeep")
+                return
+            self.change_to_hp_keep_more()
+            self.sieg_valve_active()
+            self.send_glitch(f"keeping for {seconds} seconds more")
+            await asyncio.sleep(seconds)
+            # Check if this task has been superseded
+            if task_id == self._current_task_id:
+                self.log(f"Task {task_id} has been superseded!")
+            else:
+                self.sieg_valve_dormant()
+        except asyncio.CancelledError:
+            self.log(f"send_harder task cancelled")
+            # Don't set valve to dormant - the cancelling code handles this
+            raise
+        except Exception as e:
+            self.log(f"Error during keep_harder: {e}")
+            self.sieg_valve_dormant()
+            self.send_glitch(f"Error during keep_harder: {e}", LogLevel.Error)
+        finally:
+            # Always set the task to None when complete
+            self._movement_task = None
+
+    async def send_harder(self, seconds: int, task_id: str) -> None:
+        try:
+            if self.state != SiegState.FullySend:
+                self.log("Use when in FullySend")
+                return
+            self.change_to_hp_keep_less()
+            self.sieg_valve_active()
+            self.send_glitch(f"sending for {seconds} seconds more")
+            await asyncio.sleep(seconds)
+            # Check if this task has been superseded
+            if task_id == self._current_task_id:
+                self.log(f"Task {task_id} has been superseded!")
+            else:
+                self.sieg_valve_dormant()
+        except asyncio.CancelledError:
+            self.log(f"keep_harder task cancelled")
+            # Don't set valve to dormant - the cancelling code handles this
+            raise
+        except Exception as e:
+            self.log(f"Error during send_harder: {e}")
+            self.sieg_valve_dormant()
+            self.send_glitch(f"Error during send_harder: {e}", LogLevel.Error)
+        finally:
+            # Always set the task to None when complete
+            self._movement_task = None
+
+
+    def send_glitch(self, summary: str, log_level: LogLevel=LogLevel.Info) -> None:
         self._send_to(
                 self.primary_scada,
                 Glitch(
                     FromGNodeAlias=self.layout.scada_g_node_alias,
                     Node=self.node.Name,
-                    Type=LogLevel.Info,
-                    Summary="keep 1 second more",
-                    Details=f"from fully keep w percent_keep {self.percent_keep}%, keep 1 second more"
+                    Type=log_level,
+                    Summary=summary,
+                    Details=summary
                 )
             )
-        self.log(f"keeping for 1 second more")
-        time.sleep(1)
-        self.sieg_valve_dormant()
-
-    def send_harder(self) -> None:
-        if self.state != SiegState.FullySend:
-            self.log("Use when in FullySend")
-            return
-        self.change_to_hp_keep_less()
-        self.sieg_valve_active()
-        self.log(f"sending for 1 second more")
-        self._send_to(
-                self.primary_scada,
-                Glitch(
-                    FromGNodeAlias=self.layout.scada_g_node_alias,
-                    Node=self.node.Name,
-                    Type=LogLevel.Info,
-                    Summary="send 1 second more",
-                    Details=f"from fully send w percent_keep {self.percent_keep}%, send 1 second more"
-                )
-            )
-        time.sleep(1)
-        self.sieg_valve_dormant()
-
+        self.log(summary)

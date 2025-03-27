@@ -36,8 +36,8 @@ from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from enums import ContractStatus, LogLevel
 from named_types import (AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, 
-                         NoNewContractWarning, PriceQuantityUnitless, 
-                         ScadaParams, SendLayout,
+                         NoNewContractWarning, PriceQuantityUnitless, ResetHpKeepValue,
+                         ScadaParams, SendLayout, SiegLoopEndpointValveAdjustment,
                          SlowContractHeartbeat,  SnapshotSpaceheat)
 
 from paho.mqtt.client import MQTTMessageInfo
@@ -1532,6 +1532,48 @@ class Atn(ActorInterface, Proactor):
                     Value=val,
                     TriggerId=str(uuid.uuid4()),
                     UnixTimeMs=int(time.time() * 1000),
+                ),
+            )
+        )
+
+    def reset_keep_percent(self, old_val: int, new_val: int) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=ResetHpKeepValue(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    FromValue=old_val,
+                    ToValue=new_val
+                ),
+            )
+        )
+
+    def send_harder(self, seconds: int) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SiegLoopEndpointValveAdjustment(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    HpKeepPercent=0,
+                    Seconds=seconds,
+                ),
+            )
+        )
+
+    def keep_harder(self, seconds: int) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SiegLoopEndpointValveAdjustment(
+                    FromHandle=f"{H0N.atn}",
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    HpKeepPercent=100,
+                    Seconds=seconds,
                 ),
             )
         )
