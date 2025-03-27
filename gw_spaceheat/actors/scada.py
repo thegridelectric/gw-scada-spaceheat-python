@@ -535,10 +535,6 @@ class Scada(ScadaInterface, Proactor):
         payload.FromHandle = boss.handle
         self._send_to(to_node, payload, boss)
 
-    def process_sieg_loop_endpoint_valve_adjustment(
-            self, from_node, payload: SiegLoopEndpointValveAdjustment
-    ) -> None:
-        
 
     def process_channel_readings(
         self, from_node: ShNode, payload: ChannelReadings
