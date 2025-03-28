@@ -786,7 +786,10 @@ class Atn(ActorInterface, Proactor):
             atn_g_node_alias=self.layout.atn_g_node_alias,
             send_threadsafe=self.send_threadsafe,
             on_complete=self._cleanup_bid_runner,
-            logger=self.log,
+            logger=self.logger.add_category_logger(
+                DGraph.LOGGER_NAME,
+                level=self.settings.flo_logging_level
+            )
         )
         self.bid_runner.start()  
         # Instead of waiting, return to event loop
