@@ -49,7 +49,8 @@ class AtnSettings(ProactorSettings):
     hp_model: HpModel = HpModel.SamsungFiveTonneHydroKit # TODO: move to layout
     model_config = SettingsConfigDict(env_prefix="ATN_", extra="ignore")
     contract_rep_logging_level: int = logging.INFO
-
+    flo_logging_level: int = logging.INFO
+    
     @model_validator(mode="before")
     @classmethod
     def pre_root_validator(cls, values: dict) -> dict:

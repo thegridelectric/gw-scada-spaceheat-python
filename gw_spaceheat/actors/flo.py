@@ -1,24 +1,60 @@
 import time
 import json
+import sys
 import numpy as np
+import gc
 from typing import Dict, List, Tuple
+from gwproactor.logger import LoggerOrAdapter
 from .dijkstra_types import DParams, DNode, DEdge
 from named_types import FloParamsHouse0, PriceQuantityUnitless
 
 
 class DGraph():
-    def __init__(self, flo_params: FloParamsHouse0):
+    LOGGER_NAME="flo"
+    def __init__(self, 
+                flo_params: FloParamsHouse0,
+                logger: LoggerOrAdapter):
+        self.logger = logger
         self.params = DParams(flo_params)
+        total_start_time = time.time()
         start_time = time.time()
-        self.load_super_graph()
-        self.create_nodes()
-        self.create_edges()
-        print(f"Created graph in {round(time.time()-start_time,1)} seconds")
+        try:
+            self.load_super_graph()
+            self.logger.info(f"Loaded super graph in {round(time.time()-start_time, 1)} seconds")
+        except Exception as e:
+            self.logger.warning(f"Error with load_super_graph! {e}")
+            raise
+        
+        start_time = time.time()
+        try:
+            self.create_nodes()
+            self.logger.info(f"Created nodes in {round(time.time()-start_time, 1)} seconds")
+        except Exception as e:
+            self.logger.warning(f"Error with create_nodes! {e}")
+            raise
+        start_time = time.time()
+        try:
+            self.create_edges()
+            self.logger.info(f"Created edges in {round(time.time()-start_time, 1)} seconds")
+        except Exception as e:
+            self.logger.warning(f"Error with create_edges! {e}")
+            raise
+        self.logger.info(f"Created graph in {round(time.time()-total_start_time,1)} seconds")
+        # Force garbage collection after heavy operations
+        graph_memory = (
+            sys.getsizeof(self.nodes) +
+            sys.getsizeof(self.edges) +
+            sys.getsizeof(self.super_graph)
+        )
+        self.logger.info(f"Approximate graph memory usage: {graph_memory / 1024 / 1024:.2f} MB")
+        gc.collect()
         
     def load_super_graph(self):
+        start = time.time()
         with open("super_graph.json", 'r') as f:
             self.super_graph: Dict = json.load(f)
-        print("Sucessfully loaded super graph from JSON file.")
+        self.logger.info("Sucessfully loaded super graph from JSON file.")
+        self.logger.info(f"load super graph took {round(time.time()-start,1)} seconds")
         self.discretized_store_heat_in = [float(x) for x in list(self.super_graph.keys())]
         self.discretized_store_heat_in_array = np.array(self.discretized_store_heat_in)
 
@@ -60,7 +96,7 @@ class DGraph():
                         self.nodes_by[hour][(t,m,b)] = {}
                 self.nodes_by[h][(t,m,b)][(th1,th2)] = node
                 
-        print(f"Built a graph with {self.params.horizon} layers of {len(self.nodes[0])} nodes each")
+        self.logger.info(f"Built a graph with {self.params.horizon} layers of {len(self.nodes[0])} nodes each")
         self.min_node_energy = min(self.nodes[0], key=lambda n: n.energy).energy
         self.max_node_energy = max(self.nodes[0], key=lambda n: n.energy).energy
 
@@ -104,14 +140,21 @@ class DGraph():
 
                     self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
 
-            print(f"Built edges for hour {h}")
+            # self.logger.info(f"Built edges for hour {h}")
     
     def solve_dijkstra(self):
-        for time_slice in range(self.params.horizon-1, -1, -1):
-            for node in self.nodes[time_slice]:
-                best_edge = min(self.edges[node], key=lambda e: e.head.pathcost + e.cost)
-                node.pathcost = best_edge.head.pathcost + best_edge.cost
-                node.next_node = best_edge.head
+        start_time = time.time()
+
+        try:
+            for time_slice in range(self.params.horizon-1, -1, -1):
+                for node in self.nodes[time_slice]:
+                    best_edge = min(self.edges[node], key=lambda e: e.head.pathcost + e.cost)
+                    node.pathcost = best_edge.head.pathcost + best_edge.cost
+                    node.next_node = best_edge.head
+            self.logger.info(f"Solved Dijkstra in {round(time.time()-start_time, 1)} seconds")
+        except Exception as e:
+            self.logger.error(f"Error solving Dijkstra algorithm: {e}")
+            raise
 
     def read_node_str(self, node_str: str):
         parts = node_str.replace(')', '(').split('(')
@@ -160,7 +203,7 @@ class DGraph():
                 print(f"Removed edge {e} because the storage is already close to full.")
 
     def generate_bid(self, updated_flo_params: FloParamsHouse0=None):
-        print("\nGenerating bid...")
+        self.logger.info("Generating bid...")
         self.pq_pairs: List[PriceQuantityUnitless] = []
         self.find_initial_node(updated_flo_params)
         
@@ -180,4 +223,4 @@ class DGraph():
                         PriceTimes1000 = int(price_usd_mwh * 1000),
                         QuantityTimes1000 = int(best_quantity_kwh * 1000))
                 )
-        print(f"Done ({len(self.pq_pairs)} PQ pairs found).")
+        self.logger.info(f"Done ({len(self.pq_pairs)} PQ pairs found).")
