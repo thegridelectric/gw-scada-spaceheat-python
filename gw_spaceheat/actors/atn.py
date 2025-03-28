@@ -46,7 +46,7 @@ from pydantic import BaseModel
 from tests.atn import messages
 from tests.atn.atn_config import AtnSettings, DashboardSettings
 from tests.atn.dashboard.dashboard import Dashboard
-
+from gwproactor.logger import LoggerOrAdapter
 
 class PriceForecast(BaseModel):
     dp_usd_per_mwh: List[float]
@@ -66,10 +66,10 @@ class BidRunner(threading.Thread):
                  atn_g_node_alias: str,
                  send_threadsafe: Callable[[Message], None],
                  on_complete: Callable[[str], None],
-                 logger: Optional[Callable[[str], None]] = None):
+                 logger: LoggerOrAdapter):
         super().__init__()
         self.stop_event = threading.Event()
-        self.log = logger or print  # Fallback to print if no logger provided
+        self.logger = logger or print  # Fallback to print if no logger provided
         self.params = params
         self.atn_settings = atn_settings
         self.atn_name = atn_name
@@ -84,20 +84,20 @@ class BidRunner(threading.Thread):
         try:
             while not self.stop_event.is_set():
                 # Run FLO
-                self.log("Creating graph and solving Dijkstra...")
+                self.logger.info("Creating graph and solving Dijkstra...")
                 st = time.time()
-                g = DGraph(self.params)
+                g = DGraph(self.params, self.logger)
                 g.solve_dijkstra()
-                self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
+                self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
                 
                 # Pause until get_bid is called
                 self.get_bid_event.clear()
-                self.log("BidRunner waiting for get_bid to be called before computing bid.")
+                self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
 
-                self.log("Generating bid...")
+                self.logger.info("Generating bid...")
                 g.generate_bid(self.updated_flo_params)
-                self.log(f"Done! Found {len(g.pq_pairs)} PQ pairs.")
+                self.logger.info(f"Done! Found {len(g.pq_pairs)} PQ pairs.")
 
                 # Generate bid
                 t = time.time()
@@ -125,18 +125,18 @@ class BidRunner(threading.Thread):
                 break
         finally:
             # Ensure cleanup happens even if there's an error
-            self.log("Done running bid runner")
+            self.logger.info("Done running bid runner")
             self.on_complete(self.atn_name)
             # Explicitly delete the graph to free memory
             del g
 
     def get_bid(self, updated_flo_params: FloParamsHouse0):
-        self.log("Getting bid...")
+        self.logger.info("Getting bid...")
         self.updated_flo_params = updated_flo_params
         self.get_bid_event.set()
 
     def stop(self):
-        self.log("Stopping BidRunner")
+        self.logger.info("Stopping BidRunner")
         self.stop_event.set()
 
 
@@ -617,7 +617,7 @@ class Atn(ActorInterface, Proactor):
                     or (datetime.now().minute <= self.create_graph_minute and self.flo_params)):
                 if self.contract_handler.latest_hb is None:
                     self.log("No active contract.")
-                # await self.run_fake_d(session)
+                #await self.run_fake_d(session)
             
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
@@ -700,7 +700,10 @@ class Atn(ActorInterface, Proactor):
             atn_g_node_alias=self.layout.atn_g_node_alias,
             send_threadsafe=self.send_threadsafe,
             on_complete=self._cleanup_bid_runner,
-            logger=self.log,
+            logger=self.logger.add_category_logger(
+                DGraph.LOGGER_NAME,
+                level=self.settings.flo_logging_level
+            ),
         )
         self.bid_runner.start()  
         # Instead of waiting, return to event loop

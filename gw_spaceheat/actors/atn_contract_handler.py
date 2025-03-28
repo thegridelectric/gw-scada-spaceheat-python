@@ -25,6 +25,7 @@ from tests.atn.atn_config import AtnSettings
 class AtnContractHandler:
     """Handles ATN's side of representation contract with SCADA and dispatch contracts"""
     HEARTBEAT_INTERVAL_S = 60
+    LOGGER_NAME = "AtnContractHandler"
     DONE_STATES = [
         ContractStatus.TerminatedByAtn,
         ContractStatus.TerminatedByScada,
@@ -40,7 +41,6 @@ class AtnContractHandler:
         ContractStatus.Active
     ]
     HEARTBEAT_INTERVAL_SECONDS = 60  # Send heartbeats once per minute
-    LOGGER_NAME = "AtnContractHandler" 
     def __init__(
         self,
         node: ShNode,
