@@ -584,7 +584,7 @@ class Atn(ActorInterface, Proactor):
                         await self.run_d(session)
                     except Exception as e:
                         self.log(f"Exception running Dijkstra: {e}")
-                elif self.flo_params:
+                elif self.flo_params and self.bid_runner:
                     if datetime.now().minute >= self.send_bid_minute:
                         self.log("Finding current storage state...")
                         result = await self.get_thermocline_and_centroids()
@@ -592,9 +592,9 @@ class Atn(ActorInterface, Proactor):
                             self.log("get_thermocline_and_centroids() failed! Not getting bid.")
                         else:
                             initial_toptemp, initial_bottomtemp, initial_thermocline = result
-                            self.flo_params.InitialTopTempF = initial_toptemp
-                            self.flo_params.InitialBottomTempF = initial_bottomtemp
-                            self.flo_params.InitialThermocline = initial_thermocline
+                            self.flo_params.InitialTopTempF = int(initial_toptemp)
+                            self.flo_params.InitialBottomTempF = int(initial_bottomtemp)
+                            self.flo_params.InitialThermocline = initial_thermocline*2
                             self._links.publish_message(
                                 self.SCADA_MQTT, 
                                 Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
