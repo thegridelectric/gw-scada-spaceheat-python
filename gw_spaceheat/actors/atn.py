@@ -579,13 +579,13 @@ class Atn(ActorInterface, Proactor):
 
         while not self._stop_requested:
             if datetime.now().minute >= self.create_graph_minute:
-                if not self.flo_params and not self.bid_runner:
+                if not (self.flo_params and self.bid_runner):
                     try:
                         await self.run_d(session)
                     except Exception as e:
                         self.log(f"Exception running Dijkstra: {e}")
-                elif self.flo_params and self.bid_runner and not self.sent_bid:
-                    if datetime.now().minute >= self.send_bid_minute:
+                else:
+                    if datetime.now().minute >= self.send_bid_minute and not self.sent_bid:
                         self.log("Finding current storage state...")
                         result = await self.get_thermocline_and_centroids()
                         if result is None:
@@ -600,8 +600,10 @@ class Atn(ActorInterface, Proactor):
                                 Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
                             )
                             self.bid_runner.get_bid(self.flo_params)
-                    else:
+                    elif not self.sent_bid:
                         self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
+                    elif self.sent_bid:
+                        self.log("Already sent bid.")
             else:
                 if self.flo_params:
                     self.flo_params = None
