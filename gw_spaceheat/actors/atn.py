@@ -77,7 +77,6 @@ class BidRunner(threading.Thread):
         self.send_threadsafe = send_threadsafe
         self.on_complete = on_complete
         self.bid: Optional[AtnBid] = None
-        self.alive_since = time.time()
         self.get_bid_event = threading.Event()
 
     def run(self):
@@ -123,6 +122,8 @@ class BidRunner(threading.Thread):
                     )
                 )
                 break
+        except Exception as e:
+            self.log(f"An error occured running Dijkstra or getting bid: {e}")
         finally:
             # Ensure cleanup happens even if there's an error
             self.log("Done running bid runner")
@@ -600,10 +601,9 @@ class Atn(ActorInterface, Proactor):
                                 Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
                             )
                             self.bid_runner.get_bid(self.flo_params)
-                elif self.flo_params and not self.bid_runner:
-                    if not self.sent_bid:
+                    elif not self.sent_bid:
                         self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
-                    else:
+                    elif self.sent_bid:
                         self.log("Already sent bid.")
             else:
                 if self.flo_params:
@@ -693,6 +693,10 @@ class Atn(ActorInterface, Proactor):
             BufferAvailableKwh=buffer_available_kwh,
             HouseAvailableKwh=house_available_kwh
         )
+        self._links.publish_message(
+            self.SCADA_MQTT, 
+            Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
+        )
         self.bid_runner = BidRunner(
             params=self.flo_params, 
             atn_settings=self.settings,
@@ -719,12 +723,7 @@ class Atn(ActorInterface, Proactor):
         # Check if there's already a bid runner
         if self.bid_runner is not None and self.bid_runner.is_alive():
             self.log("BidRunner already running!")
-            if time.time() - self.bid_runner.alive_since > 5*60:
-                self.log("BidRunner has been running since at least 5 minutes, stop")
-                self.bid_runner.stop()
-                self.bid_runner.on_complete(self.name)
-            else:
-                return
+            return
     
         dijkstra_start_time = int(
             datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
