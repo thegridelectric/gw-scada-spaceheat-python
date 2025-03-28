@@ -92,7 +92,7 @@ class BidRunner(threading.Thread):
                 
                 # Pause until get_bid is called
                 self.get_bid_event.clear()
-                self.log("Waiting for get_bid to be called...")
+                self.log("BidRunner waiting for get_bid to be called before computing bid.")
                 self.get_bid_event.wait()
 
                 self.log("Generating bid...")

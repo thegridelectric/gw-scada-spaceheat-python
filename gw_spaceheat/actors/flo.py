@@ -120,7 +120,7 @@ class DGraph():
 
     def find_initial_node(self, updated_flo_params: FloParamsHouse0=None):
         if updated_flo_params:
-            self.params = updated_flo_params
+            self.params = DParams(updated_flo_params)
         
         self.initial_state = DNode(
             top_temp = self.params.initial_top_temp,
