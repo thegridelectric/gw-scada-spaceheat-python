@@ -284,10 +284,7 @@ class Scada(ScadaInterface, Proactor):
             )
         )
         self.initialize_hierarchical_state_data()
-        self.state_machine_subscriptions: List[StateMachineSubscription] = [
-            StateMachineSubscription(
-                subscriber_name=self.layout.h0n.strat_boss,
-                publisher_name=self.layout.h0n.hp_scada_ops_relay)                       
+        self.state_machine_subscriptions: List[StateMachineSubscription] = [                 
         ]
 
     def _start_derived_tasks(self):
