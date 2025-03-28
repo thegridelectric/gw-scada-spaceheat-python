@@ -679,11 +679,11 @@ class LayoutDb:
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.hp_boss),
-                    Name=H0N.hp_relay_boss,
-                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_relay_boss}",
-                    Handle="auto.h.n.hp-relay-boss",
+                    Name=H0N.hp_boss,
+                    ActorHierarchyName=f"{H0N.primary_scada}.{H0N.hp_boss}",
+                    Handle="auto.h.n.hp-boss",
                     ActorClass=ActorClass.HpBoss,
-                    DisplayName="Heatpump Relay Boss",
+                    DisplayName="HeatpumpBoss",
                 ),
                 SpaceheatNodeGt(
                     ShNodeId=self.make_node_id(H0N.sieg_loop),

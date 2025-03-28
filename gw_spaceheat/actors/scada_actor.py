@@ -960,9 +960,6 @@ class ScadaActor(Actor):
         scada_ops_relay = self.layout.node(H0N.hp_scada_ops_relay)
         scada_ops_relay.Handle = f"{hp_boss.Handle}.{scada_ops_relay.Name}"
 
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{boss_node.handle}.{strat_boss.Name}"
-
         sieg_loop = self.layout.node(H0N.sieg_loop)
         sieg_loop.Handle = f"{boss_node.handle}.{sieg_loop.Name}"
 

@@ -85,7 +85,7 @@ class H0N:
     synth_generator = "synth-generator"
     zero_ten_out_multiplexer = "dfr-multiplexer"
     hp_relay_boss = "hp-relay-boss"
-    hp_boss = "hp_boss"
+    hp_boss = "hp-boss"
     strat_boss = "strat-boss"
     pump_doctor = "pump-doc"
     sieg_loop = "sieg-loop"
