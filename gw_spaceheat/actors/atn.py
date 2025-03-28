@@ -584,7 +584,7 @@ class Atn(ActorInterface, Proactor):
                         await self.run_d(session)
                     except Exception as e:
                         self.log(f"Exception running Dijkstra: {e}")
-                elif self.flo_params and self.bid_runner:
+                elif self.flo_params and self.bid_runner and not self.sent_bid:
                     if datetime.now().minute >= self.send_bid_minute:
                         self.log("Finding current storage state...")
                         result = await self.get_thermocline_and_centroids()
