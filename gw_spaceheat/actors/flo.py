@@ -1,6 +1,7 @@
 import time
 import json
 import numpy as np
+import gc
 from typing import Dict, List, Tuple
 from gwproactor.logger import LoggerOrAdapter
 from .dijkstra_types import DParams, DNode, DEdge
@@ -23,11 +24,60 @@ class DGraph():
             raise e
         self.create_edges()
         self.logger.info(f"Created graph in {round(time.time()-start_time,1)} seconds")
+        # Force garbage collection after heavy operations
+        gc.collect()
         
     def load_super_graph(self):
+        start = time.time()
         with open("super_graph.json", 'r') as f:
             self.super_graph: Dict = json.load(f)
         self.logger.info("Sucessfully loaded super graph from JSON file.")
+        self.logger.info(f"load super graph took {round(time.time()-start,1)} seconds")
+        self.discretized_store_heat_in = [float(x) for x in list(self.super_graph.keys())]
+        self.discretized_store_heat_in_array = np.array(self.discretized_store_heat_in)
+
+    def batch_load_super_graph(self):
+        start = time.time()
+        # Use a memory-efficient approach: load only keys first
+        with open("super_graph.json", 'r') as f:
+            # Read the first level of keys without loading entire structure
+            first_char = f.read(1)
+            f.seek(0)
+            if first_char != '{':
+                raise ValueError("Expected JSON object")
+
+            # Read keys only first
+            self.super_graph_keys = []
+            depth = 0
+            in_key = False
+            current_key = ""
+
+            while True:
+                char = f.read(1)
+                if not char:
+                    break
+                    
+                if char == '{':
+                    depth += 1
+                elif char == '}':
+                    depth -= 1
+                elif depth == 1 and char == '"' and not in_key:
+                    in_key = True
+                    current_key = ""
+                elif depth == 1 and char == '"' and in_key:
+                    in_key = False
+                    self.super_graph_keys.append(current_key)
+                elif in_key:
+                    current_key += char
+
+        # Now load the actual structure, with memory management
+        self.super_graph = {}
+        with open("super_graph.json", 'r') as f:
+            data = json.load(f)
+            self.super_graph = data
+
+        self.logger.info("Sucessfully loaded super graph from JSON file.")
+        self.logger.info(f"batch load super graph took {round(time.time()-start,1)} seconds")
         self.discretized_store_heat_in = [float(x) for x in list(self.super_graph.keys())]
         self.discretized_store_heat_in_array = np.array(self.discretized_store_heat_in)
 

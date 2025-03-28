@@ -70,7 +70,7 @@ class BidRunner(threading.Thread):
                  logger: LoggerOrAdapter):
         super().__init__()
         self.stop_event = threading.Event()
-        self.logger = logger or print  # Fallback to print if no logger provided
+        self.logger = logger
         self.params = params
         self.atn_settings = atn_settings
         self.atn_name = atn_name
