@@ -1098,7 +1098,7 @@ class Scada(ScadaInterface, Proactor):
         sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
 
         for node in self.layout.actuators:
-            if node.Name == H0N.vdc_relay:
+            if node.Name == H0N.vdc_relay and boss.name != H0N.admin:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             elif node.Name == H0N.hp_scada_ops_relay:
                 node.Handle = f"{boss.handle}.{hp_relay_boss.Name}.{node.Name}"
