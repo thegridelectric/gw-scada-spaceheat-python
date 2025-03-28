@@ -2,23 +2,32 @@ import time
 import json
 import numpy as np
 from typing import Dict, List, Tuple
+from gwproactor.logger import LoggerOrAdapter
 from .dijkstra_types import DParams, DNode, DEdge
 from named_types import FloParamsHouse0, PriceQuantityUnitless
 
 
 class DGraph():
-    def __init__(self, flo_params: FloParamsHouse0):
+    LOGGER_NAME="flo"
+    def __init__(self, 
+                flo_params: FloParamsHouse0,
+                logger: LoggerOrAdapter):
+        self.logger = logger
         self.params = DParams(flo_params)
         start_time = time.time()
         self.load_super_graph()
-        self.create_nodes()
+        try:
+            self.create_nodes()
+        except Exception as e:
+            self.logger.warning(f"Error with create_nodes! {e}")
+            raise e
         self.create_edges()
-        print(f"Created graph in {round(time.time()-start_time,1)} seconds")
+        self.logger.info(f"Created graph in {round(time.time()-start_time,1)} seconds")
         
     def load_super_graph(self):
         with open("super_graph.json", 'r') as f:
             self.super_graph: Dict = json.load(f)
-        print("Sucessfully loaded super graph from JSON file.")
+        self.logger.info("Sucessfully loaded super graph from JSON file.")
         self.discretized_store_heat_in = [float(x) for x in list(self.super_graph.keys())]
         self.discretized_store_heat_in_array = np.array(self.discretized_store_heat_in)
 
@@ -60,7 +69,7 @@ class DGraph():
                         self.nodes_by[hour][(t,m,b)] = {}
                 self.nodes_by[h][(t,m,b)][(th1,th2)] = node
                 
-        print(f"Built a graph with {self.params.horizon} layers of {len(self.nodes[0])} nodes each")
+        self.logger.info(f"Built a graph with {self.params.horizon} layers of {len(self.nodes[0])} nodes each")
         self.min_node_energy = min(self.nodes[0], key=lambda n: n.energy).energy
         self.max_node_energy = max(self.nodes[0], key=lambda n: n.energy).energy
 
@@ -104,7 +113,7 @@ class DGraph():
 
                     self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
 
-            print(f"Built edges for hour {h}")
+            self.logger.info(f"Built edges for hour {h}")
     
     def solve_dijkstra(self):
         for time_slice in range(self.params.horizon-1, -1, -1):
@@ -160,7 +169,7 @@ class DGraph():
                 print(f"Removed edge {e} because the storage is already close to full.")
 
     def generate_bid(self, updated_flo_params: FloParamsHouse0=None):
-        print("\nGenerating bid...")
+        self.logger.info("Generating bid...")
         self.pq_pairs: List[PriceQuantityUnitless] = []
         self.find_initial_node(updated_flo_params)
         
@@ -180,4 +189,4 @@ class DGraph():
                         PriceTimes1000 = int(price_usd_mwh * 1000),
                         QuantityTimes1000 = int(best_quantity_kwh * 1000))
                 )
-        print(f"Done ({len(self.pq_pairs)} PQ pairs found).")
+        self.logger.info(f"Done ({len(self.pq_pairs)} PQ pairs found).")
