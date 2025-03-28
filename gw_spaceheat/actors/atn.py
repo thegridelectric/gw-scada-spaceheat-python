@@ -600,9 +600,10 @@ class Atn(ActorInterface, Proactor):
                                 Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
                             )
                             self.bid_runner.get_bid(self.flo_params)
-                    elif not self.sent_bid:
+                elif self.flo_params and not self.bid_runner:
+                    if not self.sent_bid:
                         self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
-                    elif self.sent_bid:
+                    else:
                         self.log("Already sent bid.")
             else:
                 if self.flo_params:
