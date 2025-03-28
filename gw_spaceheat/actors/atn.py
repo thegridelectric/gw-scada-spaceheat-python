@@ -78,7 +78,8 @@ class BidRunner(threading.Thread):
         self.on_complete = on_complete
         self.bid: Optional[AtnBid] = None
         self.alive_since = time.time()
-        
+        self.get_bid_event = threading.Event()
+
     def run(self):
         try:
             while not self.stop_event.is_set():
@@ -88,11 +89,16 @@ class BidRunner(threading.Thread):
                 g = DGraph(self.params)
                 g.solve_dijkstra()
                 self.log(f"Built and solved in {round(time.time()-st,2)} seconds!")
-                self.log("Finding PQ pairs...")
-                st = time.time()
-                g.generate_bid()
-                self.log(f"Found {len(g.pq_pairs)} pairs in {round(time.time()-st,2)} seconds")
                 
+                # Pause until get_bid is called
+                self.get_bid_event.clear()
+                self.log("BidRunner waiting for get_bid to be called before computing bid.")
+                self.get_bid_event.wait()
+
+                self.log("Generating bid...")
+                g.generate_bid(self.updated_flo_params)
+                self.log(f"Done! Found {len(g.pq_pairs)} PQ pairs.")
+
                 # Generate bid
                 t = time.time()
                 slot_start_s = int(t - (t % 3600)) + 3600
@@ -124,9 +130,15 @@ class BidRunner(threading.Thread):
             # Explicitly delete the graph to free memory
             del g
 
+    def get_bid(self, updated_flo_params: FloParamsHouse0):
+        self.log("Getting bid...")
+        self.updated_flo_params = updated_flo_params
+        self.get_bid_event.set()
+
     def stop(self):
         self.log("Stopping BidRunner")
         self.stop_event.set()
+
 
 class AtnMQTTCodec(MQTTCodec):
     exp_src: str
@@ -211,6 +223,7 @@ class Atn(ActorInterface, Proactor):
         self.latitude = self.settings.latitude
         self.longitude = self.settings.longitude
         self.sent_bid = False
+        self.flo_params = None
         self.hp_is_off = False
         self.weather_forecast = None
         self.coldest_oat_by_month = [-3, -7, 1, 21, 30, 31, 46, 47, 28, 24, 16, 0]
@@ -246,8 +259,9 @@ class Atn(ActorInterface, Proactor):
         )
         self.bid_runner: BidRunner = None
         self.sending_contracts: bool = True
-        min_minute = min(max(50, datetime.now().minute), 56)
-        self.random_flo_minute: int = random.randint(min_minute, 57)
+        self.send_bid_minute: int = 57
+        min_minute = min(max(3, datetime.now().minute), self.send_bid_minute-2)
+        self.create_graph_minute: int = random.randint(min_minute, self.send_bid_minute-1)
 
     @property
     def name(self) -> str:
@@ -561,30 +575,50 @@ class Atn(ActorInterface, Proactor):
 
     async def main_loop(self, session: aiohttp.ClientSession) -> None:
         await asyncio.sleep(5)
-        self.send_layout() # if we've just started, we need the layout
+        self.send_layout()
+
         while not self._stop_requested:
-
-            if (self.bid_runner is not None 
-                and self.bid_runner.is_alive()
-                and time.time() - self.bid_runner.alive_since > 5*60):
-                    self.log("BidRunner has been running since at least 5 minutes, stop")
-                    self.bid_runner.stop()
-                    self.bid_runner.on_complete(self.name)
-
-            if datetime.now().minute >= self.random_flo_minute and not self.sent_bid:
-                try:
-                    await self.run_d(session)
-                except Exception as e:
-                    self.log(f"Exception running Dijkstra: {e}")
-            elif datetime.now().minute <= self.random_flo_minute and self.sent_bid:
-                self.sent_bid = False
+            if datetime.now().minute >= self.create_graph_minute:
+                if not self.flo_params and not self.bid_runner:
+                    try:
+                        await self.run_d(session)
+                    except Exception as e:
+                        self.log(f"Exception running Dijkstra: {e}")
+                elif self.flo_params and self.bid_runner:
+                    if datetime.now().minute >= self.send_bid_minute and not self.sent_bid:
+                        self.log("Finding current storage state...")
+                        result = await self.get_thermocline_and_centroids()
+                        if result is None:
+                            self.log("get_thermocline_and_centroids() failed! Not getting bid.")
+                        else:
+                            initial_toptemp, initial_bottomtemp, initial_thermocline = result
+                            self.flo_params.InitialTopTempF = int(initial_toptemp)
+                            self.flo_params.InitialBottomTempF = int(initial_bottomtemp)
+                            self.flo_params.InitialThermocline = initial_thermocline*2
+                            self._links.publish_message(
+                                self.SCADA_MQTT, 
+                                Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
+                            )
+                            self.bid_runner.get_bid(self.flo_params)
+                elif self.flo_params and not self.bid_runner:
+                    if not self.sent_bid:
+                        self.log(f"Graph was already created. Waiting for minute {self.send_bid_minute} to send bid.")
+                    else:
+                        self.log("Already sent bid.")
             else:
+                if self.flo_params:
+                    self.flo_params = None
+                    self.sent_bid = False
+                else:
+                    self.log(f"No graph exists. Waiting for minute {self.create_graph_minute} to create graph.")                
+
+            # TODO: not sure what this is for
+            if not ((datetime.now().minute >= self.create_graph_minute and not self.flo_params) 
+                    or (datetime.now().minute <= self.create_graph_minute and self.flo_params)):
                 if self.contract_handler.latest_hb is None:
                     self.log("No active contract.")
                 # await self.run_fake_d(session)
             
-            if datetime.now().minute <= self.random_flo_minute and not self.sent_bid:
-                self.log(f"Waiting for minute {self.random_flo_minute} to run FLO")
             await asyncio.sleep(self.MAIN_LOOP_SLEEP_SECONDS)
 
     async def run_d(self, session: aiohttp.ClientSession) -> None:
@@ -596,27 +630,22 @@ class Atn(ActorInterface, Proactor):
         gracefully handle high CPU use. The additional thread handles
         the CPU-intensive graph computation.
         """
-        if self.sent_bid:
-            self.log("NOT RUNNING Dijsktra! Already sent bid")
+        if self.flo_params:
+            self.log("NOT RUNNING Dijsktra! Already created graph")
             return
         
         # Check if there's already a bid runner
-        if self.bid_runner is not None and self.bid_runner.is_alive():
+        if self.bid_runner and self.bid_runner.is_alive():
             self.log("BidRunner already running!")
-            if time.time() - self.bid_runner.alive_since > 5*60:
-                self.log("BidRunner has been running since at least 5 minutes, stop")
-                self.bid_runner.stop()
-                self.bid_runner.on_complete(self.name)
-            else:
-                return
+            return
 
-        if datetime.now().minute >= self.random_flo_minute:
+        if datetime.now().minute >= self.create_graph_minute:
             dijkstra_start_time = int(
                 datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
                 )
         else:
             dijkstra_start_time = int(datetime.timestamp(datetime.now()))
-            self.log(f"NOT RUNNING Dijkstra! Not past minute {self.random_flo_minute}")
+            self.log(f"NOT RUNNING Dijkstra! Not past minute {self.create_graph_minute}")
             return
         await self.get_weather(session)
         await self.update_price_forecast()
@@ -639,7 +668,7 @@ class Atn(ActorInterface, Proactor):
         if self.ha1_params is None:
             self.log("Not running flo - no ha1_params")
             return
-        flo_params = FloParamsHouse0(
+        self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
             InitialTopTempF=int(initial_toptemp),
@@ -664,12 +693,8 @@ class Atn(ActorInterface, Proactor):
             BufferAvailableKwh=buffer_available_kwh,
             HouseAvailableKwh=house_available_kwh
         )
-        self._links.publish_message(
-            self.SCADA_MQTT, 
-            Message(Src=self.publication_name, Dst="broadcast", Payload=flo_params)
-        )
         self.bid_runner = BidRunner(
-            params=flo_params, 
+            params=self.flo_params, 
             atn_settings=self.settings,
             atn_name=self.name, 
             atn_g_node_alias=self.layout.atn_g_node_alias,
@@ -688,7 +713,7 @@ class Atn(ActorInterface, Proactor):
         self.bid_runner = None
 
     async def run_fake_d(self, session: aiohttp.ClientSession) -> None:
-        if datetime.now().minute >= self.random_flo_minute:
+        if datetime.now().minute >= self.create_graph_minute:
             return
 
         # Check if there's already a bid runner
