@@ -11,7 +11,7 @@ from result import Ok, Result
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from enums import LogLevel, TurnHpOnOff
-from named_types import FsmEvent, Glitch, StratBossReady
+from named_types import FsmEvent, Glitch
 
 
 class HpBoss(ScadaActor):
@@ -25,7 +25,6 @@ class HpBoss(ScadaActor):
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
-        self.waiting_for_strat_boss: bool = False
         self.last_cmd_time = 0
 
     def start(self) -> None:
@@ -53,11 +52,6 @@ class HpBoss(ScadaActor):
                     self.log(f"Trouble with process_fsm_event: {e}")
             case FsmFullReport():
                 ... # relay reports back with ack of change if we care
-            case StratBossReady():
-                try:
-                    self.process_strat_boss_ready(from_node, payload)
-                except Exception as e:
-                   self.log(f"Trouble with process_strat_boss_ready: {e}")
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
@@ -89,38 +83,10 @@ class HpBoss(ScadaActor):
             self.log(f"Only listens to {TurnHpOnOff.enum_name()}")
             return
         if payload.EventName == TurnHpOnOff.TurnOn:
-            if self.strat_boss_sidelined():
-                self.waiting_for_strat_boss = False
-                self.close_hp_scada_ops_relay()
-            else:
-                self.waiting_for_strat_boss = True 
-                self._send_to(self.strat_boss, payload)
-                self.log("Waiting for StratBossReady before closing relay!")
-                asyncio.create_task(self._wait_and_turn_on_anyway())
-                # TODO Add timer to raise concern if we haven't heard for a while (message dropped)
+            self.close_hp_scada_ops_relay()
                 
         else:
-            self.waiting_for_strat_boss = False
             self.open_hp_scada_ops_relay()
-            if not self.strat_boss_sidelined():
-                self._send_to(self.strat_boss, payload)
-
-    async def _wait_and_turn_on_anyway(self) -> None:
-        await asyncio.sleep(self.TURN_ON_ANYWAY_S)
-        # This is not a good idea. If we transition from home alone
-        # to atomic ally, this will turn on the heat pump even if
-        # atomic ally doesn't want it.
-        # TODO: think more about this
-        # if not self.hp_relay_closed():
-        #     self.close_hp_scada_ops_relay()
-
-    def process_strat_boss_ready(self, from_node: ShNode, payload: StratBossReady) -> None:
-        if self.waiting_for_strat_boss:
-            self.log("Strat boss ready received! Closing relay")
-            self.close_hp_scada_ops_relay()
-            self.waiting_for_strat_boss = False
-        else:
-            self.log(" That's funny ... StratBossReady received but not waiting for strat boss. Ignoring")
 
     def open_hp_scada_ops_relay(self) -> None:
         try:
@@ -153,11 +119,4 @@ class HpBoss(ScadaActor):
         
         except Exception as e:
             self.log(f"Tried to turn on heat pump! {e}")
-
-    def strat_boss_sidelined(self) -> bool:
-        """ Sidelined if it is out of the chain of command; e.g boss is own ShNode"""
-        if self.strat_boss.Handle == self.strat_boss.Name:  # not in the command tree, not tracking anytnig
-            return True
-        return False
-        
 

@@ -1079,7 +1079,7 @@ class Scada(ScadaInterface, Proactor):
         """ Command Tree
         ```
         boss
-        ├────────────────────────────────────────────────── hp-relay-boss
+        ├────────────────────────────────────────────────── hp-boss
         ├────────────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)                                          
         ├─────────────────strat-boss      ├─ relay14 (hp_loop_on_off)
         ├── relay1 (vdc)                  └─ relay15 (hp_loop_keep_send)
@@ -1088,12 +1088,9 @@ class Scada(ScadaInterface, Proactor):
         ```
         """
 
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{boss.handle}.{hp_relay_boss.Name}"
+        hp_boss = self.layout.node(H0N.hp_boss)
+        hp_boss.Handle = f"{boss.handle}.{hp_boss.Name}"
         
-        strat_boss = self.layout.node(H0N.strat_boss)
-        strat_boss.Handle = f"{boss.handle}.{strat_boss.Name}"
-
         sieg_loop = self.layout.node(H0N.sieg_loop)
         sieg_loop.Handle = f"{boss.handle}.{H0N.sieg_loop}"
 
@@ -1101,7 +1098,7 @@ class Scada(ScadaInterface, Proactor):
             if node.Name == H0N.vdc_relay and boss.name != H0N.admin:
                 node.Handle = f"{H0N.auto}.{H0N.pico_cycler}.{node.Name}"
             elif node.Name == H0N.hp_scada_ops_relay:
-                node.Handle = f"{boss.handle}.{hp_relay_boss.Name}.{node.Name}"
+                node.Handle = f"{boss.handle}.{hp_boss.Name}.{node.Name}"
             elif node.Name in [H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
                 node.Handle = f"{boss.handle}.{H0N.sieg_loop}.{node.Name}"
             else:

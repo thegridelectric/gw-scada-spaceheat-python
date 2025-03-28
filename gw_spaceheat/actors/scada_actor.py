@@ -78,6 +78,10 @@ class ScadaActor(Actor):
         return self.layout.node(H0N.hp_relay_boss)
 
     @property
+    def hp_boss(self) -> ShNode:
+        return self.layout.node(H0N.hp_boss)
+
+    @property
     def sieg_loop(self) -> ShNode:
         return self.layout.node(H0N.sieg_loop)
 
@@ -441,49 +445,49 @@ class ScadaActor(Actor):
         """ Turn on heat pump by sending trigger to HpRelayBoss
 
         from_node defaults to self.node if no from_node sent.
-        Will log an error and do nothing if from_node is not the boss of HpRelayBoss
+        Will log an error and do nothing if from_node is not the boss of HpBoss
         """
         if from_node is None:
             from_node = self.node
         try:
             event = FsmEvent(
                 FromHandle=from_node.handle,
-                ToHandle=self.hp_relay_boss.handle,
+                ToHandle=self.hp_boss.handle,
                 EventType= TurnHpOnOff.enum_name(),
                 EventName=TurnHpOnOff.TurnOn,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.hp_relay_boss, event, from_node)
+            self._send_to(self.hp_boss, event, from_node)
             self.log(
-                f"{from_node.handle} sending CloseRelay to HpRelayBoss {self.hp_relay_boss.handle}"
+                f"{from_node.handle} sending CloseRelay to HpBoss {self.hp_boss.handle}"
             )
         except ValidationError as e:
-            self.log(f"Tried to tell HpRelayBoss to turn on HP but didn't have rights: {e}")
+            self.log(f"Tried to tell HpBoss to turn on HP but didn't have rights: {e}")
 
     def turn_off_HP(self, from_node: Optional[ShNode] = None) -> None:
-        """  Turn off heat pump by sending trigger to HpRelayBoss
+        """  Turn off heat pump by sending trigger to HpBoss
         
         from_node defaults to self.node if no from_node sent.
-        Will log an error and do nothing if from_node is not the boss of HpRelayBoss
+        Will log an error and do nothing if from_node is not the boss of HpBoss
         """
         if from_node is None:
             from_node = self.node
         try:
             event = FsmEvent(
                 FromHandle=from_node.handle,
-                ToHandle=self.hp_relay_boss.handle,
+                ToHandle=self.hp_boss.handle,
                 EventType=TurnHpOnOff.enum_name(),
                 EventName=TurnHpOnOff.TurnOff,
                 SendTimeUnixMs=int(time.time() * 1000),
                 TriggerId=str(uuid.uuid4()),
             )
-            self._send_to(self.hp_relay_boss, event, from_node)
+            self._send_to(self.hp_boss, event, from_node)
             self.log(
-                f"{from_node.handle} sending OpenRelay to HpRelayBoss {self.hp_relay_boss.handle}"
+                f"{from_node.handle} sending OpenRelay to HpBoss {self.hp_boss.handle}"
             )
         except ValidationError as e:
-            self.log(f"Tried to tell HpRelayBoss to turn off HP but didn't have rights: {e}")
+            self.log(f"Tried to tell HpBoss to turn off HP but didn't have rights: {e}")
 
     def close_thermistor_common_relay(self, from_node: Optional[ShNode] = None) -> None:
         """
@@ -943,18 +947,18 @@ class ScadaActor(Actor):
         """ 
         ```
         boss
-        ├─────────────────────────────────────────── hp-relay-boss
+        ├─────────────────────────────────────────── hp-boss
         ├───────────────────────────sieg-loop         └── relay6 (hp_scada_ops_relay)                                          
         └─────────────strat-boss     ├─ relay14 (hp_loop_on_off)
                                      └─ relay15 (hp_loop_keep_send)
         ```
         """
         self.log(f"Setting fsm handles under {boss_node.name}")
-        hp_relay_boss = self.layout.node(H0N.hp_relay_boss)
-        hp_relay_boss.Handle = f"{boss_node.handle}.{hp_relay_boss.Name}"
+        hp_boss = self.layout.node(H0N.hp_boss)
+        hp_boss.Handle = f"{boss_node.handle}.{hp_boss.Name}"
 
         scada_ops_relay = self.layout.node(H0N.hp_scada_ops_relay)
-        scada_ops_relay.Handle = f"{hp_relay_boss.Handle}.{scada_ops_relay.Name}"
+        scada_ops_relay.Handle = f"{hp_boss.Handle}.{scada_ops_relay.Name}"
 
         strat_boss = self.layout.node(H0N.strat_boss)
         strat_boss.Handle = f"{boss_node.handle}.{strat_boss.Name}"
@@ -972,7 +976,7 @@ class ScadaActor(Actor):
         """ Sets handles for a command tree like this:
            ```
             boss
-            ├─────────────────────────────────────────── hp-relay-boss
+            ├─────────────────────────────────────────── hp-boss
             ├───────────────────────────sieg-loop           └── relay6 (hp_scada_ops_relay)                                          
             ├──────────────strat-boss     ├─ relay14 (hp_loop_on_off)
             ├── relay1 (vdc)              └─ relay15 (hp_loop_keep_send)
@@ -989,7 +993,7 @@ class ScadaActor(Actor):
         self.set_hierarchical_fsm_handles(boss_node)
 
         for node in self.my_actuators():
-            if node.Name not in [H0N.hp_scada_ops_relay,H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
+            if node.Name not in [H0N.hp_scada_ops_relay, H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
                 node.Handle =  f"{boss_node.handle}.{node.Name}"
         self._send_to(
             self.atn,
