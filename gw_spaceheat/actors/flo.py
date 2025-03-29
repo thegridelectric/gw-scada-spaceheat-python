@@ -224,7 +224,8 @@ class DGraph():
 
         for h in range(2,self.params.horizon+1):
             for node in self.nodes[h]:
-                del self.edges[node]
+                if node in self.edges:
+                    del self.edges[node]
             del self.nodes[h]
             del self.nodes_by[h]
         gc.collect()
