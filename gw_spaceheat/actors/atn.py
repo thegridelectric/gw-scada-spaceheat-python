@@ -123,6 +123,10 @@ class BidRunner(threading.Thread):
                         Payload=self.bid
                     )
                 )
+
+                # Explicitly delete the graph to free memory
+                del g
+                
                 break
         except Exception as e:
             self.logger.info(f"An error occured running Dijkstra or getting bid: {e}")
@@ -130,8 +134,6 @@ class BidRunner(threading.Thread):
             # Ensure cleanup happens even if there's an error
             self.logger.info("Done running bid runner")
             self.on_complete(self.atn_name)
-            # Explicitly delete the graph to free memory
-            del g
 
     def get_bid(self, updated_flo_params: FloParamsHouse0):
         self.logger.info("Getting bid...")
