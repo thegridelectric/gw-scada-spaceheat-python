@@ -16,7 +16,6 @@ class DGraph():
                 logger: LoggerOrAdapter):
         self.logger = logger
         self.params = DParams(flo_params)
-        total_start_time = time.time()
         start_time = time.time()
         try:
             self.load_super_graph()
@@ -39,22 +38,12 @@ class DGraph():
         except Exception as e:
             self.logger.warning(f"Error with create_edges! {e}")
             raise
-        self.logger.info(f"Created graph in {round(time.time()-total_start_time,1)} seconds")
         # Force garbage collection after heavy operations
-        graph_memory = (
-            sys.getsizeof(self.nodes) +
-            sys.getsizeof(self.edges) +
-            sys.getsizeof(self.super_graph)
-        )
-        self.logger.info(f"Approximate graph memory usage: {graph_memory / 1024 / 1024:.2f} MB")
         gc.collect()
         
     def load_super_graph(self):
-        start = time.time()
         with open("super_graph.json", 'r') as f:
             self.super_graph: Dict = json.load(f)
-        self.logger.info("Sucessfully loaded super graph from JSON file.")
-        self.logger.info(f"load super graph took {round(time.time()-start,1)} seconds")
         self.discretized_store_heat_in = [float(x) for x in list(self.super_graph.keys())]
         self.discretized_store_heat_in_array = np.array(self.discretized_store_heat_in)
 
@@ -140,7 +129,7 @@ class DGraph():
 
                     self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
 
-            # self.logger.info(f"Built edges for hour {h}")
+            print(f"Built edges for hour {h}")
     
     def solve_dijkstra(self):
         start_time = time.time()
@@ -224,3 +213,73 @@ class DGraph():
                         QuantityTimes1000 = int(best_quantity_kwh * 1000))
                 )
         self.logger.info(f"Done ({len(self.pq_pairs)} PQ pairs found).")
+
+    def trim_graph_for_waiting(self):
+        """Remove all but the first two time slices to save memory while waiting to generate bid."""
+        start_time = time.time()
+        
+        # We only need time slices 0 and 1 for bid generation
+        keep_slices = [0, 1]
+        
+        # Record memory before trimming
+        import sys
+        before_size = 0
+        try:
+            before_size = get_deep_size(self.nodes) + get_deep_size(self.edges)
+        except Exception:
+            before_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.edges)
+        
+        # Keep only the necessary time slices
+        for time_slice in list(self.nodes.keys()):
+            if time_slice not in keep_slices:
+                del self.nodes[time_slice]
+                if hasattr(self, 'nodes_by') and time_slice in self.nodes_by:
+                    del self.nodes_by[time_slice]
+        
+        # Keep only edges for the nodes we're keeping
+        retained_nodes = set()
+        for time_slice in keep_slices:
+            if time_slice in self.nodes:
+                retained_nodes.update(self.nodes[time_slice])
+        
+        new_edges = {}
+        for node, edge_list in self.edges.items():
+            if node in retained_nodes:
+                # Only keep edges where both the tail and head are in retained nodes
+                new_edges[node] = [edge for edge in edge_list if edge.head in retained_nodes]
+        
+        self.edges = new_edges
+        
+        # Force garbage collection
+        gc.collect()
+        
+        # Record memory after trimming
+        after_size = 0
+        try:
+            after_size = get_deep_size(self.nodes) + get_deep_size(self.edges)
+        except Exception:
+            after_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.edges)
+        
+        freed_mb = (before_size - after_size) / (1024 * 1024)
+        self.logger.info(f"Trimmed graph in {round(time.time()-start_time, 1)} seconds. Freed approximately {freed_mb:.2f} MB")
+
+def get_deep_size(obj, seen=None):
+    """Recursively find size of objects in bytes"""
+    size = sys.getsizeof(obj)
+    if seen is None:
+        seen = set()
+    obj_id = id(obj)
+    if obj_id in seen:
+        return 0
+    seen.add(obj_id)
+    
+    if isinstance(obj, dict):
+        size += sum(get_deep_size(k, seen) + get_deep_size(v, seen) for k, v in obj.items())
+    elif isinstance(obj, (list, tuple, set, frozenset)):
+        size += sum(get_deep_size(i, seen) for i in obj)
+    elif hasattr(obj, '__dict__'):
+        size += get_deep_size(obj.__dict__, seen)
+    elif hasattr(obj, '__slots__'):
+        size += sum(get_deep_size(getattr(obj, s), seen) for s in obj.__slots__ if hasattr(obj, s))
+    
+    return size

@@ -89,7 +89,8 @@ class BidRunner(threading.Thread):
                 g = DGraph(self.params, self.logger)
                 g.solve_dijkstra()
                 self.logger.info(f"Built and solved in {round(time.time()-st,2)} seconds!")
-                
+                # After solving, trim the graph to reduce memory usage while waiting
+                g.trim_graph_for_waiting()
                 # Pause until get_bid is called
                 self.get_bid_event.clear()
                 self.logger.info("BidRunner waiting for get_bid to be called before computing bid.")
