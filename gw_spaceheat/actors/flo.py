@@ -228,34 +228,8 @@ class DGraph():
     def trim_graph_for_waiting(self):
         """Remove all but the first two time slices to save memory while waiting to generate bid."""
         start_time = time.time()
-        try:
-            before_size = get_deep_size(self.nodes) + get_deep_size(self.nodes_by) + get_deep_size(self.edges)
-        except Exception:
-            before_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.nodes_by) + sys.getsizeof(self.edges)
         del self.nodes_by
         del self.nodes
         del self.edges
         gc.collect()
-        freed_mb = before_size / (1024 * 1024)
-        self.logger.info(f"Trimmed graph in {round(time.time()-start_time, 1)} seconds. Freed approximately {freed_mb:.2f} MB")
-
-def get_deep_size(obj, seen=None):
-    """Recursively find size of objects in bytes"""
-    size = sys.getsizeof(obj)
-    if seen is None:
-        seen = set()
-    obj_id = id(obj)
-    if obj_id in seen:
-        return 0
-    seen.add(obj_id)
-    
-    if isinstance(obj, dict):
-        size += sum(get_deep_size(k, seen) + get_deep_size(v, seen) for k, v in obj.items())
-    elif isinstance(obj, (list, tuple, set, frozenset)):
-        size += sum(get_deep_size(i, seen) for i in obj)
-    elif hasattr(obj, '__dict__'):
-        size += get_deep_size(obj.__dict__, seen)
-    elif hasattr(obj, '__slots__'):
-        size += sum(get_deep_size(getattr(obj, s), seen) for s in obj.__slots__ if hasattr(obj, s))
-    
-    return size
+        self.logger.info(f"Trimmed graph in {round(time.time()-start_time, 1)} seconds.")
