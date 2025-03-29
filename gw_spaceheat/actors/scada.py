@@ -243,8 +243,8 @@ class Scada(ScadaInterface, Proactor):
         self._last_report_second = int(now - (now % self.settings.seconds_per_report))
         self._last_snap_s = int(now - (now % self.settings.seconds_per_snapshot))
         self.pending_dispatch: Optional[AnalogDispatch] = None
-
-        self.set_command_tree(self.node)
+        home_alone_normal = self.layout.node(H0N.home_alone_normal)
+        self.set_command_tree(home_alone_normal)
         if actor_nodes is not None:
             for actor_node in actor_nodes:
                 self.add_communicator(

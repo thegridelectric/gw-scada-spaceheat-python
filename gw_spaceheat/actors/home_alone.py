@@ -241,6 +241,37 @@ class HomeAlone(ScadaActor):
             )
         )
 
+    def set_limited_command_tree(self, boss: ShNode) -> None:
+        """
+        ```
+        h     hp-boss     sieg-loop         
+        ├─ hp-scada-ops, hp-loop-on-off , hp-loop-keep-send                             
+        └─ BOSS                                                  
+            ├── relay1 (vdc)                 
+            ├── relay2 (tstat_common)
+            └── all other relays and 0-10s
+        ```
+        """
+
+        # out of chain of command
+        self.hp_boss.Handle = self.hp_boss.Name 
+        self.sieg_loop.Handle = self.sieg_loop.Name 
+        
+        for node in self.my_actuators():
+            if node.Name in [H0N.hp_scada_ops_relay, H0N.hp_loop_keep_send, H0N.hp_loop_on_off]:
+                node.Handle = f"{H0N.auto}.{H0N.home_alone}.{node.Name}" # reports directly to h for now
+            else:
+                node.Handle = f"{boss.Handle}.{node.Name}"
+        self._send_to(
+            self.atn,
+            NewCommandTree(
+                FromGNodeAlias=self.layout.scada_g_node_alias,
+                ShNodes=list(self.layout.nodes.values()),
+                UnixMs=int(time.time() * 1000),
+            ),
+        )
+        self.log("Set backup command tree")
+
     def set_strat_saver_command_tree(self) -> None:
         
         # charge discharge relay reports to strat boss
@@ -315,7 +346,7 @@ class HomeAlone(ScadaActor):
         #     self.log("Not triggering HouseColdOnpeak top event - not in top state Normal!")
         #     return
         # implement the change in command tree. Boss: h.n -> h.onpeak-backup
-        self.set_command_tree(boss_node=self.onpeak_backup_node)
+        self.set_limited_command_tree(boss=self.onpeak_backup_node)
         if self.state != HomeAloneState.Dormant:
             self.trigger_normal_event(HomeAloneEvent.GoDormant)
         self.HouseColdOnpeak()
@@ -477,7 +508,6 @@ class HomeAlone(ScadaActor):
         if (self.state != previous_state) and self.top_state == HomeAloneTopState.Normal:
             self.update_relays(previous_state)
 
-
     def update_relays(self, previous_state) -> None:
         if self.top_state != HomeAloneTopState.Normal:
             raise Exception("Can not go into update_relays if top state is not Normal")
@@ -546,8 +576,7 @@ class HomeAlone(ScadaActor):
         except ValueError as e:
             self.log(f"Trouble with set_010_defaults: {e}")
         self.relays_initialized = True
-            
-    
+
     def trigger_just_offpeak(self):
         """
         Called to change top state from HouseColdOnpeak to Normal
@@ -571,7 +600,7 @@ class HomeAlone(ScadaActor):
     def trigger_missing_data(self):
         if self.top_state != HomeAloneTopState.Normal:
             raise Exception("Should only call trigger_missing_data in transition from Normal to ScadaBlind!")
-        self.set_command_tree(boss_node=self.scada_blind_node)
+        self.set_limited_command_tree(boss=self.scada_blind_node)
         if self.state != HomeAloneState.Dormant:
             self.trigger_normal_event(HomeAloneEvent.GoDormant)
         self.MissingData()
