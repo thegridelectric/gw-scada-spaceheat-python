@@ -1,8 +1,8 @@
 import time
 import json
 import sys
-import numpy as np
 import gc
+import numpy as np
 from typing import Dict, List, Tuple
 from gwproactor.logger import LoggerOrAdapter
 from .dijkstra_types import DParams, DNode, DEdge
@@ -133,7 +133,6 @@ class DGraph():
     
     def solve_dijkstra(self):
         start_time = time.time()
-
         try:
             for time_slice in range(self.params.horizon-1, -1, -1):
                 for node in self.nodes[time_slice]:
@@ -218,43 +217,18 @@ class DGraph():
         """Remove all but the first two time slices to save memory while waiting to generate bid."""
         start_time = time.time()
         
-        # We only need time slices 0 and 1 for bid generation
-        keep_slices = [0, 1]
-        
-        # Record memory before trimming
-        import sys
-        before_size = 0
         try:
-            before_size = get_deep_size(self.nodes) + get_deep_size(self.edges)
+            before_size = get_deep_size(self.nodes) + get_deep_size(self.nodes_by) + get_deep_size(self.edges)
         except Exception:
-            before_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.edges)
-        
-        # Keep only the necessary time slices
-        for time_slice in list(self.nodes.keys()):
-            if time_slice not in keep_slices:
-                del self.nodes[time_slice]
-                if hasattr(self, 'nodes_by') and time_slice in self.nodes_by:
-                    del self.nodes_by[time_slice]
-        
-        # Keep only edges for the nodes we're keeping
-        retained_nodes = set()
-        for time_slice in keep_slices:
-            if time_slice in self.nodes:
-                retained_nodes.update(self.nodes[time_slice])
-        
-        new_edges = {}
-        for node, edge_list in self.edges.items():
-            if node in retained_nodes:
-                # Only keep edges where both the tail and head are in retained nodes
-                new_edges[node] = [edge for edge in edge_list if edge.head in retained_nodes]
-        
-        self.edges = new_edges
-        
-        # Force garbage collection
+            before_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.nodes_by) + sys.getsizeof(self.edges)
+
+        for h in range(2,self.params.horizon+1):
+            for node in self.nodes[h]:
+                del self.edges[node]
+            del self.nodes[h]
+            del self.nodes_by[h]
         gc.collect()
         
-        # Record memory after trimming
-        after_size = 0
         try:
             after_size = get_deep_size(self.nodes) + get_deep_size(self.edges)
         except Exception:
