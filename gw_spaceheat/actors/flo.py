@@ -91,6 +91,7 @@ class DGraph():
 
     def create_edges(self):
         self.edges: Dict[DNode, List[DEdge]] = {}
+        self.bid_edges: Dict[DNode, List[DEdge]] = {}
 
         for h in range(self.params.horizon):
 
@@ -104,6 +105,8 @@ class DGraph():
             
             for node_now in self.nodes[h]:
                 self.edges[node_now] = []
+                if h==0:
+                    self.bid_edges[node_now] = []
 
                 losses = self.params.storage_losses_percent/100 * (node_now.energy-self.min_node_energy)
                 
@@ -128,6 +131,8 @@ class DGraph():
                         cost += 1e5
 
                     self.edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
+                    if h==0:
+                        self.bid_edges[node_now].append(DEdge(node_now, node_next, cost, hp_heat_out))
 
             print(f"Built edges for hour {h}")
     
@@ -185,9 +190,9 @@ class DGraph():
         print(f"Initial state: {self.initial_state}")
         print(f"Initial node: {self.initial_node}")
 
-        for e in self.edges[self.initial_node]:
+        for e in self.bid_edges[self.initial_node]:
             if self.initial_state.top_temp > 170 and e.head.energy > self.initial_node.energy:
-                self.edges[self.initial_node].remove(e)
+                self.bid_edges[self.initial_node].remove(e)
                 print(f"Removed edge {e} because the storage is already close to full.")
 
     def generate_bid(self, updated_flo_params: FloParamsHouse0=None):
@@ -201,9 +206,9 @@ class DGraph():
         edge_cost = {}
 
         for price_usd_mwh in price_range_usd_mwh:
-            for edge in self.edges[self.initial_node]:
+            for edge in self.bid_edges[self.initial_node]:
                 edge_cost[edge] = edge.cost if edge.cost >= 1e4 else edge.hp_heat_out/forecasted_cop * price_usd_mwh/1000
-            best_edge: DEdge = min(self.edges[self.initial_node], key=lambda e: e.head.pathcost + edge_cost[e])
+            best_edge: DEdge = min(self.bid_edges[self.initial_node], key=lambda e: e.head.pathcost + edge_cost[e])
             best_quantity_kwh = max(0, best_edge.hp_heat_out/forecasted_cop)
             if not self.pq_pairs or (self.pq_pairs[-1].QuantityTimes1000-int(best_quantity_kwh*1000)>10):
                 self.pq_pairs.append(
@@ -222,19 +227,17 @@ class DGraph():
         except Exception:
             before_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.nodes_by) + sys.getsizeof(self.edges)
 
-        new_nodes = {h: self.nodes[h] for h in range(2)}
-        new_edges = {n: self.edges[n] for n in self.nodes[0]}
+        trimmed_nodes = {h: self.nodes[h] for h in range(2)}
         del self.nodes_by
         del self.nodes
         del self.edges
         gc.collect()
-        self.nodes = new_nodes
-        self.edges = new_edges
+        self.nodes = trimmed_nodes
         
         try:
-            after_size = get_deep_size(self.nodes) + get_deep_size(self.edges)
+            after_size = get_deep_size(self.nodes)
         except Exception:
-            after_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.edges)
+            after_size = sys.getsizeof(self.nodes)
         
         freed_mb = (before_size - after_size) / (1024 * 1024)
         self.logger.info(f"Trimmed graph in {round(time.time()-start_time, 1)} seconds. Freed approximately {freed_mb:.2f} MB")
