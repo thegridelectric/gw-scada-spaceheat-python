@@ -50,6 +50,7 @@ class DGraph():
     def create_nodes(self):
         self.nodes: Dict[int, List[DNode]] = {h: [] for h in range(self.params.horizon+1)}
         self.nodes_by: Dict[int, Dict[Tuple, Dict[Tuple, DNode]]] = {h: {} for h in range(self.params.horizon+1)}
+        self.bid_nodes: Dict[int, List[DNode]] = {h: [] for h in range(self.params.horizon+1)}
 
         super_graph_nodes: List[str] = self.super_graph['0.0']
 
@@ -68,6 +69,8 @@ class DGraph():
                 )
 
                 self.nodes[h].append(node)
+                if h==0:
+                    self.bid_nodes[h].append(node)
                 if h==0 and (t,m,b) not in self.nodes_by[h]:
                     for hour in range(self.params.horizon+1):
                         self.nodes_by[hour][(t,m,b)] = {}
@@ -169,17 +172,17 @@ class DGraph():
             parameters=self.params
         )
 
-        top_temps = set([n.top_temp for n in self.nodes[0]])
+        top_temps = set([n.top_temp for n in self.bid_nodes[0]])
         closest_top_temp = min(top_temps, key=lambda x: abs(x-self.initial_state.top_temp))
 
-        middle_temps = set([n.middle_temp for n in self.nodes[0] if n.top_temp==closest_top_temp])
+        middle_temps = set([n.middle_temp for n in self.bid_nodes[0] if n.top_temp==closest_top_temp])
         closest_middle_temp = min(middle_temps, key=lambda x: abs(x-self.initial_state.bottom_temp))
 
-        thermoclines1 = set([n.thermocline1 for n in self.nodes[0] if n.top_temp==closest_top_temp and n.middle_temp==closest_middle_temp])
+        thermoclines1 = set([n.thermocline1 for n in self.bid_nodes[0] if n.top_temp==closest_top_temp and n.middle_temp==closest_middle_temp])
         closest_thermocline1 = min(thermoclines1, key=lambda x: abs(x-self.initial_state.thermocline1))
 
         nodes_with_initial_top_and_middle = [
-            n for n in self.nodes[0]
+            n for n in self.bid_nodes[0]
             if n.top_temp == closest_top_temp
             and n.middle_temp == closest_middle_temp
             and n.thermocline1 == closest_thermocline1
@@ -223,25 +226,15 @@ class DGraph():
     def trim_graph_for_waiting(self):
         """Remove all but the first two time slices to save memory while waiting to generate bid."""
         start_time = time.time()
-        
         try:
             before_size = get_deep_size(self.nodes) + get_deep_size(self.nodes_by) + get_deep_size(self.edges)
         except Exception:
             before_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.nodes_by) + sys.getsizeof(self.edges)
-
-        trimmed_nodes = {h: self.nodes[h] for h in range(2)}
         del self.nodes_by
         del self.nodes
         del self.edges
         gc.collect()
-        self.nodes = trimmed_nodes
-        
-        try:
-            after_size = get_deep_size(self.nodes)
-        except Exception:
-            after_size = sys.getsizeof(self.nodes)
-        
-        freed_mb = (before_size - after_size) / (1024 * 1024)
+        freed_mb = before_size / (1024 * 1024)
         self.logger.info(f"Trimmed graph in {round(time.time()-start_time, 1)} seconds. Freed approximately {freed_mb:.2f} MB")
 
 def get_deep_size(obj, seen=None):
