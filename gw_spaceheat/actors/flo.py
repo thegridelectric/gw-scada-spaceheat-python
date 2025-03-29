@@ -1,7 +1,6 @@
+import gc
 import time
 import json
-import sys
-import gc
 import numpy as np
 from typing import Dict, List, Tuple
 from gwproactor.logger import LoggerOrAdapter
@@ -11,9 +10,7 @@ from named_types import FloParamsHouse0, PriceQuantityUnitless
 
 class DGraph():
     LOGGER_NAME="flo"
-    def __init__(self, 
-                flo_params: FloParamsHouse0,
-                logger: LoggerOrAdapter):
+    def __init__(self, flo_params: FloParamsHouse0, logger: LoggerOrAdapter):
         self.logger = logger
         self.params = DParams(flo_params)
         start_time = time.time()
@@ -23,7 +20,6 @@ class DGraph():
         except Exception as e:
             self.logger.warning(f"Error with load_super_graph! {e}")
             raise
-        
         start_time = time.time()
         try:
             self.create_nodes()
@@ -38,7 +34,6 @@ class DGraph():
         except Exception as e:
             self.logger.warning(f"Error with create_edges! {e}")
             raise
-
         del self.super_graph
         gc.collect()
         self.logger.info("Cleared super graph from memory")
