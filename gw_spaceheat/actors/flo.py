@@ -38,8 +38,10 @@ class DGraph():
         except Exception as e:
             self.logger.warning(f"Error with create_edges! {e}")
             raise
-        # Force garbage collection after heavy operations
+
+        del self.super_graph
         gc.collect()
+        self.logger.info("Cleared super graph from memory")
         
     def load_super_graph(self):
         with open("super_graph.json", 'r') as f:
