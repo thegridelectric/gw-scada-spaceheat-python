@@ -51,15 +51,6 @@ class DGraph():
         self.nodes: Dict[int, List[DNode]] = {h: [] for h in range(self.params.horizon+1)}
         self.nodes_by: Dict[int, Dict[Tuple, Dict[Tuple, DNode]]] = {h: {} for h in range(self.params.horizon+1)}
 
-        current_state = DNode(
-            top_temp=self.params.initial_top_temp,
-            middle_temp=self.params.initial_bottom_temp,
-            bottom_temp=self.params.initial_bottom_temp,
-            thermocline1=self.params.initial_thermocline,
-            thermocline2=self.params.initial_thermocline,
-            parameters=self.params
-        )
-
         super_graph_nodes: List[str] = self.super_graph['0.0']
 
         for node_no_time_slice in super_graph_nodes:
@@ -76,9 +67,6 @@ class DGraph():
                     parameters=self.params
                 )
 
-                if self.params.initial_top_temp > 170 and node.energy>=current_state.energy:
-                    continue
-
                 self.nodes[h].append(node)
                 if h==0 and (t,m,b) not in self.nodes_by[h]:
                     for hour in range(self.params.horizon+1):
@@ -92,6 +80,15 @@ class DGraph():
     def create_edges(self):
         self.edges: Dict[DNode, List[DEdge]] = {}
         self.bid_edges: Dict[DNode, List[DEdge]] = {}
+
+        current_state = DNode(
+            top_temp=self.params.initial_top_temp,
+            middle_temp=self.params.initial_bottom_temp,
+            bottom_temp=self.params.initial_bottom_temp,
+            thermocline1=self.params.initial_thermocline,
+            thermocline2=self.params.initial_thermocline,
+            parameters=self.params
+        )
 
         for h in range(self.params.horizon):
 
@@ -125,6 +122,11 @@ class DGraph():
                     node_next_str: str = self.super_graph[str(closest_store_heat_in)][node_now.to_string()]
                     t, th1, m, th2, b = self.read_node_str(node_next_str)
                     node_next = self.nodes_by[node_now.time_slice+1][(t,m,b)][(th1,th2)]
+
+                    if self.params.initial_top_temp>170 and node_next.energy>current_state.energy:
+                        t, m, b = node_now.top_temp, node_now.middle_temp, node_now.bottom_temp
+                        th1, th2 = node_now.thermocline1, node_now.thermocline2
+                        node_next = self.nodes_by[node_now.time_slice+1][(t,m,b)][(th1,th2)]
 
                     cost = self.params.elec_price_forecast[h]/100 * hp_heat_out/cop
                     if store_heat_in<0 and load>0 and (node_now.top_temp<rswt or node_next.top_temp<rswt):
