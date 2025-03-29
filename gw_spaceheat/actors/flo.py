@@ -222,15 +222,19 @@ class DGraph():
         except Exception:
             before_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.nodes_by) + sys.getsizeof(self.edges)
 
-        self.nodes_by = {}
-        self.nodes = {h: self.nodes[h] for h in range(2)}
-        self.edges = {n: self.edges[n] for n in self.nodes[0]}
+        new_nodes = {h: self.nodes[h] for h in range(2)}
+        new_edges = {n: self.edges[n] for n in self.nodes[0]}
+        del self.nodes_by
+        del self.nodes
+        del self.edges
         gc.collect()
+        self.nodes = new_nodes
+        self.edges = new_edges
         
         try:
-            after_size = get_deep_size(self.nodes) + get_deep_size(self.nodes_by) + get_deep_size(self.edges)
+            after_size = get_deep_size(self.nodes) + get_deep_size(self.edges)
         except Exception:
-            after_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.nodes_by) + sys.getsizeof(self.edges)
+            after_size = sys.getsizeof(self.nodes) + sys.getsizeof(self.edges)
         
         freed_mb = (before_size - after_size) / (1024 * 1024)
         self.logger.info(f"Trimmed graph in {round(time.time()-start_time, 1)} seconds. Freed approximately {freed_mb:.2f} MB")
