@@ -286,6 +286,7 @@ class Scada(ScadaInterface, Proactor):
         self.initialize_hierarchical_state_data()
         self.state_machine_subscriptions: List[StateMachineSubscription] = [                 
         ]
+        
         # Initialize actuator tracking
         self.ready_actuators = set()
         self.all_actuators_ready = False
@@ -586,7 +587,7 @@ class Scada(ScadaInterface, Proactor):
     def process_reset_hp_keep_value(
             self, from_node: ShNode, payload: ResetHpKeepValue
     ) -> None:
-        to_node = self.layout.node_by_handle(payload.ToHandle)
+        to_node = self.sieg_loop
         if to_node is None:
             self.log(f"Ignoring reset.hp.keep.value to {payload.ToHandle} -> not a known node")
             return
@@ -594,8 +595,14 @@ class Scada(ScadaInterface, Proactor):
         if boss is None:
             self.log(f"That's funny! no boss for {payload.ToHandle}")
             return
-        payload.FromHandle = boss.handle
-        self._send_to(to_node, payload, boss)
+        if to_node.Handle is None:
+            return
+        if boss.Handle is None:
+            return
+        new_payload = ResetHpKeepValue(FromHandle=boss.Handle, ToHandle=to_node.Handle,
+                                       FromValue=payload.FromValue, ToValue=payload.ToValue)
+        self.log(f"Got ResetHpKeepValue. Sending {new_payload} to {to_node.Name} from {boss.name}")
+        self._send_to(to_node, new_payload, boss)
 
     def process_machine_states(
         self, from_node: ShNode, payload: MachineStates
@@ -697,16 +704,22 @@ class Scada(ScadaInterface, Proactor):
     def process_sieg_loop_endpoint_valve_adjustment(
         self, from_node: ShNode, payload: SiegLoopEndpointValveAdjustment
     ) -> None:
-        to_node = self.layout.node_by_handle(payload.ToHandle)
+        to_node = self.sieg_loop
         if to_node is None:
-            self.log(f"Ignoring sieg.loop.endpoint.valve.adjustment to {payload.ToHandle} -> not a known node")
+            self.log(f"Ignoring reset.hp.keep.value to {payload.ToHandle} -> not a known node")
             return
         boss = self.layout.boss_node(to_node)
         if boss is None:
             self.log(f"That's funny! no boss for {payload.ToHandle}")
             return
-        payload.FromHandle = boss.handle
-        self._send_to(to_node, payload, boss)
+        if to_node.Handle is None:
+            return
+        if boss.Handle is None:
+            return
+        new_payload = SiegLoopEndpointValveAdjustment(FromHandle=boss.Handle, ToHandle=to_node.Handle,
+                                        HpKeepPercent=payload.HpKeepPercent, Seconds=payload.Seconds)
+        self.log(f"GotSiegLoopEndpointValveAdjustment. Sending to {to_node.Name}")
+        self._send_to(to_node, new_payload, boss)
 
     def process_single_machine_state(
         self, from_node: ShNode, payload: SingleMachineState
