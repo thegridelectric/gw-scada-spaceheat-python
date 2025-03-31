@@ -222,7 +222,7 @@ class SiegLoop(ScadaActor):
         if self._movement_task:
             self.send_glitch(f"Not resetting hp keep value while moving")
             return
-
+        self.log(f"Resetting percent keep from {self.percent_keep} to {payload.ToValue} without moving valve")
         self.percent_keep = payload.ToValue
         self._send_to(
             self.primary_scada,
@@ -259,8 +259,10 @@ class SiegLoop(ScadaActor):
         # Create a new task for the movement
         if self.state == SiegState.FullyKeep:
             new_task = self.keep_harder(payload.Seconds, new_task_id)
+            self.log(f"Keeping harder in FullyKeep state for {payload.Seconds} seconds")
         else:
             new_task = self.send_harder(payload.Seconds, new_task_id)
+            self.log(f"Sending harder in {self.state} state for {payload.Seconds} seconds")
         self._movement_task = asyncio.create_task(new_task) 
 
     async def clean_up_old_task(self) -> None:
