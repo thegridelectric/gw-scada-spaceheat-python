@@ -2,7 +2,7 @@
 import time
 from typing import Literal
 
-from gwproto.property_format import SpaceheatName, UTCMilliseconds
+from gwproto.property_format import HandleName, UTCMilliseconds
 from pydantic import BaseModel, Field, PositiveInt
 
 
@@ -12,8 +12,8 @@ class ResetHpKeepValue(BaseModel):
     position of the Siegenthaler Valve from 0 ("fully send") to 100 ("fully keep") - 
     WITHOUT changing the valve
     """
-    FromHandle: SpaceheatName
-    ToHandle: SpaceheatName
+    FromHandle: HandleName
+    ToHandle: HandleName
     FromValue: PositiveInt
     ToValue: PositiveInt
     CreatedMs: UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))

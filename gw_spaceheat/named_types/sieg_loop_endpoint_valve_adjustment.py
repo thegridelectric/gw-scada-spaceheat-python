@@ -2,7 +2,7 @@
 import time
 from typing import Literal
 
-from gwproto.property_format import SpaceheatName, UTCMilliseconds
+from gwproto.property_format import HandleName, UTCMilliseconds
 from pydantic import BaseModel, Field, PositiveInt, model_validator
 from typing_extensions import Self
 
@@ -13,8 +13,8 @@ class SiegLoopEndpointValveAdjustment(BaseModel):
     the Siegenthaler valve to "keep more". If 0%, it 
     pushes the valve to "keep less". 
     """ 
-    FromHandle: SpaceheatName
-    ToHandle: SpaceheatName
+    FromHandle: HandleName
+    ToHandle: HandleName
     HpKeepPercent: PositiveInt
     Seconds: PositiveInt
     CreatedMs: UTCMilliseconds = Field(default_factory=lambda: int(time.time() * 1000))
