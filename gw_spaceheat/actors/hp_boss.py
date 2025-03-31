@@ -11,7 +11,7 @@ from result import Ok, Result
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from enums import LogLevel, TurnHpOnOff
-from named_types import FsmEvent, Glitch
+from named_types import ActuatorsReady, FsmEvent, Glitch
 
 
 class HpBoss(ScadaActor):
@@ -26,6 +26,7 @@ class HpBoss(ScadaActor):
         super().__init__(name, services)
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.last_cmd_time = 0
+        self.actuators_ready = False
 
     def start(self) -> None:
         """ Required method, used for starting long-lived tasks. Noop."""
@@ -45,6 +46,8 @@ class HpBoss(ScadaActor):
             return Ok(False)
         payload = message.Payload
         match payload:
+            case ActuatorsReady():
+                self.actuators_ready = True
             case FsmEvent():
                 try:
                     self.process_fsm_event(from_node, payload)
@@ -57,7 +60,7 @@ class HpBoss(ScadaActor):
             )
         return Ok(True)
     
-    
+
     def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None:    
         if payload.ToHandle != self.node.handle:
              # TODO: turn this into a report?
@@ -81,6 +84,9 @@ class HpBoss(ScadaActor):
         #     self.log("IGNORING COMMAND ")
         if payload.EventType !=  TurnHpOnOff.enum_name():
             self.log(f"Only listens to {TurnHpOnOff.enum_name()}")
+            return
+        if not self.actuators_ready:
+            self.log(f"Received command {payload.EventName} for heat pump but actuators not ready. Ignoring")
             return
         if payload.EventName == TurnHpOnOff.TurnOn:
             self.close_hp_scada_ops_relay()

@@ -1,5 +1,5 @@
 """ List of all the types """
-
+from named_types.actuators_ready import ActuatorsReady
 from named_types.admin_dispatch import AdminDispatch
 from named_types.admin_keep_alive import AdminKeepAlive
 from named_types.admin_release_control import AdminReleaseControl
@@ -43,6 +43,7 @@ from named_types.weather_forecast import WeatherForecast
 
 __all__ = [
     "RemainingElecEvent",
+    "ActuatorsReady",
     "AdminDispatch",
     "AdminKeepAlive",
     "AdminReleaseControl",

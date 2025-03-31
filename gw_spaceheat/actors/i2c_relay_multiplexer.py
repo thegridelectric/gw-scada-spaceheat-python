@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Sequence, cast
 from gw.enums import GwStrEnum
 # from actors.simple_sensor import SimpleSensor, SimpleSensorDriverThread
 from gwproactor import MonitoredName
-from gwproactor.message import Message, PatInternalWatchdogMessage
+from gwproactor.message import PatInternalWatchdogMessage
 from gwproto.data_classes.components.i2c_multichannel_dt_relay_component import \
     I2cMultichannelDtRelayComponent
 
@@ -20,13 +20,14 @@ from gwproto.enums import (ActorClass, ChangeRelayPin, FsmActionType,
                            FsmReportType, MakeModel,
                            RelayEnergizationState, RelayWiringConfig,
                            TelemetryName)
+from gwproto.message import Message
 from gwproto.named_types import (SingleReading,
                                  SyncedReadings, FsmAtomicReport)
 from pydantic import BaseModel, Field
 from result import Err, Ok, Result
 from actors.scada_interface import ScadaInterface
 from actors.scada_actor import ScadaActor
-from named_types import FsmEvent, Glitch
+from named_types import ActuatorsReady, FsmEvent, Glitch
 from enums import LogLevel
 class ChangeKridaPin(Enum):
     Energize = 0
@@ -178,6 +179,8 @@ class I2cRelayMultiplexer(ScadaActor):
                     self.relay_state[
                         self.get_idx(relay)
                     ] = RelayEnergizationState.DeEnergized
+        # announce that the relays are ready
+        self._send_to(self.primary_scada, ActuatorsReady())
         # and now start maintaining relay states
         self.services.add_task(
             asyncio.create_task(
@@ -321,9 +324,7 @@ class I2cRelayMultiplexer(ScadaActor):
                 ValueList=values,
                 ScadaReadTimeUnixMs=int(time.time() * 1000),
             )
-            # if first_time:
-            #     self.log("SENDING FIRST TIME!!")
-            #     self.log(readings)
+
             self._send_to(self.primary_scada, readings)
             first_time = False
             await asyncio.sleep(self.RELAY_LOOP_S)

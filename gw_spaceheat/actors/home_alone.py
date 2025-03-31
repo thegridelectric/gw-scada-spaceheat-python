@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timedelta
 import pytz
 from gw.enums import GwStrEnum
-from gwproactor import ServicesInterface,  MonitoredName
+from gwproactor import   MonitoredName
 from gwproactor.message import PatInternalWatchdogMessage
 from gwproto import Message
 from gwproto.data_classes.sh_node import ShNode
@@ -17,8 +17,9 @@ from transitions import Machine
 from data_classes.house_0_names import H0N, H0CN
 from gwproto.data_classes.components.dfr_component import DfrComponent
 
+from actors.scada_interface import ScadaInterface
 from actors.scada_actor import ScadaActor
-from named_types import (
+from named_types import ( ActuatorsReady,
             GoDormant, Glitch, Ha1Params, HeatingForecast,
             NewCommandTree, SingleMachineState, StratBossTrigger, 
             WakeUp )
@@ -137,7 +138,7 @@ class HomeAlone(ScadaActor):
     ]
     
 
-    def __init__(self, name: str, services: ServicesInterface):
+    def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.cn: H0CN = self.layout.channel_names
         
@@ -698,6 +699,8 @@ class HomeAlone(ScadaActor):
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
         match message.Payload:
+            case ActuatorsReady():
+                self.process_actuators_ready(from_node, message.Payload)
             case GoDormant():
                 if len(self.my_actuators()) > 0:
                     raise Exception("HomeAlone sent GoDormant with live actuators under it!")
@@ -727,6 +730,10 @@ class HomeAlone(ScadaActor):
                 except Exception as e:
                     self.log(f"Problem process_strat_boss_trigger: {e}")
         return Ok(True)
+
+    def process_actuators_ready(self, from_node: ShNode, payload: ActuatorsReady) -> None:
+        """ Consider streamlining/adjusting engage brain?"""
+        ...
 
     def process_wake_up(self, from_node: ShNode, payload: WakeUp) -> None:
         if self.top_state == HomeAloneState.Dormant:

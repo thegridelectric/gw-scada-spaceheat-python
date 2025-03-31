@@ -13,7 +13,7 @@ from transitions import Machine
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from enums import LogLevel
-from named_types import (Glitch, ResetHpKeepValue,
+from named_types import (ActuatorsReady, Glitch, ResetHpKeepValue,
     SingleMachineState,  SiegLoopEndpointValveAdjustment)
 
 from transitions import Machine
@@ -81,16 +81,8 @@ class SiegLoop(ScadaActor):
         )
 
     def start(self) -> None:
-        """ Move to full send"""
-        # Generate a new task ID for this movement
-        new_task_id = str(uuid.uuid4())[-4:]
-        self._current_task_id = new_task_id
-        target_percent = 0
-        self.log(f"Task {new_task_id}: target {target_percent}")
-        self._current_task_id = new_task_id
-        self._movement_task = asyncio.create_task(
-            self._move_to_target_percent_keep(target_percent, new_task_id)
-        )  
+        """ Required method. """
+        ...
 
     def stop(self) -> None:
         """ Required method, used for stopping tasks. Noop"""
@@ -99,6 +91,7 @@ class SiegLoop(ScadaActor):
     async def join(self) -> None:
         """IOLoop will take care of shutting down the associated task."""
         ...
+
     ##############################################
     # State machine mechanics
     ##############################################
@@ -148,6 +141,11 @@ class SiegLoop(ScadaActor):
             return Ok(False)
         payload = message.Payload
         match payload:
+            case ActuatorsReady():
+                try:
+                    self.process_actuators_ready(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_actuators_ready")
             case AnalogDispatch():
                 try:
                     asyncio.create_task(self.process_analog_dispatch(from_node, payload), name="analog_dispatch")
@@ -155,20 +153,32 @@ class SiegLoop(ScadaActor):
                     self.log(f"Trouble with process_analog_dispatch: {e}")
             case ResetHpKeepValue():
                 try:
-                    asyncio.create_task(self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload), name="analog_dispatch")
+                    self.process_reset_hp_keep_value(from_node, payload)
                 except Exception as e:
-                    self.log(f"Trouble with process_analog_dispatch: {e}")
+                    self.log(f"Trouble with process_reset_hp_keep_value: {e}")
             case SiegLoopEndpointValveAdjustment():
                 try:
                     asyncio.create_task(self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload), name="analog_dispatch")
                 except Exception as e:
-                    self.log(f"Trouble with process_analog_dispatch: {e}")
+                    self.log(f"Trouble withprocess_sieg_loop_endpoint_valve_adjustmen: {e}")
             case FsmFullReport():
                 ... # got report back from relays
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
         return Ok(True)
+
+    def process_actuators_ready(self, from_node: ShNode, payload: ActuatorsReady) -> None:
+        """Move to full send on startup"""
+        # Generate a new task ID for this movement
+        new_task_id = str(uuid.uuid4())[-4:]
+        self._current_task_id = new_task_id
+        target_percent = 0
+        self.log(f"Task {new_task_id}: target {target_percent}")
+        self._current_task_id = new_task_id
+        self._movement_task = asyncio.create_task(
+            self._move_to_target_percent_keep(target_percent, new_task_id)
+        ) 
 
     async def process_analog_dispatch(self, from_node: ShNode, payload: AnalogDispatch) -> None:    
         if from_node != self.boss:
