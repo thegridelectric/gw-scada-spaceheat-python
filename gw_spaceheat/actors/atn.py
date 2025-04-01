@@ -678,7 +678,7 @@ class Atn(ActorInterface, Proactor):
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
             InitialTopTempF=int(t),
-            InitialMediumTempF=int(m),
+            InitialMiddleTempF=int(m),
             InitialBottomTempF=int(b),
             InitialThermocline1= int(th1*2),
             InitialThermocline2= int(th2*2),
