@@ -1044,6 +1044,7 @@ class Atn(ActorInterface, Proactor):
             if round(buffer_available_energy,2) == 0:
                 for bl in buffer_temperatures:
                     buffer_available_energy += - m_layer_kg * 4.187/3600 * (rswt - buffer_temperatures[bl]) * 5/9
+            self.log(f"Buffer available kWh: {round(buffer_available_energy,2)}")
             return round(buffer_available_energy,2)
         except Exception as e:
             self.log(f"Something failed in get_buffer_available_kwh ({e}), returning 0 kWh")
