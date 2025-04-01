@@ -202,7 +202,7 @@ class SiegLoop(ScadaActor):
         self.anticipatory_threshold_f = 5.0
         self.min_lift_f_for_anticipation = 1.0
         self.t1 = 15 # seconds where some flow starts going through the Sieg Loop
-        self.t2 = 65 # seconds where all flow starts going through the Sieg Loop
+        self.t2 = 95 # seconds where all flow starts going through the Sieg Loop
         
         self.control_interval_seconds = 5.0 
 
@@ -265,22 +265,25 @@ class SiegLoop(ScadaActor):
 
         #TODO think through safety to make sure it doesn't stay in 100% keep
         # if temps go away
-        if self.lwt_f is None or self.ewt_f is None:
+        if self.lwt_f is None or self.ewt_f is None or self.lift_f is None:
             self.log("Missing temperature readings, skipping control adjustment")
             return
 
         # Calculate target percent
         delta_percent = self.return_delta_percent()
-
+        max_movement = int(100 * self.CONTROL_CHECK_INTERVAL_S / self.FULL_RANGE_S)
+        response = delta_percent/max_movement
         # If in Hover state and delta is finally negative (need less keep), 
         # transition to Active state
         if self.control_state == SiegControlState.Hover:
             if delta_percent < 0:
                 self.trigger_control_event(ControlEvent.NeedLessKeep)
             else:
+                self.log(f"{round(self.lwt_f,1)} [Target {round(self.target_lwt,1)}]; Lift {round(self.lift_f,1)}.")
                 self.log(f"Still hovering ... waiting for delta_percent to go negative. currently {round(delta_percent,2)}")
                 return
-        self.log(f"delta percent is {round(delta_percent, 2)}")
+       
+        self.log(f"{round(self.lwt_f,1)} [Target {round(self.target_lwt,1)}]; Lift {round(self.lift_f,1)}.  Response: {round(response * 100)}%")
         # Only move if significant change needed (avoid hunting)
         if abs(delta_percent) >= 0.5:
             # Calculate new position
@@ -375,19 +378,16 @@ class SiegLoop(ScadaActor):
     ##############################################
 
     def before_keeping_more(self, event):
-        self.log("IN BEFORE KEEPING MORE")
         self.change_to_hp_keep_more()
         self.sieg_valve_active()
         self.move_start_s = time.time()
 
     def before_keeping_less(self, event):
-        self.log("IN BEFORE KEEPING LESS")
         self.change_to_hp_keep_less()
         self.sieg_valve_active()
         self.move_start_s = time.time()
 
     def before_keeping_steady(self, event):
-        self.log("IN BEFORE KEEPING STEAD")
         # Logic for steady blend state (including FullySend and FullyKeep)
         self.sieg_valve_dormant()
         self.latest_move_duration_s = time.time() - self.move_start_s
@@ -690,7 +690,7 @@ class SiegLoop(ScadaActor):
     
         # Wait a moment to ensure the state machine has settled
         await asyncio.sleep(0.2)
-        
+        self.log(f"{round(self.percent_keep)} keep [{task_id} MOVE TO {round(target_percent)}% STARTING]")
         # Set the appropriate state
         try:
             if moving_to_more_keep:
@@ -733,8 +733,9 @@ class SiegLoop(ScadaActor):
 
             # At the end of the method, after movement is complete:
             if task_id == self._current_task_id:
+                self.log(f"{round(self.percent_keep)} keep [{task_id} COMPLETED]")
                 self.complete_move(task_id)
-
+                
                 # Check if we need to trigger ReachT2 event
                 if self.control_state == SiegControlState.MovingToKeep and target_percent == self.t2:
                     self.trigger_control_event(ControlEvent.ReachT2)
@@ -777,7 +778,7 @@ class SiegLoop(ScadaActor):
             return
         
         self.percent_keep = orig_keep - percent
-        self.log(f"{self.percent_keep}% keep [{task_id}]")
+        # self.log(f"{self.percent_keep}% keep [{task_id}]")
         self._send_to(
             self.primary_scada,
             SingleReading(
@@ -808,7 +809,7 @@ class SiegLoop(ScadaActor):
             return
         
         self.percent_keep = orig_keep + percent
-        self.log(f"{self.percent_keep}% keep")
+        # self.log(f"{self.percent_keep}% keep [{task_id}]")
         self._send_to(
             self.primary_scada,
             SingleReading(
