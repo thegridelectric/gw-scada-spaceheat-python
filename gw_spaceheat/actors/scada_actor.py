@@ -30,6 +30,7 @@ class ScadaActor(Actor):
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self.settings = services.settings
+        self.scada_services = services
         self.timezone = pytz.timezone(self.settings.timezone_str)
 
     @property
@@ -47,7 +48,7 @@ class ScadaActor(Actor):
 
     @property
     def data(self) -> ScadaData:
-        return self._services.data
+        return self.scada_services.data
 
     @property
     def atn(self) -> ShNode:
@@ -1046,3 +1047,6 @@ class ScadaActor(Actor):
         if self.data.latest_machine_state[self.hp_scada_ops_relay.Name].State == RelayClosedOrOpen.RelayClosed:
             return True
         return False
+
+    def to_fahrenheit(self, temp_c: float) -> float:
+        return 32 + (temp_c * 9 / 5)

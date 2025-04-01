@@ -1,18 +1,39 @@
 import time
 import uuid
 import asyncio
+from typing import List, Literal
+from pydantic import BaseModel
 from data_classes.house_0_names import H0CN, H0N
+from enum import auto
+from gw.enums import GwStrEnum
 from gwproto.message import Message
 from gwproto.data_classes.sh_node import ShNode
-from gwproto.named_types import FsmFullReport
+from gwproto.named_types import AnalogDispatch, FsmFullReport
 from gwproto.enums import ChangeRelayState
 from result import Ok, Result
+
 
 from actors.scada_actor import ScadaActor
 from actors.scada_interface import ScadaInterface
 from enums import LogLevel, TurnHpOnOff
-from named_types import ActuatorsReady, FsmEvent, Glitch
+from named_types import ActuatorsReady, FsmEvent, Glitch, SingleMachineState
 
+class SiegLoopReady(BaseModel):
+    TypeName: Literal["sieg.loop.ready"] = "sieg.loop.ready"
+    Version: str = "000"
+
+class HpBossState(GwStrEnum):
+    PreparingToTurnOn = auto()
+    HpOn = auto()
+    HpOff = auto()
+
+    @classmethod
+    def values(cls) -> List[str]:
+        return [elt.value for elt in cls]
+
+    @classmethod
+    def enum_name(cls) -> str:
+        return "hp.boss.state"
 
 class HpBoss(ScadaActor):
     """
@@ -27,6 +48,7 @@ class HpBoss(ScadaActor):
         self.hp_model = self.settings.hp_model # TODO: will move to hardware layout
         self.last_cmd_time = 0
         self.actuators_ready = False
+        self.state = HpBossState.HpOn
 
     def start(self) -> None:
         """ Required method, used for starting long-lived tasks. Noop."""
@@ -55,6 +77,11 @@ class HpBoss(ScadaActor):
                     self.log(f"Trouble with process_fsm_event: {e}")
             case FsmFullReport():
                 ... # relay reports back with ack of change if we care
+            case SiegLoopReady():
+                try:
+                    self.process_sieg_loop_ready(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_sieg_loop_ready: {e}")
             case _: 
                 self.log(f"{self.name} received unexpected message: {message.Header}"
             )
@@ -88,11 +115,50 @@ class HpBoss(ScadaActor):
         if not self.actuators_ready:
             self.log(f"Received command {payload.EventName} for heat pump but actuators not ready. Ignoring")
             return
-        if payload.EventName == TurnHpOnOff.TurnOn:
-            self.close_hp_scada_ops_relay()
-                
-        else:
+        if payload.EventName == TurnHpOnOff.TurnOff:
             self.open_hp_scada_ops_relay()
+
+        elif self.state == HpBossState.HpOff:
+            # HpOff -> PreparingToTurnOn
+            self.state = HpBossState.PreparingToTurnOn
+            # self._send_to(self.primary_scada, dispatch)
+            self._send_to(self.primary_scada,
+                          SingleMachineState(
+                              MachineHandle=self.node.handle,
+                              StateEnum=HpBossState.enum_name(),
+                              State=self.state,
+                              UnixMs=int(time.time() * 1000)
+                          ))
+            asyncio.create_task(self._waiting_to_turn_on())
+
+    def process_sieg_loop_ready(self, from_node: ShNode, payload: SiegLoopReady):
+        if self.state == HpBossState.PreparingToTurnOn:
+            self.state = HpBossState.HpOn
+            self.close_hp_scada_ops_relay
+            self.log(f"Got SiegLoop ready. Changing state to {self.state}")
+            self._send_to(self.primary_scada,
+                            SingleMachineState(
+                                MachineHandle=self.node.handle,
+                                StateEnum=HpBossState.enum_name(),
+                                State=self.state,
+                                UnixMs=int(time.time() * 1000)
+                            ))
+        # TODO: name/cancelany waiting_to_turn_on task
+
+    async def _waiting_to_turn_on(self)-> None:
+        await asyncio.sleep(120)
+        # If still in state WaitingToTurnOn, turn on:
+        if self.state == HpBossState.PreparingToTurnOn:
+            self.state = HpBossState.HpOn
+            self.close_hp_scada_ops_relay
+            self.log(f"Did not hear from Sieg loop for 2 moinutes. Turning on anyway!")
+            self._send_to(self.primary_scada,
+                            SingleMachineState(
+                                MachineHandle=self.node.handle,
+                                StateEnum=HpBossState.enum_name(),
+                                State=self.state,
+                                UnixMs=int(time.time() * 1000)
+                            ))
 
     def open_hp_scada_ops_relay(self) -> None:
         try:

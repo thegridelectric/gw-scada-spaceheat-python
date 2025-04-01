@@ -31,6 +31,8 @@ from named_types.reset_hp_keep_value import ResetHpKeepValue
 from named_types.slow_dispatch_contract import SlowDispatchContract
 from named_types.scada_params import ScadaParams
 from named_types.send_layout import SendLayout
+from named_types.set_lwt_control_params import SetLwtControlParams
+from named_types.set_target_lwt import SetTargetLwt
 from named_types.sieg_loop_endpoint_valve_adjustment import SiegLoopEndpointValveAdjustment
 from named_types.single_machine_state import SingleMachineState
 from named_types.slow_contract_heartbeat import SlowContractHeartbeat
@@ -71,6 +73,8 @@ __all__ = [
     "PriceQuantityUnitless",
     "RemainingElec",
     "ResetHpKeepValue",
+    "SetLwtControlParams",
+    "SetTargetLwt",
     "SlowDispatchContract",
     "ScadaParams",
     "SendLayout",

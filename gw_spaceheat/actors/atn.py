@@ -36,8 +36,8 @@ from gwproto.named_types import AnalogDispatch, SendSnap, MachineStates
 from actors.atn_contract_handler import AtnContractHandler
 from enums import ContractStatus, LogLevel
 from named_types import (AtnBid, FloParamsHouse0, Glitch, Ha1Params, LatestPrice, LayoutLite, 
-                         NoNewContractWarning, PriceQuantityUnitless, ResetHpKeepValue,
-                         ScadaParams, SendLayout, SiegLoopEndpointValveAdjustment,
+                         NoNewContractWarning, ResetHpKeepValue, ScadaParams, SetLwtControlParams,
+                          SendLayout, SiegLoopEndpointValveAdjustment,
                          SlowContractHeartbeat,  SnapshotSpaceheat)
 
 from paho.mqtt.client import MQTTMessageInfo
@@ -1579,6 +1579,33 @@ class Atn(ActorInterface, Proactor):
                     ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
                     HpKeepPercent=0,
                     Seconds=seconds,
+                ),
+            )
+        )
+
+    def set_lwt_control_params(self,
+        proportional_gain: float = 5.0,
+        anticipatory_gain: float = 2,
+        anticipatory_threshold_f: int = 5,
+        min_lift_for_anticipation: float = 1,
+        control_interval_seconds: int = 5,
+        t1: int = 15,
+        t2: int = 65
+    ) -> None:
+        self.send_threadsafe(
+            Message(
+                Src=self.name,
+                Dst=self.scada.name,
+                Payload=SetLwtControlParams(
+                    FromHandle=H0N.atn,
+                    ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
+                    ProportionalGain=proportional_gain,
+                    AnticipatoryGain=anticipatory_gain,
+                    AnticipatoryThresholdF=anticipatory_threshold_f,
+                    MinLiftForAnticipation=min_lift_for_anticipation,
+                    ControlIntervalSeconds=control_interval_seconds,
+                    T1=t1,
+                    T2=t2,
                 ),
             )
         )

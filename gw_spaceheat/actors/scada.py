@@ -7,7 +7,7 @@ import uuid
 import threading
 import time
 import pytz
-from typing import Any, List, Optional, cast
+from typing import Any, Dict, List, Optional, cast
 
 import dotenv
 from transitions import Machine
@@ -56,8 +56,8 @@ from enums import (AtomicAllyState, ContractStatus, HomeAloneTopState, MainAutoE
 from named_types import (
     ActuatorsReady, AdminDispatch, AdminKeepAlive, AdminReleaseControl, AllyGivesUp, ChannelFlatlined,
     Glitch, GoDormant, LayoutLite, NewCommandTree, NoNewContractWarning, ResetHpKeepValue,
-    ScadaParams, SendLayout, SiegLoopEndpointValveAdjustment, SingleMachineState, 
-    SlowContractHeartbeat, SuitUp, WakeUp,
+    ScadaParams, SendLayout, SetLwtControlParams, SetTargetLwt, SiegLoopEndpointValveAdjustment, 
+    SingleMachineState, SlowContractHeartbeat, SuitUp, WakeUp,
 )
 
 ScadaMessageDecoder = create_message_model(
@@ -284,9 +284,14 @@ class Scada(ScadaInterface, Proactor):
             )
         )
         self.initialize_hierarchical_state_data()
-        self.state_machine_subscriptions: List[StateMachineSubscription] = [                 
+        self.state_machine_subscriptions: List[StateMachineSubscription] = [
+            StateMachineSubscription(
+                subscriber_name=self.sieg_loop.name,
+                publisher_name=self.hp_boss.name
+            )
         ]
-        
+        self.channel_subscriptions: Dict[str, ChannelSubscription] = {}
+
         # Initialize actuator tracking
         self.ready_actuators = set()
         self.all_actuators_ready = False
@@ -412,6 +417,16 @@ class Scada(ScadaInterface, Proactor):
                     self._send_to(from_node, self._data.make_snapshot())
                 except Exception as e:
                     self.log(f"Trouble with SendSnap: {e}")
+            case SetLwtControlParams():
+                try:
+                    self.process_set_lwt_control_params(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_set_lwt_control_params: {e}")
+            case SetTargetLwt():
+                try:
+                    self.process_set_target_lwt(from_node, payload)
+                except Exception as e:
+                    self.log(f"Trouble with process_set_target_lwt: {e}")
             case SiegLoopEndpointValveAdjustment():
                 try:
                     self.process_sieg_loop_endpoint_valve_adjustment(from_node, payload)
@@ -701,6 +716,44 @@ class Scada(ScadaInterface, Proactor):
             self.logger.error(f"Sending back {response}")
             self._send_to(self.atn, response)
 
+    def process_set_target_lwt(
+            self, from_node: ShNode, payload: SetTargetLwt
+    ) -> None:
+        to_node = self.sieg_loop
+        if to_node is None:
+            self.log(f"Ignoring set.target.lwt to {payload.ToHandle} -> not a known node")
+            return
+        boss = self.layout.boss_node(to_node)
+        if boss is None:
+            self.log(f"That's funny! no boss for {payload.ToHandle}")
+            return
+        if to_node.Handle is None:
+            return
+        if boss.Handle is None:
+            return
+        payload.ToHandle = to_node.Handle
+        payload.FromHandle = boss.Handle
+        self._send_to(to_node, payload, boss)
+
+    def process_set_lwt_control_params(
+            self, from_node: ShNode, payload: SetLwtControlParams
+    ) -> None:
+        to_node = self.sieg_loop
+        if to_node is None:
+            self.log(f"Ignoring set.lwt.control.params to {payload.ToHandle} -> not a known node")
+            return
+        boss = self.layout.boss_node(to_node)
+        if boss is None:
+            self.log(f"That's funny! no boss for {payload.ToHandle}")
+            return
+        if to_node.Handle is None:
+            return
+        if boss.Handle is None:
+            return
+        payload.ToHandle = to_node.Handle
+        payload.FromHandle = boss.Handle
+        self._send_to(to_node, payload, boss)
+
     def process_sieg_loop_endpoint_valve_adjustment(
         self, from_node: ShNode, payload: SiegLoopEndpointValveAdjustment
     ) -> None:
@@ -782,6 +835,15 @@ class Scada(ScadaInterface, Proactor):
         self._data.latest_channel_values[ch.Name] = payload.Value
         self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
         self._forward_single_reading(payload)
+        if payload.ChannelName in self.channel_subscriptions:
+            cs = self.channel_subscriptions[payload.ChannelName]
+            subscriber_node = self._layout.node(cs.subscriber_name)
+            self._send_to(subscriber_node,
+                            SingleReading(
+                                ChannelName=payload.ChannelName,
+                                Value=payload.Value,
+                                ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                            ))
 
     def process_suit_up(self, from_node: ShNode, payload: SuitUp) -> None:
         if from_node.Name != H0N.atomic_ally:
@@ -814,6 +876,16 @@ class Scada(ScadaInterface, Proactor):
             )
             self._data.latest_channel_values[ch.Name] = payload.ValueList[idx]
             self._data.latest_channel_unix_ms[ch.Name] = payload.ScadaReadTimeUnixMs
+
+            if channel_name in self.channel_subscriptions:
+                cs = self.channel_subscriptions[channel_name]
+                subscriber_node = self._layout.node(cs.subscriber_name)
+                self._send_to(subscriber_node,
+                              SingleReading(
+                                  ChannelName=channel_name,
+                                  Value=payload.ValueList[idx],
+                                  ScadaReadTimeUnixMs=payload.ScadaReadTimeUnixMs,
+                              )) 
 
     #####################################################################
     # State Machine related
