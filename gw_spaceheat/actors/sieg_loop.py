@@ -566,6 +566,7 @@ class SiegLoop(ScadaActor):
         if self.control_state == SiegControlState.Initializing:
             self.log(f"IGNORING Hp State {payload.State} until done initializing")
             return
+
         if payload.State == HpBossState.HpOff:
             if self.control_state not in [SiegControlState.Dormant, SiegControlState.MovingToFullSend]:
                 self.trigger_control_event(ControlEvent.HpTurnsOff)

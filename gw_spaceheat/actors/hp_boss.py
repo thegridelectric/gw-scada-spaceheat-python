@@ -117,7 +117,14 @@ class HpBoss(ScadaActor):
             return
         if payload.EventName == TurnHpOnOff.TurnOff:
             self.open_hp_scada_ops_relay()
-
+            self.state = HpBossState.HpOff
+            self._send_to(self.primary_scada,
+                          SingleMachineState(
+                              MachineHandle=self.node.handle,
+                              StateEnum=HpBossState.enum_name(),
+                              State=self.state,
+                              UnixMs=int(time.time() * 1000)
+                          ))
         elif self.state == HpBossState.HpOff:
             # HpOff -> PreparingToTurnOn
             self.state = HpBossState.PreparingToTurnOn
