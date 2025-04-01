@@ -197,8 +197,8 @@ class SiegLoop(ScadaActor):
         self.hp_boss_state = HpBossState.HpOn
 
         # Control parameters (match defulats in SiegLoop)
-        self.proportional_gain = 5.0
-        self.anticipatory_gain = 2
+        self.proportional_gain = 2.0
+        self.anticipatory_gain = 1.0
         self.anticipatory_threshold_f = 5.0
         self.min_lift_f_for_anticipation = 1.0
         self.t1 = 15 # seconds where some flow starts going through the Sieg Loop
