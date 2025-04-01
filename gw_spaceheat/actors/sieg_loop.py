@@ -61,6 +61,7 @@ class SiegControlState(GwStrEnum):
         return "sieg.control.state"
 
 class ControlEvent(GwStrEnum):
+    InitializationComplete = auto()
     HpTurnsOff = auto()
     HpPreparing = auto()
     ReachT2 = auto()
@@ -146,6 +147,7 @@ class SiegLoop(ScadaActor):
         self.latest_move_duration_s: float = 0
         # Define transitions with callback
         self.control_transitions = [
+            {"trigger": "InitializationComplete", "source": "Initializing", "dest": "Dormant"},
             {"trigger": "HpTurnsOff", "source": "*", "dest": "MovingToFullSend"},
             {"trigger": "Blind", "source": "*", "dest": "MovingToFullSend"},
             {"trigger": "ReachFullSend", "source": "MovingToFullSend", "dest":"Dormant"},
@@ -298,7 +300,6 @@ class SiegLoop(ScadaActor):
         # Create a new task for the movement to t2
         asyncio.create_task(self.prepare_new_movement_task(self.t2))
 
-
     def on_enter_hover(self, event):
         """Called when entering the Hover state"""
         self.log(f"Hovering at t2 position ({self.t2}%) waiting for heat pump to establish flow")
@@ -309,19 +310,18 @@ class SiegLoop(ScadaActor):
             SiegLoopReady()
         )
 
-    def on_enter_active(self, event):
-        """Called when entering the Active state"""
-        self.log("Entering active LWT control mode")
-        # Start normal temperature control operations
-        # This might involve starting a periodic control task if needed
-        
     def on_enter_dormant(self, event):
         """Called when entering the Dormant state"""
         self.log("Heat pump off, entering dormant state")
-        # If heat pump is turning off, we want to go to full send
-        if self.percent_keep > 0:
-            asyncio.create_task(self.prepare_new_movement_task(0))
 
+    def on_enter_active(self, event):
+        ... # Nothing to do hear yet
+
+    def on_enter_moving_to_full_send(self, event):
+        self.log(f"Moving to full send")
+        asyncio.create_task(self.prepare_new_movement_task(0))
+
+        
     def trigger_control_event(self, event: ControlEvent) -> None:
         now_ms = int(time.time() * 1000)
         orig_state = self.control_state
@@ -338,12 +338,26 @@ class SiegLoop(ScadaActor):
             self.ReachT2()
         elif event == ControlEvent.ReachFullSend:
             self.ReachFullSend()
-        elif event == NeedLessKeep:
+        elif event == ControlEvent.NeedLessKeep:
             self.NeedLessKeep()
+        elif event == ControlEvent.InitializationComplete:
+            self.InitializationComplete()
         else:
             raise Exception(f"Unknown control event {event}")
 
         self.log(f"{event}: {orig_state} -> {self.control_state}")
+
+        # Manually call the appropriate callback based on the new state
+        if self.control_state == SiegControlState.MovingToKeep and orig_state != SiegControlState.MovingToKeep:
+            self.on_enter_moving_to_keep(event)
+        elif self.control_state == SiegControlState.Hover and orig_state != SiegControlState.Hover:
+            self.on_enter_hover(event)
+        elif self.control_state == SiegControlState.Active and orig_state != SiegControlState.Active:
+            self.on_enter_active(event)
+        elif self.control_state == SiegControlState.Dormant and orig_state != SiegControlState.Dormant:
+            self.on_enter_dormant(event)
+        elif self.control_state == SiegControlState.MovingToFullSend and orig_state != SiegControlState.MovingToFullSend:
+            self.on_enter_moving_to_full_send(event)
 
         self._send_to(
             self.primary_scada,
@@ -361,16 +375,19 @@ class SiegLoop(ScadaActor):
     ##############################################
 
     def before_keeping_more(self, event):
+        self.log("IN BEFORE KEEPING MORE")
         self.change_to_hp_keep_more()
         self.sieg_valve_active()
         self.move_start_s = time.time()
 
     def before_keeping_less(self, event):
+        self.log("IN BEFORE KEEPING LESS")
         self.change_to_hp_keep_less()
         self.sieg_valve_active()
         self.move_start_s = time.time()
 
     def before_keeping_steady(self, event):
+        self.log("IN BEFORE KEEPING STEAD")
         # Logic for steady blend state (including FullySend and FullyKeep)
         self.sieg_valve_dormant()
         self.latest_move_duration_s = time.time() - self.move_start_s
@@ -400,16 +417,17 @@ class SiegLoop(ScadaActor):
 
         self.log(f"{event}: {orig_state} -> {self.valve_state}")
 
-        self._send_to(
-            self.primary_scada,
-            SingleMachineState(
-                MachineHandle=self.node.handle,
-                StateEnum=SiegValveState.enum_name(),
-                State=self.valve_state,
-                UnixMs=now_ms,
-                Cause=event
-            )
-        )
+        # TODO: add a new node for the valve; sieg-loop will be control state
+        # self._send_to(
+        #     self.primary_scada,
+        #     SingleMachineState(
+        #         MachineHandle=self.node.handle,
+        #         StateEnum=SiegValveState.enum_name(),
+        #         State=self.valve_state,
+        #         UnixMs=now_ms,
+        #         Cause=event
+        #     )
+        # )
 
     def process_message(self, message: Message) -> Result[bool, BaseException]:
         from_node = self.layout.node(message.Header.Src, None)
@@ -459,15 +477,25 @@ class SiegLoop(ScadaActor):
     def process_actuators_ready(self, from_node: ShNode, payload: ActuatorsReady) -> None:
         """Move to full send on startup"""
         self.actuators_ready = True
-        # Generate a new task ID for this movement
-        new_task_id = str(uuid.uuid4())[-4:]
-        self._current_task_id = new_task_id
-        target_percent = 0
-        self.log(f"Task {new_task_id}: target {target_percent}")
-        self._current_task_id = new_task_id
-        self._movement_task = asyncio.create_task(
-            self._move_to_target_percent_keep(target_percent, new_task_id)
-        ) 
+        asyncio.create_task(self.initialize())
+        self.log(f"Actuators ready")
+
+    async def initialize(self) -> None:
+        if not self.actuators_ready:
+            raise Exception("Call AFTER actuators ready")
+        self.log("Initializing Sieg valve to FullySend position")
+        await self.prepare_new_movement_task(0)
+
+        # Let movement complete
+        await asyncio.sleep(self.FULL_RANGE_S)
+
+        self.log("Waiting another 5 seconds")
+        await asyncio.sleep(5)
+        # InitializationComplete: Initializing -> Dormant
+        self.trigger_control_event(ControlEvent.InitializationComplete)
+        if self.hp_boss_state in [HpBossState.PreparingToTurnOn, HpBossState.HpOn]:
+            # HpPreparing: Dormant -> MovingToKeepf
+            self.trigger_control_event(ControlEvent.HpPreparing)
 
     async def process_analog_dispatch(self, from_node: ShNode, payload: AnalogDispatch) -> None:    
         if from_node != self.boss:
@@ -528,10 +556,16 @@ class SiegLoop(ScadaActor):
         self.log(f"Using {payload}")
 
     def process_single_machine_state(self, from_node: ShNode, payload: SingleMachineState) -> None:
+        self.latest = payload
+        self.log(f"JUST GOT {payload.State} from HpBoss")
         if payload.StateEnum != HpBossState.enum_name():
             raise Exception(f"Not expecting {payload}")
         if from_node != self.hp_boss:
             raise Exception("Not expecting sms except from HpBoss")
+        self.hp_boss_state = payload.State
+        if self.control_state == SiegControlState.Initializing:
+            self.log(f"IGNORING Hp State {payload.State} until done initializing")
+            return
         if payload.State == HpBossState.HpOff:
             if self.control_state not in [SiegControlState.Dormant, SiegControlState.MovingToFullSend]:
                 self.trigger_control_event(ControlEvent.HpTurnsOff)
@@ -854,7 +888,6 @@ class SiegLoop(ScadaActor):
             if seconds_into_5s == 0 and milliseconds < 100:
                 # We're at the top of a 5-second interval (within 100ms)
                 if not self.is_blind() \
-                    and self.actuators_ready \
                     and self.control_state in [SiegControlState.Hover, SiegControlState.Active]:
                     # Run temperature control without awaiting to avoid blocking
                     asyncio.create_task(self.run_temperature_control())
