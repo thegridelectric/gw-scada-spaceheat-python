@@ -658,6 +658,7 @@ class Atn(ActorInterface, Proactor):
 
         self.log("Finding thermocline position and top temperature")
         result = await self.get_three_layer_storage_model()
+        self.log(f"Storage model: {result}")
         if result is None:
             self.log("Get thermocline and centroid failed! Not running FLO!")
             return
