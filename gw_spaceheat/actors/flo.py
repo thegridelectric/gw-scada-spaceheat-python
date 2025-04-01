@@ -161,32 +161,40 @@ class DGraph():
             self.params = DParams(updated_flo_params)
         
         self.initial_state = DNode(
-            top_temp = self.params.initial_top_temp,
-            middle_temp=self.params.initial_bottom_temp,
+            top_temp=self.params.initial_top_temp,
+            middle_temp=self.params.initial_middle_temp,
             bottom_temp=self.params.initial_bottom_temp,
-            thermocline1=self.params.initial_thermocline,
-            thermocline2=self.params.initial_thermocline,
+            thermocline1=self.params.initial_thermocline1,
+            thermocline2=self.params.initial_thermocline2,
             parameters=self.params
         )
 
         top_temps = set([n.top_temp for n in self.bid_nodes[0]])
         closest_top_temp = min(top_temps, key=lambda x: abs(x-self.initial_state.top_temp))
 
-        middle_temps = set([n.middle_temp for n in self.bid_nodes[0] if n.top_temp==closest_top_temp])
-        closest_middle_temp = min(middle_temps, key=lambda x: abs(x-self.initial_state.bottom_temp))
+        bottom_temps = set([n.bottom_temp for n in self.bid_nodes[0] if n.top_temp==closest_top_temp])
+        closest_bottom_temp = min(bottom_temps, key=lambda x: abs(x-self.initial_state.bottom_temp))
 
-        thermoclines1 = set([n.thermocline1 for n in self.bid_nodes[0] if n.top_temp==closest_top_temp and n.middle_temp==closest_middle_temp])
-        closest_thermocline1 = min(thermoclines1, key=lambda x: abs(x-self.initial_state.thermocline1))
+        middle_temps = set([n.middle_temp for n in self.bid_nodes[0] if n.top_temp==closest_top_temp  and n.bottom_temp==closest_bottom_temp])
+        closest_middle_temp = min(middle_temps, key=lambda x: abs(x-self.initial_state.middle_temp))
 
-        nodes_with_initial_top_and_middle = [
+        nodes_with_similar_temperatures = [
             n for n in self.bid_nodes[0]
             if n.top_temp == closest_top_temp
             and n.middle_temp == closest_middle_temp
-            and n.thermocline1 == closest_thermocline1
+            and n.bottom_temp == closest_bottom_temp
+        ]
+
+        thermoclines1 = set([n.thermocline1 for n in nodes_with_similar_temperatures])
+        closest_thermocline1 = min(thermoclines1, key=lambda x: abs(x-self.initial_state.thermocline1))
+
+        similar_nodes = [
+            n for n in nodes_with_similar_temperatures
+            if n.thermocline1 == closest_thermocline1
         ]
 
         self.initial_node = min(
-            nodes_with_initial_top_and_middle, 
+            similar_nodes, 
             key=lambda x: abs(x.energy-self.initial_state.energy)
         )
         print(f"Initial state: {self.initial_state}")

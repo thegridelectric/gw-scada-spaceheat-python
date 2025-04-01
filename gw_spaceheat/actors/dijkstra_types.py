@@ -13,8 +13,10 @@ class DParams():
         self.max_hp_elec_in = flo_params.HpMaxElecKw
         self.min_hp_elec_in = flo_params.HpMinElecKw
         self.initial_top_temp = flo_params.InitialTopTempF
+        self.initial_middle_temp = flo_params.InitialMiddleTempF
         self.initial_bottom_temp = flo_params.InitialBottomTempF
-        self.initial_thermocline = flo_params.InitialThermocline
+        self.initial_thermocline1 = flo_params.InitialThermocline1
+        self.initial_thermocline2 = flo_params.InitialThermocline2
         self.storage_losses_percent = flo_params.StorageLossesPercent
         self.reg_forecast = [x/10 for x in flo_params.RegPriceForecast[:self.horizon]]
         self.dist_forecast = [x/10 for x in flo_params.DistPriceForecast[:self.horizon]]

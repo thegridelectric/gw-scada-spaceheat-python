@@ -592,14 +592,16 @@ class Atn(ActorInterface, Proactor):
                 elif self.flo_params and self.bid_runner:
                     if datetime.now().minute >= self.send_bid_minute and not self.sent_bid:
                         self.log("Finding current storage state...")
-                        result = await self.get_thermocline_and_centroids()
+                        result = await self.get_three_layer_storage_model()
                         if result is None:
-                            self.log("get_thermocline_and_centroids() failed! Not getting bid.")
+                            self.log("get_three_layer_storage_model() failed! Not getting bid.")
                         else:
-                            initial_toptemp, initial_bottomtemp, initial_thermocline = result
-                            self.flo_params.InitialTopTempF = int(initial_toptemp)
-                            self.flo_params.InitialBottomTempF = int(initial_bottomtemp)
-                            self.flo_params.InitialThermocline = initial_thermocline*2
+                            t, m, b, th1, th2 = result
+                            self.flo_params.InitialTopTempF = int(t)
+                            self.flo_params.InitialMiddleTempF = int(m)
+                            self.flo_params.InitialBottomTempF = int(b)
+                            self.flo_params.InitialThermocline1 = int(th1*2)
+                            self.flo_params.InitialThermocline2 = int(th2*2)
                             self._links.publish_message(
                                 self.SCADA_MQTT, 
                                 Message(Src=self.publication_name, Dst="broadcast", Payload=self.flo_params)
@@ -655,11 +657,11 @@ class Atn(ActorInterface, Proactor):
         await self.update_price_forecast()
 
         self.log("Finding thermocline position and top temperature")
-        result = await self.get_thermocline_and_centroids()
+        result = await self.get_three_layer_storage_model()
         if result is None:
             self.log("Get thermocline and centroid failed! Not running FLO!")
             return
-        initial_toptemp, initial_bottomtemp, initial_thermocline = result
+        t, m, b, th1, th2 = result
 
         buffer_available_kwh = await self.get_buffer_available_kwh()
         house_available_kwh = await self.get_house_available_kwh()
@@ -675,9 +677,11 @@ class Atn(ActorInterface, Proactor):
         self.flo_params = FloParamsHouse0(
             GNodeAlias=self.layout.scada_g_node_alias,
             StartUnixS=dijkstra_start_time,
-            InitialTopTempF=int(initial_toptemp),
-            InitialBottomTempF=int(initial_bottomtemp),
-            InitialThermocline=initial_thermocline * 2,
+            InitialTopTempF=int(t),
+            InitialMediumTempF=int(m),
+            InitialBottomTempF=int(b),
+            InitialThermocline1= int(th1*2),
+            InitialThermocline2= int(th2*2),
             # TODO: price and weather forecasts should include the current hour if we are running a partial hour
             LmpForecast=self.price_forecast.lmp_usd_per_mwh,
             DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
@@ -722,78 +726,6 @@ class Atn(ActorInterface, Proactor):
         Note: This is called from the BidRunner thread."""
         self.log("Cleaned up bid runner")
         self.bid_runner = None
-
-    async def run_fake_d(self, session: aiohttp.ClientSession) -> None:
-        if datetime.now().minute >= self.create_graph_minute:
-            return
-
-        # Check if there's already a bid runner
-        if self.bid_runner is not None and self.bid_runner.is_alive():
-            self.log("BidRunner already running!")
-            return
-    
-        dijkstra_start_time = int(
-            datetime.timestamp((datetime.now() + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0))
-            )
-        
-        await self.get_weather(session)
-        await self.update_price_forecast()
-
-        self.log("Finding thermocline position and top temperature")
-        result = await self.get_thermocline_and_centroids()
-        if result is None:
-            self.log("Get thermocline and centroid failed! Releasing control of Scada!")
-            return
-        initial_toptemp, initial_bottomtemp, initial_thermocline = result
-
-        buffer_available_kwh = await self.get_buffer_available_kwh()
-        house_available_kwh = await self.get_house_available_kwh()
-        if self.price_forecast is None:
-            self.log("Not running flo - no price forecast")
-            return
-        if self.weather_forecast is None:
-            self.log("Not running flo - no weather forecast")
-            return
-        if self.ha1_params is None:
-            self.log("Not running flo - no ha1_params")
-            return
-        flo_params = FloParamsHouse0(
-            GNodeAlias=self.layout.scada_g_node_alias,
-            StartUnixS=dijkstra_start_time,
-            InitialTopTempF=int(initial_toptemp),
-            InitialBottomTempF=int(initial_bottomtemp),
-            InitialThermocline=initial_thermocline * 2,
-            # TODO: price and weather forecasts should include the current hour if we are running a partial hour
-            LmpForecast=self.price_forecast.lmp_usd_per_mwh,
-            DistPriceForecast=self.price_forecast.dp_usd_per_mwh,
-            RegPriceForecast=self.price_forecast.reg_usd_per_mwh,
-            OatForecastF=self.weather_forecast["oat"],
-            WindSpeedForecastMph=self.weather_forecast["ws"],
-            AlphaTimes10=self.ha1_params.AlphaTimes10,
-            BetaTimes100=self.ha1_params.BetaTimes100,
-            GammaEx6=self.ha1_params.GammaEx6,
-            IntermediatePowerKw=self.ha1_params.IntermediatePowerKw,
-            IntermediateRswtF=self.ha1_params.IntermediateRswtF,
-            DdPowerKw=self.ha1_params.DdPowerKw,
-            DdRswtF=self.ha1_params.DdRswtF,
-            DdDeltaTF=self.ha1_params.DdDeltaTF,
-            MaxEwtF=self.ha1_params.MaxEwtF,
-            HpIsOff=self.hp_is_off,
-            BufferAvailableKwh=buffer_available_kwh,
-            HouseAvailableKwh=house_available_kwh
-        )
-        self.bid_runner = BidRunner(
-            params=flo_params, 
-            atn_settings=self.settings,
-            atn_name=self.name, 
-            atn_g_node_alias=self.layout.atn_g_node_alias,
-            send_threadsafe=self.send_threadsafe,
-            on_complete=self._cleanup_bid_runner,
-            logger=self.log,
-        )
-        self.bid_runner.start()  
-        # Instead of waiting, return to event loop
-        self.log("Started Dijkstra computation in background")
 
     def latest_contract_is_live(self) -> bool:
         """ Validates that the bid's market slot name corresponds to the current hour."""
@@ -968,93 +900,126 @@ class Atn(ActorInterface, Proactor):
         except:
             self.log("Could not find RSWT!")
             return None
-
-    async def get_thermocline_and_centroids(self) -> Optional[Tuple[float, int]]:
-        # Get all tank temperatures in a dict, if you can't abort
+        
+    async def kmeans(self, data, k=3, max_iters=100, tol=1e-4):
+        data = np.array(data).reshape(-1, 1)
+        centroids = data[np.random.choice(len(data), k, replace=False)]
+        for _ in range(max_iters):
+            labels = np.argmin(np.abs(data - centroids.T), axis=1)
+            new_centroids = np.zeros_like(centroids)
+            for i in range(k):
+                cluster_points = data[labels == i]
+                if len(cluster_points) > 0:
+                    new_centroids[i] = cluster_points.mean()
+                else:
+                    new_centroids[i] = data[np.random.choice(len(data))]
+            if np.all(np.abs(new_centroids - centroids) < tol):
+                break
+            centroids = new_centroids
+        return labels
+        
+    async def get_three_layer_storage_model(self) -> Optional[Tuple[float, int]]:
+        # Get all storage tank temperatures in a dict
         if self.temperature_channel_names is None:
             self.send_layout()
             await asyncio.sleep(5)
         self.get_latest_temperatures()
         if not self.temperatures_available:
-            self.log(
-                "Not enough tank temperatures available to compute top temperature and thermocline!"
-            )
+            self.log("Not enough tank temperatures available to compute top temperature and thermocline!")
             return None
-        all_store_layers = sorted(
-            [x for x in self.temperature_channel_names if "tank" in x]
-        )
+        all_store_layers = sorted([x for x in self.temperature_channel_names if "tank" in x])
         try:
             tank_temps = {
-                key: self.to_fahrenheit(self.latest_temperatures[key] / 1000)
+                key: self.to_fahrenheit(self.latest_temperatures[key] / 1000) 
                 for key in all_store_layers
             }
         except KeyError as e:
-            self.log(
-                f"Failed to get all the tank temps in get_thermocline_and_centroids! Bailing on process {e}"
-            )
+            self.log(f"Failed to get all the tank temps in get_three_layer_storage_model! Bailing on process {e}")
             return None
-        # Process the temperatures before clustering
-        processed_temps = []
-        for key in tank_temps:
-            processed_temps.append(tank_temps[key])
+
+        # Process layer temperatures
+        layer_temps = [tank_temps[key] for key in tank_temps]
         iter_count = 0
-        while (
-            sorted(processed_temps, reverse=True) != processed_temps and iter_count < 20
-        ):
+        while (sorted(layer_temps, reverse=True) != layer_temps and iter_count<20):
             iter_count += 1
-            processed_temps = []
-            for key in tank_temps:
-                if processed_temps:
-                    if tank_temps[key] > processed_temps[-1]:
-                        mean = round((processed_temps[-1] + tank_temps[key]) / 2)
-                        processed_temps[-1] = mean
-                        processed_temps.append(mean)
+            layer_temps = []
+            for layer in tank_temps:
+                if layer_temps:
+                    if tank_temps[layer] > layer_temps[-1]:
+                        mean = round((layer_temps[-1] + tank_temps[layer]) / 2)
+                        layer_temps[-1] = mean
+                        layer_temps.append(mean)
                     else:
-                        processed_temps.append(tank_temps[key])
+                        layer_temps.append(tank_temps[layer])
                 else:
-                    processed_temps.append(tank_temps[key])
-            i = 0
-            for key in tank_temps:
-                tank_temps[key] = processed_temps[i]
-                i += 1
+                    layer_temps.append(tank_temps[layer])
+            for i, layer in enumerate(tank_temps):
+                tank_temps[layer] = layer_temps[i]
             if iter_count == 20:
-                processed_temps = sorted(processed_temps, reverse=True)
-        # Cluster
-        data = processed_temps.copy()
-        labels = self.kmeans(data, k=2)
-        cluster_top = sorted([data[i] for i in range(len(data)) if labels[i] == 0])
-        cluster_bottom = sorted([data[i] for i in range(len(data)) if labels[i] == 1])
-        if not cluster_top:
-            cluster_top = cluster_bottom.copy()
-            cluster_bottom = []
-        if cluster_bottom:
-            if max(cluster_bottom) > max(cluster_top):
-                cluster_top_copy = cluster_top.copy()
-                cluster_top = cluster_bottom.copy()
-                cluster_bottom = cluster_top_copy
-        thermocline = len(cluster_top)
-        top_centroid_f = round(sum(cluster_top) / len(cluster_top), 3)
-        if cluster_bottom:
-            bottom_centroid_f = round(sum(cluster_bottom) / len(cluster_bottom), 3)
+                layer_temps = sorted(layer_temps, reverse=True)
+
+        # Cluster 10 times and select the result with the highest top temperature
+        data = layer_temps.copy()
+        clustering_runs = []
+        for i in range(10):
+            labels = await self.kmeans(data, k=3)
+            cluster_0 = sorted([data[i] for i in range(len(data)) if labels[i] == 0], reverse=True)
+            cluster_1 = sorted([data[i] for i in range(len(data)) if labels[i] == 1], reverse=True)
+            cluster_2 = sorted([data[i] for i in range(len(data)) if labels[i] == 2], reverse=True)
+            cluster_top = max(cluster_0, cluster_1, cluster_2, key=lambda x: np.mean(x) if len(x)>0 else 0)
+            top_temp = sum(cluster_top)/len(cluster_top)
+            clustering_runs.append({
+                'cluster_0': cluster_0,
+                'cluster_1': cluster_1,
+                'cluster_2': cluster_2,
+                'top_temp': top_temp
+            })
+        best_run = max(clustering_runs, key=lambda x: x['top_temp'])
+        cluster_0 = best_run['cluster_0']
+        cluster_1 = best_run['cluster_1']
+        cluster_2 = best_run['cluster_2']
+
+        # Dealing with 3 clusters
+        if cluster_0 and cluster_1 and cluster_2:
+            cluster_top = max(cluster_0, cluster_1, cluster_2, key=lambda x: sum(x)/len(x))
+            cluster_bottom = min(cluster_0, cluster_1, cluster_2, key=lambda x: sum(x)/len(x))
+            cluster_middle = [
+                cluster_x for cluster_x in [cluster_0, cluster_1, cluster_2]
+                if cluster_x != cluster_top
+                and cluster_x != cluster_bottom
+                ][0]
+
+            thermocline1 = max(1, len(cluster_top))
+            thermocline2 = thermocline1 + len(cluster_middle)
+
+            top_temp = round(sum(cluster_top)/len(cluster_top))
+            middle_temp = round(sum(cluster_middle)/len(cluster_middle))
+            bottom_temp = round(sum(cluster_bottom)/len(cluster_bottom))
+            print(f"Storage model: {top_temp}({thermocline1}){middle_temp}({thermocline2}){bottom_temp}")
+            return top_temp, middle_temp, bottom_temp, thermocline1, thermocline2
+
+        # Dealing with less than 3 clusters
         else:
-            bottom_centroid_f = min(cluster_top)
-        # Process clustering
-        self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
-        try:
-            rswt = await self.get_RSWT()
-            self.log(f"RSWT = {rswt} F")
-            if top_centroid_f < rswt and max(processed_temps) >= rswt:
-                print("There is water available above RSWT, changing the clustering result")
-                top_cluster = [x for x in processed_temps if x>=rswt]
-                bottom_cluster = [x for x in processed_temps if x<rswt]
-                thermocline = len(top_cluster) #check this
-                top_centroid_f = round(sum(top_cluster)/len(top_cluster),3)
-                bottom_centroid_f = round(sum(bottom_cluster)/len(bottom_cluster),3)
-        except Exception as e:
-            self.log(f"Could not process clustering results! Error: {e}")
-        # TODO: post top_centroid, thermocline, bottom_centroid as synthetic channels
-        self.log(f"Thermocline {thermocline}, top: {top_centroid_f} F, bottom: {bottom_centroid_f} F")
-        return top_centroid_f, bottom_centroid_f, thermocline
+            if cluster_0 and cluster_2:
+                cluster_1 = cluster_2
+            elif cluster_1 and cluster_2:
+                cluster_0 = cluster_2
+            # Two clusters
+            if cluster_0 and cluster_1:
+                cluster_top = max(cluster_0, cluster_1, key=lambda x: sum(x)/len(x))
+                cluster_bottom = min(cluster_0, cluster_1, key=lambda x: sum(x)/len(x))
+                thermocline1 = len(cluster_top)
+                top_temp = round(sum(cluster_top)/len(cluster_top))
+                bottom_temp = round(sum(cluster_bottom)/len(cluster_bottom))
+                print(f"Storage model: {top_temp}({thermocline1}){bottom_temp}")
+                return top_temp, top_temp, bottom_temp, thermocline1, thermocline1
+            # Single cluster
+            else:
+                cluster_top = max(cluster_0, cluster_1, cluster_2, key=lambda x: len(x))
+                top_temp = round(sum(cluster_top)/len(cluster_top))
+                thermocline1 = 12
+                print(f"Storage model: {top_temp}({thermocline1})")
+                return top_temp, top_temp, top_temp, thermocline1, thermocline1
     
     async def get_buffer_available_kwh(self):
         if self.temperature_channel_names is None:
@@ -1107,8 +1072,6 @@ class Atn(ActorInterface, Proactor):
         self.log(f"House available kWh: {house_availale_kwh}")
         return house_availale_kwh
     
-    
-
     async def get_weather(self, session: aiohttp.ClientSession) -> None:
         config_dir = self.settings.paths.config_dir
         weather_file = Path(f"{config_dir}/weather.json")
@@ -1339,23 +1302,6 @@ class Atn(ActorInterface, Proactor):
             self.log("Successfully read price forecast from local CSV")
             self.log(f"LMP USD/MWh {self.price_forecast.lmp_usd_per_mwh}")
             self.log(f"total energy USD/MWh {[round(x,2) for x in self.price_forecast.total_energy]}")
-
-    def kmeans(self, data, k=2, max_iters=100, tol=1e-4):
-        data = np.array(data).reshape(-1, 1)
-        centroids = data[np.random.choice(len(data), k, replace=False)]
-        for _ in range(max_iters):
-            labels = np.argmin(np.abs(data - centroids.T), axis=1)
-            new_centroids = np.zeros_like(centroids)
-            for i in range(k):
-                cluster_points = data[labels == i]
-                if len(cluster_points) > 0:
-                    new_centroids[i] = cluster_points.mean()
-                else:
-                    new_centroids[i] = data[np.random.choice(len(data))]
-            if np.all(np.abs(new_centroids - centroids) < tol):
-                break
-            centroids = new_centroids
-        return labels
 
     async def fake_market_maker(self):
         while True:
