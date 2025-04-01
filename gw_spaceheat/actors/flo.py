@@ -83,10 +83,10 @@ class DGraph():
 
         current_state = DNode(
             top_temp=self.params.initial_top_temp,
-            middle_temp=self.params.initial_bottom_temp,
+            middle_temp=self.params.initial_middle_temp,
             bottom_temp=self.params.initial_bottom_temp,
-            thermocline1=self.params.initial_thermocline,
-            thermocline2=self.params.initial_thermocline,
+            thermocline1=self.params.initial_thermocline1,
+            thermocline2=self.params.initial_thermocline2,
             parameters=self.params
         )
 
