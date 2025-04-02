@@ -248,7 +248,9 @@ class SiegLoop(ScadaActor):
         if abs(temp_diff_from_target) < self.anticipatory_threshold_f and self.lift_f > self.min_lift_f_for_anticipation:
             # If approaching target fast, start opening valve early
             a_term = -self.lift_f * self.anticipatory_gain  # Adjust multiplier based on testing
-            percent_adjustment = p_term +  a_term
+        else:
+            a_term = 0
+        percent_adjustment = p_term +  a_term
         self.log(f"p_term {round(p_term,1)}, a_term {round(a_term,1)}")
         # Calculate maximum movement possible in the control interval (physical limitation)
         max_movement = int(100 * self.CONTROL_CHECK_INTERVAL_S / self.FULL_RANGE_S)
