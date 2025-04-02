@@ -946,7 +946,7 @@ class SiegLoop(ScadaActor):
             return None
         if self.ewt_f is None:
             return None
-        lift_f = min(0, self.lwt_f - self.ewt_f)
+        lift_f = max(0, self.lwt_f - self.ewt_f)
         return lift_f
 
     def is_blind(self) -> bool:
