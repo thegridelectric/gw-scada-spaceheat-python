@@ -253,7 +253,7 @@ class SiegLoop(ScadaActor):
         percent_adjustment = p_term +  a_term
         self.log(f"p_term {round(p_term,1)}, a_term {round(a_term,1)}")
         # Calculate maximum movement possible in the control interval (physical limitation)
-        max_movement = int(100 * self.CONTROL_CHECK_INTERVAL_S / self.FULL_RANGE_S)
+        max_movement = int(100 * self.CONTROL_CHECK_INTERVAL_S / 2*self.FULL_RANGE_S)
         if percent_adjustment > 0:
             bounded_adjustment = min(percent_adjustment, max_movement)
         else:
