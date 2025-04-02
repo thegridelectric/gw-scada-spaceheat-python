@@ -197,14 +197,15 @@ class SiegLoop(ScadaActor):
         self.hp_boss_state = HpBossState.HpOn
 
         # Control parameters (match defulats in SiegLoop)
-        self.proportional_gain = 2.0
-        self.anticipatory_gain = 1.0
-        self.anticipatory_threshold_f = 5.0
+   
+        self.proportional_gain = 1.0
+        self.anticipatory_gain = 0.5
+        self.anticipatory_threshold_f = 10.0
         self.min_lift_f_for_anticipation = 1.0
         self.t1 = 15 # seconds where some flow starts going through the Sieg Loop
         self.t2 = 95 # seconds where all flow starts going through the Sieg Loop
         
-        self.control_interval_seconds = 5.0 
+        self.control_interval_seconds = 10 
 
     def start(self) -> None:
         """ Required method. """
@@ -248,7 +249,7 @@ class SiegLoop(ScadaActor):
             # If approaching target fast, start opening valve early
             anticipatory_adjustment = -self.lift_f * self.anticipatory_gain  # Adjust multiplier based on testing
             percent_adjustment += anticipatory_adjustment
-        
+    
         # Calculate maximum movement possible in the control interval (physical limitation)
         max_movement = int(100 * self.CONTROL_CHECK_INTERVAL_S / self.FULL_RANGE_S)
         if percent_adjustment > 0:
@@ -454,7 +455,7 @@ class SiegLoop(ScadaActor):
                     self.log(f"Trouble with process_reset_hp_keep_value: {e}")
             case SetLwtControlParams():
                 try:
-                    self.process_lwt_control_params(from_node, payload)
+                    self.process_set_lwt_control_params(from_node, payload)
                 except Exception as e:
                     self.log(f"Trouble with process_lwt_control_paramst: {e}")
             case SetTargetLwt():
@@ -542,7 +543,7 @@ class SiegLoop(ScadaActor):
             )
         )
 
-    def process_lwt_control_params(self, from_node: ShNode, payload: SetLwtControlParams) -> None:
+    def process_set_lwt_control_params(self, from_node: ShNode, payload: SetLwtControlParams) -> None:
         # consider adding to HW Layou?
         if payload.ToHandle != self.node.handle:
             self.log(f"Ignoring LwtControlParams with ToHandle {payload.ToHandle} != {self.node.handle}")
@@ -551,6 +552,7 @@ class SiegLoop(ScadaActor):
         self.anticipatory_gain = payload.AnticipatoryGain
         self.anticipatory_threshold_f = payload.AnticipatoryThresholdF
         self.min_lift_f_for_anticipation = payload.MinLiftForAnticipation
+        self.control_interval_seconds = payload.ControlIntervalSeconds
         self.t1 = payload.T1
         self.t2 = payload.T2
         self.log(f"Using {payload}")
@@ -713,7 +715,7 @@ class SiegLoop(ScadaActor):
                     # Allow for cancellation to be processed
                     await asyncio.sleep(0)
             else:
-                self.log(f"Starting movement to LESS keep ({self.percent_keep}% -> {target_percent}%)")
+                self.log(f"Starting movement to LESS keep ({round(self.percent_keep,1)}% -> {round(target_percent,1)}%)")
                 self.trigger_valve_event(ValveEvent.StartKeepingLess)
                 
                 # Now process the movement in a loop
@@ -884,11 +886,11 @@ class SiegLoop(ScadaActor):
         while not self._stop_requested:
             now = datetime.now()
             # Determine if we're at the top of a 5-second interval
-            seconds_into_5s = now.second % 5
+            seconds_into_control_loop = now.second % self.control_interval_seconds
             milliseconds = now.microsecond / 1000
 
-            if seconds_into_5s == 0 and milliseconds < 100:
-                # We're at the top of a 5-second interval (within 100ms)
+            if seconds_into_control_loop == 0 and milliseconds < 100:
+                # We're at the top of a control interval (within 100ms)
                 if not self.is_blind() \
                     and self.control_state in [SiegControlState.Hover, SiegControlState.Active]:
                     # Run temperature control without awaiting to avoid blocking
