@@ -241,15 +241,15 @@ class SiegLoop(ScadaActor):
         # 3. Proportional control based on how far we are from target
         # If LWT is below target, increase recirculation (more keep)
         # If LWT is above target, decrease recirculation (less keep)
-        percent_adjustment = self.proportional_gain * temp_diff_from_target
+        p_term  = self.proportional_gain * temp_diff_from_target
 
         # 4. Add anticipatory logic (look-ahead)
         # If approaching target quickly, start moving valve before reaching target
         if abs(temp_diff_from_target) < self.anticipatory_threshold_f and self.lift_f > self.min_lift_f_for_anticipation:
             # If approaching target fast, start opening valve early
-            anticipatory_adjustment = -self.lift_f * self.anticipatory_gain  # Adjust multiplier based on testing
-            percent_adjustment += anticipatory_adjustment
-    
+            a_term = -self.lift_f * self.anticipatory_gain  # Adjust multiplier based on testing
+            percent_adjustment = p_term +  a_term
+        self.log(f"p_term {round(p_term,1)}, a_term {round(a_term,1)}")
         # Calculate maximum movement possible in the control interval (physical limitation)
         max_movement = int(100 * self.CONTROL_CHECK_INTERVAL_S / self.FULL_RANGE_S)
         if percent_adjustment > 0:
