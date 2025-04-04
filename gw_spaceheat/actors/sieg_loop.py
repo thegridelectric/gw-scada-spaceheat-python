@@ -643,7 +643,7 @@ class SiegLoop(ScadaActor):
             if self.control_state not in [SiegControlState.Dormant, SiegControlState.MovingToFullSend]:
                 self.log(f"That's strange! Got PreparingToTurnOn when control state is {self.control_state}")
             else:
-                if self.is_blind:
+                if self.is_blind():
                     self.log(f"NOT entering control loop: EWT: {self.ewt_f} LWT: {self.lwt_f}")
                 else:
                     self.trigger_control_event(ControlEvent.HpPreparing)
