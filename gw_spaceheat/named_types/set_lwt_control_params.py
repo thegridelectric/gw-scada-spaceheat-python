@@ -11,10 +11,9 @@ from typing_extensions import Self
 class SetLwtControlParams(BaseModel):
     FromHandle: HandleName
     ToHandle: HandleName
-    ProportionalGain: float = 5.0
-    AnticipatoryGain: float
-    AnticipatoryThresholdF: PositiveInt
-    MinLiftForAnticipation: float
+    ProportionalGain: float
+    IntegralGain: float
+    DerivativeGain: float
     ControlIntervalSeconds: PositiveInt
     T1: PositiveInt
     T2: PositiveInt

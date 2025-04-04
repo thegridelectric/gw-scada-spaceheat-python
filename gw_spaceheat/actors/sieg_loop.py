@@ -135,12 +135,12 @@ class SiegLoop(ScadaActor):
     """
     FULL_RANGE_S = 70
     RESET_S = 10
-    CONTROL_CHECK_INTERVAL_S = 5.0 # Check every 5 seconds
 
     def __init__(self, name: str, services: ScadaInterface):
         super().__init__(name, services)
         self._stop_requested = False
-        self.percent_keep: float = 100
+        self.time_percent_keep: float = 100
+        self.flow_percent_keep: float = 100
         self.resetting = False
         self._movement_task = None # Track the current movement task
         self.move_start_s: float = 0
@@ -198,14 +198,15 @@ class SiegLoop(ScadaActor):
 
         # Control parameters (match defulats in SiegLoop)
    
-        self.proportional_gain = 1.0
-        self.anticipatory_gain = 0.5
+        self.proportional_gain = .8
+        self.derivative_gain = 0.05
+        self.integral_gain = 0.2
         self.anticipatory_threshold_f = 10.0
         self.min_lift_f_for_anticipation = 1.0
         self.t1 = 15 # seconds where some flow starts going through the Sieg Loop
         self.t2 = 95 # seconds where all flow starts going through the Sieg Loop
         
-        self.control_interval_seconds = 10 
+        self.control_interval_seconds = 30 
 
     def start(self) -> None:
         """ Required method. """
@@ -225,7 +226,7 @@ class SiegLoop(ScadaActor):
     # Control loop
     ##############################################
 
-    def return_delta_percent(self) -> float:
+    def return_delta_percent_0(self) -> float:
         """Calculate delta percentage adjustment for the next 5 seconds"""
         # 1. If we don't have visiblity, trigger "Blind" which will go to FullSend
         if self.lift_f is None or self.lwt_f is None:
@@ -247,18 +248,83 @@ class SiegLoop(ScadaActor):
         # If approaching target quickly, start moving valve before reaching target
         if abs(temp_diff_from_target) < self.anticipatory_threshold_f and self.lift_f > self.min_lift_f_for_anticipation:
             # If approaching target fast, start opening valve early
-            a_term = -self.lift_f * self.anticipatory_gain  # Adjust multiplier based on testing
+            a_term = -self.lift_f * self.derivative_gain  # Adjust multiplier based on testing
         else:
             a_term = 0
         percent_adjustment = p_term +  a_term
         self.log(f"p_term {round(p_term,1)}, a_term {round(a_term,1)}")
         # Calculate maximum movement possible in the control interval (physical limitation)
-        max_movement = int(100 * self.CONTROL_CHECK_INTERVAL_S / 2*self.FULL_RANGE_S)
+        max_movement = int(100 * self.control_interval_seconds / 2*self.FULL_RANGE_S)
         if percent_adjustment > 0:
             bounded_adjustment = min(percent_adjustment, max_movement)
         else:
             bounded_adjustment = max(percent_adjustment, -max_movement)
 
+        return bounded_adjustment
+
+    def return_delta_percent(self) -> float:
+        """Calculate delta percentage adjustment for the next control interval using a PID controller"""
+        # 1. If we don't have visibility, trigger "Blind" which will go to FullSend
+        if self.lift_f is None or self.lwt_f is None:
+            self.trigger_control_event(ControlEvent.Blind)
+            return 0
+        
+        if self.control_state not in [SiegControlState.Hover, SiegControlState.Active]:
+            raise Exception(f"Should not be running control loop in state {self.control_state}")
+        
+        # 2. Calculate error
+        current_error = self.target_lwt - self.lwt_f
+        
+        # 3. Calculate PID terms
+        # Proportional term
+        p_term = self.proportional_gain * current_error
+        
+        # Derivative term (rate of change of error)
+        # Store time and error for derivative calculation
+        current_time = time.time()
+        if not hasattr(self, 'last_error_time') or not hasattr(self, 'last_error'):
+            # First run, initialize values
+            self.last_error_time = current_time
+            self.last_error = current_error
+            d_term = 0
+        else:
+            # Calculate derivative only if enough time has passed
+            time_delta = current_time - self.last_error_time
+            if time_delta > 0:
+                error_delta = current_error - self.last_error
+                d_term = self.derivative_gain * (error_delta / time_delta)
+                
+                # Update last values for next iteration
+                self.last_error_time = current_time
+                self.last_error = current_error
+            else:
+                d_term = 0
+        
+        # Integral term
+        if not hasattr(self, 'error_integral'):
+            self.error_integral = 0
+        
+        # Add current error to integral, with anti-windup protection
+        max_integral = 50  # Limit integral windup
+        self.error_integral += current_error * self.control_interval_seconds
+        self.error_integral = max(-max_integral, min(self.error_integral, max_integral))
+        
+        i_term = self.integral_gain * self.error_integral
+        
+        # 4. Calculate total adjustment
+        percent_adjustment = p_term + i_term + d_term
+        
+        self.log(f"PID: P={round(p_term,1)}, I={round(i_term,1)}, D={round(d_term,1)}, Total={round(percent_adjustment,1)}")
+        
+        # 5. Calculate maximum movement possible in the control interval (physical limitation)
+        max_movement = 100 * self.control_interval_seconds / (2 * self.FULL_RANGE_S)
+        
+        # 6. Bound the adjustment to the physical limits of the valve
+        if percent_adjustment > 0:
+            bounded_adjustment = min(percent_adjustment, max_movement)
+        else:
+            bounded_adjustment = max(percent_adjustment, -max_movement)
+        
         return bounded_adjustment
     
     async def run_temperature_control(self) -> None:
@@ -274,7 +340,7 @@ class SiegLoop(ScadaActor):
 
         # Calculate target percent
         delta_percent = self.return_delta_percent()
-        max_movement = int(100 * self.CONTROL_CHECK_INTERVAL_S / self.FULL_RANGE_S)
+        max_movement = int(100 * self.control_interval_seconds / self.FULL_RANGE_S)
         response = delta_percent/max_movement
         # If in Hover state and delta is finally negative (need less keep), 
         # transition to Active state
@@ -290,7 +356,7 @@ class SiegLoop(ScadaActor):
         # Only move if significant change needed (avoid hunting)
         if abs(delta_percent) >= 0.5:
             # Calculate new position
-            target_percent = self.percent_keep + delta_percent
+            target_percent = self.time_percent_keep + delta_percent
             target_percent = max(0, min(100, target_percent))
             await self.prepare_new_movement_task(target_percent)
 
@@ -527,20 +593,20 @@ class SiegLoop(ScadaActor):
             self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
             return
 
-        if payload.FromValue != self.percent_keep:
-            self.send_glitch(f"Ignoring ResetHpKeepValue w FromValue {payload.FromValue} - percent keep is {self.percent_keep}")
+        if payload.FromValue != self.time_percent_keep:
+            self.send_glitch(f"Ignoring ResetHpKeepValue w FromValue {payload.FromValue} - percent keep is {self.time_percent_keep}")
             return
         
         if self._movement_task:
             self.send_glitch(f"Not resetting hp keep value while moving")
             return
-        self.log(f"Resetting percent keep from {self.percent_keep} to {payload.ToValue} without moving valve")
-        self.percent_keep = payload.ToValue
+        self.log(f"Resetting percent keep from {self.time_percent_keep} to {payload.ToValue} without moving valve")
+        self.time_percent_keep = payload.ToValue
         self._send_to(
             self.primary_scada,
             SingleReading(
                 ChannelName=H0CN.hp_keep,
-                Value=self.percent_keep,
+                Value=self.time_percent_keep,
                 ScadaReadTimeUnixMs=int(time.time() *1000)
             )
         )
@@ -551,9 +617,8 @@ class SiegLoop(ScadaActor):
             self.log(f"Ignoring LwtControlParams with ToHandle {payload.ToHandle} != {self.node.handle}")
             return
         self.proportional_gain = payload.ProportionalGain
-        self.anticipatory_gain = payload.AnticipatoryGain
-        self.anticipatory_threshold_f = payload.AnticipatoryThresholdF
-        self.min_lift_f_for_anticipation = payload.MinLiftForAnticipation
+        self.derivative_gain = payload.DerivativeGain
+        self.integral_gain = payload.IntegralGain
         self.control_interval_seconds = payload.ControlIntervalSeconds
         self.t1 = payload.T1
         self.t2 = payload.T2
@@ -598,14 +663,14 @@ class SiegLoop(ScadaActor):
             self.log(f"boss's handle {self.boss.handle} does not match payload FromHandle {payload.FromHandle}")
             return
 
-        if payload.HpKeepPercent != self.percent_keep:
-            self.send_glitch(f"Ignoring SiegLoopEndpointValveAdjustment w {payload.HpKeepPercent} - our keep percent is {self.percent_keep}")
+        if payload.HpKeepPercent != self.time_percent_keep:
+            self.send_glitch(f"Ignoring SiegLoopEndpointValveAdjustment w {payload.HpKeepPercent} - our keep percent is {self.time_percent_keep}")
             return
         if self._movement_task: 
             self.send_glitch("Ignoring SiegLoopEndpointValveAdjustment - moving already")
             return
         elif self.valve_state not in [SiegValveState.FullyKeep, SiegValveState.FullySend]:
-            self.send_glitch(f"Ignoring SiegLoopEndpointValveAdjustment - percent keep at {self.percent_keep} and state {self.valve_state}")
+            self.send_glitch(f"Ignoring SiegLoopEndpointValveAdjustment - percent keep at {self.time_percent_keep} and state {self.valve_state}")
 
         # Generate a new task ID for this movement
         new_task_id = str(uuid.uuid4())[-4:]
@@ -644,16 +709,16 @@ class SiegLoop(ScadaActor):
 
     def complete_move(self, task_id: str) -> None:
         if self.valve_state == SiegValveState.KeepingMore:
-            if self.percent_keep == 100:
+            if self.time_percent_keep == 100:
                 self.trigger_valve_event(ValveEvent.ResetToFullyKeep)
             else:
                 self.trigger_valve_event(ValveEvent.StopKeepingMore)
         elif self.valve_state == SiegValveState.KeepingLess:
-            if self.percent_keep == 0:
+            if self.time_percent_keep == 0:
                 self.trigger_valve_event(ValveEvent.ResetToFullySend)
             else:
                 self.trigger_valve_event(ValveEvent.StopKeepingLess)
-        self.log(f"Movement {task_id} completed: {self.percent_keep}%, state {self.valve_state}")
+        self.log(f"Movement {task_id} completed: {self.time_percent_keep}%, state {self.valve_state}")
 
     async def prepare_new_movement_task(self, target_percent: float) -> str:
         """Create a new movement task with proper cleanup of existing tasks.
@@ -681,7 +746,7 @@ class SiegLoop(ScadaActor):
     
     async def _move_to_target_percent_keep(self, target_percent: float, task_id: str) -> None:
         """Move the valve to the target percent keep value."""
-        if self.percent_keep == target_percent:
+        if self.time_percent_keep == target_percent:
             self.log(f"Already at target {round(target_percent,2)}%")
             # Check if we need to trigger ReachT2 event
             if self.control_state == SiegControlState.MovingToKeep and target_percent == self.t2:
@@ -691,23 +756,23 @@ class SiegLoop(ScadaActor):
             return
             
         # Determine direction
-        moving_to_more_keep = self.percent_keep < target_percent
+        moving_to_more_keep = self.time_percent_keep < target_percent
     
         # Wait a moment to ensure the state machine has settled
         await asyncio.sleep(0.2)
-        self.log(f"{round(self.percent_keep)} keep [{task_id} MOVE TO {round(target_percent)}% STARTING]")
+        self.log(f"{round(self.time_percent_keep)} keep [{task_id} MOVE TO {round(target_percent)}% STARTING]")
         # Set the appropriate state
         try:
             if moving_to_more_keep:
-                self.log(f"Starting movement to MORE keep ({self.percent_keep}% -> {target_percent}%)")
+                self.log(f"Starting movement to MORE keep ({self.time_percent_keep}% -> {target_percent}%)")
                 self.trigger_valve_event(ValveEvent.StartKeepingMore)
                 # Now process the movement in a loop
-                while self.percent_keep < target_percent:
+                while self.time_percent_keep < target_percent:
                     # Check if this task has been superseded
                     if task_id != self._current_task_id:
                         self.log(f"Task {task_id} has been superseded, stopping")
                         break
-                    delta_percent = target_percent - self.percent_keep 
+                    delta_percent = target_percent - self.time_percent_keep 
                     if delta_percent < 1:
                         # keep a fraction of a percent
                         await self._keep_one_percent_more(task_id, delta_percent)
@@ -717,17 +782,17 @@ class SiegLoop(ScadaActor):
                     # Allow for cancellation to be processed
                     await asyncio.sleep(0)
             else:
-                self.log(f"Starting movement to LESS keep ({round(self.percent_keep,1)}% -> {round(target_percent,1)}%)")
+                self.log(f"Starting movement to LESS keep ({round(self.time_percent_keep,1)}% -> {round(target_percent,1)}%)")
                 self.trigger_valve_event(ValveEvent.StartKeepingLess)
                 
                 # Now process the movement in a loop
-                while self.percent_keep > target_percent:
+                while self.time_percent_keep > target_percent:
                     # Check if this task has been superseded
                     if task_id != self._current_task_id:
                         self.log(f"Task {task_id} has been superseded, stopping")
                         break
                         
-                    delta_percent =  self.percent_keep  - target_percent
+                    delta_percent =  self.time_percent_keep  - target_percent
                     if delta_percent < 1:
                         # keep a fraction of a percent less
                         await self._keep_one_percent_less(task_id, delta_percent)
@@ -738,7 +803,7 @@ class SiegLoop(ScadaActor):
 
             # At the end of the method, after movement is complete:
             if task_id == self._current_task_id:
-                self.log(f"{round(self.percent_keep)} keep [{task_id} COMPLETED]")
+                self.log(f"{round(self.time_percent_keep)} keep [{task_id} COMPLETED]")
                 self.complete_move(task_id)
                 
                 # Check if we need to trigger ReachT2 event
@@ -749,7 +814,7 @@ class SiegLoop(ScadaActor):
                     self.trigger_control_event(ControlEvent.ReachFullSend)
 
         except asyncio.CancelledError:
-            self.log(f"Movement cancelled at {self.percent_keep}%")
+            self.log(f"Movement cancelled at {self.time_percent_keep}%")
             # Let the cancellation propagate to the caller - don't set state here
             # as clean_up_old_task handles the FSM state transition
             raise
@@ -775,20 +840,20 @@ class SiegLoop(ScadaActor):
                 raise Exception("fraction needs to be less than 1")
             percent = fraction
         sleep_s = percent * self.FULL_RANGE_S / 100
-        orig_keep = self.percent_keep
+        orig_keep = self.time_percent_keep
         await asyncio.sleep(sleep_s)
 
         # Check again if we're still the current task after sleeping
         if task_id != self._current_task_id:
             return
         
-        self.percent_keep = orig_keep - percent
+        self.time_percent_keep = orig_keep - percent
         # self.log(f"{self.percent_keep}% keep [{task_id}]")
         self._send_to(
             self.primary_scada,
             SingleReading(
                 ChannelName=H0CN.hp_keep,
-                Value=round(self.percent_keep),
+                Value=round(self.time_percent_keep),
                 ScadaReadTimeUnixMs=int(time.time() *1000)
             )
         )
@@ -806,20 +871,20 @@ class SiegLoop(ScadaActor):
                 raise Exception("fraction needs to be less than 1")
             percent = fraction
         sleep_s = percent * self.FULL_RANGE_S / 100
-        orig_keep = self.percent_keep
+        orig_keep = self.time_percent_keep
         await asyncio.sleep(sleep_s)
 
         # Check again if we're still the current task after sleeping
         if task_id != self._current_task_id:
             return
         
-        self.percent_keep = orig_keep + percent
+        self.time_percent_keep = orig_keep + percent
         # self.log(f"{self.percent_keep}% keep [{task_id}]")
         self._send_to(
             self.primary_scada,
             SingleReading(
                 ChannelName=H0CN.hp_keep,
-                Value=round(self.percent_keep),
+                Value=round(self.time_percent_keep),
                 ScadaReadTimeUnixMs=int(time.time() *1000)
             )
         )
@@ -908,7 +973,7 @@ class SiegLoop(ScadaActor):
                 self.primary_scada,
                     SingleReading(
                         ChannelName=H0CN.hp_keep,
-                        Value=round(self.percent_keep),
+                        Value=round(self.time_percent_keep),
                         ScadaReadTimeUnixMs=int(time.time() *1000)
                     )
                 )

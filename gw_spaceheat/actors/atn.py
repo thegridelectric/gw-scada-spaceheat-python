@@ -1585,9 +1585,8 @@ class Atn(ActorInterface, Proactor):
 
     def set_lwt_control_params(self,
         proportional_gain: float = 5.0,
-        anticipatory_gain: float = 2,
-        anticipatory_threshold_f: int = 5,
-        min_lift_for_anticipation: float = 1,
+        integral_gain: float = 2,
+        derivative_gain: float = 1,
         control_interval_seconds: int = 5,
         t1: int = 15,
         t2: int = 65
@@ -1600,9 +1599,8 @@ class Atn(ActorInterface, Proactor):
                     FromHandle=H0N.atn,
                     ToHandle=f"{H0N.atn}.{H0N.atomic_ally}",
                     ProportionalGain=proportional_gain,
-                    AnticipatoryGain=anticipatory_gain,
-                    AnticipatoryThresholdF=anticipatory_threshold_f,
-                    MinLiftForAnticipation=min_lift_for_anticipation,
+                    IntegralGain=integral_gain,
+                    DerivativeGain=derivative_gain,
                     ControlIntervalSeconds=control_interval_seconds,
                     T1=t1,
                     T2=t2,
