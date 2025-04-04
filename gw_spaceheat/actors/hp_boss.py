@@ -142,7 +142,7 @@ class HpBoss(ScadaActor):
     def process_sieg_loop_ready(self, from_node: ShNode, payload: SiegLoopReady):
         if self.state == HpBossState.PreparingToTurnOn:
             self.state = HpBossState.HpOn
-            self.close_hp_scada_ops_relay
+            self.close_hp_scada_ops_relay()
             self.log(f"Got SiegLoop ready. Changing state to {self.state}")
             self._send_to(self.primary_scada,
                             SingleMachineState(
@@ -158,7 +158,7 @@ class HpBoss(ScadaActor):
         # If still in state WaitingToTurnOn, turn on:
         if self.state == HpBossState.PreparingToTurnOn:
             self.state = HpBossState.HpOn
-            self.close_hp_scada_ops_relay
+            self.close_hp_scada_ops_relay()
             self.log(f"Did not hear from Sieg loop for 2 moinutes. Turning on anyway!")
             self._send_to(self.primary_scada,
                             SingleMachineState(
