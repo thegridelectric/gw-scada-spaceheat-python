@@ -88,7 +88,8 @@ class HpBoss(ScadaActor):
         return Ok(True)
     
 
-    def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None:    
+    def process_fsm_event(self, from_node: ShNode, payload: FsmEvent) -> None: 
+        self.log(f"Got {payload}")   
         if payload.ToHandle != self.node.handle:
              # TODO: turn this into a report?
             self._send_to(self.atn,
