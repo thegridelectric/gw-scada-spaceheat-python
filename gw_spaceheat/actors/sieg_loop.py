@@ -290,16 +290,15 @@ class SiegLoop(ScadaActor):
         else:
             # Calculate derivative only if enough time has passed
             time_delta = current_time - self.last_error_time
-            if time_delta > 0:
-                error_delta = current_error - self.last_error
-                d_term = self.derivative_gain * (error_delta / time_delta)
-                
-                # Update last values for next iteration
-                self.last_error_time = current_time
-                self.last_error = current_error
-            else:
-                d_term = 0
-        
+            self.log(f"time_delta is {round(time_delta)}")
+            error_delta = current_error - self.last_error
+            self.log(f"error delta is {error_delta}")
+            d_term = self.derivative_gain * (error_delta / time_delta)
+            self.log(f"d_term is {d_term}")
+            # Update last values for next iteration
+            self.last_error_time = current_time
+            self.last_error = current_error
+
         # Integral term
         if not hasattr(self, 'error_integral'):
             self.error_integral = 0
